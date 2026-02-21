@@ -1062,13 +1062,22 @@
             border-color: var(--accent-wood);
         }
 
+        /* CORRECCIÓN: Stage ahora es opcional y sin altura mínima fija */
         .vn-stage {
-            min-height: 340px;
+            min-height: auto;
             display: flex;
             gap: 2rem;
             justify-content: center;
             align-items: flex-end;
             padding: 2rem 1rem 5rem;
+            /* Transición suave para cuando aparecen/desaparecen sprites */
+            transition: all 0.5s ease;
+        }
+
+        /* Cuando el stage está vacío, ocupa menos espacio */
+        .vn-stage:empty {
+            min-height: 0;
+            padding: 0;
         }
 
         .vn-stage-figure {
@@ -1962,6 +1971,7 @@
                 avatarBox.style.background = msg.charColor || 'var(--bg-tertiary)';
             }
             
+            // CORRECCIÓN: Solo actualizar stage si hay sprites para mostrar
             updateStageFocus(msg);
         }
         
@@ -1976,46 +1986,45 @@
         nextMessage();
     }
 
+    // ============================================
+    // CORRECCIÓN PRINCIPAL: Sprites 100% Opcionales
+    // ============================================
     function updateStageFocus(currentMsg) {
         const stage = document.getElementById('vnStage');
         const msgs = appData.messages[currentTopicId] || [];
         
+        // 1. Recolectar personajes recientes únicos
         const recentChars = [];
         const seen = new Set();
         
+        // Revisar mensajes recientes (hasta 4 mensajes alrededor del actual)
         for (let i = Math.max(0, currentMessageIndex - 2); i <= currentMessageIndex + 1 && i < msgs.length; i++) {
             const m = msgs[i];
-            if (m.characterId && !seen.has(m.characterId)) {
+            // Solo incluir si tiene sprite definido y válido
+            if (m.characterId && !seen.has(m.characterId) && m.charSprite && m.charSprite.trim()) {
                 seen.add(m.characterId);
                 recentChars.push(m);
             }
         }
         
+        // 2. Si no hay personajes con sprites, limpiar stage y salir
+        if (recentChars.length === 0) {
+            stage.innerHTML = '';
+            return;
+        }
+        
+        // 3. Generar HTML solo para los que tienen sprite
         stage.innerHTML = recentChars.map((char) => {
             const isCurrent = char.characterId === currentMsg.characterId;
             const opacity = isCurrent ? '1' : '0.4';
             const scale = isCurrent ? '1.1' : '0.9';
             const filter = isCurrent ? 'brightness(1.2)' : 'brightness(0.6) grayscale(0.3)';
-            const sprite = char.charSprite && char.charSprite.trim() ? char.charSprite : null;
-
-            if (sprite) {
-                return `
-                    <div class="vn-stage-figure" style="opacity: ${opacity}; transform: scale(${scale}); filter: ${filter};">
-                        <div class="vn-stage-sprite">
-                            <img src="${sprite}" alt="${char.charName}">
-                        </div>
-                        <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem; font-family: Cinzel; font-size: 0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${char.charName}</p>
-                    </div>
-                `;
-            }
-
+            
+            // Ya sabemos que charSprite existe y es válido por el filtro anterior
             return `
                 <div class="vn-stage-figure" style="opacity: ${opacity}; transform: scale(${scale}); filter: ${filter};">
-                    <div style="width: 120px; height: 120px; border-radius: 50%; background: ${char.charColor || 'var(--accent-wood)'}; opacity: 0.8; margin: 0 auto; box-shadow: ${isCurrent ? '0 0 30px ' + (char.charColor || 'var(--accent-wood)') : 'none'}; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 4px solid ${isCurrent ? 'var(--accent-gold)' : 'transparent'};">
-                        ${char.charAvatar ? 
-                            `<img src="${char.charAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : 
-                            char.charName.charAt(0)
-                        }
+                    <div class="vn-stage-sprite">
+                        <img src="${char.charSprite}" alt="${char.charName}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.5);\\'>Error</div>';">
                     </div>
                     <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem; font-family: Cinzel; font-size: 0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${char.charName}</p>
                 </div>
@@ -2487,8 +2496,20 @@
         document.getElementById(id).classList.remove('active'); 
     }
 
+    // ============================================
+    // CORRECCIÓN: Manejo seguro de localStorage
+    // ============================================
     function save() { 
-        localStorage.setItem('etheria_data', JSON.stringify(appData)); 
+        try {
+            localStorage.setItem('etheria_data', JSON.stringify(appData));
+        } catch (e) {
+            if (e.name === 'QuotaExceededError') {
+                console.error('Error: Límite de almacenamiento excedido');
+                alert('⚠️ Advertencia: El almacenamiento local está lleno.\n\nIntenta:\n1. Exportar y borrar historias antiguas\n2. Usar menos imágenes grandes\n3. Limpiar datos del navegador');
+            } else {
+                console.error('Error guardando en localStorage:', e);
+            }
+        }
     }
 
     // ============================================
