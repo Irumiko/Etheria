@@ -60,6 +60,150 @@
         }
 
         /* ============================================
+           TRANSICIONES CINEMATOGRÁFICAS
+           ============================================ */
+        .vn-dialogue-box {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 1.5rem;
+            width: min(1000px, 92%);
+            background: rgba(26, 24, 21, 0.85);
+            border: 2px solid var(--accent-gold);
+            border-radius: 22px;
+            padding: 1.8rem 2rem 2.2rem 6.5rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            z-index: 150;
+            /* TRANSICIONES CINEMATOGRÁFICAS */
+            opacity: 1;
+            transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.3s ease;
+        }
+
+        .vn-dialogue-box.transitioning {
+            opacity: 0;
+            transform: translateX(-50%) translateY(30px);
+        }
+
+        .vn-dialogue-box.slide-left {
+            animation: slideLeft 0.5s ease;
+        }
+
+        .vn-dialogue-box.slide-right {
+            animation: slideRight 0.5s ease;
+        }
+
+        @keyframes slideLeft {
+            0% { transform: translateX(-50%) translateX(50px); opacity: 0; }
+            100% { transform: translateX(-50%) translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideRight {
+            0% { transform: translateX(-50%) translateX(-50px); opacity: 0; }
+            100% { transform: translateX(-50%) translateX(0); opacity: 1; }
+        }
+
+        /* ============================================
+           SISTEMA DE PARTÍCULAS
+           ============================================ */
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            opacity: 0.6;
+            animation: fall linear infinite;
+        }
+
+        /* Partículas de nieve */
+        .particle.snow {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            filter: blur(1px);
+            box-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+
+        /* Partículas de hojas */
+        .particle.leaf {
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(45deg, #8b4513, #d2691e);
+            border-radius: 0 100% 0 100%;
+            animation: fall-rotate linear infinite;
+        }
+
+        /* Partículas de fuego/brasas */
+        .particle.ember {
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, #ff6b35, #f7c59f);
+            border-radius: 50%;
+            box-shadow: 0 0 6px #ff6b35;
+            animation: rise linear infinite;
+        }
+
+        /* Partículas de polvo/magia */
+        .particle.magic {
+            width: 3px;
+            height: 3px;
+            background: radial-gradient(circle, var(--accent-gold), transparent);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-gold);
+            animation: float ease-in-out infinite;
+        }
+
+        /* Partículas de lluvia */
+        .particle.rain {
+            width: 2px;
+            height: 15px;
+            background: linear-gradient(to bottom, transparent, rgba(174, 194, 224, 0.8));
+            animation: fall-rain linear infinite;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-10vh) translateX(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(110vh) translateX(20px); opacity: 0; }
+        }
+
+        @keyframes fall-rotate {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.8; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 0.8; }
+            100% { transform: translateY(-10vh) translateX(30px); opacity: 0; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0.4; }
+            25% { transform: translateY(-20px) translateX(10px); opacity: 0.8; }
+            50% { transform: translateY(-10px) translateX(-10px); opacity: 0.6; }
+            75% { transform: translateY(-30px) translateX(5px); opacity: 0.8; }
+        }
+
+        @keyframes fall-rain {
+            0% { transform: translateY(-10vh); opacity: 0; }
+            10% { opacity: 0.6; }
+            100% { transform: translateY(110vh); opacity: 0; }
+        }
+
+        /* ============================================
            CORRECCIÓN FICHAS DE PERSONAJES
            ============================================ */
         .sheet-modal {
@@ -228,7 +372,7 @@
         .user-card:hover .user-hint { opacity: 1; }
 
         /* ============================================
-           MENÚ PRINCIPAL (ESTILO VN)
+           MENÚ PRINCIPAL (ESTILO VN) - REORGANIZADO
            ============================================ */
         .main-menu {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -314,6 +458,12 @@
         .menu-button.primary:hover {
             background: var(--accent-sage);
             border-color: var(--accent-sage);
+        }
+
+        .menu-button.secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
         }
         
         .menu-button .icon {
@@ -1011,7 +1161,7 @@
         .hidden { display: none !important; }
 
         /* ============================================
-           MODO CINE (Visual Novel)
+           MODO CINE (Visual Novel) - REORGANIZADO
            ============================================ */
         .vn-section {
             position: relative;
@@ -1062,7 +1212,16 @@
             border-color: var(--accent-wood);
         }
 
-        /* CORRECCIÓN: Stage ahora es opcional y sin altura mínima fija */
+        .vn-control-btn.save-btn {
+            background: rgba(107, 142, 125, 0.6);
+            border-color: var(--accent-sage);
+            color: white;
+        }
+
+        .vn-control-btn.save-btn:hover {
+            background: var(--accent-sage);
+        }
+
         .vn-stage {
             min-height: auto;
             display: flex;
@@ -1070,11 +1229,9 @@
             justify-content: center;
             align-items: flex-end;
             padding: 2rem 1rem 5rem;
-            /* Transición suave para cuando aparecen/desaparecen sprites */
             transition: all 0.5s ease;
         }
 
-        /* Cuando el stage está vacío, ocupa menos espacio */
         .vn-stage:empty {
             min-height: 0;
             padding: 0;
@@ -1099,22 +1256,6 @@
             height: 100%;
             object-fit: contain;
             filter: drop-shadow(0 12px 30px rgba(0,0,0,0.5));
-        }
-
-        .vn-dialogue-box {
-            position: fixed;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: 1.5rem;
-            width: min(1000px, 92%);
-            background: rgba(26, 24, 21, 0.85);
-            border: 2px solid var(--accent-gold);
-            border-radius: 22px;
-            padding: 1.8rem 2rem 2.2rem 6.5rem;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            backdrop-filter: blur(10px);
-            cursor: pointer;
-            z-index: 150;
         }
 
         .vn-speaker-avatar {
@@ -1283,10 +1424,36 @@
             font-family: 'Inter', sans-serif;
             color: var(--text-secondary);
         }
+
+        /* Notificación de guardado */
+        .save-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--accent-sage), #4a6b5a);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            border: 2px solid var(--accent-gold);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            z-index: 3000;
+            animation: slideInRight 0.3s ease;
+            font-family: 'Cinzel', serif;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
     </style>
     <base target="_blank">
 </head>
 <body>
+
+    <!-- ============================================
+         SISTEMA DE PARTÍCULAS (NUEVO)
+         ============================================ -->
+    <div id="particlesContainer" class="particles-container"></div>
 
     <!-- ============================================
          1. PANTALLA DE SELECCIÓN DE USUARIO
@@ -1315,7 +1482,7 @@
     </div>
 
     <!-- ============================================
-         2. MENÚ PRINCIPAL (Estilo VN)
+         2. MENÚ PRINCIPAL (Estilo VN) - REORGANIZADO
          ============================================ -->
     <div id="mainMenu" class="main-menu hidden">
         <h1 class="menu-title">📖 ETHERIA</h1>
@@ -1327,14 +1494,21 @@
                 <span>Nueva Partida</span>
             </button>
             
-            <button class="menu-button" onclick="importFromMenu()">
-                <span class="icon">📂</span>
-                <span>Continuar / Cargar</span>
-            </button>
-            
-            <button class="menu-button" onclick="showSection('gallery')">
+            <button class="menu-button secondary" onclick="showSection('gallery')">
                 <span class="icon">🎭</span>
                 <span>Galería de Personajes</span>
+            </button>
+            
+            <!-- NUEVO: Botón Guardar Partida -->
+            <button class="menu-button" onclick="saveGameFromMenu()">
+                <span class="icon">💾</span>
+                <span>Guardar Partida</span>
+            </button>
+            
+            <!-- NUEVO: Botón Cargar Partida -->
+            <button class="menu-button" onclick="loadGameFromMenu()">
+                <span class="icon">📂</span>
+                <span>Cargar Partida</span>
             </button>
             
             <button class="menu-button" onclick="showSection('options')">
@@ -1443,16 +1617,7 @@
                 <button onclick="changeUser()" class="btn" style="background: var(--accent-warm); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">Editar Nombre</button>
             </div>
             
-            <div class="option-card">
-                <div class="option-icon">💾</div>
-                <h3 class="option-title">Gestión de Datos</h3>
-                <p class="option-description">Sincroniza tu progreso con la nube.</p>
-                <div class="cloud-controls" style="margin-top: 10px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                    <button id="saveCloudBtn" onclick="saveToCloud()" class="btn-secondary" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border-color); padding: 0.8rem 1rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">☁️ Guardar</button>
-                    <button id="loadCloudBtn" onclick="loadFromCloud()" class="btn-secondary" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border-color); padding: 0.8rem 1rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">☁️ Cargar</button>
-                </div>
-                <input type="file" id="importFile" accept=".json" onchange="importData(this)" style="display: none;">
-            </div>
+            <!-- Eliminado el botón de gestión de datos de la nube de aquí -->
         </div>
         
         <!-- Audio Panel - DENTRO de section-content -->
@@ -1476,16 +1641,18 @@
 </div>
 
     <!-- ============================================
-         SECCIÓN: MODO CINE (Visual Novel)
+         SECCIÓN: MODO CINE (Visual Novel) - REORGANIZADO
          ============================================ -->
     <div id="vnSection" class="game-section vn-section">
         <div class="vn-header">
             <h2 id="vnHeaderTitle" class="vn-title">Título de la Historia</h2>
             <div class="vn-controls">
-                <button id="autoPlayBtn" class="vn-control-btn" onclick="toggleAutoPlay()">▶️ Auto</button>
+                <!-- ELIMINADO: Botón Auto -->
                 <button class="vn-control-btn" onclick="firstMessage()">⏮️ Inicio</button>
                 <button class="vn-control-btn" onclick="previousMessage()">◀️ Anterior</button>
                 <button class="vn-control-btn" onclick="openReplyPanel()">✎ Responder</button>
+                <!-- NUEVO: Botón Guardar -->
+                <button class="vn-control-btn save-btn" onclick="quickSave()">💾 Guardar</button>
                 <button id="deleteTopicBtn" class="vn-control-btn" style="display: none;" onclick="deleteCurrentTopic()">🗑️ Borrar</button>
                 <button class="vn-control-btn" onclick="backToTopics()">✕ Salir</button>
             </div>
@@ -1691,9 +1858,9 @@
     // ============================================
     let currentMessageIndex = 0;
     let isTyping = false;
-    let autoPlay = false;
     let typewriterInterval;
     let isNarratorMode = false;
+    let currentParticleType = null;
 
     // ============================================
     // INICIALIZACIÓN
@@ -1715,6 +1882,85 @@
             const el = document.getElementById('userName' + i);
             if(el) el.textContent = n;
         });
+    }
+
+    // ============================================
+    // SISTEMA DE PARTÍCULAS (NUEVO)
+    // ============================================
+    function setParticles(type) {
+        const container = document.getElementById('particlesContainer');
+        
+        // Limpiar partículas existentes
+        container.innerHTML = '';
+        currentParticleType = type;
+        
+        if (!type) return;
+        
+        const particleCount = 30; // Número de partículas
+        const particleClass = type; // snow, leaf, ember, magic, rain
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = `particle ${particleClass}`;
+            
+            // Posición aleatoria horizontal
+            particle.style.left = Math.random() * 100 + '%';
+            
+            // Tamaño aleatorio
+            const size = Math.random() * 0.5 + 0.8; // 0.8x a 1.3x
+            particle.style.transform = `scale(${size})`;
+            
+            // Duración aleatoria
+            const duration = Math.random() * 3 + 4; // 4-7 segundos
+            particle.style.animationDuration = duration + 's';
+            
+            // Retraso aleatorio para que no salgan todas juntas
+            const delay = Math.random() * 5;
+            particle.style.animationDelay = delay + 's';
+            
+            container.appendChild(particle);
+        }
+    }
+
+    function detectParticleTypeFromBackground(backgroundUrl) {
+        if (!backgroundUrl) return null;
+        
+        const url = backgroundUrl.toLowerCase();
+        
+        // Detectar tipo según palabras clave en la URL
+        if (url.includes('snow') || url.includes('winter') || url.includes('ice') || url.includes('frozen'))
+            return 'snow';
+        if (url.includes('forest') || url.includes('tree') || url.includes('leaf') || url.includes('autumn') || url.includes('fall'))
+            return 'leaf';
+        if (url.includes('fire') || url.includes('campfire') || url.includes('volcano') || url.includes('lava'))
+            return 'ember';
+        if (url.includes('rain') || url.includes('storm') || url.includes('water'))
+            return 'rain';
+        if (url.includes('magic') || url.includes('crystal') || url.includes('star') || url.includes('night'))
+            return 'magic';
+        
+        return null; // Sin partículas por defecto
+    }
+
+    // ============================================
+    // TRANSICIONES CINEMATOGRÁFICAS (NUEVO)
+    // ============================================
+    function transitionToMessage(direction, callback) {
+        const dialogueBox = document.querySelector('.vn-dialogue-box');
+        
+        // Añadir clase de transición
+        dialogueBox.classList.add('transitioning');
+        
+        setTimeout(() => {
+            callback();
+            // Quitar clase y añadir animación de entrada
+            dialogueBox.classList.remove('transitioning');
+            dialogueBox.classList.add(direction === 'next' ? 'slide-left' : 'slide-right');
+            
+            setTimeout(() => {
+                dialogueBox.classList.remove('slide-left', 'slide-right');
+            }, 500);
+        }, 300);
     }
 
     // ============================================
@@ -1751,15 +1997,48 @@
     function backToTopics() {
         document.getElementById('vnSection').classList.remove('active');
         document.getElementById('topicsSection').classList.add('active');
+        // Limpiar partículas al salir
+        setParticles(null);
         renderTopics();
         updateStats();
     }
 
     // ============================================
-    // MENÚ PRINCIPAL - Cargar/Continuar
+    // MENÚ PRINCIPAL - Guardar/Cargar (NUEVO)
     // ============================================
-    function importFromMenu() {
-        document.getElementById('importFile').click();
+    function saveGameFromMenu() {
+        // Guardar en localStorage primero
+        save();
+        
+        // Intentar guardar en la nube automáticamente
+        saveToCloud().then(() => {
+            showNotification('💾 Partida guardada en la nube');
+        }).catch(() => {
+            showNotification('💾 Partida guardada localmente');
+        });
+    }
+
+    function loadGameFromMenu() {
+        // Cargar desde la nube
+        loadFromCloud().then(() => {
+            showNotification('📂 Partida cargada correctamente');
+        }).catch((err) => {
+            // Si falla la nube, intentar importar archivo
+            document.getElementById('importFile').click();
+        });
+    }
+
+    function showNotification(message) {
+        const notif = document.createElement('div');
+        notif.className = 'save-notification';
+        notif.textContent = message;
+        document.body.appendChild(notif);
+        
+        setTimeout(() => {
+            notif.style.opacity = '0';
+            notif.style.transform = 'translateX(100%)';
+            setTimeout(() => notif.remove(), 300);
+        }, 3000);
     }
 
 // ============================================
@@ -1890,8 +2169,12 @@
         const vnSection = document.getElementById('vnSection');
         if (t.background) {
             vnSection.style.backgroundImage = `url(${t.background})`;
+            // ACTIVAR PARTÍCULAS SEGÚN EL FONDO
+            const particleType = detectParticleTypeFromBackground(t.background);
+            setParticles(particleType);
         } else {
             vnSection.style.backgroundImage = 'linear-gradient(135deg, #1a1815 0%, #2d2a26 50%, #1a1815 100%)';
+            setParticles(null);
         }
         
         document.getElementById('topicsSection').classList.remove('active');
@@ -1923,9 +2206,6 @@
                 clearInterval(typewriterInterval);
                 isTyping = false;
                 document.getElementById('vnContinueIndicator').style.opacity = '1';
-                if (autoPlay && currentMessageIndex < (appData.messages[currentTopicId] || []).length - 1) {
-                    setTimeout(nextMessage, 2000);
-                }
             }
         }, speed);
     }
@@ -2046,8 +2326,11 @@
         }
         
         if (currentMessageIndex < msgs.length - 1) {
-            currentMessageIndex++;
-            showCurrentMessage();
+            // USAR TRANSICIÓN CINEMATOGRÁFICA
+            transitionToMessage('next', () => {
+                currentMessageIndex++;
+                showCurrentMessage();
+            });
         } else {
             document.getElementById('vnDialogueText').innerHTML = '<em style="color: var(--accent-gold);">— Has llegado al final de esta historia —<br>Haz clic en ✎ para continuarla</em>';
             document.getElementById('vnSpeakerPlate').textContent = 'Fin';
@@ -2059,26 +2342,20 @@
 
     function previousMessage() {
         if (currentMessageIndex > 0) {
-            currentMessageIndex--;
-            showCurrentMessage();
+            // USAR TRANSICIÓN CINEMATOGRÁFICA
+            transitionToMessage('prev', () => {
+                currentMessageIndex--;
+                showCurrentMessage();
+            });
         }
     }
 
     function firstMessage() {
-        currentMessageIndex = 0;
-        showCurrentMessage();
-    }
-
-    function toggleAutoPlay() {
-        autoPlay = !autoPlay;
-        const btn = document.getElementById('autoPlayBtn');
-        if (autoPlay) {
-            btn.style.background = 'var(--accent-wood)';
-            btn.style.color = 'white';
-            if (!isTyping) nextMessage();
-        } else {
-            btn.style.background = 'rgba(0,0,0,0.5)';
-            btn.style.color = 'var(--accent-gold)';
+        if (currentMessageIndex > 0) {
+            transitionToMessage('prev', () => {
+                currentMessageIndex = 0;
+                showCurrentMessage();
+            });
         }
     }
 
@@ -2229,6 +2506,18 @@
         save();
         renderTopics();
         updateStats();
+    }
+
+    // ============================================
+    // GUARDADO RÁPIDO EN VN (NUEVO)
+    // ============================================
+    function quickSave() {
+        save();
+        saveToCloud().then(() => {
+            showNotification('💾 Partida guardada en la nube');
+        }).catch(() => {
+            showNotification('💾 Partida guardada localmente');
+        });
     }
 
     // ============================================
@@ -2555,11 +2844,11 @@
             // Guardar fecha de última sincronización
             localStorage.setItem('etheria_last_sync', new Date().toISOString());
             
-            alert(`✅ ¡Guardado en la nube exitoso!\n\n📅 Fecha: ${new Date().toLocaleString()}\n👤 Por: ${userNames[currentUserIndex]}\n📝 Historias: ${appData.topics.length}\n🎭 Personajes: ${appData.characters.length}`);
+            return result;
 
         } catch (error) {
             console.error('Error al guardar:', error);
-            alert('❌ Error al guardar: ' + error.message);
+            throw error;
         } finally {
             if (btn) {
                 btn.textContent = originalText;
@@ -2645,7 +2934,7 @@
                 renderGallery();
             }
 
-            alert('✅ ¡Datos cargados exitosamente!\n\nTus datos locales han sido actualizados.');
+            return result;
 
         } catch (error) {
             console.error('Error al cargar:', error);
@@ -2655,6 +2944,7 @@
             } else {
                 alert('❌ Error al cargar: ' + error.message);
             }
+            throw error;
         } finally {
             if (btn) {
                 btn.textContent = originalText;
