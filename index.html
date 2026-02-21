@@ -1364,6 +1364,9 @@
             font-size: 0.85rem;
         }
 
+        /* ============================================
+           OPCIONES DE ELECCIÓN (NUEVO SISTEMA)
+           ============================================ */
         .vn-options-container {
             position: fixed;
             bottom: 220px;
@@ -1374,6 +1377,11 @@
             gap: 1rem;
             width: min(600px, 90%);
             z-index: 160;
+        }
+
+        .vn-options-container.active {
+            display: flex;
+            animation: fadeIn 0.5s ease;
         }
 
         .vn-option-btn {
@@ -1388,13 +1396,139 @@
             text-align: left;
             transition: all 0.3s ease;
             box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vn-option-btn::before {
+            content: '▸';
+            position: absolute;
+            left: 1rem;
+            opacity: 0;
+            transition: all 0.3s ease;
         }
 
         .vn-option-btn:hover {
             transform: translateX(10px);
             background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage));
+            padding-left: 2.5rem;
         }
 
+        .vn-option-btn:hover::before {
+            opacity: 1;
+            left: 0.8rem;
+        }
+
+        .vn-option-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .vn-option-btn:disabled::before {
+            content: '✓';
+            opacity: 1;
+            left: 0.8rem;
+        }
+
+        /* Indicador de opción ya elegida */
+        .vn-option-btn.chosen {
+            background: linear-gradient(135deg, rgba(107, 142, 125, 0.8), rgba(74, 107, 90, 0.8));
+            border-color: var(--accent-sage);
+        }
+
+        .vn-option-btn.chosen::after {
+            content: ' (Elegido)';
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        /* Continuación narrativa (overlay temporal) */
+        .vn-continuation-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 500;
+            backdrop-filter: blur(5px);
+        }
+
+        .vn-continuation-overlay.active {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .vn-continuation-box {
+            background: linear-gradient(135deg, rgba(26, 24, 21, 0.95), rgba(45, 42, 38, 0.95));
+            border: 3px solid var(--accent-gold);
+            border-radius: 24px;
+            padding: 2.5rem;
+            max-width: 700px;
+            width: 90%;
+            max-height: 60vh;
+            overflow-y: auto;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+            position: relative;
+        }
+
+        .vn-continuation-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .vn-continuation-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            color: var(--accent-gold);
+        }
+
+        .vn-continuation-text {
+            font-size: 1.2rem;
+            line-height: 1.9;
+            color: #fff;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            font-style: italic;
+        }
+
+        .vn-continuation-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: 2px solid var(--border-color);
+            color: var(--accent-gold);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .vn-continuation-close:hover {
+            background: var(--accent-wood);
+            border-color: var(--accent-wood);
+            color: white;
+        }
+
+        .vn-continuation-hint {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--accent-gold);
+            font-size: 0.9rem;
+            animation: pulse 2s infinite;
+        }
+
+        /* ============================================
+           PANEL DE RESPUESTA CON OPCIONES
+           ============================================ */
         .vn-reply-panel {
             position: fixed;
             left: 0;
@@ -1408,7 +1542,7 @@
             flex-direction: column;
             gap: 1rem;
             z-index: 300;
-            max-height: 65vh;
+            max-height: 85vh;
             overflow-y: auto;
         }
 
@@ -1477,6 +1611,95 @@
             color: var(--text-secondary);
         }
 
+        /* Toggle de opciones */
+        .options-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .options-toggle:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .options-toggle input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent-wood);
+        }
+
+        .options-toggle label {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Campos de opciones */
+        .options-fields {
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(139, 115, 85, 0.1);
+            border-radius: 12px;
+            border: 2px solid var(--accent-wood);
+        }
+
+        .options-fields.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .option-field-group {
+            background: var(--bg-card);
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .option-field-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-family: 'Cinzel', serif;
+            color: var(--accent-wood);
+            font-size: 0.95rem;
+        }
+
+        .option-field-group input {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .option-field-group textarea {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .option-field-group small {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
         /* Notificación de guardado */
         .save-notification {
             position: fixed;
@@ -1497,6 +1720,21 @@
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
+
+        /* Info de opciones en mensaje */
+        .message-has-options {
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
     </style>
     <base target="_blank">
 </head>
@@ -1514,6 +1752,20 @@
          SISTEMA DE PARTÍCULAS
          ============================================ -->
     <div id="particlesContainer" class="particles-container"></div>
+
+    <!-- ============================================
+         OVERLAY DE CONTINUACIÓN NARRATIVA
+         ============================================ -->
+    <div id="continuationOverlay" class="vn-continuation-overlay" onclick="if(event.target === this) closeContinuation()">
+        <div class="vn-continuation-box">
+            <button class="vn-continuation-close" onclick="closeContinuation()">✕</button>
+            <div class="vn-continuation-header">
+                <h3 class="vn-continuation-title">🎭 Continuación de la escena</h3>
+            </div>
+            <div id="continuationText" class="vn-continuation-text"></div>
+            <div class="vn-continuation-hint">Haz clic en cualquier lugar para continuar...</div>
+        </div>
+    </div>
 
     <!-- ============================================
          1. PANTALLA DE SELECCIÓN DE USUARIO
@@ -1720,9 +1972,13 @@
 
         <div id="vnStage" class="vn-stage"></div>
 
+        <!-- Contenedor de opciones de elección -->
         <div id="vnOptionsContainer" class="vn-options-container"></div>
 
         <div class="vn-dialogue-box" onclick="handleDialogueClick()">
+            <!-- Indicador de que el mensaje tiene opciones -->
+            <div id="messageHasOptions" class="message-has-options hidden">🎭 Tiene opciones</div>
+            
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
             <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
             <div id="vnDialogueText" class="vn-dialogue-text">Texto del diálogo...</div>
@@ -1730,6 +1986,7 @@
             <div id="vnMessageCounter" class="vn-message-counter">0 / 0</div>
         </div>
 
+        <!-- Panel de respuesta con sistema de opciones -->
         <div id="vnReplyPanel" class="vn-reply-panel">
             <div class="vn-reply-header">
                 <h3 class="vn-reply-title">✎ Continuar Historia</h3>
@@ -1742,8 +1999,49 @@
                     <input type="checkbox" id="narratorMode" onchange="toggleNarratorMode()">
                     Narrador
                 </label>
+                
                 <label style="font-family: 'Inter', sans-serif; color: var(--text-secondary);">Texto</label>
                 <textarea id="vnReplyText" class="vn-reply-input" rows="4" placeholder="Escribe la continuación..."></textarea>
+                
+                <!-- Toggle para activar opciones -->
+                <div class="options-toggle" onclick="toggleOptionsFields()">
+                    <input type="checkbox" id="enableOptions" onchange="event.stopPropagation(); toggleOptionsFields()">
+                    <label for="enableOptions">🎭 Crear opciones de elección para el siguiente jugador (máx. 3)</label>
+                </div>
+                
+                <!-- Campos para las opciones -->
+                <div id="optionsFields" class="options-fields">
+                    <div class="option-field-group">
+                        <div class="option-field-header">
+                            <span>①</span>
+                            <span>Opción 1</span>
+                        </div>
+                        <input type="text" id="option1Text" placeholder="Texto de la opción (ej: Pedir Pizza)">
+                        <textarea id="option1Continuation" rows="3" placeholder="¿Qué sucede al elegir esta opción? Describe la escena..."></textarea>
+                        <small>Esta continuación se mostrará antes de que el siguiente jugador responda.</small>
+                    </div>
+                    
+                    <div class="option-field-group">
+                        <div class="option-field-group">
+                            <div class="option-field-header">
+                                <span>②</span>
+                                <span>Opción 2</span>
+                            </div>
+                            <input type="text" id="option2Text" placeholder="Texto de la opción (ej: Pedir Hamburguesa)">
+                            <textarea id="option2Continuation" rows="3" placeholder="¿Qué sucede al elegir esta opción?"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="option-field-group">
+                        <div class="option-field-header">
+                            <span>③</span>
+                            <span>Opción 3</span>
+                        </div>
+                        <input type="text" id="option3Text" placeholder="Texto de la opción (ej: Pedir Ensalada)">
+                        <textarea id="option3Continuation" rows="3" placeholder="¿Qué sucede al elegir esta opción?"></textarea>
+                    </div>
+                </div>
+                
                 <button class="vn-submit-btn" onclick="postVNReply()">Enviar</button>
             </div>
         </div>
@@ -1921,6 +2219,7 @@
     let typewriterInterval;
     let isNarratorMode = false;
     let currentParticleType = null;
+    let pendingContinuation = null; // Para guardar la continuación temporal
 
     // ============================================
     // VARIABLES DE AUTOSAVE
@@ -2338,6 +2637,8 @@
     function enterTopic(id) {
         currentTopicId = id;
         currentMessageIndex = 0;
+        pendingContinuation = null; // Limpiar continuación pendiente
+        
         const t = appData.topics.find(topic => topic.id === id);
         if(!t) return;
         
@@ -2402,6 +2703,12 @@
         
         const namePlate = document.getElementById('vnSpeakerPlate');
         const avatarBox = document.getElementById('vnSpeakerAvatar');
+        const optionsIndicator = document.getElementById('messageHasOptions');
+        const optionsContainer = document.getElementById('vnOptionsContainer');
+        
+        // Ocultar opciones por defecto
+        optionsContainer.classList.remove('active');
+        optionsIndicator.classList.add('hidden');
         
         if (msg.isNarrator || !msg.characterId) {
             namePlate.textContent = 'Narrador';
@@ -2429,14 +2736,33 @@
             updateStageFocus(msg);
         }
         
+        // Mostrar indicador si el mensaje tiene opciones y no se ha elegido ninguna
+        if (msg.options && msg.options.length > 0 && !msg.selectedOptionIndex !== undefined) {
+            optionsIndicator.classList.remove('hidden');
+        }
+        
         typeWriter(msg.text, document.getElementById('vnDialogueText'));
         updateMessageCounter();
+        
+        // Si estamos al final y hay opciones pendientes, mostrarlas
+        if (currentMessageIndex === msgs.length - 1 && msg.options && msg.options.length > 0) {
+            if (msg.selectedOptionIndex === undefined) {
+                showOptions(msg.options);
+            }
+        }
     }
 
     function handleDialogueClick() {
         if (document.getElementById('vnReplyPanel').style.display === 'flex') {
             return;
         }
+        
+        // Si hay opciones visibles, no avanzar
+        const optionsContainer = document.getElementById('vnOptionsContainer');
+        if (optionsContainer.classList.contains('active')) {
+            return;
+        }
+        
         nextMessage();
     }
 
@@ -2487,6 +2813,13 @@
             }
             isTyping = false;
             document.getElementById('vnContinueIndicator').style.opacity = '1';
+            return;
+        }
+        
+        // Si hay una continuación pendiente, mostrarla primero
+        if (pendingContinuation) {
+            showContinuation(pendingContinuation);
+            pendingContinuation = null;
             return;
         }
         
@@ -2546,11 +2879,83 @@
     }
 
     // ============================================
-    // PANEL DE RESPUESTA
+    // SISTEMA DE OPCIONES DE ELECCIÓN (NUEVO)
+    // ============================================
+    
+    function showOptions(options) {
+        const container = document.getElementById('vnOptionsContainer');
+        const msgs = appData.messages[currentTopicId] || [];
+        const currentMsg = msgs[currentMessageIndex];
+        
+        container.innerHTML = options.map((opt, idx) => `
+            <button class="vn-option-btn ${currentMsg.selectedOptionIndex === idx ? 'chosen' : ''}" 
+                    onclick="selectOption(${idx})" 
+                    ${currentMsg.selectedOptionIndex !== undefined ? 'disabled' : ''}>
+                ${opt.text}
+            </button>
+        `).join('');
+        
+        container.classList.add('active');
+    }
+
+    function selectOption(optionIndex) {
+        const msgs = appData.messages[currentTopicId] || [];
+        const currentMsg = msgs[currentMessageIndex];
+        
+        if (!currentMsg.options || currentMsg.options.length === 0) return;
+        if (currentMsg.selectedOptionIndex !== undefined) return; // Ya se eligió
+        
+        const selectedOption = currentMsg.options[optionIndex];
+        
+        // Marcar la opción como elegida
+        currentMsg.selectedOptionIndex = optionIndex;
+        currentMsg.selectedBy = currentUserIndex;
+        currentMsg.selectedAt = new Date().toISOString();
+        
+        // Guardar la continuación para mostrarla
+        pendingContinuation = selectedOption.continuation;
+        
+        // Ocultar opciones
+        document.getElementById('vnOptionsContainer').classList.remove('active');
+        
+        // Actualizar indicador
+        document.getElementById('messageHasOptions').classList.add('hidden');
+        
+        // AUTOSAVE
+        triggerAutoSave();
+        
+        // Mostrar la continuación inmediatamente
+        showContinuation(selectedOption.continuation);
+    }
+
+    function showContinuation(text) {
+        const overlay = document.getElementById('continuationOverlay');
+        const content = document.getElementById('continuationText');
+        
+        content.textContent = text;
+        overlay.classList.add('active');
+    }
+
+    function closeContinuation() {
+        const overlay = document.getElementById('continuationOverlay');
+        overlay.classList.remove('active');
+        
+        // Abrir automáticamente el panel de respuesta para que el usuario continúe
+        openReplyPanel();
+    }
+
+    // ============================================
+    // PANEL DE RESPUESTA CON OPCIONES
     // ============================================
     function openReplyPanel() {
         document.getElementById('vnReplyPanel').style.display = 'flex';
         updateCharSelector();
+        
+        // Resetear campos de opciones
+        document.getElementById('enableOptions').checked = false;
+        document.getElementById('optionsFields').classList.remove('active');
+        resetOptionFields();
+        
         document.getElementById('vnReplyText').focus();
     }
 
@@ -2560,6 +2965,26 @@
         isNarratorMode = false;
         selectedCharId = null;
         document.getElementById('narratorMode').checked = false;
+        
+        // Limpiar opciones
+        document.getElementById('enableOptions').checked = false;
+        document.getElementById('optionsFields').classList.remove('active');
+        resetOptionFields();
+    }
+
+    function resetOptionFields() {
+        for (let i = 1; i <= 3; i++) {
+            document.getElementById(`option${i}Text`).value = '';
+            document.getElementById(`option${i}Continuation`).value = '';
+        }
+    }
+
+    function toggleOptionsFields() {
+        const checkbox = document.getElementById('enableOptions');
+        const fields = document.getElementById('optionsFields');
+        
+        checkbox.checked = !checkbox.checked;
+        fields.classList.toggle('active');
     }
 
     function toggleNarratorMode() {
@@ -2629,6 +3054,30 @@
             if(!char) return;
         }
         
+        // Recoger opciones si están activadas
+        let options = null;
+        const enableOptions = document.getElementById('enableOptions').checked;
+        
+        if (enableOptions) {
+            options = [];
+            for (let i = 1; i <= 3; i++) {
+                const optText = document.getElementById(`option${i}Text`).value.trim();
+                const optCont = document.getElementById(`option${i}Continuation`).value.trim();
+                
+                if (optText && optCont) {
+                    options.push({
+                        text: optText,
+                        continuation: optCont
+                    });
+                }
+            }
+            
+            if (options.length === 0) {
+                alert('Si activas las opciones, debes rellenar al menos una con texto y continuación');
+                return;
+            }
+        }
+        
         if(!appData.messages[currentTopicId]) appData.messages[currentTopicId] = [];
         
         const newMsg = {
@@ -2641,7 +3090,8 @@
             text,
             isNarrator: isNarratorMode,
             userIndex: currentUserIndex,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            options: options // Guardar opciones si existen
         };
         
         appData.messages[currentTopicId].push(newMsg);
@@ -2653,6 +3103,11 @@
         
         currentMessageIndex = appData.messages[currentTopicId].length - 1;
         showCurrentMessage();
+        
+        // Si hay opciones, mostrarlas inmediatamente
+        if (options && options.length > 0) {
+            showOptions(options);
+        }
     }
 
     function deleteCurrentTopic() {
@@ -3121,12 +3576,17 @@
     // Atajo de teclado
     document.addEventListener('keydown', (e) => {
         if (document.getElementById('vnSection').classList.contains('active')) {
-            if (e.code === 'Space' && document.getElementById('vnReplyPanel').style.display !== 'flex') {
+            if (e.code === 'Space' && document.getElementById('vnReplyPanel').style.display !== 'flex' && 
+                !document.getElementById('continuationOverlay').classList.contains('active')) {
                 e.preventDefault();
                 nextMessage();
             }
-            if (e.code === 'Escape' && document.getElementById('vnReplyPanel').style.display === 'flex') {
-                closeReplyPanel();
+            if (e.code === 'Escape') {
+                if (document.getElementById('vnReplyPanel').style.display === 'flex') {
+                    closeReplyPanel();
+                } else if (document.getElementById('continuationOverlay').classList.contains('active')) {
+                    closeContinuation();
+                }
             }
         }
     });
