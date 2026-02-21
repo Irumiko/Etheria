@@ -1,0 +1,2626 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etheria - Roleplay Visual Novel</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+        
+        :root {
+            --bg-primary: #f5f1e8;
+            --bg-secondary: #e8e0d0;
+            --bg-tertiary: #d4cfc7;
+            --bg-card: #faf8f3;
+            --text-primary: #3d3833;
+            --text-secondary: #5a5045;
+            --text-muted: #7a7065;
+            --accent-wood: #8b7355;
+            --accent-sage: #6b8e7d;
+            --accent-warm: #a08060;
+            --accent-gold: #c9a86c;
+            --border-color: #c4b8a8;
+            --border-light: #d9d0c3;
+            --shadow: rgba(61, 56, 51, 0.08);
+            --shadow-heavy: rgba(61, 56, 51, 0.15);
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #1a1815;
+            --bg-secondary: #2a2724;
+            --bg-tertiary: #3d3833;
+            --bg-card: #252320;
+            --text-primary: #e8e4dc;
+            --text-secondary: #b8b0a0;
+            --text-muted: #8a8075;
+            --accent-wood: #8b7355;
+            --accent-sage: #6b8e7d;
+            --accent-warm: #a08060;
+            --accent-gold: #c9a86c;
+            --border-color: #4a4540;
+            --border-light: #3d3833;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --shadow-heavy: rgba(0, 0, 0, 0.5);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Crimson Text', serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animación pulse para indicador */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ============================================
+           CORRECCIÓN FICHAS DE PERSONAJES
+           ============================================ */
+        .sheet-modal {
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sheet-body {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sheet-content {
+            flex: 1;
+            overflow-y: auto;
+            max-height: 50vh;
+            padding: 2rem;
+        }
+
+        .sheet-actions {
+            flex-shrink: 0;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-top: 2px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .sheet-actions button {
+            position: relative;
+            z-index: 10;
+        }
+
+        .sheet-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sheet-content::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .sheet-content::-webkit-scrollbar-thumb {
+            background: var(--accent-wood);
+            border-radius: 4px;
+        }
+
+        /* ============================================
+           AUDIO PANEL EN OPCIONES
+           ============================================ */
+        #audioPanel {
+            animation: fadeIn 0.3s ease;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .preset-btn {
+            aspect-ratio: 1;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--accent-wood);
+            transform: scale(1.05);
+        }
+
+        /* ============================================
+           PANTALLA DE SELECCIÓN DE USUARIO
+           ============================================ */
+        .user-select-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2000;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(139, 115, 85, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(107, 142, 125, 0.1) 0%, transparent 50%);
+        }
+        .user-select-screen.hidden { display: none; }
+        
+        .game-title {
+            font-family: 'Cinzel', serif;
+            font-size: 5rem;
+            color: var(--accent-wood);
+            margin-bottom: 0.5rem;
+            letter-spacing: 12px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        .game-title::after {
+            content: '✦';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            color: var(--accent-gold);
+        }
+        
+        .game-subtitle {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            margin-bottom: 4rem;
+            font-style: italic;
+            letter-spacing: 3px;
+        }
+        
+        .user-cards { display: flex; gap: 3rem; flex-wrap: wrap; justify-content: center; }
+        
+        .user-card {
+            width: 220px; height: 280px; background: var(--bg-card); 
+            border: 3px solid var(--border-color);
+            border-radius: 24px; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 20px 40px var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .user-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 5px;
+            background: linear-gradient(90deg, var(--accent-wood), var(--accent-sage), var(--accent-gold));
+        }
+        
+        .user-card:hover { 
+            transform: translateY(-20px) scale(1.05); 
+            border-color: var(--accent-wood);
+            box-shadow: 0 30px 60px var(--shadow-heavy);
+        }
+        
+        .user-avatar { 
+            width: 100px; height: 100px; border-radius: 50%; 
+            background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; margin-bottom: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border: 5px solid var(--bg-card);
+        }
+        
+        .user-name {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem; font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .user-hint {
+            font-size: 0.85rem; color: var(--text-muted);
+            margin-top: 0.8rem; opacity: 0; transition: opacity 0.3s;
+        }
+        .user-card:hover .user-hint { opacity: 1; }
+
+        /* ============================================
+           MENÚ PRINCIPAL (ESTILO VN)
+           ============================================ */
+        .main-menu {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(139, 115, 85, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(107, 142, 125, 0.08) 0%, transparent 40%);
+        }
+        .main-menu.hidden { display: none; }
+        
+        .menu-title {
+            font-family: 'Cinzel', serif;
+            font-size: 4.5rem;
+            color: var(--accent-wood);
+            margin-bottom: 1rem;
+            letter-spacing: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.15);
+        }
+        
+        .menu-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 5rem;
+            font-style: italic;
+            letter-spacing: 2px;
+        }
+        
+        .menu-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            width: 100%;
+            max-width: 400px;
+            padding: 0 2rem;
+        }
+        
+        .menu-button {
+            background: transparent;
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 1.2rem 2rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .menu-button::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(139, 115, 85, 0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .menu-button:hover {
+            background: var(--bg-card);
+            border-color: var(--accent-wood);
+            transform: translateX(10px);
+            box-shadow: 0 10px 30px var(--shadow-heavy);
+        }
+        
+        .menu-button:hover::before {
+            left: 100%;
+        }
+        
+        .menu-button.primary {
+            background: var(--accent-wood);
+            color: white;
+            border-color: var(--accent-wood);
+        }
+        
+        .menu-button.primary:hover {
+            background: var(--accent-sage);
+            border-color: var(--accent-sage);
+        }
+        
+        .menu-button .icon {
+            font-size: 1.5rem;
+        }
+
+        .menu-footer {
+            position: absolute;
+            bottom: 2rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* ============================================
+           SECCIONES DEL JUEGO
+           ============================================ */
+        .game-section {
+            display: none;
+            min-height: 100vh;
+            background: var(--bg-primary);
+        }
+        
+        .game-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header de sección */
+        .section-header-bar {
+            background: linear-gradient(to right, var(--bg-secondary), var(--bg-primary));
+            border-bottom: 2px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 20px var(--shadow);
+        }
+        
+        .section-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.8rem;
+            color: var(--accent-wood);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .back-button {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .back-button:hover {
+            background: var(--accent-wood);
+            color: white;
+            border-color: var(--accent-wood);
+        }
+
+        .section-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* ============================================
+           SECCIÓN: NUEVA PARTIDA (Temas)
+           ============================================ */
+        .topics-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .topics-layout { grid-template-columns: 1fr; }
+        }
+
+        .main-panel {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 2px solid var(--border-color);
+            padding: 2rem;
+            box-shadow: 0 10px 40px var(--shadow);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .panel-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            color: var(--accent-wood);
+        }
+
+        .topics-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 1.5rem; 
+        }
+        
+        .topic-card { 
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border: 2px solid var(--border-color); 
+            border-radius: 16px; 
+            padding: 1.8rem; 
+            cursor: pointer; 
+            position: relative;
+            transition: all 0.4s;
+        }
+        
+        .topic-card:hover { 
+            transform: translateY(-8px); 
+            box-shadow: 0 20px 40px var(--shadow-heavy);
+            border-color: var(--accent-wood);
+        }
+        
+        .topic-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .topic-title { 
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem; 
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .topic-badge {
+            background: var(--accent-wood);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.3rem 0.8rem;
+            border-radius: 12px;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .topic-meta { 
+            font-size: 0.9rem; 
+            color: var(--text-secondary); 
+            margin-bottom: 1rem;
+        }
+        
+        .topic-preview { 
+            font-style: italic; 
+            color: var(--text-muted); 
+            line-height: 1.6; 
+            display: -webkit-box; 
+            -webkit-line-clamp: 2; 
+            -webkit-box-orient: vertical; 
+            overflow: hidden;
+            padding-left: 1rem;
+            border-left: 3px solid var(--accent-gold);
+        }
+        
+        .topic-delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #c75b5b;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .topic-card:hover .topic-delete-btn { display: flex; }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .sidebar-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
+            padding: 1.5rem;
+            box-shadow: 0 8px 30px var(--shadow);
+        }
+
+        .sidebar-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.1rem;
+            color: var(--accent-wood);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .stat-box {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-number {
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            color: var(--accent-wood);
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Empty state */
+        .empty-state { 
+            text-align: center; 
+            padding: 4rem 2rem; 
+            color: var(--text-secondary);
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            border: 2px dashed var(--border-color);
+        }
+        .empty-state h3 { 
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem; 
+            margin-bottom: 1rem; 
+            color: var(--accent-wood); 
+        }
+
+        /* ============================================
+           SECCIÓN: GALERÍA (Personajes)
+           ============================================ */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .gallery-section {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        .gallery-header {
+            background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+            padding: 1.2rem 1.5rem;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .gallery-content {
+            padding: 1.5rem;
+            display: none;
+        }
+        
+        .gallery-content.expanded { display: block; }
+
+        .character-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2rem;
+        }
+
+        .character-thumb {
+            width: 110px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .character-thumb:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-wood);
+            box-shadow: 0 10px 25px var(--shadow-heavy);
+        }
+
+        .character-thumb-avatar {
+            width: 70px; height: 70px; border-radius: 50%; margin: 0 auto 0.8rem;
+            background: var(--bg-tertiary); border: 3px solid var(--border-light);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem; overflow: hidden;
+        }
+
+        .character-thumb-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* ============================================
+           SECCIÓN: OPCIONES
+           ============================================ */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .option-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        .option-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .option-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            color: var(--accent-wood);
+            margin-bottom: 1rem;
+        }
+
+        .option-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        /* ============================================
+           VISUAL NOVEL VIEW (Dentro de un tema)
+           ============================================ */
+        .vn-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .vn-header {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            padding: 2rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+            border: 2px solid var(--border-color);
+            text-align: center;
+        }
+
+        .vn-title {
+            font-family: 'Cinzel', serif;
+            font-size: 2.2rem;
+            color: var(--accent-wood);
+            margin-bottom: 0.5rem;
+        }
+
+        .vn-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .vn-message {
+            display: flex;
+            gap: 1.5rem;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .vn-avatar-section {
+            flex-shrink: 0;
+            width: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .vn-avatar {
+            width: 90px; height: 90px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: 4px solid var(--border-color);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 8px 20px var(--shadow);
+        }
+
+        .vn-message-content {
+            flex: 1;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-card));
+            border: 2px solid var(--accent-warm);
+            border-radius: 20px;
+            padding: 1.8rem;
+            position: relative;
+        }
+
+        .vn-message-content::before {
+            content: '';
+            position: absolute;
+            left: -15px;
+            top: 35px;
+            width: 0;
+            height: 0;
+            border-top: 15px solid transparent;
+            border-bottom: 15px solid transparent;
+            border-right: 15px solid var(--accent-warm);
+        }
+
+        .vn-name-banner {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            font-family: 'Cinzel', serif;
+        }
+
+        .vn-text {
+            font-size: 1.15rem;
+            line-height: 1.9;
+        }
+
+        .vn-reply-box {
+            background: var(--bg-card);
+            border: 3px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 15px 40px var(--shadow-heavy);
+        }
+
+        .vn-reply-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            color: var(--accent-wood);
+            margin-bottom: 1rem;
+        }
+
+        /* Character selector */
+        .char-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .char-option {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem 1.2rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .char-option:hover, .char-option.selected {
+            border-color: var(--accent-wood);
+            background: var(--bg-card);
+        }
+
+        .char-option.selected {
+            box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.2);
+        }
+
+        /* ============================================
+           MODALES
+           ============================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 2.5rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 3px solid var(--border-color);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.4);
+        }
+
+        .modal h3 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.8rem;
+            color: var(--accent-wood);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.9rem;
+            border-radius: 10px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        /* Ficha de personaje */
+        .sheet-modal {
+            background: var(--bg-card);
+            border-radius: 24px;
+            width: 95%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow: hidden;
+            border: 3px solid var(--border-color);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.4);
+        }
+
+        .sheet-header {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 3px solid var(--border-color);
+        }
+
+        .sheet-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            background: var(--bg-tertiary);
+            border: 5px solid var(--bg-card);
+            box-shadow: 0 10px 30px var(--shadow-heavy);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+        }
+
+        .sheet-name {
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            color: var(--accent-wood);
+        }
+
+        .sheet-body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sheet-tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .sheet-tab {
+            flex: 1;
+            padding: 1rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            font-weight: 600;
+            color: var(--text-secondary);
+            transition: all 0.3s;
+        }
+
+        .sheet-tab.active {
+            color: var(--accent-wood);
+            background: var(--bg-card);
+            border-bottom: 3px solid var(--accent-wood);
+        }
+
+        .sheet-content {
+            padding: 2rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .info-item {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            border-radius: 10px;
+            border: 1px solid var(--border-light);
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--accent-wood);
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .info-text {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 12px;
+            line-height: 1.8;
+            border-left: 4px solid var(--accent-gold);
+        }
+
+        .sheet-actions {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-top: 2px solid var(--border-color);
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .hidden { display: none !important; }
+
+        /* ============================================
+           MODO CINE (Visual Novel)
+           ============================================ */
+        .vn-section {
+            position: relative;
+            min-height: 100vh;
+            color: #fff;
+            padding-bottom: 12rem;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .vn-header {
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, rgba(26, 24, 21, 0.9), rgba(45, 42, 38, 0.9));
+            border-bottom: 2px solid var(--border-color);
+            backdrop-filter: blur(8px);
+        }
+
+        .vn-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            justify-content: flex-end;
+        }
+
+        .vn-control-btn {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+            color: var(--accent-gold);
+            padding: 0.5rem 0.9rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .vn-control-btn:hover {
+            background: var(--accent-wood);
+            color: white;
+            border-color: var(--accent-wood);
+        }
+
+        .vn-stage {
+            min-height: 340px;
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 2rem 1rem 5rem;
+        }
+
+        .vn-stage-figure {
+            text-align: center;
+            transition: all 0.5s ease;
+        }
+
+        .vn-stage-sprite {
+            width: 200px;
+            height: 320px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .vn-stage-sprite img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 12px 30px rgba(0,0,0,0.5));
+        }
+
+        .vn-dialogue-box {
+            position: fixed;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 1.5rem;
+            width: min(1000px, 92%);
+            background: rgba(26, 24, 21, 0.85);
+            border: 2px solid var(--accent-gold);
+            border-radius: 22px;
+            padding: 1.8rem 2rem 2.2rem 6.5rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            z-index: 150;
+        }
+
+        .vn-speaker-avatar {
+            position: absolute;
+            left: 1.2rem;
+            top: -1.4rem;
+            width: 85px;
+            height: 85px;
+            border-radius: 50%;
+            border: 4px solid var(--accent-gold);
+            background: var(--bg-tertiary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.4rem;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        }
+
+        .vn-speaker-plate {
+            display: inline-block;
+            padding: 0.4rem 1.2rem;
+            border-radius: 20px;
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            color: white;
+            border: 2px solid var(--accent-gold);
+            margin-bottom: 0.6rem;
+        }
+
+        .vn-dialogue-text {
+            font-size: 1.2rem;
+            line-height: 1.7;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            min-height: 3.5rem;
+        }
+
+        .vn-continue-indicator {
+            position: absolute;
+            right: 1.6rem;
+            bottom: 1.1rem;
+            font-size: 1.4rem;
+            color: var(--accent-gold);
+            opacity: 0;
+            animation: pulse 1.5s infinite;
+        }
+
+        .vn-message-counter {
+            position: absolute;
+            right: 1.6rem;
+            top: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+        }
+
+        .vn-options-container {
+            position: fixed;
+            bottom: 220px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            width: min(600px, 90%);
+            z-index: 160;
+        }
+
+        .vn-option-btn {
+            background: linear-gradient(135deg, rgba(139, 115, 85, 0.95), rgba(107, 142, 125, 0.95));
+            border: 2px solid var(--accent-gold);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Crimson Text', serif;
+            font-size: 1.05rem;
+            text-align: left;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        .vn-option-btn:hover {
+            transform: translateX(10px);
+            background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage));
+        }
+
+        .vn-reply-panel {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-card);
+            border-top: 3px solid var(--border-color);
+            padding: 1.5rem;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.4);
+            display: none;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 300;
+            max-height: 65vh;
+            overflow-y: auto;
+        }
+
+        .vn-reply-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .vn-reply-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-light);
+            padding-bottom: 0.8rem;
+        }
+
+        .vn-reply-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.3rem;
+            color: var(--accent-wood);
+        }
+
+        .vn-close-reply {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            padding: 0.4rem 0.7rem;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .vn-reply-input {
+            width: 100%;
+            padding: 0.9rem;
+            border-radius: 10px;
+            border: 2px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        .vn-submit-btn {
+            align-self: flex-end;
+            background: var(--accent-wood);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .vn-submit-btn:hover {
+            background: var(--accent-sage);
+        }
+
+        .vn-narrator-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-secondary);
+        }
+    </style>
+    <base target="_blank">
+</head>
+<body>
+
+    <!-- ============================================
+         1. PANTALLA DE SELECCIÓN DE USUARIO
+         ============================================ -->
+    <div id="userSelectScreen" class="user-select-screen">
+        <h1 class="game-title">ETHERIA</h1>
+        <p class="game-subtitle">Elige tu perfil para comenzar la aventura...</p>
+        
+        <div class="user-cards">
+            <div class="user-card" onclick="selectUser(0)">
+                <div class="user-avatar">👤</div>
+                <div class="user-name" id="userName0">Jugador 1</div>
+                <div class="user-hint">Click para entrar</div>
+            </div>
+            <div class="user-card" onclick="selectUser(1)">
+                <div class="user-avatar">👤</div>
+                <div class="user-name" id="userName1">Jugador 2</div>
+                <div class="user-hint">Click para entrar</div>
+            </div>
+            <div class="user-card" onclick="selectUser(2)">
+                <div class="user-avatar">👤</div>
+                <div class="user-name" id="userName2">Jugador 3</div>
+                <div class="user-hint">Click para entrar</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         2. MENÚ PRINCIPAL (Estilo VN)
+         ============================================ -->
+    <div id="mainMenu" class="main-menu hidden">
+        <h1 class="menu-title">📖 ETHERIA</h1>
+        <p class="menu-subtitle">¿Qué deseas hacer hoy?</p>
+        
+        <div class="menu-container">
+            <button class="menu-button primary" onclick="showSection('topics')">
+                <span class="icon">✨</span>
+                <span>Nueva Partida</span>
+            </button>
+            
+            <button class="menu-button" onclick="importFromMenu()">
+                <span class="icon">📂</span>
+                <span>Continuar / Cargar</span>
+            </button>
+            
+            <button class="menu-button" onclick="showSection('gallery')">
+                <span class="icon">🎭</span>
+                <span>Galería de Personajes</span>
+            </button>
+            
+            <button class="menu-button" onclick="showSection('options')">
+                <span class="icon">⚙️</span>
+                <span>Opciones</span>
+            </button>
+        </div>
+        
+        <div class="menu-footer">
+            <span id="currentUserDisplay">Jugador</span> • Click en el nombre para cambiar
+            <button onclick="changeUser()" style="margin-left: 1rem; background: none; border: 1px solid var(--border-color); padding: 0.3rem 0.8rem; border-radius: 6px; cursor: pointer; color: var(--text-secondary);">✏️ Editar</button>
+        </div>
+    </div>
+
+    <!-- ============================================
+         3. SECCIÓN: NUEVA PARTIDA (Temas)
+         ============================================ -->
+    <div id="topicsSection" class="game-section">
+        <div class="section-header-bar">
+            <h2 class="section-title">✨ Nueva Partida</h2>
+            <button class="back-button" onclick="backToMenu()">← Volver al Menú</button>
+        </div>
+        
+        <div class="section-content">
+            <div class="topics-layout">
+                <div class="main-panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Historias Disponibles</h3>
+                        <button class="btn" onclick="openModal('topicModal')" style="background: var(--accent-wood); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">+ Crear Historia</button>
+                    </div>
+                    <div id="topicsList" class="topics-grid">
+                        <!-- JS llena esto -->
+                    </div>
+                </div>
+                
+                <div class="sidebar">
+                    <div class="sidebar-card">
+                        <h4 class="sidebar-title">📊 Tu Progreso</h4>
+                        <div class="stat-box">
+                            <div class="stat-number" id="statTopics">0</div>
+                            <div class="stat-label">Historias creadas</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-number" id="statMsgs">0</div>
+                            <div class="stat-label">Mensajes escritos</div>
+                        </div>
+                    </div>
+                    
+                    <div class="sidebar-card">
+                        <h4 class="sidebar-title">💾 Guardar</h4>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Exporta tu progreso para compartir o guardar.</p>
+                        <button onclick="exportData()" style="width: 100%; background: var(--accent-sage); color: white; border: none; padding: 0.8rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">📤 Exportar Partida</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>
+
+    <!-- ============================================
+         4. SECCIÓN: GALERÍA (Personajes)
+         ============================================ -->
+    <div id="gallerySection" class="game-section">
+        <div class="section-header-bar">
+            <h2 class="section-title">🎭 Galería de Personajes</h2>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn" onclick="openModal('characterModal')" style="background: var(--accent-wood); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">+ Nuevo Personaje</button>
+                <button class="back-button" onclick="backToMenu()">← Volver al Menú</button>
+            </div>
+        </div>
+        
+        <div class="section-content">
+            <div id="galleryContainer" class="gallery-grid">
+                <!-- JS llena esto -->
+            </div>
+        </div>
+    </div>
+  <!-- ============================================
+     5. SECCIÓN: OPCIONES
+     ============================================ -->
+<div id="optionsSection" class="game-section">
+    <div class="section-header-bar">
+        <h2 class="section-title">⚙️ Opciones</h2>
+        <button class="back-button" onclick="backToMenu()">← Volver al Menú</button>
+    </div>
+    
+    <div class="section-content">
+        <div class="options-grid">
+            <div class="option-card">
+                <div class="option-icon">🌙</div>
+                <h3 class="option-title">Tema Visual</h3>
+                <p class="option-description">Cambia entre el modo claro (día) y oscuro (noche) según tu preferencia.</p>
+                <button onclick="toggleTheme()" class="btn" style="background: var(--accent-wood); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">Cambiar Tema</button>
+            </div>
+            
+            <div class="option-card">
+                <div class="option-icon">🎵</div>
+                <h3 class="option-title">Música de Ambiente</h3>
+                <p class="option-description">Selecciona la música de fondo para tu sesión de roleplay.</p>
+                <button onclick="toggleAudioPanel()" class="btn" style="background: var(--accent-sage); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">Abrir Reproductor</button>
+            </div>
+            
+            <div class="option-card">
+                <div class="option-icon">👤</div>
+                <h3 class="option-title">Tu Perfil</h3>
+                <p class="option-description">Cambia tu nombre de jugador en esta sesión.</p>
+                <button onclick="changeUser()" class="btn" style="background: var(--accent-warm); color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">Editar Nombre</button>
+            </div>
+            
+            <div class="option-card">
+                <div class="option-icon">💾</div>
+                <h3 class="option-title">Gestión de Datos</h3>
+                <p class="option-description">Sincroniza tu progreso con la nube.</p>
+                <div class="cloud-controls" style="margin-top: 10px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button id="saveCloudBtn" onclick="saveToCloud()" class="btn-secondary" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border-color); padding: 0.8rem 1rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">☁️ Guardar</button>
+                    <button id="loadCloudBtn" onclick="loadFromCloud()" class="btn-secondary" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border-color); padding: 0.8rem 1rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">☁️ Cargar</button>
+                </div>
+                <input type="file" id="importFile" accept=".json" onchange="importData(this)" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- Audio Panel - DENTRO de section-content -->
+        <div id="audioPanel" style="display: none; margin-top: 2rem; max-width: 400px; margin-left: auto; margin-right: auto;">
+            <div style="background: var(--bg-card); border: 3px solid var(--border-color); border-radius: 20px; padding: 1.5rem; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
+                <h4 style="font-family: 'Cinzel', serif; margin-bottom: 0.5rem; color: var(--accent-wood); text-align: center;">🎼 Música de Ambiente</h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; text-align: center;">Selecciona un ambiente:</p>
+                <div class="preset-grid">
+                    <button class="preset-btn" onclick="loadPreset('rain')" title="Lluvia">🌧️</button>
+                    <button class="preset-btn" onclick="loadPreset('fire')" title="Fuego">🔥</button>
+                    <button class="preset-btn" onclick="loadPreset('cafe')" title="Cafetería">☕</button>
+                    <button class="preset-btn" onclick="loadPreset('forest')" title="Bosque">🌲</button>
+                    <button class="preset-btn" onclick="loadPreset('night')" title="Noche">🌙</button>
+                    <button class="preset-btn" onclick="stopAudio()" title="Detener">⏹️</button>
+                </div>
+                <div id="playerContainer" style="margin-top: 1rem;"></div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+    <!-- ============================================
+         SECCIÓN: MODO CINE (Visual Novel)
+         ============================================ -->
+    <div id="vnSection" class="game-section vn-section">
+        <div class="vn-header">
+            <h2 id="vnHeaderTitle" class="vn-title">Título de la Historia</h2>
+            <div class="vn-controls">
+                <button id="autoPlayBtn" class="vn-control-btn" onclick="toggleAutoPlay()">▶️ Auto</button>
+                <button class="vn-control-btn" onclick="firstMessage()">⏮️ Inicio</button>
+                <button class="vn-control-btn" onclick="previousMessage()">◀️ Anterior</button>
+                <button class="vn-control-btn" onclick="openReplyPanel()">✎ Responder</button>
+                <button id="deleteTopicBtn" class="vn-control-btn" style="display: none;" onclick="deleteCurrentTopic()">🗑️ Borrar</button>
+                <button class="vn-control-btn" onclick="backToTopics()">✕ Salir</button>
+            </div>
+        </div>
+
+        <div id="vnStage" class="vn-stage"></div>
+
+        <div id="vnOptionsContainer" class="vn-options-container"></div>
+
+        <div class="vn-dialogue-box" onclick="handleDialogueClick()">
+            <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
+            <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
+            <div id="vnDialogueText" class="vn-dialogue-text">Texto del diálogo...</div>
+            <div id="vnContinueIndicator" class="vn-continue-indicator">▼</div>
+            <div id="vnMessageCounter" class="vn-message-counter">0 / 0</div>
+        </div>
+
+        <div id="vnReplyPanel" class="vn-reply-panel">
+            <div class="vn-reply-header">
+                <h3 class="vn-reply-title">✎ Continuar Historia</h3>
+                <button class="vn-close-reply" onclick="closeReplyPanel()">✕</button>
+            </div>
+            <div class="vn-reply-content">
+                <label style="font-family: 'Inter', sans-serif; color: var(--text-secondary);">¿Quién habla?</label>
+                <div id="charSelector" class="char-selector"></div>
+                <label class="vn-narrator-toggle">
+                    <input type="checkbox" id="narratorMode" onchange="toggleNarratorMode()">
+                    Narrador
+                </label>
+                <label style="font-family: 'Inter', sans-serif; color: var(--text-secondary);">Texto</label>
+                <textarea id="vnReplyText" class="vn-reply-input" rows="4" placeholder="Escribe la continuación..."></textarea>
+                <button class="vn-submit-btn" onclick="postVNReply()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         MODALES
+         ============================================ -->
+    
+    <!-- Modal Nueva Historia -->
+    <div id="topicModal" class="modal-overlay" onclick="if(event.target === this) closeModal('topicModal')">
+        <div class="modal">
+            <h3>✨ Crear Nueva Historia</h3>
+            <div class="form-group">
+                <label>Título *</label>
+                <input type="text" id="topicTitleInput" placeholder="Ej: El Misterio del Bosque">
+            </div>
+            <div class="form-group">
+                <label>Personaje Protagonista *</label>
+                <select id="topicCharSelect"></select>
+            </div>
+            <div class="form-group">
+                <label>Primer Capítulo *</label>
+                <textarea id="topicFirstMsg" rows="5" placeholder="Escribe el inicio de esta aventura..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>URL de Fondo (opcional)</label>
+                <input type="text" id="topicBackgroundInput" placeholder="https://ejemplo.com/imagen.jpg">
+                <small style="color: var(--text-muted); font-size: 0.8rem;">Imagen de fondo para la historia</small>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeModal('topicModal')" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border-color); padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button onclick="createTopic()" style="background: var(--accent-wood); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer;">Comenzar Aventura</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuevo Personaje -->
+    <div id="characterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('characterModal')">
+        <div class="modal">
+            <h3>🎭 Crear Personaje</h3>
+            <input type="hidden" id="editCharacterId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Nombre *</label>
+                    <input type="text" id="charName" placeholder="Ej: Lyra">
+                </div>
+                <div class="form-group">
+                    <label>Apellido</label>
+                    <input type="text" id="charLastName" placeholder="Ej: Moonwhisper">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Edad</label>
+                    <input type="text" id="charAge" placeholder="Ej: 24">
+                </div>
+                <div class="form-group">
+                    <label>Raza</label>
+                    <input type="text" id="charRace" placeholder="Ej: Elfa">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Ocupación</label>
+                    <input type="text" id="charJob" placeholder="Ej: Maga">
+                </div>
+                <div class="form-group">
+                    <label>Color *</label>
+                    <input type="color" id="charColor" value="#8b7355" style="height: 45px;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>URL Imagen</label>
+                <input type="text" id="charAvatar" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label>URL Sprite (opcional)</label>
+                <input type="text" id="charSprite" placeholder="https://...">
+                <small style="color: var(--text-muted); font-size: 0.8rem;">Imagen de cuerpo completo para el modo historia</small>
+            </div>
+            <div class="form-group">
+                <label>Descripción</label>
+                <textarea id="charBasic" rows="3" placeholder="Apariencia física..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Personalidad</label>
+                <textarea id="charPersonality" rows="3" placeholder="Carácter y temperamentos..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Historia</label>
+                <textarea id="charHistory" rows="3" placeholder="Pasado y motivaciones..."></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button onclick="closeModal('characterModal')" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border-color); padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer;">Cancelar</button>
+                <button id="deleteCharBtn" onclick="deleteCharFromModal()" style="display: none; background: #c75b5b; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer;">Borrar</button>
+                <button onclick="saveCharacter()" style="background: var(--accent-wood); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer;">Guardar Personaje</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Ficha Personaje -->
+    <div id="sheetModal" class="modal-overlay" onclick="if(event.target === this) closeModal('sheetModal')">
+        <div class="sheet-modal">
+            <div class="sheet-header">
+                <div id="sheetAvatar" class="sheet-avatar"></div>
+                <h2 id="sheetName" class="sheet-name"></h2>
+                <p id="sheetOwner" style="color: var(--text-muted); font-size: 0.9rem;"></p>
+            </div>
+            <div class="sheet-tabs">
+                <button class="sheet-tab active" onclick="switchTab('basic', event)">Datos</button>
+                <button class="sheet-tab" onclick="switchTab('personality', event)">Personalidad</button>
+                <button class="sheet-tab" onclick="switchTab('history', event)">Historia</button>
+            </div>
+            <div class="sheet-content">
+                <div id="tab-basic" class="tab-panel active">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-label">Nombre</div>
+                            <div class="info-value" id="s_name"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Apellido</div>
+                            <div class="info-value" id="s_lastname"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Edad</div>
+                            <div class="info-value" id="s_age"></div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Raza</div>
+                            <div class="info-value" id="s_race"></div>
+                        </div>
+                        <div class="info-item" style="grid-column: 1 / -1;">
+                            <div class="info-label">Ocupación</div>
+                            <div class="info-value" id="s_job"></div>
+                        </div>
+                    </div>
+                    <div class="info-text" id="s_basic"></div>
+                </div>
+                <div id="tab-personality" class="tab-panel">
+                    <div class="info-text" id="s_personality"></div>
+                </div>
+                <div id="tab-history" class="tab-panel">
+                    <div class="info-text" id="s_history"></div>
+                </div>
+            </div>
+            <div class="sheet-actions">
+                <button onclick="closeModal('sheetModal')" style="background: var(--bg-tertiary); color: var(--text-primary); border: 2px solid var(--border-color); padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer;">Cerrar</button>
+                <button id="sheetEditBtn" onclick="editFromSheet()" style="display: none; background: var(--accent-wood); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer;">✏️ Editar</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // ============================================
+    // DATOS Y ESTADO
+    // ============================================
+    const JSONBIN_BIN_ID = '6999c9aed0ea881f40ccab53';
+    const JSONBIN_MASTER_KEY = '$2a$10$n2fNlNcZYCvkUIkDlR5Z5OSoAJerLFfMYWGdxbVZDrSSHpLhgMzay';
+
+    var userNames = ['Jugador 1', 'Jugador 2', 'Jugador 3'];
+    var currentUserIndex = 0;
+    var appData = { topics: [], characters: [], messages: {} };
+    var currentTopicId = null;
+    var selectedCharId = null;
+    var currentSheetCharId = null;
+
+    // ============================================
+    // VARIABLES DEL MODO CINE
+    // ============================================
+    let currentMessageIndex = 0;
+    let isTyping = false;
+    let autoPlay = false;
+    let typewriterInterval;
+    let isNarratorMode = false;
+
+    // ============================================
+    // INICIALIZACIÓN
+    // ============================================
+    document.addEventListener('DOMContentLoaded', () => {
+        const saved = localStorage.getItem('etheria_data');
+        if (saved) {
+            try { appData = JSON.parse(saved); } catch(e) {}
+        }
+        const savedNames = localStorage.getItem('etheria_user_names');
+        if (savedNames) {
+            try { userNames = JSON.parse(savedNames); } catch(e) {}
+        }
+        updateUserScreen();
+    });
+
+    function updateUserScreen() {
+        userNames.forEach((n, i) => {
+            const el = document.getElementById('userName' + i);
+            if(el) el.textContent = n;
+        });
+    }
+
+    // ============================================
+    // NAVEGACIÓN PRINCIPAL
+    // ============================================
+    function selectUser(idx) {
+        currentUserIndex = idx;
+        document.getElementById('userSelectScreen').classList.add('hidden');
+        document.getElementById('mainMenu').classList.remove('hidden');
+        document.getElementById('currentUserDisplay').textContent = userNames[idx];
+    }
+
+    function showSection(section) {
+        document.getElementById('mainMenu').classList.add('hidden');
+        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+        
+        if(section === 'topics') {
+            document.getElementById('topicsSection').classList.add('active');
+            renderTopics();
+            updateStats();
+        } else if(section === 'gallery') {
+            document.getElementById('gallerySection').classList.add('active');
+            renderGallery();
+        } else if(section === 'options') {
+            document.getElementById('optionsSection').classList.add('active');
+        }
+    }
+
+    function backToMenu() {
+        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+        document.getElementById('mainMenu').classList.remove('hidden');
+    }
+
+    function backToTopics() {
+        document.getElementById('vnSection').classList.remove('active');
+        document.getElementById('topicsSection').classList.add('active');
+        renderTopics();
+        updateStats();
+    }
+
+    // ============================================
+    // MENÚ PRINCIPAL - Cargar/Continuar
+    // ============================================
+    function importFromMenu() {
+        document.getElementById('importFile').click();
+    }
+
+// ============================================
+    // SECCIÓN: TEMAS (Nueva Partida)
+    // ============================================
+
+    function renderTopics() {
+        const container = document.getElementById('topicsList');
+        
+        // 1. Si no hay historias
+        if(appData.topics.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <h3>📭 No hay historias aún</h3>
+                    <p>El mundo de Etheria espera tu primera aventura...</p>
+                    <button onclick="openModal('topicModal')" style="margin-top: 1rem; background: var(--accent-wood); color: white; border: none; padding: 1rem 2rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;">✨ Crear Primera Historia</button>
+                </div>`;
+            return;
+        }
+
+        // 2. Ordenar historias (las más recientes arriba)
+        const sorted = [...appData.topics].sort((a, b) => {
+            const msgsA = appData.messages[a.id] || [];
+            const msgsB = appData.messages[b.id] || [];
+            const tA = msgsA.length > 0 ? new Date(msgsA[msgsA.length-1].timestamp || 0) : new Date(a.id);
+            const tB = msgsB.length > 0 ? new Date(msgsB[msgsB.length-1].timestamp || 0) : new Date(b.id);
+            return tB - tA;
+        });
+
+        // 3. Dibujar las tarjetas
+        container.innerHTML = sorted.map(t => {
+            const msgs = appData.messages[t.id] || [];
+            const last = msgs[msgs.length - 1];
+            const isMine = t.createdByIndex === currentUserIndex;
+            
+            return `
+                <div class="topic-card" onclick="enterTopic('${t.id}')">
+                    ${isMine ? `<button class="topic-delete-btn" onclick="event.stopPropagation(); deleteTopic('${t.id}')">🗑️</button>` : ''}
+                    <div class="topic-card-header">
+                        <h3 class="topic-title">${t.title}</h3>
+                        <span class="topic-badge">${msgs.length} caps</span>
+                    </div>
+                    <p class="topic-meta">Por ${t.createdBy} • ${t.date}</p>
+                    ${last ? `<p class="topic-preview">"${last.text.substring(0, 60)}${last.text.length > 60 ? '...' : ''}"</p>` : '<p class="topic-preview">Sin mensajes aún...</p>'}
+                </div>
+            `;
+        }).join('');
+    }
+
+    function updateStats() {
+        const myTopics = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
+        let myMsgs = 0;
+        Object.values(appData.messages).forEach(msgs => {
+            myMsgs += msgs.filter(m => m.userIndex === currentUserIndex).length;
+        });
+        document.getElementById('statTopics').textContent = myTopics;
+        document.getElementById('statMsgs').textContent = myMsgs;
+    }
+
+    function updateTopicSelect() {
+        const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
+        const select = document.getElementById('topicCharSelect');
+        if(mine.length === 0) {
+            select.innerHTML = '<option value="">-- Crea un personaje primero --</option>';
+        } else {
+            select.innerHTML = mine.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+    }
+
+    function createTopic() {
+        const title = document.getElementById('topicTitleInput').value.trim();
+        const background = document.getElementById('topicBackgroundInput').value.trim();
+        const charId = document.getElementById('topicCharSelect').value;
+        const text = document.getElementById('topicFirstMsg').value.trim();
+        
+        if(!title) { alert('El título es obligatorio'); return; }
+        if(!charId) { alert('Selecciona un personaje'); return; }
+        if(!text) { alert('Escribe el primer capítulo'); return; }
+        
+        const char = appData.characters.find(c => c.id === charId);
+        if(!char) return;
+
+        const id = Date.now().toString();
+        appData.topics.push({
+            id, 
+            title, 
+            background: background || null,
+            createdBy: userNames[currentUserIndex],
+            createdByIndex: currentUserIndex,
+            date: new Date().toLocaleDateString()
+        });
+        
+        appData.messages[id] = [{
+            id: Date.now().toString(),
+            characterId: charId,
+            charName: char.name,
+            charColor: char.color,
+            charAvatar: char.avatar,
+            charSprite: char.sprite,
+            text, 
+            userIndex: currentUserIndex,
+            timestamp: new Date().toISOString()
+        }];
+
+        save();
+        closeModal('topicModal');
+        
+        // LIMPIAR FORMULARIO
+        document.getElementById('topicTitleInput').value = '';
+        document.getElementById('topicBackgroundInput').value = '';
+        document.getElementById('topicFirstMsg').value = '';
+
+        // ACTUALIZAR Y ENTRAR
+        renderTopics(); 
+        updateStats();  
+        enterTopic(id); 
+    }
+    // ============================================
+    // MODO CINE - VISUAL NOVEL
+    // ============================================
+    function enterTopic(id) {
+        currentTopicId = id;
+        currentMessageIndex = 0;
+        const t = appData.topics.find(topic => topic.id === id);
+        if(!t) return;
+        
+        // APLICAR FONDO
+        const vnSection = document.getElementById('vnSection');
+        if (t.background) {
+            vnSection.style.backgroundImage = `url(${t.background})`;
+        } else {
+            vnSection.style.backgroundImage = 'linear-gradient(135deg, #1a1815 0%, #2d2a26 50%, #1a1815 100%)';
+        }
+        
+        document.getElementById('topicsSection').classList.remove('active');
+        document.getElementById('vnSection').classList.add('active');
+        
+        document.getElementById('vnHeaderTitle').textContent = t.title;
+        document.getElementById('deleteTopicBtn').style.display = 
+            t.createdByIndex === currentUserIndex ? 'inline-block' : 'none';
+        
+        document.getElementById('vnStage').innerHTML = '';
+        
+        showCurrentMessage();
+        updateMessageCounter();
+    }
+
+    function typeWriter(text, element, speed = 25) {
+        isTyping = true;
+        element.innerHTML = '';
+        document.getElementById('vnContinueIndicator').style.opacity = '0';
+        
+        if (typewriterInterval) clearInterval(typewriterInterval);
+        
+        let i = 0;
+        typewriterInterval = setInterval(() => {
+            if (i < text.length) {
+                element.innerHTML += text.charAt(i);
+                i++;
+            } else {
+                clearInterval(typewriterInterval);
+                isTyping = false;
+                document.getElementById('vnContinueIndicator').style.opacity = '1';
+                if (autoPlay && currentMessageIndex < (appData.messages[currentTopicId] || []).length - 1) {
+                    setTimeout(nextMessage, 2000);
+                }
+            }
+        }, speed);
+    }
+
+    function showCurrentMessage() {
+        const msgs = appData.messages[currentTopicId] || [];
+        
+        if (msgs.length === 0) {
+            showEmptyState();
+            return;
+        }
+        
+        if (currentMessageIndex >= msgs.length) {
+            currentMessageIndex = msgs.length - 1;
+        }
+        if (currentMessageIndex < 0) currentMessageIndex = 0;
+        
+        const msg = msgs[currentMessageIndex];
+        
+        const namePlate = document.getElementById('vnSpeakerPlate');
+        const avatarBox = document.getElementById('vnSpeakerAvatar');
+        
+        if (msg.isNarrator || !msg.characterId) {
+            namePlate.textContent = 'Narrador';
+            namePlate.style.background = 'linear-gradient(135deg, #4a4540, #2a2724)';
+            namePlate.style.borderColor = '#6b8e7d';
+            avatarBox.innerHTML = '📖';
+            avatarBox.style.background = 'var(--bg-tertiary)';
+            avatarBox.style.opacity = '0.6';
+            document.getElementById('vnStage').innerHTML = '';
+        } else {
+            namePlate.textContent = msg.charName;
+            namePlate.style.background = msg.charColor ? 
+                `linear-gradient(135deg, ${msg.charColor}, ${adjustColor(msg.charColor, -20)})` : 
+                'linear-gradient(135deg, var(--accent-wood), var(--accent-warm))';
+            namePlate.style.borderColor = 'var(--accent-gold)';
+            
+            avatarBox.style.opacity = '1';
+            if (msg.charAvatar) {
+                avatarBox.innerHTML = `<img src="${msg.charAvatar}" style="width:100%;height:100%;object-fit:cover;">`;
+            } else {
+                avatarBox.innerHTML = `<div style="font-size: 3rem;">${msg.charName.charAt(0)}</div>`;
+                avatarBox.style.background = msg.charColor || 'var(--bg-tertiary)';
+            }
+            
+            updateStageFocus(msg);
+        }
+        
+        typeWriter(msg.text, document.getElementById('vnDialogueText'));
+        updateMessageCounter();
+    }
+
+    function handleDialogueClick() {
+        if (document.getElementById('vnReplyPanel').style.display === 'flex') {
+            return;
+        }
+        nextMessage();
+    }
+
+    function updateStageFocus(currentMsg) {
+        const stage = document.getElementById('vnStage');
+        const msgs = appData.messages[currentTopicId] || [];
+        
+        const recentChars = [];
+        const seen = new Set();
+        
+        for (let i = Math.max(0, currentMessageIndex - 2); i <= currentMessageIndex + 1 && i < msgs.length; i++) {
+            const m = msgs[i];
+            if (m.characterId && !seen.has(m.characterId)) {
+                seen.add(m.characterId);
+                recentChars.push(m);
+            }
+        }
+        
+        stage.innerHTML = recentChars.map((char) => {
+            const isCurrent = char.characterId === currentMsg.characterId;
+            const opacity = isCurrent ? '1' : '0.4';
+            const scale = isCurrent ? '1.1' : '0.9';
+            const filter = isCurrent ? 'brightness(1.2)' : 'brightness(0.6) grayscale(0.3)';
+            const sprite = char.charSprite && char.charSprite.trim() ? char.charSprite : null;
+
+            if (sprite) {
+                return `
+                    <div class="vn-stage-figure" style="opacity: ${opacity}; transform: scale(${scale}); filter: ${filter};">
+                        <div class="vn-stage-sprite">
+                            <img src="${sprite}" alt="${char.charName}">
+                        </div>
+                        <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem; font-family: Cinzel; font-size: 0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${char.charName}</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="vn-stage-figure" style="opacity: ${opacity}; transform: scale(${scale}); filter: ${filter};">
+                    <div style="width: 120px; height: 120px; border-radius: 50%; background: ${char.charColor || 'var(--accent-wood)'}; opacity: 0.8; margin: 0 auto; box-shadow: ${isCurrent ? '0 0 30px ' + (char.charColor || 'var(--accent-wood)') : 'none'}; display: flex; align-items: center; justify-content: center; font-size: 3rem; border: 4px solid ${isCurrent ? 'var(--accent-gold)' : 'transparent'};">
+                        ${char.charAvatar ? 
+                            `<img src="${char.charAvatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : 
+                            char.charName.charAt(0)
+                        }
+                    </div>
+                    <p style="color: rgba(255,255,255,0.8); margin-top: 0.5rem; font-family: Cinzel; font-size: 0.9rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">${char.charName}</p>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function nextMessage() {
+        const msgs = appData.messages[currentTopicId] || [];
+        
+        if (isTyping) {
+            clearInterval(typewriterInterval);
+            if (currentMessageIndex < msgs.length) {
+                document.getElementById('vnDialogueText').textContent = msgs[currentMessageIndex].text;
+            }
+            isTyping = false;
+            document.getElementById('vnContinueIndicator').style.opacity = '1';
+            return;
+        }
+        
+        if (currentMessageIndex < msgs.length - 1) {
+            currentMessageIndex++;
+            showCurrentMessage();
+        } else {
+            document.getElementById('vnDialogueText').innerHTML = '<em style="color: var(--accent-gold);">— Has llegado al final de esta historia —<br>Haz clic en ✎ para continuarla</em>';
+            document.getElementById('vnSpeakerPlate').textContent = 'Fin';
+            document.getElementById('vnSpeakerPlate').style.background = 'linear-gradient(135deg, var(--accent-sage), #4a6b5a)';
+            document.getElementById('vnSpeakerAvatar').innerHTML = '✦';
+            document.getElementById('vnStage').innerHTML = '';
+        }
+    }
+
+    function previousMessage() {
+        if (currentMessageIndex > 0) {
+            currentMessageIndex--;
+            showCurrentMessage();
+        }
+    }
+
+    function firstMessage() {
+        currentMessageIndex = 0;
+        showCurrentMessage();
+    }
+
+    function toggleAutoPlay() {
+        autoPlay = !autoPlay;
+        const btn = document.getElementById('autoPlayBtn');
+        if (autoPlay) {
+            btn.style.background = 'var(--accent-wood)';
+            btn.style.color = 'white';
+            if (!isTyping) nextMessage();
+        } else {
+            btn.style.background = 'rgba(0,0,0,0.5)';
+            btn.style.color = 'var(--accent-gold)';
+        }
+    }
+
+    function showEmptyState() {
+        document.getElementById('vnDialogueText').innerHTML = '<em style="color: var(--accent-gold);">Esta historia está vacía.<br>Sé el primero en escribir algo...</em>';
+        document.getElementById('vnSpeakerPlate').textContent = 'Vacío';
+        document.getElementById('vnSpeakerPlate').style.background = 'linear-gradient(135deg, #4a4540, #2a2724)';
+        document.getElementById('vnSpeakerAvatar').innerHTML = '📭';
+        document.getElementById('vnStage').innerHTML = '';
+        updateMessageCounter();
+    }
+
+    function updateMessageCounter() {
+        const msgs = appData.messages[currentTopicId] || [];
+        const current = msgs.length > 0 ? currentMessageIndex + 1 : 0;
+        document.getElementById('vnMessageCounter').textContent = `${current} / ${msgs.length}`;
+    }
+
+    function adjustColor(color, amount) {
+        const hex = color.replace('#', '');
+        const r = Math.max(0, Math.min(255, parseInt(hex.substr(0, 2), 16) + amount));
+        const g = Math.max(0, Math.min(255, parseInt(hex.substr(2, 2), 16) + amount));
+        const b = Math.max(0, Math.min(255, parseInt(hex.substr(4, 2), 16) + amount));
+        return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+    }
+
+    // ============================================
+    // PANEL DE RESPUESTA
+    // ============================================
+    function openReplyPanel() {
+        document.getElementById('vnReplyPanel').style.display = 'flex';
+        updateCharSelector();
+        document.getElementById('vnReplyText').focus();
+    }
+
+    function closeReplyPanel() {
+        document.getElementById('vnReplyPanel').style.display = 'none';
+        document.getElementById('vnReplyText').value = '';
+        isNarratorMode = false;
+        selectedCharId = null;
+        document.getElementById('narratorMode').checked = false;
+    }
+
+    function toggleNarratorMode() {
+        isNarratorMode = document.getElementById('narratorMode').checked;
+        const selector = document.getElementById('charSelector');
+        
+        if (isNarratorMode) {
+            selector.style.opacity = '0.5';
+            selector.style.pointerEvents = 'none';
+            selectedCharId = null;
+            document.querySelectorAll('.char-option').forEach(el => el.classList.remove('selected'));
+        } else {
+            selector.style.opacity = '1';
+            selector.style.pointerEvents = 'auto';
+        }
+    }
+
+    function updateCharSelector() {
+        const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
+        const container = document.getElementById('charSelector');
+        
+        if (mine.length === 0 && !isNarratorMode) {
+            container.innerHTML = '<p style="color:var(--text-muted); width:100%;">Crea un personaje en la Galería primero, o usa el modo Narrador</p>';
+            return;
+        }
+        
+        container.innerHTML = mine.map(c => `
+            <div class="char-option" onclick="selectVNChar('${c.id}', this)" style="display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1.2rem; background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all 0.3s;">
+                <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;border:2px solid ${c.color};">
+                    ${c.avatar ? 
+                        `<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover">` : 
+                        `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--bg-tertiary);font-size:1.2rem">${c.name[0]}</div>`
+                    }
+                </div>
+                <span style="font-weight: 500;">${c.name}</span>
+            </div>
+        `).join('');
+        
+        if (mine.length > 0 && !isNarratorMode) {
+            selectVNChar(mine[0].id, container.children[0]);
+        }
+    }
+
+    function selectVNChar(id, el) {
+        if (isNarratorMode) return;
+        selectedCharId = id;
+        document.querySelectorAll('.char-option').forEach(o => {
+            o.classList.remove('selected');
+            o.style.borderColor = 'var(--border-color)';
+            o.style.background = 'var(--bg-card)';
+            o.style.boxShadow = 'none';
+        });
+        el.classList.add('selected');
+        el.style.borderColor = 'var(--accent-wood)';
+        el.style.background = 'var(--bg-secondary)';
+        el.style.boxShadow = '0 0 0 3px rgba(139, 115, 85, 0.2)';
+    }
+
+    function postVNReply() {
+        const text = document.getElementById('vnReplyText').value.trim();
+        if(!text) { alert('Escribe un mensaje'); return; }
+        
+        let char = null;
+        if (!isNarratorMode) {
+            if (!selectedCharId) { alert('Selecciona un personaje o usa modo Narrador'); return; }
+            char = appData.characters.find(c => c.id === selectedCharId);
+            if(!char) return;
+        }
+        
+        if(!appData.messages[currentTopicId]) appData.messages[currentTopicId] = [];
+        
+        const newMsg = {
+            id: Date.now().toString(),
+            characterId: isNarratorMode ? null : selectedCharId,
+            charName: isNarratorMode ? 'Narrador' : char.name,
+            charColor: isNarratorMode ? null : char.color,
+            charAvatar: isNarratorMode ? null : char.avatar,
+            charSprite: isNarratorMode ? null : char.sprite,
+            text,
+            isNarrator: isNarratorMode,
+            userIndex: currentUserIndex,
+            timestamp: new Date().toISOString()
+        };
+        
+        appData.messages[currentTopicId].push(newMsg);
+        save();
+        closeReplyPanel();
+        
+        currentMessageIndex = appData.messages[currentTopicId].length - 1;
+        showCurrentMessage();
+    }
+
+    function deleteCurrentTopic() {
+        if(currentTopicId) {
+            deleteTopic(currentTopicId);
+            backToTopics();
+        }
+    }
+
+    function deleteTopic(id) {
+        const topic = appData.topics.find(t => t.id === id);
+        if (!topic) return;
+        if (!confirm(`¿Borrar la historia "${topic.title}"?`)) return;
+        appData.topics = appData.topics.filter(t => t.id !== id);
+        delete appData.messages[id];
+        if (currentTopicId === id) currentTopicId = null;
+        save();
+        renderTopics();
+        updateStats();
+    }
+
+    // ============================================
+    // SECCIÓN: GALERÍA (Personajes)
+    // ============================================
+    function renderGallery() {
+        const container = document.getElementById('galleryContainer');
+        let html = '';
+        
+        const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
+        html += createGallerySection('🔥 Mis Personajes', mine, true);
+        
+        for(let i=0; i<3; i++) {
+            if(i === currentUserIndex) continue;
+            const others = appData.characters.filter(c => c.userIndex === i);
+            if(others.length > 0) {
+                html += createGallerySection(`👤 Personajes de ${userNames[i]}`, others, false);
+            }
+        }
+        
+        container.innerHTML = html || '<div class="empty-state" style="grid-column: 1 / -1;"><h3>🎭 No hay personajes</h3><p>Crea tu primer personaje para comenzar</p></div>';
+    }
+
+    function createGallerySection(title, chars, expanded) {
+        return `<div class="gallery-section">
+            <div class="gallery-header" onclick="this.nextElementSibling.classList.toggle('expanded')">
+                <span>${title}</span>
+                <span>▼</span>
+            </div>
+            <div class="gallery-content ${expanded ? 'expanded' : ''}">
+                <div class="character-list">
+                    ${chars.map(c => `
+                        <div class="character-thumb" onclick="openSheet('${c.id}')">
+                            <div class="character-thumb-avatar" style="border-color: ${c.color}">
+                                ${c.avatar ? `<img src="${c.avatar}">` : c.name[0]}
+                            </div>
+                            <div class="character-thumb-name">${c.name}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // ============================================
+    // FICHA DE PERSONAJE
+    // ============================================
+    function openSheet(id) {
+        currentSheetCharId = id;
+        const c = appData.characters.find(char => char.id === id);
+        if(!c) return;
+        
+        document.getElementById('sheetName').textContent = c.name;
+        document.getElementById('sheetOwner').textContent = `Creado por ${c.owner || userNames[c.userIndex]}`;
+        
+        const avatar = document.getElementById('sheetAvatar');
+        avatar.innerHTML = c.avatar ? 
+            `<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover">` : 
+            `<div style="font-size:4rem">${c.name[0]}</div>`;
+        
+        document.getElementById('s_name').textContent = c.name || '—';
+        document.getElementById('s_lastname').textContent = c.lastName || '—';
+        document.getElementById('s_age').textContent = c.age || '—';
+        document.getElementById('s_race').textContent = c.race || '—';
+        document.getElementById('s_job').textContent = c.job || '—';
+        document.getElementById('s_basic').textContent = c.basic || 'Sin descripción.';
+        document.getElementById('s_personality').textContent = c.personality || 'Sin datos.';
+        document.getElementById('s_history').textContent = c.history || 'Sin historia.';
+
+        const isMine = c.userIndex === currentUserIndex;
+        document.getElementById('sheetEditBtn').style.display = isMine ? 'inline-block' : 'none';
+
+        document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelector('.sheet-tab').classList.add('active');
+        document.querySelector('.tab-panel').classList.add('active');
+
+        openModal('sheetModal');
+    }
+
+    function switchTab(tab, e) {
+        document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        e.target.classList.add('active');
+        document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    function saveCharacter() {
+        const name = document.getElementById('charName').value.trim();
+        if(!name) { alert('El nombre es obligatorio'); return; }
+
+        const id = document.getElementById('editCharacterId').value || Date.now().toString();
+        
+        const charObj = {
+            id, userIndex: currentUserIndex, owner: userNames[currentUserIndex],
+            name, lastName: document.getElementById('charLastName').value.trim(),
+            age: document.getElementById('charAge').value.trim(),
+            race: document.getElementById('charRace').value.trim(),
+            job: document.getElementById('charJob').value.trim(),
+            color: document.getElementById('charColor').value,
+            avatar: document.getElementById('charAvatar').value.trim(),
+            sprite: document.getElementById('charSprite').value.trim(),
+            basic: document.getElementById('charBasic').value.trim(),
+            personality: document.getElementById('charPersonality').value.trim(),
+            history: document.getElementById('charHistory').value.trim()
+        };
+
+        const idx = appData.characters.findIndex(c => c.id === id);
+        if(idx > -1) appData.characters[idx] = charObj;
+        else appData.characters.push(charObj);
+
+        save();
+        closeModal('characterModal');
+        resetCharForm();
+        
+        if(document.getElementById('gallerySection').classList.contains('active')) {
+            renderGallery();
+        }
+    }
+
+    function resetCharForm() {
+        document.getElementById('editCharacterId').value = '';
+        document.getElementById('deleteCharBtn').style.display = 'none';
+        document.querySelectorAll('#characterModal input:not([type="color"]), #characterModal textarea').forEach(i => i.value = '');
+        document.getElementById('charColor').value = '#8b7355';
+    }
+
+    function editFromSheet() {
+        const c = appData.characters.find(char => char.id === currentSheetCharId);
+        if(!c || c.userIndex !== currentUserIndex) return;
+
+        document.getElementById('editCharacterId').value = c.id;
+        document.getElementById('charName').value = c.name;
+        document.getElementById('charLastName').value = c.lastName || '';
+        document.getElementById('charAge').value = c.age || '';
+        document.getElementById('charRace').value = c.race || '';
+        document.getElementById('charJob').value = c.job || '';
+        document.getElementById('charColor').value = c.color;
+        document.getElementById('charAvatar').value = c.avatar || '';
+        document.getElementById('charSprite').value = c.sprite || '';
+        document.getElementById('charBasic').value = c.basic || '';
+        document.getElementById('charPersonality').value = c.personality || '';
+        document.getElementById('charHistory').value = c.history || '';
+        document.getElementById('deleteCharBtn').style.display = 'inline-block';
+
+        closeModal('sheetModal');
+        openModal('characterModal');
+    }
+
+    function deleteCharFromModal() {
+        const id = document.getElementById('editCharacterId').value;
+        if(!id) return;
+        
+        const c = appData.characters.find(char => char.id === id);
+        if(c && confirm(`¿Borrar a "${c.name}"?`)) {
+            appData.characters = appData.characters.filter(ch => ch.id !== id);
+            Object.keys(appData.messages).forEach(tid => {
+                appData.messages[tid] = appData.messages[tid].filter(m => m.characterId !== id);
+            });
+            save();
+            closeModal('characterModal');
+            resetCharForm();
+            renderGallery();
+        }
+    }
+
+    // ============================================
+    // OPCIONES Y UTILIDADES
+    // ============================================
+    function changeUser() {
+        const newName = prompt('Nuevo nombre:', userNames[currentUserIndex]);
+        if(newName && newName.trim()) {
+            userNames[currentUserIndex] = newName.trim();
+            localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+            document.getElementById('currentUserDisplay').textContent = newName.trim();
+            appData.characters.forEach(c => { if(c.userIndex === currentUserIndex) c.owner = newName.trim(); });
+            appData.topics.forEach(t => { if(t.createdByIndex === currentUserIndex) t.createdBy = newName.trim(); });
+            save();
+            updateUserScreen();
+        }
+    }
+
+    function toggleTheme() {
+        const html = document.documentElement;
+        const current = html.getAttribute('data-theme');
+        html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+        alert(current === 'dark' ? 'Tema cambiado a: Día ☀️' : 'Tema cambiado a: Noche 🌙');
+    }
+
+    // ============================================
+    // AUDIO
+    // ============================================
+    function loadPreset(type) {
+        const sounds = {
+            rain: 'https://archive.org/download/rain-06/rain-06.mp3',
+            fire: 'https://archive.org/download/campfire-1_202602/campfire-1.mp3',
+            cafe: 'https://www.soundjay.com/misc/sounds/coffee-shop-01.mp3',
+            forest: 'https://www.soundjay.com/misc/sounds/forest-01.mp3',
+            night: 'https://www.soundjay.com/misc/sounds/night-01.mp3'
+        };
+        
+        const container = document.getElementById('playerContainer');
+        container.style.display = 'block';
+        
+        container.innerHTML = `
+            <div style="background:var(--bg-secondary); padding:15px; border-radius:12px; text-align:center;">
+                <p style="margin:0 0 10px 0; color:var(--text-primary); font-family:'Cinzel', serif; text-transform:capitalize;">
+                    🎵 ${type}
+                </p>
+                <audio id="ambientAudio" controls loop style="width:100%;" preload="auto">
+                    <source src="${sounds[type]}" type="audio/mpeg">
+                    Tu navegador no soporta audio HTML5.
+                </audio>
+                <p id="audioStatus" style="margin:10px 0 0 0; font-size:0.75rem; color:var(--text-muted);">
+                    Cargando...
+                </p>
+            </div>
+        `;
+        
+        const audio = document.getElementById('ambientAudio');
+        const status = document.getElementById('audioStatus');
+        
+        if(audio) {
+            audio.volume = 0.4;
+            
+            audio.addEventListener('canplay', function() {
+                status.textContent = '✅ Listo - Haz clic en play';
+                status.style.color = 'var(--accent-sage)';
+            });
+            
+            audio.addEventListener('error', function(e) {
+                status.textContent = '❌ Error al cargar el audio';
+                status.style.color = '#c75b5b';
+                console.error('Error cargando audio:', e);
+            });
+            
+            audio.play().catch(e => {
+                console.log('Autoplay bloqueado, esperando interacción del usuario');
+            });
+        }
+    }
+
+    function stopAudio() { 
+        document.getElementById('playerContainer').innerHTML = ''; 
+    }
+
+    function toggleAudioPanel() { 
+        const panel = document.getElementById('audioPanel');
+        if (panel.style.display === 'none' || panel.style.display === '') {
+            panel.style.display = 'block';
+        } else {
+            panel.style.display = 'none';
+        }
+    }
+
+    // ============================================
+    // MODALES Y UTILIDADES
+    // ============================================
+    function openModal(id) { 
+        if(id === 'topicModal') updateTopicSelect();
+        document.getElementById(id).classList.add('active'); 
+    }
+    
+    function closeModal(id) { 
+        document.getElementById(id).classList.remove('active'); 
+    }
+
+    function save() { 
+        localStorage.setItem('etheria_data', JSON.stringify(appData)); 
+    }
+
+    async function saveToCloud() {
+        const btn = document.getElementById('saveCloudBtn');
+        if (btn) btn.textContent = '⌛ Guardando...';
+
+        try {
+            const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': JSONBIN_MASTER_KEY
+                },
+                body: JSON.stringify(appData)
+            });
+
+            if (response.ok) {
+                alert('Juego guardado en la nube ☁️');
+            } else {
+                throw new Error('Connection failed');
+            }
+        } catch (error) {
+            alert('Error al guardar: ' + error.message);
+        } finally {
+            if (btn) btn.textContent = '☁️ Guardar';
+        }
+    }
+
+    async function loadFromCloud() {
+        const btn = document.getElementById('loadCloudBtn');
+        if (btn) btn.textContent = '⌛ Cargando...';
+
+        try {
+            const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+                method: 'GET',
+                headers: {
+                    'X-Master-Key': JSONBIN_MASTER_KEY
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.record) {
+                appData = result.record;
+                save();
+                renderTopics();
+                updateStats();
+                if (document.getElementById('gallerySection').classList.contains('active')) {
+                    renderGallery();
+                }
+                alert('Datos sincronizados desde la nube 🔄');
+            }
+        } catch (error) {
+            alert('Error al cargar: ' + error.message);
+        } finally {
+            if (btn) btn.textContent = '☁️ Cargar';
+        }
+    }
+    
+    function exportData() {
+        const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `etheria_save_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        alert('Partida guardada correctamente 📤');
+    }
+    
+    function importData(input) {
+        const file = input.files[0];
+        if(!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const imported = JSON.parse(e.target.result);
+                if(!imported.topics || !imported.characters) throw new Error('Archivo inválido');
+                
+                let addedT = 0, addedC = 0, addedM = 0;
+                
+                imported.topics.forEach(t => {
+                    if(!appData.topics.find(ex => ex.id === t.id)) {
+                        appData.topics.push(t);
+                        addedT++;
+                    }
+                });
+                
+                imported.characters.forEach(c => {
+                    if(!appData.characters.find(ex => ex.id === c.id)) {
+                        appData.characters.push(c);
+                        addedC++;
+                    }
+                });
+                
+                Object.keys(imported.messages || {}).forEach(tid => {
+                    if(!appData.messages[tid]) appData.messages[tid] = [];
+                    imported.messages[tid].forEach(m => {
+                        if(!appData.messages[tid].find(ex => ex.id === m.id)) {
+                            appData.messages[tid].push(m);
+                            addedM++;
+                        }
+                    });
+                });
+                
+                save();
+                alert(`¡Partida cargada! 📥\n• ${addedT} historias nuevas\n• ${addedC} personajes nuevos\n• ${addedM} mensajes nuevos`);
+                
+                if(document.getElementById('topicsSection').classList.contains('active')) {
+                    renderTopics();
+                    updateStats();
+                } else if(document.getElementById('gallerySection').classList.contains('active')) {
+                    renderGallery();
+                }
+            } catch(err) { 
+                alert('Error al cargar: ' + err.message); 
+            }
+            input.value = '';
+        };
+        reader.readAsText(file);
+    }
+
+    // Atajo de teclado
+    document.addEventListener('keydown', (e) => {
+        if (document.getElementById('vnSection').classList.contains('active')) {
+            if (e.code === 'Space' && document.getElementById('vnReplyPanel').style.display !== 'flex') {
+                e.preventDefault();
+                nextMessage();
+            }
+            if (e.code === 'Escape' && document.getElementById('vnReplyPanel').style.display === 'flex') {
+                closeReplyPanel();
+            }
+        }
+    });
+</script>
+</body>
+</html>
