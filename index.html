@@ -51,7 +51,6 @@
             --input-text: #e8e4dc;
         }
 
-        /* Textura de ruido sutil */
         body::before {
             content: '';
             position: fixed;
@@ -88,7 +87,11 @@
             50% { filter: brightness(1.3) drop-shadow(0 0 30px rgba(201, 168, 108, 0.6)); }
         }
 
-        /* Tooltips */
+        @keyframes flower-pulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px currentColor); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 15px currentColor); }
+        }
+
         [data-tooltip] {
             position: relative;
         }
@@ -116,7 +119,6 @@
             bottom: 130%;
         }
 
-        /* Autosave */
         .autosave-indicator {
             position: fixed;
             top: 20px;
@@ -147,7 +149,6 @@
         .autosave-indicator.saving .autosave-icon { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* User Select - CORREGIDO: Texto claro sobre fondo oscuro */
         .user-select-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
@@ -201,7 +202,6 @@
             border: 3px solid var(--accent-gold);
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        /* CORREGIDO: Color de texto claro para contraste sobre fondo oscuro */
         .user-name { 
             font-family: 'Cinzel', serif; 
             font-size: 1.4rem; 
@@ -218,7 +218,6 @@
         }
         .user-card:hover .user-hint { opacity: 1; }
 
-        /* MAIN MENU - CORREGIDO: Mejor contraste en botones */
         .main-menu {
             position: fixed; 
             top: 0; 
@@ -243,9 +242,7 @@
             box-shadow: 10px 0 40px rgba(0,0,0,0.2);
         }
         
-        .menu-brand {
-            margin-bottom: 3rem;
-        }
+        .menu-brand { margin-bottom: 3rem; }
         .menu-title { 
             font-family: 'Cinzel', serif; 
             font-size: 3rem; 
@@ -266,7 +263,6 @@
             gap: 0.8rem;
             flex: 1;
         }
-        /* CORREGIDO: Mejor contraste en botones del menú */
         .menu-button {
             background: rgba(255,255,255,0.08); 
             border: 2px solid var(--border-color); 
@@ -360,7 +356,6 @@
             backdrop-filter: blur(5px);
         }
 
-        /* Sections */
         .game-section { display: none; min-height: 100vh; background: var(--bg-primary); }
         .game-section.active { display: block; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -386,7 +381,6 @@
         }
         .section-content { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 
-        /* Galería */
         .gallery-toolbar { 
             display: flex; 
             gap: 1rem; 
@@ -428,7 +422,6 @@
             cursor: pointer;
         }
         
-        /* Grid compacto */
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -520,7 +513,6 @@
             opacity: 1;
         }
 
-        /* Sheet Modal */
         .sheet-modal {
             background: var(--glass-bg); 
             border-radius: 24px; width: 95%; max-width: 800px;
@@ -591,7 +583,6 @@
         
         .sheet-actions { padding: 1.5rem; background: rgba(139, 115, 85, 0.2); border-top: 2px solid var(--border-color); display: flex; gap: 1rem; justify-content: flex-end; }
 
-        /* Modals */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); 
@@ -600,7 +591,6 @@
         }
         .modal-overlay.active { display: flex; }
         
-        /* Modal básico para temas */
         .modal {
             background: var(--glass-bg);
             border-radius: 24px;
@@ -622,7 +612,6 @@
             text-align: center;
         }
         
-        /* EDITOR SPLIT-SCREEN */
         .character-modal {
             background: var(--glass-bg); 
             border-radius: 24px; 
@@ -755,7 +744,6 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        /* CORREGIDO: Inputs con fondo y texto apropiados para modo oscuro */
         .form-group input, .form-group select {
             width: 100%;
             padding: 0.8rem;
@@ -772,7 +760,6 @@
             border-color: var(--accent-gold);
             box-shadow: 0 0 0 3px rgba(201, 168, 108, 0.1);
         }
-        /* CORREGIDO: Opciones del select con colores correctos */
         .form-group select option {
             background: var(--input-bg);
             color: var(--input-text);
@@ -958,7 +945,119 @@
             color: white;
         }
 
-        /* Sprites */
+        /* SISTEMA DE AFINIDAD - NUEVO */
+        .affinity-system {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 150;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .affinity-container {
+            background: var(--glass-bg);
+            border: 2px solid var(--accent-gold);
+            border-radius: 20px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            min-width: 120px;
+        }
+        
+        .affinity-flower {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            animation: flower-pulse 3s ease-in-out infinite;
+        }
+        
+        .affinity-flower svg {
+            width: 100%;
+            height: 100%;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+        
+        .affinity-value {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .affinity-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .affinity-controls {
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .affinity-controls.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+        
+        .affinity-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-gold);
+            background: var(--glass-bg);
+            color: var(--accent-gold);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .affinity-btn:hover {
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(201, 168, 108, 0.5);
+        }
+        
+        .affinity-btn.plus:hover {
+            background: #6b8e7d;
+            border-color: #6b8e7d;
+            color: white;
+        }
+        
+        .affinity-btn.minus:hover {
+            background: #c75b5b;
+            border-color: #c75b5b;
+            color: white;
+        }
+        
+        .affinity-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
         .vn-sprite-container {
             position: fixed;
             bottom: 0;
@@ -1006,7 +1105,6 @@
         }
         .vn-sprite.active.center { animation: bounce-focus 2s ease-in-out infinite, glow 3s ease-in-out infinite; }
 
-        /* Diálogo - CORREGIDO: Avatar posicionado correctamente */
         .vn-dialogue-box {
             position: fixed;
             left: 50%;
@@ -1027,7 +1125,6 @@
             box-shadow: 0 25px 70px rgba(0,0,0,0.6), 0 0 30px rgba(201, 168, 108, 0.2);
         }
         
-        /* CORREGIDO: Avatar centrado verticalmente con la caja */
         .vn-speaker-avatar {
             position: absolute;
             left: 1.5rem;
@@ -1069,7 +1166,6 @@
             min-height: 4rem;
             margin-top: 0.5rem;
         }
-        /* CORREGIDO: Soporte para formato de texto */
         .vn-dialogue-text strong, .vn-dialogue-text b {
             color: var(--accent-gold);
             font-weight: 700;
@@ -1122,7 +1218,6 @@
             animation: pulse 2s infinite;
         }
 
-        /* Options - CORREGIDO: Mejor visibilidad y funcionalidad */
         .vn-options-container {
             position: fixed;
             bottom: 280px;
@@ -1177,7 +1272,6 @@
             opacity: 0.6;
         }
 
-        /* Continuation */
         .vn-continuation-overlay {
             position: fixed;
             top: 0;
@@ -1238,7 +1332,6 @@
             transform: rotate(90deg);
         }
 
-        /* Reply Panel */
         .vn-reply-panel {
             position: fixed;
             left: 0;
@@ -1351,7 +1444,6 @@
             font-size: 1.1rem;
         }
 
-        /* History Log Modal */
         .history-modal {
             background: var(--glass-bg);
             border-radius: 24px;
@@ -1432,7 +1524,6 @@
             font-family: 'Inter', sans-serif;
         }
 
-        /* Settings Panel */
         .settings-panel {
             position: fixed;
             top: 50%;
@@ -1507,7 +1598,6 @@
 
         .hidden { display: none !important; }
         
-        /* Loading overlay */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -1539,7 +1629,6 @@
             text-shadow: 0 0 10px rgba(201, 168, 108, 0.5);
         }
 
-        /* Botón de editar mensaje */
         .edit-message-btn {
             position: absolute;
             top: 1rem;
@@ -1750,6 +1839,21 @@
 
     <!-- VN Section -->
     <div id="vnSection" class="game-section vn-section">
+        <!-- SISTEMA DE AFINIDAD - NUEVO -->
+        <div id="affinitySystem" class="affinity-system">
+            <div class="affinity-container">
+                <div class="affinity-flower" id="affinityFlower">
+                    <!-- SVG de flor se inserta dinámicamente -->
+                </div>
+                <div class="affinity-value" id="affinityValue">0</div>
+                <div class="affinity-label" id="affinityLabel">Sin relación</div>
+            </div>
+            <div class="affinity-controls" id="affinityControls">
+                <button class="affinity-btn minus" onclick="modifyAffinity(-5)" data-tooltip="Bajar afinidad">−</button>
+                <button class="affinity-btn plus" onclick="modifyAffinity(5)" data-tooltip="Subir afinidad">+</button>
+            </div>
+        </div>
+
         <div class="vn-header">
             <h2 id="vnHeaderTitle" style="font-family: 'Cinzel'; color: var(--accent-gold);">Historia</h2>
             <div class="vn-controls">
@@ -2037,9 +2141,25 @@
         'CB': 'Caótico Bueno', 'CN': 'Caótico Neutral', 'CM': 'Caótico Malvado'
     };
 
+    // Configuración de colores de afinidad
+    const affinityColors = {
+        0: '#ffffff',   // 0-9: Blanco
+        10: '#9b59b6',  // 10-24: Morado
+        25: '#3498db',  // 25-39: Azul
+        40: '#27ae60',  // 40-59: Verde
+        60: '#f1c40f',  // 60-74: Amarillo
+        75: '#ff69b4',  // 75-89: Rosa
+        90: '#e74c3c'   // 90-100: Rojo
+    };
+
     let userNames = ['Jugador 1', 'Jugador 2', 'Jugador 3'];
     let currentUserIndex = 0;
-    let appData = { topics: [], characters: [], messages: {} };
+    let appData = { 
+        topics: [], 
+        characters: [], 
+        messages: {},
+        affinities: {} // Nuevo: almacena afinidades por tema
+    };
     let currentTopicId = null;
     let selectedCharId = null;
     let currentSheetCharId = null;
@@ -2054,13 +2174,22 @@
     let textSpeed = 25;
     let currentEditorTab = 'identity';
     let editingMessageId = null;
+    let currentAffinity = 0; // Afinidad actual en el tema
 
     // ============================================
     // INICIALIZACIÓN
     // ============================================
     document.addEventListener('DOMContentLoaded', () => {
         const saved = localStorage.getItem('etheria_data');
-        if (saved) appData = JSON.parse(saved);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            appData = {
+                topics: parsed.topics || [],
+                characters: parsed.characters || [],
+                messages: parsed.messages || {},
+                affinities: parsed.affinities || {} // Cargar afinidades
+            };
+        }
         const savedNames = localStorage.getItem('etheria_user_names');
         if (savedNames) userNames = JSON.parse(savedNames);
         
@@ -2093,12 +2222,181 @@
     }
 
     // ============================================
+    // SISTEMA DE AFINIDAD - NUEVO
+    // ============================================
+    function getAffinityColor(value) {
+        if (value >= 90) return affinityColors[90];
+        if (value >= 75) return affinityColors[75];
+        if (value >= 60) return affinityColors[60];
+        if (value >= 40) return affinityColors[40];
+        if (value >= 25) return affinityColors[25];
+        if (value >= 10) return affinityColors[10];
+        return affinityColors[0];
+    }
+
+    function getAffinityLevel(value) {
+        if (value >= 90) return 'Alma Gemela';
+        if (value >= 75) return 'Amor';
+        if (value >= 60) return 'Amistad Profunda';
+        if (value >= 40) return 'Amistad';
+        if (value >= 25) return 'Conocidos';
+        if (value >= 10) return 'Neutral';
+        return 'Desconocidos';
+    }
+
+    function generateFlowerSVG(value, color) {
+        // Calcular cuántos pétalos se llenan (8 pétalos total)
+        const filledPetals = Math.ceil((value / 100) * 8);
+        const petals = [];
+        
+        for (let i = 0; i < 8; i++) {
+            const angle = (i * 45) - 90; // Empezar desde arriba
+            const isFilled = i < filledPetals;
+            const petalColor = isFilled ? color : 'rgba(255,255,255,0.1)';
+            const strokeColor = isFilled ? color : 'rgba(255,255,255,0.3)';
+            
+            petals.push(`
+                <ellipse cx="40" cy="15" rx="12" ry="25" 
+                    fill="${petalColor}" 
+                    stroke="${strokeColor}" 
+                    stroke-width="2"
+                    transform="rotate(${angle} 40 40)"
+                    style="transition: all 0.5s ease;"
+                />
+            `);
+        }
+        
+        return `
+            <svg viewBox="0 0 80 80" style="color: ${color};">
+                <defs>
+                    <radialGradient id="centerGrad" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" style="stop-color:${color};stop-opacity:0.8" />
+                        <stop offset="100%" style="stop-color:${color};stop-opacity:0.2" />
+                    </radialGradient>
+                </defs>
+                ${petals.join('')}
+                <circle cx="40" cy="40" r="15" fill="url(#centerGrad)" stroke="${color}" stroke-width="2"/>
+            </svg>
+        `;
+    }
+
+    function getAffinityKey(charId1, charId2) {
+        // Crear clave única independiente del orden
+        const ids = [charId1, charId2].sort();
+        return `${ids[0]}_${ids[1]}`;
+    }
+
+    function getCurrentAffinity() {
+        if (!currentTopicId) return 0;
+        
+        const msgs = appData.messages[currentTopicId] || [];
+        if (msgs.length === 0) return 0;
+        
+        // Obtener personaje del mensaje actual
+        const currentMsg = msgs[currentMessageIndex];
+        if (!currentMsg || !currentMsg.characterId) return 0;
+        
+        const targetCharId = currentMsg.characterId;
+        
+        // Obtener personaje activo del usuario actual
+        const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
+        if (userChars.length === 0) return 0;
+        
+        // Usar el primer personaje del usuario o el último usado
+        const activeCharId = selectedCharId || userChars[0].id;
+        
+        // No mostrar si es el mismo personaje
+        if (activeCharId === targetCharId) return -1; // -1 indica "mismo personaje"
+        
+        const key = getAffinityKey(activeCharId, targetCharId);
+        const topicAffinities = appData.affinities[currentTopicId] || {};
+        
+        return topicAffinities[key] || 0;
+    }
+
+    function updateAffinityDisplay() {
+        const affinityValue = getCurrentAffinity();
+        const flowerContainer = document.getElementById('affinityFlower');
+        const valueDisplay = document.getElementById('affinityValue');
+        const labelDisplay = document.getElementById('affinityLabel');
+        const controls = document.getElementById('affinityControls');
+        const system = document.getElementById('affinitySystem');
+        
+        // Si es -1, es el mismo personaje, ocultar sistema
+        if (affinityValue === -1) {
+            system.style.display = 'none';
+            return;
+        }
+        
+        system.style.display = 'flex';
+        currentAffinity = affinityValue;
+        
+        const color = getAffinityColor(affinityValue);
+        const level = getAffinityLevel(affinityValue);
+        
+        // Actualizar flor
+        flowerContainer.innerHTML = generateFlowerSVG(affinityValue, color);
+        flowerContainer.style.color = color;
+        
+        // Actualizar valor y etiqueta
+        valueDisplay.textContent = affinityValue;
+        valueDisplay.style.color = color;
+        labelDisplay.textContent = level;
+        
+        // Mostrar/ocultar controles según si el mensaje actual es de otro personaje
+        const msgs = appData.messages[currentTopicId] || [];
+        const currentMsg = msgs[currentMessageIndex];
+        
+        // Solo mostrar controles si el mensaje actual NO es del personaje activo del usuario
+        const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
+        const activeCharId = selectedCharId || (userChars[0]?.id);
+        
+        if (currentMsg && currentMsg.characterId && currentMsg.characterId !== activeCharId && activeCharId) {
+            controls.classList.add('visible');
+        } else {
+            controls.classList.remove('visible');
+        }
+    }
+
+    function modifyAffinity(amount) {
+        if (!currentTopicId) return;
+        
+        const msgs = appData.messages[currentTopicId] || [];
+        const currentMsg = msgs[currentMessageIndex];
+        if (!currentMsg || !currentMsg.characterId) return;
+        
+        const targetCharId = currentMsg.characterId;
+        const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
+        const activeCharId = selectedCharId || userChars[0]?.id;
+        
+        if (!activeCharId || activeCharId === targetCharId) return;
+        
+        const key = getAffinityKey(activeCharId, targetCharId);
+        
+        // Inicializar estructura si no existe
+        if (!appData.affinities[currentTopicId]) {
+            appData.affinities[currentTopicId] = {};
+        }
+        
+        // Calcular nuevo valor (0-100)
+        const currentValue = appData.affinities[currentTopicId][key] || 0;
+        const newValue = Math.max(0, Math.min(100, currentValue + amount));
+        
+        appData.affinities[currentTopicId][key] = newValue;
+        
+        hasUnsavedChanges = true;
+        save();
+        updateAffinityDisplay();
+        
+        // Feedback visual
+        showAutosave(`Afinidad ${amount > 0 ? 'aumentada' : 'disminuida'}`, 'saved');
+    }
+
+    // ============================================
     // UTILIDADES DE FORMATO DE TEXTO
     // ============================================
     function formatText(text) {
-        // Convertir **texto** a <strong>texto</strong>
         text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Convertir *texto* a <em>texto</em>
         text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
         return text;
     }
@@ -2434,7 +2732,7 @@
     }
 
     // ============================================
-    // MODO VN - CORREGIDO
+    // MODO VN
     // ============================================
     function enterTopic(id) {
         currentTopicId = id;
@@ -2474,6 +2772,7 @@
         const msgs = appData.messages[currentTopicId] || [];
         if (msgs.length === 0) {
             document.getElementById('vnDialogueText').innerHTML = '<em>Historia vacía. Haz clic en 💬 Responder para comenzar.</em>';
+            updateAffinityDisplay(); // Actualizar aunque esté vacío
             return;
         }
         
@@ -2496,19 +2795,16 @@
             avatarBox.innerHTML = msg.charAvatar ? `<img src="${msg.charAvatar}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` : msg.charName[0];
         }
         
-        // CORREGIDO: Verificar correctamente si hay opciones disponibles
         const hasOpt = msg.options && msg.options.length > 0 && msg.selectedOptionIndex === undefined;
         const optionsIndicator = document.getElementById('messageHasOptions');
         if (optionsIndicator) {
             optionsIndicator.classList.toggle('hidden', !hasOpt);
         }
         
-        // Formatear texto con negritas y cursivas
         const formattedText = formatText(msg.text);
         typeWriter(formattedText, document.getElementById('vnDialogueText'));
         document.getElementById('vnMessageCounter').textContent = `${currentMessageIndex + 1} / ${msgs.length}`;
         
-        // Actualizar visibilidad del botón de editar
         const editBtn = document.getElementById('editMsgBtn');
         if (editBtn) {
             if (msg.userIndex === currentUserIndex) {
@@ -2518,12 +2814,14 @@
             }
         }
         
-        // CORREGIDO: Mostrar opciones solo si estamos en el último mensaje y tiene opciones sin seleccionar
         if (currentMessageIndex === msgs.length - 1 && hasOpt) {
             showOptions(msg.options);
         } else {
             document.getElementById('vnOptionsContainer').classList.remove('active');
         }
+        
+        // ACTUALIZAR SISTEMA DE AFINIDAD
+        updateAffinityDisplay();
     }
 
     function updateSprites(currentMsg) {
@@ -2565,11 +2863,9 @@
         element.innerHTML = '';
         document.getElementById('vnContinueIndicator').style.opacity = '0';
         
-        // Si el texto contiene HTML, lo procesamos de forma especial
         const hasHtml = /<[^>]*>/g.test(text);
         
         if (hasHtml) {
-            // Para texto con formato, mostramos todo de una vez pero con efecto fade
             element.innerHTML = text;
             element.style.opacity = '0';
             element.style.transition = 'opacity 0.3s';
@@ -2579,7 +2875,6 @@
                 document.getElementById('vnContinueIndicator').style.opacity = '1';
             }, 100);
         } else {
-            // Typewriter normal para texto plano
             let i = 0;
             typewriterInterval = setInterval(() => {
                 if (i < text.length) {
@@ -2635,7 +2930,7 @@
     }
 
     // ============================================
-    // EDITAR MENSAJE - NUEVO
+    // EDITAR MENSAJE
     // ============================================
     function editCurrentMessage() {
         const msgs = appData.messages[currentTopicId] || [];
@@ -2649,13 +2944,10 @@
         
         editingMessageId = msg.id;
         
-        // Abrir panel de respuesta con los datos del mensaje
         openReplyPanel();
         
-        // Cargar datos del mensaje
         document.getElementById('vnReplyText').value = msg.text;
         
-        // Seleccionar personaje correcto
         if (msg.isNarrator) {
             document.getElementById('narratorMode').checked = true;
             toggleNarratorMode();
@@ -2665,7 +2957,6 @@
             selectedCharId = msg.characterId;
             updateCharSelector();
             
-            // Seleccionar visualmente el personaje
             document.querySelectorAll('.char-option').forEach(opt => {
                 opt.classList.remove('selected');
                 if (opt.getAttribute('onclick')?.includes(msg.characterId)) {
@@ -2674,7 +2965,6 @@
             });
         }
         
-        // Cargar opciones si existen
         if (msg.options && msg.options.length > 0) {
             document.getElementById('enableOptions').checked = true;
             document.getElementById('optionsFields').classList.add('active');
@@ -2687,7 +2977,6 @@
             });
         }
         
-        // Cambiar el botón de enviar para indicar edición
         const submitBtn = document.querySelector('.vn-submit-btn');
         if (submitBtn) {
             submitBtn.textContent = '💾 Guardar Cambios';
@@ -2719,7 +3008,6 @@
             }
         }
         
-        // Actualizar mensaje existente
         msgs[msgIndex] = {
             ...msgs[msgIndex],
             characterId: isNarratorMode ? null : selectedCharId,
@@ -2730,7 +3018,7 @@
             text,
             isNarrator: isNarratorMode,
             options: options && options.length > 0 ? options : undefined,
-            selectedOptionIndex: undefined, // Resetear selección al editar
+            selectedOptionIndex: undefined,
             edited: true,
             editedAt: new Date().toISOString()
         };
@@ -2739,7 +3027,6 @@
         save();
         closeReplyPanel();
         
-        // Restaurar botón de enviar
         const submitBtn = document.querySelector('.vn-submit-btn');
         if (submitBtn) {
             submitBtn.textContent = 'Enviar Mensaje';
@@ -2751,7 +3038,7 @@
     }
 
     // ============================================
-    // OPCIONES Y CONTINUACIÓN - CORREGIDO
+    // OPCIONES Y CONTINUACIÓN
     // ============================================
     function showOptions(options) {
         const container = document.getElementById('vnOptionsContainer');
@@ -2786,20 +3073,17 @@
         hasUnsavedChanges = true;
         save();
         
-        // Mostrar continuación inmediatamente
         const selectedOption = msg.options[idx];
         if (selectedOption && selectedOption.continuation) {
             showContinuation(selectedOption.continuation);
         }
         
-        // Actualizar UI
         document.getElementById('vnOptionsContainer').classList.remove('active');
         const optionsIndicator = document.getElementById('messageHasOptions');
         if (optionsIndicator) {
             optionsIndicator.classList.add('hidden');
         }
         
-        // Recargar mensaje para mostrar estado actualizado
         showCurrentMessage();
     }
 
@@ -2810,11 +3094,10 @@
 
     function closeContinuation() {
         document.getElementById('continuationOverlay').classList.remove('active');
-        // No abrir automáticamente el panel de respuesta para no interrumpir la lectura
     }
 
     // ============================================
-    // HISTORIAL - CORREGIDO CON FORMATO
+    // HISTORIAL
     // ============================================
     function openHistoryLog() {
         const msgs = appData.messages[currentTopicId] || [];
@@ -2846,13 +3129,12 @@
     }
 
     // ============================================
-    // RESPONDER - CORREGIDO
+    // RESPONDER
     // ============================================
     function openReplyPanel() {
         document.getElementById('vnReplyPanel').style.display = 'flex';
         updateCharSelector();
         
-        // Resetear campos solo si no estamos editando
         if (!editingMessageId) {
             document.getElementById('vnReplyText').value = '';
             document.getElementById('enableOptions').checked = false;
@@ -2862,7 +3144,6 @@
                 document.getElementById(`option${i}Continuation`).value = '';
             }
             
-            // Restaurar botón de enviar
             const submitBtn = document.querySelector('.vn-submit-btn');
             if (submitBtn) {
                 submitBtn.textContent = 'Enviar Mensaje';
@@ -2878,7 +3159,6 @@
         selectedCharId = null;
         editingMessageId = null;
         
-        // Restaurar botón de enviar por si acaso
         const submitBtn = document.querySelector('.vn-submit-btn');
         if (submitBtn) {
             submitBtn.textContent = 'Enviar Mensaje';
@@ -2890,7 +3170,6 @@
         const cb = document.getElementById('enableOptions');
         const fields = document.getElementById('optionsFields');
         
-        // Toggle visual
         if (fields.classList.contains('active')) {
             fields.classList.remove('active');
             cb.checked = false;
@@ -2939,6 +3218,9 @@
         selectedCharId = id;
         document.querySelectorAll('.char-option').forEach(o => o.classList.remove('selected'));
         el.classList.add('selected');
+        
+        // Actualizar afinidad al cambiar personaje activo
+        updateAffinityDisplay();
     }
 
     function postVNReply() {
@@ -2963,7 +3245,6 @@
         }
         
         if(!appData.messages[currentTopicId]) appData.messages[currentTopicId] = [];
-        
         appData.messages[currentTopicId].push({
             id: Date.now().toString(),
             characterId: isNarratorMode ? null : selectedCharId,
@@ -3108,6 +3389,7 @@
         if(!confirm('¿Borrar esta historia?')) return;
         appData.topics = appData.topics.filter(t => t.id !== currentTopicId);
         delete appData.messages[currentTopicId];
+        delete appData.affinities[currentTopicId]; // Borrar afinidades del tema
         currentTopicId = null;
         hasUnsavedChanges = true;
         save();
@@ -3136,7 +3418,12 @@
                     const data = JSON.parse(event.target.result);
                     if(data.topics && data.characters) {
                         if(confirm('Esto reemplazará todos los datos actuales. ¿Continuar?')) {
-                            appData = data;
+                            appData = {
+                                topics: data.topics || [],
+                                characters: data.characters || [],
+                                messages: data.messages || {},
+                                affinities: data.affinities || {}
+                            };
                             hasUnsavedChanges = true;
                             save();
                             alert('Partida cargada ✓');
