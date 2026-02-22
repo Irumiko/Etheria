@@ -141,7 +141,7 @@
         [data-tooltip]::after {
             content: attr(data-tooltip);
             position: absolute;
-            bottom: 120%;
+            top: calc(100% + 10px); /* Cambiado de bottom a top */
             left: 50%;
             transform: translateX(-50%);
             background: var(--glass-bg);
@@ -159,7 +159,7 @@
         }
         [data-tooltip]:hover::after {
             opacity: 1;
-            bottom: 130%;
+            top: calc(100% + 15px); /* Ajustado para que aparezca debajo */
         }
 
         .autosave-indicator {
@@ -208,7 +208,7 @@
             text-shadow: 2px 2px 4px var(--shadow-heavy);
         }
         .game-subtitle { font-size: 1.3rem; color: var(--text-secondary); margin-bottom: 4rem; font-style: italic; }
-        .user-cards { display: flex; gap: 3rem; flex-wrap: wrap; justify-content: center; }
+        .user-cards { display: flex; gap: 3rem; flex-wrap: wrap; justify-content: center; align-items: center; }
         
         /* CORRECCIÓN: Forzar texto claro en las tarjetas de usuario */
         .user-card {
@@ -264,6 +264,34 @@
             transition: opacity 0.3s; 
         }
         .user-card:hover .user-hint { opacity: 1; }
+
+        /* Botón crear perfil */
+        .add-profile-card {
+            width: 220px; height: 280px;
+            background: transparent;
+            border: 3px dashed var(--accent-wood);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s;
+            color: var(--accent-wood);
+        }
+        .add-profile-card:hover {
+            background: rgba(139, 115, 85, 0.1);
+            border-color: var(--accent-gold);
+            transform: translateY(-10px);
+        }
+        .add-profile-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .add-profile-text {
+            font-family: 'Cinzel', serif;
+            font-size: 1.2rem;
+        }
 
         /* MENÚ PRINCIPAL */
         .main-menu {
@@ -931,7 +959,7 @@
         .vn-section.bw { filter: grayscale(1) contrast(1.2); }
         .vn-section.cinematic { filter: contrast(1.3) saturate(1.2) brightness(0.9); }
 
-        /* INFO CARD - ESQUINA SUPERIOR IZQUIERDA */
+        /* INFO CARD - ESQUINA SUPERIOR IZQUIERDA CON SISTEMA DE AFINIDAD MEJORADO */
         .vn-info-card {
             position: fixed;
             top: 20px;
@@ -946,7 +974,8 @@
             gap: 1rem;
             backdrop-filter: blur(15px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            min-width: 200px;
+            min-width: 280px;
+            transition: all 0.3s ease;
         }
         
         .vn-info-avatar {
@@ -969,6 +998,7 @@
             display: flex;
             flex-direction: column;
             gap: 0.3rem;
+            flex: 1;
         }
         
         .vn-info-name {
@@ -990,8 +1020,79 @@
             font-size: 0.9rem;
             color: var(--accent-gold);
         }
+
+        /* NUEVO SISTEMA DE AFINIDAD CON RANGOS */
+        .affinity-rank-display {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            margin-top: 0.5rem;
+        }
         
-        /* CONTROLES - ESQUINA SUPERIOR DERECHA */
+        .affinity-rank-name {
+            font-family: 'Cinzel', serif;
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+            text-shadow: 0 0 10px currentColor;
+        }
+        
+        .affinity-rank-value {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        .affinity-controls-inline {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.3rem;
+        }
+        
+        .affinity-btn-inline {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--accent-gold);
+            background: rgba(201, 168, 108, 0.2);
+            color: var(--accent-gold);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .affinity-btn-inline:hover {
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+            transform: scale(1.1);
+        }
+        
+        .affinity-btn-inline.minus {
+            border-color: #c75b5b;
+            color: #c75b5b;
+            background: rgba(199, 91, 91, 0.2);
+        }
+        
+        .affinity-btn-inline.minus:hover {
+            background: #c75b5b;
+            color: white;
+        }
+        
+        .affinity-btn-inline.plus {
+            border-color: var(--accent-sage);
+            color: var(--accent-sage);
+            background: rgba(107, 142, 125, 0.2);
+        }
+        
+        .affinity-btn-inline.plus:hover {
+            background: var(--accent-sage);
+            color: white;
+        }
+        
+        /* Controles - Esquina superior derecha, ajustados para evitar cortes */
         .vn-controls {
             position: fixed;
             top: 20px;
@@ -1036,11 +1137,6 @@
             background: rgba(107, 142, 125, 0.4);
             border-color: var(--accent-sage);
             color: white;
-        }
-
-        /* SISTEMA DE AFINIDAD - OCULTO POR DEFECTO (usamos el de la info card) */
-        .affinity-system {
-            display: none; /* Ocultamos el antiguo sistema flotante */
         }
 
         .vn-sprite-container {
@@ -1090,17 +1186,17 @@
         }
         .vn-sprite.active.center { animation: bounce-focus 2s ease-in-out infinite, glow 3s ease-in-out infinite; }
 
-        /* CAJA DE DIÁLOGO - CENTRADA CON MÁRGENES */
+        /* CAJA DE DIÁLOGO - CENTRADA CON MÁRGENES Y TEXTO MEJORADO */
         .vn-dialogue-box {
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
             bottom: 2rem;
-            width: min(800px, 80%); /* Reducido de 1000px a 800px y 92% a 80% */
+            width: min(800px, 80%);
             background: var(--glass-bg);
             border: 3px double var(--accent-gold);
             border-radius: 24px;
-            padding: 2rem 2rem 2.5rem 7rem;
+            padding: 2rem 2rem 2.5rem 8rem; /* Aumentado padding-left de 7rem a 8rem */
             box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
             z-index: 150;
             cursor: pointer;
@@ -1132,7 +1228,7 @@
         .vn-speaker-plate {
             position: absolute;
             top: -1rem;
-            left: 7rem;
+            left: 8rem; /* Ajustado para coincidir con el nuevo padding */
             display: inline-block;
             padding: 0.5rem 1.5rem;
             border-radius: 20px;
@@ -1151,6 +1247,7 @@
             text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
             min-height: 4rem;
             margin-top: 0.5rem;
+            padding-left: 0.5rem; /* Espacio adicional para el texto */
         }
         .vn-dialogue-text strong, .vn-dialogue-text b {
             color: var(--accent-gold);
@@ -1217,7 +1314,7 @@
             z-index: 160;
             max-height: 60vh;
             overflow-y: auto;
-            pointer-events: none; /* Permitir clicks a través cuando está oculto */
+            pointer-events: none;
         }
         .vn-options-container.active { 
             display: flex; 
@@ -2066,18 +2163,15 @@
     <div id="userSelectScreen" class="user-select-screen">
         <h1 class="game-title">ETHERIA</h1>
         <p class="game-subtitle">Elige tu perfil para comenzar la aventura...</p>
-        <div class="user-cards">
-            <div class="user-card" onclick="selectUser(0)"><div class="user-avatar">👤</div><div class="user-name" id="userName0">Jugador 1</div><div class="user-hint">Click para entrar</div></div>
-            <div class="user-card" onclick="selectUser(1)"><div class="user-avatar">👤</div><div class="user-name" id="userName1">Jugador 2</div><div class="user-hint">Click para entrar</div></div>
-            <div class="user-card" onclick="selectUser(2)"><div class="user-avatar">👤</div><div class="user-name" id="userName2">Jugador 3</div><div class="user-hint">Click para entrar</div></div>
+        <div class="user-cards" id="userCardsContainer">
+            <!-- Los perfiles se generarán dinámicamente -->
         </div>
     </div>
 
     <!-- Main Menu - Partículas movidas aquí -->
     <div id="mainMenu" class="main-menu hidden">
-        <!-- Partículas solo en menú principal -->
-        <div class="menu-particles" id="firefliesContainer"></div>
-        <div class="menu-particles" id="leavesContainer"></div>
+        <!-- Partículas solo en menú principal - Se generan dinámicamente según el tema -->
+        <div class="menu-particles" id="particlesContainer"></div>
         
         <div class="menu-sidebar">
             <div class="menu-brand">
@@ -2113,8 +2207,6 @@
                 <button onclick="changeUser()">✏️ Editar</button>
             </div>
         </div>
-        
-        <!-- Eliminado el bloque de ilustración placeholder -->
     </div>
 
     <!-- Topics Section -->
@@ -2200,7 +2292,19 @@
             <div class="vn-info-details">
                 <div class="vn-info-name" id="vnInfoName">Sin personaje</div>
                 <div class="vn-info-club" id="vnInfoClub">Selecciona un personaje</div>
-                <div class="vn-info-affection" id="vnInfoAffection">
+                
+                <!-- Sistema de Afinidad Mejorado -->
+                <div id="affinityDisplay" class="affinity-rank-display hidden">
+                    <div class="affinity-rank-name" id="affinityRankName">Desconocidos</div>
+                    <div class="affinity-rank-value" id="affinityRankValue">0 / 15</div>
+                    <div class="affinity-controls-inline">
+                        <button class="affinity-btn-inline minus" onclick="modifyAffinity(-1)" title="Disminuir afinidad">−</button>
+                        <span id="affinityValueDisplay" style="color: var(--accent-gold); font-weight: bold; min-width: 30px; text-align: center;">0</span>
+                        <button class="affinity-btn-inline plus" onclick="modifyAffinity(1)" title="Aumentar afinidad">+</button>
+                    </div>
+                </div>
+                
+                <div class="vn-info-affection" id="vnInfoAffection" style="display: none;">
                     <span>❤️</span>
                     <span id="vnAffectionValue">0</span>
                 </div>
@@ -2236,19 +2340,6 @@
             <button class="vn-control-btn" data-tooltip="Salir" onclick="backToTopics()">
                 ✕
             </button>
-        </div>
-
-        <!-- Sistema de afinidad antiguo - oculto -->
-        <div id="affinitySystem" class="affinity-system">
-            <div class="affinity-container">
-                <div class="affinity-flower" id="affinityFlower"></div>
-                <div class="affinity-value" id="affinityValue">0</div>
-                <div class="affinity-label" id="affinityLabel">Sin relación</div>
-            </div>
-            <div class="affinity-controls" id="affinityControls">
-                <button class="affinity-btn minus" onclick="modifyAffinity(-5)">−</button>
-                <button class="affinity-btn plus" onclick="modifyAffinity(5)">+</button>
-            </div>
         </div>
 
         <div id="vnSpriteContainer" class="vn-sprite-container"></div>
@@ -2561,15 +2652,15 @@
         'CB': 'Caótico Bueno', 'CN': 'Caótico Neutral', 'CM': 'Caótico Malvado'
     };
 
-    const affinityColors = {
-        0: '#ffffff',   // 0-9: Blanco
-        10: '#9b59b6',  // 10-24: Morado
-        25: '#3498db',  // 25-39: Azul
-        40: '#27ae60',  // 40-59: Verde
-        60: '#f1c40f',  // 60-74: Amarillo
-        75: '#ff69b4',  // 75-89: Rosa
-        90: '#e74c3c'   // 90-100: Rojo
-    };
+    // Sistema de rangos de afinidad con progresión natural
+    const affinityRanks = [
+        { name: 'Desconocidos', min: 0, max: 15, increment: 5, color: '#ffffff' },
+        { name: 'Conocidos', min: 16, max: 35, increment: 4, color: '#9b59b6' },
+        { name: 'Amigos', min: 36, max: 60, increment: 3, color: '#3498db' },
+        { name: 'Mejores Amigos', min: 61, max: 80, increment: 2, color: '#27ae60' },
+        { name: 'Interés Romántico', min: 81, max: 95, increment: 1, color: '#f1c40f' },
+        { name: 'Pareja', min: 96, max: 100, increment: 0.5, color: '#e74c3c' }
+    ];
 
     let userNames = ['Jugador 1', 'Jugador 2', 'Jugador 3'];
     let currentUserIndex = 0;
@@ -2629,11 +2720,10 @@
             document.getElementById('fontSizeSlider').value = savedSize;
         }
         
-        updateUserScreen();
+        renderUserCards();
         
-        // Generar partículas en el menú principal
-        generateFireflies();
-        generateLeaves();
+        // Generar partículas en el menú principal según el tema
+        generateParticles();
         
         window.addEventListener('beforeunload', (e) => {
             if (hasUnsavedChanges) {
@@ -2643,63 +2733,120 @@
         });
     });
 
-    function generateFireflies() {
-        const container = document.getElementById('firefliesContainer');
-        container.innerHTML = ''; // Limpiar primero
-        for (let i = 0; i < 20; i++) {
-            const firefly = document.createElement('div');
-            firefly.className = 'firefly';
-            firefly.style.left = Math.random() * 100 + '%';
-            firefly.style.top = Math.random() * 100 + '%';
-            firefly.style.animationDelay = Math.random() * 4 + 's';
-            firefly.style.animationDuration = (3 + Math.random() * 3) + 's';
-            firefly.style.setProperty('--move-x', (Math.random() * 100 - 50) + 'px');
-            firefly.style.setProperty('--move-y', (Math.random() * 100 - 50) + 'px');
-            container.appendChild(firefly);
-        }
-    }
-
-    function generateLeaves() {
-        const container = document.getElementById('leavesContainer');
-        container.innerHTML = ''; // Limpiar primero
-        for (let i = 0; i < 10; i++) {
-            const leaf = document.createElement('div');
-            leaf.className = 'leaf';
-            leaf.style.left = Math.random() * 100 + '%';
-            leaf.style.animationDelay = Math.random() * 8 + 's';
-            leaf.style.animationDuration = (6 + Math.random() * 4) + 's';
-            container.appendChild(leaf);
-        }
-    }
-
-    function updateUserScreen() {
-        userNames.forEach((n, i) => {
-            const el = document.getElementById('userName' + i);
-            if(el) el.textContent = n;
+    // Generar tarjetas de usuario dinámicamente
+    function renderUserCards() {
+        const container = document.getElementById('userCardsContainer');
+        container.innerHTML = '';
+        
+        userNames.forEach((name, idx) => {
+            const card = document.createElement('div');
+            card.className = 'user-card';
+            card.onclick = () => selectUser(idx);
+            card.innerHTML = `
+                <div class="user-avatar">👤</div>
+                <div class="user-name">${name}</div>
+                <div class="user-hint">Click para entrar</div>
+            `;
+            container.appendChild(card);
         });
+        
+        // Botón para agregar nuevo perfil (máximo 10)
+        if (userNames.length < 10) {
+            const addCard = document.createElement('div');
+            addCard.className = 'add-profile-card';
+            addCard.onclick = addNewProfile;
+            addCard.innerHTML = `
+                <div class="add-profile-icon">+</div>
+                <div class="add-profile-text">Crear Perfil</div>
+            `;
+            container.appendChild(addCard);
+        }
+    }
+
+    function addNewProfile() {
+        if (userNames.length >= 10) {
+            alert('Máximo de 10 perfiles alcanzado');
+            return;
+        }
+        const newName = prompt('Nombre del nuevo perfil:');
+        if (newName && newName.trim()) {
+            userNames.push(newName.trim());
+            localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+            renderUserCards();
+        }
+    }
+
+    // Generar partículas según el tema actual
+    function generateParticles() {
+        const container = document.getElementById('particlesContainer');
+        if (!container) return;
+        
+        container.innerHTML = '';
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        
+        if (isDark) {
+            // Luciérnagas para tema oscuro
+            for (let i = 0; i < 20; i++) {
+                const firefly = document.createElement('div');
+                firefly.className = 'firefly';
+                firefly.style.left = Math.random() * 100 + '%';
+                firefly.style.top = Math.random() * 100 + '%';
+                firefly.style.animationDelay = Math.random() * 4 + 's';
+                firefly.style.animationDuration = (3 + Math.random() * 3) + 's';
+                firefly.style.setProperty('--move-x', (Math.random() * 100 - 50) + 'px');
+                firefly.style.setProperty('--move-y', (Math.random() * 100 - 50) + 'px');
+                container.appendChild(firefly);
+            }
+        } else {
+            // Hojas para tema claro
+            for (let i = 0; i < 10; i++) {
+                const leaf = document.createElement('div');
+                leaf.className = 'leaf';
+                leaf.style.left = Math.random() * 100 + '%';
+                leaf.style.animationDelay = Math.random() * 8 + 's';
+                leaf.style.animationDuration = (6 + Math.random() * 4) + 's';
+                container.appendChild(leaf);
+            }
+        }
     }
 
     // ============================================
-    // SISTEMA DE AFINIDAD - INTEGRADO EN INFO CARD
+    // SISTEMA DE AFINIDAD MEJORADO CON RANGOS
     // ============================================
-    function getAffinityColor(value) {
-        if (value >= 90) return affinityColors[90];
-        if (value >= 75) return affinityColors[75];
-        if (value >= 60) return affinityColors[60];
-        if (value >= 40) return affinityColors[40];
-        if (value >= 25) return affinityColors[25];
-        if (value >= 10) return affinityColors[10];
-        return affinityColors[0];
+    
+    // Obtener información del rango actual
+    function getAffinityRankInfo(value) {
+        for (let rank of affinityRanks) {
+            if (value >= rank.min && value <= rank.max) {
+                return rank;
+            }
+        }
+        return affinityRanks[0];
     }
 
-    function getAffinityLevel(value) {
-        if (value >= 90) return 'Alma Gemela';
-        if (value >= 75) return 'Amor';
-        if (value >= 60) return 'Amistad Profunda';
-        if (value >= 40) return 'Amistad';
-        if (value >= 25) return 'Conocidos';
-        if (value >= 10) return 'Neutral';
-        return 'Desconocidos';
+    // Calcular cuántos puntos otorgar/quitar según el rango actual
+    function getAffinityIncrement(currentValue, direction) {
+        const rankInfo = getAffinityRankInfo(currentValue);
+        const increment = direction > 0 ? rankInfo.increment : -rankInfo.increment;
+        
+        // Calcular nuevo valor
+        let newValue = currentValue + increment;
+        
+        // Asegurar que no exceda los límites del rango actual al subir
+        if (direction > 0 && newValue > rankInfo.max) {
+            newValue = rankInfo.max;
+        }
+        
+        // Asegurar que no baje del mínimo del rango actual al bajar
+        if (direction < 0 && newValue < rankInfo.min && rankInfo.min > 0) {
+            newValue = rankInfo.min - 1; // Permitir bajar al rango anterior
+        }
+        
+        // Límites absolutos
+        if (newValue < 0) newValue = 0;
+        if (newValue > 100) newValue = 100;
+        
+        return newValue;
     }
 
     function getAffinityKey(charId1, charId2) {
@@ -2707,15 +2854,31 @@
         return `${ids[0]}_${ids[1]}`;
     }
 
-    function getCurrentAffinity() {
-        if (!currentTopicId) return 0;
+    // Verificar si debería mostrarse el sistema de afinidad
+    function shouldShowAffinity() {
+        if (!currentTopicId) return false;
         
         const msgs = appData.messages[currentTopicId] || [];
-        if (msgs.length === 0) return 0;
+        if (msgs.length === 0) return false;
         
         const currentMsg = msgs[currentMessageIndex];
+        if (!currentMsg || currentMsg.isNarrator || !currentMsg.characterId) return false;
         
-        if (!currentMsg || currentMsg.isNarrator || !currentMsg.characterId) return -1;
+        // No mostrar afinidad con personajes propios
+        const targetChar = appData.characters.find(c => c.id === currentMsg.characterId);
+        if (!targetChar) return false;
+        
+        // Si el personaje es del usuario actual, no mostrar afinidad
+        if (targetChar.userIndex === currentUserIndex) return false;
+        
+        return true;
+    }
+
+    function getCurrentAffinity() {
+        if (!shouldShowAffinity()) return -1;
+        
+        const msgs = appData.messages[currentTopicId] || [];
+        const currentMsg = msgs[currentMessageIndex];
         
         const targetCharId = currentMsg.characterId;
         const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
@@ -2733,67 +2896,83 @@
     }
 
     function updateAffinityDisplay() {
-        const affinityValue = getCurrentAffinity();
-        const infoCard = document.getElementById('vnInfoCard');
-        const infoAvatar = document.getElementById('vnInfoAvatar');
+        const affinityDisplay = document.getElementById('affinityDisplay');
         const infoName = document.getElementById('vnInfoName');
         const infoClub = document.getElementById('vnInfoClub');
-        const affectionValue = document.getElementById('vnAffectionValue');
+        const infoAvatar = document.getElementById('vnInfoAvatar');
+        const vnInfoAffection = document.getElementById('vnInfoAffection');
         
-        // Si es -1, ocultar info card o mostrar narrador
-        if (affinityValue === -1) {
-            const msgs = appData.messages[currentTopicId] || [];
-            const currentMsg = msgs[currentMessageIndex];
-            
-            if (currentMsg && currentMsg.isNarrator) {
-                infoName.textContent = 'Narrador';
-                infoClub.textContent = 'Modo historia';
-                affectionValue.textContent = '-';
-                infoAvatar.innerHTML = '<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">📖</div>';
-            } else {
-                // Mismo personaje - mostrar info del personaje activo
-                const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
-                const activeChar = userChars.find(c => c.id === selectedCharId) || userChars[0];
-                
-                if (activeChar) {
-                    infoName.textContent = activeChar.name;
-                    infoClub.textContent = activeChar.race || 'Sin raza';
-                    affectionValue.textContent = 'Tú';
-                    
-                    if (activeChar.avatar) {
-                        infoAvatar.innerHTML = `<img src="${activeChar.avatar}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${activeChar.name[0]}</div>'">`;
-                    } else {
-                        infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${activeChar.name[0]}</div>`;
-                    }
-                }
-            }
-            return;
-        }
-        
-        // Mostrar info del personaje del mensaje actual con afinidad
         const msgs = appData.messages[currentTopicId] || [];
         const currentMsg = msgs[currentMessageIndex];
         
+        // Caso narrador
+        if (currentMsg && currentMsg.isNarrator) {
+            affinityDisplay.classList.add('hidden');
+            vnInfoAffection.style.display = 'none';
+            infoName.textContent = 'Narrador';
+            infoClub.textContent = 'Modo historia';
+            infoAvatar.innerHTML = '<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">📖</div>';
+            return;
+        }
+        
+        // Caso personaje propio (no mostrar afinidad)
         if (currentMsg && currentMsg.characterId) {
             const char = appData.characters.find(c => c.id === currentMsg.characterId);
             if (char) {
-                infoName.textContent = char.name;
-                infoClub.textContent = char.race || 'Sin raza';
-                affectionValue.textContent = affinityValue;
-                affectionValue.style.color = getAffinityColor(affinityValue);
+                // Verificar si es personaje propio
+                if (char.userIndex === currentUserIndex) {
+                    affinityDisplay.classList.add('hidden');
+                    vnInfoAffection.style.display = 'none';
+                    infoName.textContent = char.name;
+                    infoClub.textContent = char.race || 'Sin raza';
+                    
+                    if (char.avatar) {
+                        infoAvatar.innerHTML = `<img src="${char.avatar}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
+                    } else {
+                        infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
+                    }
+                    return;
+                }
                 
-                if (char.avatar) {
-                    infoAvatar.innerHTML = `<img src="${char.avatar}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
-                } else {
-                    infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
+                // Personaje de otro usuario - mostrar afinidad
+                const affinityValue = getCurrentAffinity();
+                if (affinityValue !== -1) {
+                    affinityDisplay.classList.remove('hidden');
+                    vnInfoAffection.style.display = 'none';
+                    
+                    const rankInfo = getAffinityRankInfo(affinityValue);
+                    
+                    infoName.textContent = char.name;
+                    infoClub.textContent = char.race || 'Sin raza';
+                    
+                    // Actualizar display de rango
+                    document.getElementById('affinityRankName').textContent = rankInfo.name;
+                    document.getElementById('affinityRankName').style.color = rankInfo.color;
+                    document.getElementById('affinityRankName').style.textShadow = `0 0 10px ${rankInfo.color}`;
+                    document.getElementById('affinityRankValue').textContent = `${rankInfo.min} - ${rankInfo.max} puntos`;
+                    document.getElementById('affinityValueDisplay').textContent = affinityValue;
+                    
+                    if (char.avatar) {
+                        infoAvatar.innerHTML = `<img src="${char.avatar}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
+                    } else {
+                        infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
+                    }
+                    
+                    currentAffinity = affinityValue;
+                    return;
                 }
             }
         }
         
-        currentAffinity = affinityValue;
+        // Caso por defecto (sin personaje seleccionado)
+        affinityDisplay.classList.add('hidden');
+        vnInfoAffection.style.display = 'none';
+        infoName.textContent = 'Sin personaje';
+        infoClub.textContent = 'Selecciona un personaje';
+        infoAvatar.innerHTML = '<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">👤</div>';
     }
 
-    function modifyAffinity(amount) {
+    function modifyAffinity(direction) {
         if (!currentTopicId) return;
         
         const msgs = appData.messages[currentTopicId] || [];
@@ -2801,6 +2980,14 @@
         if (!currentMsg || !currentMsg.characterId) return;
         
         const targetCharId = currentMsg.characterId;
+        const targetChar = appData.characters.find(c => c.id === targetCharId);
+        
+        // No permitir modificar afinidad con personajes propios
+        if (targetChar && targetChar.userIndex === currentUserIndex) {
+            showAutosave('No puedes modificar afinidad con tu propio personaje', 'error');
+            return;
+        }
+        
         const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
         const activeCharId = selectedCharId || userChars[0]?.id;
         
@@ -2813,7 +3000,17 @@
         }
         
         const currentValue = appData.affinities[currentTopicId][key] || 0;
-        const newValue = Math.max(0, Math.min(100, currentValue + amount));
+        const newValue = getAffinityIncrement(currentValue, direction);
+        
+        // Verificar si hubo cambio real
+        if (newValue === currentValue) {
+            if (direction > 0 && currentValue >= 100) {
+                showAutosave('Afinidad máxima alcanzada', 'saved');
+            } else if (direction < 0 && currentValue <= 0) {
+                showAutosave('Afinidad mínima alcanzada', 'saved');
+            }
+            return;
+        }
         
         appData.affinities[currentTopicId][key] = newValue;
         
@@ -2822,11 +3019,8 @@
         updateAffinityDisplay();
         
         const actualChange = newValue - currentValue;
-        if (actualChange === 0) {
-            showAutosave('Límite alcanzado', 'saved');
-        } else {
-            showAutosave(`Afinidad ${actualChange > 0 ? 'aumentada' : 'disminuida'} (${actualChange > 0 ? '+' : ''}${actualChange})`, 'saved');
-        }
+        const rankInfo = getAffinityRankInfo(newValue);
+        showAutosave(`Afinidad: ${rankInfo.name} (${actualChange > 0 ? '+' : ''}${actualChange})`, 'saved');
     }
 
     // ============================================
@@ -2940,6 +3134,9 @@
         document.getElementById('loadingOverlay').classList.remove('active');
         isLoading = false;
         
+        // Regenerar partículas al entrar al menú
+        generateParticles();
+        
         showAutosave('Sesión iniciada', 'saved');
     }
 
@@ -2981,6 +3178,8 @@
             document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
             document.getElementById('mainMenu').classList.remove('hidden');
             stopTypewriter();
+            // Regenerar partículas al volver al menú
+            generateParticles();
         });
     }
 
@@ -3481,7 +3680,7 @@
     }
 
     // ============================================
-    // OPCIONES Y CONTINUACIÓN
+    // OPCIONES Y CONTINUACIÓN MEJORADAS
     // ============================================
     function showOptions(options) {
         const container = document.getElementById('vnOptionsContainer');
@@ -3519,8 +3718,28 @@
         save();
         
         const selectedOption = msg.options[idx];
+        
+        // Crear mensaje de respuesta como diálogo normal en lugar de mostrar overlay
         if (selectedOption && selectedOption.continuation) {
-            showContinuation(selectedOption.continuation);
+            // Agregar la continuación como un nuevo mensaje de narrador
+            const newMsg = {
+                id: Date.now().toString(),
+                characterId: null,
+                charName: 'Narrador',
+                charColor: null,
+                charAvatar: null,
+                charSprite: null,
+                text: selectedOption.continuation,
+                isNarrator: true,
+                userIndex: currentUserIndex,
+                timestamp: new Date().toISOString(),
+                isOptionResult: true, // Marcar como resultado de opción
+                parentOptionIndex: idx
+            };
+            
+            appData.messages[currentTopicId].push(newMsg);
+            hasUnsavedChanges = true;
+            save();
         }
         
         document.getElementById('vnOptionsContainer').classList.remove('active');
@@ -3529,6 +3748,8 @@
             optionsIndicator.classList.add('hidden');
         }
         
+        // Avanzar al último mensaje (la nueva respuesta)
+        currentMessageIndex = appData.messages[currentTopicId].length - 1;
         showCurrentMessage();
     }
 
@@ -3556,12 +3777,13 @@
                 const speaker = isNarrator ? 'Narrador' : msg.charName;
                 const date = new Date(msg.timestamp).toLocaleString();
                 const edited = msg.edited ? ' (editado)' : '';
+                const optionResult = msg.isOptionResult ? ' [Respuesta elegida]' : '';
                 
                 return `
                     <div class="history-entry ${isNarrator ? 'narrator' : ''}">
                         <div class="history-speaker">
                             ${msg.charAvatar && !isNarrator ? `<img src="${msg.charAvatar}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-gold);">` : ''}
-                            ${speaker}${edited}
+                            ${speaker}${edited}${optionResult}
                         </div>
                         <div class="history-text">${formatText(msg.text)}</div>
                         <div class="history-timestamp">${date} • Mensaje ${idx + 1}</div>
@@ -3937,7 +4159,7 @@
             localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
             document.getElementById('currentUserDisplay').textContent = newName.trim();
             save();
-            updateUserScreen();
+            renderUserCards();
         }
     }
 
@@ -3947,6 +4169,9 @@
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         html.setAttribute('data-theme', newTheme);
         localStorage.setItem('etheria_theme', newTheme);
+        
+        // Regenerar partículas al cambiar tema
+        generateParticles();
     }
 
     const savedTheme = localStorage.getItem('etheria_theme');
