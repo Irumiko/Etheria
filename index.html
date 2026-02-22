@@ -26,6 +26,8 @@
             --glass-bg: rgba(26, 24, 21, 0.85);
             --font-size-base: 1.2rem;
             --typewriter-speed: 25;
+            --input-bg: #ffffff;
+            --input-text: #3d3833;
         }
         
         [data-theme="dark"] {
@@ -45,6 +47,8 @@
             --shadow: rgba(0, 0, 0, 0.3);
             --shadow-heavy: rgba(0, 0, 0, 0.5);
             --glass-bg: rgba(26, 24, 21, 0.9);
+            --input-bg: #2a2724;
+            --input-text: #e8e4dc;
         }
 
         /* Textura de ruido sutil */
@@ -143,7 +147,7 @@
         .autosave-indicator.saving .autosave-icon { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* User Select - Glassmorphism */
+        /* User Select - CORREGIDO: Texto claro sobre fondo oscuro */
         .user-select-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
@@ -197,10 +201,24 @@
             border: 3px solid var(--accent-gold);
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        .user-name { font-family: 'Cinzel', serif; font-size: 1.4rem; font-weight: 600; color: var(--text-primary); }
-        .user-hint { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.8rem; opacity: 0; transition: opacity 0.3s; }
+        /* CORREGIDO: Color de texto claro para contraste sobre fondo oscuro */
+        .user-name { 
+            font-family: 'Cinzel', serif; 
+            font-size: 1.4rem; 
+            font-weight: 600; 
+            color: var(--text-primary); 
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .user-hint { 
+            font-size: 0.85rem; 
+            color: var(--text-secondary); 
+            margin-top: 0.8rem; 
+            opacity: 0; 
+            transition: opacity 0.3s; 
+        }
+        .user-card:hover .user-hint { opacity: 1; }
 
-        /* MAIN MENU - SIDEBAR LATERAL REDISEÑADO */
+        /* MAIN MENU - CORREGIDO: Mejor contraste en botones */
         .main-menu {
             position: fixed; 
             top: 0; 
@@ -248,8 +266,9 @@
             gap: 0.8rem;
             flex: 1;
         }
+        /* CORREGIDO: Mejor contraste en botones del menú */
         .menu-button {
-            background: rgba(255,255,255,0.05); 
+            background: rgba(255,255,255,0.08); 
             border: 2px solid var(--border-color); 
             color: var(--text-primary);
             padding: 1rem 1.5rem; 
@@ -265,29 +284,33 @@
             text-align: left;
             position: relative;
             overflow: hidden;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
         .menu-button::before {
             content: '';
             position: absolute;
             top: 0; left: -100%;
             width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(139, 115, 85, 0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(139, 115, 85, 0.3), transparent);
             transition: left 0.5s;
         }
         .menu-button:hover::before { left: 100%; }
         .menu-button:hover { 
-            background: rgba(139, 115, 85, 0.15); 
+            background: rgba(139, 115, 85, 0.25); 
             border-color: var(--accent-wood); 
             transform: translateX(8px);
-            box-shadow: 0 4px 15px rgba(139, 115, 85, 0.2);
+            box-shadow: 0 4px 15px rgba(139, 115, 85, 0.3);
+            color: var(--accent-gold);
         }
         .menu-button.primary { 
             background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage)); 
             color: white;
             border-color: var(--accent-wood);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
         .menu-button.primary:hover {
-            box-shadow: 0 4px 20px rgba(139, 115, 85, 0.4);
+            box-shadow: 0 4px 20px rgba(139, 115, 85, 0.5);
+            color: white;
         }
         
         .menu-footer {
@@ -363,7 +386,7 @@
         }
         .section-content { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 
-        /* GALERÍA COMPACTA REDISEÑADA */
+        /* Galería */
         .gallery-toolbar { 
             display: flex; 
             gap: 1rem; 
@@ -405,7 +428,7 @@
             cursor: pointer;
         }
         
-        /* Grid compacto 5-6 columnas */
+        /* Grid compacto */
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -481,7 +504,6 @@
         .gender-icon {
             font-size: 0.9rem;
         }
-        /* Info on-hover */
         .character-card-hover-info {
             position: absolute;
             bottom: 0;
@@ -578,7 +600,29 @@
         }
         .modal-overlay.active { display: flex; }
         
-        /* EDITOR SPLIT-SCREEN REDISEÑADO */
+        /* Modal básico para temas */
+        .modal {
+            background: var(--glass-bg);
+            border-radius: 24px;
+            width: 95%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+            border: 3px double var(--accent-gold);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+        }
+        .modal h3 {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+        
+        /* EDITOR SPLIT-SCREEN */
         .character-modal {
             background: var(--glass-bg); 
             border-radius: 24px; 
@@ -711,13 +755,14 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+        /* CORREGIDO: Inputs con fondo y texto apropiados para modo oscuro */
         .form-group input, .form-group select {
             width: 100%;
             padding: 0.8rem;
             border-radius: 10px;
             border: 2px solid var(--border-color);
-            background: rgba(255,255,255,0.05);
-            color: var(--text-primary);
+            background: var(--input-bg);
+            color: var(--input-text);
             font-family: inherit;
             font-size: 1rem;
             transition: all 0.3s;
@@ -727,16 +772,20 @@
             border-color: var(--accent-gold);
             box-shadow: 0 0 0 3px rgba(201, 168, 108, 0.1);
         }
+        /* CORREGIDO: Opciones del select con colores correctos */
+        .form-group select option {
+            background: var(--input-bg);
+            color: var(--input-text);
+        }
         
-        /* Textareas auto-expandibles estilo libro */
         .form-group textarea {
             width: 100%;
             min-height: 120px;
             padding: 1rem;
             border-radius: 12px;
             border: 2px solid var(--border-color);
-            background: rgba(255,255,255,0.05);
-            color: var(--text-primary);
+            background: var(--input-bg);
+            color: var(--input-text);
             font-family: 'Crimson Text', serif;
             font-size: 1.1rem;
             line-height: 1.8;
@@ -747,7 +796,6 @@
             outline: none;
             border-color: var(--accent-gold);
             box-shadow: 0 0 0 3px rgba(201, 168, 108, 0.1);
-            background: rgba(255,255,255,0.08);
         }
         
         .gender-selector {
@@ -763,7 +811,7 @@
             cursor: pointer;
             transition: all 0.3s;
             font-size: 1.5rem;
-            background: rgba(255,255,255,0.05);
+            background: var(--input-bg);
         }
         .gender-option:hover {
             border-color: var(--accent-wood);
@@ -860,7 +908,6 @@
             backdrop-filter: blur(15px);
         }
         
-        /* BOTONES VN CON TEXTO EXPANDIBLE */
         .vn-controls {
             display: flex;
             gap: 0.5rem;
@@ -959,7 +1006,7 @@
         }
         .vn-sprite.active.center { animation: bounce-focus 2s ease-in-out infinite, glow 3s ease-in-out infinite; }
 
-        /* Diálogo */
+        /* Diálogo - CORREGIDO: Avatar posicionado correctamente */
         .vn-dialogue-box {
             position: fixed;
             left: 50%;
@@ -980,10 +1027,12 @@
             box-shadow: 0 25px 70px rgba(0,0,0,0.6), 0 0 30px rgba(201, 168, 108, 0.2);
         }
         
+        /* CORREGIDO: Avatar centrado verticalmente con la caja */
         .vn-speaker-avatar {
             position: absolute;
             left: 1.5rem;
-            top: -2rem;
+            top: 50%;
+            transform: translateY(-50%);
             width: 90px;
             height: 90px;
             border-radius: 50%;
@@ -1019,6 +1068,15 @@
             text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
             min-height: 4rem;
             margin-top: 0.5rem;
+        }
+        /* CORREGIDO: Soporte para formato de texto */
+        .vn-dialogue-text strong, .vn-dialogue-text b {
+            color: var(--accent-gold);
+            font-weight: 700;
+        }
+        .vn-dialogue-text em, .vn-dialogue-text i {
+            color: var(--text-secondary);
+            font-style: italic;
         }
         
         .vn-continue-indicator {
@@ -1064,10 +1122,10 @@
             animation: pulse 2s infinite;
         }
 
-        /* Options */
+        /* Options - CORREGIDO: Mejor visibilidad y funcionalidad */
         .vn-options-container {
             position: fixed;
-            bottom: 260px;
+            bottom: 280px;
             left: 50%;
             transform: translateX(-50%);
             display: none;
@@ -1078,7 +1136,7 @@
         }
         .vn-options-container.active { display: flex; }
         .vn-option-btn {
-            background: linear-gradient(135deg, rgba(139, 115, 85, 0.9), rgba(107, 142, 125, 0.9));
+            background: linear-gradient(135deg, rgba(139, 115, 85, 0.95), rgba(107, 142, 125, 0.95));
             border: 2px solid var(--accent-gold);
             color: white;
             padding: 1.2rem 1.5rem;
@@ -1091,6 +1149,7 @@
             backdrop-filter: blur(10px);
             position: relative;
             overflow: hidden;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
         .vn-option-btn::before {
             content: '▸';
@@ -1102,15 +1161,20 @@
         .vn-option-btn:hover {
             transform: translateX(10px);
             background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage));
-            box-shadow: 0 5px 20px rgba(201, 168, 108, 0.3);
+            box-shadow: 0 5px 20px rgba(201, 168, 108, 0.4);
         }
         .vn-option-btn:hover::before {
             left: 15px;
             opacity: 1;
         }
         .vn-option-btn.chosen {
-            background: linear-gradient(135deg, rgba(107, 142, 125, 0.6), rgba(74, 107, 90, 0.6));
+            background: linear-gradient(135deg, rgba(107, 142, 125, 0.8), rgba(74, 107, 90, 0.8));
             border-color: var(--accent-sage);
+            opacity: 0.8;
+        }
+        .vn-option-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         /* Continuation */
@@ -1354,6 +1418,12 @@
             color: var(--text-primary);
             font-size: 1.1rem;
         }
+        .history-text strong, .history-text b {
+            color: var(--accent-gold);
+        }
+        .history-text em, .history-text i {
+            color: var(--text-secondary);
+        }
         .history-timestamp {
             font-size: 0.8rem;
             color: var(--text-muted);
@@ -1468,6 +1538,30 @@
             font-size: 1.3rem;
             text-shadow: 0 0 10px rgba(201, 168, 108, 0.5);
         }
+
+        /* Botón de editar mensaje */
+        .edit-message-btn {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(201, 168, 108, 0.3);
+            border: 2px solid var(--accent-gold);
+            color: var(--accent-gold);
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .edit-message-btn:hover {
+            background: var(--accent-gold);
+            color: var(--bg-primary);
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
@@ -1533,7 +1627,7 @@
         </div>
     </div>
 
-    <!-- Main Menu - SIDEBAR REDISEÑADO -->
+    <!-- Main Menu -->
     <div id="mainMenu" class="main-menu hidden">
         <div class="menu-sidebar">
             <div class="menu-brand">
@@ -1613,7 +1707,7 @@
         </div>
     </div>
 
-    <!-- Gallery Section - COMPACTA -->
+    <!-- Gallery Section -->
     <div id="gallerySection" class="game-section">
         <div class="section-header-bar">
             <h2 class="section-title">🎭 Galería de Personajes</h2>
@@ -1665,6 +1759,9 @@
                 <button class="vn-control-btn" data-tooltip="Mensaje anterior" onclick="previousMessage()">
                     ◀️<span>Anterior</span>
                 </button>
+                <button class="vn-control-btn" data-tooltip="Editar mensaje" onclick="editCurrentMessage()" id="editMsgBtn">
+                    ✏️<span>Editar</span>
+                </button>
                 <button class="vn-control-btn" data-tooltip="Responder" onclick="openReplyPanel()">
                     💬<span>Responder</span>
                 </button>
@@ -1690,7 +1787,7 @@
         <div id="vnOptionsContainer" class="vn-options-container"></div>
 
         <div class="vn-dialogue-box" onclick="handleDialogueClick()">
-            <div id="messageHasOptions" class="message-has-options hidden">🎭 Opciones</div>
+            <div id="messageHasOptions" class="message-has-options hidden">🎭 Opciones disponibles</div>
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
             <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
             <div id="vnDialogueText" class="vn-dialogue-text">...</div>
@@ -1707,7 +1804,7 @@
             <label style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; color: var(--text-secondary);">
                 <input type="checkbox" id="narratorMode" onchange="toggleNarratorMode()"> Narrador
             </label>
-            <textarea id="vnReplyText" class="vn-reply-input" rows="4" placeholder="Escribe tu mensaje..."></textarea>
+            <textarea id="vnReplyText" class="vn-reply-input" rows="4" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*"></textarea>
             
             <div class="options-toggle" onclick="toggleOptionsFields()">
                 <input type="checkbox" id="enableOptions" onchange="event.stopPropagation(); toggleOptionsFields()">
@@ -1753,7 +1850,7 @@
             <h3>✨ Nueva Historia</h3>
             <div class="form-group"><label>Título</label><input type="text" id="topicTitleInput"></div>
             <div class="form-group"><label>Protagonista</label><select id="topicCharSelect"></select></div>
-            <div class="form-group"><label>Inicio</label><textarea id="topicFirstMsg" rows="4"></textarea></div>
+            <div class="form-group"><label>Inicio</label><textarea id="topicFirstMsg" rows="4" placeholder="Puedes usar **negrita** y *cursiva*"></textarea></div>
             <div class="form-group"><label>Fondo URL</label><input type="text" id="topicBackgroundInput"></div>
             <div style="display: flex; gap: 1rem; justify-content: flex-end;">
                 <button onclick="closeModal('topicModal')" class="btn-secondary">Cancelar</button>
@@ -1762,11 +1859,10 @@
         </div>
     </div>
 
-    <!-- EDITOR DE PERSONAJE REDISEÑADO - SPLIT SCREEN -->
+    <!-- EDITOR DE PERSONAJE -->
     <div id="characterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('characterModal')">
         <div class="character-modal">
             <div class="editor-container">
-                <!-- Panel Izquierdo: Preview -->
                 <div class="editor-preview">
                     <div class="editor-preview-image" id="editorPreviewImage">
                         <span style="font-size: 5rem;">👤</span>
@@ -1775,24 +1871,22 @@
                     <div class="editor-preview-hint">Vista previa en tiempo real</div>
                 </div>
                 
-                <!-- Panel Derecho: Formulario con Pestañas -->
                 <div class="editor-form">
                     <input type="hidden" id="editCharacterId">
                     
                     <div class="editor-tabs">
-                        <button class="editor-tab active" onclick="switchEditorTab('identity')">
+                        <button class="editor-tab active" onclick="switchEditorTab('identity', this)">
                             <span>👤</span> Identidad
                         </button>
-                        <button class="editor-tab" onclick="switchEditorTab('biography')">
+                        <button class="editor-tab" onclick="switchEditorTab('biography', this)">
                             <span>📖</span> Biografía
                         </button>
-                        <button class="editor-tab" onclick="switchEditorTab('notes')">
+                        <button class="editor-tab" onclick="switchEditorTab('notes', this)">
                             <span>📝</span> Notas
                         </button>
                     </div>
                     
                     <div class="editor-content">
-                        <!-- Pestaña Identidad -->
                         <div id="editor-tab-identity" class="editor-panel active">
                             <div class="form-row">
                                 <div class="form-group">
@@ -1865,7 +1959,6 @@
                             </div>
                         </div>
                         
-                        <!-- Pestaña Biografía -->
                         <div id="editor-tab-biography" class="editor-panel">
                             <div class="form-group">
                                 <label>Descripción Física</label>
@@ -1881,7 +1974,6 @@
                             </div>
                         </div>
                         
-                        <!-- Pestaña Notas -->
                         <div id="editor-tab-notes" class="editor-panel">
                             <div class="form-group">
                                 <label>Notas Libres</label>
@@ -1961,6 +2053,7 @@
     let currentFilter = 'none';
     let textSpeed = 25;
     let currentEditorTab = 'identity';
+    let editingMessageId = null;
 
     // ============================================
     // INICIALIZACIÓN
@@ -2000,7 +2093,24 @@
     }
 
     // ============================================
-    // EDITOR SPLIT-SCREEN FUNCIONALIDAD
+    // UTILIDADES DE FORMATO DE TEXTO
+    // ============================================
+    function formatText(text) {
+        // Convertir **texto** a <strong>texto</strong>
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        // Convertir *texto* a <em>texto</em>
+        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        return text;
+    }
+
+    function stripHtml(html) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        return tmp.textContent || tmp.innerText || '';
+    }
+
+    // ============================================
+    // EDITOR SPLIT-SCREEN
     // ============================================
     function openCharacterEditor(charId = null) {
         resetCharForm();
@@ -2026,7 +2136,6 @@
             document.getElementById('charNotes').value = c.notes || '';
             document.getElementById('deleteCharBtn').style.display = 'inline-block';
             
-            // Seleccionar género visualmente
             document.querySelectorAll('.gender-option').forEach(opt => opt.classList.remove('selected'));
             const genderMap = { 'Femenino': 0, 'Masculino': 1, 'No Binario': 2 };
             const genderIdx = genderMap[c.gender];
@@ -2039,17 +2148,19 @@
         }
         
         updatePreview();
-        switchEditorTab('identity');
+        switchEditorTab('identity', document.querySelector('.editor-tab'));
         openModal('characterModal');
     }
     
-    function switchEditorTab(tabName) {
+    function switchEditorTab(tabName, element) {
         currentEditorTab = tabName;
         
         document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.editor-panel').forEach(p => p.classList.remove('active'));
         
-        event.target.classList.add('active');
+        if (element) element.classList.add('active');
+        else document.querySelector(`.editor-tab[onclick*="${tabName}"]`)?.classList.add('active');
+        
         document.getElementById(`editor-tab-${tabName}`).classList.add('active');
     }
     
@@ -2141,12 +2252,13 @@
             document.getElementById('vnSection').classList.remove('active');
             document.getElementById('topicsSection').classList.add('active');
             currentTopicId = null;
+            editingMessageId = null;
             renderTopics();
         });
     }
 
     // ============================================
-    // GALERÍA COMPACTA
+    // GALERÍA
     // ============================================
     function renderGallery() {
         const grid = document.getElementById('galleryGrid');
@@ -2322,12 +2434,13 @@
     }
 
     // ============================================
-    // MODO VN
+    // MODO VN - CORREGIDO
     // ============================================
     function enterTopic(id) {
         currentTopicId = id;
         currentMessageIndex = 0;
         pendingContinuation = null;
+        editingMessageId = null;
         
         const t = appData.topics.find(topic => topic.id === id);
         if(!t) return;
@@ -2365,6 +2478,7 @@
         }
         
         if (currentMessageIndex >= msgs.length) currentMessageIndex = msgs.length - 1;
+        if (currentMessageIndex < 0) currentMessageIndex = 0;
         
         const msg = msgs[currentMessageIndex];
         const namePlate = document.getElementById('vnSpeakerPlate');
@@ -2382,12 +2496,29 @@
             avatarBox.innerHTML = msg.charAvatar ? `<img src="${msg.charAvatar}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` : msg.charName[0];
         }
         
+        // CORREGIDO: Verificar correctamente si hay opciones disponibles
         const hasOpt = msg.options && msg.options.length > 0 && msg.selectedOptionIndex === undefined;
-        document.getElementById('messageHasOptions').classList.toggle('hidden', !hasOpt);
+        const optionsIndicator = document.getElementById('messageHasOptions');
+        if (optionsIndicator) {
+            optionsIndicator.classList.toggle('hidden', !hasOpt);
+        }
         
-        typeWriter(msg.text, document.getElementById('vnDialogueText'));
+        // Formatear texto con negritas y cursivas
+        const formattedText = formatText(msg.text);
+        typeWriter(formattedText, document.getElementById('vnDialogueText'));
         document.getElementById('vnMessageCounter').textContent = `${currentMessageIndex + 1} / ${msgs.length}`;
         
+        // Actualizar visibilidad del botón de editar
+        const editBtn = document.getElementById('editMsgBtn');
+        if (editBtn) {
+            if (msg.userIndex === currentUserIndex) {
+                editBtn.classList.remove('hidden');
+            } else {
+                editBtn.classList.add('hidden');
+            }
+        }
+        
+        // CORREGIDO: Mostrar opciones solo si estamos en el último mensaje y tiene opciones sin seleccionar
         if (currentMessageIndex === msgs.length - 1 && hasOpt) {
             showOptions(msg.options);
         } else {
@@ -2434,16 +2565,32 @@
         element.innerHTML = '';
         document.getElementById('vnContinueIndicator').style.opacity = '0';
         
-        let i = 0;
-        typewriterInterval = setInterval(() => {
-            if (i < text.length) {
-                element.innerHTML += text.charAt(i);
-                i++;
-            } else {
-                stopTypewriter();
+        // Si el texto contiene HTML, lo procesamos de forma especial
+        const hasHtml = /<[^>]*>/g.test(text);
+        
+        if (hasHtml) {
+            // Para texto con formato, mostramos todo de una vez pero con efecto fade
+            element.innerHTML = text;
+            element.style.opacity = '0';
+            element.style.transition = 'opacity 0.3s';
+            setTimeout(() => {
+                element.style.opacity = '1';
+                isTyping = false;
                 document.getElementById('vnContinueIndicator').style.opacity = '1';
-            }
-        }, textSpeed);
+            }, 100);
+        } else {
+            // Typewriter normal para texto plano
+            let i = 0;
+            typewriterInterval = setInterval(() => {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                } else {
+                    stopTypewriter();
+                    document.getElementById('vnContinueIndicator').style.opacity = '1';
+                }
+            }, textSpeed);
+        }
     }
 
     function handleDialogueClick() {
@@ -2455,7 +2602,10 @@
         
         if (isTyping) {
             stopTypewriter();
-            document.getElementById('vnDialogueText').textContent = msgs[currentMessageIndex]?.text || '';
+            const msg = msgs[currentMessageIndex];
+            if (msg) {
+                document.getElementById('vnDialogueText').innerHTML = formatText(msg.text);
+            }
             document.getElementById('vnContinueIndicator').style.opacity = '1';
             return;
         }
@@ -2485,12 +2635,133 @@
     }
 
     // ============================================
-    // OPCIONES Y CONTINUACIÓN
+    // EDITAR MENSAJE - NUEVO
+    // ============================================
+    function editCurrentMessage() {
+        const msgs = appData.messages[currentTopicId] || [];
+        if (currentMessageIndex >= msgs.length) return;
+        
+        const msg = msgs[currentMessageIndex];
+        if (msg.userIndex !== currentUserIndex) {
+            alert('Solo puedes editar tus propios mensajes');
+            return;
+        }
+        
+        editingMessageId = msg.id;
+        
+        // Abrir panel de respuesta con los datos del mensaje
+        openReplyPanel();
+        
+        // Cargar datos del mensaje
+        document.getElementById('vnReplyText').value = msg.text;
+        
+        // Seleccionar personaje correcto
+        if (msg.isNarrator) {
+            document.getElementById('narratorMode').checked = true;
+            toggleNarratorMode();
+        } else if (msg.characterId) {
+            document.getElementById('narratorMode').checked = false;
+            toggleNarratorMode();
+            selectedCharId = msg.characterId;
+            updateCharSelector();
+            
+            // Seleccionar visualmente el personaje
+            document.querySelectorAll('.char-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.getAttribute('onclick')?.includes(msg.characterId)) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
+        
+        // Cargar opciones si existen
+        if (msg.options && msg.options.length > 0) {
+            document.getElementById('enableOptions').checked = true;
+            document.getElementById('optionsFields').classList.add('active');
+            
+            msg.options.forEach((opt, idx) => {
+                if (idx < 3) {
+                    document.getElementById(`option${idx + 1}Text`).value = opt.text || '';
+                    document.getElementById(`option${idx + 1}Continuation`).value = opt.continuation || '';
+                }
+            });
+        }
+        
+        // Cambiar el botón de enviar para indicar edición
+        const submitBtn = document.querySelector('.vn-submit-btn');
+        if (submitBtn) {
+            submitBtn.textContent = '💾 Guardar Cambios';
+            submitBtn.onclick = saveEditedMessage;
+        }
+    }
+
+    function saveEditedMessage() {
+        const text = document.getElementById('vnReplyText').value.trim();
+        if(!text) { alert('Escribe algo'); return; }
+        
+        const msgs = appData.messages[currentTopicId] || [];
+        const msgIndex = msgs.findIndex(m => m.id === editingMessageId);
+        if (msgIndex === -1) return;
+        
+        let char = null;
+        if(!isNarratorMode) {
+            if(!selectedCharId) { alert('Selecciona personaje'); return; }
+            char = appData.characters.find(c => c.id === selectedCharId);
+        }
+        
+        let options = null;
+        if(document.getElementById('enableOptions').checked) {
+            options = [];
+            for(let i=1; i<=3; i++) {
+                const t = document.getElementById(`option${i}Text`).value.trim();
+                const c = document.getElementById(`option${i}Continuation`).value.trim();
+                if(t && c) options.push({text: t, continuation: c});
+            }
+        }
+        
+        // Actualizar mensaje existente
+        msgs[msgIndex] = {
+            ...msgs[msgIndex],
+            characterId: isNarratorMode ? null : selectedCharId,
+            charName: isNarratorMode ? 'Narrador' : char.name,
+            charColor: isNarratorMode ? null : char.color,
+            charAvatar: isNarratorMode ? null : char.avatar,
+            charSprite: isNarratorMode ? null : char.sprite,
+            text,
+            isNarrator: isNarratorMode,
+            options: options && options.length > 0 ? options : undefined,
+            selectedOptionIndex: undefined, // Resetear selección al editar
+            edited: true,
+            editedAt: new Date().toISOString()
+        };
+        
+        hasUnsavedChanges = true;
+        save();
+        closeReplyPanel();
+        
+        // Restaurar botón de enviar
+        const submitBtn = document.querySelector('.vn-submit-btn');
+        if (submitBtn) {
+            submitBtn.textContent = 'Enviar Mensaje';
+            submitBtn.onclick = postVNReply;
+        }
+        
+        editingMessageId = null;
+        showCurrentMessage();
+    }
+
+    // ============================================
+    // OPCIONES Y CONTINUACIÓN - CORREGIDO
     // ============================================
     function showOptions(options) {
         const container = document.getElementById('vnOptionsContainer');
         const msgs = appData.messages[currentTopicId] || [];
         const currentMsg = msgs[currentMessageIndex];
+        
+        if (!options || options.length === 0) {
+            container.classList.remove('active');
+            return;
+        }
         
         container.innerHTML = options.map((opt, idx) => `
             <button class="vn-option-btn ${currentMsg.selectedOptionIndex === idx ? 'chosen' : ''}" 
@@ -2514,13 +2785,22 @@
         
         hasUnsavedChanges = true;
         save();
-        pendingContinuation = msg.options[idx].continuation;
         
+        // Mostrar continuación inmediatamente
+        const selectedOption = msg.options[idx];
+        if (selectedOption && selectedOption.continuation) {
+            showContinuation(selectedOption.continuation);
+        }
+        
+        // Actualizar UI
         document.getElementById('vnOptionsContainer').classList.remove('active');
-        document.getElementById('messageHasOptions').classList.add('hidden');
+        const optionsIndicator = document.getElementById('messageHasOptions');
+        if (optionsIndicator) {
+            optionsIndicator.classList.add('hidden');
+        }
         
-        showContinuation(pendingContinuation);
-        pendingContinuation = null;
+        // Recargar mensaje para mostrar estado actualizado
+        showCurrentMessage();
     }
 
     function showContinuation(text) {
@@ -2530,11 +2810,11 @@
 
     function closeContinuation() {
         document.getElementById('continuationOverlay').classList.remove('active');
-        openReplyPanel();
+        // No abrir automáticamente el panel de respuesta para no interrumpir la lectura
     }
 
     // ============================================
-    // HISTORIAL
+    // HISTORIAL - CORREGIDO CON FORMATO
     // ============================================
     function openHistoryLog() {
         const msgs = appData.messages[currentTopicId] || [];
@@ -2547,14 +2827,15 @@
                 const isNarrator = msg.isNarrator || !msg.characterId;
                 const speaker = isNarrator ? 'Narrador' : msg.charName;
                 const date = new Date(msg.timestamp).toLocaleString();
+                const edited = msg.edited ? ' (editado)' : '';
                 
                 return `
                     <div class="history-entry ${isNarrator ? 'narrator' : ''}">
                         <div class="history-speaker">
                             ${msg.charAvatar && !isNarrator ? `<img src="${msg.charAvatar}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-gold);">` : ''}
-                            ${speaker}
+                            ${speaker}${edited}
                         </div>
-                        <div class="history-text">${msg.text}</div>
+                        <div class="history-text">${formatText(msg.text)}</div>
                         <div class="history-timestamp">${date} • Mensaje ${idx + 1}</div>
                     </div>
                 `;
@@ -2565,16 +2846,28 @@
     }
 
     // ============================================
-    // RESPONDER
+    // RESPONDER - CORREGIDO
     // ============================================
     function openReplyPanel() {
         document.getElementById('vnReplyPanel').style.display = 'flex';
         updateCharSelector();
-        document.getElementById('enableOptions').checked = false;
-        document.getElementById('optionsFields').classList.remove('active');
-        for(let i=1; i<=3; i++) {
-            document.getElementById(`option${i}Text`).value = '';
-            document.getElementById(`option${i}Continuation`).value = '';
+        
+        // Resetear campos solo si no estamos editando
+        if (!editingMessageId) {
+            document.getElementById('vnReplyText').value = '';
+            document.getElementById('enableOptions').checked = false;
+            document.getElementById('optionsFields').classList.remove('active');
+            for(let i=1; i<=3; i++) {
+                document.getElementById(`option${i}Text`).value = '';
+                document.getElementById(`option${i}Continuation`).value = '';
+            }
+            
+            // Restaurar botón de enviar
+            const submitBtn = document.querySelector('.vn-submit-btn');
+            if (submitBtn) {
+                submitBtn.textContent = 'Enviar Mensaje';
+                submitBtn.onclick = postVNReply;
+            }
         }
     }
 
@@ -2583,17 +2876,37 @@
         document.getElementById('vnReplyText').value = '';
         isNarratorMode = false;
         selectedCharId = null;
+        editingMessageId = null;
+        
+        // Restaurar botón de enviar por si acaso
+        const submitBtn = document.querySelector('.vn-submit-btn');
+        if (submitBtn) {
+            submitBtn.textContent = 'Enviar Mensaje';
+            submitBtn.onclick = postVNReply;
+        }
     }
 
     function toggleOptionsFields() {
         const cb = document.getElementById('enableOptions');
-        cb.checked = !cb.checked;
-        document.getElementById('optionsFields').classList.toggle('active');
+        const fields = document.getElementById('optionsFields');
+        
+        // Toggle visual
+        if (fields.classList.contains('active')) {
+            fields.classList.remove('active');
+            cb.checked = false;
+        } else {
+            fields.classList.add('active');
+            cb.checked = true;
+        }
     }
 
     function toggleNarratorMode() {
         isNarratorMode = document.getElementById('narratorMode').checked;
-        document.getElementById('charSelector').style.opacity = isNarratorMode ? '0.5' : '1';
+        const selector = document.getElementById('charSelector');
+        if (selector) {
+            selector.style.opacity = isNarratorMode ? '0.5' : '1';
+            selector.style.pointerEvents = isNarratorMode ? 'none' : 'auto';
+        }
         if(isNarratorMode) {
             selectedCharId = null;
             document.querySelectorAll('.char-option').forEach(o => o.classList.remove('selected'));
@@ -2618,7 +2931,7 @@
             </div>
         `).join('');
         
-        if(mine.length > 0) selectVNChar(mine[0].id, container.children[0]);
+        if(mine.length > 0 && !selectedCharId) selectVNChar(mine[0].id, container.children[0]);
     }
 
     function selectVNChar(id, el) {
@@ -2662,7 +2975,7 @@
             isNarrator: isNarratorMode,
             userIndex: currentUserIndex,
             timestamp: new Date().toISOString(),
-            options
+            options: options && options.length > 0 ? options : undefined
         });
         
         hasUnsavedChanges = true;
@@ -2692,7 +3005,7 @@
                         <span style="background: var(--accent-wood); color: white; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">${msgs.length}</span>
                     </div>
                     <p style="font-size: 0.9rem; color: var(--text-secondary);">Por ${t.createdBy}</p>
-                    ${last ? `<p style="font-style: italic; color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">"${last.text.substring(0, 50)}..."</p>` : ''}
+                    ${last ? `<p style="font-style: italic; color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">"${stripHtml(formatText(last.text)).substring(0, 50)}..."</p>` : ''}
                 </div>
             `;
         }).join('');
@@ -2856,6 +3169,39 @@
         closeModal('characterModal');
         resetCharForm();
         renderGallery();
+    }
+
+    // ============================================
+    // AJUSTES
+    // ============================================
+    function openSettings() {
+        document.getElementById('settingsPanel').classList.add('active');
+    }
+
+    function closeSettings() {
+        document.getElementById('settingsPanel').classList.remove('active');
+    }
+
+    function updateTextSpeed(val) {
+        textSpeed = 110 - parseInt(val);
+        localStorage.setItem('etheria_text_speed', textSpeed);
+        const labels = ['Rápido', 'Normal', 'Lento'];
+        const idx = val < 40 ? 0 : val < 70 ? 1 : 2;
+        document.getElementById('speedValue').textContent = labels[idx];
+    }
+
+    function updateFontSize(val) {
+        document.documentElement.style.setProperty('--font-size-base', val + 'px');
+        localStorage.setItem('etheria_font_size', val);
+    }
+
+    function setAtmosphere(filter) {
+        const vnSection = document.getElementById('vnSection');
+        vnSection.classList.remove('sepia', 'bw', 'cinematic');
+        if (filter !== 'none') vnSection.classList.add(filter);
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
     }
 
     // Teclado
