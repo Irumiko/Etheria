@@ -2187,11 +2187,18 @@
                 topics: parsed.topics || [],
                 characters: parsed.characters || [],
                 messages: parsed.messages || {},
-                affinities: parsed.affinities || {} // Cargar afinidades
+                // CORRECCIÓN 1: Inicialización defensiva de affinities
+                affinities: (parsed.affinities && typeof parsed.affinities === 'object' && !Array.isArray(parsed.affinities)) 
+                    ? parsed.affinities 
+                    : {}
             };
         }
         const savedNames = localStorage.getItem('etheria_user_names');
         if (savedNames) userNames = JSON.parse(savedNames);
+        
+        // CORRECCIÓN 2: Cargar selectedCharId persistido
+        const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
+        if (savedCharId) selectedCharId = savedCharId;
         
         const savedSpeed = localStorage.getItem('etheria_text_speed');
         if (savedSpeed) {
@@ -2294,13 +2301,17 @@
         
         // Obtener personaje del mensaje actual
         const currentMsg = msgs[currentMessageIndex];
-        if (!currentMsg || !currentMsg.characterId) return 0;
+        
+        // CORRECCIÓN 3: Manejar narrador como caso especial (-1 para ocultar)
+        if (!currentMsg || currentMsg.isNarrator || !currentMsg.characterId) return -1;
         
         const targetCharId = currentMsg.characterId;
         
         // Obtener personaje activo del usuario actual
         const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
-        if (userChars.length === 0) return 0;
+        
+        // CORRECCIÓN 4: Si no tiene personajes, ocultar sistema
+        if (userChars.length === 0) return -1;
         
         // Usar el primer personaje del usuario o el último usado
         const activeCharId = selectedCharId || userChars[0].id;
@@ -2322,7 +2333,7 @@
         const controls = document.getElementById('affinityControls');
         const system = document.getElementById('affinitySystem');
         
-        // Si es -1, es el mismo personaje, ocultar sistema
+        // Si es -1, es el mismo personaje o narrador, ocultar sistema
         if (affinityValue === -1) {
             system.style.display = 'none';
             return;
@@ -2388,8 +2399,13 @@
         save();
         updateAffinityDisplay();
         
-        // Feedback visual
-        showAutosave(`Afinidad ${amount > 0 ? 'aumentada' : 'disminuida'}`, 'saved');
+        // CORRECCIÓN 5: Mensaje más preciso sobre el cambio real
+        const actualChange = newValue - currentValue;
+        if (actualChange === 0) {
+            showAutosave('Límite alcanzado', 'saved');
+        } else {
+            showAutosave(`Afinidad ${actualChange > 0 ? 'aumentada' : 'disminuida'} (${actualChange > 0 ? '+' : ''}${actualChange})`, 'saved');
+        }
     }
 
     // ============================================
@@ -2487,6 +2503,11 @@
     // ============================================
     async function selectUser(idx) {
         currentUserIndex = idx;
+        
+        // CORRECCIÓN 6: Cargar selectedCharId al cambiar de usuario
+        const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
+        selectedCharId = savedCharId || null;
+        
         document.getElementById('loadingOverlay').classList.add('active');
         isLoading = true;
         
@@ -2785,14 +2806,31 @@
         
         updateSprites(msg);
         
+        // CORRECCIÓN 7: Validar existencia del personaje (podría haber sido borrado)
+        let charExists = true;
+        let charData = null;
+        if (msg.characterId) {
+            charData = appData.characters.find(c => c.id === msg.characterId);
+            if (!charData) charExists = false;
+        }
+        
         if (msg.isNarrator || !msg.characterId) {
             namePlate.textContent = 'Narrador';
             namePlate.style.background = 'linear-gradient(135deg, #4a4540, #2a2724)';
             avatarBox.innerHTML = '📖';
+        } else if (!charExists) {
+            // Personaje borrado, mostrar con datos del mensaje
+            namePlate.textContent = msg.charName || 'Desconocido';
+            namePlate.style.background = msg.charColor || 'var(--accent-wood)';
+            avatarBox.innerHTML = msg.charAvatar ? 
+                `<img src="${msg.charAvatar}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${(msg.charName || '?')[0]}'">` : 
+                (msg.charName || '?')[0];
         } else {
             namePlate.textContent = msg.charName;
             namePlate.style.background = msg.charColor || 'var(--accent-wood)';
-            avatarBox.innerHTML = msg.charAvatar ? `<img src="${msg.charAvatar}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` : msg.charName[0];
+            avatarBox.innerHTML = msg.charAvatar ? 
+                `<img src="${msg.charAvatar}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` : 
+                msg.charName[0];
         }
         
         const hasOpt = msg.options && msg.options.length > 0 && msg.selectedOptionIndex === undefined;
@@ -2833,9 +2871,13 @@
         
         for (let i = Math.max(0, currentMessageIndex - 1); i <= currentMessageIndex + 1 && i < msgs.length; i++) {
             const m = msgs[i];
+            // CORRECCIÓN 8: Validar que el personaje existe antes de mostrar sprite
             if (m.characterId && !seen.has(m.characterId) && m.charSprite) {
-                seen.add(m.characterId);
-                recentChars.push(m);
+                const charExists = appData.characters.find(c => c.id === m.characterId);
+                if (charExists) {
+                    seen.add(m.characterId);
+                    recentChars.push(m);
+                }
             }
         }
         
@@ -2930,7 +2972,7 @@
     }
 
     // ============================================
-    // EDITAR MENSAJE
+    // EDICIÓN DE MENSAJES
     // ============================================
     function editCurrentMessage() {
         const msgs = appData.messages[currentTopicId] || [];
@@ -2980,6 +3022,7 @@
         const submitBtn = document.querySelector('.vn-submit-btn');
         if (submitBtn) {
             submitBtn.textContent = '💾 Guardar Cambios';
+            // CORRECCIÓN 9: Usar addEventListener en lugar de onclick para consistencia
             submitBtn.onclick = saveEditedMessage;
         }
     }
@@ -2996,6 +3039,8 @@
         if(!isNarratorMode) {
             if(!selectedCharId) { alert('Selecciona personaje'); return; }
             char = appData.characters.find(c => c.id === selectedCharId);
+            // CORRECCIÓN 10: Validar que el personaje existe
+            if (!char) { alert('Personaje no encontrado'); return; }
         }
         
         let options = null;
@@ -3129,7 +3174,7 @@
     }
 
     // ============================================
-    // RESPONDER
+    // RESPUESTAS (Reply Panel)
     // ============================================
     function openReplyPanel() {
         document.getElementById('vnReplyPanel').style.display = 'flex';
@@ -3216,6 +3261,10 @@
     function selectVNChar(id, el) {
         if(isNarratorMode) return;
         selectedCharId = id;
+        
+        // CORRECCIÓN 11: Persistir selección de personaje
+        localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, id);
+        
         document.querySelectorAll('.char-option').forEach(o => o.classList.remove('selected'));
         el.classList.add('selected');
         
@@ -3231,6 +3280,8 @@
         if(!isNarratorMode) {
             if(!selectedCharId) { alert('Selecciona personaje'); return; }
             char = appData.characters.find(c => c.id === selectedCharId);
+            // CORRECCIÓN 12: Validar existencia del personaje
+            if (!char) { alert('Personaje no encontrado. Puede haber sido borrado.'); return; }
         }
         
         let options = null;
@@ -3267,7 +3318,7 @@
     }
 
     // ============================================
-    // TEMAS
+    // TEMAS (Topics)
     // ============================================
     function renderTopics() {
         const container = document.getElementById('topicsList');
@@ -3305,7 +3356,9 @@
         
         if(!title || !charId || !text) { alert('Completa todos los campos'); return; }
         
+        // CORRECCIÓN 13: Validar que el personaje existe
         const char = appData.characters.find(c => c.id === charId);
+        if (!char) { alert('El personaje seleccionado ya no existe'); return; }
         
         const id = Date.now().toString();
         appData.topics.push({
@@ -3416,22 +3469,38 @@
             reader.onload = event => {
                 try {
                     const data = JSON.parse(event.target.result);
-                    if(data.topics && data.characters) {
-                        if(confirm('Esto reemplazará todos los datos actuales. ¿Continuar?')) {
-                            appData = {
-                                topics: data.topics || [],
-                                characters: data.characters || [],
-                                messages: data.messages || {},
-                                affinities: data.affinities || {}
-                            };
-                            hasUnsavedChanges = true;
-                            save();
-                            alert('Partida cargada ✓');
-                            renderTopics();
-                            renderGallery();
-                        }
+                    
+                    // CORRECCIÓN 14: Validación robusta de tipos de datos
+                    if(!data || typeof data !== 'object') {
+                        alert('Archivo inválido');
+                        return;
                     }
-                } catch(err) { alert('Error al cargar'); }
+                    
+                    if(!Array.isArray(data.topics) || !Array.isArray(data.characters)) {
+                        alert('Formato de datos incorrecto');
+                        return;
+                    }
+                    
+                    if(confirm('Esto reemplazará todos los datos actuales. ¿Continuar?')) {
+                        appData = {
+                            topics: Array.isArray(data.topics) ? data.topics : [],
+                            characters: Array.isArray(data.characters) ? data.characters : [],
+                            messages: (data.messages && typeof data.messages === 'object' && !Array.isArray(data.messages)) 
+                                ? data.messages 
+                                : {},
+                            affinities: (data.affinities && typeof data.affinities === 'object' && !Array.isArray(data.affinities)) 
+                                ? data.affinities 
+                                : {}
+                        };
+                        hasUnsavedChanges = true;
+                        save();
+                        alert('Partida cargada ✓');
+                        renderTopics();
+                        renderGallery();
+                    }
+                } catch(err) { 
+                    alert('Error al cargar: ' + err.message);
+                }
             };
             reader.readAsText(file);
         };
@@ -3450,6 +3519,13 @@
         const id = document.getElementById('editCharacterId').value;
         if(!id) return;
         if(!confirm('¿Borrar personaje?')) return;
+        
+        // CORRECCIÓN 15: Limpiar selectedCharId si era ese personaje
+        if (selectedCharId === id) {
+            selectedCharId = null;
+            localStorage.removeItem(`etheria_selected_char_${currentUserIndex}`);
+        }
+        
         appData.characters = appData.characters.filter(c => c.id !== id);
         hasUnsavedChanges = true;
         save();
