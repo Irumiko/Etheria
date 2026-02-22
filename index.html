@@ -28,7 +28,6 @@
             --typewriter-speed: 25;
             --input-bg: #ffffff;
             --input-text: #3d3833;
-            /* PRIORIDAD 2: Variable para botones adaptativos */
             --menu-button-bg: rgba(255, 255, 255, 0.9);
         }
         
@@ -51,7 +50,6 @@
             --glass-bg: rgba(26, 24, 21, 0.9);
             --input-bg: #2a2724;
             --input-text: #e8e4dc;
-            /* PRIORIDAD 2: Fondo oscuro en tema oscuro */
             --menu-button-bg: rgba(30, 28, 25, 0.95);
         }
 
@@ -96,22 +94,25 @@
             50% { transform: scale(1.05); filter: drop-shadow(0 0 15px currentColor); }
         }
 
-        /* PRIORIDAD 3: Efecto luciérnagas para tema oscuro */
         @keyframes firefly {
             0%, 100% { opacity: 0; transform: translate(0, 0) scale(0.5); }
             50% { opacity: 1; transform: translate(var(--move-x), var(--move-y)) scale(1); }
         }
 
-        .fireflies {
-            position: fixed;
+        @keyframes leaf-fall {
+            0% { transform: translateY(-10vh) rotate(0deg) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(110vh) rotate(360deg) translateX(100px); opacity: 0; }
+        }
+
+        /* PARTÍCULAS - SOLO EN MENÚ PRINCIPAL */
+        .menu-particles {
+            position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
             z-index: 1;
-            display: none;
-        }
-
-        [data-theme="dark"] .fireflies {
-            display: block;
+            overflow: hidden;
         }
 
         .firefly {
@@ -122,26 +123,6 @@
             border-radius: 50%;
             box-shadow: 0 0 10px #ffd700, 0 0 20px #ffed4e;
             animation: firefly 4s ease-in-out infinite;
-        }
-
-        /* PRIORIDAD 3: Efecto hojas para tema claro */
-        @keyframes leaf-fall {
-            0% { transform: translateY(-10vh) rotate(0deg) translateX(0); opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { transform: translateY(110vh) rotate(360deg) translateX(100px); opacity: 0; }
-        }
-
-        .leaves {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 1;
-            display: none;
-        }
-
-        [data-theme="light"] .leaves {
-            display: block;
         }
 
         .leaf {
@@ -211,6 +192,7 @@
         .autosave-indicator.saving .autosave-icon { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
+        /* SELECTOR DE PERFIL - CORREGIDO PARA MODO CLARO */
         .user-select-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
@@ -227,6 +209,8 @@
         }
         .game-subtitle { font-size: 1.3rem; color: var(--text-secondary); margin-bottom: 4rem; font-style: italic; }
         .user-cards { display: flex; gap: 3rem; flex-wrap: wrap; justify-content: center; }
+        
+        /* CORRECCIÓN: Forzar texto claro en las tarjetas de usuario */
         .user-card {
             width: 220px; height: 280px; 
             background: var(--glass-bg); 
@@ -238,6 +222,7 @@
             box-shadow: 0 20px 40px var(--shadow-heavy);
             backdrop-filter: blur(10px);
             position: relative;
+            color: #e8e4dc; /* Forzar color claro siempre */
         }
         .user-card::before {
             content: '';
@@ -268,19 +253,19 @@
             font-family: 'Cinzel', serif; 
             font-size: 1.4rem; 
             font-weight: 600; 
-            color: var(--text-primary); 
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            color: #e8e4dc; /* Forzar color claro siempre */
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
         .user-hint { 
             font-size: 0.85rem; 
-            color: var(--text-secondary); 
+            color: rgba(232, 228, 220, 0.8); /* Color claro con transparencia */
             margin-top: 0.8rem; 
             opacity: 0; 
             transition: opacity 0.3s; 
         }
         .user-card:hover .user-hint { opacity: 1; }
 
-        /* PRIORIDAD 3: Menú principal con imagen de fondo */
+        /* MENÚ PRINCIPAL */
         .main-menu {
             position: fixed; 
             top: 0; 
@@ -294,7 +279,6 @@
             z-index: 1000;
         }
 
-        /* PRIORIDAD 3: Filtro nocturno azulado en tema oscuro */
         [data-theme="dark"] .main-menu::before {
             content: '';
             position: absolute;
@@ -351,7 +335,6 @@
             flex: 1;
         }
         
-        /* PRIORIDAD 2: Botones con fondo adaptativo */
         .menu-button {
             background: var(--menu-button-bg); 
             border: 2px solid var(--border-color); 
@@ -421,34 +404,6 @@
             border-color: var(--accent-wood);
             color: var(--accent-wood);
         }
-        
-        .menu-content-area {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            position: relative;
-            z-index: 10;
-        }
-        
-        /* PRIORIDAD 2: Tarjeta ilustración con fondo adaptativo */
-        .menu-illustration {
-            max-width: 600px;
-            width: 100%;
-            aspect-ratio: 16/9;
-            background: var(--menu-button-bg);
-            border-radius: 24px;
-            border: 3px double var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
-            font-family: 'Cinzel', serif;
-            font-size: 1.5rem;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 20px 40px var(--shadow-heavy);
-        }
 
         .game-section { display: none; min-height: 100vh; background: var(--bg-primary); }
         .game-section.active { display: block; animation: fadeIn 0.5s ease; }
@@ -475,7 +430,6 @@
         }
         .section-content { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 
-        /* PRIORIDAD 2: Tarjetas con fondo adaptativo */
         .gallery-toolbar { 
             display: flex; 
             gap: 1rem; 
@@ -962,12 +916,11 @@
             box-shadow: 0 6px 20px rgba(139, 115, 85, 0.4);
         }
 
-        /* VN Mode */
+        /* VN MODE - REORGANIZADO */
         .vn-section {
             position: relative;
             min-height: 100vh;
             color: #fff;
-            padding-bottom: 12rem;
             background-size: cover;
             background-position: center;
             overflow: hidden;
@@ -977,62 +930,106 @@
         .vn-section.sepia { filter: sepia(0.6) contrast(1.1); }
         .vn-section.bw { filter: grayscale(1) contrast(1.2); }
         .vn-section.cinematic { filter: contrast(1.3) saturate(1.2) brightness(0.9); }
-        
-        .vn-header {
-            position: sticky;
-            top: 0;
+
+        /* INFO CARD - ESQUINA SUPERIOR IZQUIERDA */
+        .vn-info-card {
+            position: fixed;
+            top: 20px;
+            left: 20px;
             z-index: 200;
+            background: var(--glass-bg);
+            border: 2px solid var(--accent-gold);
+            border-radius: 16px;
+            padding: 1rem;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 1rem 2rem;
-            background: var(--glass-bg);
-            border-bottom: 3px double var(--accent-gold);
+            gap: 1rem;
             backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            min-width: 200px;
         }
         
+        .vn-info-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px double var(--accent-gold);
+            overflow: hidden;
+            flex-shrink: 0;
+            background: var(--bg-tertiary);
+        }
+        
+        .vn-info-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .vn-info-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        
+        .vn-info-name {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .vn-info-club {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .vn-info-affection {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--accent-gold);
+        }
+        
+        /* CONTROLES - ESQUINA SUPERIOR DERECHA */
         .vn-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 200;
             display: flex;
             gap: 0.5rem;
+            background: var(--glass-bg);
+            padding: 0.5rem;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            backdrop-filter: blur(15px);
         }
         
         .vn-control-btn {
             background: rgba(0,0,0,0.3);
             border: 2px solid var(--border-color);
             color: var(--accent-gold);
-            padding: 0.6rem 1rem;
+            width: 45px;
+            height: 45px;
             border-radius: 10px;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
+            font-size: 1.2rem;
             transition: all 0.3s;
             backdrop-filter: blur(5px);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            overflow: hidden;
-            white-space: nowrap;
-            max-width: 45px;
-        }
-        
-        .vn-control-btn span {
-            opacity: 0;
-            max-width: 0;
-            transition: all 0.3s ease;
+            justify-content: center;
+            position: relative;
         }
         
         .vn-control-btn:hover {
-            max-width: 200px;
             background: var(--accent-wood);
             color: white;
             border-color: var(--accent-gold);
             box-shadow: 0 0 15px rgba(201, 168, 108, 0.4);
-            padding: 0.6rem 1.2rem;
-        }
-        
-        .vn-control-btn:hover span {
-            opacity: 1;
-            max-width: 100px;
+            transform: translateY(-2px);
         }
         
         .vn-control-btn.save-btn {
@@ -1041,117 +1038,9 @@
             color: white;
         }
 
-        /* SISTEMA DE AFINIDAD */
+        /* SISTEMA DE AFINIDAD - OCULTO POR DEFECTO (usamos el de la info card) */
         .affinity-system {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            z-index: 150;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .affinity-container {
-            background: var(--glass-bg);
-            border: 2px solid var(--accent-gold);
-            border-radius: 20px;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            min-width: 120px;
-        }
-        
-        .affinity-flower {
-            width: 80px;
-            height: 80px;
-            position: relative;
-            animation: flower-pulse 3s ease-in-out infinite;
-        }
-        
-        .affinity-flower svg {
-            width: 100%;
-            height: 100%;
-            filter: drop-shadow(0 0 8px currentColor);
-        }
-        
-        .affinity-value {
-            font-family: 'Cinzel', serif;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--accent-gold);
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-        
-        .affinity-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-align: center;
-            max-width: 100px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .affinity-controls {
-            display: flex;
-            gap: 0.5rem;
-            opacity: 0;
-            transform: translateY(-10px);
-            transition: all 0.3s ease;
-            pointer-events: none;
-        }
-        
-        .affinity-controls.visible {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: all;
-        }
-        
-        .affinity-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 2px solid var(--accent-gold);
-            background: var(--glass-bg);
-            color: var(--accent-gold);
-            font-size: 1.2rem;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(5px);
-        }
-        
-        .affinity-btn:hover {
-            background: var(--accent-gold);
-            color: var(--bg-primary);
-            transform: scale(1.1);
-            box-shadow: 0 0 15px rgba(201, 168, 108, 0.5);
-        }
-        
-        .affinity-btn.plus:hover {
-            background: #6b8e7d;
-            border-color: #6b8e7d;
-            color: white;
-        }
-        
-        .affinity-btn.minus:hover {
-            background: #c75b5b;
-            border-color: #c75b5b;
-            color: white;
-        }
-        
-        .affinity-btn:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            pointer-events: none;
+            display: none; /* Ocultamos el antiguo sistema flotante */
         }
 
         .vn-sprite-container {
@@ -1201,12 +1090,13 @@
         }
         .vn-sprite.active.center { animation: bounce-focus 2s ease-in-out infinite, glow 3s ease-in-out infinite; }
 
+        /* CAJA DE DIÁLOGO - CENTRADA CON MÁRGENES */
         .vn-dialogue-box {
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
             bottom: 2rem;
-            width: min(1000px, 92%);
+            width: min(800px, 80%); /* Reducido de 1000px a 800px y 92% a 80% */
             background: var(--glass-bg);
             border: 3px double var(--accent-gold);
             border-radius: 24px;
@@ -1314,74 +1204,72 @@
             animation: pulse 2s infinite;
         }
 
-        /* PRIORIDAD 4: Opciones como drawer flotante */
+        /* OPCIONES FLOTANTES - ESTILO REFERENCIA */
         .vn-options-container {
             position: fixed;
-            bottom: 280px;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             display: none;
             flex-direction: column;
             gap: 1rem;
-            width: min(600px, 90%);
+            width: min(500px, 80%);
             z-index: 160;
-            background: var(--glass-bg);
-            border: 3px double var(--accent-gold);
-            border-radius: 20px;
-            padding: 1.5rem;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            max-height: 50vh;
+            max-height: 60vh;
             overflow-y: auto;
+            pointer-events: none; /* Permitir clicks a través cuando está oculto */
         }
-        .vn-options-container.active { display: flex; }
-        
-        .vn-options-header {
-            font-family: 'Cinzel', serif;
-            color: var(--accent-gold);
-            text-align: center;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 0.5rem;
+        .vn-options-container.active { 
+            display: flex; 
+            pointer-events: all;
         }
         
         .vn-option-btn {
-            background: linear-gradient(135deg, rgba(139, 115, 85, 0.95), rgba(107, 142, 125, 0.95));
+            background: rgba(255, 255, 255, 0.95);
             border: 2px solid var(--accent-gold);
-            color: white;
-            padding: 1.2rem 1.5rem;
-            border-radius: 12px;
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 50px;
             cursor: pointer;
             font-family: 'Crimson Text', serif;
             font-size: 1.1rem;
-            text-align: left;
+            text-align: center;
             transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             position: relative;
             overflow: hidden;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
         }
+        
         .vn-option-btn::before {
-            content: '▸';
+            content: '';
             position: absolute;
-            left: -20px;
-            opacity: 0;
-            transition: all 0.3s;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.3), transparent);
+            transition: left 0.5s;
         }
+        
         .vn-option-btn:hover {
-            transform: translateX(10px);
-            background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage));
-            box-shadow: 0 5px 20px rgba(201, 168, 108, 0.4);
+            transform: translateX(10px) scale(1.02);
+            background: white;
+            box-shadow: 0 6px 25px rgba(201, 168, 108, 0.4);
+            border-color: var(--accent-wood);
         }
+        
         .vn-option-btn:hover::before {
-            left: 15px;
-            opacity: 1;
+            left: 100%;
         }
+        
         .vn-option-btn.chosen {
-            background: linear-gradient(135deg, rgba(107, 142, 125, 0.8), rgba(74, 107, 90, 0.8));
+            background: rgba(107, 142, 125, 0.9);
             border-color: var(--accent-sage);
+            color: white;
             opacity: 0.8;
         }
+        
         .vn-option-btn:disabled {
             cursor: not-allowed;
             opacity: 0.6;
@@ -1447,7 +1335,7 @@
             transform: rotate(90deg);
         }
 
-        /* PRIORIDAD 4: Rediseño panel Responder */
+        /* PANEL RESPONDER - SIN CAMBIOS MAYORES */
         .vn-reply-panel {
             position: fixed;
             left: 0;
@@ -1463,7 +1351,6 @@
             box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
         }
         
-        /* Cabecera del panel */
         .vn-reply-header {
             display: flex;
             justify-content: space-between;
@@ -1482,7 +1369,6 @@
             gap: 0.8rem;
         }
         
-        /* Cuerpo del panel */
         .vn-reply-body {
             flex: 1;
             overflow-y: auto;
@@ -1492,7 +1378,6 @@
             gap: 1.2rem;
         }
         
-        /* PRIORIDAD 4: Selector de personaje rediseñado */
         .char-selector-container {
             display: flex;
             flex-direction: column;
@@ -1557,7 +1442,6 @@
             font-size: 0.85rem;
         }
         
-        /* Grid desplegable de personajes */
         .char-grid-dropdown {
             display: none;
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -1611,7 +1495,6 @@
             font-size: 2rem;
         }
         
-        /* Toggle Narrador */
         .narrator-toggle {
             display: flex;
             align-items: center;
@@ -1647,7 +1530,6 @@
             font-family: 'Inter', sans-serif;
         }
         
-        /* Área de texto */
         .vn-reply-textarea {
             width: 100%;
             min-height: 120px;
@@ -1669,7 +1551,6 @@
             box-shadow: 0 0 15px rgba(201, 168, 108, 0.2);
         }
         
-        /* Toggle opciones */
         .options-toggle-container {
             display: flex;
             flex-direction: column;
@@ -1699,7 +1580,6 @@
             accent-color: var(--accent-gold);
         }
         
-        /* Campos de opciones */
         .options-fields {
             display: none;
             flex-direction: column;
@@ -1747,7 +1627,18 @@
             border-color: var(--accent-gold);
         }
         
-        /* Pie del panel */
+        .option-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            font-family: inherit;
+            resize: vertical;
+        }
+        
         .vn-reply-footer {
             display: flex;
             justify-content: flex-end;
@@ -1757,7 +1648,6 @@
             background: rgba(139, 115, 85, 0.2);
         }
         
-        /* PRIORIDAD 4: Botón de editor de ramas */
         .branch-editor-btn {
             background: linear-gradient(135deg, rgba(139, 115, 85, 0.8), rgba(107, 142, 125, 0.8));
             border: 2px solid var(--accent-gold);
@@ -1985,7 +1875,6 @@
             transform: scale(1.1);
         }
 
-        /* PRIORIDAD 4: Modal de editor de ramas */
         .branch-editor-modal {
             background: var(--glass-bg);
             border-radius: 24px;
@@ -2123,10 +2012,6 @@
 </head>
 <body>
 
-    <!-- PRIORIDAD 3: Efectos de ambiente -->
-    <div class="fireflies" id="firefliesContainer"></div>
-    <div class="leaves" id="leavesContainer"></div>
-
     <div id="autosaveIndicator" class="autosave-indicator">
         <span class="autosave-icon">☁️</span>
         <span class="autosave-text">Guardando...</span>
@@ -2188,8 +2073,12 @@
         </div>
     </div>
 
-    <!-- Main Menu -->
+    <!-- Main Menu - Partículas movidas aquí -->
     <div id="mainMenu" class="main-menu hidden">
+        <!-- Partículas solo en menú principal -->
+        <div class="menu-particles" id="firefliesContainer"></div>
+        <div class="menu-particles" id="leavesContainer"></div>
+        
         <div class="menu-sidebar">
             <div class="menu-brand">
                 <h1 class="menu-title">📖 ETHERIA</h1>
@@ -2225,15 +2114,7 @@
             </div>
         </div>
         
-        <div class="menu-content-area">
-            <div class="menu-illustration">
-                <div style="text-align: center;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">🏰</div>
-                    <div>Ilustración de Portada</div>
-                    <div style="font-size: 0.9rem; opacity: 0.7; margin-top: 0.5rem;">Espacio reservado para arte de fondo</div>
-                </div>
-            </div>
-        </div>
+        <!-- Eliminado el bloque de ilustración placeholder -->
     </div>
 
     <!-- Topics Section -->
@@ -2309,61 +2190,71 @@
         </div>
     </div>
 
-    <!-- VN Section -->
+    <!-- VN Section - REORGANIZADO -->
     <div id="vnSection" class="game-section vn-section">
-        <!-- SISTEMA DE AFINIDAD -->
+        <!-- Info Card - Esquina superior izquierda -->
+        <div class="vn-info-card" id="vnInfoCard">
+            <div class="vn-info-avatar" id="vnInfoAvatar">
+                <div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">👤</div>
+            </div>
+            <div class="vn-info-details">
+                <div class="vn-info-name" id="vnInfoName">Sin personaje</div>
+                <div class="vn-info-club" id="vnInfoClub">Selecciona un personaje</div>
+                <div class="vn-info-affection" id="vnInfoAffection">
+                    <span>❤️</span>
+                    <span id="vnAffectionValue">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controles - Esquina superior derecha -->
+        <div class="vn-controls">
+            <button class="vn-control-btn" data-tooltip="Primer mensaje" onclick="firstMessage()">
+                ⏮️
+            </button>
+            <button class="vn-control-btn" data-tooltip="Mensaje anterior" onclick="previousMessage()">
+                ◀️
+            </button>
+            <button class="vn-control-btn" data-tooltip="Editar mensaje" onclick="editCurrentMessage()" id="editMsgBtn">
+                ✏️
+            </button>
+            <button class="vn-control-btn" data-tooltip="Responder" onclick="openReplyPanel()">
+                💬
+            </button>
+            <button class="vn-control-btn" data-tooltip="Historial" onclick="openHistoryLog()">
+                📜
+            </button>
+            <button class="vn-control-btn" data-tooltip="Ajustes" onclick="openSettings()">
+                ⚙️
+            </button>
+            <button class="vn-control-btn save-btn" data-tooltip="Guardar" onclick="quickSave()">
+                💾
+            </button>
+            <button id="deleteTopicBtn" class="vn-control-btn hidden" data-tooltip="Borrar historia" onclick="deleteCurrentTopic()">
+                🗑️
+            </button>
+            <button class="vn-control-btn" data-tooltip="Salir" onclick="backToTopics()">
+                ✕
+            </button>
+        </div>
+
+        <!-- Sistema de afinidad antiguo - oculto -->
         <div id="affinitySystem" class="affinity-system">
             <div class="affinity-container">
-                <div class="affinity-flower" id="affinityFlower">
-                    <!-- SVG de flor se inserta dinámicamente -->
-                </div>
+                <div class="affinity-flower" id="affinityFlower"></div>
                 <div class="affinity-value" id="affinityValue">0</div>
                 <div class="affinity-label" id="affinityLabel">Sin relación</div>
             </div>
             <div class="affinity-controls" id="affinityControls">
-                <button class="affinity-btn minus" onclick="modifyAffinity(-5)" data-tooltip="Bajar afinidad">−</button>
-                <button class="affinity-btn plus" onclick="modifyAffinity(5)" data-tooltip="Subir afinidad">+</button>
-            </div>
-        </div>
-
-        <div class="vn-header">
-            <h2 id="vnHeaderTitle" style="font-family: 'Cinzel'; color: var(--accent-gold);">Historia</h2>
-            <div class="vn-controls">
-                <button class="vn-control-btn" data-tooltip="Primer mensaje" onclick="firstMessage()">
-                    ⏮️<span>Inicio</span>
-                </button>
-                <button class="vn-control-btn" data-tooltip="Mensaje anterior" onclick="previousMessage()">
-                    ◀️<span>Anterior</span>
-                </button>
-                <button class="vn-control-btn" data-tooltip="Editar mensaje" onclick="editCurrentMessage()" id="editMsgBtn">
-                    ✏️<span>Editar</span>
-                </button>
-                <button class="vn-control-btn" data-tooltip="Responder" onclick="openReplyPanel()">
-                    💬<span>Responder</span>
-                </button>
-                <button class="vn-control-btn" data-tooltip="Historial" onclick="openHistoryLog()">
-                    📜<span>Historial</span>
-                </button>
-                <button class="vn-control-btn" data-tooltip="Ajustes" onclick="openSettings()">
-                    ⚙️<span>Ajustes</span>
-                </button>
-                <button class="vn-control-btn save-btn" data-tooltip="Guardar" onclick="quickSave()">
-                    💾<span>Guardar</span>
-                </button>
-                <button id="deleteTopicBtn" class="vn-control-btn hidden" data-tooltip="Borrar historia" onclick="deleteCurrentTopic()">
-                    🗑️<span>Borrar</span>
-                </button>
-                <button class="vn-control-btn" data-tooltip="Salir" onclick="backToTopics()">
-                    ✕<span>Salir</span>
-                </button>
+                <button class="affinity-btn minus" onclick="modifyAffinity(-5)">−</button>
+                <button class="affinity-btn plus" onclick="modifyAffinity(5)">+</button>
             </div>
         </div>
 
         <div id="vnSpriteContainer" class="vn-sprite-container"></div>
         
-        <!-- PRIORIDAD 4: Opciones como drawer flotante -->
+        <!-- Opciones flotantes - Estilo referencia -->
         <div id="vnOptionsContainer" class="vn-options-container">
-            <div class="vn-options-header">🎭 Elige una opción</div>
             <!-- Las opciones se insertan dinámicamente -->
         </div>
 
@@ -2376,9 +2267,8 @@
             <div id="vnMessageCounter" class="vn-message-counter">0 / 0</div>
         </div>
 
-        <!-- PRIORIDAD 4: Panel Responder rediseñado -->
+        <!-- Panel Responder - Sin cambios -->
         <div id="vnReplyPanel" class="vn-reply-panel">
-            <!-- Cabecera -->
             <div class="vn-reply-header">
                 <div class="vn-reply-title">
                     <span>💬</span>
@@ -2387,9 +2277,7 @@
                 <button onclick="closeReplyPanel()" class="btn-secondary">✕ Cerrar</button>
             </div>
             
-            <!-- Cuerpo -->
             <div class="vn-reply-body">
-                <!-- Selector de personaje rediseñado -->
                 <div class="char-selector-container" id="charSelectorContainer">
                     <div class="char-selector-main">
                         <div class="char-selected-display" id="charSelectedDisplay" onclick="toggleCharGrid()">
@@ -2401,27 +2289,22 @@
                         </div>
                     </div>
                     
-                    <!-- Grid desplegable -->
                     <div class="char-grid-dropdown" id="charGridDropdown"></div>
                 </div>
                 
-                <!-- Toggle Narrador -->
                 <div class="narrator-toggle" id="narratorToggle" onclick="toggleNarratorMode()">
                     <input type="checkbox" id="narratorMode" onchange="event.stopPropagation()">
                     <label for="narratorMode">Modo Narrador</label>
                 </div>
                 
-                <!-- Área de texto -->
                 <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*"></textarea>
                 
-                <!-- Toggle opciones -->
                 <div class="options-toggle-container">
                     <div class="options-toggle" onclick="toggleOptionsFields()">
                         <input type="checkbox" id="enableOptions" onchange="event.stopPropagation()">
                         <label for="enableOptions">🎭 Crear opciones de elección</label>
                     </div>
                     
-                    <!-- Campos de opciones -->
                     <div id="optionsFields" class="options-fields">
                         <div class="option-field-group">
                             <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
@@ -2439,7 +2322,6 @@
                             <textarea id="option3Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
                         </div>
                         
-                        <!-- Botón para abrir editor avanzado -->
                         <button class="branch-editor-btn" onclick="openBranchEditor()">
                             <span>🌿</span>
                             <span>Editor Avanzado de Ramas</span>
@@ -2448,7 +2330,6 @@
                 </div>
             </div>
             
-            <!-- Pie -->
             <div class="vn-reply-footer">
                 <button class="btn-secondary" onclick="closeReplyPanel()">Cancelar</button>
                 <button class="btn-primary" onclick="postVNReply()" id="submitReplyBtn">Enviar Mensaje</button>
@@ -2467,7 +2348,7 @@
         </div>
     </div>
 
-    <!-- PRIORIDAD 4: Modal de Editor de Ramas -->
+    <!-- Branch Editor Modal -->
     <div id="branchEditorModal" class="modal-overlay" onclick="if(event.target === this) closeModal('branchEditorModal')">
         <div class="branch-editor-modal">
             <div class="branch-editor-header">
@@ -2475,9 +2356,7 @@
                 <button onclick="closeModal('branchEditorModal')" class="btn-secondary">✕</button>
             </div>
             <div class="branch-editor-content">
-                <div id="branchList" class="branch-list">
-                    <!-- Las ramas se generan dinámicamente -->
-                </div>
+                <div id="branchList" class="branch-list"></div>
                 <button class="add-branch-btn" onclick="addNewBranch()">
                     <span>+</span> Agregar nueva rama
                 </button>
@@ -2504,7 +2383,7 @@
         </div>
     </div>
 
-    <!-- EDITOR DE PERSONAJE -->
+    <!-- Character Editor -->
     <div id="characterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('characterModal')">
         <div class="character-modal">
             <div class="editor-container">
@@ -2682,7 +2561,6 @@
         'CB': 'Caótico Bueno', 'CN': 'Caótico Neutral', 'CM': 'Caótico Malvado'
     };
 
-    // Configuración de colores de afinidad
     const affinityColors = {
         0: '#ffffff',   // 0-9: Blanco
         10: '#9b59b6',  // 10-24: Morado
@@ -2699,7 +2577,7 @@
         topics: [], 
         characters: [], 
         messages: {},
-        affinities: {} // Nuevo: almacena afinidades por tema
+        affinities: {}
     };
     let currentTopicId = null;
     let selectedCharId = null;
@@ -2715,8 +2593,8 @@
     let textSpeed = 25;
     let currentEditorTab = 'identity';
     let editingMessageId = null;
-    let currentAffinity = 0; // Afinidad actual en el tema
-    let tempBranches = []; // Para el editor de ramas
+    let currentAffinity = 0;
+    let tempBranches = [];
 
     // ============================================
     // INICIALIZACIÓN
@@ -2729,7 +2607,6 @@
                 topics: parsed.topics || [],
                 characters: parsed.characters || [],
                 messages: parsed.messages || {},
-                // PRIORIDAD 1: Inicialización defensiva de affinities
                 affinities: (parsed.affinities && typeof parsed.affinities === 'object' && !Array.isArray(parsed.affinities)) 
                     ? parsed.affinities 
                     : {}
@@ -2738,7 +2615,6 @@
         const savedNames = localStorage.getItem('etheria_user_names');
         if (savedNames) userNames = JSON.parse(savedNames);
         
-        // PRIORIDAD 1: Cargar selectedCharId persistido
         const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
         if (savedCharId) selectedCharId = savedCharId;
         
@@ -2755,7 +2631,7 @@
         
         updateUserScreen();
         
-        // PRIORIDAD 3: Generar efectos de ambiente
+        // Generar partículas en el menú principal
         generateFireflies();
         generateLeaves();
         
@@ -2767,9 +2643,9 @@
         });
     });
 
-    // PRIORIDAD 3: Generar luciérnagas
     function generateFireflies() {
         const container = document.getElementById('firefliesContainer');
+        container.innerHTML = ''; // Limpiar primero
         for (let i = 0; i < 20; i++) {
             const firefly = document.createElement('div');
             firefly.className = 'firefly';
@@ -2783,9 +2659,9 @@
         }
     }
 
-    // PRIORIDAD 3: Generar hojas
     function generateLeaves() {
         const container = document.getElementById('leavesContainer');
+        container.innerHTML = ''; // Limpiar primero
         for (let i = 0; i < 10; i++) {
             const leaf = document.createElement('div');
             leaf.className = 'leaf';
@@ -2804,7 +2680,7 @@
     }
 
     // ============================================
-    // SISTEMA DE AFINIDAD - CORREGIDO
+    // SISTEMA DE AFINIDAD - INTEGRADO EN INFO CARD
     // ============================================
     function getAffinityColor(value) {
         if (value >= 90) return affinityColors[90];
@@ -2826,44 +2702,7 @@
         return 'Desconocidos';
     }
 
-    function generateFlowerSVG(value, color) {
-        // Calcular cuántos pétalos se llenan (8 pétalos total)
-        const filledPetals = Math.ceil((value / 100) * 8);
-        const petals = [];
-        
-        for (let i = 0; i < 8; i++) {
-            const angle = (i * 45) - 90; // Empezar desde arriba
-            const isFilled = i < filledPetals;
-            const petalColor = isFilled ? color : 'rgba(255,255,255,0.1)';
-            const strokeColor = isFilled ? color : 'rgba(255,255,255,0.3)';
-            
-            petals.push(`
-                <ellipse cx="40" cy="15" rx="12" ry="25" 
-                    fill="${petalColor}" 
-                    stroke="${strokeColor}" 
-                    stroke-width="2"
-                    transform="rotate(${angle} 40 40)"
-                    style="transition: all 0.5s ease;"
-                />
-            `);
-        }
-        
-        return `
-            <svg viewBox="0 0 80 80" style="color: ${color};">
-                <defs>
-                    <radialGradient id="centerGrad" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" style="stop-color:${color};stop-opacity:0.8" />
-                        <stop offset="100%" style="stop-color:${color};stop-opacity:0.2" />
-                    </radialGradient>
-                </defs>
-                ${petals.join('')}
-                <circle cx="40" cy="40" r="15" fill="url(#centerGrad)" stroke="${color}" stroke-width="2"/>
-            </svg>
-        `;
-    }
-
     function getAffinityKey(charId1, charId2) {
-        // Crear clave única independiente del orden
         const ids = [charId1, charId2].sort();
         return `${ids[0]}_${ids[1]}`;
     }
@@ -2874,25 +2713,18 @@
         const msgs = appData.messages[currentTopicId] || [];
         if (msgs.length === 0) return 0;
         
-        // Obtener personaje del mensaje actual
         const currentMsg = msgs[currentMessageIndex];
         
-        // PRIORIDAD 1: Manejar narrador como caso especial (-1 para ocultar)
         if (!currentMsg || currentMsg.isNarrator || !currentMsg.characterId) return -1;
         
         const targetCharId = currentMsg.characterId;
-        
-        // Obtener personaje activo del usuario actual
         const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
         
-        // PRIORIDAD 1: Si no tiene personajes, ocultar sistema
         if (userChars.length === 0) return -1;
         
-        // Usar el primer personaje del usuario o el último usado
         const activeCharId = selectedCharId || userChars[0].id;
         
-        // No mostrar si es el mismo personaje
-        if (activeCharId === targetCharId) return -1; // -1 indica "mismo personaje"
+        if (activeCharId === targetCharId) return -1;
         
         const key = getAffinityKey(activeCharId, targetCharId);
         const topicAffinities = appData.affinities[currentTopicId] || {};
@@ -2902,46 +2734,63 @@
 
     function updateAffinityDisplay() {
         const affinityValue = getCurrentAffinity();
-        const flowerContainer = document.getElementById('affinityFlower');
-        const valueDisplay = document.getElementById('affinityValue');
-        const labelDisplay = document.getElementById('affinityLabel');
-        const controls = document.getElementById('affinityControls');
-        const system = document.getElementById('affinitySystem');
+        const infoCard = document.getElementById('vnInfoCard');
+        const infoAvatar = document.getElementById('vnInfoAvatar');
+        const infoName = document.getElementById('vnInfoName');
+        const infoClub = document.getElementById('vnInfoClub');
+        const affectionValue = document.getElementById('vnAffectionValue');
         
-        // Si es -1, es el mismo personaje o narrador, ocultar sistema
+        // Si es -1, ocultar info card o mostrar narrador
         if (affinityValue === -1) {
-            system.style.display = 'none';
+            const msgs = appData.messages[currentTopicId] || [];
+            const currentMsg = msgs[currentMessageIndex];
+            
+            if (currentMsg && currentMsg.isNarrator) {
+                infoName.textContent = 'Narrador';
+                infoClub.textContent = 'Modo historia';
+                affectionValue.textContent = '-';
+                infoAvatar.innerHTML = '<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">📖</div>';
+            } else {
+                // Mismo personaje - mostrar info del personaje activo
+                const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
+                const activeChar = userChars.find(c => c.id === selectedCharId) || userChars[0];
+                
+                if (activeChar) {
+                    infoName.textContent = activeChar.name;
+                    infoClub.textContent = activeChar.race || 'Sin raza';
+                    affectionValue.textContent = 'Tú';
+                    
+                    if (activeChar.avatar) {
+                        infoAvatar.innerHTML = `<img src="${activeChar.avatar}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${activeChar.name[0]}</div>'">`;
+                    } else {
+                        infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${activeChar.name[0]}</div>`;
+                    }
+                }
+            }
             return;
         }
         
-        system.style.display = 'flex';
-        currentAffinity = affinityValue;
-        
-        const color = getAffinityColor(affinityValue);
-        const level = getAffinityLevel(affinityValue);
-        
-        // Actualizar flor
-        flowerContainer.innerHTML = generateFlowerSVG(affinityValue, color);
-        flowerContainer.style.color = color;
-        
-        // Actualizar valor y etiqueta
-        valueDisplay.textContent = affinityValue;
-        valueDisplay.style.color = color;
-        labelDisplay.textContent = level;
-        
-        // Mostrar/ocultar controles según si el mensaje actual es de otro personaje
+        // Mostrar info del personaje del mensaje actual con afinidad
         const msgs = appData.messages[currentTopicId] || [];
         const currentMsg = msgs[currentMessageIndex];
         
-        // Solo mostrar controles si el mensaje actual NO es del personaje activo del usuario
-        const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
-        const activeCharId = selectedCharId || (userChars[0]?.id);
-        
-        if (currentMsg && currentMsg.characterId && currentMsg.characterId !== activeCharId && activeCharId) {
-            controls.classList.add('visible');
-        } else {
-            controls.classList.remove('visible');
+        if (currentMsg && currentMsg.characterId) {
+            const char = appData.characters.find(c => c.id === currentMsg.characterId);
+            if (char) {
+                infoName.textContent = char.name;
+                infoClub.textContent = char.race || 'Sin raza';
+                affectionValue.textContent = affinityValue;
+                affectionValue.style.color = getAffinityColor(affinityValue);
+                
+                if (char.avatar) {
+                    infoAvatar.innerHTML = `<img src="${char.avatar}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
+                } else {
+                    infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
+                }
+            }
         }
+        
+        currentAffinity = affinityValue;
     }
 
     function modifyAffinity(amount) {
@@ -2959,12 +2808,10 @@
         
         const key = getAffinityKey(activeCharId, targetCharId);
         
-        // Inicializar estructura si no existe
         if (!appData.affinities[currentTopicId]) {
             appData.affinities[currentTopicId] = {};
         }
         
-        // Calcular nuevo valor (0-100)
         const currentValue = appData.affinities[currentTopicId][key] || 0;
         const newValue = Math.max(0, Math.min(100, currentValue + amount));
         
@@ -2974,7 +2821,6 @@
         save();
         updateAffinityDisplay();
         
-        // PRIORIDAD 1: Mensaje más preciso sobre el cambio real
         const actualChange = newValue - currentValue;
         if (actualChange === 0) {
             showAutosave('Límite alcanzado', 'saved');
@@ -3079,7 +2925,6 @@
     async function selectUser(idx) {
         currentUserIndex = idx;
         
-        // PRIORIDAD 1: Cargar selectedCharId al cambiar de usuario
         const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
         selectedCharId = savedCharId || null;
         
@@ -3344,7 +3189,6 @@
         
         document.getElementById('topicsSection').classList.remove('active');
         document.getElementById('vnSection').classList.add('active');
-        document.getElementById('vnHeaderTitle').textContent = t.title;
         
         const deleteBtn = document.getElementById('deleteTopicBtn');
         if (t.createdByIndex === currentUserIndex) {
@@ -3368,7 +3212,7 @@
         const msgs = appData.messages[currentTopicId] || [];
         if (msgs.length === 0) {
             document.getElementById('vnDialogueText').innerHTML = '<em>Historia vacía. Haz clic en 💬 Responder para comenzar.</em>';
-            updateAffinityDisplay(); // Actualizar aunque esté vacío
+            updateAffinityDisplay();
             return;
         }
         
@@ -3381,7 +3225,6 @@
         
         updateSprites(msg);
         
-        // PRIORIDAD 1: Validar existencia del personaje (podría haber sido borrado)
         let charExists = true;
         let charData = null;
         if (msg.characterId) {
@@ -3394,7 +3237,6 @@
             namePlate.style.background = 'linear-gradient(135deg, #4a4540, #2a2724)';
             avatarBox.innerHTML = '📖';
         } else if (!charExists) {
-            // Personaje borrado, mostrar con datos del mensaje
             namePlate.textContent = msg.charName || 'Desconocido';
             namePlate.style.background = msg.charColor || 'var(--accent-wood)';
             avatarBox.innerHTML = msg.charAvatar ? 
@@ -3433,7 +3275,6 @@
             document.getElementById('vnOptionsContainer').classList.remove('active');
         }
         
-        // ACTUALIZAR SISTEMA DE AFINIDAD
         updateAffinityDisplay();
     }
 
@@ -3446,7 +3287,6 @@
         
         for (let i = Math.max(0, currentMessageIndex - 1); i <= currentMessageIndex + 1 && i < msgs.length; i++) {
             const m = msgs[i];
-            // PRIORIDAD 1: Validar que el personaje existe antes de mostrar sprite
             if (m.characterId && !seen.has(m.characterId) && m.charSprite) {
                 const charExists = appData.characters.find(c => c.id === m.characterId);
                 if (charExists) {
@@ -3604,7 +3444,6 @@
         if(!isNarratorMode) {
             if(!selectedCharId) { alert('Selecciona personaje'); return; }
             char = appData.characters.find(c => c.id === selectedCharId);
-            // PRIORIDAD 1: Validar que el personaje existe
             if (!char) { alert('Personaje no encontrado'); return; }
         }
         
@@ -3654,8 +3493,7 @@
             return;
         }
         
-        // PRIORIDAD 4: Opciones en drawer flotante
-        let html = '<div class="vn-options-header">🎭 Elige una opción</div>';
+        let html = '';
         html += options.map((opt, idx) => `
             <button class="vn-option-btn ${currentMsg.selectedOptionIndex === idx ? 'chosen' : ''}" 
                     onclick="selectOption(${idx})" 
@@ -3736,13 +3574,12 @@
     }
 
     // ============================================
-    // RESPUESTAS (Reply Panel) - PRIORIDAD 4 REDISEÑADO
+    // RESPUESTAS (Reply Panel)
     // ============================================
     function openReplyPanel() {
         const panel = document.getElementById('vnReplyPanel');
         panel.style.display = 'flex';
         
-        // Resetear estado
         document.getElementById('replyPanelTitle').textContent = editingMessageId ? '✏️ Editar Mensaje' : '💬 Responder';
         document.getElementById('submitReplyBtn').textContent = editingMessageId ? '💾 Guardar Cambios' : 'Enviar Mensaje';
         document.getElementById('submitReplyBtn').onclick = editingMessageId ? saveEditedMessage : postVNReply;
@@ -3769,20 +3606,17 @@
         editingMessageId = null;
         tempBranches = [];
         
-        // Resetear UI
         document.getElementById('narratorMode').checked = false;
         document.getElementById('charSelectorContainer').style.display = 'flex';
         document.getElementById('narratorToggle').classList.remove('active');
     }
 
-    // PRIORIDAD 4: Toggle del grid de personajes
     function toggleCharGrid() {
         if (isNarratorMode) return;
         const grid = document.getElementById('charGridDropdown');
         grid.classList.toggle('active');
     }
 
-    // PRIORIDAD 4: Selector de personaje rediseñado
     function updateCharSelector() {
         const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
         const display = document.getElementById('charSelectedDisplay');
@@ -3796,7 +3630,6 @@
             return;
         }
         
-        // Si no hay seleccionado, usar el primero o el guardado
         if (!selectedCharId) {
             const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
             selectedCharId = savedCharId || mine[0].id;
@@ -3805,7 +3638,6 @@
         const currentChar = mine.find(c => c.id === selectedCharId) || mine[0];
         selectedCharId = currentChar.id;
         
-        // Actualizar display principal
         if (currentChar.avatar) {
             display.innerHTML = `<img src="${currentChar.avatar}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${currentChar.name[0]}</div>'">`;
         } else {
@@ -3813,7 +3645,6 @@
         }
         nameEl.textContent = currentChar.name;
         
-        // Generar grid
         grid.innerHTML = mine.map(c => `
             <div class="char-grid-item ${c.id === selectedCharId ? 'selected' : ''}" onclick="selectCharFromGrid('${c.id}')">
                 ${c.avatar ? 
@@ -3841,7 +3672,6 @@
         } else {
             fields.classList.add('active');
             cb.checked = true;
-            // Cargar ramas temporales si existen
             if (tempBranches.length > 0) {
                 tempBranches.forEach((branch, idx) => {
                     if (idx < 3) {
@@ -3853,7 +3683,6 @@
         }
     }
 
-    // PRIORIDAD 4: Toggle narrador oculta selector
     function toggleNarratorMode() {
         isNarratorMode = document.getElementById('narratorMode').checked;
         const container = document.getElementById('charSelectorContainer');
@@ -3878,7 +3707,6 @@
         if(!isNarratorMode) {
             if(!selectedCharId) { alert('Selecciona personaje'); return; }
             char = appData.characters.find(c => c.id === selectedCharId);
-            // PRIORIDAD 1: Validar existencia del personaje
             if (!char) { alert('Personaje no encontrado. Puede haber sido borrado.'); return; }
         }
         
@@ -3916,10 +3744,9 @@
     }
 
     // ============================================
-    // PRIORIDAD 4: EDITOR DE RAMAS
+    // EDITOR DE RAMAS
     // ============================================
     function openBranchEditor() {
-        // Recoger datos actuales de los campos
         tempBranches = [];
         for(let i=1; i<=3; i++) {
             const t = document.getElementById(`option${i}Text`).value.trim();
@@ -3979,7 +3806,6 @@
     }
 
     function saveBranches() {
-        // Validar que haya al menos una rama completa
         const validBranches = tempBranches.filter(b => b.text.trim() && b.continuation.trim());
         
         if (validBranches.length === 0 && tempBranches.length > 0) {
@@ -3987,7 +3813,6 @@
             return;
         }
         
-        // Actualizar campos del formulario principal (máximo 3)
         for(let i=0; i<3; i++) {
             if (i < validBranches.length) {
                 document.getElementById(`option${i+1}Text`).value = validBranches[i].text;
@@ -4040,7 +3865,6 @@
         
         if(!title || !charId || !text) { alert('Completa todos los campos'); return; }
         
-        // PRIORIDAD 1: Validar que el personaje existe
         const char = appData.characters.find(c => c.id === charId);
         if (!char) { alert('El personaje seleccionado ya no existe'); return; }
         
@@ -4125,7 +3949,6 @@
         localStorage.setItem('etheria_theme', newTheme);
     }
 
-    // Cargar tema guardado
     const savedTheme = localStorage.getItem('etheria_theme');
     if (savedTheme) {
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -4135,7 +3958,7 @@
         if(!confirm('¿Borrar esta historia?')) return;
         appData.topics = appData.topics.filter(t => t.id !== currentTopicId);
         delete appData.messages[currentTopicId];
-        delete appData.affinities[currentTopicId]; // Borrar afinidades del tema
+        delete appData.affinities[currentTopicId];
         currentTopicId = null;
         hasUnsavedChanges = true;
         save();
@@ -4163,7 +3986,6 @@
                 try {
                     const data = JSON.parse(event.target.result);
                     
-                    // PRIORIDAD 1: Validación robusta de tipos de datos
                     if(!data || typeof data !== 'object') {
                         alert('Archivo inválido');
                         return;
@@ -4213,7 +4035,6 @@
         if(!id) return;
         if(!confirm('¿Borrar personaje?')) return;
         
-        // PRIORIDAD 1: Limpiar selectedCharId si era ese personaje
         if (selectedCharId === id) {
             selectedCharId = null;
             localStorage.removeItem(`etheria_selected_char_${currentUserIndex}`);
