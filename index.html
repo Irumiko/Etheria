@@ -28,6 +28,8 @@
             --typewriter-speed: 25;
             --input-bg: #ffffff;
             --input-text: #3d3833;
+            /* PRIORIDAD 2: Variable para botones adaptativos */
+            --menu-button-bg: rgba(255, 255, 255, 0.9);
         }
         
         [data-theme="dark"] {
@@ -49,6 +51,8 @@
             --glass-bg: rgba(26, 24, 21, 0.9);
             --input-bg: #2a2724;
             --input-text: #e8e4dc;
+            /* PRIORIDAD 2: Fondo oscuro en tema oscuro */
+            --menu-button-bg: rgba(30, 28, 25, 0.95);
         }
 
         body::before {
@@ -90,6 +94,64 @@
         @keyframes flower-pulse {
             0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px currentColor); }
             50% { transform: scale(1.05); filter: drop-shadow(0 0 15px currentColor); }
+        }
+
+        /* PRIORIDAD 3: Efecto luciérnagas para tema oscuro */
+        @keyframes firefly {
+            0%, 100% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+            50% { opacity: 1; transform: translate(var(--move-x), var(--move-y)) scale(1); }
+        }
+
+        .fireflies {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            display: none;
+        }
+
+        [data-theme="dark"] .fireflies {
+            display: block;
+        }
+
+        .firefly {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #ffd700;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ffd700, 0 0 20px #ffed4e;
+            animation: firefly 4s ease-in-out infinite;
+        }
+
+        /* PRIORIDAD 3: Efecto hojas para tema claro */
+        @keyframes leaf-fall {
+            0% { transform: translateY(-10vh) rotate(0deg) translateX(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(110vh) rotate(360deg) translateX(100px); opacity: 0; }
+        }
+
+        .leaves {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            display: none;
+        }
+
+        [data-theme="light"] .leaves {
+            display: block;
+        }
+
+        .leaf {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(135deg, #6b8e7d, #8fbc8f);
+            border-radius: 0 100% 0 100%;
+            animation: leaf-fall 8s linear infinite;
+            opacity: 0.6;
         }
 
         [data-tooltip] {
@@ -218,16 +280,39 @@
         }
         .user-card:hover .user-hint { opacity: 1; }
 
+        /* PRIORIDAD 3: Menú principal con imagen de fondo */
         .main-menu {
             position: fixed; 
             top: 0; 
             left: 0; 
             width: 100%; 
             height: 100%;
-            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            background-image: url('https://png.pngtree.com/background/20250103/original/pngtree-forest-trees-anime-visual-novel-game-nature-plant-and-in-a-picture-image_15870655.jpg');
+            background-size: cover;
+            background-position: center;
             display: flex; 
             z-index: 1000;
         }
+
+        /* PRIORIDAD 3: Filtro nocturno azulado en tema oscuro */
+        [data-theme="dark"] .main-menu::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(10, 20, 40, 0.85) 0%, rgba(20, 30, 60, 0.9) 50%, rgba(10, 15, 35, 0.85) 100%);
+            backdrop-filter: blur(2px);
+            z-index: 0;
+        }
+
+        [data-theme="light"] .main-menu::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(245, 241, 232, 0.85);
+            backdrop-filter: blur(1px);
+            z-index: 0;
+        }
+        
         .main-menu.hidden { display: none; }
         
         .menu-sidebar {
@@ -240,6 +325,8 @@
             flex-direction: column;
             padding: 3rem 2rem;
             box-shadow: 10px 0 40px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 10;
         }
         
         .menu-brand { margin-bottom: 3rem; }
@@ -263,8 +350,10 @@
             gap: 0.8rem;
             flex: 1;
         }
+        
+        /* PRIORIDAD 2: Botones con fondo adaptativo */
         .menu-button {
-            background: rgba(255,255,255,0.08); 
+            background: var(--menu-button-bg); 
             border: 2px solid var(--border-color); 
             color: var(--text-primary);
             padding: 1rem 1.5rem; 
@@ -281,6 +370,7 @@
             position: relative;
             overflow: hidden;
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px var(--shadow);
         }
         .menu-button::before {
             content: '';
@@ -339,12 +429,15 @@
             justify-content: center;
             padding: 2rem;
             position: relative;
+            z-index: 10;
         }
+        
+        /* PRIORIDAD 2: Tarjeta ilustración con fondo adaptativo */
         .menu-illustration {
             max-width: 600px;
             width: 100%;
             aspect-ratio: 16/9;
-            background: linear-gradient(135deg, rgba(139, 115, 85, 0.2), rgba(107, 142, 125, 0.2));
+            background: var(--menu-button-bg);
             border-radius: 24px;
             border: 3px double var(--border-color);
             display: flex;
@@ -354,6 +447,7 @@
             font-family: 'Cinzel', serif;
             font-size: 1.5rem;
             backdrop-filter: blur(5px);
+            box-shadow: 0 20px 40px var(--shadow-heavy);
         }
 
         .game-section { display: none; min-height: 100vh; background: var(--bg-primary); }
@@ -381,15 +475,17 @@
         }
         .section-content { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 
+        /* PRIORIDAD 2: Tarjetas con fondo adaptativo */
         .gallery-toolbar { 
             display: flex; 
             gap: 1rem; 
             margin-bottom: 2rem; 
             align-items: center;
-            background: var(--bg-card);
+            background: var(--menu-button-bg);
             padding: 1rem 1.5rem;
             border-radius: 16px;
             border: 2px solid var(--border-color);
+            backdrop-filter: blur(5px);
         }
         .search-input {
             flex: 1;
@@ -433,7 +529,7 @@
         @media (max-width: 600px) { .gallery-grid { grid-template-columns: repeat(2, 1fr); } }
 
         .character-card {
-            background: var(--bg-card);
+            background: var(--menu-button-bg);
             border: 2px solid var(--border-color);
             border-radius: 12px;
             overflow: hidden;
@@ -476,7 +572,7 @@
             flex-direction: column;
             justify-content: center;
             position: relative;
-            background: var(--bg-card);
+            background: var(--menu-button-bg);
         }
         .character-card-name {
             font-family: 'Cinzel', serif;
@@ -945,7 +1041,7 @@
             color: white;
         }
 
-        /* SISTEMA DE AFINIDAD - NUEVO */
+        /* SISTEMA DE AFINIDAD */
         .affinity-system {
             position: fixed;
             top: 80px;
@@ -1218,6 +1314,7 @@
             animation: pulse 2s infinite;
         }
 
+        /* PRIORIDAD 4: Opciones como drawer flotante */
         .vn-options-container {
             position: fixed;
             bottom: 280px;
@@ -1228,8 +1325,26 @@
             gap: 1rem;
             width: min(600px, 90%);
             z-index: 160;
+            background: var(--glass-bg);
+            border: 3px double var(--accent-gold);
+            border-radius: 20px;
+            padding: 1.5rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            max-height: 50vh;
+            overflow-y: auto;
         }
         .vn-options-container.active { display: flex; }
+        
+        .vn-options-header {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            text-align: center;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 0.5rem;
+        }
+        
         .vn-option-btn {
             background: linear-gradient(135deg, rgba(139, 115, 85, 0.95), rgba(107, 142, 125, 0.95));
             border: 2px solid var(--accent-gold);
@@ -1332,6 +1447,7 @@
             transform: rotate(90deg);
         }
 
+        /* PRIORIDAD 4: Rediseño panel Responder */
         .vn-reply-panel {
             position: fixed;
             left: 0;
@@ -1339,39 +1455,202 @@
             bottom: 0;
             background: var(--glass-bg);
             border-top: 3px double var(--accent-gold);
-            padding: 1.5rem;
             display: none;
             flex-direction: column;
-            gap: 1rem;
             z-index: 300;
             max-height: 85vh;
-            overflow-y: auto;
             backdrop-filter: blur(20px);
             box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
         }
-        .char-selector { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
-        .char-option {
+        
+        /* Cabecera del panel */
+        .vn-reply-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 2rem;
+            border-bottom: 2px solid var(--border-color);
+            background: rgba(139, 115, 85, 0.2);
+        }
+        
+        .vn-reply-title {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        
+        /* Cuerpo del panel */
+        .vn-reply-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+        
+        /* PRIORIDAD 4: Selector de personaje rediseñado */
+        .char-selector-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .char-selector-main {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .char-selected-display {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 4px double var(--accent-gold);
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+        
+        .char-selected-display:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(201, 168, 108, 0.4);
+        }
+        
+        .char-selected-display img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .char-selected-display .placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            background: var(--bg-tertiary);
+        }
+        
+        .char-selected-info {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .char-selected-name {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+        }
+        
+        .char-selected-hint {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        
+        /* Grid desplegable de personajes */
+        .char-grid-dropdown {
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 16px;
+            border: 2px solid var(--border-color);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .char-grid-dropdown.active {
+            display: grid;
+        }
+        
+        .char-grid-item {
+            aspect-ratio: 1;
+            border-radius: 12px;
+            border: 3px solid transparent;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            background: var(--bg-tertiary);
+        }
+        
+        .char-grid-item:hover {
+            transform: scale(1.1);
+            border-color: var(--accent-gold);
+            box-shadow: 0 5px 15px rgba(201, 168, 108, 0.3);
+        }
+        
+        .char-grid-item.selected {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 20px rgba(201, 168, 108, 0.5);
+        }
+        
+        .char-grid-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .char-grid-item .placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        
+        /* Toggle Narrador */
+        .narrator-toggle {
             display: flex;
             align-items: center;
             gap: 0.8rem;
             padding: 0.8rem 1.2rem;
-            background: rgba(255,255,255,0.05);
-            border: 2px solid var(--border-color);
+            background: rgba(139, 115, 85, 0.2);
             border-radius: 12px;
+            border: 2px solid var(--border-color);
             cursor: pointer;
             transition: all 0.3s;
+            width: fit-content;
         }
-        .char-option:hover {
+        
+        .narrator-toggle:hover {
+            border-color: var(--accent-gold);
             background: rgba(201, 168, 108, 0.1);
-            border-color: var(--accent-gold);
         }
-        .char-option.selected {
-            border-color: var(--accent-gold);
+        
+        .narrator-toggle.active {
             background: rgba(201, 168, 108, 0.2);
-            box-shadow: 0 0 15px rgba(201, 168, 108, 0.2);
+            border-color: var(--accent-gold);
         }
-        .vn-reply-input {
+        
+        .narrator-toggle input {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent-gold);
+        }
+        
+        .narrator-toggle label {
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Área de texto */
+        .vn-reply-textarea {
             width: 100%;
+            min-height: 120px;
             padding: 1rem;
             border-radius: 12px;
             border: 2px solid var(--border-color);
@@ -1379,61 +1658,69 @@
             color: white;
             font-family: 'Inter', sans-serif;
             font-size: 1rem;
+            line-height: 1.6;
+            resize: vertical;
             transition: all 0.3s;
         }
-        .vn-reply-input:focus {
+        
+        .vn-reply-textarea:focus {
             outline: none;
             border-color: var(--accent-gold);
             box-shadow: 0 0 15px rgba(201, 168, 108, 0.2);
         }
-        .vn-submit-btn {
-            align-self: flex-end;
-            background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage));
-            color: white;
-            border: none;
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            cursor: pointer;
-            font-family: 'Cinzel', serif;
-            font-size: 1.1rem;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        .vn-submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(201, 168, 108, 0.4);
+        
+        /* Toggle opciones */
+        .options-toggle-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
         
         .options-toggle {
             display: flex;
             align-items: center;
             gap: 0.8rem;
-            padding: 1rem;
+            padding: 0.8rem 1.2rem;
             background: rgba(139, 115, 85, 0.2);
             border-radius: 12px;
             cursor: pointer;
             border: 2px solid transparent;
             transition: all 0.3s;
+            width: fit-content;
         }
+        
         .options-toggle:hover {
             border-color: var(--accent-gold);
         }
+        
+        .options-toggle input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-gold);
+        }
+        
+        /* Campos de opciones */
         .options-fields {
             display: none;
             flex-direction: column;
             gap: 1rem;
             padding: 1.5rem;
-            background: rgba(139, 115, 85, 0.15);
+            background: rgba(0,0,0,0.3);
             border-radius: 16px;
             border: 2px solid var(--accent-gold);
         }
-        .options-fields.active { display: flex; }
+        
+        .options-fields.active {
+            display: flex;
+        }
+        
         .option-field-group {
-            background: rgba(0,0,0,0.2);
+            background: rgba(255,255,255,0.05);
             padding: 1.2rem;
             border-radius: 12px;
             border: 1px solid var(--border-color);
         }
+        
         .option-field-header {
             display: flex;
             align-items: center;
@@ -1442,6 +1729,52 @@
             font-family: 'Cinzel', serif;
             color: var(--accent-gold);
             font-size: 1.1rem;
+        }
+        
+        .option-input {
+            width: 100%;
+            padding: 0.8rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            font-family: inherit;
+        }
+        
+        .option-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+        
+        /* Pie del panel */
+        .vn-reply-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding: 1.2rem 2rem;
+            border-top: 2px solid var(--border-color);
+            background: rgba(139, 115, 85, 0.2);
+        }
+        
+        /* PRIORIDAD 4: Botón de editor de ramas */
+        .branch-editor-btn {
+            background: linear-gradient(135deg, rgba(139, 115, 85, 0.8), rgba(107, 142, 125, 0.8));
+            border: 2px solid var(--accent-gold);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Cinzel', serif;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .branch-editor-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(201, 168, 108, 0.4);
         }
 
         .history-modal {
@@ -1651,9 +1984,148 @@
             color: var(--bg-primary);
             transform: scale(1.1);
         }
+
+        /* PRIORIDAD 4: Modal de editor de ramas */
+        .branch-editor-modal {
+            background: var(--glass-bg);
+            border-radius: 24px;
+            width: 95%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow: hidden;
+            border: 3px double var(--accent-gold);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(20px);
+        }
+        
+        .branch-editor-header {
+            background: linear-gradient(135deg, rgba(139, 115, 85, 0.3), rgba(107, 142, 125, 0.3));
+            padding: 1.5rem;
+            border-bottom: 3px double var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .branch-editor-title {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            font-size: 1.4rem;
+        }
+        
+        .branch-editor-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .branch-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .branch-item {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+        
+        .branch-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .branch-item-number {
+            font-family: 'Cinzel', serif;
+            color: var(--accent-gold);
+            font-size: 1.1rem;
+        }
+        
+        .branch-delete-btn {
+            background: transparent;
+            border: 1px solid #c75b5b;
+            color: #c75b5b;
+            padding: 0.3rem 0.8rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s;
+        }
+        
+        .branch-delete-btn:hover {
+            background: #c75b5b;
+            color: white;
+        }
+        
+        .branch-input {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            font-family: inherit;
+        }
+        
+        .branch-input:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+        
+        .branch-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: rgba(0,0,0,0.2);
+            color: white;
+            font-family: inherit;
+            resize: vertical;
+        }
+        
+        .add-branch-btn {
+            background: rgba(139, 115, 85, 0.3);
+            border: 2px dashed var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            font-family: 'Cinzel', serif;
+            transition: all 0.3s;
+        }
+        
+        .add-branch-btn:hover {
+            background: rgba(201, 168, 108, 0.2);
+        }
+        
+        .branch-editor-footer {
+            padding: 1.5rem;
+            border-top: 2px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            background: rgba(139, 115, 85, 0.2);
+        }
     </style>
 </head>
 <body>
+
+    <!-- PRIORIDAD 3: Efectos de ambiente -->
+    <div class="fireflies" id="firefliesContainer"></div>
+    <div class="leaves" id="leavesContainer"></div>
 
     <div id="autosaveIndicator" class="autosave-indicator">
         <span class="autosave-icon">☁️</span>
@@ -1839,7 +2311,7 @@
 
     <!-- VN Section -->
     <div id="vnSection" class="game-section vn-section">
-        <!-- SISTEMA DE AFINIDAD - NUEVO -->
+        <!-- SISTEMA DE AFINIDAD -->
         <div id="affinitySystem" class="affinity-system">
             <div class="affinity-container">
                 <div class="affinity-flower" id="affinityFlower">
@@ -1888,7 +2360,12 @@
         </div>
 
         <div id="vnSpriteContainer" class="vn-sprite-container"></div>
-        <div id="vnOptionsContainer" class="vn-options-container"></div>
+        
+        <!-- PRIORIDAD 4: Opciones como drawer flotante -->
+        <div id="vnOptionsContainer" class="vn-options-container">
+            <div class="vn-options-header">🎭 Elige una opción</div>
+            <!-- Las opciones se insertan dinámicamente -->
+        </div>
 
         <div class="vn-dialogue-box" onclick="handleDialogueClick()">
             <div id="messageHasOptions" class="message-has-options hidden">🎭 Opciones disponibles</div>
@@ -1899,41 +2376,83 @@
             <div id="vnMessageCounter" class="vn-message-counter">0 / 0</div>
         </div>
 
+        <!-- PRIORIDAD 4: Panel Responder rediseñado -->
         <div id="vnReplyPanel" class="vn-reply-panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-light); padding-bottom: 0.8rem; margin-bottom: 1rem;">
-                <h3 style="font-family: 'Cinzel'; color: var(--accent-gold);">💬 Responder</h3>
+            <!-- Cabecera -->
+            <div class="vn-reply-header">
+                <div class="vn-reply-title">
+                    <span>💬</span>
+                    <span id="replyPanelTitle">Responder</span>
+                </div>
                 <button onclick="closeReplyPanel()" class="btn-secondary">✕ Cerrar</button>
             </div>
-            <div id="charSelector" class="char-selector"></div>
-            <label style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; color: var(--text-secondary);">
-                <input type="checkbox" id="narratorMode" onchange="toggleNarratorMode()"> Narrador
-            </label>
-            <textarea id="vnReplyText" class="vn-reply-input" rows="4" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*"></textarea>
             
-            <div class="options-toggle" onclick="toggleOptionsFields()">
-                <input type="checkbox" id="enableOptions" onchange="event.stopPropagation(); toggleOptionsFields()">
-                <label for="enableOptions" style="color: var(--text-secondary);">🎭 Crear opciones de elección</label>
+            <!-- Cuerpo -->
+            <div class="vn-reply-body">
+                <!-- Selector de personaje rediseñado -->
+                <div class="char-selector-container" id="charSelectorContainer">
+                    <div class="char-selector-main">
+                        <div class="char-selected-display" id="charSelectedDisplay" onclick="toggleCharGrid()">
+                            <div class="placeholder">👤</div>
+                        </div>
+                        <div class="char-selected-info">
+                            <div class="char-selected-name" id="charSelectedName">Selecciona personaje</div>
+                            <div class="char-selected-hint">Click en el círculo para cambiar</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Grid desplegable -->
+                    <div class="char-grid-dropdown" id="charGridDropdown"></div>
+                </div>
+                
+                <!-- Toggle Narrador -->
+                <div class="narrator-toggle" id="narratorToggle" onclick="toggleNarratorMode()">
+                    <input type="checkbox" id="narratorMode" onchange="event.stopPropagation()">
+                    <label for="narratorMode">Modo Narrador</label>
+                </div>
+                
+                <!-- Área de texto -->
+                <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*"></textarea>
+                
+                <!-- Toggle opciones -->
+                <div class="options-toggle-container">
+                    <div class="options-toggle" onclick="toggleOptionsFields()">
+                        <input type="checkbox" id="enableOptions" onchange="event.stopPropagation()">
+                        <label for="enableOptions">🎭 Crear opciones de elección</label>
+                    </div>
+                    
+                    <!-- Campos de opciones -->
+                    <div id="optionsFields" class="options-fields">
+                        <div class="option-field-group">
+                            <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
+                            <input type="text" id="option1Text" class="option-input" placeholder="Texto de la opción">
+                            <textarea id="option1Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                        </div>
+                        <div class="option-field-group">
+                            <div class="option-field-header"><span>②</span><span>Opción 2</span></div>
+                            <input type="text" id="option2Text" class="option-input" placeholder="Texto de la opción">
+                            <textarea id="option2Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                        </div>
+                        <div class="option-field-group">
+                            <div class="option-field-header"><span>③</span><span>Opción 3</span></div>
+                            <input type="text" id="option3Text" class="option-input" placeholder="Texto de la opción">
+                            <textarea id="option3Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                        </div>
+                        
+                        <!-- Botón para abrir editor avanzado -->
+                        <button class="branch-editor-btn" onclick="openBranchEditor()">
+                            <span>🌿</span>
+                            <span>Editor Avanzado de Ramas</span>
+                        </button>
+                    </div>
+                </div>
             </div>
             
-            <div id="optionsFields" class="options-fields">
-                <div class="option-field-group">
-                    <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
-                    <input type="text" id="option1Text" placeholder="Texto de la opción" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white;">
-                    <textarea id="option1Continuation" rows="2" placeholder="Continuación narrativa..." style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white;"></textarea>
-                </div>
-                <div class="option-field-group">
-                    <div class="option-field-header"><span>②</span><span>Opción 2</span></div>
-                    <input type="text" id="option2Text" placeholder="Texto de la opción" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white;">
-                    <textarea id="option2Continuation" rows="2" placeholder="Continuación narrativa..." style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white;"></textarea>
-                </div>
-                <div class="option-field-group">
-                    <div class="option-field-header"><span>③</span><span>Opción 3</span></div>
-                    <input type="text" id="option3Text" placeholder="Texto de la opción" style="width: 100%; margin-bottom: 0.5rem; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white;">
-                    <textarea id="option3Continuation" rows="2" placeholder="Continuación narrativa..." style="width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: white;"></textarea>
-                </div>
+            <!-- Pie -->
+            <div class="vn-reply-footer">
+                <button class="btn-secondary" onclick="closeReplyPanel()">Cancelar</button>
+                <button class="btn-primary" onclick="postVNReply()" id="submitReplyBtn">Enviar Mensaje</button>
             </div>
-            
-            <button class="vn-submit-btn" onclick="postVNReply()">Enviar Mensaje</button>
         </div>
     </div>
 
@@ -1945,6 +2464,28 @@
                 <button onclick="closeModal('historyModal')" class="btn-secondary">✕ Cerrar</button>
             </div>
             <div id="historyContent" class="history-content"></div>
+        </div>
+    </div>
+
+    <!-- PRIORIDAD 4: Modal de Editor de Ramas -->
+    <div id="branchEditorModal" class="modal-overlay" onclick="if(event.target === this) closeModal('branchEditorModal')">
+        <div class="branch-editor-modal">
+            <div class="branch-editor-header">
+                <h3 class="branch-editor-title">🌿 Editor de Ramas Narrativas</h3>
+                <button onclick="closeModal('branchEditorModal')" class="btn-secondary">✕</button>
+            </div>
+            <div class="branch-editor-content">
+                <div id="branchList" class="branch-list">
+                    <!-- Las ramas se generan dinámicamente -->
+                </div>
+                <button class="add-branch-btn" onclick="addNewBranch()">
+                    <span>+</span> Agregar nueva rama
+                </button>
+            </div>
+            <div class="branch-editor-footer">
+                <button onclick="closeModal('branchEditorModal')" class="btn-secondary">Cancelar</button>
+                <button onclick="saveBranches()" class="btn-primary">💾 Guardar Ramas</button>
+            </div>
         </div>
     </div>
 
@@ -2175,6 +2716,7 @@
     let currentEditorTab = 'identity';
     let editingMessageId = null;
     let currentAffinity = 0; // Afinidad actual en el tema
+    let tempBranches = []; // Para el editor de ramas
 
     // ============================================
     // INICIALIZACIÓN
@@ -2187,7 +2729,7 @@
                 topics: parsed.topics || [],
                 characters: parsed.characters || [],
                 messages: parsed.messages || {},
-                // CORRECCIÓN 1: Inicialización defensiva de affinities
+                // PRIORIDAD 1: Inicialización defensiva de affinities
                 affinities: (parsed.affinities && typeof parsed.affinities === 'object' && !Array.isArray(parsed.affinities)) 
                     ? parsed.affinities 
                     : {}
@@ -2196,7 +2738,7 @@
         const savedNames = localStorage.getItem('etheria_user_names');
         if (savedNames) userNames = JSON.parse(savedNames);
         
-        // CORRECCIÓN 2: Cargar selectedCharId persistido
+        // PRIORIDAD 1: Cargar selectedCharId persistido
         const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
         if (savedCharId) selectedCharId = savedCharId;
         
@@ -2213,6 +2755,10 @@
         
         updateUserScreen();
         
+        // PRIORIDAD 3: Generar efectos de ambiente
+        generateFireflies();
+        generateLeaves();
+        
         window.addEventListener('beforeunload', (e) => {
             if (hasUnsavedChanges) {
                 e.preventDefault();
@@ -2220,6 +2766,35 @@
             }
         });
     });
+
+    // PRIORIDAD 3: Generar luciérnagas
+    function generateFireflies() {
+        const container = document.getElementById('firefliesContainer');
+        for (let i = 0; i < 20; i++) {
+            const firefly = document.createElement('div');
+            firefly.className = 'firefly';
+            firefly.style.left = Math.random() * 100 + '%';
+            firefly.style.top = Math.random() * 100 + '%';
+            firefly.style.animationDelay = Math.random() * 4 + 's';
+            firefly.style.animationDuration = (3 + Math.random() * 3) + 's';
+            firefly.style.setProperty('--move-x', (Math.random() * 100 - 50) + 'px');
+            firefly.style.setProperty('--move-y', (Math.random() * 100 - 50) + 'px');
+            container.appendChild(firefly);
+        }
+    }
+
+    // PRIORIDAD 3: Generar hojas
+    function generateLeaves() {
+        const container = document.getElementById('leavesContainer');
+        for (let i = 0; i < 10; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'leaf';
+            leaf.style.left = Math.random() * 100 + '%';
+            leaf.style.animationDelay = Math.random() * 8 + 's';
+            leaf.style.animationDuration = (6 + Math.random() * 4) + 's';
+            container.appendChild(leaf);
+        }
+    }
 
     function updateUserScreen() {
         userNames.forEach((n, i) => {
@@ -2229,7 +2804,7 @@
     }
 
     // ============================================
-    // SISTEMA DE AFINIDAD - NUEVO
+    // SISTEMA DE AFINIDAD - CORREGIDO
     // ============================================
     function getAffinityColor(value) {
         if (value >= 90) return affinityColors[90];
@@ -2302,7 +2877,7 @@
         // Obtener personaje del mensaje actual
         const currentMsg = msgs[currentMessageIndex];
         
-        // CORRECCIÓN 3: Manejar narrador como caso especial (-1 para ocultar)
+        // PRIORIDAD 1: Manejar narrador como caso especial (-1 para ocultar)
         if (!currentMsg || currentMsg.isNarrator || !currentMsg.characterId) return -1;
         
         const targetCharId = currentMsg.characterId;
@@ -2310,7 +2885,7 @@
         // Obtener personaje activo del usuario actual
         const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
         
-        // CORRECCIÓN 4: Si no tiene personajes, ocultar sistema
+        // PRIORIDAD 1: Si no tiene personajes, ocultar sistema
         if (userChars.length === 0) return -1;
         
         // Usar el primer personaje del usuario o el último usado
@@ -2399,7 +2974,7 @@
         save();
         updateAffinityDisplay();
         
-        // CORRECCIÓN 5: Mensaje más preciso sobre el cambio real
+        // PRIORIDAD 1: Mensaje más preciso sobre el cambio real
         const actualChange = newValue - currentValue;
         if (actualChange === 0) {
             showAutosave('Límite alcanzado', 'saved');
@@ -2504,7 +3079,7 @@
     async function selectUser(idx) {
         currentUserIndex = idx;
         
-        // CORRECCIÓN 6: Cargar selectedCharId al cambiar de usuario
+        // PRIORIDAD 1: Cargar selectedCharId al cambiar de usuario
         const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
         selectedCharId = savedCharId || null;
         
@@ -2806,7 +3381,7 @@
         
         updateSprites(msg);
         
-        // CORRECCIÓN 7: Validar existencia del personaje (podría haber sido borrado)
+        // PRIORIDAD 1: Validar existencia del personaje (podría haber sido borrado)
         let charExists = true;
         let charData = null;
         if (msg.characterId) {
@@ -2871,7 +3446,7 @@
         
         for (let i = Math.max(0, currentMessageIndex - 1); i <= currentMessageIndex + 1 && i < msgs.length; i++) {
             const m = msgs[i];
-            // CORRECCIÓN 8: Validar que el personaje existe antes de mostrar sprite
+            // PRIORIDAD 1: Validar que el personaje existe antes de mostrar sprite
             if (m.characterId && !seen.has(m.characterId) && m.charSprite) {
                 const charExists = appData.characters.find(c => c.id === m.characterId);
                 if (charExists) {
@@ -2998,18 +3573,12 @@
             toggleNarratorMode();
             selectedCharId = msg.characterId;
             updateCharSelector();
-            
-            document.querySelectorAll('.char-option').forEach(opt => {
-                opt.classList.remove('selected');
-                if (opt.getAttribute('onclick')?.includes(msg.characterId)) {
-                    opt.classList.add('selected');
-                }
-            });
         }
         
         if (msg.options && msg.options.length > 0) {
             document.getElementById('enableOptions').checked = true;
             document.getElementById('optionsFields').classList.add('active');
+            tempBranches = [...msg.options];
             
             msg.options.forEach((opt, idx) => {
                 if (idx < 3) {
@@ -3019,12 +3588,8 @@
             });
         }
         
-        const submitBtn = document.querySelector('.vn-submit-btn');
-        if (submitBtn) {
-            submitBtn.textContent = '💾 Guardar Cambios';
-            // CORRECCIÓN 9: Usar addEventListener en lugar de onclick para consistencia
-            submitBtn.onclick = saveEditedMessage;
-        }
+        document.getElementById('replyPanelTitle').textContent = '✏️ Editar Mensaje';
+        document.getElementById('submitReplyBtn').textContent = '💾 Guardar Cambios';
     }
 
     function saveEditedMessage() {
@@ -3039,7 +3604,7 @@
         if(!isNarratorMode) {
             if(!selectedCharId) { alert('Selecciona personaje'); return; }
             char = appData.characters.find(c => c.id === selectedCharId);
-            // CORRECCIÓN 10: Validar que el personaje existe
+            // PRIORIDAD 1: Validar que el personaje existe
             if (!char) { alert('Personaje no encontrado'); return; }
         }
         
@@ -3072,12 +3637,6 @@
         save();
         closeReplyPanel();
         
-        const submitBtn = document.querySelector('.vn-submit-btn');
-        if (submitBtn) {
-            submitBtn.textContent = 'Enviar Mensaje';
-            submitBtn.onclick = postVNReply;
-        }
-        
         editingMessageId = null;
         showCurrentMessage();
     }
@@ -3095,7 +3654,9 @@
             return;
         }
         
-        container.innerHTML = options.map((opt, idx) => `
+        // PRIORIDAD 4: Opciones en drawer flotante
+        let html = '<div class="vn-options-header">🎭 Elige una opción</div>';
+        html += options.map((opt, idx) => `
             <button class="vn-option-btn ${currentMsg.selectedOptionIndex === idx ? 'chosen' : ''}" 
                     onclick="selectOption(${idx})" 
                     ${currentMsg.selectedOptionIndex !== undefined ? 'disabled' : ''}>
@@ -3103,6 +3664,7 @@
             </button>
         `).join('');
         
+        container.innerHTML = html;
         container.classList.add('active');
     }
 
@@ -3174,11 +3736,16 @@
     }
 
     // ============================================
-    // RESPUESTAS (Reply Panel)
+    // RESPUESTAS (Reply Panel) - PRIORIDAD 4 REDISEÑADO
     // ============================================
     function openReplyPanel() {
-        document.getElementById('vnReplyPanel').style.display = 'flex';
-        updateCharSelector();
+        const panel = document.getElementById('vnReplyPanel');
+        panel.style.display = 'flex';
+        
+        // Resetear estado
+        document.getElementById('replyPanelTitle').textContent = editingMessageId ? '✏️ Editar Mensaje' : '💬 Responder';
+        document.getElementById('submitReplyBtn').textContent = editingMessageId ? '💾 Guardar Cambios' : 'Enviar Mensaje';
+        document.getElementById('submitReplyBtn').onclick = editingMessageId ? saveEditedMessage : postVNReply;
         
         if (!editingMessageId) {
             document.getElementById('vnReplyText').value = '';
@@ -3188,13 +3755,10 @@
                 document.getElementById(`option${i}Text`).value = '';
                 document.getElementById(`option${i}Continuation`).value = '';
             }
-            
-            const submitBtn = document.querySelector('.vn-submit-btn');
-            if (submitBtn) {
-                submitBtn.textContent = 'Enviar Mensaje';
-                submitBtn.onclick = postVNReply;
-            }
+            tempBranches = [];
         }
+        
+        updateCharSelector();
     }
 
     function closeReplyPanel() {
@@ -3203,12 +3767,68 @@
         isNarratorMode = false;
         selectedCharId = null;
         editingMessageId = null;
+        tempBranches = [];
         
-        const submitBtn = document.querySelector('.vn-submit-btn');
-        if (submitBtn) {
-            submitBtn.textContent = 'Enviar Mensaje';
-            submitBtn.onclick = postVNReply;
+        // Resetear UI
+        document.getElementById('narratorMode').checked = false;
+        document.getElementById('charSelectorContainer').style.display = 'flex';
+        document.getElementById('narratorToggle').classList.remove('active');
+    }
+
+    // PRIORIDAD 4: Toggle del grid de personajes
+    function toggleCharGrid() {
+        if (isNarratorMode) return;
+        const grid = document.getElementById('charGridDropdown');
+        grid.classList.toggle('active');
+    }
+
+    // PRIORIDAD 4: Selector de personaje rediseñado
+    function updateCharSelector() {
+        const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
+        const display = document.getElementById('charSelectedDisplay');
+        const nameEl = document.getElementById('charSelectedName');
+        const grid = document.getElementById('charGridDropdown');
+        
+        if(mine.length === 0) {
+            display.innerHTML = '<div class="placeholder">👤</div>';
+            nameEl.textContent = 'Crea un personaje primero';
+            grid.innerHTML = '';
+            return;
         }
+        
+        // Si no hay seleccionado, usar el primero o el guardado
+        if (!selectedCharId) {
+            const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
+            selectedCharId = savedCharId || mine[0].id;
+        }
+        
+        const currentChar = mine.find(c => c.id === selectedCharId) || mine[0];
+        selectedCharId = currentChar.id;
+        
+        // Actualizar display principal
+        if (currentChar.avatar) {
+            display.innerHTML = `<img src="${currentChar.avatar}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${currentChar.name[0]}</div>'">`;
+        } else {
+            display.innerHTML = `<div class="placeholder">${currentChar.name[0]}</div>`;
+        }
+        nameEl.textContent = currentChar.name;
+        
+        // Generar grid
+        grid.innerHTML = mine.map(c => `
+            <div class="char-grid-item ${c.id === selectedCharId ? 'selected' : ''}" onclick="selectCharFromGrid('${c.id}')">
+                ${c.avatar ? 
+                    `<img src="${c.avatar}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` : 
+                    `<div class="placeholder">${c.name[0]}</div>`
+                }
+            </div>
+        `).join('');
+    }
+
+    function selectCharFromGrid(charId) {
+        selectedCharId = charId;
+        localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
+        updateCharSelector();
+        document.getElementById('charGridDropdown').classList.remove('active');
     }
 
     function toggleOptionsFields() {
@@ -3221,55 +3841,33 @@
         } else {
             fields.classList.add('active');
             cb.checked = true;
+            // Cargar ramas temporales si existen
+            if (tempBranches.length > 0) {
+                tempBranches.forEach((branch, idx) => {
+                    if (idx < 3) {
+                        document.getElementById(`option${idx + 1}Text`).value = branch.text || '';
+                        document.getElementById(`option${idx + 1}Continuation`).value = branch.continuation || '';
+                    }
+                });
+            }
         }
     }
 
+    // PRIORIDAD 4: Toggle narrador oculta selector
     function toggleNarratorMode() {
         isNarratorMode = document.getElementById('narratorMode').checked;
-        const selector = document.getElementById('charSelector');
-        if (selector) {
-            selector.style.opacity = isNarratorMode ? '0.5' : '1';
-            selector.style.pointerEvents = isNarratorMode ? 'none' : 'auto';
-        }
+        const container = document.getElementById('charSelectorContainer');
+        const toggle = document.getElementById('narratorToggle');
+        
         if(isNarratorMode) {
+            container.style.display = 'none';
+            toggle.classList.add('active');
             selectedCharId = null;
-            document.querySelectorAll('.char-option').forEach(o => o.classList.remove('selected'));
+        } else {
+            container.style.display = 'flex';
+            toggle.classList.remove('active');
+            updateCharSelector();
         }
-    }
-
-    function updateCharSelector() {
-        const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
-        const container = document.getElementById('charSelector');
-        
-        if(mine.length === 0) {
-            container.innerHTML = '<p style="color:var(--text-muted)">Crea un personaje primero</p>';
-            return;
-        }
-        
-        container.innerHTML = mine.map(c => `
-            <div class="char-option" onclick="selectVNChar('${c.id}', this)">
-                <div style="width:40px;height:40px;border-radius:50%;overflow:hidden;border:2px solid ${c.color};">
-                    ${c.avatar ? `<img src="${c.avatar}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'; this.parentElement.textContent='${c.name[0]}'">` : c.name[0]}
-                </div>
-                <span>${c.name}</span>
-            </div>
-        `).join('');
-        
-        if(mine.length > 0 && !selectedCharId) selectVNChar(mine[0].id, container.children[0]);
-    }
-
-    function selectVNChar(id, el) {
-        if(isNarratorMode) return;
-        selectedCharId = id;
-        
-        // CORRECCIÓN 11: Persistir selección de personaje
-        localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, id);
-        
-        document.querySelectorAll('.char-option').forEach(o => o.classList.remove('selected'));
-        el.classList.add('selected');
-        
-        // Actualizar afinidad al cambiar personaje activo
-        updateAffinityDisplay();
     }
 
     function postVNReply() {
@@ -3280,7 +3878,7 @@
         if(!isNarratorMode) {
             if(!selectedCharId) { alert('Selecciona personaje'); return; }
             char = appData.characters.find(c => c.id === selectedCharId);
-            // CORRECCIÓN 12: Validar existencia del personaje
+            // PRIORIDAD 1: Validar existencia del personaje
             if (!char) { alert('Personaje no encontrado. Puede haber sido borrado.'); return; }
         }
         
@@ -3315,6 +3913,92 @@
         closeReplyPanel();
         currentMessageIndex = appData.messages[currentTopicId].length - 1;
         showCurrentMessage();
+    }
+
+    // ============================================
+    // PRIORIDAD 4: EDITOR DE RAMAS
+    // ============================================
+    function openBranchEditor() {
+        // Recoger datos actuales de los campos
+        tempBranches = [];
+        for(let i=1; i<=3; i++) {
+            const t = document.getElementById(`option${i}Text`).value.trim();
+            const c = document.getElementById(`option${i}Continuation`).value.trim();
+            if(t || c) {
+                tempBranches.push({
+                    id: i,
+                    text: t,
+                    continuation: c
+                });
+            }
+        }
+        
+        renderBranchEditor();
+        openModal('branchEditorModal');
+    }
+
+    function renderBranchEditor() {
+        const container = document.getElementById('branchList');
+        
+        if (tempBranches.length === 0) {
+            container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay ramas. Agrega una nueva.</div>';
+        } else {
+            container.innerHTML = tempBranches.map((branch, idx) => `
+                <div class="branch-item">
+                    <div class="branch-item-header">
+                        <span class="branch-item-number">Rama ${idx + 1}</span>
+                        <button class="branch-delete-btn" onclick="deleteBranch(${branch.id})">🗑️ Eliminar</button>
+                    </div>
+                    <input type="text" class="branch-input" placeholder="Texto de la opción" value="${branch.text}" onchange="updateBranch(${branch.id}, 'text', this.value)">
+                    <textarea class="branch-textarea" placeholder="Continuación narrativa..." onchange="updateBranch(${branch.id}, 'continuation', this.value)">${branch.continuation}</textarea>
+                </div>
+            `).join('');
+        }
+    }
+
+    function addNewBranch() {
+        const newId = tempBranches.length > 0 ? Math.max(...tempBranches.map(b => b.id)) + 1 : 1;
+        tempBranches.push({
+            id: newId,
+            text: '',
+            continuation: ''
+        });
+        renderBranchEditor();
+    }
+
+    function deleteBranch(id) {
+        tempBranches = tempBranches.filter(b => b.id !== id);
+        renderBranchEditor();
+    }
+
+    function updateBranch(id, field, value) {
+        const branch = tempBranches.find(b => b.id === id);
+        if (branch) {
+            branch[field] = value;
+        }
+    }
+
+    function saveBranches() {
+        // Validar que haya al menos una rama completa
+        const validBranches = tempBranches.filter(b => b.text.trim() && b.continuation.trim());
+        
+        if (validBranches.length === 0 && tempBranches.length > 0) {
+            alert('Las ramas deben tener tanto texto como continuación');
+            return;
+        }
+        
+        // Actualizar campos del formulario principal (máximo 3)
+        for(let i=0; i<3; i++) {
+            if (i < validBranches.length) {
+                document.getElementById(`option${i+1}Text`).value = validBranches[i].text;
+                document.getElementById(`option${i+1}Continuation`).value = validBranches[i].continuation;
+            } else {
+                document.getElementById(`option${i+1}Text`).value = '';
+                document.getElementById(`option${i+1}Continuation`).value = '';
+            }
+        }
+        
+        closeModal('branchEditorModal');
     }
 
     // ============================================
@@ -3356,7 +4040,7 @@
         
         if(!title || !charId || !text) { alert('Completa todos los campos'); return; }
         
-        // CORRECCIÓN 13: Validar que el personaje existe
+        // PRIORIDAD 1: Validar que el personaje existe
         const char = appData.characters.find(c => c.id === charId);
         if (!char) { alert('El personaje seleccionado ya no existe'); return; }
         
@@ -3435,7 +4119,16 @@
 
     function toggleTheme() {
         const html = document.documentElement;
-        html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', newTheme);
+        localStorage.setItem('etheria_theme', newTheme);
+    }
+
+    // Cargar tema guardado
+    const savedTheme = localStorage.getItem('etheria_theme');
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
     }
 
     function deleteCurrentTopic() {
@@ -3470,7 +4163,7 @@
                 try {
                     const data = JSON.parse(event.target.result);
                     
-                    // CORRECCIÓN 14: Validación robusta de tipos de datos
+                    // PRIORIDAD 1: Validación robusta de tipos de datos
                     if(!data || typeof data !== 'object') {
                         alert('Archivo inválido');
                         return;
@@ -3520,7 +4213,7 @@
         if(!id) return;
         if(!confirm('¿Borrar personaje?')) return;
         
-        // CORRECCIÓN 15: Limpiar selectedCharId si era ese personaje
+        // PRIORIDAD 1: Limpiar selectedCharId si era ese personaje
         if (selectedCharId === id) {
             selectedCharId = null;
             localStorage.removeItem(`etheria_selected_char_${currentUserIndex}`);
@@ -3585,6 +4278,8 @@
                     closeModal('sheetModal');
                 } else if(document.getElementById('settingsPanel').classList.contains('active')) {
                     closeSettings();
+                } else if(document.getElementById('branchEditorModal').classList.contains('active')) {
+                    closeModal('branchEditorModal');
                 }
             }
         }
