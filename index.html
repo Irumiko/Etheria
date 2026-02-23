@@ -3010,8 +3010,8 @@
             </div>
 
             <!-- Fondo personalizado -->
-            <div class="form-group">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Fondo (URL)</label>
+            <div class="form-group topic-inline-field">
+                <label>Fondo (URL)</label>
                 <input type="text" id="topicBackgroundInput" placeholder="https://ejemplo.com/imagen.jpg">
             </div>
 
@@ -3019,9 +3019,7 @@
             <div class="form-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Ambientación</label>
                 <div class="topic-weather-grid">
-                    <button type="button" class="weather-btn active" onclick="setTopicWeather('none')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">☀️ Normal</button>
-                    <button type="button" class="weather-btn" onclick="setTopicWeather('rain')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">🌧️ Lluvia</button>
-                    <button type="button" class="weather-btn" onclick="setTopicWeather('fog')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">🌫️ Niebla</button>
+
                 </div>
                 <input type="hidden" id="topicWeatherInput" value="none">
             </div>
@@ -5325,7 +5323,6 @@
         const text = firstMsgInput?.value.trim();
         const bg = bgInput?.value.trim();
         const weather = weatherInput?.value || 'none';
-        const asNarrator = true;
 
         if(!title || !text) { alert('Completa todos los campos obligatorios'); return; }
 
@@ -5366,10 +5363,7 @@
         } else {
             enterTopic(id);
         }
-    }
-
-    function updateTopicSelect() {
-        // reservado para futuras validaciones del modal de nueva historia
+      
     }
 
     // ============================================
@@ -5411,7 +5405,7 @@
         if(id === 'topicModal') {
             const roleplay = document.getElementById('modeRoleplay');
             if (roleplay) roleplay.checked = true;
-            updateTopicSelect();
+
             updateTopicModeUI();
         }
         const modal = document.getElementById(id);
