@@ -1104,10 +1104,18 @@
         .topic-modal {
             max-width: 620px;
  codex/fix-errors-in-etheria-project
+            max-height: 95vh;
+            height: auto;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+
+ codex/fix-errors-in-etheria-project
             max-height: min(92vh, 900px);
             overflow-y: auto;
             padding-bottom: 1.25rem;
 
+ main
  main
             border-radius: 28px;
             border: 2px solid rgba(201, 168, 108, 0.85);
@@ -1120,8 +1128,11 @@
                 linear-gradient(145deg, rgba(25, 23, 20, 0.96), rgba(17, 16, 14, 0.97));
             animation: topicModalFloat 4.5s ease-in-out infinite;
  codex/fix-errors-in-etheria-project
+
+ codex/fix-errors-in-etheria-project
             scrollbar-width: thin;
 
+ main
  main
         }
 
@@ -1244,6 +1255,12 @@
 
         .topic-modal-footer {
  codex/fix-errors-in-etheria-project
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            margin-top: auto;
+
+ codex/fix-errors-in-etheria-project
             position: sticky;
             bottom: 0;
             z-index: 2;
@@ -1254,13 +1271,17 @@
             gap: 0.85rem;
             margin-top: 1.7rem;
  codex/fix-errors-in-etheria-project
+ main
             padding: 1rem 0 0.2rem;
             border-top: 1px solid var(--border-color);
             background: linear-gradient(180deg, rgba(18, 17, 15, 0.08) 0%, rgba(18, 17, 15, 0.96) 35%);
             backdrop-filter: blur(4px);
+ codex/fix-errors-in-etheria-project
+
 
             padding-top: 1rem;
             border-top: 1px solid var(--border-color);
+ main
  main
         }
 
@@ -1278,6 +1299,47 @@
             box-shadow: 0 0 24px rgba(201, 168, 108, 0.45), 0 12px 24px rgba(0,0,0,0.4);
         }
 
+ codex/fix-errors-in-etheria-project
+        #topicFirstMsg {
+            flex: 1;
+            max-height: 50vh;
+            overflow-y: auto;
+            resize: vertical;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-gold) rgba(255,255,255,0.08);
+        }
+
+        #topicFirstMsg::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #topicFirstMsg::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+        }
+
+        #topicFirstMsg::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--accent-gold), var(--accent-wood));
+            border-radius: 8px;
+        }
+
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .topic-modal {
+                max-height: 95vh;
+                padding: 1rem;
+            }
+
+            #topicFirstMsg {
+                max-height: 40vh;
+            }
+        }
+
+
+ main
         /* VN MODE */
         .vn-section {
             position: relative;
@@ -5282,12 +5344,20 @@
             updateTopicModeUI();
         }
         const modal = document.getElementById(id);
-        if (modal) modal.classList.add('active');
+        if (modal) {
+            modal.classList.add('active');
+            document.body.classList.add('modal-open');
+        }
     }
 
     function closeModal(id) {
         const modal = document.getElementById(id);
         if (modal) modal.classList.remove('active');
+
+        const anyModalOpen = document.querySelector('.modal-overlay.active');
+        if (!anyModalOpen) {
+            document.body.classList.remove('modal-open');
+        }
     }
 
     function changeUser() {
