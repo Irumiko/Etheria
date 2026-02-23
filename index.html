@@ -1099,6 +1099,162 @@
             box-shadow: 0 6px 20px rgba(139, 115, 85, 0.4);
         }
 
+
+        /* NEW STORY MODAL POLISH */
+        .topic-modal {
+            max-width: 620px;
+            border-radius: 28px;
+            border: 2px solid rgba(201, 168, 108, 0.85);
+            box-shadow:
+                0 30px 60px rgba(0,0,0,0.55),
+                inset 0 1px 0 rgba(255,255,255,0.08),
+                inset 0 -20px 40px rgba(0,0,0,0.22);
+            background:
+                radial-gradient(circle at 20% 20%, rgba(201, 168, 108, 0.07), transparent 45%),
+                linear-gradient(145deg, rgba(25, 23, 20, 0.96), rgba(17, 16, 14, 0.97));
+            animation: topicModalFloat 4.5s ease-in-out infinite;
+        }
+
+        @keyframes topicModalFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+
+        .topic-title {
+            margin-bottom: 1.6rem;
+            position: relative;
+            text-shadow: 0 0 16px rgba(201, 168, 108, 0.35);
+        }
+
+        .topic-title::before,
+        .topic-title::after {
+            content: '✦';
+            color: var(--accent-gold);
+            font-size: 0.9rem;
+            display: inline-block;
+            margin: 0 0.45rem;
+            animation: titleStarBlink 2.8s ease-in-out infinite;
+        }
+
+        .topic-title::after { animation-delay: 1.2s; }
+
+        @keyframes titleStarBlink {
+            0%, 100% { opacity: 0.45; transform: scale(0.95); }
+            50% { opacity: 1; transform: scale(1.15); }
+        }
+
+        .topic-mode-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.55rem;
+            padding: 0.4rem;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border-color);
+            box-shadow: inset 0 1px 4px rgba(0,0,0,0.38);
+        }
+
+        .topic-mode-option {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            cursor: pointer;
+            padding: 0.85rem 1rem;
+            border: 2px solid transparent;
+            border-radius: 11px;
+            transition: all 0.25s ease;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .topic-mode-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-gold);
+        }
+
+        .topic-mode-option.active {
+            border-color: rgba(201, 168, 108, 0.95);
+            color: var(--text-primary);
+            background: linear-gradient(135deg, rgba(201, 168, 108, 0.18), rgba(139, 115, 85, 0.14));
+            box-shadow: 0 0 18px rgba(201, 168, 108, 0.35), inset 0 0 8px rgba(201, 168, 108, 0.15);
+        }
+
+        .topic-mode-option:hover { border-color: rgba(201, 168, 108, 0.55); }
+
+        .narrator-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.7rem 0.85rem;
+            border-radius: 10px;
+            transition: all 0.25s ease;
+            font-size: 1.02rem;
+        }
+
+        .narrator-check:hover { background: rgba(201, 168, 108, 0.09); }
+
+        .narrator-check input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            accent-color: var(--accent-gold);
+            transform: scale(1);
+            transition: transform 0.2s ease;
+        }
+
+        .narrator-check input[type="checkbox"]:checked {
+            transform: scale(1.08);
+            animation: narratorPop 0.28s ease;
+        }
+
+        @keyframes narratorPop {
+            0% { transform: scale(0.9); }
+            70% { transform: scale(1.14); }
+            100% { transform: scale(1.08); }
+        }
+
+        .topic-modal .form-group input,
+        .topic-modal .form-group select,
+        .topic-modal .form-group textarea {
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+        }
+
+        .topic-modal .form-group input:focus,
+        .topic-modal .form-group select:focus,
+        .topic-modal .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(201, 168, 108, 0.15), inset 0 0 18px rgba(201, 168, 108, 0.08), 0 0 16px rgba(201, 168, 108, 0.22);
+        }
+
+        .topic-modal-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            margin-top: 1.7rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .topic-create-btn {
+            width: 100%;
+            padding: 0.95rem 1.2rem;
+            font-size: 1.05rem;
+            letter-spacing: 0.35px;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-wood));
+            box-shadow: 0 0 20px rgba(201, 168, 108, 0.35), 0 8px 20px rgba(0,0,0,0.35);
+        }
+
+        .topic-create-btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 0 24px rgba(201, 168, 108, 0.45), 0 12px 24px rgba(0,0,0,0.4);
+        }
+
         /* VN MODE */
         .vn-section {
             position: relative;
@@ -2700,19 +2856,19 @@
 
     <!-- Modals -->
     <div id="topicModal" class="modal-overlay" onclick="if(event.target === this) closeModal('topicModal')">
-        <div class="modal" style="max-width: 500px;">
-            <h3 style="margin-bottom: 1.5rem;">✨ Nueva Historia</h3>
+        <div class="modal topic-modal">
+            <h3 class="topic-title">Nueva Historia</h3>
 
             <!-- Selector de modo compacto -->
             <div class="form-group" style="margin-bottom: 1.5rem;">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Modo de historia</label>
-                <div style="display: flex; gap: 0.8rem;">
-                    <label style="flex: 1; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; padding: 0.8rem 1rem; border: 2px solid var(--border-color); border-radius: 10px; transition: all 0.3s; font-size: 0.95rem;" onmouseover="this.style.borderColor='var(--accent-gold)'" onmouseout="if(!document.getElementById('modeRoleplay').checked) this.style.borderColor='var(--border-color)'">
-                        <input type="radio" name="topicMode" value="roleplay" id="modeRoleplay" checked onchange="updateTopicModeUI()" style="width: 18px; height: 18px; accent-color: var(--accent-gold);">
+                <div class="topic-mode-toggle">
+                    <label class="topic-mode-option active">
+                        <input type="radio" name="topicMode" value="roleplay" id="modeRoleplay" checked onchange="updateTopicModeUI()">
                         <span>🎭 Modo rol</span>
                     </label>
-                    <label style="flex: 1; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; padding: 0.8rem 1rem; border: 2px solid var(--border-color); border-radius: 10px; transition: all 0.3s; font-size: 0.95rem;" onmouseover="this.style.borderColor='var(--accent-gold)'" onmouseout="if(!document.getElementById('modeFanfic').checked) this.style.borderColor='var(--border-color)'">
-                        <input type="radio" name="topicMode" value="fanfic" id="modeFanfic" onchange="updateTopicModeUI()" style="width: 18px; height: 18px; accent-color: var(--accent-gold);">
+                    <label class="topic-mode-option">
+                        <input type="radio" name="topicMode" value="fanfic" id="modeFanfic" onchange="updateTopicModeUI()">
                         <span>📖 Modo historia</span>
                     </label>
                 </div>
@@ -2720,35 +2876,35 @@
 
             <!-- Checkbox narrador corregido -->
             <div class="form-group" style="margin-bottom: 1.2rem;">
-                <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; padding: 0.6rem; border-radius: 8px; transition: all 0.3s; width: fit-content;" onmouseover="this.style.background='rgba(201, 168, 108, 0.1)'" onmouseout="this.style.background='transparent'">
-                    <input type="checkbox" id="startAsNarrator" onchange="toggleNarratorStart()" style="width: 18px; height: 18px; accent-color: var(--accent-gold);">
-                    <span style="font-size: 0.95rem;">📖 Comenzar como narrador</span>
+                <label class="narrator-check">
+                    <input type="checkbox" id="startAsNarrator" onchange="toggleNarratorStart()">
+                    <span>📖 Comenzar como narrador</span>
                 </label>
             </div>
 
             <!-- Selector de personaje -->
             <div class="form-group" id="topicCharSelectGroup" style="margin-bottom: 1.2rem;">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Protagonista</label>
-                <select id="topicCharSelect" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); font-family: inherit; font-size: 1rem;"></select>
+                <select id="topicCharSelect"></select>
             </div>
 
             <!-- Título -->
             <div class="form-group" style="margin-bottom: 1.2rem;">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Título *</label>
-                <input type="text" id="topicTitleInput" placeholder="Título de la historia..." style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); font-family: inherit; font-size: 1rem;">
+                <input type="text" id="topicTitleInput" placeholder="Título de la historia...">
             </div>
 
             <!-- Texto inicial -->
             <div class="form-group" style="margin-bottom: 1.2rem;">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Inicio *</label>
-                <textarea id="topicFirstMsg" rows="3" placeholder="Primer mensaje de la historia..." style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); font-family: inherit; font-size: 1rem; resize: vertical;"></textarea>
+                <textarea id="topicFirstMsg" rows="3" placeholder="Primer mensaje de la historia..."></textarea>
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Puedes usar **negrita** y *cursiva*</div>
             </div>
 
             <!-- Fondo personalizado -->
             <div class="form-group" style="margin-bottom: 1.2rem;">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Fondo (URL)</label>
-                <input type="text" id="topicBackgroundInput" placeholder="https://ejemplo.com/imagen.jpg" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); font-family: inherit; font-size: 1rem;">
+                <input type="text" id="topicBackgroundInput" placeholder="https://ejemplo.com/imagen.jpg">
             </div>
 
             <!-- Selector de clima -->
@@ -2763,9 +2919,9 @@
             </div>
 
             <!-- Botones de acción -->
-            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <div class="topic-modal-footer">
                 <button onclick="closeModal('topicModal')" class="btn-secondary" style="padding: 0.7rem 1.5rem;">Cancelar</button>
-                <button onclick="createTopic()" class="btn-primary" style="padding: 0.7rem 2rem;">✨ Crear Historia</button>
+                <button onclick="createTopic()" class="btn-primary topic-create-btn">✨ Crear Historia</button>
             </div>
         </div>
     </div>
@@ -3319,15 +3475,8 @@
         const roleplayLabel = modeRoleplay?.parentElement;
         const fanficLabel = modeFanfic?.parentElement;
 
-        if (roleplayLabel) {
-            roleplayLabel.style.borderColor = selectedMode === 'roleplay' ? 'var(--accent-gold)' : 'var(--border-color)';
-            roleplayLabel.style.background = selectedMode === 'roleplay' ? 'rgba(201, 168, 108, 0.1)' : 'transparent';
-        }
-
-        if (fanficLabel) {
-            fanficLabel.style.borderColor = selectedMode === 'fanfic' ? 'var(--accent-gold)' : 'var(--border-color)';
-            fanficLabel.style.background = selectedMode === 'fanfic' ? 'rgba(201, 168, 108, 0.1)' : 'transparent';
-        }
+        roleplayLabel?.classList.toggle('active', selectedMode === 'roleplay');
+        fanficLabel?.classList.toggle('active', selectedMode === 'fanfic');
 
         if (selectedMode === 'fanfic') {
             if (charSelectGroup) charSelectGroup.style.display = 'none';
