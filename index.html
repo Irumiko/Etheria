@@ -312,28 +312,34 @@
         [data-tooltip] {
             position: relative;
         }
-        [data-tooltip]::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            top: calc(100% + 10px);
-            left: 50%;
-            transform: translateX(-50%);
+
+        .smart-tooltip {
+            position: fixed;
             background: var(--glass-bg);
             color: var(--accent-gold);
-            padding: 0.5rem 1rem;
+            padding: 0.45rem 0.8rem;
             border-radius: 8px;
             font-size: 0.8rem;
             font-family: 'Inter', sans-serif;
             white-space: nowrap;
-            opacity: 0;
             pointer-events: none;
-            transition: all 0.3s;
             border: 1px solid var(--accent-gold);
             z-index: 10000;
+            opacity: 0;
+            transform: translateY(0);
+            transition: opacity 0.18s ease, transform 0.18s ease;
         }
-        [data-tooltip]:hover::after {
+
+        .smart-tooltip.visible {
             opacity: 1;
-            top: calc(100% + 15px);
+        }
+
+        .smart-tooltip[data-placement="top"] {
+            transform: translateY(-4px);
+        }
+
+        .smart-tooltip[data-placement="bottom"] {
+            transform: translateY(4px);
         }
 
         .autosave-indicator {
@@ -1859,6 +1865,48 @@
             padding: 0.3rem 0.8rem;
             border-radius: 12px;
         }
+
+        .vn-dialogue-actions {
+            position: absolute;
+            right: 1.8rem;
+            bottom: 1.1rem;
+            display: flex;
+            gap: 0.45rem;
+            z-index: 20;
+        }
+
+        .vn-dialogue-action-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.45);
+            color: var(--accent-gold);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            transition: all 0.25s ease;
+        }
+
+        .vn-dialogue-action-btn:hover {
+            transform: translateY(-1px);
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 12px rgba(201, 168, 108, 0.35);
+        }
+
+        .vn-dialogue-action-btn.delete-message-btn {
+            color: #ff7777;
+            border-color: #d16161;
+            background: rgba(139, 36, 36, 0.45);
+        }
+
+        .vn-dialogue-action-btn.delete-message-btn:hover {
+            border-color: #ff8f8f;
+            box-shadow: 0 0 12px rgba(255, 119, 119, 0.4);
+        }
         .message-has-options {
             position: absolute;
             top: -12px;
@@ -2938,34 +2986,34 @@
         <!-- Controles -->
         <div class="vn-controls">
             <button class="vn-control-btn" data-tooltip="Primer mensaje" onclick="firstMessage()">
-                ⏮️
+                «
             </button>
             <button class="vn-control-btn" data-tooltip="Mensaje anterior" onclick="previousMessage()">
-                ◀️
+                ‹
             </button>
-            <button class="vn-control-btn" data-tooltip="Editar mensaje" onclick="editCurrentMessage()" id="editMsgBtn">
-                ✏️
+            <button class="vn-control-btn" data-tooltip="Mensaje siguiente" onclick="nextMessage()">
+                ›
             </button>
-            <button class="vn-control-btn" data-tooltip="Responder" onclick="openReplyPanel()">
-                💬
+            <button class="vn-control-btn" data-tooltip="Último mensaje" onclick="lastMessage()">
+                »
             </button>
             <button class="vn-control-btn" data-tooltip="Historial" onclick="openHistoryLog()">
-                📜
+                ☰
             </button>
             <button class="vn-control-btn" data-tooltip="Emotes" onclick="toggleEmotePicker()" aria-label="Abrir selector de emotes">
-                😊
+                ☺
             </button>
             <button class="vn-control-btn" data-tooltip="Ajustes" onclick="openSettings()">
-                ⚙️
+                ⚙
             </button>
             <button class="vn-control-btn save-btn" data-tooltip="Guardar" onclick="quickSave()">
-                💾
+                ◈
             </button>
             <button id="deleteTopicBtn" class="vn-control-btn hidden" data-tooltip="Borrar historia" onclick="deleteCurrentTopic()">
                 🗑️
             </button>
             <button class="vn-control-btn" data-tooltip="Salir" onclick="backToTopics()">
-                ✕
+                ↩
             </button>
         </div>
 
@@ -2995,6 +3043,11 @@
             <div id="vnDialogueText" class="vn-dialogue-text">...</div>
             <div id="vnContinueIndicator" class="vn-continue-indicator"></div>
             <div id="vnMessageCounter" class="vn-message-counter">0 / 0</div>
+            <div class="vn-dialogue-actions">
+                <button id="editMsgBtn" class="vn-dialogue-action-btn" data-tooltip="Editar mensaje" onclick="handleActionButtonClick(event); editCurrentMessage()">✎</button>
+                <button class="vn-dialogue-action-btn delete-message-btn" data-tooltip="Borrar mensaje" onclick="handleActionButtonClick(event); deleteCurrentMessage()">❌</button>
+                <button class="vn-dialogue-action-btn" data-tooltip="Responder" onclick="handleActionButtonClick(event); openReplyPanel()">💬</button>
+            </div>
         </div>
 
         <!-- Panel Responder -->
@@ -3493,6 +3546,7 @@
 
         // Setup keyboard listeners
         setupKeyboardListeners();
+        initSmartTooltips();
 
         window.addEventListener('beforeunload', (e) => {
             if (hasUnsavedChanges) {
@@ -3502,6 +3556,53 @@
         });
 
     });
+
+    function initSmartTooltips() {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'smart-tooltip';
+        document.body.appendChild(tooltip);
+
+        const showTooltip = (el) => {
+            const text = el.getAttribute('data-tooltip');
+            if (!text) return;
+
+            tooltip.textContent = text;
+            tooltip.classList.add('visible');
+            tooltip.style.left = '-9999px';
+            tooltip.style.top = '-9999px';
+
+            const rect = el.getBoundingClientRect();
+            const tipRect = tooltip.getBoundingClientRect();
+            const spacing = 10;
+            const canShowTop = rect.top >= tipRect.height + spacing;
+            const placement = canShowTop ? 'top' : 'bottom';
+            tooltip.dataset.placement = placement;
+
+            let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+            left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
+
+            const top = placement === 'top'
+                ? rect.top - tipRect.height - spacing
+                : rect.bottom + spacing;
+
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${top}px`;
+        };
+
+        const hideTooltip = () => {
+            tooltip.classList.remove('visible');
+        };
+
+        document.querySelectorAll('[data-tooltip]').forEach((el) => {
+            el.addEventListener('mouseenter', () => showTooltip(el));
+            el.addEventListener('focus', () => showTooltip(el));
+            el.addEventListener('mouseleave', hideTooltip);
+            el.addEventListener('blur', hideTooltip);
+        });
+
+        window.addEventListener('scroll', hideTooltip, true);
+        window.addEventListener('resize', hideTooltip);
+    }
 
     function setupKeyboardListeners() {
         document.addEventListener('keydown', (e) => {
@@ -4647,6 +4748,8 @@
 
         if (msgs.length === 0) {
             if (dialogueText) dialogueText.innerHTML = '<em>Historia vacía. Haz clic en 💬 Responder para comenzar.</em>';
+            const editBtn = document.getElementById('editMsgBtn');
+            if (editBtn) editBtn.classList.add('hidden');
             updateAffinityDisplay();
             return;
         }
@@ -4893,6 +4996,43 @@
 
     function firstMessage() {
         currentMessageIndex = 0;
+        showCurrentMessage();
+    }
+
+    function nextMessage() {
+        const msgs = appData.messages[currentTopicId] || [];
+        if (currentMessageIndex < msgs.length - 1) {
+            currentMessageIndex++;
+            showCurrentMessage();
+        }
+    }
+
+    function lastMessage() {
+        const msgs = appData.messages[currentTopicId] || [];
+        if (msgs.length === 0) return;
+        currentMessageIndex = msgs.length - 1;
+        showCurrentMessage();
+    }
+
+    function handleActionButtonClick(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
+
+    function deleteCurrentMessage() {
+        const msgs = appData.messages[currentTopicId] || [];
+        if (msgs.length === 0 || currentMessageIndex >= msgs.length) return;
+        if (!confirm('¿Borrar este mensaje?')) return;
+
+        msgs.splice(currentMessageIndex, 1);
+        if (currentMessageIndex >= msgs.length) {
+            currentMessageIndex = Math.max(0, msgs.length - 1);
+        }
+
+        hasUnsavedChanges = true;
+        save();
         showCurrentMessage();
     }
 
