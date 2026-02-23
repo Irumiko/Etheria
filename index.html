@@ -5362,7 +5362,6 @@
         const text = firstMsgInput?.value.trim();
         const bg = bgInput?.value.trim();
         const weather = weatherInput?.value || 'none';
-        const asNarrator = true;
 
         if(!title || !text) { alert('Completa todos los campos obligatorios'); return; }
 
@@ -5405,10 +5404,6 @@
         }
     }
 
-    function updateTopicSelect() {
-        // reservado para futuras validaciones del modal de nueva historia
-    }
-
     // ============================================
     // UTILIDADES
     // ============================================
@@ -5448,7 +5443,6 @@
         if(id === 'topicModal') {
             const roleplay = document.getElementById('modeRoleplay');
             if (roleplay) roleplay.checked = true;
-            updateTopicSelect();
             updateTopicModeUI();
         }
         const modal = document.getElementById(id);
