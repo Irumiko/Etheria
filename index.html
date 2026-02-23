@@ -18,7 +18,7 @@
             --accent-wood: #8b7355;
             --accent-sage: #6b8e7d;
             --accent-warm: #a08060;
-            --accent-gold: #c9a86c;
+            --accent-gold: #8b6914;
             --border-color: #c4b8a8;
             --border-light: #d9d0c3;
             --shadow: rgba(61, 56, 51, 0.08);
@@ -37,12 +37,12 @@
             --bg-tertiary: #3d3833;
             --bg-card: #252320;
             --text-primary: #e8e4dc;
-            --text-secondary: #b8b0a0;
+            --text-secondary: #d4cfc7;
             --text-muted: #8a8075;
             --accent-wood: #8b7355;
             --accent-sage: #6b8e7d;
             --accent-warm: #a08060;
-            --accent-gold: #c9a86c;
+            --accent-gold: #8b6914;
             --border-color: #4a4540;
             --border-light: #3d3833;
             --shadow: rgba(0, 0, 0, 0.3);
@@ -2584,6 +2584,18 @@
 
         .hidden { display: none !important; }
 
+        .visually-hidden {
+            position: absolute !important;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -2813,6 +2825,47 @@
             color: var(--accent-gold);
             background: rgba(201, 168, 108, 0.1);
         }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+
+        @media (min-width: 1700px) {
+            .vn-sprite.position-left { left: 22%; }
+            .vn-sprite.position-right { left: 78%; }
+        }
+
+        .shortcuts-modal {
+            background: var(--bg-card);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.2rem;
+            width: min(560px, 92vw);
+            max-height: 80vh;
+            overflow: auto;
+            box-shadow: 0 20px 45px var(--shadow-heavy);
+        }
+
+        .shortcuts-list {
+            margin-top: 0.8rem;
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .shortcut-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 0.45rem;
+            color: var(--text-secondary);
+        }
+
     </style>
 <base target="_blank">
 </head>
@@ -2833,6 +2886,24 @@
             <button class="vn-continuation-close" onclick="closeContinuation()" aria-label="Cerrar continuación">✕</button>
             <h3 class="vn-continuation-title">🎭 Continuación de la escena</h3>
             <div id="continuationText" class="vn-continuation-text"></div>
+        </div>
+    </div>
+
+    <div id="screenReaderAnnouncements" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+    <div id="shortcutsModal" class="modal-overlay" onclick="if(event.target === this) closeModal('shortcutsModal')" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+        <div class="shortcuts-modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+                <h3 id="shortcutsTitle" style="font-family:Cinzel,serif;">⌨️ Atajos de teclado</h3>
+                <button class="btn-secondary" onclick="closeModal('shortcutsModal')" aria-label="Cerrar ayuda de atajos">Cerrar</button>
+            </div>
+            <p style="color:var(--text-muted);margin-top:0.35rem;">Atajos disponibles en modo novela visual.</p>
+            <div class="shortcuts-list" role="list">
+                <div class="shortcut-item" role="listitem"><strong>Espacio</strong><span>Avanzar diálogo / completar typewriter</span></div>
+                <div class="shortcut-item" role="listitem"><strong>← / →</strong><span>Mensaje anterior / siguiente</span></div>
+                <div class="shortcut-item" role="listitem"><strong>Esc</strong><span>Cerrar paneles y modales activos</span></div>
+                <div class="shortcut-item" role="listitem"><strong>?</strong><span>Mostrar esta ayuda</span></div>
+            </div>
         </div>
     </div>
 
@@ -2964,7 +3035,7 @@
         </div>
         <div class="section-content">
             <div class="gallery-toolbar">
-                <input type="text" id="gallerySearch" class="search-input" placeholder="🔍 Buscar personaje o jugador..." oninput="renderGallery()">
+                <input type="text" id="gallerySearch" class="search-input" placeholder="🔍 Buscar personaje o jugador..." oninput="debounceRenderGallery()">
                 <select id="gallerySort" class="sort-select" onchange="renderGallery()">
                     <option value="default">Ordenar...</option>
                     <option value="owner">Por Propietario</option>
@@ -3066,6 +3137,12 @@
                 <button class="vn-control-btn" onclick="openSettings()" aria-label="Ajustes">
                     <span class="vn-control-icon">⚙</span>
                     <span class="vn-control-label">Ajustes</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="openModal('shortcutsModal')" aria-label="Mostrar ayuda de atajos de teclado">
+                    <span class="vn-control-icon">❔</span>
+                    <span class="vn-control-label">Atajos</span>
                 </button>
             </div>
             <div class="vn-control-slot">
@@ -3519,6 +3596,7 @@
     let currentMessageIndex = 0;
     let isTyping = false;
     let typewriterInterval;
+    let typewriterSessionId = 0;
     let isNarratorMode = false;
     let pendingContinuation = null;
     let hasUnsavedChanges = false;
@@ -3534,6 +3612,22 @@
     let currentTopicMode = 'roleplay'; // 'roleplay' o 'fanfic'
     let spriteModeClassic = false; // false = modo fanfic persistente, true = modo clásico
     let pendingRoleTopicId = null;
+    let tooltipRoot = null;
+    let lastFocusedElement = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let gallerySearchDebounceTimer = null;
+    let galleryImageObserver = null;
+    let historyVirtualState = null;
+    const spritePool = [];
+    const STORAGE_KEYS = {
+        legacy: 'etheria_data',
+        topics: 'etheria_topics',
+        characters: 'etheria_characters',
+        affinities: 'etheria_affinities',
+        messageTopics: 'etheria_message_topics',
+        topicPrefix: 'etheria_messages_'
+    };
     const LAST_PROFILE_KEY = 'lastProfileId';
 
     function getStoredLastProfileId() {
@@ -3541,26 +3635,111 @@
         return Number.isInteger(stored) && stored >= 0 && stored < userNames.length ? stored : null;
     }
 
+    function prefersReducedMotion() {
+        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    function announceForScreenReader(text) {
+        const announcer = document.getElementById('screenReaderAnnouncements');
+        if (!announcer) return;
+        announcer.textContent = '';
+        setTimeout(() => {
+            announcer.textContent = text;
+        }, 30);
+    }
+
+    function parseStoredJSON(key, fallback) {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            console.error(`Error parsing key ${key}:`, error);
+            return fallback;
+        }
+    }
+
+    function getTopicStorageKey(topicId) {
+        return `${STORAGE_KEYS.topicPrefix}${topicId}`;
+    }
+
+    function loadStoredAppData() {
+        const topics = parseStoredJSON(STORAGE_KEYS.topics, null);
+        const characters = parseStoredJSON(STORAGE_KEYS.characters, null);
+
+        if (Array.isArray(topics) || Array.isArray(characters)) {
+            return {
+                topics: Array.isArray(topics) ? topics : [],
+                characters: Array.isArray(characters) ? characters : [],
+                messages: {},
+                affinities: parseStoredJSON(STORAGE_KEYS.affinities, {}) || {}
+            };
+        }
+
+        const legacy = parseStoredJSON(STORAGE_KEYS.legacy, null);
+        if (legacy && typeof legacy === 'object') {
+            return {
+                topics: Array.isArray(legacy.topics) ? legacy.topics : [],
+                characters: Array.isArray(legacy.characters) ? legacy.characters : [],
+                messages: (legacy.messages && typeof legacy.messages === 'object' && !Array.isArray(legacy.messages)) ? legacy.messages : {},
+                affinities: (legacy.affinities && typeof legacy.affinities === 'object' && !Array.isArray(legacy.affinities)) ? legacy.affinities : {}
+            };
+        }
+
+        return { topics: [], characters: [], messages: {}, affinities: {} };
+    }
+
+    function loadTopicMessagesFromStorage(topicId) {
+        const msgs = parseStoredJSON(getTopicStorageKey(topicId), null);
+        return Array.isArray(msgs) ? msgs : [];
+    }
+
+    function getTopicMessages(topicId) {
+        if (!topicId) return [];
+        if (Array.isArray(appData.messages[topicId])) return appData.messages[topicId];
+        const loaded = loadTopicMessagesFromStorage(topicId);
+        appData.messages[topicId] = loaded;
+        return loaded;
+    }
+
+    function persistPartitionedData() {
+        localStorage.setItem(STORAGE_KEYS.topics, JSON.stringify(appData.topics));
+        localStorage.setItem(STORAGE_KEYS.characters, JSON.stringify(appData.characters));
+        localStorage.setItem(STORAGE_KEYS.affinities, JSON.stringify(appData.affinities));
+
+        const topicIds = appData.topics.map(t => String(t.id));
+        localStorage.setItem(STORAGE_KEYS.messageTopics, JSON.stringify(topicIds));
+
+        topicIds.forEach((topicId) => {
+            const topicMsgs = Array.isArray(appData.messages[topicId])
+                ? appData.messages[topicId]
+                : loadTopicMessagesFromStorage(topicId);
+            localStorage.setItem(getTopicStorageKey(topicId), JSON.stringify(topicMsgs));
+        });
+
+        Object.keys(localStorage)
+            .filter((k) => k.startsWith(STORAGE_KEYS.topicPrefix))
+            .forEach((k) => {
+                const topicId = k.replace(STORAGE_KEYS.topicPrefix, '');
+                if (!topicIds.includes(topicId)) {
+                    localStorage.removeItem(k);
+                }
+            });
+
+        const legacySnapshot = {
+            topics: appData.topics,
+            characters: appData.characters,
+            messages: appData.messages,
+            affinities: appData.affinities
+        };
+        localStorage.setItem(STORAGE_KEYS.legacy, JSON.stringify(legacySnapshot));
+    }
+
     // ============================================
     // INICIALIZACIÓN
     // ============================================
     document.addEventListener('DOMContentLoaded', () => {
-        const saved = localStorage.getItem('etheria_data');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                appData = {
-                    topics: parsed.topics || [],
-                    characters: parsed.characters || [],
-                    messages: parsed.messages || {},
-                    affinities: (parsed.affinities && typeof parsed.affinities === 'object' && !Array.isArray(parsed.affinities))
-                        ? parsed.affinities
-                        : {}
-                };
-            } catch (e) {
-                console.error('Error parsing saved data:', e);
-            }
-        }
+        appData = loadStoredAppData();
 
         const savedNames = localStorage.getItem('etheria_user_names');
         if (savedNames) {
@@ -3617,7 +3796,9 @@
 
         // Setup keyboard listeners
         setupKeyboardListeners();
+        setupTouchGestures();
         initSmartTooltips();
+        setupGallerySearchListeners();
 
         window.addEventListener('beforeunload', (e) => {
             if (hasUnsavedChanges) {
@@ -3629,25 +3810,27 @@
     });
 
     function initSmartTooltips() {
-        const tooltip = document.createElement('div');
-        tooltip.className = 'smart-tooltip';
-        document.body.appendChild(tooltip);
+        if (!tooltipRoot) {
+            tooltipRoot = document.createElement('div');
+            tooltipRoot.className = 'smart-tooltip';
+            document.body.appendChild(tooltipRoot);
+        }
 
         const showTooltip = (el) => {
-            const text = el.getAttribute('data-tooltip');
-            if (!text) return;
+            const text = el?.getAttribute('data-tooltip');
+            if (!text || !tooltipRoot) return;
 
-            tooltip.textContent = text;
-            tooltip.classList.add('visible');
-            tooltip.style.left = '-9999px';
-            tooltip.style.top = '-9999px';
+            tooltipRoot.textContent = text;
+            tooltipRoot.classList.add('visible');
+            tooltipRoot.style.left = '-9999px';
+            tooltipRoot.style.top = '-9999px';
 
             const rect = el.getBoundingClientRect();
-            const tipRect = tooltip.getBoundingClientRect();
+            const tipRect = tooltipRoot.getBoundingClientRect();
             const spacing = 10;
             const canShowTop = rect.top >= tipRect.height + spacing;
             const placement = canShowTop ? 'top' : 'bottom';
-            tooltip.dataset.placement = placement;
+            tooltipRoot.dataset.placement = placement;
 
             let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
             left = Math.max(8, Math.min(left, window.innerWidth - tipRect.width - 8));
@@ -3656,19 +3839,34 @@
                 ? rect.top - tipRect.height - spacing
                 : rect.bottom + spacing;
 
-            tooltip.style.left = `${left}px`;
-            tooltip.style.top = `${top}px`;
+            tooltipRoot.style.left = `${left}px`;
+            tooltipRoot.style.top = `${top}px`;
         };
 
         const hideTooltip = () => {
-            tooltip.classList.remove('visible');
+            if (tooltipRoot) tooltipRoot.classList.remove('visible');
         };
 
-        document.querySelectorAll('[data-tooltip]').forEach((el) => {
-            el.addEventListener('mouseenter', () => showTooltip(el));
-            el.addEventListener('focus', () => showTooltip(el));
-            el.addEventListener('mouseleave', hideTooltip);
-            el.addEventListener('blur', hideTooltip);
+        document.addEventListener('mouseover', (e) => {
+            const target = e.target.closest('[data-tooltip]');
+            if (!target) return;
+            showTooltip(target);
+        });
+
+        document.addEventListener('focusin', (e) => {
+            const target = e.target.closest('[data-tooltip]');
+            if (!target) return;
+            showTooltip(target);
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            if (!e.target.closest('[data-tooltip]')) return;
+            hideTooltip();
+        });
+
+        document.addEventListener('focusout', (e) => {
+            if (!e.target.closest('[data-tooltip]')) return;
+            hideTooltip();
         });
 
         window.addEventListener('scroll', hideTooltip, true);
@@ -3708,12 +3906,95 @@
                     closeSettings();
                 } else if (document.getElementById('branchEditorModal')?.classList.contains('active')) {
                     closeModal('branchEditorModal');
+                } else if (document.getElementById('shortcutsModal')?.classList.contains('active')) {
+                    closeModal('shortcutsModal');
                 } else if (emotePicker && emotePicker.classList.contains('active')) {
                     toggleEmotePicker();
                 }
             }
+
+            const isTypingField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+
+            if (!isTypingField && e.code === 'ArrowLeft') {
+                e.preventDefault();
+                previousMessage();
+            }
+
+            if (!isTypingField && e.code === 'ArrowRight') {
+                e.preventDefault();
+                nextMessage();
+            }
+
+            if (!isTypingField && e.key === '?') {
+                e.preventDefault();
+                openModal('shortcutsModal');
+            }
         });
     }
+
+
+    function setupTouchGestures() {
+        const vnSection = document.getElementById('vnSection');
+        if (!vnSection) return;
+
+        vnSection.addEventListener('touchstart', (e) => {
+            if (e.touches.length !== 1) return;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        vnSection.addEventListener('touchend', (e) => {
+            if (!vnSection.classList.contains('active') || e.changedTouches.length !== 1) return;
+
+            const dx = e.changedTouches[0].clientX - touchStartX;
+            const dy = e.changedTouches[0].clientY - touchStartY;
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+
+            if (absDx < 50 && absDy < 50) return;
+
+            if (absDx > absDy) {
+                if (dx < 0) nextMessage();
+                else previousMessage();
+                return;
+            }
+
+            if (dy > 70) {
+                const replyPanel = document.getElementById('vnReplyPanel');
+                const settingsPanel = document.getElementById('settingsPanel');
+                const continuationOverlay = document.getElementById('continuationOverlay');
+
+                if (continuationOverlay?.classList.contains('active')) {
+                    closeContinuation();
+                } else if (replyPanel?.style.display === 'flex') {
+                    closeReplyPanel();
+                } else if (settingsPanel?.classList.contains('active')) {
+                    closeSettings();
+                }
+            }
+        }, { passive: true });
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+
+        const activeModal = document.querySelector('.modal-overlay.active');
+        if (!activeModal) return;
+
+        const focusable = activeModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (!focusable.length) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
+    });
 
     // ============================================
     // EFECTOS CLIMA
@@ -3978,7 +4259,7 @@
 
         if (!currentTopicId) return false;
 
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         if (msgs.length === 0) return false;
 
         const currentMsg = msgs[currentMessageIndex];
@@ -4045,7 +4326,7 @@
     function getCurrentAffinity() {
         if (!shouldShowAffinity()) return -1;
 
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         const currentMsg = msgs[currentMessageIndex];
 
         const targetCharId = currentMsg.characterId;
@@ -4070,7 +4351,7 @@
         const infoAvatar = document.getElementById('vnInfoAvatar');
         const vnInfoAffection = document.getElementById('vnInfoAffection');
 
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         const currentMsg = msgs[currentMessageIndex];
 
         // Caso narrador
@@ -4147,7 +4428,7 @@
     function modifyAffinity(direction) {
         if (!currentTopicId) return;
 
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         const currentMsg = msgs[currentMessageIndex];
         if (!currentMsg || !currentMsg.characterId) return;
 
@@ -4207,6 +4488,45 @@
         const tmp = document.createElement('div');
         tmp.innerHTML = html;
         return tmp.textContent || tmp.innerText || '';
+    }
+
+    function isValidHttpUrl(value) {
+        if (!value) return true;
+        try {
+            const parsed = new URL(value);
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch {
+            return false;
+        }
+    }
+
+    function validateImageUrlField(value, label) {
+        if (!value) return true;
+        if (!isValidHttpUrl(value)) {
+            alert(`${label} debe ser una URL válida (http o https).`);
+            return false;
+        }
+        return true;
+    }
+
+    function validateImportedData(data) {
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+            throw new Error('El archivo no contiene un objeto de datos válido');
+        }
+
+        if (!Array.isArray(data.topics) || !Array.isArray(data.characters)) {
+            throw new Error('Faltan colecciones obligatorias (topics/characters)');
+        }
+
+        if (data.messages !== undefined && (typeof data.messages !== 'object' || Array.isArray(data.messages))) {
+            throw new Error('messages debe ser un objeto');
+        }
+
+        if (data.affinities !== undefined && (typeof data.affinities !== 'object' || Array.isArray(data.affinities))) {
+            throw new Error('affinities debe ser un objeto');
+        }
+
+        return true;
     }
 
     // ============================================
@@ -4478,11 +4798,49 @@
         }
     }
 
+    function resetVNTransientState({ clearTopic = false } = {}) {
+        stopTypewriter();
+        closeReplyPanel();
+        closeContinuation();
+        closeSettings();
+
+        const optionsContainer = document.getElementById('vnOptionsContainer');
+        if (optionsContainer) optionsContainer.classList.remove('active');
+
+        const emotePicker = document.getElementById('emotePicker');
+        if (emotePicker) emotePicker.classList.remove('active');
+
+        const vnSpriteContainer = document.getElementById('vnSpriteContainer');
+        if (vnSpriteContainer) vnSpriteContainer.innerHTML = '';
+
+        const weatherContainer = document.getElementById('weatherContainer');
+        if (weatherContainer) weatherContainer.innerHTML = '';
+
+        editingMessageId = null;
+        pendingContinuation = null;
+        currentWeather = 'none';
+
+        if (clearTopic) {
+            currentTopicId = null;
+            currentMessageIndex = 0;
+        }
+    }
+
+    function closeActiveModals() {
+        document.querySelectorAll('.modal-overlay.active').forEach((modal) => {
+            modal.classList.remove('active');
+        });
+        document.body.classList.remove('modal-open');
+    }
+
     function showSection(section) {
         if (isLoading) return;
 
         const mainMenu = document.getElementById('mainMenu');
         if (mainMenu) mainMenu.classList.add('hidden');
+
+        resetVNTransientState({ clearTopic: true });
+        closeActiveModals();
 
         document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
 
@@ -4502,35 +4860,26 @@
 
     function backToMenu() {
         confirmUnsavedChanges(() => {
+            resetVNTransientState({ clearTopic: true });
+            closeActiveModals();
             document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
             const mainMenu = document.getElementById('mainMenu');
             if (mainMenu) {
                 mainMenu.classList.remove('hidden');
                 generateParticles();
             }
-            stopTypewriter();
         });
     }
 
     function backToTopics() {
         confirmUnsavedChanges(() => {
-            const vnSpriteContainer = document.getElementById('vnSpriteContainer');
-            if (vnSpriteContainer) vnSpriteContainer.innerHTML = '';
-            stopTypewriter();
+            resetVNTransientState({ clearTopic: true });
 
             const vnSection = document.getElementById('vnSection');
             const topicsSection = document.getElementById('topicsSection');
 
             if (vnSection) vnSection.classList.remove('active');
             if (topicsSection) topicsSection.classList.add('active');
-
-            // Limpiar efectos de clima
-            const weatherContainer = document.getElementById('weatherContainer');
-            if (weatherContainer) weatherContainer.innerHTML = '';
-
-            currentTopicId = null;
-            editingMessageId = null;
-            currentWeather = 'none';
             renderTopics();
         });
     }
@@ -4538,6 +4887,50 @@
     // ============================================
     // GALERÍA
     // ============================================
+    function setupGallerySearchListeners() {
+        const searchInput = document.getElementById('gallerySearch');
+        if (!searchInput || searchInput.dataset.debounceBound === '1') return;
+
+        searchInput.dataset.debounceBound = '1';
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                renderGallery();
+            }
+        });
+    }
+
+    function debounceRenderGallery() {
+        window.clearTimeout(gallerySearchDebounceTimer);
+        gallerySearchDebounceTimer = window.setTimeout(() => {
+            renderGallery();
+        }, 300);
+    }
+
+    function initGalleryLazyImages() {
+        if (galleryImageObserver) {
+            galleryImageObserver.disconnect();
+        }
+
+        galleryImageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+
+                const image = entry.target;
+                const src = image.dataset.src;
+                if (src) {
+                    image.src = src;
+                    image.removeAttribute('data-src');
+                }
+                observer.unobserve(image);
+            });
+        }, { rootMargin: '200px 0px', threshold: 0.01 });
+
+        document.querySelectorAll('#galleryGrid img[data-src]').forEach((img) => {
+            galleryImageObserver.observe(img);
+        });
+    }
+
     function renderGallery() {
         const grid = document.getElementById('galleryGrid');
         if (!grid) return;
@@ -4581,7 +4974,7 @@
             return `
                 <div class="character-card" onclick="openSheet('${c.id}')">
                     <div class="character-card-avatar">
-                        ${c.avatar ? `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` : `<div class="placeholder">${c.name[0]}</div>`}
+                        ${c.avatar ? `<img data-src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'placeholder\'>${c.name[0]}</div>'">` : `<div class="placeholder">${c.name[0]}</div>`}
                     </div>
                     <div class="character-card-info">
                         <div class="character-card-name">${escapeHtml(c.name)}</div>
@@ -4597,6 +4990,8 @@
                 </div>
             `;
         }).join('');
+
+        initGalleryLazyImages();
     }
 
     // ============================================
@@ -4695,6 +5090,12 @@
 
         const id = document.getElementById('editCharacterId')?.value || Date.now().toString();
 
+        const avatarUrl = document.getElementById('charAvatar')?.value.trim() || '';
+        const spriteUrl = document.getElementById('charSprite')?.value.trim() || '';
+
+        if (!validateImageUrlField(avatarUrl, 'La URL del avatar')) return;
+        if (!validateImageUrlField(spriteUrl, 'La URL del sprite')) return;
+
         const charObj = {
             id,
             userIndex: currentUserIndex,
@@ -4707,8 +5108,8 @@
             alignment: document.getElementById('charAlignment')?.value || '',
             job: document.getElementById('charJob')?.value.trim() || '',
             color: document.getElementById('charColor')?.value || '#8b7355',
-            avatar: document.getElementById('charAvatar')?.value.trim() || '',
-            sprite: document.getElementById('charSprite')?.value.trim() || '',
+            avatar: avatarUrl,
+            sprite: spriteUrl,
             basic: document.getElementById('charBasic')?.value.trim() || '',
             personality: document.getElementById('charPersonality')?.value.trim() || '',
             history: document.getElementById('charHistory')?.value.trim() || '',
@@ -4750,7 +5151,9 @@
     // MODO VN
     // ============================================
     function enterTopic(id) {
+        resetVNTransientState();
         currentTopicId = id;
+        getTopicMessages(id);
         currentMessageIndex = 0;
         pendingContinuation = null;
         editingMessageId = null;
@@ -4805,15 +5208,17 @@
     }
 
     function stopTypewriter() {
-        if (typewriterInterval) {
+        if (typeof typewriterInterval === 'number') {
+            window.cancelAnimationFrame(typewriterInterval);
             clearInterval(typewriterInterval);
             typewriterInterval = null;
         }
+        typewriterSessionId++;
         isTyping = false;
     }
 
     function showCurrentMessage() {
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
 
         const dialogueText = document.getElementById('vnDialogueText');
 
@@ -4891,6 +5296,9 @@
         const msgCounter = document.getElementById('vnMessageCounter');
         if (msgCounter) msgCounter.textContent = `${currentMessageIndex + 1} / ${msgs.length}`;
 
+        const liveSpeaker = (msg.isNarrator || !msg.characterId) ? 'Narrador' : (msg.charName || 'Personaje');
+        announceForScreenReader(`Nuevo mensaje de ${liveSpeaker}: ${stripHtml(formatText(cleanText)).slice(0, 180)}`);
+
         const editBtn = document.getElementById('editMsgBtn');
         if (editBtn) {
             if (msg.userIndex === currentUserIndex) {
@@ -4910,42 +5318,60 @@
         updateAffinityDisplay();
     }
 
+    function getPooledSpriteElement(container) {
+        if (spritePool.length > 0) {
+            return spritePool.pop();
+        }
+
+        const spriteNode = document.createElement('div');
+        spriteNode.className = 'vn-sprite';
+        const img = document.createElement('img');
+        spriteNode.appendChild(img);
+        return spriteNode;
+    }
+
+    function recycleActiveSprites(container) {
+        Array.from(container.children).forEach((child) => {
+            child.className = 'vn-sprite';
+            child.removeAttribute('data-char-id');
+            const img = child.querySelector('img');
+            if (img) {
+                img.removeAttribute('src');
+                img.removeAttribute('alt');
+                img.onerror = null;
+            }
+            child.querySelectorAll('.manga-emote').forEach((el) => el.remove());
+            spritePool.push(child);
+        });
+        container.innerHTML = '';
+    }
+
     function updateSprites(currentMsg, activeEmote = null) {
         const container = document.getElementById('vnSpriteContainer');
         if (!container) return;
 
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         const isFanfic = isFanficMode();
-
-        // En modo fanfic, mantener hasta 3 sprites persistentes
-        // En modo rol, mostrar solo el personaje actual (comportamiento clásico)
 
         let charsToShow = [];
 
         if (isFanfic) {
-            // Modo fanfic: hasta 3 sprites persistentes por orden de actividad
             const recentChars = [];
             const seen = new Set();
-            const activityOrder = new Map();
 
-            // Recorrer mensajes recientes para determinar actividad
             for (let i = msgs.length - 1; i >= 0 && seen.size < 5; i--) {
                 const m = msgs[i];
                 if (m.characterId && m.charSprite && !seen.has(m.characterId)) {
                     const charExists = appData.characters.find(c => c.id === m.characterId);
                     if (charExists) {
                         seen.add(m.characterId);
-                        activityOrder.set(m.characterId, i);
                         recentChars.push(m);
                     }
                 }
             }
 
-            // Tomar los 3 más recientes
             charsToShow = recentChars.slice(0, 3);
 
-            // Ordenar por posición (izquierda, centro, derecha) basado en orden de aparición
-            // El más reciente en centro, los anteriores en lados
             if (charsToShow.length === 1) {
                 charsToShow[0].position = 'center';
             } else if (charsToShow.length === 2) {
@@ -4956,67 +5382,110 @@
                 charsToShow[1].position = 'center';
                 charsToShow[2].position = 'right';
             }
-        } else {
-            // Modo rol: solo el personaje actual habla
-            if (currentMsg.characterId && currentMsg.charSprite) {
-                const charExists = appData.characters.find(c => c.id === currentMsg.characterId);
-                if (charExists) {
-                    currentMsg.position = 'center';
-                    charsToShow.push(currentMsg);
-                }
+        } else if (currentMsg.characterId && currentMsg.charSprite) {
+            const charExists = appData.characters.find(c => c.id === currentMsg.characterId);
+            if (charExists) {
+                currentMsg.position = 'center';
+                charsToShow.push(currentMsg);
             }
         }
 
-        if (charsToShow.length === 0) {
-            container.innerHTML = '';
-            return;
-        }
+        recycleActiveSprites(container);
 
-        // Renderizar sprites
-        container.innerHTML = charsToShow.map((char) => {
+        charsToShow.forEach((char) => {
+            const spriteNode = getPooledSpriteElement(container);
             const isCurrent = char.characterId === currentMsg.characterId;
             const position = char.position || 'center';
 
-            return `
-                <div class="vn-sprite position-${position} ${isCurrent ? 'active' : 'inactive'}" data-char-id="${char.characterId}">
-                    <img src="${escapeHtml(char.charSprite)}" alt="${escapeHtml(char.charName)}" onerror="this.style.display='none'; this.parentElement.style.display='none'">
-                    ${(isCurrent && activeEmote) ? `<div class="manga-emote emote-${activeEmote}">${emoteConfig[activeEmote]?.symbol || ''}</div>` : ''}
-                </div>
-            `;
-        }).join('');
+            spriteNode.className = `vn-sprite position-${position} ${isCurrent ? 'active' : 'inactive'}`;
+            spriteNode.dataset.charId = char.characterId;
+
+            const img = spriteNode.querySelector('img') || document.createElement('img');
+            img.src = escapeHtml(char.charSprite);
+            img.alt = escapeHtml(char.charName);
+            img.onerror = function () {
+                this.style.display = 'none';
+                if (this.parentElement) this.parentElement.style.display = 'none';
+            };
+            img.style.display = 'block';
+
+            if (!spriteNode.contains(img)) spriteNode.appendChild(img);
+
+            if (isCurrent && activeEmote) {
+                const emoteNode = document.createElement('div');
+                emoteNode.className = `manga-emote emote-${activeEmote}`;
+                emoteNode.textContent = emoteConfig[activeEmote]?.symbol || '';
+                spriteNode.appendChild(emoteNode);
+            }
+
+            container.appendChild(spriteNode);
+        });
     }
+
 
     function typeWriter(text, element) {
         stopTypewriter();
 
         isTyping = true;
         element.innerHTML = '';
+        const sessionId = typewriterSessionId;
 
         const indicator = document.getElementById('vnContinueIndicator');
         if (indicator) indicator.style.opacity = '0';
 
         const hasHtml = /<[^>]*>/g.test(text);
 
+        if (prefersReducedMotion()) {
+            element.innerHTML = text;
+            isTyping = false;
+            if (indicator) indicator.style.opacity = '1';
+            return;
+        }
+
         if (hasHtml) {
             element.innerHTML = text;
             element.style.opacity = '0';
             element.style.transition = 'opacity 0.3s';
             setTimeout(() => {
+                if (sessionId !== typewriterSessionId) return;
                 element.style.opacity = '1';
                 isTyping = false;
                 if (indicator) indicator.style.opacity = '1';
             }, 100);
         } else {
+            const wordsFastMode = textSpeed <= 25;
+            const tokens = wordsFastMode ? (text.match(/\S+\s*/g) || [text]) : text.split('');
             let i = 0;
-            typewriterInterval = setInterval(() => {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    i++;
-                } else {
+            let lastTick = 0;
+
+            const step = (timestamp) => {
+                if (sessionId !== typewriterSessionId) {
+                    typewriterInterval = null;
+                    return;
+                }
+
+                if (!lastTick || timestamp - lastTick >= textSpeed) {
+                    const chunkSize = wordsFastMode ? 2 : 1;
+                    let consumed = 0;
+
+                    while (consumed < chunkSize && i < tokens.length) {
+                        element.innerHTML += tokens[i];
+                        i++;
+                        consumed++;
+                    }
+                    lastTick = timestamp;
+                }
+
+                if (i >= tokens.length) {
                     stopTypewriter();
                     if (indicator) indicator.style.opacity = '1';
+                    return;
                 }
-            }, textSpeed);
+
+                typewriterInterval = window.requestAnimationFrame(step);
+            };
+
+            typewriterInterval = window.requestAnimationFrame(step);
         }
     }
 
@@ -5031,7 +5500,7 @@
         if (settingsPanel && settingsPanel.classList.contains('active')) return;
         if (emotePicker && emotePicker.classList.contains('active')) return;
 
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
 
         if (isTyping) {
             stopTypewriter();
@@ -5071,7 +5540,7 @@
     }
 
     function nextMessage() {
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         if (currentMessageIndex < msgs.length - 1) {
             currentMessageIndex++;
             showCurrentMessage();
@@ -5079,7 +5548,7 @@
     }
 
     function lastMessage() {
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         if (msgs.length === 0) return;
         currentMessageIndex = msgs.length - 1;
         showCurrentMessage();
@@ -5093,7 +5562,7 @@
     }
 
     function deleteCurrentMessage() {
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         if (msgs.length === 0 || currentMessageIndex >= msgs.length) return;
         if (!confirm('¿Borrar este mensaje?')) return;
 
@@ -5111,7 +5580,7 @@
     // EDICIÓN DE MENSAJES
     // ============================================
     function editCurrentMessage() {
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         if (currentMessageIndex >= msgs.length) return;
 
         const msg = msgs[currentMessageIndex];
@@ -5172,7 +5641,7 @@
         const text = replyText?.value.trim();
         if(!text) { alert('Escribe algo'); return; }
 
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         const msgIndex = msgs.findIndex(m => m.id === editingMessageId);
         if (msgIndex === -1) return;
 
@@ -5230,7 +5699,7 @@
         const container = document.getElementById('vnOptionsContainer');
         if (!container) return;
 
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         const currentMsg = msgs[currentMessageIndex];
 
         if (!options || options.length === 0 || isFanficMode()) {
@@ -5238,19 +5707,28 @@
             return;
         }
 
-        container.innerHTML = options.map((opt, idx) => `
-            <button class="vn-option-btn ${currentMsg.selectedOptionIndex === idx ? 'chosen' : ''}"
+        const total = options.length;
+        container.innerHTML = options.map((opt, idx) => {
+            const selected = currentMsg.selectedOptionIndex === idx;
+            const disabled = currentMsg.selectedOptionIndex !== undefined;
+            const optionLabel = `${opt.text}, opción ${idx + 1} de ${total}`;
+            return `
+            <button class="vn-option-btn ${selected ? 'chosen' : ''}"
+                    role="button"
+                    aria-pressed="${selected ? 'true' : 'false'}"
+                    aria-label="${escapeHtml(optionLabel)}"
                     onclick="selectOption(${idx})"
-                    ${currentMsg.selectedOptionIndex !== undefined ? 'disabled' : ''}>
+                    ${disabled ? 'disabled' : ''}>
                 ${escapeHtml(opt.text)}
             </button>
-        `).join('');
+        `;
+        }).join('');
 
         container.classList.add('active');
     }
 
     function selectOption(idx) {
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         const msg = msgs[currentMessageIndex];
 
         if (!msg.options || msg.selectedOptionIndex !== undefined) return;
@@ -5280,8 +5758,8 @@
                 parentOptionIndex: idx
             };
 
-            if (!appData.messages[currentTopicId]) appData.messages[currentTopicId] = [];
-            appData.messages[currentTopicId].push(newMsg);
+            const topicMessages = getTopicMessages(currentTopicId);
+            topicMessages.push(newMsg);
             hasUnsavedChanges = true;
             save();
         }
@@ -5292,7 +5770,7 @@
         const optionsIndicator = document.getElementById('messageHasOptions');
         if (optionsIndicator) optionsIndicator.classList.add('hidden');
 
-        currentMessageIndex = appData.messages[currentTopicId].length - 1;
+        currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
         showCurrentMessage();
     }
 
@@ -5312,37 +5790,76 @@
     // ============================================
     // HISTORIAL
     // ============================================
+    function buildHistoryEntry(msg, idx) {
+        const isNarrator = msg.isNarrator || !msg.characterId;
+        const speaker = isNarrator ? 'Narrador' : msg.charName;
+        const date = new Date(msg.timestamp).toLocaleString();
+        const edited = msg.edited ? ' (editado)' : '';
+        const optionResult = msg.isOptionResult ? ' [Respuesta elegida]' : '';
+
+        return `
+            <div class="history-entry ${isNarrator ? 'narrator' : ''} ${msg.isOptionResult ? 'option-result' : ''}">
+                <div class="history-speaker">
+                    ${msg.charAvatar && !isNarrator ? `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar en historial de ${escapeHtml(speaker)}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-gold);">` : ''}
+                    ${escapeHtml(speaker)}${edited}${optionResult}
+                </div>
+                <div class="history-text">${formatText(msg.text)}</div>
+                <div class="history-timestamp">${date} • Mensaje ${idx + 1}</div>
+            </div>
+        `;
+    }
+
+    function renderVirtualizedHistory(msgs, container) {
+        const rowHeight = 140;
+        const overscan = 10;
+
+        container.innerHTML = '<div id="historyVirtualSpacer" style="position: relative; width: 100%;"></div>';
+        const spacer = container.querySelector('#historyVirtualSpacer');
+        if (!spacer) return;
+
+        spacer.style.height = `${msgs.length * rowHeight}px`;
+        historyVirtualState = { rowHeight, overscan, msgs, spacer, container };
+
+        const paint = () => {
+            const state = historyVirtualState;
+            if (!state) return;
+
+            const viewportHeight = state.container.clientHeight || 500;
+            const scrollTop = state.container.scrollTop;
+            const firstVisible = Math.floor(scrollTop / state.rowHeight);
+            const visibleCount = Math.ceil(viewportHeight / state.rowHeight);
+
+            const start = Math.max(0, firstVisible - state.overscan);
+            const end = Math.min(state.msgs.length, firstVisible + visibleCount + state.overscan);
+
+            const html = state.msgs.slice(start, end).map((msg, relativeIdx) => {
+                const absoluteIdx = start + relativeIdx;
+                return `<div style="position:absolute;left:0;right:0;top:${absoluteIdx * state.rowHeight}px;">${buildHistoryEntry(msg, absoluteIdx)}</div>`;
+            }).join('');
+
+            state.spacer.innerHTML = html;
+        };
+
+        container.onscroll = paint;
+        paint();
+    }
+
     function openHistoryLog() {
-        const msgs = appData.messages[currentTopicId] || [];
+        const msgs = getTopicMessages(currentTopicId);
         const container = document.getElementById('historyContent');
 
         if (!container) return;
 
         if (msgs.length === 0) {
+            container.onscroll = null;
             container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay mensajes en esta historia.</div>';
         } else {
-            container.innerHTML = msgs.map((msg, idx) => {
-                const isNarrator = msg.isNarrator || !msg.characterId;
-                const speaker = isNarrator ? 'Narrador' : msg.charName;
-                const date = new Date(msg.timestamp).toLocaleString();
-                const edited = msg.edited ? ' (editado)' : '';
-                const optionResult = msg.isOptionResult ? ' [Respuesta elegida]' : '';
-
-                return `
-                    <div class="history-entry ${isNarrator ? 'narrator' : ''} ${msg.isOptionResult ? 'option-result' : ''}">
-                        <div class="history-speaker">
-                            ${msg.charAvatar && !isNarrator ? `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar en historial de ${escapeHtml(speaker)}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-gold);">` : ''}
-                            ${escapeHtml(speaker)}${edited}${optionResult}
-                        </div>
-                        <div class="history-text">${formatText(msg.text)}</div>
-                        <div class="history-timestamp">${date} • Mensaje ${idx + 1}</div>
-                    </div>
-                `;
-            }).join('');
+            renderVirtualizedHistory(msgs, container);
         }
 
         openModal('historyModal');
     }
+
 
     // ============================================
     // RESPUESTAS (Reply Panel)
@@ -5575,7 +6092,7 @@
             if(options.length === 0) { alert('Rellena al menos una opción con texto y continuación'); return; }
         }
 
-        if(!appData.messages[currentTopicId]) appData.messages[currentTopicId] = [];
+        const topicMessages = getTopicMessages(currentTopicId);
 
         const newMsg = {
             id: Date.now().toString(),
@@ -5592,12 +6109,12 @@
             weather: currentWeather !== 'none' ? currentWeather : undefined
         };
 
-        appData.messages[currentTopicId].push(newMsg);
+        topicMessages.push(newMsg);
 
         hasUnsavedChanges = true;
         save();
         closeReplyPanel();
-        currentMessageIndex = appData.messages[currentTopicId].length - 1;
+        currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
         showCurrentMessage();
     }
 
@@ -5703,7 +6220,7 @@
         }
 
         container.innerHTML = appData.topics.map(t => {
-            const msgs = appData.messages[t.id] || [];
+            const msgs = getTopicMessages(t.id);
             const last = msgs[msgs.length - 1];
             const lastText = last ? stripHtml(formatText(last.text)).substring(0, 50) : '';
             const modeIcon = t.mode === 'fanfic' ? '📖' : '🎭';
@@ -5731,10 +6248,9 @@
         if (statTopics) statTopics.textContent = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
 
         let msgCount = 0;
-        Object.values(appData.messages).forEach(msgs => {
-            if (Array.isArray(msgs)) {
-                msgCount += msgs.filter(m => m.userIndex === currentUserIndex).length;
-            }
+        appData.topics.forEach((topic) => {
+            const topicMsgs = getTopicMessages(topic.id);
+            msgCount += topicMsgs.filter(m => m.userIndex === currentUserIndex).length;
         });
 
         if (statMsgs) statMsgs.textContent = msgCount;
@@ -5752,6 +6268,7 @@
         const weather = weatherInput?.value || 'none';
 
         if(!title || !text) { alert('Completa todos los campos obligatorios'); return; }
+        if (!validateImageUrlField(bg, 'La URL del fondo')) return;
 
         const id = Date.now().toString();
         appData.topics.push({
@@ -5798,12 +6315,14 @@
     // ============================================
     function save() {
         try {
-            localStorage.setItem('etheria_data', JSON.stringify(appData));
+            persistPartitionedData();
             hasUnsavedChanges = false;
             showAutosave('Guardado', 'saved');
+            return true;
         } catch (e) {
             console.error('Error saving:', e);
-            showAutosave('Error al guardar', 'error');
+            showAutosave('Error al guardar: almacenamiento lleno o no disponible', 'error');
+            return false;
         }
     }
 
@@ -5837,8 +6356,12 @@
         }
         const modal = document.getElementById(id);
         if (modal) {
+            lastFocusedElement = document.activeElement;
             modal.classList.add('active');
             document.body.classList.add('modal-open');
+
+            const firstFocusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+            if (firstFocusable) firstFocusable.focus();
         }
     }
 
@@ -5858,6 +6381,9 @@
         const anyModalOpen = document.querySelector('.modal-overlay.active');
         if (!anyModalOpen) {
             document.body.classList.remove('modal-open');
+            if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+                lastFocusedElement.focus();
+            }
         }
     }
 
@@ -5899,13 +6425,13 @@
     }
 
     function quickSave() {
-        save();
-        showAutosave('Guardado rápido', 'saved');
+        const saved = save();
+        showAutosave(saved ? 'Guardado rápido' : 'Error al guardar rápido', saved ? 'saved' : 'error');
     }
 
     function saveGameFromMenu() {
-        save();
-        alert('Partida guardada localmente');
+        const saved = save();
+        alert(saved ? 'Partida guardada localmente' : 'No se pudo guardar. Revisa espacio disponible en almacenamiento local.');
     }
 
     function loadGameFromMenu() {
@@ -5921,15 +6447,7 @@
                 try {
                     const data = JSON.parse(event.target.result);
 
-                    if(!data || typeof data !== 'object') {
-                        alert('Archivo inválido');
-                        return;
-                    }
-
-                    if(!Array.isArray(data.topics) || !Array.isArray(data.characters)) {
-                        alert('Formato de datos incorrecto');
-                        return;
-                    }
+                    validateImportedData(data);
 
                     if(confirm('Esto reemplazará todos los datos actuales. ¿Continuar?')) {
                         appData = {
