@@ -1104,7 +1104,6 @@
         .topic-modal {
             max-width: 620px;
             height: auto;
-            max-height: 92vh;
             max-height: 95vh;
             overflow: hidden;
             display: flex;
@@ -1315,8 +1314,6 @@
         #topicFirstMsg,
         textarea[name="inicio"] {
             width: 100%;
-            min-height: 92px;
-            max-height: min(20vh, 165px);
             min-height: 120px;
             max-height: min(28vh, 240px);
             resize: vertical;
@@ -1326,25 +1323,33 @@
 
         .topic-weather-grid {
             display: grid;
-            grid-template-columns: repeat(3, 40px);
-            justify-content: start;
-            gap: 0.45rem;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
         }
 
         .topic-weather-btn {
-            padding: 0;
-            width: 40px;
-            min-width: 40px;
-            min-height: 40px;
+            width: 100%;
+            min-height: 42px;
             border: 2px solid var(--border-color);
             border-radius: 10px;
-            font-size: 1.2rem;
+            font-size: 1rem;
             line-height: 1;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            gap: 0.35rem;
             color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .topic-weather-btn .weather-icon {
             font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+            font-size: 1rem;
+        }
+
+        .topic-weather-btn .weather-label {
+            font-size: 0.9rem;
+            font-weight: 500;
         }
 
         .topic-inline-field {
@@ -1365,8 +1370,6 @@
             min-height: 34px;
             padding: 0.38rem 0.65rem;
             font-size: 0.85rem;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.5rem;
         }
 
         #topicFirstMsg::-webkit-scrollbar,
@@ -1409,22 +1412,18 @@
             }
 
             .topic-weather-grid {
-                grid-template-columns: repeat(3, 40px);
-                justify-content: start;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
 
             .topic-inline-field {
                 grid-template-columns: 1fr;
                 gap: 0.35rem;
-            .topic-mode-toggle,
-            .topic-weather-grid {
-                grid-template-columns: 1fr;
             }
+
+
 
             #topicFirstMsg,
             textarea[name="inicio"] {
-                min-height: 84px;
-                max-height: min(18vh, 140px);
                 min-height: 110px;
                 max-height: min(34vh, 200px);
             }
@@ -3075,10 +3074,9 @@
             <div class="form-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Ambientación</label>
                 <div class="topic-weather-grid">
-                    <button type="button" class="weather-btn topic-weather-btn active" onclick="setTopicWeather('none')" aria-label="Ambientación normal" title="Normal">☀️</button>
-                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('rain')" aria-label="Ambientación lluvia" title="Lluvia">🌧️</button>
-                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('fog')" aria-label="Ambientación niebla" title="Niebla">🌫️</button>
-
+                    <button type="button" class="weather-btn topic-weather-btn active" onclick="setTopicWeather('none')" aria-label="Ambientación normal" title="Normal"><span class="weather-icon">☀️</span><span class="weather-label">Normal</span></button>
+                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('rain')" aria-label="Ambientación lluvia" title="Lluvia"><span class="weather-icon">🌧️</span><span class="weather-label">Lluvia</span></button>
+                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('fog')" aria-label="Ambientación niebla" title="Niebla"><span class="weather-icon">🌫️</span><span class="weather-label">Niebla</span></button>
                 </div>
                 <input type="hidden" id="topicWeatherInput" value="none">
             </div>
