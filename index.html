@@ -1103,20 +1103,12 @@
         /* NEW STORY MODAL POLISH */
         .topic-modal {
             max-width: 620px;
- codex/fix-errors-in-etheria-project
-            max-height: 95vh;
             height: auto;
+            max-height: 95vh;
             overflow-y: hidden;
             display: flex;
             flex-direction: column;
-
- codex/fix-errors-in-etheria-project
-            max-height: min(92vh, 900px);
-            overflow-y: auto;
-            padding-bottom: 1.25rem;
-
- main
- main
+            padding: 1.5rem 2rem 1rem;
             border-radius: 28px;
             border: 2px solid rgba(201, 168, 108, 0.85);
             box-shadow:
@@ -1127,13 +1119,6 @@
                 radial-gradient(circle at 20% 20%, rgba(201, 168, 108, 0.07), transparent 45%),
                 linear-gradient(145deg, rgba(25, 23, 20, 0.96), rgba(17, 16, 14, 0.97));
             animation: topicModalFloat 4.5s ease-in-out infinite;
- codex/fix-errors-in-etheria-project
-
- codex/fix-errors-in-etheria-project
-            scrollbar-width: thin;
-
- main
- main
         }
 
         @keyframes topicModalFloat {
@@ -1245,6 +1230,10 @@
             transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
         }
 
+        .topic-modal .form-group {
+            margin-bottom: 1.1rem;
+        }
+
         .topic-modal .form-group input:focus,
         .topic-modal .form-group select:focus,
         .topic-modal .form-group textarea:focus {
@@ -1254,35 +1243,17 @@
         }
 
         .topic-modal-footer {
- codex/fix-errors-in-etheria-project
             display: flex;
             flex-direction: column;
             gap: 0.85rem;
             margin-top: auto;
-
- codex/fix-errors-in-etheria-project
             position: sticky;
             bottom: 0;
             z-index: 2;
-
- main
-            display: flex;
-            flex-direction: column;
-            gap: 0.85rem;
-            margin-top: 1.7rem;
- codex/fix-errors-in-etheria-project
- main
             padding: 1rem 0 0.2rem;
             border-top: 1px solid var(--border-color);
             background: linear-gradient(180deg, rgba(18, 17, 15, 0.08) 0%, rgba(18, 17, 15, 0.96) 35%);
             backdrop-filter: blur(4px);
- codex/fix-errors-in-etheria-project
-
-
-            padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
- main
- main
         }
 
         .topic-create-btn {
@@ -1299,8 +1270,15 @@
             box-shadow: 0 0 24px rgba(201, 168, 108, 0.45), 0 12px 24px rgba(0,0,0,0.4);
         }
 
- codex/fix-errors-in-etheria-project
-        #topicFirstMsg {
+        .topic-inicio-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        #topicFirstMsg,
+        textarea[name="inicio"] {
             flex: 1;
             max-height: 50vh;
             overflow-y: auto;
@@ -1309,16 +1287,19 @@
             scrollbar-color: var(--accent-gold) rgba(255,255,255,0.08);
         }
 
-        #topicFirstMsg::-webkit-scrollbar {
+        #topicFirstMsg::-webkit-scrollbar,
+        textarea[name="inicio"]::-webkit-scrollbar {
             width: 8px;
         }
 
-        #topicFirstMsg::-webkit-scrollbar-track {
+        #topicFirstMsg::-webkit-scrollbar-track,
+        textarea[name="inicio"]::-webkit-scrollbar-track {
             background: rgba(255,255,255,0.08);
             border-radius: 8px;
         }
 
-        #topicFirstMsg::-webkit-scrollbar-thumb {
+        #topicFirstMsg::-webkit-scrollbar-thumb,
+        textarea[name="inicio"]::-webkit-scrollbar-thumb {
             background: linear-gradient(180deg, var(--accent-gold), var(--accent-wood));
             border-radius: 8px;
         }
@@ -1330,16 +1311,19 @@
         @media (max-width: 768px) {
             .topic-modal {
                 max-height: 95vh;
-                padding: 1rem;
+                padding: 1rem 1rem 0.85rem;
             }
 
-            #topicFirstMsg {
+            .topic-modal .form-group {
+                margin-bottom: 1rem !important;
+            }
+
+            #topicFirstMsg,
+            textarea[name="inicio"] {
                 max-height: 40vh;
             }
         }
 
-
- main
         /* VN MODE */
         .vn-section {
             position: relative;
@@ -2945,7 +2929,7 @@
             <h3 class="topic-title">Nueva Historia</h3>
 
             <!-- Selector de modo compacto -->
-            <div class="form-group" style="margin-bottom: 1.5rem;">
+            <div class="form-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Modo de historia</label>
                 <div class="topic-mode-toggle">
                     <label class="topic-mode-option active">
@@ -2960,7 +2944,7 @@
             </div>
 
             <!-- Checkbox narrador corregido -->
-            <div class="form-group" style="margin-bottom: 1.2rem;">
+            <div class="form-group">
                 <label class="narrator-check">
                     <input type="checkbox" id="startAsNarrator" onchange="toggleNarratorStart()">
                     <span>📖 Comenzar como narrador</span>
@@ -2968,32 +2952,32 @@
             </div>
 
             <!-- Selector de personaje -->
-            <div class="form-group" id="topicCharSelectGroup" style="margin-bottom: 1.2rem;">
+            <div class="form-group" id="topicCharSelectGroup">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Protagonista</label>
                 <select id="topicCharSelect"></select>
             </div>
 
             <!-- Título -->
-            <div class="form-group" style="margin-bottom: 1.2rem;">
+            <div class="form-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Título *</label>
                 <input type="text" id="topicTitleInput" placeholder="Título de la historia...">
             </div>
 
             <!-- Texto inicial -->
-            <div class="form-group" style="margin-bottom: 1.2rem;">
+            <div class="form-group topic-inicio-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Inicio *</label>
-                <textarea id="topicFirstMsg" rows="3" placeholder="Primer mensaje de la historia..."></textarea>
+                <textarea id="topicFirstMsg" name="inicio" rows="3" placeholder="Primer mensaje de la historia..."></textarea>
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Puedes usar **negrita** y *cursiva*</div>
             </div>
 
             <!-- Fondo personalizado -->
-            <div class="form-group" style="margin-bottom: 1.2rem;">
+            <div class="form-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Fondo (URL)</label>
                 <input type="text" id="topicBackgroundInput" placeholder="https://ejemplo.com/imagen.jpg">
             </div>
 
             <!-- Selector de clima -->
-            <div class="form-group" style="margin-bottom: 1.5rem;">
+            <div class="form-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Ambientación</label>
                 <div style="display: flex; gap: 0.5rem;">
                     <button type="button" class="weather-btn active" onclick="setTopicWeather('none')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">☀️ Normal</button>
