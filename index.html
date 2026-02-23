@@ -6,7 +6,7 @@
     <title>Etheria - Roleplay Visual Novel</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
-        
+
         :root {
             --bg-primary: #f5f1e8;
             --bg-secondary: #e8e0d0;
@@ -30,7 +30,7 @@
             --input-text: #3d3833;
             --menu-button-bg: rgba(255, 255, 255, 0.9);
         }
-        
+
         [data-theme="dark"] {
             --bg-primary: #1a1815;
             --bg-secondary: #2a2724;
@@ -62,9 +62,9 @@
             z-index: 9999;
             opacity: 0.4;
         }
-        
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+
         body {
             font-family: 'Crimson Text', serif;
             background: var(--bg-primary);
@@ -114,7 +114,7 @@
             z-index: 90;
             overflow: hidden;
         }
-        
+
         .rain-drop {
             position: absolute;
             width: 2px;
@@ -122,7 +122,7 @@
             opacity: 0.6;
             animation: rain-fall linear infinite;
         }
-        
+
         @keyframes rain-fall {
             0% { transform: translateY(-100vh) rotate(15deg); opacity: 0; }
             10% { opacity: 0.6; }
@@ -138,35 +138,35 @@
             z-index: 89;
             overflow: hidden;
         }
-        
+
         .fog-layer {
             position: absolute;
             width: 200%;
             height: 100%;
-            background: linear-gradient(to right, 
-                transparent 0%, 
-                rgba(255,255,255,0.3) 20%, 
-                rgba(255,255,255,0.5) 50%, 
-                rgba(255,255,255,0.3) 80%, 
+            background: linear-gradient(to right,
+                transparent 0%,
+                rgba(255,255,255,0.3) 20%,
+                rgba(255,255,255,0.5) 50%,
+                rgba(255,255,255,0.3) 80%,
                 transparent 100%);
             filter: blur(20px);
             opacity: 0.4;
             animation: fog-move 30s linear infinite;
         }
-        
+
         .fog-layer:nth-child(2) {
             animation-duration: 25s;
             animation-direction: reverse;
             opacity: 0.3;
             top: 30%;
         }
-        
+
         .fog-layer:nth-child(3) {
             animation-duration: 35s;
             opacity: 0.2;
             top: 60%;
         }
-        
+
         @keyframes fog-move {
             0% { transform: translateX(-50%); }
             100% { transform: translateX(0%); }
@@ -184,26 +184,26 @@
             transform-origin: center center;
             animation: emote-appear 0.3s ease-out forwards;
         }
-        
+
         @keyframes emote-appear {
             0% { transform: scale(0) rotate(-20deg); opacity: 0; }
             50% { transform: scale(1.3) rotate(5deg); }
             100% { transform: scale(1.2) rotate(0deg); opacity: 1; }
         }
-        
+
         /* Animaciones específicas por emote */
         .emote-angry { animation: emote-angry-anim 2s ease-in-out infinite; }
         @keyframes emote-angry-anim {
             0%, 100% { transform: scale(1.2); }
             50% { transform: scale(1.3) rotate(-5deg); }
         }
-        
+
         .emote-happy { animation: emote-happy-anim 2s ease-in-out infinite; }
         @keyframes emote-happy-anim {
             0%, 100% { transform: scale(1.2); filter: brightness(1) drop-shadow(0 0 5px gold); }
             50% { transform: scale(1.3); filter: brightness(1.3) drop-shadow(0 0 15px gold); }
         }
-        
+
         .emote-shock { animation: emote-shock-anim 2s ease-in-out infinite; }
         @keyframes emote-shock-anim {
             0%, 100% { transform: scale(1.2) translateY(0); }
@@ -211,44 +211,44 @@
             50% { transform: scale(1.2) translateY(0); }
             75% { transform: scale(1.25) translateY(-3px); }
         }
-        
+
         .emote-sad { animation: emote-sad-anim 2s ease-in-out infinite; }
         @keyframes emote-sad-anim {
             0%, 100% { transform: scale(1.2) translateY(0); opacity: 1; }
             50% { transform: scale(1.2) translateY(10px); opacity: 0.7; }
         }
-        
+
         .emote-think { animation: emote-think-anim 2s ease-in-out infinite; }
         @keyframes emote-think-anim {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-        
+
         .emote-love { animation: emote-love-anim 1.5s ease-in-out infinite; }
         @keyframes emote-love-anim {
             0%, 100% { transform: scale(1.2); }
             50% { transform: scale(1.4); }
         }
-        
+
         .emote-annoyed { animation: emote-annoyed-anim 0.5s ease-in-out infinite; }
         @keyframes emote-annoyed-anim {
             0%, 100% { transform: scale(1.2) translateX(0); }
             25% { transform: scale(1.2) translateX(-3px); }
             75% { transform: scale(1.2) translateX(3px); }
         }
-        
+
         .emote-embarrassed { animation: emote-embarrassed-anim 2s ease-in-out infinite; }
         @keyframes emote-embarrassed-anim {
             0%, 100% { opacity: 1; filter: brightness(1); }
             50% { opacity: 0.6; filter: brightness(1.2); }
         }
-        
+
         .emote-idea { animation: emote-idea-anim 2s ease-in-out infinite; }
         @keyframes emote-idea-anim {
             0%, 100% { transform: scale(1.2); filter: brightness(1) drop-shadow(0 0 5px yellow); }
             50% { transform: scale(1.3); filter: brightness(1.5) drop-shadow(0 0 20px yellow); }
         }
-        
+
         .emote-sleep { animation: emote-sleep-anim 3s ease-in-out infinite; }
         @keyframes emote-sleep-anim {
             0% { transform: scale(1.2) translateY(0); opacity: 1; }
@@ -271,9 +271,9 @@
             z-index: 300;
             backdrop-filter: blur(10px);
         }
-        
+
         .emote-picker.active { display: flex; }
-        
+
         .emote-btn {
             width: 50px;
             height: 50px;
@@ -284,7 +284,7 @@
             font-size: 1.5rem;
             transition: all 0.3s;
         }
-        
+
         .emote-btn:hover {
             transform: scale(1.1);
             border-color: var(--accent-gold);
@@ -355,25 +355,25 @@
             display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 2000;
         }
         .user-select-screen.hidden { display: none; }
-        .game-title { 
-            font-family: 'Cinzel', serif; 
-            font-size: 5rem; 
-            color: var(--accent-wood); 
-            margin-bottom: 0.5rem; 
-            letter-spacing: 12px; 
+        .game-title {
+            font-family: 'Cinzel', serif;
+            font-size: 5rem;
+            color: var(--accent-wood);
+            margin-bottom: 0.5rem;
+            letter-spacing: 12px;
             text-shadow: 2px 2px 4px var(--shadow-heavy);
         }
         .game-subtitle { font-size: 1.3rem; color: var(--text-secondary); margin-bottom: 4rem; font-style: italic; }
         .user-cards { display: flex; gap: 3rem; flex-wrap: wrap; justify-content: center; align-items: center; }
-        
+
         .user-card {
-            width: 220px; height: 280px; 
-            background: var(--glass-bg); 
+            width: 220px; height: 280px;
+            background: var(--glass-bg);
             border: 3px solid transparent;
             border-image: linear-gradient(135deg, var(--accent-wood), var(--accent-gold)) 1;
-            border-radius: 24px; 
+            border-radius: 24px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.4s; 
+            cursor: pointer; transition: all 0.4s;
             box-shadow: 0 20px 40px var(--shadow-heavy);
             backdrop-filter: blur(10px);
             position: relative;
@@ -391,32 +391,32 @@
             -webkit-mask-composite: xor;
             mask-composite: exclude;
         }
-        .user-card:hover { 
-            transform: translateY(-20px) scale(1.05); 
+        .user-card:hover {
+            transform: translateY(-20px) scale(1.05);
             box-shadow: 0 30px 60px rgba(201, 168, 108, 0.3);
         }
-        .user-avatar { 
-            width: 100px; height: 100px; 
-            border-radius: 50%; 
+        .user-avatar {
+            width: 100px; height: 100px;
+            border-radius: 50%;
             background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage));
-            display: flex; align-items: center; justify-content: center; 
+            display: flex; align-items: center; justify-content: center;
             font-size: 3rem; margin-bottom: 1.5rem;
             border: 3px solid var(--accent-gold);
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        .user-name { 
-            font-family: 'Cinzel', serif; 
-            font-size: 1.4rem; 
-            font-weight: 600; 
+        .user-name {
+            font-family: 'Cinzel', serif;
+            font-size: 1.4rem;
+            font-weight: 600;
             color: #e8e4dc;
             text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
-        .user-hint { 
-            font-size: 0.85rem; 
+        .user-hint {
+            font-size: 0.85rem;
             color: rgba(232, 228, 220, 0.8);
-            margin-top: 0.8rem; 
-            opacity: 0; 
-            transition: opacity 0.3s; 
+            margin-top: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
         .user-card:hover .user-hint { opacity: 1; }
 
@@ -450,15 +450,15 @@
 
         /* MENÚ PRINCIPAL */
         .main-menu {
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
             height: 100%;
             background-image: url('https://png.pngtree.com/background/20250103/original/pngtree-forest-trees-anime-visual-novel-game-nature-plant-and-in-a-picture-image_15870655.jpg');
             background-size: cover;
             background-position: center;
-            display: flex; 
+            display: flex;
             z-index: 1000;
         }
 
@@ -479,9 +479,9 @@
             backdrop-filter: blur(1px);
             z-index: 0;
         }
-        
+
         .main-menu.hidden { display: none; }
-        
+
         .menu-sidebar {
             width: 380px;
             height: 100%;
@@ -495,42 +495,42 @@
             position: relative;
             z-index: 10;
         }
-        
+
         .menu-brand { margin-bottom: 3rem; }
-        .menu-title { 
-            font-family: 'Cinzel', serif; 
-            font-size: 3rem; 
-            color: var(--accent-gold); 
+        .menu-title {
+            font-family: 'Cinzel', serif;
+            font-size: 3rem;
+            color: var(--accent-gold);
             margin-bottom: 0.5rem;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
-        .menu-subtitle { 
-            font-size: 1rem; 
-            color: var(--text-secondary); 
+        .menu-subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
             font-style: italic;
             font-family: 'Crimson Text', serif;
         }
-        
-        .menu-container { 
-            display: flex; 
-            flex-direction: column; 
+
+        .menu-container {
+            display: flex;
+            flex-direction: column;
             gap: 0.8rem;
             flex: 1;
         }
-        
+
         .menu-button {
-            background: var(--menu-button-bg); 
-            border: 2px solid var(--border-color); 
+            background: var(--menu-button-bg);
+            border: 2px solid var(--border-color);
             color: var(--text-primary);
-            padding: 1rem 1.5rem; 
-            border-radius: 12px; 
-            cursor: pointer; 
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
             font-family: 'Cinzel', serif;
-            font-size: 1.1rem; 
-            font-weight: 600; 
-            transition: all 0.3s; 
-            display: flex; 
-            align-items: center; 
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
             gap: 1rem;
             text-align: left;
             position: relative;
@@ -547,15 +547,15 @@
             transition: left 0.5s;
         }
         .menu-button:hover::before { left: 100%; }
-        .menu-button:hover { 
-            background: rgba(139, 115, 85, 0.25); 
-            border-color: var(--accent-wood); 
+        .menu-button:hover {
+            background: rgba(139, 115, 85, 0.25);
+            border-color: var(--accent-wood);
             transform: translateX(8px);
             box-shadow: 0 4px 15px rgba(139, 115, 85, 0.3);
             color: var(--accent-gold);
         }
-        .menu-button.primary { 
-            background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage)); 
+        .menu-button.primary {
+            background: linear-gradient(135deg, var(--accent-wood), var(--accent-sage));
             color: white;
             border-color: var(--accent-wood);
             text-shadow: 0 1px 2px rgba(0,0,0,0.3);
@@ -564,7 +564,7 @@
             box-shadow: 0 4px 20px rgba(139, 115, 85, 0.5);
             color: white;
         }
-        
+
         .menu-footer {
             margin-top: auto;
             padding-top: 2rem;
@@ -591,32 +591,32 @@
         .game-section { display: none; min-height: 100vh; background: var(--bg-primary); }
         .game-section.active { display: block; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        
+
         .section-header-bar {
             background: linear-gradient(to right, var(--bg-secondary), var(--bg-primary));
-            border-bottom: 3px double var(--border-color); 
+            border-bottom: 3px double var(--border-color);
             padding: 1.5rem 2rem;
             display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;
         }
         .section-title { font-family: 'Cinzel', serif; font-size: 1.8rem; color: var(--accent-wood); }
         .back-button {
-            background: var(--bg-tertiary); 
-            border: 2px solid var(--border-color); 
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
             color: var(--text-primary);
             padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-family: 'Inter', sans-serif;
             transition: all 0.3s;
         }
-        .back-button:hover { 
-            background: var(--accent-wood); 
+        .back-button:hover {
+            background: var(--accent-wood);
             color: white;
             box-shadow: 0 0 15px rgba(139, 115, 85, 0.4);
         }
         .section-content { max-width: 1400px; margin: 0 auto; padding: 2rem; }
 
-        .gallery-toolbar { 
-            display: flex; 
-            gap: 1rem; 
-            margin-bottom: 2rem; 
+        .gallery-toolbar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
             align-items: center;
             background: var(--menu-button-bg);
             padding: 1rem 1.5rem;
@@ -635,8 +635,8 @@
             font-size: 1rem;
             transition: all 0.3s;
         }
-        .search-input:focus { 
-            outline: none; 
+        .search-input:focus {
+            outline: none;
             border-color: var(--accent-wood);
             background: var(--bg-primary);
             box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.1);
@@ -644,7 +644,7 @@
         .search-input::placeholder {
             color: var(--text-muted);
         }
-        
+
         .sort-select {
             padding: 0.8rem 1.2rem;
             border-radius: 12px;
@@ -654,7 +654,7 @@
             font-family: 'Inter', sans-serif;
             cursor: pointer;
         }
-        
+
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -747,21 +747,21 @@
         }
 
         .sheet-modal {
-            background: var(--glass-bg); 
+            background: var(--glass-bg);
             border-radius: 24px; width: 95%; max-width: 800px;
-            max-height: 90vh; overflow: hidden; 
+            max-height: 90vh; overflow: hidden;
             border: 3px double var(--accent-gold);
-            box-shadow: 0 40px 80px rgba(0,0,0,0.5); 
+            box-shadow: 0 40px 80px rgba(0,0,0,0.5);
             display: flex; flex-direction: column;
             backdrop-filter: blur(20px);
         }
         .sheet-header {
             background: linear-gradient(135deg, rgba(139, 115, 85, 0.3), rgba(107, 142, 125, 0.3));
-            padding: 2rem; display: flex; gap: 1.5rem; 
+            padding: 2rem; display: flex; gap: 1.5rem;
             border-bottom: 3px double var(--border-color);
         }
         .sheet-avatar-large {
-            width: 120px; height: 120px; border-radius: 50%; 
+            width: 120px; height: 120px; border-radius: 50%;
             border: 4px double var(--accent-gold);
             box-shadow: 0 10px 30px var(--shadow-heavy); overflow: hidden; flex-shrink: 0;
             background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; font-size: 3rem;
@@ -772,13 +772,13 @@
         .sheet-owner { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem; }
         .sheet-quick-stats { display: flex; gap: 1rem; flex-wrap: wrap; }
         .quick-stat {
-            background: rgba(255,255,255,0.1); 
+            background: rgba(255,255,255,0.1);
             padding: 0.4rem 0.8rem; border-radius: 8px;
-            font-size: 0.85rem; color: var(--text-secondary); 
+            font-size: 0.85rem; color: var(--text-secondary);
             border: 1px solid var(--border-light);
             backdrop-filter: blur(5px);
         }
-        
+
         .sheet-tabs { display: flex; background: rgba(139, 115, 85, 0.2); border-bottom: 2px solid var(--border-color); }
         .sheet-tab {
             flex: 1; padding: 1rem; border: none; background: none; cursor: pointer;
@@ -789,41 +789,41 @@
         .sheet-tab.active::after {
             content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; background: var(--accent-gold);
         }
-        
+
         .sheet-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
         .sheet-content { flex: 1; overflow-y: auto; padding: 2rem; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; animation: fadeIn 0.3s ease; }
-        
+
         .profile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-        .profile-item { 
-            background: rgba(139, 115, 85, 0.1); 
-            padding: 1rem; border-radius: 10px; 
+        .profile-item {
+            background: rgba(139, 115, 85, 0.1);
+            padding: 1rem; border-radius: 10px;
             border: 1px solid var(--border-light);
             backdrop-filter: blur(5px);
         }
         .profile-item.full-width { grid-column: 1 / -1; }
         .profile-label { font-size: 0.75rem; text-transform: uppercase; color: var(--accent-gold); font-weight: bold; margin-bottom: 0.3rem; font-family: 'Inter', sans-serif; }
         .profile-value { font-size: 1.1rem; color: var(--text-primary); }
-        .profile-text { 
-            background: rgba(139, 115, 85, 0.1); 
-            padding: 1.5rem; border-radius: 12px; 
-            line-height: 1.8; 
-            border-left: 4px solid var(--accent-gold); 
+        .profile-text {
+            background: rgba(139, 115, 85, 0.1);
+            padding: 1.5rem; border-radius: 12px;
+            line-height: 1.8;
+            border-left: 4px solid var(--accent-gold);
             white-space: pre-wrap;
             backdrop-filter: blur(5px);
         }
-        
+
         .sheet-actions { padding: 1.5rem; background: rgba(139, 115, 85, 0.2); border-top: 2px solid var(--border-color); display: flex; gap: 1rem; justify-content: flex-end; }
 
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7); 
+            background: rgba(0,0,0,0.7);
             display: none; justify-content: center; align-items: center; z-index: 2000;
             backdrop-filter: blur(5px);
         }
         .modal-overlay.active { display: flex; }
-        
+
         .modal {
             background: var(--glass-bg);
             border-radius: 24px;
@@ -844,27 +844,27 @@
             margin-bottom: 1.5rem;
             text-align: center;
         }
-        
+
         .character-modal {
-            background: var(--glass-bg); 
-            border-radius: 24px; 
-            width: 95%; 
+            background: var(--glass-bg);
+            border-radius: 24px;
+            width: 95%;
             max-width: 1000px;
-            max-height: 90vh; 
-            overflow: hidden; 
+            max-height: 90vh;
+            overflow: hidden;
             border: 3px double var(--accent-gold);
             backdrop-filter: blur(20px);
             box-shadow: 0 40px 80px rgba(0,0,0,0.5);
             display: flex;
             flex-direction: column;
         }
-        
+
         .editor-container {
             display: flex;
             height: 70vh;
             overflow: hidden;
         }
-        
+
         .editor-preview {
             width: 35%;
             background: linear-gradient(135deg, rgba(139, 115, 85, 0.2), rgba(107, 142, 125, 0.2));
@@ -876,7 +876,7 @@
             padding: 2rem;
             position: relative;
         }
-        
+
         .editor-preview-image {
             width: 200px;
             height: 200px;
@@ -896,7 +896,7 @@
             height: 100%;
             object-fit: cover;
         }
-        
+
         .editor-preview-name {
             font-family: 'Cinzel', serif;
             font-size: 1.5rem;
@@ -904,26 +904,26 @@
             text-align: center;
             margin-bottom: 0.5rem;
         }
-        
+
         .editor-preview-hint {
             font-size: 0.85rem;
             color: var(--text-muted);
             text-align: center;
         }
-        
+
         .editor-form {
             flex: 1;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
-        
+
         .editor-tabs {
             display: flex;
             background: rgba(139, 115, 85, 0.2);
             border-bottom: 2px solid var(--border-color);
         }
-        
+
         .editor-tab {
             flex: 1;
             padding: 1rem;
@@ -940,8 +940,8 @@
             gap: 0.5rem;
         }
         .editor-tab:hover { color: var(--accent-gold); background: rgba(201, 168, 108, 0.1); }
-        .editor-tab.active { 
-            color: var(--accent-gold); 
+        .editor-tab.active {
+            color: var(--accent-gold);
             background: rgba(201, 168, 108, 0.2);
             position: relative;
         }
@@ -955,23 +955,23 @@
             background: var(--accent-gold);
             border-radius: 2px;
         }
-        
+
         .editor-content {
             flex: 1;
             overflow-y: auto;
             padding: 2rem;
         }
-        
+
         .editor-panel { display: none; }
         .editor-panel.active { display: block; animation: fadeIn 0.3s ease; }
-        
+
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
         .form-group { margin-bottom: 1rem; }
-        .form-group label { 
-            display: block; 
-            margin-bottom: 0.5rem; 
-            font-weight: 600; 
-            font-family: 'Inter', sans-serif; 
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
             font-size: 0.85rem;
             color: var(--text-secondary);
             text-transform: uppercase;
@@ -997,7 +997,7 @@
             background: var(--input-bg);
             color: var(--input-text);
         }
-        
+
         .form-group textarea {
             width: 100%;
             min-height: 120px;
@@ -1017,7 +1017,7 @@
             border-color: var(--accent-gold);
             box-shadow: 0 0 0 3px rgba(201, 168, 108, 0.1);
         }
-        
+
         .gender-selector {
             display: flex;
             gap: 0.5rem;
@@ -1042,7 +1042,7 @@
             background: rgba(201, 168, 108, 0.2);
             box-shadow: 0 0 10px rgba(201, 168, 108, 0.2);
         }
-        
+
         .editor-actions {
             padding: 1.5rem 2rem;
             background: rgba(139, 115, 85, 0.2);
@@ -1051,7 +1051,7 @@
             gap: 1rem;
             justify-content: flex-end;
         }
-        
+
         .btn-secondary {
             padding: 0.8rem 1.5rem;
             border-radius: 10px;
@@ -1066,7 +1066,7 @@
             border-color: var(--accent-wood);
             color: var(--accent-wood);
         }
-        
+
         .btn-danger {
             padding: 0.8rem 1.5rem;
             border-radius: 10px;
@@ -1081,7 +1081,7 @@
             background: #c75b5b;
             color: white;
         }
-        
+
         .btn-primary {
             padding: 0.8rem 2rem;
             border-radius: 10px;
@@ -1104,8 +1104,8 @@
         .topic-modal {
             max-width: 620px;
             height: auto;
-            max-height: 95vh;
-            overflow-y: hidden;
+            max-height: 92vh;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             padding: 1.5rem 2rem 1rem;
@@ -1119,6 +1119,15 @@
                 radial-gradient(circle at 20% 20%, rgba(201, 168, 108, 0.07), transparent 45%),
                 linear-gradient(145deg, rgba(25, 23, 20, 0.96), rgba(17, 16, 14, 0.97));
             animation: topicModalFloat 4.5s ease-in-out infinite;
+        }
+
+        .topic-modal-body {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 0.35rem;
+            margin-right: -0.15rem;
+            overscroll-behavior: contain;
         }
 
         @keyframes topicModalFloat {
@@ -1172,6 +1181,12 @@
             font-size: 0.95rem;
             color: var(--text-secondary);
             background: rgba(255,255,255,0.02);
+            min-width: 0;
+        }
+
+        .topic-mode-option span {
+            min-width: 0;
+            line-height: 1.2;
         }
 
         .topic-mode-option input[type="radio"] {
@@ -1189,36 +1204,61 @@
 
         .topic-mode-option:hover { border-color: rgba(201, 168, 108, 0.55); }
 
-        .narrator-check {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.75rem;
+        .role-char-modal {
+            background: var(--glass-bg);
+            width: min(92vw, 560px);
+            max-height: 82vh;
+            border-radius: 20px;
+            border: 2px solid var(--accent-gold);
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .role-char-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+            gap: 0.8rem;
+            max-height: min(50vh, 360px);
+            overflow-y: auto;
+            padding-right: 0.25rem;
+            overscroll-behavior: contain;
+        }
+
+        .role-char-bubble {
+            border: 2px solid var(--border-color);
+            background: rgba(255,255,255,0.05);
+            color: var(--text-primary);
+            border-radius: 999px;
+            width: 84px;
+            height: 84px;
+            padding: 0;
             cursor: pointer;
-            padding: 0.7rem 0.85rem;
-            border-radius: 10px;
-            transition: all 0.25s ease;
-            font-size: 1.02rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease;
         }
 
-        .narrator-check:hover { background: rgba(201, 168, 108, 0.09); }
-
-        .narrator-check input[type="checkbox"] {
-            width: 24px;
-            height: 24px;
-            accent-color: var(--accent-gold);
-            transform: scale(1);
-            transition: transform 0.2s ease;
+        .role-char-bubble:hover {
+            transform: translateY(-2px) scale(1.03);
+            border-color: var(--accent-gold);
         }
 
-        .narrator-check input[type="checkbox"]:checked {
-            transform: scale(1.08);
-            animation: narratorPop 0.28s ease;
-        }
-
-        @keyframes narratorPop {
-            0% { transform: scale(0.9); }
-            70% { transform: scale(1.14); }
-            100% { transform: scale(1.08); }
+        .role-char-bubble img,
+        .role-char-bubble .placeholder {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
         }
 
         .topic-modal .form-group input,
@@ -1231,7 +1271,7 @@
         }
 
         .topic-modal .form-group {
-            margin-bottom: 1.1rem;
+            margin-bottom: 0.85rem;
         }
 
         .topic-modal .form-group input:focus,
@@ -1246,14 +1286,10 @@
             display: flex;
             flex-direction: column;
             gap: 0.85rem;
-            margin-top: auto;
-            position: sticky;
-            bottom: 0;
-            z-index: 2;
-            padding: 1rem 0 0.2rem;
+            margin-top: 0.9rem;
+            padding-top: 0.9rem;
             border-top: 1px solid var(--border-color);
-            background: linear-gradient(180deg, rgba(18, 17, 15, 0.08) 0%, rgba(18, 17, 15, 0.96) 35%);
-            backdrop-filter: blur(4px);
+            background: transparent;
         }
 
         .topic-create-btn {
@@ -1273,18 +1309,59 @@
         .topic-inicio-group {
             display: flex;
             flex-direction: column;
-            flex: 1;
-            min-height: 0;
         }
 
         #topicFirstMsg,
         textarea[name="inicio"] {
-            flex: 1;
-            max-height: 50vh;
-            overflow-y: auto;
+            width: 100%;
+            min-height: 92px;
+            max-height: min(20vh, 165px);
             resize: vertical;
             scrollbar-width: thin;
             scrollbar-color: var(--accent-gold) rgba(255,255,255,0.08);
+        }
+
+        .topic-weather-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            justify-content: start;
+            gap: 0.45rem;
+        }
+
+        .topic-weather-btn {
+            padding: 0;
+            width: 40px;
+            min-width: 40px;
+            min-height: 40px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1.2rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+        }
+
+        .topic-inline-field {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .topic-inline-field label {
+            margin: 0;
+            font-size: 0.78rem;
+            white-space: nowrap;
+            color: var(--text-muted);
+        }
+
+        #topicBackgroundInput {
+            min-height: 34px;
+            padding: 0.38rem 0.65rem;
+            font-size: 0.85rem;
         }
 
         #topicFirstMsg::-webkit-scrollbar,
@@ -1310,17 +1387,36 @@
 
         @media (max-width: 768px) {
             .topic-modal {
-                max-height: 95vh;
+                max-height: 92vh;
                 padding: 1rem 1rem 0.85rem;
+            }
+
+            .topic-modal-body {
+                padding-right: 0.2rem;
             }
 
             .topic-modal .form-group {
                 margin-bottom: 1rem !important;
             }
 
+            .topic-mode-toggle {
+                grid-template-columns: 1fr;
+            }
+
+            .topic-weather-grid {
+                grid-template-columns: repeat(3, 40px);
+                justify-content: start;
+            }
+
+            .topic-inline-field {
+                grid-template-columns: 1fr;
+                gap: 0.35rem;
+            }
+
             #topicFirstMsg,
             textarea[name="inicio"] {
-                max-height: 40vh;
+                min-height: 84px;
+                max-height: min(18vh, 140px);
             }
         }
 
@@ -1334,7 +1430,7 @@
             overflow: hidden;
             transition: filter 0.5s ease;
         }
-        
+
         .vn-section.sepia { filter: sepia(0.6) contrast(1.1); }
         .vn-section.bw { filter: grayscale(1) contrast(1.2); }
         .vn-section.cinematic { filter: contrast(1.3) saturate(1.2) brightness(0.9); }
@@ -1357,7 +1453,7 @@
             min-width: 280px;
             transition: all 0.3s ease;
         }
-        
+
         .vn-info-avatar {
             width: 60px;
             height: 60px;
@@ -1367,27 +1463,27 @@
             flex-shrink: 0;
             background: var(--bg-tertiary);
         }
-        
+
         .vn-info-avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        
+
         .vn-info-details {
             display: flex;
             flex-direction: column;
             gap: 0.3rem;
             flex: 1;
         }
-        
+
         .vn-info-name {
             font-family: 'Cinzel', serif;
             color: var(--accent-gold);
             font-size: 1.1rem;
             font-weight: 600;
         }
-        
+
         .vn-info-club {
             font-size: 0.85rem;
             color: var(--text-secondary);
@@ -1400,26 +1496,26 @@
             gap: 0.3rem;
             margin-top: 0.5rem;
         }
-        
+
         .affinity-rank-name {
             font-family: 'Cinzel', serif;
             font-size: 0.9rem;
             color: var(--accent-gold);
             text-shadow: 0 0 10px currentColor;
         }
-        
+
         .affinity-rank-value {
             font-size: 0.8rem;
             color: var(--text-muted);
         }
-        
+
         .affinity-controls-inline {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             margin-top: 0.3rem;
         }
-        
+
         .affinity-btn-inline {
             width: 28px;
             height: 28px;
@@ -1435,35 +1531,35 @@
             font-weight: bold;
             transition: all 0.2s;
         }
-        
+
         .affinity-btn-inline:hover {
             background: var(--accent-gold);
             color: var(--bg-primary);
             transform: scale(1.1);
         }
-        
+
         .affinity-btn-inline.minus {
             border-color: #c75b5b;
             color: #c75b5b;
             background: rgba(199, 91, 91, 0.2);
         }
-        
+
         .affinity-btn-inline.minus:hover {
             background: #c75b5b;
             color: white;
         }
-        
+
         .affinity-btn-inline.plus {
             border-color: var(--accent-sage);
             color: var(--accent-sage);
             background: rgba(107, 142, 125, 0.2);
         }
-        
+
         .affinity-btn-inline.plus:hover {
             background: var(--accent-sage);
             color: white;
         }
-        
+
         /* Controles */
         .vn-controls {
             position: fixed;
@@ -1478,7 +1574,7 @@
             border: 2px solid var(--border-color);
             backdrop-filter: blur(15px);
         }
-        
+
         .vn-control-btn {
             background: rgba(0,0,0,0.3);
             border: 2px solid var(--border-color);
@@ -1496,7 +1592,7 @@
             justify-content: center;
             position: relative;
         }
-        
+
         .vn-control-btn:hover {
             background: var(--accent-wood);
             color: white;
@@ -1504,7 +1600,7 @@
             box-shadow: 0 0 15px rgba(201, 168, 108, 0.4);
             transform: translateY(-2px);
         }
-        
+
         .vn-control-btn.save-btn {
             background: rgba(107, 142, 125, 0.4);
             border-color: var(--accent-sage);
@@ -1525,7 +1621,7 @@
             align-items: flex-end;
             overflow: hidden;
         }
-        
+
         .vn-sprite {
             position: absolute;
             bottom: 0;
@@ -1535,7 +1631,7 @@
             justify-content: center;
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .vn-sprite img {
             height: 100%;
             width: auto;
@@ -1545,30 +1641,30 @@
             filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
             transition: all 0.3s ease;
         }
-        
+
         /* Posiciones fijas */
         .vn-sprite.position-left { left: 5%; transform: translateX(0); }
         .vn-sprite.position-center { left: 50%; transform: translateX(-50%); }
         .vn-sprite.position-right { right: 5%; transform: translateX(0); }
-        
+
         /* Estados visuales */
         .vn-sprite.inactive {
             opacity: 0.5;
             filter: brightness(0.6) grayscale(0.3);
             transform: scale(0.95);
         }
-        
+
         .vn-sprite.inactive.position-left { transform: scale(0.95); }
         .vn-sprite.inactive.position-center { transform: translateX(-50%) scale(0.95); }
         .vn-sprite.inactive.position-right { transform: scale(0.95); }
-        
+
         .vn-sprite.active {
             opacity: 1;
             filter: brightness(1.2) drop-shadow(0 0 30px rgba(201, 168, 108, 0.4));
             z-index: 101;
         }
-        
-        .vn-sprite.active.position-center { 
+
+        .vn-sprite.active.position-center {
             animation: bounce-focus 2s ease-in-out infinite;
         }
 
@@ -1598,7 +1694,7 @@
         .vn-dialogue-box:hover {
             box-shadow: 0 25px 70px rgba(0,0,0,0.6), 0 0 30px rgba(201, 168, 108, 0.2);
         }
-        
+
         .vn-speaker-avatar {
             position: absolute;
             left: 1.5rem;
@@ -1649,7 +1745,7 @@
             color: var(--text-secondary);
             font-style: italic;
         }
-        
+
         .vn-continue-indicator {
             position: absolute;
             right: 2rem;
@@ -1666,7 +1762,7 @@
             0%, 100% { opacity: 0.3; transform: rotate(45deg) scale(1); }
             50% { opacity: 1; transform: rotate(45deg) scale(1.2); }
         }
-        
+
         .vn-message-counter {
             position: absolute;
             right: 2rem;
@@ -1708,11 +1804,11 @@
             overflow-y: auto;
             pointer-events: none;
         }
-        .vn-options-container.active { 
-            display: flex; 
+        .vn-options-container.active {
+            display: flex;
             pointer-events: all;
         }
-        
+
         .vn-option-btn {
             background: rgba(255, 255, 255, 0.95);
             border: 2px solid var(--accent-gold);
@@ -1729,7 +1825,7 @@
             overflow: hidden;
             backdrop-filter: blur(10px);
         }
-        
+
         .vn-option-btn::before {
             content: '';
             position: absolute;
@@ -1740,25 +1836,25 @@
             background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.3), transparent);
             transition: left 0.5s;
         }
-        
+
         .vn-option-btn:hover {
             transform: translateX(10px) scale(1.02);
             background: white;
             box-shadow: 0 6px 25px rgba(201, 168, 108, 0.4);
             border-color: var(--accent-wood);
         }
-        
+
         .vn-option-btn:hover::before {
             left: 100%;
         }
-        
+
         .vn-option-btn.chosen {
             background: rgba(107, 142, 125, 0.9);
             border-color: var(--accent-sage);
             color: white;
             opacity: 0.8;
         }
-        
+
         .vn-option-btn:disabled {
             cursor: not-allowed;
             opacity: 0.6;
@@ -1839,7 +1935,7 @@
             backdrop-filter: blur(20px);
             box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
         }
-        
+
         .vn-reply-header {
             display: flex;
             justify-content: space-between;
@@ -1848,7 +1944,7 @@
             border-bottom: 2px solid var(--border-color);
             background: rgba(139, 115, 85, 0.2);
         }
-        
+
         .vn-reply-title {
             font-family: 'Cinzel', serif;
             color: var(--accent-gold);
@@ -1857,7 +1953,7 @@
             align-items: center;
             gap: 0.8rem;
         }
-        
+
         .vn-reply-body {
             flex: 1;
             overflow-y: auto;
@@ -1866,20 +1962,20 @@
             flex-direction: column;
             gap: 1.2rem;
         }
-        
+
         .char-selector-container {
             display: flex;
             flex-direction: column;
             gap: 1rem;
         }
-        
+
         .char-selector-main {
             display: flex;
             align-items: center;
             gap: 1.5rem;
             flex-wrap: wrap;
         }
-        
+
         .char-selected-display {
             position: relative;
             width: 100px;
@@ -1892,18 +1988,18 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.3);
             flex-shrink: 0;
         }
-        
+
         .char-selected-display:hover {
             transform: scale(1.05);
             box-shadow: 0 8px 30px rgba(201, 168, 108, 0.4);
         }
-        
+
         .char-selected-display img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        
+
         .char-selected-display .placeholder {
             width: 100%;
             height: 100%;
@@ -1913,24 +2009,24 @@
             font-size: 3rem;
             background: var(--bg-tertiary);
         }
-        
+
         .char-selected-info {
             flex: 1;
             min-width: 200px;
         }
-        
+
         .char-selected-name {
             font-family: 'Cinzel', serif;
             color: var(--accent-gold);
             font-size: 1.2rem;
             margin-bottom: 0.3rem;
         }
-        
+
         .char-selected-hint {
             color: var(--text-muted);
             font-size: 0.85rem;
         }
-        
+
         .char-grid-dropdown {
             display: none;
             grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
@@ -1942,11 +2038,11 @@
             max-height: 300px;
             overflow-y: auto;
         }
-        
+
         .char-grid-dropdown.active {
             display: grid;
         }
-        
+
         .char-grid-item {
             aspect-ratio: 1;
             border-radius: 12px;
@@ -1957,24 +2053,24 @@
             position: relative;
             background: var(--bg-tertiary);
         }
-        
+
         .char-grid-item:hover {
             transform: scale(1.1);
             border-color: var(--accent-gold);
             box-shadow: 0 5px 15px rgba(201, 168, 108, 0.3);
         }
-        
+
         .char-grid-item.selected {
             border-color: var(--accent-gold);
             box-shadow: 0 0 20px rgba(201, 168, 108, 0.5);
         }
-        
+
         .char-grid-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        
+
         .char-grid-item .placeholder {
             width: 100%;
             height: 100%;
@@ -1983,7 +2079,7 @@
             justify-content: center;
             font-size: 2rem;
         }
-        
+
         .narrator-toggle {
             display: flex;
             align-items: center;
@@ -1996,29 +2092,29 @@
             transition: all 0.3s;
             width: fit-content;
         }
-        
+
         .narrator-toggle:hover {
             border-color: var(--accent-gold);
             background: rgba(201, 168, 108, 0.1);
         }
-        
+
         .narrator-toggle.active {
             background: rgba(201, 168, 108, 0.2);
             border-color: var(--accent-gold);
         }
-        
+
         .narrator-toggle input {
             width: 20px;
             height: 20px;
             accent-color: var(--accent-gold);
         }
-        
+
         .narrator-toggle label {
             color: var(--text-secondary);
             cursor: pointer;
             font-family: 'Inter', sans-serif;
         }
-        
+
         .vn-reply-textarea {
             width: 100%;
             min-height: 120px;
@@ -2033,19 +2129,19 @@
             resize: vertical;
             transition: all 0.3s;
         }
-        
+
         .vn-reply-textarea:focus {
             outline: none;
             border-color: var(--accent-gold);
             box-shadow: 0 0 15px rgba(201, 168, 108, 0.2);
         }
-        
+
         .options-toggle-container {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
         }
-        
+
         .options-toggle {
             display: flex;
             align-items: center;
@@ -2058,17 +2154,17 @@
             transition: all 0.3s;
             width: fit-content;
         }
-        
+
         .options-toggle:hover {
             border-color: var(--accent-gold);
         }
-        
+
         .options-toggle input {
             width: 18px;
             height: 18px;
             accent-color: var(--accent-gold);
         }
-        
+
         .options-fields {
             display: none;
             flex-direction: column;
@@ -2078,18 +2174,18 @@
             border-radius: 16px;
             border: 2px solid var(--accent-gold);
         }
-        
+
         .options-fields.active {
             display: flex;
         }
-        
+
         .option-field-group {
             background: rgba(255,255,255,0.05);
             padding: 1.2rem;
             border-radius: 12px;
             border: 1px solid var(--border-color);
         }
-        
+
         .option-field-header {
             display: flex;
             align-items: center;
@@ -2099,7 +2195,7 @@
             color: var(--accent-gold);
             font-size: 1.1rem;
         }
-        
+
         .option-input {
             width: 100%;
             padding: 0.8rem;
@@ -2110,12 +2206,12 @@
             color: white;
             font-family: inherit;
         }
-        
+
         .option-input:focus {
             outline: none;
             border-color: var(--accent-gold);
         }
-        
+
         .option-textarea {
             width: 100%;
             min-height: 80px;
@@ -2127,7 +2223,7 @@
             font-family: inherit;
             resize: vertical;
         }
-        
+
         .vn-reply-footer {
             display: flex;
             justify-content: flex-end;
@@ -2136,7 +2232,7 @@
             border-top: 2px solid var(--border-color);
             background: rgba(139, 115, 85, 0.2);
         }
-        
+
         .branch-editor-btn {
             background: linear-gradient(135deg, rgba(139, 115, 85, 0.8), rgba(107, 142, 125, 0.8));
             border: 2px solid var(--accent-gold);
@@ -2150,7 +2246,7 @@
             align-items: center;
             gap: 0.5rem;
         }
-        
+
         .branch-editor-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(201, 168, 108, 0.4);
@@ -2313,7 +2409,7 @@
         }
 
         .hidden { display: none !important; }
-        
+
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -2381,7 +2477,7 @@
             flex-direction: column;
             backdrop-filter: blur(20px);
         }
-        
+
         .branch-editor-header {
             background: linear-gradient(135deg, rgba(139, 115, 85, 0.3), rgba(107, 142, 125, 0.3));
             padding: 1.5rem;
@@ -2390,13 +2486,13 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .branch-editor-title {
             font-family: 'Cinzel', serif;
             color: var(--accent-gold);
             font-size: 1.4rem;
         }
-        
+
         .branch-editor-content {
             flex: 1;
             overflow-y: auto;
@@ -2405,13 +2501,13 @@
             flex-direction: column;
             gap: 1.5rem;
         }
-        
+
         .branch-list {
             display: flex;
             flex-direction: column;
             gap: 1rem;
         }
-        
+
         .branch-item {
             background: rgba(255,255,255,0.05);
             border: 2px solid var(--border-color);
@@ -2421,19 +2517,19 @@
             flex-direction: column;
             gap: 0.8rem;
         }
-        
+
         .branch-item-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .branch-item-number {
             font-family: 'Cinzel', serif;
             color: var(--accent-gold);
             font-size: 1.1rem;
         }
-        
+
         .branch-delete-btn {
             background: transparent;
             border: 1px solid #c75b5b;
@@ -2444,12 +2540,12 @@
             font-size: 0.8rem;
             transition: all 0.3s;
         }
-        
+
         .branch-delete-btn:hover {
             background: #c75b5b;
             color: white;
         }
-        
+
         .branch-input {
             width: 100%;
             padding: 0.8rem;
@@ -2459,12 +2555,12 @@
             color: white;
             font-family: inherit;
         }
-        
+
         .branch-input:focus {
             outline: none;
             border-color: var(--accent-gold);
         }
-        
+
         .branch-textarea {
             width: 100%;
             min-height: 80px;
@@ -2476,7 +2572,7 @@
             font-family: inherit;
             resize: vertical;
         }
-        
+
         .add-branch-btn {
             background: rgba(139, 115, 85, 0.3);
             border: 2px dashed var(--accent-gold);
@@ -2488,11 +2584,11 @@
             font-family: 'Cinzel', serif;
             transition: all 0.3s;
         }
-        
+
         .add-branch-btn:hover {
             background: rgba(201, 168, 108, 0.2);
         }
-        
+
         .branch-editor-footer {
             padding: 1.5rem;
             border-top: 2px solid var(--border-color);
@@ -2526,7 +2622,7 @@
             gap: 0.5rem;
             flex-wrap: wrap;
         }
-        
+
         .weather-btn {
             padding: 0.5rem 1rem;
             border: 2px solid var(--border-color);
@@ -2537,7 +2633,7 @@
             transition: all 0.3s;
             font-family: 'Inter', sans-serif;
         }
-        
+
         .weather-btn:hover, .weather-btn.active {
             border-color: var(--accent-gold);
             color: var(--accent-gold);
@@ -2569,7 +2665,7 @@
     <!-- Settings Panel -->
     <div id="settingsPanel" class="settings-panel">
         <h3 class="settings-title">⚙️ Ajustes de Lectura</h3>
-        
+
         <div class="setting-item">
             <label class="setting-label" for="textSpeedSlider">Velocidad del texto</label>
             <input type="range" id="textSpeedSlider" class="setting-slider" min="10" max="100" value="25" oninput="updateTextSpeed(this.value)">
@@ -2579,12 +2675,12 @@
                 <span>Lento</span>
             </div>
         </div>
-        
+
         <div class="setting-item">
             <label class="setting-label" for="fontSizeSlider">Tamaño de fuente</label>
             <input type="range" id="fontSizeSlider" class="setting-slider" min="14" max="24" value="19" oninput="updateFontSize(this.value)">
         </div>
-        
+
         <div class="setting-item">
             <label class="setting-label">Filtro de atmósfera</label>
             <div class="filter-buttons">
@@ -2594,7 +2690,7 @@
                 <button class="filter-btn" onclick="setAtmosphere('cinematic')">Cine</button>
             </div>
         </div>
-        
+
         <button onclick="closeSettings()" class="btn-primary" style="width: 100%; margin-top: 1rem;">Cerrar</button>
     </div>
 
@@ -2610,13 +2706,13 @@
     <!-- Main Menu -->
     <div id="mainMenu" class="main-menu hidden">
         <div class="menu-particles" id="particlesContainer"></div>
-        
+
         <div class="menu-sidebar">
             <div class="menu-brand">
                 <h1 class="menu-title">📖 ETHERIA</h1>
                 <p class="menu-subtitle">¿Qué deseas hacer hoy?</p>
             </div>
-            
+
             <div class="menu-container">
                 <button class="menu-button primary" onclick="showSection('topics')">
                     <span>✨</span>
@@ -2639,7 +2735,7 @@
                     <span>Opciones</span>
                 </button>
             </div>
-            
+
             <div class="menu-footer">
                 <span id="currentUserDisplay">Jugador</span>
                 <button onclick="changeUser()" aria-label="Editar perfil actual">✏️ Editar</button>
@@ -2724,7 +2820,7 @@
     <div id="vnSection" class="game-section vn-section">
         <!-- Contenedores de clima -->
         <div id="weatherContainer" class="weather-container"></div>
-        
+
         <!-- Info Card -->
         <div class="vn-info-card" id="vnInfoCard">
             <div class="vn-info-avatar" id="vnInfoAvatar">
@@ -2733,7 +2829,7 @@
             <div class="vn-info-details">
                 <div class="vn-info-name" id="vnInfoName">Sin personaje</div>
                 <div class="vn-info-club" id="vnInfoClub">Selecciona un personaje</div>
-                
+
                 <!-- Sistema de Afinidad - Solo nombre de rango -->
                 <div id="affinityDisplay" class="affinity-rank-display hidden">
                     <div class="affinity-rank-name" id="affinityRankName">Desconocidos</div>
@@ -2742,7 +2838,7 @@
                         <button class="affinity-btn-inline plus" onclick="modifyAffinity(1)" title="Aumentar afinidad">+</button>
                     </div>
                 </div>
-                
+
                 <div class="vn-info-affection" id="vnInfoAffection" style="display: none;">
                     <span>❤️</span>
                     <span id="vnAffectionValue">0</span>
@@ -2799,7 +2895,7 @@
         </div>
 
         <div id="vnSpriteContainer" class="vn-sprite-container"></div>
-        
+
         <!-- Opciones flotantes -->
         <div id="vnOptionsContainer" class="vn-options-container"></div>
 
@@ -2821,7 +2917,7 @@
                 </div>
                 <button onclick="closeReplyPanel()" class="btn-secondary" aria-label="Cerrar panel de respuesta">✕ Cerrar</button>
             </div>
-            
+
             <div class="vn-reply-body">
                 <div class="char-selector-container" id="charSelectorContainer">
                     <div class="char-selector-main">
@@ -2833,23 +2929,23 @@
                             <div class="char-selected-hint">Click en el círculo para cambiar</div>
                         </div>
                     </div>
-                    
+
                     <div class="char-grid-dropdown" id="charGridDropdown"></div>
                 </div>
-                
+
                 <div class="narrator-toggle" id="narratorToggle" onclick="toggleNarratorMode()">
                     <input type="checkbox" id="narratorMode" onchange="event.stopPropagation()">
                     <label for="narratorMode">Modo Narrador</label>
                 </div>
-                
+
                 <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*, y comandos como /angry, /happy, etc."></textarea>
-                
+
                 <div class="options-toggle-container" id="optionsToggleContainer">
                     <div class="options-toggle" onclick="toggleOptionsFields()">
                         <input type="checkbox" id="enableOptions" onchange="event.stopPropagation()">
                         <label for="enableOptions">🎭 Crear opciones de elección</label>
                     </div>
-                    
+
                     <div id="optionsFields" class="options-fields">
                         <div class="option-field-group">
                             <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
@@ -2866,7 +2962,7 @@
                             <input type="text" id="option3Text" class="option-input" placeholder="Texto de la opción">
                             <textarea id="option3Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
                         </div>
-                        
+
                         <button class="branch-editor-btn" onclick="openBranchEditor()">
                             <span>🌿</span>
                             <span>Editor Avanzado de Ramas</span>
@@ -2884,7 +2980,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="vn-reply-footer">
                 <button class="btn-secondary" onclick="closeReplyPanel()">Cancelar</button>
                 <button class="btn-primary" onclick="postVNReply()" id="submitReplyBtn">Enviar Mensaje</button>
@@ -2928,6 +3024,8 @@
         <div class="modal topic-modal">
             <h3 class="topic-title">Nueva Historia</h3>
 
+            <div class="topic-modal-body">
+
             <!-- Selector de modo compacto -->
             <div class="form-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Modo de historia</label>
@@ -2941,20 +3039,7 @@
                         <span>📖 Modo historia</span>
                     </label>
                 </div>
-            </div>
-
-            <!-- Checkbox narrador corregido -->
-            <div class="form-group">
-                <label class="narrator-check">
-                    <input type="checkbox" id="startAsNarrator" onchange="toggleNarratorStart()">
-                    <span>📖 Comenzar como narrador</span>
-                </label>
-            </div>
-
-            <!-- Selector de personaje -->
-            <div class="form-group" id="topicCharSelectGroup">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Protagonista</label>
-                <select id="topicCharSelect"></select>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.55rem;">El inicio siempre será como <strong>Narrador</strong>. El flujo adicional del modo rol se realiza después de crear la historia.</div>
             </div>
 
             <!-- Título -->
@@ -2971,20 +3056,21 @@
             </div>
 
             <!-- Fondo personalizado -->
-            <div class="form-group">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Fondo (URL)</label>
+            <div class="form-group topic-inline-field">
+                <label>Fondo (URL)</label>
                 <input type="text" id="topicBackgroundInput" placeholder="https://ejemplo.com/imagen.jpg">
             </div>
 
             <!-- Selector de clima -->
             <div class="form-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Ambientación</label>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" class="weather-btn active" onclick="setTopicWeather('none')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">☀️ Normal</button>
-                    <button type="button" class="weather-btn" onclick="setTopicWeather('rain')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">🌧️ Lluvia</button>
-                    <button type="button" class="weather-btn" onclick="setTopicWeather('fog')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">🌫️ Niebla</button>
+                <div class="topic-weather-grid">
+                    <button type="button" class="weather-btn topic-weather-btn active" onclick="setTopicWeather('none')" aria-label="Ambientación normal" title="Normal">☀️</button>
+                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('rain')" aria-label="Ambientación lluvia" title="Lluvia">🌧️</button>
+                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('fog')" aria-label="Ambientación niebla" title="Niebla">🌫️</button>
                 </div>
                 <input type="hidden" id="topicWeatherInput" value="none">
+            </div>
             </div>
 
             <!-- Botones de acción -->
@@ -2992,6 +3078,15 @@
                 <button onclick="closeModal('topicModal')" class="btn-secondary" style="padding: 0.7rem 1.5rem;">Cancelar</button>
                 <button onclick="createTopic()" class="btn-primary topic-create-btn">✨ Crear Historia</button>
             </div>
+        </div>
+    </div>
+
+    <div id="roleCharacterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('roleCharacterModal')">
+        <div class="role-char-modal">
+            <h3 style="margin:0; text-align:center; color: var(--accent-gold);">Selecciona tu personaje activo</h3>
+            <div style="text-align:center; color: var(--text-muted); font-size: 0.95rem;">En modo rol solo puedes usar un personaje por historia.</div>
+            <div id="roleCharacterGrid" class="role-char-grid"></div>
+            <button class="btn-secondary" onclick="closeModal('roleCharacterModal')">Cancelar</button>
         </div>
     </div>
 
@@ -3006,10 +3101,10 @@
                     <div class="editor-preview-name" id="editorPreviewName">Nuevo Personaje</div>
                     <div class="editor-preview-hint">Vista previa en tiempo real</div>
                 </div>
-                
+
                 <div class="editor-form">
                     <input type="hidden" id="editCharacterId">
-                    
+
                     <div class="editor-tabs">
                         <button class="editor-tab active" onclick="switchEditorTab('identity', this)">
                             <span>👤</span> Identidad
@@ -3021,7 +3116,7 @@
                             <span>📝</span> Notas
                         </button>
                     </div>
-                    
+
                     <div class="editor-content">
                         <div id="editor-tab-identity" class="editor-panel active">
                             <div class="form-row">
@@ -3034,7 +3129,7 @@
                                     <input type="text" id="charLastName" oninput="updatePreview()">
                                 </div>
                             </div>
-                            
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Edad</label>
@@ -3045,7 +3140,7 @@
                                     <input type="text" id="charRace">
                                 </div>
                             </div>
-                            
+
                             <div class="form-group" style="margin-bottom: 1.5rem;">
                                 <label>Género</label>
                                 <div class="gender-selector">
@@ -3055,7 +3150,7 @@
                                 </div>
                                 <input type="hidden" id="charGender">
                             </div>
-                            
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Alineamiento</label>
@@ -3077,7 +3172,7 @@
                                     <input type="text" id="charJob">
                                 </div>
                             </div>
-                            
+
                             <div class="form-row">
                                 <div class="form-group">
                                     <label>Color</label>
@@ -3088,13 +3183,13 @@
                                     <input type="text" id="charAvatar" oninput="updatePreview()">
                                 </div>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label>Sprite URL (cuerpo completo)</label>
                                 <input type="text" id="charSprite">
                             </div>
                         </div>
-                        
+
                         <div id="editor-tab-biography" class="editor-panel">
                             <div class="form-group">
                                 <label>Descripción Física</label>
@@ -3109,7 +3204,7 @@
                                 <textarea id="charHistory" rows="6" placeholder="Su pasado, orígenes, eventes importantes..."></textarea>
                             </div>
                         </div>
-                        
+
                         <div id="editor-tab-notes" class="editor-panel">
                             <div class="form-group">
                                 <label>Notas Libres</label>
@@ -3117,7 +3212,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="editor-actions">
                         <button onclick="closeModal('characterModal')" class="btn-secondary">Cancelar</button>
                         <button id="deleteCharBtn" onclick="deleteCharFromModal()" class="btn-danger" style="display: none;">🗑️ Borrar</button>
@@ -3199,9 +3294,9 @@
 
     let userNames = ['Jugador 1', 'Jugador 2', 'Jugador 3'];
     let currentUserIndex = 0;
-    let appData = { 
-        topics: [], 
-        characters: [], 
+    let appData = {
+        topics: [],
+        characters: [],
         messages: {},
         affinities: {}
     };
@@ -3225,6 +3320,7 @@
     let currentWeather = 'none';
     let currentTopicMode = 'roleplay'; // 'roleplay' o 'fanfic'
     let spriteModeClassic = false; // false = modo fanfic persistente, true = modo clásico
+    let pendingRoleTopicId = null;
 
     // ============================================
     // INICIALIZACIÓN
@@ -3238,15 +3334,15 @@
                     topics: parsed.topics || [],
                     characters: parsed.characters || [],
                     messages: parsed.messages || {},
-                    affinities: (parsed.affinities && typeof parsed.affinities === 'object' && !Array.isArray(parsed.affinities)) 
-                        ? parsed.affinities 
+                    affinities: (parsed.affinities && typeof parsed.affinities === 'object' && !Array.isArray(parsed.affinities))
+                        ? parsed.affinities
                         : {}
                 };
             } catch (e) {
                 console.error('Error parsing saved data:', e);
             }
         }
-        
+
         const savedNames = localStorage.getItem('etheria_user_names');
         if (savedNames) {
             try {
@@ -3255,55 +3351,56 @@
                 console.error('Error parsing user names:', e);
             }
         }
-        
+
         const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
         if (savedCharId) selectedCharId = savedCharId;
-        
+
         const savedSpeed = localStorage.getItem('etheria_text_speed');
         if (savedSpeed) {
             textSpeed = parseInt(savedSpeed);
             const slider = document.getElementById('textSpeedSlider');
             if (slider) slider.value = 110 - textSpeed;
         }
-        
+
         const savedSize = localStorage.getItem('etheria_font_size');
         if (savedSize) {
             document.documentElement.style.setProperty('--font-size-base', savedSize + 'px');
             const slider = document.getElementById('fontSizeSlider');
             if (slider) slider.value = savedSize;
         }
-        
+
         const savedTheme = localStorage.getItem('etheria_theme');
         if (savedTheme) {
             document.documentElement.setAttribute('data-theme', savedTheme);
         } else {
             document.documentElement.setAttribute('data-theme', 'light');
         }
-        
+
         renderUserCards();
-        
+
         // Setup keyboard listeners
         setupKeyboardListeners();
-        
+
         window.addEventListener('beforeunload', (e) => {
             if (hasUnsavedChanges) {
                 e.preventDefault();
                 e.returnValue = 'Tienes cambios sin guardar. ¿Seguro que quieres salir?';
             }
         });
+
     });
 
     function setupKeyboardListeners() {
         document.addEventListener('keydown', (e) => {
             const vnSection = document.getElementById('vnSection');
             if (!vnSection || !vnSection.classList.contains('active')) return;
-            
+
             const replyPanel = document.getElementById('vnReplyPanel');
             const settingsPanel = document.getElementById('settingsPanel');
             const continuationOverlay = document.getElementById('continuationOverlay');
             const optionsContainer = document.getElementById('vnOptionsContainer');
             const emotePicker = document.getElementById('emotePicker');
-            
+
             if (e.code === 'Space') {
                 if (replyPanel && replyPanel.style.display === 'flex') return;
                 if (settingsPanel && settingsPanel.classList.contains('active')) return;
@@ -3312,7 +3409,7 @@
                 e.preventDefault();
                 handleDialogueClick();
             }
-            
+
             if (e.code === 'Escape') {
                 if (continuationOverlay && continuationOverlay.classList.contains('active')) {
                     closeContinuation();
@@ -3340,7 +3437,7 @@
         const container = document.createElement('div');
         container.className = 'weather-rain';
         container.id = 'rainEffect';
-        
+
         // Crear 60 gotas máximo
         for (let i = 0; i < 60; i++) {
             const drop = document.createElement('div');
@@ -3352,7 +3449,7 @@
             drop.style.opacity = 0.3 + Math.random() * 0.4;
             container.appendChild(drop);
         }
-        
+
         return container;
     }
 
@@ -3360,20 +3457,20 @@
         const container = document.createElement('div');
         container.className = 'weather-fog';
         container.id = 'fogEffect';
-        
+
         // 3 capas de niebla
         for (let i = 0; i < 3; i++) {
             const layer = document.createElement('div');
             layer.className = 'fog-layer';
             container.appendChild(layer);
         }
-        
+
         return container;
     }
 
     function setWeather(weather) {
         currentWeather = weather;
-        
+
         // Actualizar botones
         document.querySelectorAll('.weather-btn').forEach(btn => {
             btn.classList.remove('active');
@@ -3381,13 +3478,13 @@
                 btn.classList.add('active');
             }
         });
-        
+
         // Limpiar efectos anteriores
         const weatherContainer = document.getElementById('weatherContainer');
         if (weatherContainer) {
             weatherContainer.innerHTML = '';
         }
-        
+
         // Aplicar nuevo efecto
         if (weather === 'rain') {
             weatherContainer.appendChild(createRainEffect());
@@ -3428,7 +3525,7 @@
     function selectEmote(emoteType) {
         currentEmote = emoteType;
         toggleEmotePicker();
-        
+
         // Insertar comando en el textarea si está abierto el panel
         const replyText = document.getElementById('vnReplyText');
         if (replyText && document.getElementById('vnReplyPanel').style.display === 'flex') {
@@ -3446,37 +3543,37 @@
         const emoteRegex = /\/(angry|happy|shock|sad|think|love|annoyed|embarrassed|idea|sleep)\b/gi;
         const matches = [];
         let match;
-        
+
         while ((match = emoteRegex.exec(text)) !== null) {
             matches.push(match[1].toLowerCase());
         }
-        
+
         // Eliminar comandos del texto visible
         const cleanText = text.replace(emoteRegex, '').trim();
-        
+
         return { emotes: matches, text: cleanText };
     }
 
     function showEmoteOnSprite(emoteType, spriteElement) {
         if (!emoteType || !spriteElement) return;
-        
+
         const config = emoteConfig[emoteType];
         if (!config) return;
-        
+
         // Limpiar emotes anteriores
         const existingEmote = spriteElement.querySelector('.manga-emote');
         if (existingEmote) {
             existingEmote.remove();
         }
-        
+
         // Crear nuevo emote
         const emote = document.createElement('div');
         emote.className = `manga-emote ${config.class}`;
         emote.textContent = config.symbol;
         emote.title = config.name;
-        
+
         spriteElement.appendChild(emote);
-        
+
         // Auto-remover después de 3 segundos
         setTimeout(() => {
             if (emote.parentElement) {
@@ -3488,19 +3585,19 @@
 
     function showEmoteOnAvatar(emoteType) {
         if (!emoteType) return;
-        
+
         const config = emoteConfig[emoteType];
         if (!config) return;
-        
+
         const avatarBox = document.getElementById('vnSpeakerAvatar');
         if (!avatarBox) return;
-        
+
         // Limpiar emotes anteriores
         const existingEmote = avatarBox.querySelector('.manga-emote');
         if (existingEmote) {
             existingEmote.remove();
         }
-        
+
         // Crear nuevo emote posicionado en esquina superior izquierda del avatar
         const emote = document.createElement('div');
         emote.className = `manga-emote ${config.class}`;
@@ -3510,10 +3607,10 @@
         emote.style.top = '-10px';
         emote.style.left = '-10px';
         emote.style.fontSize = '2rem';
-        
+
         avatarBox.style.position = 'relative';
         avatarBox.appendChild(emote);
-        
+
         // Auto-remover después de 3 segundos
         setTimeout(() => {
             if (emote.parentElement) {
@@ -3537,36 +3634,51 @@
 
         currentTopicMode = selectedMode;
 
-        const charSelectGroup = document.getElementById('topicCharSelectGroup');
-        const startAsNarrator = document.getElementById('startAsNarrator');
-
         // Actualizar estilos visuales
         const roleplayLabel = modeRoleplay?.parentElement;
         const fanficLabel = modeFanfic?.parentElement;
 
         roleplayLabel?.classList.toggle('active', selectedMode === 'roleplay');
         fanficLabel?.classList.toggle('active', selectedMode === 'fanfic');
-
-        if (selectedMode === 'fanfic') {
-            if (charSelectGroup) charSelectGroup.style.display = 'none';
-        } else {
-            if (charSelectGroup && !(startAsNarrator && startAsNarrator.checked)) {
-                charSelectGroup.style.display = 'block';
-            }
-        }
     }
 
-    function toggleNarratorStart() {
-        const checkbox = document.getElementById('startAsNarrator');
-        const charSelectGroup = document.getElementById('topicCharSelectGroup');
+    function openRoleCharacterModal(topicId) {
+        const grid = document.getElementById('roleCharacterGrid');
+        if (!grid) return;
 
-        if (checkbox.checked) {
-            if (charSelectGroup) charSelectGroup.style.display = 'none';
-        } else {
-            if (charSelectGroup && currentTopicMode === 'roleplay') {
-                charSelectGroup.style.display = 'block';
-            }
+        pendingRoleTopicId = topicId;
+
+        const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
+        if (!mine.length) {
+            alert('Necesitas al menos un personaje para jugar en modo rol.');
+            pendingRoleTopicId = null;
+            enterTopic(topicId);
+            return;
         }
+
+        grid.innerHTML = mine.map(c => {
+            const visual = c.avatar
+                ? `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}">`
+                : `<div class="placeholder">${escapeHtml((c.name || '?')[0])}</div>`;
+            return `<button type="button" class="role-char-bubble" title="${escapeHtml(c.name)}" onclick="selectRoleCharacterForTopic('${topicId}', '${c.id}')">${visual}</button>`;
+        }).join('');
+
+        openModal('roleCharacterModal');
+    }
+
+    function selectRoleCharacterForTopic(topicId, charId) {
+        const topic = appData.topics.find(t => t.id === topicId);
+        if (!topic) return;
+
+        topic.roleCharacterId = charId;
+        selectedCharId = charId;
+        localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
+
+        hasUnsavedChanges = true;
+        save();
+        pendingRoleTopicId = null;
+        closeModal('roleCharacterModal');
+        enterTopic(topicId);
     }
 
     function isFanficMode() {
@@ -3578,20 +3690,20 @@
     function shouldShowAffinity() {
         // No mostrar afinidad en modo fanfic
         if (isFanficMode()) return false;
-        
+
         if (!currentTopicId) return false;
-        
+
         const msgs = appData.messages[currentTopicId] || [];
         if (msgs.length === 0) return false;
-        
+
         const currentMsg = msgs[currentMessageIndex];
         if (!currentMsg || currentMsg.isNarrator || !currentMsg.characterId) return false;
-        
+
         const targetChar = appData.characters.find(c => c.id === currentMsg.characterId);
         if (!targetChar) return false;
-        
+
         if (targetChar.userIndex === currentUserIndex) return false;
-        
+
         return true;
     }
 
@@ -3610,9 +3722,9 @@
     function getAffinityIncrement(currentValue, direction) {
         const rankInfo = getAffinityRankInfo(currentValue);
         const increment = direction > 0 ? rankInfo.increment : -rankInfo.increment;
-        
+
         let newValue = currentValue + increment;
-        
+
         // Al llegar al tope de un rango, seguir dando + para subir al siguiente
         if (direction > 0 && newValue > rankInfo.max && rankInfo.max < 100) {
             // Buscar siguiente rango
@@ -3623,7 +3735,7 @@
                 newValue = rankInfo.max;
             }
         }
-        
+
         if (direction < 0 && newValue < rankInfo.min && rankInfo.min > 0) {
             // Buscar rango anterior
             const prevRank = [...affinityRanks].reverse().find(r => r.max < rankInfo.min);
@@ -3633,10 +3745,10 @@
                 newValue = 0;
             }
         }
-        
+
         if (newValue < 0) newValue = 0;
         if (newValue > 100) newValue = 100;
-        
+
         return newValue;
     }
 
@@ -3647,22 +3759,22 @@
 
     function getCurrentAffinity() {
         if (!shouldShowAffinity()) return -1;
-        
+
         const msgs = appData.messages[currentTopicId] || [];
         const currentMsg = msgs[currentMessageIndex];
-        
+
         const targetCharId = currentMsg.characterId;
         const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
-        
+
         if (userChars.length === 0) return -1;
-        
+
         const activeCharId = selectedCharId || userChars[0].id;
-        
+
         if (activeCharId === targetCharId) return -1;
-        
+
         const key = getAffinityKey(activeCharId, targetCharId);
         const topicAffinities = appData.affinities[currentTopicId] || {};
-        
+
         return topicAffinities[key] || 0;
     }
 
@@ -3672,10 +3784,10 @@
         const infoClub = document.getElementById('vnInfoClub');
         const infoAvatar = document.getElementById('vnInfoAvatar');
         const vnInfoAffection = document.getElementById('vnInfoAffection');
-        
+
         const msgs = appData.messages[currentTopicId] || [];
         const currentMsg = msgs[currentMessageIndex];
-        
+
         // Caso narrador
         if (currentMsg && currentMsg.isNarrator) {
             affinityDisplay?.classList.add('hidden');
@@ -3685,7 +3797,7 @@
             if (infoAvatar) infoAvatar.innerHTML = '<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">📖</div>';
             return;
         }
-        
+
         // Caso personaje propio
         if (currentMsg && currentMsg.characterId) {
             const char = appData.characters.find(c => c.id === currentMsg.characterId);
@@ -3695,7 +3807,7 @@
                     if (vnInfoAffection) vnInfoAffection.style.display = 'none';
                     if (infoName) infoName.textContent = char.name;
                     if (infoClub) infoClub.textContent = char.race || 'Sin raza';
-                    
+
                     if (infoAvatar) {
                         if (char.avatar) {
                             infoAvatar.innerHTML = `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
@@ -3705,26 +3817,26 @@
                     }
                     return;
                 }
-                
+
                 // Personaje de otro usuario
                 const affinityValue = getCurrentAffinity();
                 if (affinityValue !== -1) {
                     affinityDisplay?.classList.remove('hidden');
                     if (vnInfoAffection) vnInfoAffection.style.display = 'none';
-                    
+
                     const rankInfo = getAffinityRankInfo(affinityValue);
-                    
+
                     if (infoName) infoName.textContent = char.name;
                     if (infoClub) infoClub.textContent = char.race || 'Sin raza';
-                    
+
                     const rankNameEl = document.getElementById('affinityRankName');
-                    
+
                     if (rankNameEl) {
                         rankNameEl.textContent = rankInfo.name;
                         rankNameEl.style.color = rankInfo.color;
                         rankNameEl.style.textShadow = `0 0 10px ${rankInfo.color}`;
                     }
-                    
+
                     if (infoAvatar) {
                         if (char.avatar) {
                             infoAvatar.innerHTML = `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
@@ -3732,13 +3844,13 @@
                             infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
                         }
                     }
-                    
+
                     currentAffinity = affinityValue;
                     return;
                 }
             }
         }
-        
+
         // Caso por defecto
         affinityDisplay?.classList.add('hidden');
         if (vnInfoAffection) vnInfoAffection.style.display = 'none';
@@ -3749,33 +3861,33 @@
 
     function modifyAffinity(direction) {
         if (!currentTopicId) return;
-        
+
         const msgs = appData.messages[currentTopicId] || [];
         const currentMsg = msgs[currentMessageIndex];
         if (!currentMsg || !currentMsg.characterId) return;
-        
+
         const targetCharId = currentMsg.characterId;
         const targetChar = appData.characters.find(c => c.id === targetCharId);
-        
+
         if (targetChar && targetChar.userIndex === currentUserIndex) {
             showAutosave('No puedes modificar afinidad con tu propio personaje', 'error');
             return;
         }
-        
+
         const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
         const activeCharId = selectedCharId || userChars[0]?.id;
-        
+
         if (!activeCharId || activeCharId === targetCharId) return;
-        
+
         const key = getAffinityKey(activeCharId, targetCharId);
-        
+
         if (!appData.affinities[currentTopicId]) {
             appData.affinities[currentTopicId] = {};
         }
-        
+
         const currentValue = appData.affinities[currentTopicId][key] || 0;
         const newValue = getAffinityIncrement(currentValue, direction);
-        
+
         if (newValue === currentValue) {
             if (direction > 0 && currentValue >= 100) {
                 showAutosave('Afinidad máxima alcanzada', 'saved');
@@ -3784,13 +3896,13 @@
             }
             return;
         }
-        
+
         appData.affinities[currentTopicId][key] = newValue;
-        
+
         hasUnsavedChanges = true;
         save();
         updateAffinityDisplay();
-        
+
         const rankInfo = getAffinityRankInfo(newValue);
         showAutosave(`Afinidad: ${rankInfo.name}`, 'saved');
     }
@@ -3817,11 +3929,11 @@
     // ============================================
     function openCharacterEditor(charId = null) {
         resetCharForm();
-        
+
         if (charId) {
             const c = appData.characters.find(ch => ch.id === charId);
             if (!c || c.userIndex !== currentUserIndex) return;
-            
+
             document.getElementById('editCharacterId').value = c.id;
             document.getElementById('charName').value = c.name || '';
             document.getElementById('charLastName').value = c.lastName || '';
@@ -3837,10 +3949,10 @@
             document.getElementById('charPersonality').value = c.personality || '';
             document.getElementById('charHistory').value = c.history || '';
             document.getElementById('charNotes').value = c.notes || '';
-            
+
             const deleteBtn = document.getElementById('deleteCharBtn');
             if (deleteBtn) deleteBtn.style.display = 'inline-block';
-            
+
             document.querySelectorAll('.gender-option').forEach(opt => opt.classList.remove('selected'));
             const genderMap = { 'Femenino': 0, 'Masculino': 1, 'No Binario': 2 };
             const genderIdx = genderMap[c.gender];
@@ -3853,37 +3965,37 @@
             const deleteBtn = document.getElementById('deleteCharBtn');
             if (deleteBtn) deleteBtn.style.display = 'none';
         }
-        
+
         updatePreview();
         switchEditorTab('identity', document.querySelector('.editor-tab'));
         openModal('characterModal');
     }
-    
+
     function switchEditorTab(tabName, element) {
         currentEditorTab = tabName;
-        
+
         document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.editor-panel').forEach(p => p.classList.remove('active'));
-        
+
         if (element) element.classList.add('active');
-        
+
         const panel = document.getElementById(`editor-tab-${tabName}`);
         if (panel) panel.classList.add('active');
     }
-    
+
     function selectGender(gender, element) {
         document.querySelectorAll('.gender-option').forEach(opt => opt.classList.remove('selected'));
         element.classList.add('selected');
         document.getElementById('charGender').value = gender;
     }
-    
+
     function updatePreview() {
         const name = document.getElementById('charName')?.value || 'Nuevo Personaje';
         const avatar = document.getElementById('charAvatar')?.value;
-        
+
         const previewName = document.getElementById('editorPreviewName');
         if (previewName) previewName.textContent = name;
-        
+
         const previewImg = document.getElementById('editorPreviewImage');
         if (previewImg) {
             if (avatar) {
@@ -3899,27 +4011,27 @@
     // ============================================
     async function selectUser(idx) {
         currentUserIndex = idx;
-        
+
         const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
         selectedCharId = savedCharId || null;
-        
+
         const loadingOverlay = document.getElementById('loadingOverlay');
         if (loadingOverlay) loadingOverlay.classList.add('active');
         isLoading = true;
-        
+
         await new Promise(resolve => setTimeout(resolve, 600));
-        
+
         const userSelectScreen = document.getElementById('userSelectScreen');
         const mainMenu = document.getElementById('mainMenu');
         const currentUserDisplay = document.getElementById('currentUserDisplay');
-        
+
         if (userSelectScreen) userSelectScreen.classList.add('hidden');
         if (mainMenu) mainMenu.classList.remove('hidden');
         if (currentUserDisplay) currentUserDisplay.textContent = userNames[idx] || 'Jugador';
-        
+
         if (loadingOverlay) loadingOverlay.classList.remove('active');
         isLoading = false;
-        
+
         generateParticles();
         showAutosave('Sesión iniciada', 'saved');
     }
@@ -3928,9 +4040,9 @@
     function renderUserCards() {
         const container = document.getElementById('userCardsContainer');
         if (!container) return;
-        
+
         container.innerHTML = '';
-        
+
         userNames.forEach((name, idx) => {
             const card = document.createElement('div');
             card.className = 'user-card';
@@ -3942,7 +4054,7 @@
             `;
             container.appendChild(card);
         });
-        
+
         // Botón para agregar nuevo perfil (máximo 10)
         if (userNames.length < 10) {
             const addCard = document.createElement('div');
@@ -3979,10 +4091,10 @@
     function generateParticles() {
         const container = document.getElementById('particlesContainer');
         if (!container) return;
-        
+
         container.innerHTML = '';
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        
+
         if (isDark) {
             // Luciérnagas para tema oscuro
             for (let i = 0; i < 20; i++) {
@@ -4028,12 +4140,12 @@
 
     function showSection(section) {
         if (isLoading) return;
-        
+
         const mainMenu = document.getElementById('mainMenu');
         if (mainMenu) mainMenu.classList.add('hidden');
-        
+
         document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
-        
+
         if(section === 'topics') {
             const topicsSection = document.getElementById('topicsSection');
             if (topicsSection) topicsSection.classList.add('active');
@@ -4065,17 +4177,17 @@
             const vnSpriteContainer = document.getElementById('vnSpriteContainer');
             if (vnSpriteContainer) vnSpriteContainer.innerHTML = '';
             stopTypewriter();
-            
+
             const vnSection = document.getElementById('vnSection');
             const topicsSection = document.getElementById('topicsSection');
-            
+
             if (vnSection) vnSection.classList.remove('active');
             if (topicsSection) topicsSection.classList.add('active');
-            
+
             // Limpiar efectos de clima
             const weatherContainer = document.getElementById('weatherContainer');
             if (weatherContainer) weatherContainer.innerHTML = '';
-            
+
             currentTopicId = null;
             editingMessageId = null;
             currentWeather = 'none';
@@ -4089,23 +4201,23 @@
     function renderGallery() {
         const grid = document.getElementById('galleryGrid');
         if (!grid) return;
-        
+
         const searchInput = document.getElementById('gallerySearch');
         const sortSelect = document.getElementById('gallerySort');
-        
+
         const searchTerm = (searchInput?.value || '').toLowerCase();
         const sortBy = sortSelect?.value || 'default';
-        
+
         let chars = [...appData.characters];
-        
+
         if (searchTerm) {
-            chars = chars.filter(c => 
+            chars = chars.filter(c =>
                 (c.name?.toLowerCase().includes(searchTerm)) ||
                 (c.race?.toLowerCase().includes(searchTerm)) ||
                 (userNames[c.userIndex]?.toLowerCase().includes(searchTerm))
             );
         }
-        
+
         if (sortBy === 'owner') {
             chars.sort((a, b) => a.userIndex - b.userIndex || a.name.localeCompare(b.name));
         } else if (sortBy === 'name') {
@@ -4113,19 +4225,19 @@
         } else if (sortBy === 'race') {
             chars.sort((a, b) => (a.race || '').localeCompare(b.race || ''));
         }
-        
+
         const galleryCount = document.getElementById('galleryCount');
         if (galleryCount) galleryCount.textContent = `${chars.length} personaje${chars.length !== 1 ? 's' : ''}`;
-        
+
         if (chars.length === 0) {
             grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-muted);">No se encontraron personajes</div>';
             return;
         }
-        
+
         grid.innerHTML = chars.map(c => {
             const genderIcon = c.gender === 'Femenino' ? '♀️' : c.gender === 'Masculino' ? '♂️' : '⚪';
             const ownerName = userNames[c.userIndex] || 'Desconocido';
-            
+
             return `
                 <div class="character-card" onclick="openSheet('${c.id}')">
                     <div class="character-card-avatar">
@@ -4154,19 +4266,19 @@
         currentSheetCharId = id;
         const c = appData.characters.find(ch => ch.id === id);
         if(!c) return;
-        
+
         const sheetName = document.getElementById('sheetName');
         const sheetOwner = document.getElementById('sheetOwner');
         const sheetAvatar = document.getElementById('sheetAvatar');
         const sheetQuickStats = document.getElementById('sheetQuickStats');
-        
+
         if (sheetName) sheetName.textContent = c.name;
         if (sheetOwner) sheetOwner.textContent = `Por ${c.owner || userNames[c.userIndex]}`;
-        
+
         if (sheetAvatar) {
             sheetAvatar.innerHTML = c.avatar ? `<img src="${escapeHtml(c.avatar)}" alt="Avatar ampliado de ${escapeHtml(c.name)}" onerror="this.textContent='${c.name[0]}'">` : c.name[0];
         }
-        
+
         if (sheetQuickStats) {
             sheetQuickStats.innerHTML = `
                 <span class="quick-stat">${escapeHtml(c.race) || 'Sin raza'}</span>
@@ -4175,7 +4287,7 @@
                 <span class="quick-stat" style="background: ${getAlignmentColor(c.alignment)}; color: white;">${alignments[c.alignment] || 'Neutral'}</span>
             `;
         }
-        
+
         const profileGrid = document.getElementById('profileGrid');
         if (profileGrid) {
             profileGrid.innerHTML = `
@@ -4192,25 +4304,25 @@
                 </div>
             `;
         }
-        
+
         const profilePersonality = document.getElementById('profilePersonality');
         const profileHistory = document.getElementById('profileHistory');
-        
+
         if (profilePersonality) profilePersonality.textContent = c.personality || 'Sin datos de personalidad.';
         if (profileHistory) profileHistory.textContent = c.history || 'Sin historia registrada.';
-        
+
         const sheetEditBtn = document.getElementById('sheetEditBtn');
         if (sheetEditBtn) sheetEditBtn.style.display = c.userIndex === currentUserIndex ? 'inline-block' : 'none';
-        
+
         document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        
+
         const firstTab = document.querySelector('.sheet-tab');
         if (firstTab) firstTab.classList.add('active');
-        
+
         const tabProfile = document.getElementById('tab-profile');
         if (tabProfile) tabProfile.classList.add('active');
-        
+
         openModal('sheetModal');
     }
 
@@ -4226,9 +4338,9 @@
     function switchTab(tabName) {
         document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-        
+
         if (event && event.target) event.target.classList.add('active');
-        
+
         const tab = document.getElementById(`tab-${tabName}`);
         if (tab) tab.classList.add('active');
     }
@@ -4240,12 +4352,12 @@
         const nameInput = document.getElementById('charName');
         const name = nameInput?.value.trim();
         if(!name) { alert('Nombre obligatorio'); return; }
-        
+
         const id = document.getElementById('editCharacterId')?.value || Date.now().toString();
-        
+
         const charObj = {
-            id, 
-            userIndex: currentUserIndex, 
+            id,
+            userIndex: currentUserIndex,
             owner: userNames[currentUserIndex],
             name,
             lastName: document.getElementById('charLastName')?.value.trim() || '',
@@ -4262,11 +4374,11 @@
             history: document.getElementById('charHistory')?.value.trim() || '',
             notes: document.getElementById('charNotes')?.value.trim() || ''
         };
-        
+
         const idx = appData.characters.findIndex(c => c.id === id);
         if(idx > -1) appData.characters[idx] = charObj;
         else appData.characters.push(charObj);
-        
+
         hasUnsavedChanges = true;
         save();
         closeModal('characterModal');
@@ -4277,15 +4389,15 @@
     function resetCharForm() {
         const editId = document.getElementById('editCharacterId');
         if (editId) editId.value = '';
-        
+
         const deleteBtn = document.getElementById('deleteCharBtn');
         if (deleteBtn) deleteBtn.style.display = 'none';
-        
+
         document.querySelectorAll('#characterModal input:not([type="color"]), #characterModal textarea, #characterModal select').forEach(i => i.value = '');
-        
+
         const colorInput = document.getElementById('charColor');
         if (colorInput) colorInput.value = '#8b7355';
-        
+
         document.querySelectorAll('.gender-option').forEach(opt => opt.classList.remove('selected'));
     }
 
@@ -4302,24 +4414,31 @@
         currentMessageIndex = 0;
         pendingContinuation = null;
         editingMessageId = null;
-        
+
         const t = appData.topics.find(topic => topic.id === id);
         if(!t) return;
-        
+
         // Establecer modo
         currentTopicMode = t.mode || 'roleplay';
-        
+
+        if (currentTopicMode === 'roleplay' && t.roleCharacterId) {
+            const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
+            if (lockedChar) {
+                selectedCharId = lockedChar.id;
+            }
+        }
+
         // Aplicar clima si existe
         if (t.weather) {
             setWeather(t.weather);
         } else {
             setWeather('none');
         }
-        
+
         const vnSection = document.getElementById('vnSection');
         if (vnSection) {
             vnSection.style.backgroundImage = t.background ? `url(${escapeHtml(t.background)})` : 'linear-gradient(135deg, #1a1815 0%, #2d2a26 100%)';
-            
+
             // Aplicar modo de sprites (fanfic = persistente por defecto)
             if (currentTopicMode === 'fanfic') {
                 vnSection.classList.remove('classic-mode');
@@ -4328,11 +4447,11 @@
                 vnSection.classList.add('classic-mode');
             }
         }
-        
+
         const topicsSection = document.getElementById('topicsSection');
         if (topicsSection) topicsSection.classList.remove('active');
         if (vnSection) vnSection.classList.add('active');
-        
+
         const deleteBtn = document.getElementById('deleteTopicBtn');
         if (deleteBtn) {
             if (t.createdByIndex === currentUserIndex) {
@@ -4341,7 +4460,7 @@
                 deleteBtn.classList.add('hidden');
             }
         }
-        
+
         showCurrentMessage();
     }
 
@@ -4355,36 +4474,36 @@
 
     function showCurrentMessage() {
         const msgs = appData.messages[currentTopicId] || [];
-        
+
         const dialogueText = document.getElementById('vnDialogueText');
-        
+
         if (msgs.length === 0) {
             if (dialogueText) dialogueText.innerHTML = '<em>Historia vacía. Haz clic en 💬 Responder para comenzar.</em>';
             updateAffinityDisplay();
             return;
         }
-        
+
         if (currentMessageIndex >= msgs.length) currentMessageIndex = msgs.length - 1;
         if (currentMessageIndex < 0) currentMessageIndex = 0;
-        
+
         const msg = msgs[currentMessageIndex];
         const namePlate = document.getElementById('vnSpeakerPlate');
         const avatarBox = document.getElementById('vnSpeakerAvatar');
-        
+
         // Parsear emotes del mensaje
         const { emotes, text: cleanText } = parseEmotes(msg.text);
         const activeEmote = emotes.length > 0 ? emotes[0] : null;
-        
+
         // Actualizar sprites y mostrar emote
         updateSprites(msg, activeEmote);
-        
+
         let charExists = true;
         let charData = null;
         if (msg.characterId) {
             charData = appData.characters.find(c => c.id === msg.characterId);
             if (!charData) charExists = false;
         }
-        
+
         if (msg.isNarrator || !msg.characterId) {
             if (namePlate) {
                 namePlate.textContent = 'Narrador';
@@ -4397,8 +4516,8 @@
                 namePlate.style.background = msg.charColor || 'var(--accent-wood)';
             }
             if (avatarBox) {
-                avatarBox.innerHTML = msg.charAvatar ? 
-                    `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName || "Desconocido")}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${(msg.charName || '?')[0]}'">` : 
+                avatarBox.innerHTML = msg.charAvatar ?
+                    `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName || "Desconocido")}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${(msg.charName || '?')[0]}'">` :
                     (msg.charName || '?')[0];
             }
         } else {
@@ -4407,29 +4526,29 @@
                 namePlate.style.background = msg.charColor || 'var(--accent-wood)';
             }
             if (avatarBox) {
-                avatarBox.innerHTML = msg.charAvatar ? 
-                    `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` : 
+                avatarBox.innerHTML = msg.charAvatar ?
+                    `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` :
                     msg.charName[0];
             }
         }
-        
+
         // Mostrar emote en avatar si no hay sprite
         if (activeEmote && !msg.charSprite) {
             showEmoteOnAvatar(activeEmote);
         }
-        
+
         const hasOpt = msg.options && msg.options.length > 0 && msg.selectedOptionIndex === undefined;
         const optionsIndicator = document.getElementById('messageHasOptions');
         if (optionsIndicator) {
             optionsIndicator.classList.toggle('hidden', !hasOpt || isFanficMode());
         }
-        
+
         const formattedText = formatText(cleanText);
         if (dialogueText) typeWriter(formattedText, dialogueText);
-        
+
         const msgCounter = document.getElementById('vnMessageCounter');
         if (msgCounter) msgCounter.textContent = `${currentMessageIndex + 1} / ${msgs.length}`;
-        
+
         const editBtn = document.getElementById('editMsgBtn');
         if (editBtn) {
             if (msg.userIndex === currentUserIndex) {
@@ -4438,35 +4557,35 @@
                 editBtn.classList.add('hidden');
             }
         }
-        
+
         const optionsContainer = document.getElementById('vnOptionsContainer');
         if (currentMessageIndex === msgs.length - 1 && hasOpt && !isFanficMode()) {
             showOptions(msg.options);
         } else {
             if (optionsContainer) optionsContainer.classList.remove('active');
         }
-        
+
         updateAffinityDisplay();
     }
 
     function updateSprites(currentMsg, activeEmote = null) {
         const container = document.getElementById('vnSpriteContainer');
         if (!container) return;
-        
+
         const msgs = appData.messages[currentTopicId] || [];
         const isFanfic = isFanficMode();
-        
+
         // En modo fanfic, mantener hasta 3 sprites persistentes
         // En modo rol, mostrar solo el personaje actual (comportamiento clásico)
-        
+
         let charsToShow = [];
-        
+
         if (isFanfic) {
             // Modo fanfic: hasta 3 sprites persistentes por orden de actividad
             const recentChars = [];
             const seen = new Set();
             const activityOrder = new Map();
-            
+
             // Recorrer mensajes recientes para determinar actividad
             for (let i = msgs.length - 1; i >= 0 && seen.size < 5; i--) {
                 const m = msgs[i];
@@ -4479,10 +4598,10 @@
                     }
                 }
             }
-            
+
             // Tomar los 3 más recientes
             charsToShow = recentChars.slice(0, 3);
-            
+
             // Ordenar por posición (izquierda, centro, derecha) basado en orden de aparición
             // El más reciente en centro, los anteriores en lados
             if (charsToShow.length === 1) {
@@ -4505,17 +4624,17 @@
                 }
             }
         }
-        
+
         if (charsToShow.length === 0) {
             container.innerHTML = '';
             return;
         }
-        
+
         // Renderizar sprites
         container.innerHTML = charsToShow.map((char) => {
             const isCurrent = char.characterId === currentMsg.characterId;
             const position = char.position || 'center';
-            
+
             return `
                 <div class="vn-sprite position-${position} ${isCurrent ? 'active' : 'inactive'}" data-char-id="${char.characterId}">
                     <img src="${escapeHtml(char.charSprite)}" alt="${escapeHtml(char.charName)}" onerror="this.style.display='none'; this.parentElement.style.display='none'">
@@ -4527,15 +4646,15 @@
 
     function typeWriter(text, element) {
         stopTypewriter();
-        
+
         isTyping = true;
         element.innerHTML = '';
-        
+
         const indicator = document.getElementById('vnContinueIndicator');
         if (indicator) indicator.style.opacity = '0';
-        
+
         const hasHtml = /<[^>]*>/g.test(text);
-        
+
         if (hasHtml) {
             element.innerHTML = text;
             element.style.opacity = '0';
@@ -4564,14 +4683,14 @@
         const optionsContainer = document.getElementById('vnOptionsContainer');
         const settingsPanel = document.getElementById('settingsPanel');
         const emotePicker = document.getElementById('emotePicker');
-        
+
         if (replyPanel && replyPanel.style.display === 'flex') return;
         if (optionsContainer && optionsContainer.classList.contains('active')) return;
         if (settingsPanel && settingsPanel.classList.contains('active')) return;
         if (emotePicker && emotePicker.classList.contains('active')) return;
-        
+
         const msgs = appData.messages[currentTopicId] || [];
-        
+
         if (isTyping) {
             stopTypewriter();
             const msg = msgs[currentMessageIndex];
@@ -4584,13 +4703,13 @@
             if (indicator) indicator.style.opacity = '1';
             return;
         }
-        
+
         if (pendingContinuation) {
             showContinuation(pendingContinuation);
             pendingContinuation = null;
             return;
         }
-        
+
         if (currentMessageIndex < msgs.length - 1) {
             currentMessageIndex++;
             showCurrentMessage();
@@ -4615,40 +4734,40 @@
     function editCurrentMessage() {
         const msgs = appData.messages[currentTopicId] || [];
         if (currentMessageIndex >= msgs.length) return;
-        
+
         const msg = msgs[currentMessageIndex];
         if (msg.userIndex !== currentUserIndex) {
             alert('Solo puedes editar tus propios mensajes');
             return;
         }
-        
+
         editingMessageId = msg.id;
-        
+
         openReplyPanel();
-        
+
         const replyText = document.getElementById('vnReplyText');
         if (replyText) replyText.value = msg.text || '';
-        
+
         const narratorMode = document.getElementById('narratorMode');
         if (narratorMode) {
             narratorMode.checked = !!msg.isNarrator;
             toggleNarratorMode();
         }
-        
+
         if (!msg.isNarrator && msg.characterId) {
             selectedCharId = msg.characterId;
             updateCharSelector();
         }
-        
+
         if (msg.options && msg.options.length > 0 && !isFanficMode()) {
             const enableOptions = document.getElementById('enableOptions');
             const optionsFields = document.getElementById('optionsFields');
-            
+
             if (enableOptions) enableOptions.checked = true;
             if (optionsFields) optionsFields.classList.add('active');
-            
+
             tempBranches = [...msg.options];
-            
+
             msg.options.forEach((opt, idx) => {
                 if (idx < 3) {
                     const textInput = document.getElementById(`option${idx + 1}Text`);
@@ -4658,10 +4777,10 @@
                 }
             });
         }
-        
+
         const replyPanelTitle = document.getElementById('replyPanelTitle');
         const submitBtn = document.getElementById('submitReplyBtn');
-        
+
         if (replyPanelTitle) replyPanelTitle.textContent = '✏️ Editar Mensaje';
         if (submitBtn) {
             submitBtn.textContent = '💾 Guardar Cambios';
@@ -4673,18 +4792,18 @@
         const replyText = document.getElementById('vnReplyText');
         const text = replyText?.value.trim();
         if(!text) { alert('Escribe algo'); return; }
-        
+
         const msgs = appData.messages[currentTopicId] || [];
         const msgIndex = msgs.findIndex(m => m.id === editingMessageId);
         if (msgIndex === -1) return;
-        
+
         let char = null;
         if(!isNarratorMode) {
             if(!selectedCharId) { alert('Selecciona personaje'); return; }
             char = appData.characters.find(c => c.id === selectedCharId);
             if (!char) { alert('Personaje no encontrado'); return; }
         }
-        
+
         let options = null;
         const enableOptions = document.getElementById('enableOptions');
         if(enableOptions && enableOptions.checked && !isFanficMode()) {
@@ -4697,10 +4816,10 @@
                 if(t && c) options.push({text: t, continuation: c});
             }
         }
-        
+
         // Preservar clima si existe
         const currentWeatherSetting = currentWeather;
-        
+
         msgs[msgIndex] = {
             ...msgs[msgIndex],
             characterId: isNarratorMode ? null : selectedCharId,
@@ -4716,11 +4835,11 @@
             editedAt: new Date().toISOString(),
             weather: currentWeatherSetting !== 'none' ? currentWeatherSetting : undefined
         };
-        
+
         hasUnsavedChanges = true;
         save();
         closeReplyPanel();
-        
+
         editingMessageId = null;
         showCurrentMessage();
     }
@@ -4731,40 +4850,40 @@
     function showOptions(options) {
         const container = document.getElementById('vnOptionsContainer');
         if (!container) return;
-        
+
         const msgs = appData.messages[currentTopicId] || [];
         const currentMsg = msgs[currentMessageIndex];
-        
+
         if (!options || options.length === 0 || isFanficMode()) {
             container.classList.remove('active');
             return;
         }
-        
+
         container.innerHTML = options.map((opt, idx) => `
-            <button class="vn-option-btn ${currentMsg.selectedOptionIndex === idx ? 'chosen' : ''}" 
-                    onclick="selectOption(${idx})" 
+            <button class="vn-option-btn ${currentMsg.selectedOptionIndex === idx ? 'chosen' : ''}"
+                    onclick="selectOption(${idx})"
                     ${currentMsg.selectedOptionIndex !== undefined ? 'disabled' : ''}>
                 ${escapeHtml(opt.text)}
             </button>
         `).join('');
-        
+
         container.classList.add('active');
     }
 
     function selectOption(idx) {
         const msgs = appData.messages[currentTopicId] || [];
         const msg = msgs[currentMessageIndex];
-        
+
         if (!msg.options || msg.selectedOptionIndex !== undefined) return;
-        
+
         msg.selectedOptionIndex = idx;
         msg.selectedBy = currentUserIndex;
-        
+
         hasUnsavedChanges = true;
         save();
-        
+
         const selectedOption = msg.options[idx];
-        
+
         // Crear mensaje de respuesta como diálogo normal
         if (selectedOption && selectedOption.continuation) {
             const newMsg = {
@@ -4781,19 +4900,19 @@
                 isOptionResult: true,
                 parentOptionIndex: idx
             };
-            
+
             if (!appData.messages[currentTopicId]) appData.messages[currentTopicId] = [];
             appData.messages[currentTopicId].push(newMsg);
             hasUnsavedChanges = true;
             save();
         }
-        
+
         const optionsContainer = document.getElementById('vnOptionsContainer');
         if (optionsContainer) optionsContainer.classList.remove('active');
-        
+
         const optionsIndicator = document.getElementById('messageHasOptions');
         if (optionsIndicator) optionsIndicator.classList.add('hidden');
-        
+
         currentMessageIndex = appData.messages[currentTopicId].length - 1;
         showCurrentMessage();
     }
@@ -4801,7 +4920,7 @@
     function showContinuation(text) {
         const contText = document.getElementById('continuationText');
         const overlay = document.getElementById('continuationOverlay');
-        
+
         if (contText) contText.textContent = text;
         if (overlay) overlay.classList.add('active');
     }
@@ -4817,9 +4936,9 @@
     function openHistoryLog() {
         const msgs = appData.messages[currentTopicId] || [];
         const container = document.getElementById('historyContent');
-        
+
         if (!container) return;
-        
+
         if (msgs.length === 0) {
             container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay mensajes en esta historia.</div>';
         } else {
@@ -4829,7 +4948,7 @@
                 const date = new Date(msg.timestamp).toLocaleString();
                 const edited = msg.edited ? ' (editado)' : '';
                 const optionResult = msg.isOptionResult ? ' [Respuesta elegida]' : '';
-                
+
                 return `
                     <div class="history-entry ${isNarrator ? 'narrator' : ''} ${msg.isOptionResult ? 'option-result' : ''}">
                         <div class="history-speaker">
@@ -4842,7 +4961,7 @@
                 `;
             }).join('');
         }
-        
+
         openModal('historyModal');
     }
 
@@ -4852,40 +4971,40 @@
     function openReplyPanel() {
         const panel = document.getElementById('vnReplyPanel');
         if (!panel) return;
-        
+
         panel.style.display = 'flex';
-        
+
         const replyPanelTitle = document.getElementById('replyPanelTitle');
         const submitBtn = document.getElementById('submitReplyBtn');
         const optionsToggleContainer = document.getElementById('optionsToggleContainer');
         const weatherSelectorContainer = document.getElementById('weatherSelectorContainer');
-        
+
         if (replyPanelTitle) replyPanelTitle.textContent = editingMessageId ? '✏️ Editar Mensaje' : '💬 Responder';
         if (submitBtn) {
             submitBtn.textContent = editingMessageId ? '💾 Guardar Cambios' : 'Enviar Mensaje';
             submitBtn.onclick = editingMessageId ? saveEditedMessage : postVNReply;
         }
-        
+
         // Mostrar/ocultar opciones según modo
         if (optionsToggleContainer) {
             optionsToggleContainer.style.display = isFanficMode() ? 'none' : 'flex';
         }
-        
+
         // Mostrar selector de clima siempre
         if (weatherSelectorContainer) {
             weatherSelectorContainer.style.display = 'block';
         }
-        
+
         if (!editingMessageId) {
             const replyText = document.getElementById('vnReplyText');
             if (replyText) replyText.value = '';
-            
+
             const enableOptions = document.getElementById('enableOptions');
             const optionsFields = document.getElementById('optionsFields');
-            
+
             if (enableOptions) enableOptions.checked = false;
             if (optionsFields) optionsFields.classList.remove('active');
-            
+
             for(let i=1; i<=3; i++) {
                 const textInput = document.getElementById(`option${i}Text`);
                 const contInput = document.getElementById(`option${i}Continuation`);
@@ -4894,9 +5013,9 @@
             }
             tempBranches = [];
         }
-        
+
         updateCharSelector();
-        
+
         // Actualizar botones de clima
         document.querySelectorAll('#weatherSelectorContainer .weather-btn').forEach(btn => {
             btn.classList.remove('active');
@@ -4909,18 +5028,18 @@
     function closeReplyPanel() {
         const panel = document.getElementById('vnReplyPanel');
         if (panel) panel.style.display = 'none';
-        
+
         const replyText = document.getElementById('vnReplyText');
         if (replyText) replyText.value = '';
-        
+
         isNarratorMode = false;
         editingMessageId = null;
         tempBranches = [];
-        
+
         const narratorMode = document.getElementById('narratorMode');
         const charSelector = document.getElementById('charSelectorContainer');
         const narratorToggle = document.getElementById('narratorToggle');
-        
+
         if (narratorMode) narratorMode.checked = false;
         if (charSelector) charSelector.style.display = 'flex';
         if (narratorToggle) narratorToggle.classList.remove('active');
@@ -4928,6 +5047,8 @@
 
     function toggleCharGrid() {
         if (isNarratorMode) return;
+        const topic = appData.topics.find(t => t.id === currentTopicId);
+        if (currentTopicMode === 'roleplay' && topic?.roleCharacterId) return;
         const grid = document.getElementById('charGridDropdown');
         if (grid) grid.classList.toggle('active');
     }
@@ -4937,50 +5058,70 @@
         const display = document.getElementById('charSelectedDisplay');
         const nameEl = document.getElementById('charSelectedName');
         const grid = document.getElementById('charGridDropdown');
-        
+
         if(!display || !nameEl) return;
-        
+
         if(mine.length === 0) {
             display.innerHTML = '<div class="placeholder">👤</div>';
             nameEl.textContent = 'Crea un personaje primero';
             if (grid) grid.innerHTML = '';
             return;
         }
-        
+
         if (!selectedCharId) {
             const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
             selectedCharId = savedCharId || mine[0]?.id;
         }
-        
+
+        const topic = appData.topics.find(t => t.id === currentTopicId);
+        const roleLocked = currentTopicMode === 'roleplay' && topic?.roleCharacterId;
+        if (roleLocked) {
+            const lockedChar = mine.find(c => c.id === topic.roleCharacterId);
+            if (lockedChar) {
+                selectedCharId = lockedChar.id;
+            }
+        }
+
         const currentChar = mine.find(c => c.id === selectedCharId) || mine[0];
         if (!currentChar) return;
-        
+
         selectedCharId = currentChar.id;
-        
+
         if (currentChar.avatar) {
             display.innerHTML = `<img src="${escapeHtml(currentChar.avatar)}" alt="Avatar de ${escapeHtml(currentChar.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${currentChar.name[0]}</div>'">`;
         } else {
             display.innerHTML = `<div class="placeholder">${currentChar.name[0]}</div>`;
         }
         nameEl.textContent = currentChar.name;
-        
-        if (grid) {
+
+        const hintEl = document.querySelector('.char-selected-hint');
+        if (hintEl) {
+            hintEl.textContent = roleLocked ? 'Personaje bloqueado para esta historia' : 'Click en el círculo para cambiar';
+        }
+
+        if (grid && !roleLocked) {
             grid.innerHTML = mine.map(c => `
                 <div class="char-grid-item ${c.id === selectedCharId ? 'selected' : ''}" onclick="selectCharFromGrid('${c.id}')">
-                    ${c.avatar ? 
-                        `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` : 
+                    ${c.avatar ?
+                        `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` :
                         `<div class="placeholder">${c.name[0]}</div>`
                     }
                 </div>
             `).join('');
+        } else if (grid) {
+            grid.innerHTML = '';
+            grid.classList.remove('active');
         }
     }
 
     function selectCharFromGrid(charId) {
+        const topic = appData.topics.find(t => t.id === currentTopicId);
+        if (currentTopicMode === 'roleplay' && topic?.roleCharacterId) return;
+
         selectedCharId = charId;
         localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
         updateCharSelector();
-        
+
         const grid = document.getElementById('charGridDropdown');
         if (grid) grid.classList.remove('active');
     }
@@ -4988,16 +5129,16 @@
     function toggleOptionsFields() {
         const cb = document.getElementById('enableOptions');
         const fields = document.getElementById('optionsFields');
-        
+
         if (!fields) return;
-        
+
         if (fields.classList.contains('active')) {
             fields.classList.remove('active');
             if (cb) cb.checked = false;
         } else {
             fields.classList.add('active');
             if (cb) cb.checked = true;
-            
+
             if (tempBranches.length > 0) {
                 tempBranches.forEach((branch, idx) => {
                     if (idx < 3) {
@@ -5014,10 +5155,10 @@
     function toggleNarratorMode() {
         const narratorMode = document.getElementById('narratorMode');
         isNarratorMode = narratorMode ? narratorMode.checked : false;
-        
+
         const container = document.getElementById('charSelectorContainer');
         const toggle = document.getElementById('narratorToggle');
-        
+
         if(isNarratorMode) {
             if (container) container.style.display = 'none';
             if (toggle) toggle.classList.add('active');
@@ -5033,14 +5174,14 @@
         const replyText = document.getElementById('vnReplyText');
         const text = replyText?.value.trim();
         if(!text) { alert('Escribe algo'); return; }
-        
+
         let char = null;
         if(!isNarratorMode) {
             if(!selectedCharId) { alert('Selecciona personaje'); return; }
             char = appData.characters.find(c => c.id === selectedCharId);
             if (!char) { alert('Personaje no encontrado. Puede haber sido borrado.'); return; }
         }
-        
+
         let options = null;
         const enableOptions = document.getElementById('enableOptions');
         if(enableOptions && enableOptions.checked && !isFanficMode()) {
@@ -5054,9 +5195,9 @@
             }
             if(options.length === 0) { alert('Rellena al menos una opción con texto y continuación'); return; }
         }
-        
+
         if(!appData.messages[currentTopicId]) appData.messages[currentTopicId] = [];
-        
+
         const newMsg = {
             id: Date.now().toString(),
             characterId: isNarratorMode ? null : selectedCharId,
@@ -5071,9 +5212,9 @@
             options: options && options.length > 0 ? options : undefined,
             weather: currentWeather !== 'none' ? currentWeather : undefined
         };
-        
+
         appData.messages[currentTopicId].push(newMsg);
-        
+
         hasUnsavedChanges = true;
         save();
         closeReplyPanel();
@@ -5099,7 +5240,7 @@
                 });
             }
         }
-        
+
         renderBranchEditor();
         openModal('branchEditorModal');
     }
@@ -5107,7 +5248,7 @@
     function renderBranchEditor() {
         const container = document.getElementById('branchList');
         if (!container) return;
-        
+
         if (tempBranches.length === 0) {
             container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">No hay ramas. Agrega una nueva.</div>';
         } else {
@@ -5148,16 +5289,16 @@
 
     function saveBranches() {
         const validBranches = tempBranches.filter(b => b.text.trim() && b.continuation.trim());
-        
+
         if (validBranches.length === 0 && tempBranches.length > 0) {
             alert('Las ramas deben tener tanto texto como continuación');
             return;
         }
-        
+
         for(let i=0; i<3; i++) {
             const textInput = document.getElementById(`option${i+1}Text`);
             const contInput = document.getElementById(`option${i+1}Continuation`);
-            
+
             if (i < validBranches.length) {
                 if (textInput) textInput.value = validBranches[i].text;
                 if (contInput) contInput.value = validBranches[i].continuation;
@@ -5166,7 +5307,7 @@
                 if (contInput) contInput.value = '';
             }
         }
-        
+
         closeModal('branchEditorModal');
     }
 
@@ -5176,19 +5317,19 @@
     function renderTopics() {
         const container = document.getElementById('topicsList');
         if (!container) return;
-        
+
         if(appData.topics.length === 0) {
             container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">No hay historias. ¡Crea una!</div>';
             return;
         }
-        
+
         container.innerHTML = appData.topics.map(t => {
             const msgs = appData.messages[t.id] || [];
             const last = msgs[msgs.length - 1];
             const lastText = last ? stripHtml(formatText(last.text)).substring(0, 50) : '';
             const modeIcon = t.mode === 'fanfic' ? '📖' : '🎭';
             const modeText = t.mode === 'fanfic' ? 'Fanfic' : 'Rol';
-            
+
             return `
                 <div style="background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 16px; padding: 1.5rem; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-gold)'" onmouseout="this.style.borderColor='var(--border-color)'" onclick="enterTopic('${t.id}')">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
@@ -5204,87 +5345,72 @@
                 </div>
             `;
         }).join('');
-        
+
         const statTopics = document.getElementById('statTopics');
         const statMsgs = document.getElementById('statMsgs');
-        
+
         if (statTopics) statTopics.textContent = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
-        
+
         let msgCount = 0;
         Object.values(appData.messages).forEach(msgs => {
             if (Array.isArray(msgs)) {
                 msgCount += msgs.filter(m => m.userIndex === currentUserIndex).length;
             }
         });
-        
+
         if (statMsgs) statMsgs.textContent = msgCount;
     }
 
     function createTopic() {
         const titleInput = document.getElementById('topicTitleInput');
-        const charSelect = document.getElementById('topicCharSelect');
         const firstMsgInput = document.getElementById('topicFirstMsg');
         const bgInput = document.getElementById('topicBackgroundInput');
         const weatherInput = document.getElementById('topicWeatherInput');
-        const startAsNarrator = document.getElementById('startAsNarrator');
-        
+
         const title = titleInput?.value.trim();
         const text = firstMsgInput?.value.trim();
         const bg = bgInput?.value.trim();
         const weather = weatherInput?.value || 'none';
-        const asNarrator = startAsNarrator?.checked || false;
-        
+
         if(!title || !text) { alert('Completa todos los campos obligatorios'); return; }
-        
-        let charId = null;
-        let char = null;
-        
-        if (!asNarrator && currentTopicMode === 'roleplay') {
-            charId = charSelect?.value;
-            if (!charId) { alert('Selecciona un protagonista o activa modo narrador'); return; }
-            char = appData.characters.find(c => c.id === charId);
-            if (!char) { alert('El personaje seleccionado ya no existe'); return; }
-        }
-        
+
         const id = Date.now().toString();
         appData.topics.push({
-            id, 
-            title, 
+            id,
+            title,
             background: bg || null,
             weather: weather !== 'none' ? weather : undefined,
             mode: currentTopicMode,
-            createdBy: userNames[currentUserIndex] || 'Jugador', 
+            roleCharacterId: null,
+            createdBy: userNames[currentUserIndex] || 'Jugador',
             createdByIndex: currentUserIndex,
             date: new Date().toLocaleDateString()
         });
-        
+
         appData.messages[id] = [{
             id: Date.now().toString(),
-            characterId: asNarrator ? null : charId, 
-            charName: asNarrator ? 'Narrador' : char.name, 
-            charColor: asNarrator ? null : char.color,
-            charAvatar: asNarrator ? null : char.avatar, 
-            charSprite: asNarrator ? null : char.sprite,
-            text, 
-            isNarrator: asNarrator,
-            userIndex: currentUserIndex, 
+            characterId: null,
+            charName: 'Narrador',
+            charColor: null,
+            charAvatar: null,
+            charSprite: null,
+            text,
+            isNarrator: true,
+            userIndex: currentUserIndex,
             timestamp: new Date().toISOString(),
             weather: weather !== 'none' ? weather : undefined
         }];
-        
+
         hasUnsavedChanges = true;
         save();
         closeModal('topicModal');
         renderTopics();
-        enterTopic(id);
-    }
-
-    function updateTopicSelect() {
-        const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
-        const select = document.getElementById('topicCharSelect');
-        if (!select) return;
-        
-        select.innerHTML = mine.length ? mine.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') : '<option value="">Crea un personaje primero</option>';
+        if (currentTopicMode === 'roleplay') {
+            pendingRoleTopicId = id;
+            openRoleCharacterModal(id);
+        } else {
+            enterTopic(id);
+        }
     }
 
     // ============================================
@@ -5304,19 +5430,19 @@
     function showAutosave(text, state) {
         const indicator = document.getElementById('autosaveIndicator');
         if (!indicator) return;
-        
+
         const textEl = indicator.querySelector('.autosave-text');
         const iconEl = indicator.querySelector('.autosave-icon');
-        
+
         if (textEl) textEl.textContent = text;
         indicator.className = `autosave-indicator visible ${state}`;
-        
+
         if (iconEl) {
             if (state === 'saving') iconEl.textContent = '💾';
             else if (state === 'saved') iconEl.textContent = '✓';
             else if (state === 'error') iconEl.textContent = '✕';
         }
-        
+
         setTimeout(() => {
             indicator.classList.remove('visible');
         }, 2000);
@@ -5324,7 +5450,8 @@
 
     function openModal(id) {
         if(id === 'topicModal') {
-            updateTopicSelect();
+            const roleplay = document.getElementById('modeRoleplay');
+            if (roleplay) roleplay.checked = true;
             updateTopicModeUI();
         }
         const modal = document.getElementById(id);
@@ -5338,6 +5465,15 @@
         const modal = document.getElementById(id);
         if (modal) modal.classList.remove('active');
 
+        if (id === 'roleCharacterModal' && pendingRoleTopicId) {
+            appData.topics = appData.topics.filter(t => t.id !== pendingRoleTopicId);
+            delete appData.messages[pendingRoleTopicId];
+            pendingRoleTopicId = null;
+            hasUnsavedChanges = true;
+            save();
+            renderTopics();
+        }
+
         const anyModalOpen = document.querySelector('.modal-overlay.active');
         if (!anyModalOpen) {
             document.body.classList.remove('modal-open');
@@ -5349,10 +5485,10 @@
         if(newName?.trim()) {
             userNames[currentUserIndex] = newName.trim();
             localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
-            
+
             const currentUserDisplay = document.getElementById('currentUserDisplay');
             if (currentUserDisplay) currentUserDisplay.textContent = newName.trim();
-            
+
             save();
             renderUserCards();
         }
@@ -5364,17 +5500,17 @@
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         html.setAttribute('data-theme', newTheme);
         localStorage.setItem('etheria_theme', newTheme);
-        
+
         generateParticles();
     }
 
     function deleteCurrentTopic() {
         if(!confirm('¿Borrar esta historia?')) return;
-        
+
         appData.topics = appData.topics.filter(t => t.id !== currentTopicId);
         delete appData.messages[currentTopicId];
         delete appData.affinities[currentTopicId];
-        
+
         currentTopicId = null;
         hasUnsavedChanges = true;
         save();
@@ -5398,31 +5534,31 @@
         input.onchange = e => {
             const file = e.target.files[0];
             if (!file) return;
-            
+
             const reader = new FileReader();
             reader.onload = event => {
                 try {
                     const data = JSON.parse(event.target.result);
-                    
+
                     if(!data || typeof data !== 'object') {
                         alert('Archivo inválido');
                         return;
                     }
-                    
+
                     if(!Array.isArray(data.topics) || !Array.isArray(data.characters)) {
                         alert('Formato de datos incorrecto');
                         return;
                     }
-                    
+
                     if(confirm('Esto reemplazará todos los datos actuales. ¿Continuar?')) {
                         appData = {
                             topics: Array.isArray(data.topics) ? data.topics : [],
                             characters: Array.isArray(data.characters) ? data.characters : [],
-                            messages: (data.messages && typeof data.messages === 'object' && !Array.isArray(data.messages)) 
-                                ? data.messages 
+                            messages: (data.messages && typeof data.messages === 'object' && !Array.isArray(data.messages))
+                                ? data.messages
                                 : {},
-                            affinities: (data.affinities && typeof data.affinities === 'object' && !Array.isArray(data.affinities)) 
-                                ? data.affinities 
+                            affinities: (data.affinities && typeof data.affinities === 'object' && !Array.isArray(data.affinities))
+                                ? data.affinities
                                 : {}
                         };
                         hasUnsavedChanges = true;
@@ -5431,7 +5567,7 @@
                         renderTopics();
                         renderGallery();
                     }
-                } catch(err) { 
+                } catch(err) {
                     alert('Error al cargar: ' + err.message);
                 }
             };
@@ -5452,12 +5588,12 @@
         const id = document.getElementById('editCharacterId')?.value;
         if(!id) return;
         if(!confirm('¿Borrar personaje?')) return;
-        
+
         if (selectedCharId === id) {
             selectedCharId = null;
             localStorage.removeItem(`etheria_selected_char_${currentUserIndex}`);
         }
-        
+
         appData.characters = appData.characters.filter(c => c.id !== id);
         hasUnsavedChanges = true;
         save();
@@ -5482,7 +5618,7 @@
     function updateTextSpeed(val) {
         textSpeed = 110 - parseInt(val);
         localStorage.setItem('etheria_text_speed', textSpeed);
-        
+
         const speedValue = document.getElementById('speedValue');
         if (speedValue) {
             const labels = ['Rápido', 'Normal', 'Lento'];
@@ -5499,10 +5635,10 @@
     function setAtmosphere(filter) {
         const vnSection = document.getElementById('vnSection');
         if (!vnSection) return;
-        
+
         vnSection.classList.remove('sepia', 'bw', 'cinematic');
         if (filter !== 'none') vnSection.classList.add(filter);
-        
+
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         if (event && event.target) event.target.classList.add('active');
     }
