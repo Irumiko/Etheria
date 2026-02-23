@@ -1664,32 +1664,73 @@
             border-radius: 12px;
             border: 2px solid var(--border-color);
             backdrop-filter: blur(15px);
+            overflow: visible;
+        }
+
+        .vn-control-slot {
+            width: 40px;
+            height: 40px;
+            flex: 0 0 40px;
+            position: relative;
+        }
+
+        .vn-control-slot:has(> .vn-control-btn.hidden) {
+            display: none;
         }
 
         .vn-control-btn {
             background: rgba(0,0,0,0.3);
             border: 2px solid var(--border-color);
             color: var(--accent-gold);
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border-radius: 10px;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             font-size: 1.2rem;
-            transition: all 0.3s;
+            transition: width 200ms ease-out, background-color 200ms ease-out, color 200ms ease-out, border-color 200ms ease-out, box-shadow 200ms ease-out;
             backdrop-filter: blur(5px);
             display: flex;
             align-items: center;
-            justify-content: center;
-            position: relative;
+            justify-content: flex-start;
+            position: absolute;
+            top: 0;
+            right: 0;
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 0 0.65rem;
+            gap: 0.45rem;
+            text-align: left;
         }
 
         .vn-control-btn:hover {
+            width: 100px;
             background: var(--accent-wood);
             color: white;
             border-color: var(--accent-gold);
             box-shadow: 0 0 15px rgba(201, 168, 108, 0.4);
-            transform: translateY(-2px);
+            z-index: 1;
+        }
+
+        .vn-control-icon {
+            flex: 0 0 auto;
+            width: 1.1rem;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .vn-control-label {
+            opacity: 0;
+            transform: translateX(10px);
+            transition: opacity 200ms ease-out, transform 200ms ease-out;
+            font-size: 0.8rem;
+            letter-spacing: 0.01em;
+            pointer-events: none;
+        }
+
+        .vn-control-btn:hover .vn-control-label {
+            opacity: 1;
+            transform: translateX(0);
         }
 
         .vn-control-btn.save-btn {
@@ -2985,36 +3026,66 @@
 
         <!-- Controles -->
         <div class="vn-controls">
-            <button class="vn-control-btn" data-tooltip="Primer mensaje" onclick="firstMessage()">
-                «
-            </button>
-            <button class="vn-control-btn" data-tooltip="Mensaje anterior" onclick="previousMessage()">
-                ‹
-            </button>
-            <button class="vn-control-btn" data-tooltip="Mensaje siguiente" onclick="nextMessage()">
-                ›
-            </button>
-            <button class="vn-control-btn" data-tooltip="Último mensaje" onclick="lastMessage()">
-                »
-            </button>
-            <button class="vn-control-btn" data-tooltip="Historial" onclick="openHistoryLog()">
-                ☰
-            </button>
-            <button class="vn-control-btn" data-tooltip="Emotes" onclick="toggleEmotePicker()" aria-label="Abrir selector de emotes">
-                ☺
-            </button>
-            <button class="vn-control-btn" data-tooltip="Ajustes" onclick="openSettings()">
-                ⚙
-            </button>
-            <button class="vn-control-btn save-btn" data-tooltip="Guardar" onclick="quickSave()">
-                ◈
-            </button>
-            <button id="deleteTopicBtn" class="vn-control-btn hidden" data-tooltip="Borrar historia" onclick="deleteCurrentTopic()">
-                🗑️
-            </button>
-            <button class="vn-control-btn" data-tooltip="Salir" onclick="backToTopics()">
-                ↩
-            </button>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="firstMessage()" aria-label="Primer mensaje">
+                    <span class="vn-control-icon">«</span>
+                    <span class="vn-control-label">Inicio</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="previousMessage()" aria-label="Mensaje anterior">
+                    <span class="vn-control-icon">‹</span>
+                    <span class="vn-control-label">Atrás</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="nextMessage()" aria-label="Mensaje siguiente">
+                    <span class="vn-control-icon">›</span>
+                    <span class="vn-control-label">Siguiente</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="lastMessage()" aria-label="Último mensaje">
+                    <span class="vn-control-icon">»</span>
+                    <span class="vn-control-label">Final</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="openHistoryLog()" aria-label="Historial">
+                    <span class="vn-control-icon">☰</span>
+                    <span class="vn-control-label">Historial</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="toggleEmotePicker()" aria-label="Abrir selector de emotes">
+                    <span class="vn-control-icon">☺</span>
+                    <span class="vn-control-label">Emotes</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="openSettings()" aria-label="Ajustes">
+                    <span class="vn-control-icon">⚙</span>
+                    <span class="vn-control-label">Ajustes</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn save-btn" onclick="quickSave()" aria-label="Guardar">
+                    <span class="vn-control-icon">◈</span>
+                    <span class="vn-control-label">Guardar</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button id="deleteTopicBtn" class="vn-control-btn hidden" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
+                    <span class="vn-control-icon">🗑️</span>
+                    <span class="vn-control-label">Borrar</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="backToTopics()" aria-label="Salir">
+                    <span class="vn-control-icon">↩</span>
+                    <span class="vn-control-label">Salir</span>
+                </button>
+            </div>
         </div>
 
         <!-- Emote Picker -->
