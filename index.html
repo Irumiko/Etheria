@@ -2335,7 +2335,7 @@
 
     <div id="continuationOverlay" class="vn-continuation-overlay" onclick="if(event.target === this) closeContinuation()">
         <div class="vn-continuation-box">
-            <button class="vn-continuation-close" onclick="closeContinuation()">✕</button>
+            <button class="vn-continuation-close" onclick="closeContinuation()" aria-label="Cerrar continuación">✕</button>
             <h3 class="vn-continuation-title">🎭 Continuación de la escena</h3>
             <div id="continuationText" class="vn-continuation-text"></div>
         </div>
@@ -2346,7 +2346,7 @@
         <h3 class="settings-title">⚙️ Ajustes de Lectura</h3>
         
         <div class="setting-item">
-            <label class="setting-label">Velocidad del texto</label>
+            <label class="setting-label" for="textSpeedSlider">Velocidad del texto</label>
             <input type="range" id="textSpeedSlider" class="setting-slider" min="10" max="100" value="25" oninput="updateTextSpeed(this.value)">
             <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
                 <span>Rápido</span>
@@ -2356,7 +2356,7 @@
         </div>
         
         <div class="setting-item">
-            <label class="setting-label">Tamaño de fuente</label>
+            <label class="setting-label" for="fontSizeSlider">Tamaño de fuente</label>
             <input type="range" id="fontSizeSlider" class="setting-slider" min="14" max="24" value="19" oninput="updateFontSize(this.value)">
         </div>
         
@@ -2417,7 +2417,7 @@
             
             <div class="menu-footer">
                 <span id="currentUserDisplay">Jugador</span>
-                <button onclick="changeUser()">✏️ Editar</button>
+                <button onclick="changeUser()" aria-label="Editar perfil actual">✏️ Editar</button>
             </div>
         </div>
     </div>
@@ -2542,7 +2542,7 @@
             <button class="vn-control-btn" data-tooltip="Historial" onclick="openHistoryLog()">
                 📜
             </button>
-            <button class="vn-control-btn" data-tooltip="Emotes" onclick="toggleEmotePicker()">
+            <button class="vn-control-btn" data-tooltip="Emotes" onclick="toggleEmotePicker()" aria-label="Abrir selector de emotes">
                 😊
             </button>
             <button class="vn-control-btn" data-tooltip="Ajustes" onclick="openSettings()">
@@ -2561,16 +2561,16 @@
 
         <!-- Emote Picker -->
         <div id="emotePicker" class="emote-picker">
-            <button class="emote-btn" onclick="selectEmote('angry')" title="/angry">💢</button>
-            <button class="emote-btn" onclick="selectEmote('happy')" title="/happy">✨</button>
-            <button class="emote-btn" onclick="selectEmote('shock')" title="/shock">💦</button>
-            <button class="emote-btn" onclick="selectEmote('sad')" title="/sad">💧</button>
-            <button class="emote-btn" onclick="selectEmote('think')" title="/think">💭</button>
-            <button class="emote-btn" onclick="selectEmote('love')" title="/love">💕</button>
-            <button class="emote-btn" onclick="selectEmote('annoyed')" title="/annoyed">💢</button>
-            <button class="emote-btn" onclick="selectEmote('embarrassed')" title="/embarrassed">😳</button>
-            <button class="emote-btn" onclick="selectEmote('idea')" title="/idea">💡</button>
-            <button class="emote-btn" onclick="selectEmote('sleep')" title="/sleep">💤</button>
+            <button class="emote-btn" onclick="selectEmote('angry')" title="/angry" aria-label="Insertar emote angry">💢</button>
+            <button class="emote-btn" onclick="selectEmote('happy')" title="/happy" aria-label="Insertar emote happy">✨</button>
+            <button class="emote-btn" onclick="selectEmote('shock')" title="/shock" aria-label="Insertar emote shock">💦</button>
+            <button class="emote-btn" onclick="selectEmote('sad')" title="/sad" aria-label="Insertar emote sad">💧</button>
+            <button class="emote-btn" onclick="selectEmote('think')" title="/think" aria-label="Insertar emote think">💭</button>
+            <button class="emote-btn" onclick="selectEmote('love')" title="/love" aria-label="Insertar emote love">💕</button>
+            <button class="emote-btn" onclick="selectEmote('annoyed')" title="/annoyed" aria-label="Insertar emote annoyed">💢</button>
+            <button class="emote-btn" onclick="selectEmote('embarrassed')" title="/embarrassed" aria-label="Insertar emote embarrassed">😳</button>
+            <button class="emote-btn" onclick="selectEmote('idea')" title="/idea" aria-label="Insertar emote idea">💡</button>
+            <button class="emote-btn" onclick="selectEmote('sleep')" title="/sleep" aria-label="Insertar emote sleep">💤</button>
         </div>
 
         <div id="vnSpriteContainer" class="vn-sprite-container"></div>
@@ -2594,7 +2594,7 @@
                     <span>💬</span>
                     <span id="replyPanelTitle">Responder</span>
                 </div>
-                <button onclick="closeReplyPanel()" class="btn-secondary">✕ Cerrar</button>
+                <button onclick="closeReplyPanel()" class="btn-secondary" aria-label="Cerrar panel de respuesta">✕ Cerrar</button>
             </div>
             
             <div class="vn-reply-body">
@@ -2672,7 +2672,7 @@
         <div class="history-modal">
             <div class="history-header">
                 <h3 class="history-title">📜 Historial de la Historia</h3>
-                <button onclick="closeModal('historyModal')" class="btn-secondary">✕ Cerrar</button>
+                <button onclick="closeModal('historyModal')" class="btn-secondary" aria-label="Cerrar historial">✕ Cerrar</button>
             </div>
             <div id="historyContent" class="history-content"></div>
         </div>
@@ -3051,6 +3051,8 @@
         const savedTheme = localStorage.getItem('etheria_theme');
         if (savedTheme) {
             document.documentElement.setAttribute('data-theme', savedTheme);
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
         }
         
         renderUserCards();
@@ -3478,7 +3480,7 @@
                     
                     if (infoAvatar) {
                         if (char.avatar) {
-                            infoAvatar.innerHTML = `<img src="${escapeHtml(char.avatar)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
+                            infoAvatar.innerHTML = `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
                         } else {
                             infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
                         }
@@ -3507,7 +3509,7 @@
                     
                     if (infoAvatar) {
                         if (char.avatar) {
-                            infoAvatar.innerHTML = `<img src="${escapeHtml(char.avatar)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
+                            infoAvatar.innerHTML = `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
                         } else {
                             infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
                         }
@@ -3667,7 +3669,7 @@
         const previewImg = document.getElementById('editorPreviewImage');
         if (previewImg) {
             if (avatar) {
-                previewImg.innerHTML = `<img src="${escapeHtml(avatar)}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\\'font-size: 5rem;\\'>👤</span>'">`;
+                previewImg.innerHTML = `<img src="${escapeHtml(avatar)}" alt="Vista previa del avatar" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\\'font-size: 5rem;\\'>👤</span>'">`;
             } else {
                 previewImg.innerHTML = '<span style="font-size: 5rem;">👤</span>';
             }
@@ -3909,7 +3911,7 @@
             return `
                 <div class="character-card" onclick="openSheet('${c.id}')">
                     <div class="character-card-avatar">
-                        ${c.avatar ? `<img src="${escapeHtml(c.avatar)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` : `<div class="placeholder">${c.name[0]}</div>`}
+                        ${c.avatar ? `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` : `<div class="placeholder">${c.name[0]}</div>`}
                     </div>
                     <div class="character-card-info">
                         <div class="character-card-name">${escapeHtml(c.name)}</div>
@@ -3944,7 +3946,7 @@
         if (sheetOwner) sheetOwner.textContent = `Por ${c.owner || userNames[c.userIndex]}`;
         
         if (sheetAvatar) {
-            sheetAvatar.innerHTML = c.avatar ? `<img src="${escapeHtml(c.avatar)}" onerror="this.textContent='${c.name[0]}'">` : c.name[0];
+            sheetAvatar.innerHTML = c.avatar ? `<img src="${escapeHtml(c.avatar)}" alt="Avatar ampliado de ${escapeHtml(c.name)}" onerror="this.textContent='${c.name[0]}'">` : c.name[0];
         }
         
         if (sheetQuickStats) {
@@ -4178,7 +4180,7 @@
             }
             if (avatarBox) {
                 avatarBox.innerHTML = msg.charAvatar ? 
-                    `<img src="${escapeHtml(msg.charAvatar)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${(msg.charName || '?')[0]}'">` : 
+                    `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName || "Desconocido")}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${(msg.charName || '?')[0]}'">` : 
                     (msg.charName || '?')[0];
             }
         } else {
@@ -4188,7 +4190,7 @@
             }
             if (avatarBox) {
                 avatarBox.innerHTML = msg.charAvatar ? 
-                    `<img src="${escapeHtml(msg.charAvatar)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` : 
+                    `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` : 
                     msg.charName[0];
             }
         }
@@ -4613,7 +4615,7 @@
                 return `
                     <div class="history-entry ${isNarrator ? 'narrator' : ''} ${msg.isOptionResult ? 'option-result' : ''}">
                         <div class="history-speaker">
-                            ${msg.charAvatar && !isNarrator ? `<img src="${escapeHtml(msg.charAvatar)}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-gold);">` : ''}
+                            ${msg.charAvatar && !isNarrator ? `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar en historial de ${escapeHtml(speaker)}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-gold);">` : ''}
                             ${escapeHtml(speaker)}${edited}${optionResult}
                         </div>
                         <div class="history-text">${formatText(msg.text)}</div>
@@ -4738,7 +4740,7 @@
         selectedCharId = currentChar.id;
         
         if (currentChar.avatar) {
-            display.innerHTML = `<img src="${escapeHtml(currentChar.avatar)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${currentChar.name[0]}</div>'">`;
+            display.innerHTML = `<img src="${escapeHtml(currentChar.avatar)}" alt="Avatar de ${escapeHtml(currentChar.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${currentChar.name[0]}</div>'">`;
         } else {
             display.innerHTML = `<div class="placeholder">${currentChar.name[0]}</div>`;
         }
@@ -4748,7 +4750,7 @@
             grid.innerHTML = mine.map(c => `
                 <div class="char-grid-item ${c.id === selectedCharId ? 'selected' : ''}" onclick="selectCharFromGrid('${c.id}')">
                     ${c.avatar ? 
-                        `<img src="${escapeHtml(c.avatar)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` : 
+                        `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` : 
                         `<div class="placeholder">${c.name[0]}</div>`
                     }
                 </div>
