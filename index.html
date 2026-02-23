@@ -1327,38 +1327,6 @@
             gap: 0.5rem;
         }
 
-        .topic-weather-btn {
-            padding: 0.45rem;
-            min-height: 38px;
-            border: 2px solid var(--border-color);
-            border-radius: 10px;
-            font-size: 1.05rem;
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .topic-inline-field {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            align-items: center;
-            gap: 0.6rem;
-        }
-
-        .topic-inline-field label {
-            margin: 0;
-            font-size: 0.78rem;
-            white-space: nowrap;
-            color: var(--text-muted);
-        }
-
-        #topicBackgroundInput {
-            min-height: 38px;
-            padding: 0.45rem 0.7rem;
-            font-size: 0.9rem;
-        }
-
         #topicFirstMsg::-webkit-scrollbar,
         textarea[name="inicio"]::-webkit-scrollbar {
             width: 8px;
@@ -1397,11 +1365,6 @@
             .topic-mode-toggle,
             .topic-weather-grid {
                 grid-template-columns: 1fr;
-            }
-
-            .topic-inline-field {
-                grid-template-columns: 1fr;
-                gap: 0.35rem;
             }
 
             #topicFirstMsg,
@@ -3056,9 +3019,7 @@
             <div class="form-group">
                 <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Ambientación</label>
                 <div class="topic-weather-grid">
-                    <button type="button" class="weather-btn topic-weather-btn active" onclick="setTopicWeather('none')" aria-label="Ambientación normal" title="Normal">☀️</button>
-                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('rain')" aria-label="Ambientación lluvia" title="Lluvia">🌧️</button>
-                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('fog')" aria-label="Ambientación niebla" title="Niebla">🌫️</button>
+
                 </div>
                 <input type="hidden" id="topicWeatherInput" value="none">
             </div>
@@ -5402,6 +5363,7 @@
         } else {
             enterTopic(id);
         }
+      
     }
 
     // ============================================
@@ -5443,6 +5405,7 @@
         if(id === 'topicModal') {
             const roleplay = document.getElementById('modeRoleplay');
             if (roleplay) roleplay.checked = true;
+
             updateTopicModeUI();
         }
         const modal = document.getElementById(id);
