@@ -2319,6 +2319,7 @@
             background: rgba(201, 168, 108, 0.1);
         }
     </style>
+<base target="_blank">
 </head>
 <body>
 
@@ -2699,66 +2700,72 @@
 
     <!-- Modals -->
     <div id="topicModal" class="modal-overlay" onclick="if(event.target === this) closeModal('topicModal')">
-        <div class="modal">
-            <h3>✨ Nueva Historia</h3>
-            
-            <!-- Selector de modo -->
+        <div class="modal" style="max-width: 500px;">
+            <h3 style="margin-bottom: 1.5rem;">✨ Nueva Historia</h3>
+
+            <!-- Selector de modo compacto -->
             <div class="form-group" style="margin-bottom: 1.5rem;">
-                <label>Modo de historia</label>
-                <div style="display: flex; gap: 1rem;">
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.8rem; border: 2px solid var(--border-color); border-radius: 10px; flex: 1;">
-                        <input type="radio" name="topicMode" value="roleplay" checked onchange="updateTopicModeUI()">
-                        <span>🎭 Rol (con afinidad)</span>
+                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Modo de historia</label>
+                <div style="display: flex; gap: 0.8rem;">
+                    <label style="flex: 1; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; padding: 0.8rem 1rem; border: 2px solid var(--border-color); border-radius: 10px; transition: all 0.3s; font-size: 0.95rem;" onmouseover="this.style.borderColor='var(--accent-gold)'" onmouseout="if(!document.getElementById('modeRoleplay').checked) this.style.borderColor='var(--border-color)'">
+                        <input type="radio" name="topicMode" value="roleplay" id="modeRoleplay" checked onchange="updateTopicModeUI()" style="width: 18px; height: 18px; accent-color: var(--accent-gold);">
+                        <span>🎭 Modo rol</span>
                     </label>
-                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.8rem; border: 2px solid var(--border-color); border-radius: 10px; flex: 1;">
-                        <input type="radio" name="topicMode" value="fanfic" onchange="updateTopicModeUI()">
-                        <span>📖 Fanfic (libre)</span>
+                    <label style="flex: 1; display: flex; align-items: center; gap: 0.6rem; cursor: pointer; padding: 0.8rem 1rem; border: 2px solid var(--border-color); border-radius: 10px; transition: all 0.3s; font-size: 0.95rem;" onmouseover="this.style.borderColor='var(--accent-gold)'" onmouseout="if(!document.getElementById('modeFanfic').checked) this.style.borderColor='var(--border-color)'">
+                        <input type="radio" name="topicMode" value="fanfic" id="modeFanfic" onchange="updateTopicModeUI()" style="width: 18px; height: 18px; accent-color: var(--accent-gold);">
+                        <span>📖 Modo historia</span>
                     </label>
                 </div>
             </div>
-            
-            <!-- Checkbox para iniciar como narrador -->
-            <div class="form-group" style="margin-bottom: 1rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="checkbox" id="startAsNarrator" onchange="toggleNarratorStart()">
-                    <span>📖 Comenzar como narrador</span>
+
+            <!-- Checkbox narrador corregido -->
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; padding: 0.6rem; border-radius: 8px; transition: all 0.3s; width: fit-content;" onmouseover="this.style.background='rgba(201, 168, 108, 0.1)'" onmouseout="this.style.background='transparent'">
+                    <input type="checkbox" id="startAsNarrator" onchange="toggleNarratorStart()" style="width: 18px; height: 18px; accent-color: var(--accent-gold);">
+                    <span style="font-size: 0.95rem;">📖 Comenzar como narrador</span>
                 </label>
             </div>
-            
-            <div class="form-group" id="topicCharSelectGroup">
-                <label>Protagonista</label>
-                <select id="topicCharSelect"></select>
+
+            <!-- Selector de personaje -->
+            <div class="form-group" id="topicCharSelectGroup" style="margin-bottom: 1.2rem;">
+                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Protagonista</label>
+                <select id="topicCharSelect" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); font-family: inherit; font-size: 1rem;"></select>
             </div>
-            
-            <div class="form-group">
-                <label>Título</label>
-                <input type="text" id="topicTitleInput">
+
+            <!-- Título -->
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Título *</label>
+                <input type="text" id="topicTitleInput" placeholder="Título de la historia..." style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); font-family: inherit; font-size: 1rem;">
             </div>
-            
-            <div class="form-group">
-                <label>Inicio</label>
-                <textarea id="topicFirstMsg" rows="4" placeholder="Puedes usar **negrita** y *cursiva*"></textarea>
+
+            <!-- Texto inicial -->
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Inicio *</label>
+                <textarea id="topicFirstMsg" rows="3" placeholder="Primer mensaje de la historia..." style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); font-family: inherit; font-size: 1rem; resize: vertical;"></textarea>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Puedes usar **negrita** y *cursiva*</div>
             </div>
-            
-            <div class="form-group">
-                <label>Fondo URL</label>
-                <input type="text" id="topicBackgroundInput">
+
+            <!-- Fondo personalizado -->
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Fondo (URL)</label>
+                <input type="text" id="topicBackgroundInput" placeholder="https://ejemplo.com/imagen.jpg" style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); font-family: inherit; font-size: 1rem;">
             </div>
-            
+
             <!-- Selector de clima -->
-            <div class="form-group">
-                <label>Clima inicial</label>
-                <div class="weather-selector">
-                    <button type="button" class="weather-btn active" onclick="setTopicWeather('none')">☀️ Normal</button>
-                    <button type="button" class="weather-btn" onclick="setTopicWeather('rain')">🌧️ Lluvia</button>
-                    <button type="button" class="weather-btn" onclick="setTopicWeather('fog')">🌫️ Niebla</button>
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Ambientación</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="weather-btn active" onclick="setTopicWeather('none')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">☀️ Normal</button>
+                    <button type="button" class="weather-btn" onclick="setTopicWeather('rain')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">🌧️ Lluvia</button>
+                    <button type="button" class="weather-btn" onclick="setTopicWeather('fog')" style="flex: 1; padding: 0.6rem; border: 2px solid var(--border-color); background: rgba(255,255,255,0.05); color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem;">🌫️ Niebla</button>
                 </div>
                 <input type="hidden" id="topicWeatherInput" value="none">
             </div>
-            
-            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
-                <button onclick="closeModal('topicModal')" class="btn-secondary">Cancelar</button>
-                <button onclick="createTopic()" class="btn-primary">Crear</button>
+
+            <!-- Botones de acción -->
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <button onclick="closeModal('topicModal')" class="btn-secondary" style="padding: 0.7rem 1.5rem;">Cancelar</button>
+                <button onclick="createTopic()" class="btn-primary" style="padding: 0.7rem 2rem;">✨ Crear Historia</button>
             </div>
         </div>
     </div>
@@ -3166,8 +3173,19 @@
         document.getElementById('topicWeatherInput').value = weather;
         // Actualizar UI
         const buttons = document.querySelectorAll('#topicModal .weather-btn');
-        buttons.forEach(btn => btn.classList.remove('active'));
-        event.target.classList.add('active');
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+            btn.style.borderColor = 'var(--border-color)';
+            btn.style.background = 'rgba(255,255,255,0.05)';
+            btn.style.color = 'var(--text-secondary)';
+        });
+
+        if (event && event.target) {
+            event.target.classList.add('active');
+            event.target.style.borderColor = 'var(--accent-gold)';
+            event.target.style.background = 'rgba(201, 168, 108, 0.2)';
+            event.target.style.color = 'var(--accent-gold)';
+        }
     }
 
     // ============================================
@@ -3282,37 +3300,46 @@
     // MODO FANFIC VS ROLEPLAY
     // ============================================
     function updateTopicModeUI() {
-        const modeRadios = document.getElementsByName('topicMode');
+        const modeRoleplay = document.getElementById('modeRoleplay');
+        const modeFanfic = document.getElementById('modeFanfic');
+
         let selectedMode = 'roleplay';
-        
-        for (const radio of modeRadios) {
-            if (radio.checked) {
-                selectedMode = radio.value;
-                break;
-            }
+        if (modeFanfic && modeFanfic.checked) {
+            selectedMode = 'fanfic';
         }
-        
+
         currentTopicMode = selectedMode;
-        
+
         const charSelectGroup = document.getElementById('topicCharSelectGroup');
         const startAsNarrator = document.getElementById('startAsNarrator');
-        
+
+        // Actualizar estilos visuales
+        const roleplayLabel = modeRoleplay?.parentElement;
+        const fanficLabel = modeFanfic?.parentElement;
+
+        if (roleplayLabel) {
+            roleplayLabel.style.borderColor = selectedMode === 'roleplay' ? 'var(--accent-gold)' : 'var(--border-color)';
+            roleplayLabel.style.background = selectedMode === 'roleplay' ? 'rgba(201, 168, 108, 0.1)' : 'transparent';
+        }
+
+        if (fanficLabel) {
+            fanficLabel.style.borderColor = selectedMode === 'fanfic' ? 'var(--accent-gold)' : 'var(--border-color)';
+            fanficLabel.style.background = selectedMode === 'fanfic' ? 'rgba(201, 168, 108, 0.1)' : 'transparent';
+        }
+
         if (selectedMode === 'fanfic') {
-            // En modo fanfic, ocultar selector de personaje (puede usar múltiples)
             if (charSelectGroup) charSelectGroup.style.display = 'none';
-            // Mostrar opción de narrador
-            if (startAsNarrator) startAsNarrator.parentElement.style.display = 'flex';
         } else {
-            // En modo rol, mostrar selector de personaje
-            if (charSelectGroup) charSelectGroup.style.display = 'block';
-            if (startAsNarrator) startAsNarrator.parentElement.style.display = 'flex';
+            if (charSelectGroup && !(startAsNarrator && startAsNarrator.checked)) {
+                charSelectGroup.style.display = 'block';
+            }
         }
     }
 
     function toggleNarratorStart() {
         const checkbox = document.getElementById('startAsNarrator');
         const charSelectGroup = document.getElementById('topicCharSelectGroup');
-        
+
         if (checkbox.checked) {
             if (charSelectGroup) charSelectGroup.style.display = 'none';
         } else {
