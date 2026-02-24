@@ -1087,8 +1087,17 @@ body::before {
 
         
 
+        .topic-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.65rem;
+            flex-wrap: wrap;
+        }
+
         .topic-title {
-            margin-bottom: 1.6rem;
+            margin-bottom: 0;
             position: relative;
             text-shadow: 0 0 16px rgba(201, 168, 108, 0.35);
         }
@@ -1278,35 +1287,42 @@ body::before {
             scrollbar-color: var(--accent-gold) rgba(255,255,255,0.08);
         }
 
-        .topic-weather-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.5rem;
+        .topic-weather-inline {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            flex-wrap: wrap;
         }
 
         .topic-weather-btn {
-            width: 100%;
-            min-height: 42px;
+            width: 30px;
+            height: 30px;
             border: 2px solid var(--border-color);
-            border-radius: 10px;
-            font-size: 1rem;
+            border-radius: 999px;
+            font-size: 0.95rem;
             line-height: 1;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.35rem;
+            padding: 0;
+            flex: 0 0 30px;
             color: var(--text-primary);
             font-family: 'Inter', sans-serif;
+            background: rgba(255,255,255,0.06);
+            box-shadow: 0 0 0 rgba(201, 168, 108, 0);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
 
-        .topic-weather-btn .weather-icon {
-            font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
-            font-size: 1rem;
+        .topic-weather-btn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(201, 168, 108, 0.78);
+            background: rgba(201, 168, 108, 0.16);
         }
 
-        .topic-weather-btn .weather-label {
-            font-size: 0.9rem;
-            font-weight: 500;
+        .topic-weather-btn.active {
+            border-color: var(--accent-gold);
+            background: rgba(201, 168, 108, 0.24);
+            box-shadow: 0 0 12px rgba(201, 168, 108, 0.42), inset 0 0 8px rgba(201, 168, 108, 0.26);
         }
 
 
@@ -1351,8 +1367,21 @@ body::before {
                 grid-template-columns: 1fr;
             }
 
-            .topic-weather-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
+            .topic-header-row {
+                align-items: flex-start;
+                gap: 0.55rem;
+                margin-bottom: 0.45rem;
+            }
+
+            .topic-weather-inline {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .topic-weather-btn {
+                width: 28px;
+                height: 28px;
+                flex-basis: 28px;
             }
 
 

@@ -14,6 +14,8 @@ function initSmartTooltips() {
         document.body.appendChild(tooltipRoot);
     }
 
+    let tooltipTimer = null;
+
     const showTooltip = (el) => {
         const text = el?.getAttribute('data-tooltip');
         if (!text || !tooltipRoot) return;
@@ -42,19 +44,33 @@ function initSmartTooltips() {
     };
 
     const hideTooltip = () => {
+        if (tooltipTimer) {
+            clearTimeout(tooltipTimer);
+            tooltipTimer = null;
+        }
         if (tooltipRoot) tooltipRoot.classList.remove('visible');
+    };
+
+    const queueTooltip = (target) => {
+        if (!target) return;
+        if (tooltipTimer) clearTimeout(tooltipTimer);
+        const delayMs = Number(target.getAttribute('data-tooltip-delay') || 0);
+        tooltipTimer = setTimeout(() => {
+            showTooltip(target);
+            tooltipTimer = null;
+        }, Math.max(0, delayMs));
     };
 
     document.addEventListener('mouseover', (e) => {
         const target = e.target.closest('[data-tooltip]');
         if (!target) return;
-        showTooltip(target);
+        queueTooltip(target);
     });
 
     document.addEventListener('focusin', (e) => {
         const target = e.target.closest('[data-tooltip]');
         if (!target) return;
-        showTooltip(target);
+        queueTooltip(target);
     });
 
     document.addEventListener('mouseout', (e) => {
@@ -236,7 +252,7 @@ function setWeather(weather) {
     currentWeather = weather;
 
     // Actualizar botones
-    document.querySelectorAll('.weather-btn').forEach(btn => {
+    document.querySelectorAll('#weatherSelectorContainer .weather-btn').forEach(btn => {
         btn.classList.remove('active');
         if (btn.textContent.toLowerCase().includes(weather === 'rain' ? 'lluvia' : weather === 'fog' ? 'niebla' : 'normal')) {
             btn.classList.add('active');
@@ -257,23 +273,14 @@ function setWeather(weather) {
     }
 }
 
-function setTopicWeather(weather) {
+function setTopicWeather(weather, button = null) {
     document.getElementById('topicWeatherInput').value = weather;
-    // Actualizar UI
-    const buttons = document.querySelectorAll('#topicModal .weather-btn');
-    buttons.forEach(btn => {
-        btn.classList.remove('active');
-        btn.style.borderColor = 'var(--border-color)';
-        btn.style.background = 'rgba(255,255,255,0.05)';
-        btn.style.color = 'var(--text-secondary)';
-    });
 
-    if (event && event.target) {
-        event.target.classList.add('active');
-        event.target.style.borderColor = 'var(--accent-gold)';
-        event.target.style.background = 'rgba(201, 168, 108, 0.2)';
-        event.target.style.color = 'var(--accent-gold)';
-    }
+    const buttons = document.querySelectorAll('#topicModal .topic-weather-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+
+    const activeButton = button || document.querySelector(`#topicModal .topic-weather-btn[data-weather="${weather}"]`);
+    if (activeButton) activeButton.classList.add('active');
 }
 
 // ============================================
