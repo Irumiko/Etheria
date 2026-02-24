@@ -86,3 +86,21 @@ const STORAGE_KEYS = {
     topicPrefix: 'etheria_messages_'
 };
 const LAST_PROFILE_KEY = 'lastProfileId';
+const LOCAL_PROFILE_UPDATED_PREFIX = 'etheria_profile_updated_';
+const AUTO_SYNC_INTERVAL = 30000;
+const OFFLINE_SYNC_INTERVAL = 60000;
+const JSONBIN_CONFIG = {
+    apiKey: '$2a$10$n2fNlNcZYCvkUIkDlR5Z5OSoAJerLFfMYWGdxbVZDrSSHpLhgMzay',
+    binId: '6999c9aed0ea881f40ccab53',
+    baseUrl: 'https://api.jsonbin.io/v3/b'
+};
+let cloudSyncStatus = 'idle';
+let cloudSyncInterval = null;
+let cloudSyncInProgress = false;
+let cloudUnsyncedChanges = false;
+let lastSyncTimestamp = 0;
+let lastKnownServerTimestamp = 0;
+let pendingRemoteProfileData = null;
+let pendingRemoteTimestamp = 0;
+let isOfflineMode = false;
+const cloudMigrationPendingProfiles = new Set();

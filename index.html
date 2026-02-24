@@ -16,6 +16,18 @@
         <span class="autosave-text">Guardando...</span>
     </div>
 
+    <div id="cloudSyncIndicator" class="cloud-sync-indicator online" aria-live="polite">
+        <span class="cloud-sync-icon">⚠️</span>
+        <span class="cloud-sync-text">Solo local</span>
+    </div>
+
+
+    <div id="syncToast" class="sync-toast" role="status" aria-live="polite">
+        <span class="sync-toast-text">Hay mensajes nuevos</span>
+        <button class="sync-toast-action" type="button">Ver ahora</button>
+        <button class="sync-toast-dismiss" type="button" onclick="this.parentElement.classList.remove('visible')">Más tarde</button>
+    </div>
+
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner"></div>
         <div class="loading-text">Cargando datos...</div>
@@ -292,9 +304,9 @@
                 </button>
             </div>
             <div class="vn-control-slot">
-                <button class="vn-control-btn save-btn" onclick="quickSave()" aria-label="Guardar">
-                    <span class="vn-control-icon">◈</span>
-                    <span class="vn-control-label">Guardar</span>
+                <button id="syncNowBtn" class="vn-control-btn sync-btn is-synced" onclick="manualSyncFromScene()" aria-label="Sincronizar">
+                    <span class="vn-control-icon">☁️↻</span>
+                    <span class="vn-control-label">Sincronizar</span>
                 </button>
             </div>
             <div class="vn-control-slot">

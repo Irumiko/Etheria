@@ -209,6 +209,65 @@ body::before {
             transform: translateY(4px);
         }
 
+
+        .cloud-sync-indicator {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: rgba(14, 16, 24, 0.82);
+            color: #f2f2f2;
+            font-size: 0.75rem;
+            z-index: 3900;
+            backdrop-filter: blur(4px);
+        }
+        .cloud-sync-indicator.online { color: #8ff7b4; border-color: rgba(143, 247, 180, 0.6); }
+        .cloud-sync-indicator.degraded { color: #ffd08a; border-color: rgba(255, 208, 138, 0.7); }
+        .cloud-sync-indicator.offline { color: #ff9b9b; border-color: rgba(255, 155, 155, 0.7); }
+        .cloud-sync-icon { font-size: 0.9rem; }
+
+
+        .sync-btn.is-synced { border-color: rgba(180,180,180,0.5); color: #d8d8d8; }
+        .sync-btn.is-syncing { border-color: #79b9ff; color: #b8deff; }
+        .sync-btn.is-syncing .vn-control-icon { animation: sync-spin 1s linear infinite; }
+        .sync-btn.is-upload-pending { border-color: #76dd95; color: #bbf7cc; }
+        .sync-btn.is-download-pending { border-color: #f1b266; color: #ffd8a8; }
+        .sync-btn.is-error { border-color: #ff8f8f; color: #ffb9b9; }
+        @keyframes sync-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        .sync-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(22, 24, 33, 0.92);
+            border: 1px solid rgba(148, 194, 255, 0.6);
+            border-radius: 12px;
+            padding: 0.65rem 0.85rem;
+            z-index: 4500;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(8px);
+            transition: all 0.2s ease;
+        }
+        .sync-toast.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        .sync-toast-action, .sync-toast-dismiss {
+            border: none;
+            border-radius: 8px;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+        .sync-toast-action { background: #4a87d8; color: #fff; }
+        .sync-toast-dismiss { background: transparent; color: #cfd6e6; border: 1px solid rgba(255,255,255,0.25); }
+
         .autosave-indicator {
             position: fixed;
             top: 20px;
