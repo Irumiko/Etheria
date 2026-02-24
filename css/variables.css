@@ -1,0 +1,48 @@
+/* Variables globales, tema y tipografías */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+        :root {
+            --bg-primary: #f5f1e8;
+            --bg-secondary: #e8e0d0;
+            --bg-tertiary: #d4cfc7;
+            --bg-card: #faf8f3;
+            --text-primary: #3d3833;
+            --text-secondary: #5a5045;
+            --text-muted: #7a7065;
+            --accent-wood: #8b7355;
+            --accent-sage: #6b8e7d;
+            --accent-warm: #a08060;
+            --accent-gold: #8b6914;
+            --border-color: #c4b8a8;
+            --border-light: #d9d0c3;
+            --shadow: rgba(61, 56, 51, 0.08);
+            --shadow-heavy: rgba(61, 56, 51, 0.15);
+            --glass-bg: rgba(26, 24, 21, 0.85);
+            --font-size-base: 1.2rem;
+            --typewriter-speed: 25;
+            --input-bg: #ffffff;
+            --input-text: #3d3833;
+            --menu-button-bg: rgba(255, 255, 255, 0.9);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1815;
+            --bg-secondary: #2a2724;
+            --bg-tertiary: #3d3833;
+            --bg-card: #252320;
+            --text-primary: #e8e4dc;
+            --text-secondary: #d4cfc7;
+            --text-muted: #8a8075;
+            --accent-wood: #8b7355;
+            --accent-sage: #6b8e7d;
+            --accent-warm: #a08060;
+            --accent-gold: #8b6914;
+            --border-color: #4a4540;
+            --border-light: #3d3833;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --shadow-heavy: rgba(0, 0, 0, 0.5);
+            --glass-bg: rgba(26, 24, 21, 0.9);
+            --input-bg: #2a2724;
+            --input-text: #e8e4dc;
+            --menu-button-bg: rgba(30, 28, 25, 0.95);
+        }

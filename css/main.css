@@ -1,0 +1,7 @@
+/*
+ * Punto de entrada de estilos (desarrollo)
+ * Importa variables, animaciones y componentes en orden.
+ */
+@import url('./variables.css');
+@import url('./animations.css');
+@import url('./components.css');
