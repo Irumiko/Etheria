@@ -368,7 +368,22 @@
                     <label for="narratorMode">Modo Narrador</label>
                 </div>
 
-                <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*, y comandos como /angry, /happy, etc."></textarea>
+                <div class="vn-reply-textarea-wrap">
+                    <button id="replyEmoteToggle" class="reply-emote-toggle" type="button" aria-label="Emotes" onclick="toggleReplyEmotePopover(event)">☺</button>
+                    <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*, y comandos como /angry, /happy, etc."></textarea>
+                    <div id="replyEmotePopover" class="reply-emote-popover" aria-hidden="true">
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')" aria-label="Insertar emote angry">💢</button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')" aria-label="Insertar emote happy">✨</button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('shock')" aria-label="Insertar emote shock">💦</button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sad')" aria-label="Insertar emote sad">💧</button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('think')" aria-label="Insertar emote think">💭</button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('love')" aria-label="Insertar emote love">💕</button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('annoyed')" aria-label="Insertar emote annoyed">💢</button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" aria-label="Insertar emote embarrassed">😳</button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')" aria-label="Insertar emote idea">💡</button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')" aria-label="Insertar emote sleep">💤</button>
+                    </div>
+                </div>
 
                 <div class="options-toggle-container" id="optionsToggleContainer">
                     <div class="options-toggle" onclick="toggleOptionsFields()">
