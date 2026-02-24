@@ -611,8 +611,9 @@ function updateAffinityDisplay() {
         affinityDisplay?.classList.add('hidden');
         if (vnInfoAffection) vnInfoAffection.style.display = 'none';
         if (infoName) infoName.textContent = 'Narrador';
-        if (infoClub) infoClub.textContent = 'Modo historia';
+        if (infoClub) infoClub.textContent = currentTopicMode === 'roleplay' ? 'Modo rol' : 'Modo historia';
         if (infoAvatar) infoAvatar.innerHTML = '<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">📖</div>';
+        updateInfoHoverDetails(null);
         return;
     }
 
@@ -621,10 +622,17 @@ function updateAffinityDisplay() {
         const char = appData.characters.find(c => c.id === currentMsg.characterId);
         if (char) {
             if (char.userIndex === currentUserIndex) {
-                affinityDisplay?.classList.add('hidden');
+                affinityDisplay?.classList.remove('hidden');
                 if (vnInfoAffection) vnInfoAffection.style.display = 'none';
                 if (infoName) infoName.textContent = char.name;
                 if (infoClub) infoClub.textContent = char.race || 'Sin raza';
+
+                const rankNameEl = document.getElementById('affinityRankName');
+                if (rankNameEl) {
+                    rankNameEl.textContent = 'Afinidad: Propio (100%)';
+                    rankNameEl.style.color = 'var(--accent-gold)';
+                    rankNameEl.style.textShadow = '0 0 10px rgba(201, 168, 108, 0.6)';
+                }
 
                 if (infoAvatar) {
                     if (char.avatar) {
@@ -633,6 +641,7 @@ function updateAffinityDisplay() {
                         infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
                     }
                 }
+                updateInfoHoverDetails(char);
                 return;
             }
 
@@ -664,6 +673,7 @@ function updateAffinityDisplay() {
                 }
 
                 currentAffinity = affinityValue;
+                updateInfoHoverDetails(char);
                 return;
             }
         }
@@ -675,6 +685,19 @@ function updateAffinityDisplay() {
     if (infoName) infoName.textContent = 'Sin personaje';
     if (infoClub) infoClub.textContent = 'Selecciona un personaje';
     if (infoAvatar) infoAvatar.innerHTML = '<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">👤</div>';
+    updateInfoHoverDetails(null);
+}
+
+function updateInfoHoverDetails(char) {
+    const modeEl = document.getElementById('vnInfoModeDetail');
+    const ageEl = document.getElementById('vnInfoAgeDetail');
+    const storyEl = document.getElementById('vnInfoStoryDetail');
+
+    if (modeEl) modeEl.textContent = `Modo: ${currentTopicMode === 'roleplay' ? 'Rol' : 'Historia'}`;
+    if (ageEl) ageEl.textContent = `Edad: ${char?.age || '-'}`;
+
+    const story = (char?.history || '').trim();
+    if (storyEl) storyEl.textContent = `Historia: ${story ? story.slice(0, 90) : 'Sin detalles'}`;
 }
 
 function modifyAffinity(direction) {
@@ -1492,6 +1515,14 @@ function stopTypewriter() {
     isTyping = false;
 }
 
+function triggerDialogueFadeIn() {
+    const dialogueBox = document.querySelector('.vn-dialogue-box');
+    if (!dialogueBox) return;
+    dialogueBox.classList.remove('fade-in');
+    void dialogueBox.offsetWidth;
+    dialogueBox.classList.add('fade-in');
+}
+
 function showCurrentMessage() {
     const msgs = getTopicMessages(currentTopicId);
 
@@ -2046,6 +2077,7 @@ function selectOption(idx) {
     if (optionsIndicator) optionsIndicator.classList.add('hidden');
 
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
+    triggerDialogueFadeIn();
     showCurrentMessage();
 }
 
@@ -2391,6 +2423,7 @@ function postVNReply() {
     save();
     closeReplyPanel();
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
+    triggerDialogueFadeIn();
     showCurrentMessage();
 }
 
