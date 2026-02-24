@@ -1155,9 +1155,10 @@ body::before {
 
         .topic-mode-option.active {
             border-color: rgba(201, 168, 108, 0.95);
-            color: var(--text-primary);
-            background: linear-gradient(135deg, rgba(201, 168, 108, 0.18), rgba(139, 115, 85, 0.14));
-            box-shadow: 0 0 18px rgba(201, 168, 108, 0.35), inset 0 0 8px rgba(201, 168, 108, 0.15);
+            color: rgba(255, 240, 208, 0.98);
+            background: linear-gradient(135deg, rgba(201, 168, 108, 0.34), rgba(139, 115, 85, 0.3));
+            box-shadow: 0 0 18px rgba(201, 168, 108, 0.35), inset 0 0 10px rgba(255, 222, 163, 0.16);
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
         }
 
         .topic-mode-option:hover { border-color: rgba(201, 168, 108, 0.55); }
