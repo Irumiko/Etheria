@@ -1425,7 +1425,7 @@ function editFromSheet() {
 // ============================================
 // MODO VN
 // ============================================
-const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.png.jpg';
+const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default-scene-sunset.png';
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
     'assets/backgrounds/default_scene.png',
@@ -1433,13 +1433,60 @@ const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'assets/default_background.png',
     'Assets/default_background.png',
     'assets/backgrounds/default_background.png.jpg',
-    'Assets/backgrounds/default_background.png.jpg'
+    'Assets/backgrounds/default_background.png.jpg',
+    'assets/backgrounds/default-scene-sunset.png',
+    'Assets/backgrounds/default-scene-sunset.png'
 ];
+
+const preloadedBackgrounds = new Set();
 
 function isDefaultTopicBackground(backgroundPath) {
     const normalized = (backgroundPath || "").trim().toLowerCase();
     if (!normalized) return true;
     return LEGACY_DEFAULT_TOPIC_BACKGROUNDS.some(path => normalized === path.toLowerCase());
+}
+
+function resolveTopicBackgroundPath(backgroundPath = '') {
+    const topicBackground = (backgroundPath || '').trim();
+    return isDefaultTopicBackground(topicBackground) ? DEFAULT_TOPIC_BACKGROUND : topicBackground;
+}
+
+function preloadBackgroundImage(path) {
+    const normalizedPath = (path || '').trim();
+    if (!normalizedPath || preloadedBackgrounds.has(normalizedPath)) {
+        return Promise.resolve();
+    }
+
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            preloadedBackgrounds.add(normalizedPath);
+            resolve();
+        };
+        img.onerror = resolve;
+        img.src = normalizedPath;
+    });
+}
+
+function applyTopicBackground(vnSection, backgroundPath) {
+    if (!vnSection) return;
+
+    const sceneBackgroundPath = resolveTopicBackgroundPath(backgroundPath);
+    const sceneBackgroundLayer = `url(${escapeHtml(sceneBackgroundPath)})`;
+    vnSection.dataset.pendingBackground = sceneBackgroundPath;
+
+    const applyBackground = () => {
+        if (vnSection.dataset.pendingBackground !== sceneBackgroundPath) return;
+        vnSection.style.backgroundImage = `${sceneBackgroundLayer}, linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)`;
+    };
+
+    preloadBackgroundImage(sceneBackgroundPath).finally(applyBackground);
+}
+
+function preloadTopicBackgrounds() {
+    const topicBackgrounds = (appData?.topics || []).map(topic => resolveTopicBackgroundPath(topic.background));
+    const uniqueBackgrounds = new Set([DEFAULT_TOPIC_BACKGROUND, ...topicBackgrounds]);
+    uniqueBackgrounds.forEach(path => preloadBackgroundImage(path));
 }
 
 function enterTopic(id) {
@@ -1472,13 +1519,7 @@ function enterTopic(id) {
 
     const vnSection = document.getElementById('vnSection');
     if (vnSection) {
-        const topicBackground = (t.background || '').trim();
-        const useDefaultBackground = isDefaultTopicBackground(topicBackground);
-        const sceneBackgroundLayer = useDefaultBackground
-            ? `url(${escapeHtml(DEFAULT_TOPIC_BACKGROUND)})`
-            : `url(${escapeHtml(topicBackground)})`;
-
-        vnSection.style.backgroundImage = `${sceneBackgroundLayer}, linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)`;
+        applyTopicBackground(vnSection, t.background);
 
         // Aplicar modo de sprites (fanfic = persistente por defecto)
         if (currentTopicMode === 'fanfic') {
@@ -1912,6 +1953,8 @@ function editCurrentMessage() {
         selectedCharId = msg.characterId;
         updateCharSelector();
     }
+
+    setWeather(msg.weather || 'none');
 
     if (msg.options && msg.options.length > 0 && !isFanficMode()) {
         const enableOptions = document.getElementById('enableOptions');
@@ -2561,6 +2604,8 @@ function renderTopics() {
         const topicMsgs = getTopicMessages(topic.id);
         msgCount += topicMsgs.filter(m => m.userIndex === currentUserIndex).length;
     });
+
+    preloadTopicBackgrounds();
 
     if (statMsgs) statMsgs.textContent = msgCount;
 }

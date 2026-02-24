@@ -1408,7 +1408,7 @@ body::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(3px);
             pointer-events: none;
             z-index: 0;
