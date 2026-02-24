@@ -90,7 +90,9 @@ const LOCAL_PROFILE_UPDATED_PREFIX = 'etheria_profile_updated_';
 const AUTO_SYNC_INTERVAL = 30000;
 const OFFLINE_SYNC_INTERVAL = 60000;
 const JSONBIN_CONFIG = {
-    apiKey: '$2a$10$n2fNlNcZYCvkUIkDlR5Z5OSoAJerLFfMYWGdxbVZDrSSHpLhgMzay',
+    // Nota: la API key no debe hardcodearse en cliente.
+    // Se puede inyectar vía window.__ETHERIA_JSONBIN_API_KEY desde un entorno controlado.
+    apiKey: (typeof window !== 'undefined' && window.__ETHERIA_JSONBIN_API_KEY) ? String(window.__ETHERIA_JSONBIN_API_KEY) : '',
     binId: '6999c9aed0ea881f40ccab53',
     baseUrl: 'https://api.jsonbin.io/v3/b'
 };

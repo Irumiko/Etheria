@@ -239,7 +239,14 @@ function applyProfileData(profileIndex, profileData) {
     Object.keys(sanitizedData.affinities).forEach((topicId) => { appData.affinities[topicId] = sanitizedData.affinities[topicId]; });
 }
 
+function ensureCloudConfig() {
+    if (!JSONBIN_CONFIG.apiKey) {
+        throw new Error('Cloud sync disabled: missing JSONBin API key');
+    }
+}
+
 async function fetchCloudBin() {
+    ensureCloudConfig();
     const response = await fetch(`${JSONBIN_CONFIG.baseUrl}/${JSONBIN_CONFIG.binId}/latest`, {
         method: 'GET',
         headers: { 'X-Master-Key': JSONBIN_CONFIG.apiKey }
@@ -252,6 +259,7 @@ async function fetchCloudBin() {
 }
 
 async function putCloudBin(record) {
+    ensureCloudConfig();
     const response = await fetch(`${JSONBIN_CONFIG.baseUrl}/${JSONBIN_CONFIG.binId}`, {
         method: 'PUT',
         headers: {
@@ -418,13 +426,17 @@ async function loadFromCloud() {
 }
 
 function startCloudSync() {
+    const targetInterval = isOfflineMode ? OFFLINE_SYNC_INTERVAL : AUTO_SYNC_INTERVAL;
+
+    if (cloudSyncInterval && startCloudSync._intervalMs === targetInterval) return;
     if (cloudSyncInterval) clearInterval(cloudSyncInterval);
+
+    startCloudSync._intervalMs = targetInterval;
     cloudSyncInterval = setInterval(async () => {
         if (cloudSyncInProgress) return;
-        const interval = isOfflineMode ? OFFLINE_SYNC_INTERVAL : AUTO_SYNC_INTERVAL;
-        if (!startCloudSync._lastInterval || startCloudSync._lastInterval !== interval) {
-            startCloudSync._lastInterval = interval;
-            clearInterval(cloudSyncInterval);
+
+        const nextInterval = isOfflineMode ? OFFLINE_SYNC_INTERVAL : AUTO_SYNC_INTERVAL;
+        if (nextInterval !== startCloudSync._intervalMs) {
             startCloudSync();
             return;
         }
@@ -432,5 +444,5 @@ function startCloudSync() {
         if (hasUnsavedChanges || cloudUnsyncedChanges || cloudMigrationPendingProfiles.has(currentUserIndex)) {
             await syncBidirectional({ silent: true, allowRemotePrompt: true });
         }
-    }, isOfflineMode ? OFFLINE_SYNC_INTERVAL : AUTO_SYNC_INTERVAL);
+    }, targetInterval);
 }

@@ -441,16 +441,24 @@ function showEmoteOnAvatar(emoteType) {
 // ============================================
 // MODO FANFIC VS ROLEPLAY
 // ============================================
+const TOPIC_MODE_STORAGE_KEY = 'etheria_topic_mode';
+
 function updateTopicModeUI() {
     const modeRoleplay = document.getElementById('modeRoleplay');
     const modeFanfic = document.getElementById('modeFanfic');
 
-    let selectedMode = 'roleplay';
-    if (modeFanfic && modeFanfic.checked) {
-        selectedMode = 'fanfic';
-    }
+    const persistedMode = localStorage.getItem(TOPIC_MODE_STORAGE_KEY);
+    let selectedMode = currentTopicMode === 'fanfic' ? 'fanfic' : 'roleplay';
+
+    if (modeFanfic && modeFanfic.checked) selectedMode = 'fanfic';
+    else if (modeRoleplay && modeRoleplay.checked) selectedMode = 'roleplay';
+    else if (persistedMode === 'fanfic' || persistedMode === 'roleplay') selectedMode = persistedMode;
 
     currentTopicMode = selectedMode;
+    localStorage.setItem(TOPIC_MODE_STORAGE_KEY, selectedMode);
+
+    if (modeRoleplay) modeRoleplay.checked = selectedMode === 'roleplay';
+    if (modeFanfic) modeFanfic.checked = selectedMode === 'fanfic';
 
     // Actualizar estilos visuales
     const roleplayLabel = modeRoleplay?.parentElement;
@@ -1612,7 +1620,7 @@ function editFromSheet() {
 // ============================================
 // MODO VN
 // ============================================
-const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.png.jpg';
+const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.jpg';
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
     'assets/backgrounds/default_scene.png',
@@ -2876,6 +2884,8 @@ function createTopic() {
 // UTILIDADES
 // ============================================
 function save() {
+    const wasUnsaved = hasUnsavedChanges;
+
     try {
         persistPartitionedData();
         setLocalProfileUpdatedAt(currentUserIndex);
@@ -2886,6 +2896,7 @@ function save() {
         showAutosave('Guardado', 'saved');
         return true;
     } catch (e) {
+        hasUnsavedChanges = wasUnsaved;
         console.error('Error saving:', e);
         showAutosave('Error al guardar: almacenamiento lleno o no disponible', 'error');
         return false;
@@ -2923,9 +2934,6 @@ function showAutosave(text, state) {
 
 function openModal(id) {
     if(id === 'topicModal') {
-        const roleplay = document.getElementById('modeRoleplay');
-        if (roleplay) roleplay.checked = true;
-
         updateTopicModeUI();
     }
     const modal = document.getElementById(id);
