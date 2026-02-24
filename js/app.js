@@ -57,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUserCards();
     generateProfileParticles();
     initMenuParallax();
+    updateCloudSyncIndicator('online', 'Conectado');
+    updateSyncButtonState('synced', 'Sincronizar');
+    startCloudSync();
 
     const lastProfileId = getStoredLastProfileId();
     if (lastProfileId !== null) {

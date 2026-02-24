@@ -894,6 +894,11 @@ async function selectUser(idx, options = {}) {
 
     const safeOptions = { instant: false, autoLoad: false, ...options };
 
+    const previousProfileIndex = currentUserIndex;
+    if (previousProfileIndex !== idx && !safeOptions.autoLoad) {
+        await syncBidirectional({ profileIndex: previousProfileIndex, silent: true, allowRemotePrompt: false });
+    }
+
     currentUserIndex = idx;
     localStorage.setItem(LAST_PROFILE_KEY, String(idx));
 
@@ -918,6 +923,8 @@ async function selectUser(idx, options = {}) {
     if (userSelectScreen) userSelectScreen.classList.add('hidden');
     if (mainMenu) mainMenu.classList.remove('hidden');
     if (currentUserDisplay) currentUserDisplay.textContent = userNames[idx] || 'Jugador';
+
+    await loadFromCloud();
 
     if (loadingOverlay) loadingOverlay.classList.remove('active');
     isLoading = false;
@@ -1605,7 +1612,7 @@ function editFromSheet() {
 // ============================================
 // MODO VN
 // ============================================
-const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default-scene-sunset.png';
+const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.png.jpg';
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
     'assets/backgrounds/default_scene.png',
@@ -2071,6 +2078,7 @@ function handleDialogueClick() {
     if (currentMessageIndex < msgs.length - 1) {
         currentMessageIndex++;
         showCurrentMessage();
+        syncBidirectional({ silent: true, allowRemotePrompt: true });
     }
 }
 
@@ -2091,6 +2099,7 @@ function nextMessage() {
     if (currentMessageIndex < msgs.length - 1) {
         currentMessageIndex++;
         showCurrentMessage();
+        syncBidirectional({ silent: true, allowRemotePrompt: true });
     }
 }
 
@@ -2415,6 +2424,7 @@ function openHistoryLog() {
 // RESPUESTAS (Reply Panel)
 // ============================================
 function openReplyPanel() {
+    syncBidirectional({ silent: true, allowRemotePrompt: true });
     const panel = document.getElementById('vnReplyPanel');
     if (!panel) return;
 
@@ -2868,7 +2878,11 @@ function createTopic() {
 function save() {
     try {
         persistPartitionedData();
+        setLocalProfileUpdatedAt(currentUserIndex);
         hasUnsavedChanges = false;
+        cloudUnsyncedChanges = true;
+        updateSyncButtonState('pending-upload', 'Subir cambios');
+        updateCloudSyncIndicator('degraded', 'Pendiente de subida');
         showAutosave('Guardado', 'saved');
         return true;
     } catch (e) {
@@ -2876,6 +2890,13 @@ function save() {
         showAutosave('Error al guardar: almacenamiento lleno o no disponible', 'error');
         return false;
     }
+}
+
+
+function refreshUIAfterCloudLoad() {
+    if (typeof renderTopics === 'function') renderTopics();
+    if (typeof renderGallery === 'function') renderGallery();
+    if (currentTopicId && typeof showCurrentMessage === 'function') showCurrentMessage();
 }
 
 function showAutosave(text, state) {
@@ -2975,6 +2996,11 @@ function deleteCurrentTopic() {
     hasUnsavedChanges = true;
     save();
     backToTopics();
+}
+
+async function manualSyncFromScene() {
+    if (hasUnsavedChanges) save();
+    await syncBidirectional({ silent: false, allowRemotePrompt: true });
 }
 
 function quickSave() {
