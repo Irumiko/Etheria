@@ -923,7 +923,7 @@ async function selectUser(idx, options = {}) {
     isLoading = false;
 
     generateParticles();
-    if (!safeOptions.autoLoad) showAutosave('Sesión iniciada', 'saved');
+    if (!safeOptions.autoLoad) showAutosave('Sesión iniciada', 'info');
 }
 
 // Generar tarjetas de usuario dinámicamente
@@ -1009,6 +1009,73 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+
+const menuMouseState = { x: 0, y: 0 };
+let menuParallaxBound = false;
+let fireflyAnimationId = null;
+let fireflyEntities = [];
+
+function initMenuParallax() {
+    if (menuParallaxBound) return;
+    const parallax = document.getElementById('menuParallax');
+    if (!parallax) return;
+
+    const updateParallax = () => {
+        const layers = parallax.querySelectorAll('.parallax-layer');
+        layers.forEach((layer) => {
+            const depth = Number.parseFloat(layer.dataset.depth || '0');
+            layer.style.setProperty('--parallax-x', `${menuMouseState.x * depth}px`);
+            layer.style.setProperty('--parallax-y', `${menuMouseState.y * depth}px`);
+        });
+    };
+
+    window.addEventListener('mousemove', (event) => {
+        const nx = (event.clientX / window.innerWidth) - 0.5;
+        const ny = (event.clientY / window.innerHeight) - 0.5;
+        menuMouseState.x += ((nx * 26) - menuMouseState.x) * 0.12;
+        menuMouseState.y += ((ny * 18) - menuMouseState.y) * 0.12;
+        updateParallax();
+    });
+
+    menuParallaxBound = true;
+    updateParallax();
+}
+
+function animateFireflies() {
+    if (fireflyAnimationId) window.cancelAnimationFrame(fireflyAnimationId);
+
+    const loop = () => {
+        fireflyEntities.forEach((entity) => {
+            entity.wanderAngle += (Math.random() - 0.5) * 0.2;
+            entity.vx += Math.cos(entity.wanderAngle) * 0.015;
+            entity.vy += Math.sin(entity.wanderAngle) * 0.015;
+
+            const dx = menuMouseState.x - entity.mx;
+            const dy = menuMouseState.y - entity.my;
+            entity.vx += dx * 0.00045;
+            entity.vy += dy * 0.00045;
+
+            const friction = 0.96;
+            entity.vx *= friction;
+            entity.vy *= friction;
+
+            entity.mx += entity.vx;
+            entity.my += entity.vy;
+
+            if (entity.mx < -65) entity.mx = 65;
+            if (entity.mx > 65) entity.mx = -65;
+            if (entity.my < -45) entity.my = 45;
+            if (entity.my > 45) entity.my = -45;
+
+            entity.el.style.transform = `translate(${entity.mx}px, ${entity.my}px) rotate(${Math.atan2(entity.vy, entity.vx) * (180 / Math.PI)}deg)`;
+        });
+
+        fireflyAnimationId = window.requestAnimationFrame(loop);
+    };
+
+    fireflyAnimationId = window.requestAnimationFrame(loop);
+}
+
 function addNewProfile() {
     if (userNames.length >= 10) {
         alert('Máximo de 10 perfiles alcanzado');
@@ -1028,24 +1095,39 @@ function generateParticles() {
     if (!container) return;
 
     container.innerHTML = '';
+    fireflyEntities = [];
+
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
     if (isDark) {
-        // Luciérnagas para tema oscuro
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 24; i++) {
             const firefly = document.createElement('div');
             firefly.className = 'firefly';
             firefly.style.left = Math.random() * 100 + '%';
-            firefly.style.top = Math.random() * 100 + '%';
-            firefly.style.animationDelay = Math.random() * 4 + 's';
-            firefly.style.animationDuration = (3 + Math.random() * 3) + 's';
-            firefly.style.setProperty('--move-x', (Math.random() * 100 - 50) + 'px');
-            firefly.style.setProperty('--move-y', (Math.random() * 100 - 50) + 'px');
+            firefly.style.top = (8 + Math.random() * 84) + '%';
+            firefly.style.animationDelay = Math.random() * 3 + 's';
+            firefly.style.animationDuration = (1.7 + Math.random() * 2.3) + 's';
+
+            const entity = {
+                el: firefly,
+                mx: (Math.random() * 70) - 35,
+                my: (Math.random() * 70) - 35,
+                vx: (Math.random() - 0.5) * 0.5,
+                vy: (Math.random() - 0.5) * 0.5,
+                wanderAngle: Math.random() * Math.PI * 2
+            };
+
+            fireflyEntities.push(entity);
             container.appendChild(firefly);
         }
+        animateFireflies();
     } else {
-        // Hojas para tema claro
-        for (let i = 0; i < 10; i++) {
+        if (fireflyAnimationId) {
+            window.cancelAnimationFrame(fireflyAnimationId);
+            fireflyAnimationId = null;
+        }
+
+        for (let i = 0; i < 12; i++) {
             const leaf = document.createElement('div');
             leaf.className = 'leaf';
             leaf.style.left = Math.random() * 100 + '%';
@@ -1532,7 +1614,10 @@ function enterTopic(id) {
 
     const topicsSection = document.getElementById('topicsSection');
     if (topicsSection) topicsSection.classList.remove('active');
-    if (vnSection) vnSection.classList.add('active');
+    if (vnSection) {
+        vnSection.classList.add('active');
+        playVnSceneTransition(vnSection);
+    }
 
     const deleteBtn = document.getElementById('deleteTopicBtn');
     if (deleteBtn) {
@@ -1544,6 +1629,21 @@ function enterTopic(id) {
     }
 
     showCurrentMessage();
+}
+
+function playVnSceneTransition(vnSection) {
+    const overlay = document.getElementById('vnSceneTransition');
+    if (!vnSection || !overlay) return;
+
+    overlay.classList.remove('active');
+    vnSection.classList.remove('entering-scene');
+    void overlay.offsetWidth;
+    overlay.classList.add('active');
+    vnSection.classList.add('entering-scene');
+
+    window.setTimeout(() => {
+        vnSection.classList.remove('entering-scene');
+    }, 620);
 }
 
 function stopTypewriter() {
@@ -1625,6 +1725,8 @@ function showCurrentMessage() {
                 msg.charName[0];
         }
     }
+
+    if (avatarBox) avatarBox.classList.toggle('is-speaking', !(msg.isNarrator || !msg.characterId));
 
     // Mostrar emote en avatar si no hay sprite
     if (activeEmote && !msg.charSprite) {
@@ -2689,9 +2791,10 @@ function showAutosave(text, state) {
     indicator.className = `autosave-indicator visible ${state}`;
 
     if (iconEl) {
-        if (state === 'saving') iconEl.textContent = '💾';
-        else if (state === 'saved') iconEl.textContent = '✓';
-        else if (state === 'error') iconEl.textContent = '✕';
+        if (state === 'saved') iconEl.textContent = '🜚';
+        else if (state === 'error') iconEl.textContent = '🜄';
+        else if (state === 'info') iconEl.textContent = '🜃';
+        else iconEl.textContent = '🜂';
     }
 
     setTimeout(() => {

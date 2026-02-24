@@ -138,3 +138,32 @@
             0%, 100% { opacity: 0.3; transform: rotate(45deg) scale(1); }
             50% { opacity: 1; transform: rotate(45deg) scale(1.2); }
         }
+
+
+@keyframes firefly-pulse {
+            0%, 100% { opacity: 0.42; transform: scale(0.82); }
+            50% { opacity: 1; transform: scale(1.14); }
+        }
+
+@keyframes sprite-breathing {
+            0%, 100% { transform: translateY(0) scaleY(1) rotate(-0.2deg); }
+            35% { transform: translateY(-1px) scaleY(1.013) rotate(0.25deg); }
+            68% { transform: translateY(1px) scaleY(0.992) rotate(-0.2deg); }
+        }
+
+@keyframes avatar-rune-pulse {
+            0%, 100% { filter: drop-shadow(0 0 6px rgba(201,168,108,0.4)); opacity: 0.85; }
+            50% { filter: drop-shadow(0 0 16px rgba(201,168,108,0.95)); opacity: 1; }
+        }
+
+@keyframes wax-stamp-pop {
+            0% { transform: scale(0.6) rotate(-14deg); opacity: 0.5; }
+            60% { transform: scale(1.18) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+
+@keyframes vn-scene-cinematic {
+            0% { opacity: 1; }
+            65% { opacity: 0.4; }
+            100% { opacity: 0; }
+        }

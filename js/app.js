@@ -56,6 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     renderUserCards();
     generateProfileParticles();
+    initMenuParallax();
 
     const lastProfileId = getStoredLastProfileId();
     if (lastProfileId !== null) {
