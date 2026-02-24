@@ -12,7 +12,7 @@
 <body>
 
     <div id="autosaveIndicator" class="autosave-indicator">
-        <span class="autosave-icon">☁️</span>
+        <span class="autosave-icon">🕯️</span>
         <span class="autosave-text">Guardando...</span>
     </div>
 
@@ -94,7 +94,13 @@
 
     <!-- Main Menu -->
     <div id="mainMenu" class="main-menu hidden">
-        <div class="menu-particles" id="particlesContainer"></div>
+        <div class="menu-parallax" id="menuParallax">
+            <div class="parallax-layer layer-mountains" data-depth="0.12"></div>
+            <div class="parallax-layer layer-forest" data-depth="0.35"></div>
+            <div class="parallax-layer layer-foreground" data-depth="0.65">
+                <div class="menu-particles" id="particlesContainer"></div>
+            </div>
+        </div>
 
         <div class="menu-sidebar">
             <div class="menu-brand">
@@ -207,6 +213,7 @@
 
     <!-- VN Section -->
     <div id="vnSection" class="game-section vn-section">
+        <div id="vnSceneTransition" class="vn-scene-transition"></div>
         <!-- Contenedores de clima -->
         <div id="weatherContainer" class="weather-container"></div>
 
