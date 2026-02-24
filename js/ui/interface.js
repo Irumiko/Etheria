@@ -1010,8 +1010,16 @@ function escapeHtml(text) {
 }
 
 
-const menuMouseState = { x: 0, y: 0, px: window.innerWidth * 0.5, py: window.innerHeight * 0.5 };
+const menuMouseState = {
+    x: 0,
+    y: 0,
+    targetX: 0,
+    targetY: 0,
+    px: window.innerWidth * 0.5,
+    py: window.innerHeight * 0.5
+};
 let menuParallaxBound = false;
+let menuParallaxAnimationId = null;
 let fireflyAnimationId = null;
 let fireflyEntities = [];
 
@@ -1029,18 +1037,31 @@ function initMenuParallax() {
         });
     };
 
+    const animateParallax = () => {
+        menuMouseState.x += (menuMouseState.targetX - menuMouseState.x) * 0.07;
+        menuMouseState.y += (menuMouseState.targetY - menuMouseState.y) * 0.07;
+        updateParallax();
+        menuParallaxAnimationId = window.requestAnimationFrame(animateParallax);
+    };
+
     window.addEventListener('mousemove', (event) => {
         const nx = (event.clientX / window.innerWidth) - 0.5;
         const ny = (event.clientY / window.innerHeight) - 0.5;
         menuMouseState.px = event.clientX;
         menuMouseState.py = event.clientY;
-        menuMouseState.x += ((nx * 26) - menuMouseState.x) * 0.12;
-        menuMouseState.y += ((ny * 18) - menuMouseState.y) * 0.12;
-        updateParallax();
+        menuMouseState.targetX = nx * 12;
+        menuMouseState.targetY = ny * 8;
+    });
+
+    window.addEventListener('mouseleave', () => {
+        menuMouseState.targetX = 0;
+        menuMouseState.targetY = 0;
     });
 
     menuParallaxBound = true;
-    updateParallax();
+    if (!menuParallaxAnimationId) {
+        menuParallaxAnimationId = window.requestAnimationFrame(animateParallax);
+    }
 }
 
 function animateFireflies() {
@@ -1110,7 +1131,9 @@ function animateFireflies() {
             const upBoost = Math.max(0, -entity.vy * 0.42);
             const downFade = Math.max(0, entity.vy * 0.25);
             const movementGlow = Math.min(1.2, entity.baseGlow + upBoost - downFade);
-            const movementOpacity = Math.min(1, Math.max(0.25, entity.baseOpacity + (upBoost * 0.24) - (downFade * 0.18)));
+            entity.twinkle += entity.twinkleSpeed * dt;
+            const twinkle = 0.75 + (Math.sin(entity.twinkle) * 0.25);
+            const movementOpacity = Math.min(1, Math.max(0.5, (entity.baseOpacity + (upBoost * 0.2) - (downFade * 0.12)) * twinkle));
 
             entity.el.style.opacity = movementOpacity.toFixed(3);
             entity.el.style.filter = `blur(0.2px) drop-shadow(0 0 ${6 + (movementGlow * 6)}px rgba(255, 214, 120, ${0.45 + movementGlow * 0.35}))`;
@@ -1147,7 +1170,7 @@ function generateParticles() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
     if (isDark) {
-        const totalFireflies = 15 + Math.floor(Math.random() * 6);
+        const totalFireflies = 24 + Math.floor(Math.random() * 8);
         const bounds = container.getBoundingClientRect();
 
         for (let i = 0; i < totalFireflies; i++) {
@@ -1166,26 +1189,28 @@ function generateParticles() {
             const entity = {
                 el: firefly,
                 x: Math.random() * bounds.width,
-                y: Math.random() * bounds.height,
+                y: (bounds.height * 0.18) + (Math.random() * bounds.height * 0.74),
                 originX: Math.random() * bounds.width,
-                originY: Math.random() * bounds.height,
+                originY: (bounds.height * 0.16) + (Math.random() * bounds.height * 0.78),
                 maxX: Math.max(1, bounds.width - 2),
                 maxY: Math.max(1, bounds.height - 2),
-                vx: (Math.random() - 0.5) * 0.4,
-                vy: (Math.random() - 0.5) * 0.4,
+                vx: (Math.random() - 0.5) * 0.25,
+                vy: (Math.random() - 0.5) * 0.2,
                 phase: Math.random() * Math.PI * 2,
-                curveSpeed: 0.008 + Math.random() * 0.03,
-                figureScale: 14 + Math.random() * 38,
+                curveSpeed: 0.005 + Math.random() * 0.02,
+                figureScale: 10 + Math.random() * 24,
                 figureOffset: Math.random() * Math.PI,
                 wobble: Math.random() * Math.PI * 2,
-                wobbleSpeed: 0.003 + Math.random() * 0.017,
-                driftRadius: 8 + Math.random() * 18,
-                speedFactor: 0.7 + Math.random() * 1.45,
-                fleeRadius: 110 + Math.random() * 90,
-                fleeForce: 0.42 + Math.random() * 0.82,
-                originDrift: 0.24 + Math.random() * 0.55,
+                wobbleSpeed: 0.002 + Math.random() * 0.01,
+                driftRadius: 5 + Math.random() * 12,
+                speedFactor: 0.45 + Math.random() * 0.9,
+                fleeRadius: 75 + Math.random() * 55,
+                fleeForce: 0.18 + Math.random() * 0.42,
+                originDrift: 0.12 + Math.random() * 0.3,
                 baseGlow: 0.38 + (depth * 0.58),
-                baseOpacity: 0.35 + (depth * 0.36)
+                baseOpacity: 0.58 + (depth * 0.25),
+                twinkle: Math.random() * Math.PI * 2,
+                twinkleSpeed: 0.02 + Math.random() * 0.04
             };
 
             firefly.style.setProperty('--firefly-opacity', entity.baseOpacity.toFixed(2));
