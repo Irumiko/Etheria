@@ -467,7 +467,15 @@
     <!-- Modals -->
     <div id="topicModal" class="modal-overlay" onclick="if(event.target === this) closeModal('topicModal')">
         <div class="modal topic-modal">
-            <h3 class="topic-title">Nueva Historia</h3>
+            <div class="topic-header-row">
+                <h3 class="topic-title">Nueva Historia</h3>
+                <div class="topic-weather-inline" role="group" aria-label="Ambientación">
+                    <button type="button" class="weather-btn topic-weather-btn active" data-tooltip="Normal" data-tooltip-delay="300" data-weather="none" onclick="setTopicWeather('none', this)" aria-label="Ambientación normal">☀️</button>
+                    <button type="button" class="weather-btn topic-weather-btn" data-tooltip="Lluvia" data-tooltip-delay="300" data-weather="rain" onclick="setTopicWeather('rain', this)" aria-label="Ambientación lluvia">☁️</button>
+                    <button type="button" class="weather-btn topic-weather-btn" data-tooltip="Niebla" data-tooltip-delay="300" data-weather="fog" onclick="setTopicWeather('fog', this)" aria-label="Ambientación niebla">🌫️</button>
+                </div>
+                <input type="hidden" id="topicWeatherInput" value="none">
+            </div>
 
             <div class="topic-modal-body">
 
@@ -500,16 +508,6 @@
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Puedes usar **negrita** y *cursiva*</div>
             </div>
 
-            <!-- Selector de clima -->
-            <div class="form-group">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Ambientación</label>
-                <div class="topic-weather-grid">
-                    <button type="button" class="weather-btn topic-weather-btn active" onclick="setTopicWeather('none')" aria-label="Ambientación normal" title="Normal"><span class="weather-icon">☀️</span><span class="weather-label">Normal</span></button>
-                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('rain')" aria-label="Ambientación lluvia" title="Lluvia"><span class="weather-icon">🌧️</span><span class="weather-label">Lluvia</span></button>
-                    <button type="button" class="weather-btn topic-weather-btn" onclick="setTopicWeather('fog')" aria-label="Ambientación niebla" title="Niebla"><span class="weather-icon">🌫️</span><span class="weather-label">Niebla</span></button>
-                </div>
-                <input type="hidden" id="topicWeatherInput" value="none">
-            </div>
             </div>
 
             <!-- Botones de acción -->
