@@ -286,20 +286,67 @@ function toggleEmotePicker() {
     }
 }
 
+function insertEmoteInReplyText(emoteType) {
+    const replyText = document.getElementById('vnReplyText');
+    const replyPanel = document.getElementById('vnReplyPanel');
+    if (!replyText || replyPanel?.style.display !== 'flex') return;
+
+    const cursorPos = replyText.selectionStart;
+    const textBefore = replyText.value.substring(0, cursorPos);
+    const textAfter = replyText.value.substring(cursorPos);
+    replyText.value = textBefore + `/${emoteType} ` + textAfter;
+    replyText.focus();
+    replyText.setSelectionRange(cursorPos + emoteType.length + 2, cursorPos + emoteType.length + 2);
+}
+
 function selectEmote(emoteType) {
     currentEmote = emoteType;
     toggleEmotePicker();
+    insertEmoteInReplyText(emoteType);
+}
 
-    // Insertar comando en el textarea si está abierto el panel
-    const replyText = document.getElementById('vnReplyText');
-    if (replyText && document.getElementById('vnReplyPanel').style.display === 'flex') {
-        const cursorPos = replyText.selectionStart;
-        const textBefore = replyText.value.substring(0, cursorPos);
-        const textAfter = replyText.value.substring(cursorPos);
-        replyText.value = textBefore + `/${emoteType} ` + textAfter;
-        replyText.focus();
-        replyText.setSelectionRange(cursorPos + emoteType.length + 2, cursorPos + emoteType.length + 2);
-    }
+function toggleReplyEmotePopover(event) {
+    event?.stopPropagation();
+
+    const popover = document.getElementById('replyEmotePopover');
+    const button = document.getElementById('replyEmoteToggle');
+    if (!popover || !button) return;
+
+    const willOpen = !popover.classList.contains('active');
+    popover.classList.toggle('active', willOpen);
+    popover.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
+    button.classList.toggle('active', willOpen);
+}
+
+function closeReplyEmotePopover() {
+    const popover = document.getElementById('replyEmotePopover');
+    const button = document.getElementById('replyEmoteToggle');
+    if (!popover || !button) return;
+
+    popover.classList.remove('active');
+    popover.setAttribute('aria-hidden', 'true');
+    button.classList.remove('active');
+}
+
+function selectReplyEmote(emoteType) {
+    currentEmote = emoteType;
+    insertEmoteInReplyText(emoteType);
+    closeReplyEmotePopover();
+}
+
+function setupReplyEmotePopover() {
+    document.addEventListener('click', (event) => {
+        const popover = document.getElementById('replyEmotePopover');
+        const button = document.getElementById('replyEmoteToggle');
+        if (!popover || !button || !popover.classList.contains('active')) return;
+
+        const target = event.target;
+        if (target instanceof Element && (target.closest('#replyEmotePopover') || target.closest('#replyEmoteToggle'))) {
+            return;
+        }
+
+        closeReplyEmotePopover();
+    });
 }
 
 function parseEmotes(text) {
@@ -1378,7 +1425,14 @@ function enterTopic(id) {
 
     const vnSection = document.getElementById('vnSection');
     if (vnSection) {
-        vnSection.style.backgroundImage = t.background ? `url(${escapeHtml(t.background)})` : 'linear-gradient(135deg, #1a1815 0%, #2d2a26 100%)';
+        const topicBackground = (t.background || '').trim();
+        const defaultSceneCandidates = ['Assets/backgrounds/default_scene.png', 'assets/backgrounds/default_scene.png'];
+        const useDefaultScene = !topicBackground || topicBackground === 'default_scene' || /assets\/backgrounds\/default_scene\.png/i.test(topicBackground);
+        const sceneBackgroundLayer = useDefaultScene
+            ? defaultSceneCandidates.map(path => `url(${escapeHtml(path)})`).join(', ')
+            : `url(${escapeHtml(topicBackground)})`;
+
+        vnSection.style.backgroundImage = `${sceneBackgroundLayer}, linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)`;
 
         // Aplicar modo de sprites (fanfic = persistente por defecto)
         if (currentTopicMode === 'fanfic') {
@@ -2122,6 +2176,7 @@ function openReplyPanel() {
 function closeReplyPanel() {
     const panel = document.getElementById('vnReplyPanel');
     if (panel) panel.style.display = 'none';
+    closeReplyEmotePopover();
 
     const replyText = document.getElementById('vnReplyText');
     if (replyText) replyText.value = '';
@@ -2464,6 +2519,7 @@ function createTopic() {
     const text = firstMsgInput?.value.trim();
     const bg = bgInput?.value.trim();
     const weather = weatherInput?.value || 'none';
+    const topicBackground = bg || 'default_scene';
 
     if(!title || !text) { alert('Completa todos los campos obligatorios'); return; }
     if (!validateImageUrlField(bg, 'La URL del fondo')) return;
@@ -2472,7 +2528,7 @@ function createTopic() {
     appData.topics.push({
         id,
         title,
-        background: bg || null,
+        background: topicBackground,
         weather: weather !== 'none' ? weather : undefined,
         mode: currentTopicMode,
         roleCharacterId: null,

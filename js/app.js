@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupKeyboardListeners();
     setupTouchGestures();
     initSmartTooltips();
+    setupReplyEmotePopover();
     setupGallerySearchListeners();
 
     window.addEventListener('beforeunload', (e) => {
