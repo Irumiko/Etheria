@@ -1056,6 +1056,7 @@ body::before {
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
             padding: 1.5rem 2rem 1rem;
             border-radius: 28px;
             border: 2px solid rgba(201, 168, 108, 0.85);
@@ -1072,10 +1073,11 @@ body::before {
         .topic-modal-body {
             flex: 1;
             min-height: 0;
-            overflow-y: auto;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
             padding-right: 0.35rem;
             margin-right: -0.15rem;
-            overscroll-behavior: contain;
         }
 
         
@@ -1228,7 +1230,7 @@ body::before {
             display: flex;
             flex-direction: column;
             gap: 0.85rem;
-            margin-top: 0.9rem;
+            margin-top: auto;
             padding-top: 0.9rem;
             border-top: 1px solid var(--border-color);
             background: transparent;
@@ -1236,7 +1238,9 @@ body::before {
 
         .topic-create-btn {
             width: 100%;
-            padding: 0.95rem 1.2rem;
+            margin-top: auto;
+            align-self: center;
+            padding: 1rem 2rem;
             font-size: 1.05rem;
             letter-spacing: 0.35px;
             background: linear-gradient(135deg, var(--accent-gold), var(--accent-wood));
@@ -1251,14 +1255,21 @@ body::before {
         .topic-inicio-group {
             display: flex;
             flex-direction: column;
+            flex: 1;
+            min-height: 0;
         }
 
         #topicFirstMsg,
         textarea[name="inicio"] {
             width: 100%;
-            min-height: 120px;
-            max-height: min(28vh, 240px);
+            box-sizing: border-box;
+            flex: 1 1 auto;
+            min-height: 200px;
+            max-height: 60vh;
+            overflow-y: auto;
             resize: vertical;
+            padding: 1rem;
+            border-radius: 8px;
             scrollbar-width: thin;
             scrollbar-color: var(--accent-gold) rgba(255,255,255,0.08);
         }
@@ -1316,7 +1327,8 @@ body::before {
 
         #topicFirstMsg::-webkit-scrollbar,
         textarea[name="inicio"]::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
+            background: transparent;
         }
 
         #topicFirstMsg::-webkit-scrollbar-track,
@@ -1327,8 +1339,8 @@ body::before {
 
         #topicFirstMsg::-webkit-scrollbar-thumb,
         textarea[name="inicio"]::-webkit-scrollbar-thumb {
-            background: linear-gradient(180deg, var(--accent-gold), var(--accent-wood));
-            border-radius: 8px;
+            background: var(--accent-gold);
+            border-radius: 10px;
         }
 
         body.modal-open {
@@ -1338,7 +1350,7 @@ body::before {
         @media (max-width: 768px) {
             .topic-modal {
                 max-height: 92vh;
-                padding: 1rem 1rem 0.85rem;
+                padding: 0.9rem 0.9rem 0.75rem;
             }
 
             .topic-modal-body {
@@ -1364,8 +1376,8 @@ body::before {
 
             #topicFirstMsg,
             textarea[name="inicio"] {
-                min-height: 110px;
-                max-height: min(34vh, 200px);
+                min-height: 160px;
+                max-height: 50vh;
             }
         }
 
