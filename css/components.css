@@ -770,6 +770,9 @@ body::before {
             background: rgba(0,0,0,0.7);
             display: none; justify-content: center; align-items: center; z-index: 2000;
             backdrop-filter: blur(5px);
+            padding: 1rem;
+            box-sizing: border-box;
+            overflow-y: auto;
         }
         .modal-overlay.active { display: flex; }
 
@@ -1050,14 +1053,15 @@ body::before {
 
         /* NEW STORY MODAL POLISH */
         .topic-modal {
+            width: min(92vw, 620px);
             max-width: 620px;
             height: auto;
-            max-height: 95vh;
+            max-height: min(92vh, 760px);
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            padding: 1.5rem 2rem 1rem;
+            justify-content: flex-start;
+            padding: 1.25rem 1.6rem 1rem;
             border-radius: 28px;
             border: 2px solid rgba(201, 168, 108, 0.85);
             box-shadow:
@@ -1071,12 +1075,14 @@ body::before {
         }
 
         .topic-modal-body {
-            flex: 1;
+            flex: 1 1 auto;
             min-height: 0;
-            overflow-y: hidden;
-            display: flex;
-            flex-direction: column;
-            gap: 0.7rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            overflow-y: auto;
+            padding-right: 0.2rem;
+            scrollbar-gutter: stable;
         }
 
         
@@ -1229,7 +1235,7 @@ body::before {
             display: flex;
             flex-direction: column;
             gap: 0.85rem;
-            margin-top: auto;
+            margin-top: 0.9rem;
             flex-shrink: 0;
             padding-top: 0.9rem;
             border-top: 1px solid var(--border-color);
@@ -1238,10 +1244,9 @@ body::before {
 
         .topic-create-btn {
             width: 100%;
-            margin-top: auto;
+            margin-top: 0;
             align-self: center;
-            position: sticky;
-            bottom: 0;
+            position: static;
             padding: 1rem 2rem;
             font-size: 1.05rem;
             letter-spacing: 0.35px;
@@ -1257,19 +1262,16 @@ body::before {
         .topic-inicio-group {
             display: flex;
             flex-direction: column;
-            flex: 1;
-            min-height: 0;
         }
 
         #topicFirstMsg,
         textarea[name="inicio"] {
             width: 100%;
             box-sizing: border-box;
-            flex: 1 1 auto;
-            min-height: 200px;
-            max-height: 50vh;
+            min-height: 150px;
+            max-height: 220px;
             overflow-y: auto;
-            resize: vertical;
+            resize: none;
             padding: 1rem;
             border-radius: 8px;
             scrollbar-width: thin;
@@ -1307,25 +1309,6 @@ body::before {
             font-weight: 500;
         }
 
-        .topic-inline-field {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            align-items: center;
-            gap: 0.6rem;
-        }
-
-        .topic-inline-field label {
-            margin: 0;
-            font-size: 0.78rem;
-            white-space: nowrap;
-            color: var(--text-muted);
-        }
-
-        #topicBackgroundInput {
-            min-height: 34px;
-            padding: 0.38rem 0.65rem;
-            font-size: 0.85rem;
-        }
 
         #topicFirstMsg::-webkit-scrollbar,
         textarea[name="inicio"]::-webkit-scrollbar {
@@ -1351,8 +1334,9 @@ body::before {
 
         @media (max-width: 768px) {
             .topic-modal {
-                max-height: 92vh;
-                padding: 0.75rem 0.75rem 0.65rem;
+                width: min(94vw, 620px);
+                max-height: min(90vh, 720px);
+                padding: 0.9rem 0.9rem 0.75rem;
             }
 
             .topic-modal-body {
@@ -1360,7 +1344,7 @@ body::before {
             }
 
             .topic-modal .form-group {
-                margin-bottom: 1rem !important;
+                margin-bottom: 0 !important;
             }
 
             .topic-mode-toggle {
@@ -1371,15 +1355,11 @@ body::before {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
             }
 
-            .topic-inline-field {
-                grid-template-columns: 1fr;
-                gap: 0.35rem;
-            }
 
             #topicFirstMsg,
             textarea[name="inicio"] {
-                min-height: 160px;
-                max-height: 40vh;
+                min-height: 130px;
+                max-height: 180px;
             }
         }
 

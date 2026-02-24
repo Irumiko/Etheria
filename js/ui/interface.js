@@ -1395,6 +1395,23 @@ function editFromSheet() {
 // ============================================
 // MODO VN
 // ============================================
+const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.png.jpg';
+const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
+    'default_scene',
+    'assets/backgrounds/default_scene.png',
+    'Assets/backgrounds/default_scene.png',
+    'assets/default_background.png',
+    'Assets/default_background.png',
+    'assets/backgrounds/default_background.png.jpg',
+    'Assets/backgrounds/default_background.png.jpg'
+];
+
+function isDefaultTopicBackground(backgroundPath) {
+    const normalized = (backgroundPath || "").trim().toLowerCase();
+    if (!normalized) return true;
+    return LEGACY_DEFAULT_TOPIC_BACKGROUNDS.some(path => normalized === path.toLowerCase());
+}
+
 function enterTopic(id) {
     resetVNTransientState();
     currentTopicId = id;
@@ -1426,10 +1443,9 @@ function enterTopic(id) {
     const vnSection = document.getElementById('vnSection');
     if (vnSection) {
         const topicBackground = (t.background || '').trim();
-        const defaultSceneCandidates = ['Assets/backgrounds/default_scene.png', 'assets/backgrounds/default_scene.png'];
-        const useDefaultScene = !topicBackground || topicBackground === 'default_scene' || /assets\/backgrounds\/default_scene\.png/i.test(topicBackground);
-        const sceneBackgroundLayer = useDefaultScene
-            ? defaultSceneCandidates.map(path => `url(${escapeHtml(path)})`).join(', ')
+        const useDefaultBackground = isDefaultTopicBackground(topicBackground);
+        const sceneBackgroundLayer = useDefaultBackground
+            ? `url(${escapeHtml(DEFAULT_TOPIC_BACKGROUND)})`
             : `url(${escapeHtml(topicBackground)})`;
 
         vnSection.style.backgroundImage = `${sceneBackgroundLayer}, linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)`;
@@ -2512,17 +2528,14 @@ function renderTopics() {
 function createTopic() {
     const titleInput = document.getElementById('topicTitleInput');
     const firstMsgInput = document.getElementById('topicFirstMsg');
-    const bgInput = document.getElementById('topicBackgroundInput');
     const weatherInput = document.getElementById('topicWeatherInput');
 
     const title = titleInput?.value.trim();
     const text = firstMsgInput?.value.trim();
-    const bg = bgInput?.value.trim();
     const weather = weatherInput?.value || 'none';
-    const topicBackground = bg || 'default_scene';
+    const topicBackground = DEFAULT_TOPIC_BACKGROUND;
 
     if(!title || !text) { alert('Completa todos los campos obligatorios'); return; }
-    if (!validateImageUrlField(bg, 'La URL del fondo')) return;
 
     const id = Date.now().toString();
     appData.topics.push({
