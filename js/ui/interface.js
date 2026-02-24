@@ -1010,7 +1010,7 @@ function escapeHtml(text) {
 }
 
 
-const menuMouseState = { x: 0, y: 0 };
+const menuMouseState = { x: 0, y: 0, px: window.innerWidth * 0.5, py: window.innerHeight * 0.5 };
 let menuParallaxBound = false;
 let fireflyAnimationId = null;
 let fireflyEntities = [];
@@ -1032,6 +1032,8 @@ function initMenuParallax() {
     window.addEventListener('mousemove', (event) => {
         const nx = (event.clientX / window.innerWidth) - 0.5;
         const ny = (event.clientY / window.innerHeight) - 0.5;
+        menuMouseState.px = event.clientX;
+        menuMouseState.py = event.clientY;
         menuMouseState.x += ((nx * 26) - menuMouseState.x) * 0.12;
         menuMouseState.y += ((ny * 18) - menuMouseState.y) * 0.12;
         updateParallax();
@@ -1044,30 +1046,75 @@ function initMenuParallax() {
 function animateFireflies() {
     if (fireflyAnimationId) window.cancelAnimationFrame(fireflyAnimationId);
 
-    const loop = () => {
+    let lastTime = performance.now();
+    const loop = (timeNow) => {
+        const dt = Math.min((timeNow - lastTime) / 16.67, 1.8);
+        lastTime = timeNow;
+
         fireflyEntities.forEach((entity) => {
-            entity.wanderAngle += (Math.random() - 0.5) * 0.2;
-            entity.vx += Math.cos(entity.wanderAngle) * 0.015;
-            entity.vy += Math.sin(entity.wanderAngle) * 0.015;
+            entity.phase += entity.curveSpeed * dt;
+            entity.wobble += entity.wobbleSpeed * dt;
 
-            const dx = menuMouseState.x - entity.mx;
-            const dy = menuMouseState.y - entity.my;
-            entity.vx += dx * 0.00045;
-            entity.vy += dy * 0.00045;
+            const figureX = Math.sin(entity.phase) * entity.figureScale;
+            const figureY = Math.sin(entity.phase * 2 + entity.figureOffset) * (entity.figureScale * 0.52);
+            const driftX = Math.cos(entity.wobble) * entity.driftRadius;
+            const driftY = Math.sin(entity.wobble * 0.8) * (entity.driftRadius * 0.8);
 
-            const friction = 0.96;
-            entity.vx *= friction;
-            entity.vy *= friction;
+            const targetX = entity.originX + figureX + driftX;
+            const targetY = entity.originY + figureY + driftY;
 
-            entity.mx += entity.vx;
-            entity.my += entity.vy;
+            entity.vx += (targetX - entity.x) * 0.017 * entity.speedFactor * dt;
+            entity.vy += (targetY - entity.y) * 0.017 * entity.speedFactor * dt;
 
-            if (entity.mx < -65) entity.mx = 65;
-            if (entity.mx > 65) entity.mx = -65;
-            if (entity.my < -45) entity.my = 45;
-            if (entity.my > 45) entity.my = -45;
+            const mouseDx = entity.x - menuMouseState.px;
+            const mouseDy = entity.y - menuMouseState.py;
+            const mouseDist = Math.hypot(mouseDx, mouseDy);
+            if (mouseDist < entity.fleeRadius) {
+                const push = (1 - (mouseDist / entity.fleeRadius)) * entity.fleeForce * dt;
+                entity.vx += (mouseDx / (mouseDist || 1)) * push;
+                entity.vy += (mouseDy / (mouseDist || 1)) * push;
+            }
 
-            entity.el.style.transform = `translate(${entity.mx}px, ${entity.my}px) rotate(${Math.atan2(entity.vy, entity.vx) * (180 / Math.PI)}deg)`;
+            entity.vx *= 0.93;
+            entity.vy *= 0.93;
+
+            entity.x += entity.vx * dt;
+            entity.y += entity.vy * dt;
+
+            if (entity.x < 0) {
+                entity.x = 0;
+                entity.vx = Math.abs(entity.vx) * 0.72;
+                entity.originX = Math.max(entity.figureScale, entity.originX);
+            } else if (entity.x > entity.maxX) {
+                entity.x = entity.maxX;
+                entity.vx = -Math.abs(entity.vx) * 0.72;
+                entity.originX = Math.min(entity.maxX - entity.figureScale, entity.originX);
+            }
+
+            if (entity.y < 0) {
+                entity.y = 0;
+                entity.vy = Math.abs(entity.vy) * 0.72;
+                entity.originY = Math.max(entity.figureScale, entity.originY);
+            } else if (entity.y > entity.maxY) {
+                entity.y = entity.maxY;
+                entity.vy = -Math.abs(entity.vy) * 0.72;
+                entity.originY = Math.min(entity.maxY - entity.figureScale, entity.originY);
+            }
+
+            entity.originX += (Math.random() - 0.5) * entity.originDrift * dt;
+            entity.originY += (Math.random() - 0.5) * entity.originDrift * dt;
+            entity.originX = Math.min(Math.max(entity.figureScale, entity.originX), entity.maxX - entity.figureScale);
+            entity.originY = Math.min(Math.max(entity.figureScale, entity.originY), entity.maxY - entity.figureScale);
+
+            const heading = Math.atan2(entity.vy, entity.vx) * (180 / Math.PI);
+            const upBoost = Math.max(0, -entity.vy * 0.42);
+            const downFade = Math.max(0, entity.vy * 0.25);
+            const movementGlow = Math.min(1.2, entity.baseGlow + upBoost - downFade);
+            const movementOpacity = Math.min(1, Math.max(0.25, entity.baseOpacity + (upBoost * 0.24) - (downFade * 0.18)));
+
+            entity.el.style.opacity = movementOpacity.toFixed(3);
+            entity.el.style.filter = `blur(0.2px) drop-shadow(0 0 ${6 + (movementGlow * 6)}px rgba(255, 214, 120, ${0.45 + movementGlow * 0.35}))`;
+            entity.el.style.transform = `translate(${entity.x}px, ${entity.y}px) rotate(${heading}deg)`;
         });
 
         fireflyAnimationId = window.requestAnimationFrame(loop);
@@ -1100,26 +1147,52 @@ function generateParticles() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
     if (isDark) {
-        for (let i = 0; i < 24; i++) {
+        const totalFireflies = 15 + Math.floor(Math.random() * 6);
+        const bounds = container.getBoundingClientRect();
+
+        for (let i = 0; i < totalFireflies; i++) {
             const firefly = document.createElement('div');
             firefly.className = 'firefly';
-            firefly.style.left = Math.random() * 100 + '%';
-            firefly.style.top = (8 + Math.random() * 84) + '%';
+            firefly.style.left = '0px';
+            firefly.style.top = '0px';
             firefly.style.animationDelay = Math.random() * 3 + 's';
-            firefly.style.animationDuration = (1.7 + Math.random() * 2.3) + 's';
+            firefly.style.animationDuration = (1.6 + Math.random() * 2.1) + 's';
+
+            const depth = 0.72 + Math.random() * 0.46;
+            const size = 7 + (depth * 4);
+            firefly.style.setProperty('--firefly-size-w', `${size.toFixed(2)}px`);
+            firefly.style.setProperty('--firefly-size-h', `${(size * 0.58).toFixed(2)}px`);
 
             const entity = {
                 el: firefly,
-                mx: (Math.random() * 70) - 35,
-                my: (Math.random() * 70) - 35,
-                vx: (Math.random() - 0.5) * 0.5,
-                vy: (Math.random() - 0.5) * 0.5,
-                wanderAngle: Math.random() * Math.PI * 2
+                x: Math.random() * bounds.width,
+                y: Math.random() * bounds.height,
+                originX: Math.random() * bounds.width,
+                originY: Math.random() * bounds.height,
+                maxX: Math.max(1, bounds.width - 2),
+                maxY: Math.max(1, bounds.height - 2),
+                vx: (Math.random() - 0.5) * 0.4,
+                vy: (Math.random() - 0.5) * 0.4,
+                phase: Math.random() * Math.PI * 2,
+                curveSpeed: 0.008 + Math.random() * 0.03,
+                figureScale: 14 + Math.random() * 38,
+                figureOffset: Math.random() * Math.PI,
+                wobble: Math.random() * Math.PI * 2,
+                wobbleSpeed: 0.003 + Math.random() * 0.017,
+                driftRadius: 8 + Math.random() * 18,
+                speedFactor: 0.7 + Math.random() * 1.45,
+                fleeRadius: 110 + Math.random() * 90,
+                fleeForce: 0.42 + Math.random() * 0.82,
+                originDrift: 0.24 + Math.random() * 0.55,
+                baseGlow: 0.38 + (depth * 0.58),
+                baseOpacity: 0.35 + (depth * 0.36)
             };
 
+            firefly.style.setProperty('--firefly-opacity', entity.baseOpacity.toFixed(2));
             fireflyEntities.push(entity);
             container.appendChild(firefly);
         }
+
         animateFireflies();
     } else {
         if (fireflyAnimationId) {
