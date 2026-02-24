@@ -1437,9 +1437,38 @@ body::before {
             align-items: center;
             gap: 1rem;
             backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             min-width: 280px;
             transition: all 0.3s ease;
+            overflow: visible;
+        }
+
+        .vn-info-hover-details {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            min-width: 240px;
+            max-width: 320px;
+            border-radius: 12px;
+            padding: 0.65rem 0.8rem;
+            border: 1px solid rgba(201, 168, 108, 0.55);
+            background: rgba(8, 8, 10, 0.9);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            transform: translateY(-6px);
+            pointer-events: none;
+            transition: opacity 180ms ease, transform 180ms ease;
+            font-size: 0.77rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            z-index: 10;
+        }
+
+        .vn-info-card:hover .vn-info-hover-details,
+        .vn-info-card:focus-within .vn-info-hover-details {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .vn-info-avatar {
@@ -1551,23 +1580,25 @@ body::before {
         /* Controles */
         .vn-controls {
             position: fixed;
-            top: 80px;
+            top: 18px;
             right: 20px;
             z-index: 200;
             display: flex;
-            gap: 0.5rem;
-            background: var(--glass-bg);
-            padding: 0.5rem;
+            gap: 0.35rem;
+            background: rgba(8, 8, 10, 0.72);
+            padding: 0.4rem;
             border-radius: 12px;
-            border: 2px solid var(--border-color);
+            border: 1px solid rgba(201, 168, 108, 0.6);
             backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             overflow: visible;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
         }
 
         .vn-control-slot {
-            width: 40px;
-            height: 40px;
-            flex: 0 0 40px;
+            width: 32px;
+            height: 32px;
+            flex: 0 0 32px;
             position: relative;
         }
 
@@ -1579,9 +1610,9 @@ body::before {
             background: rgba(0,0,0,0.3);
             border: 2px solid var(--border-color);
             color: var(--accent-gold);
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             font-size: 1.2rem;
@@ -1603,9 +1634,9 @@ body::before {
         .vn-control-btn::after {
             content: attr(aria-label);
             position: absolute;
-            top: -100%;
+            top: calc(100% + 8px);
             left: 50%;
-            transform: translateX(-50%);
+            transform: translateX(-50%) translateY(-4px);
             opacity: 0;
             padding: 0.3rem 0.5rem;
             border-radius: 8px;
@@ -1617,7 +1648,7 @@ body::before {
             white-space: nowrap;
             pointer-events: none;
             z-index: 500;
-            transition: opacity 180ms ease, transform 180ms ease;
+            transition: opacity 200ms ease, transform 200ms ease;
             transition-delay: 0s;
         }
 
@@ -1633,7 +1664,7 @@ body::before {
         .vn-control-btn:focus-visible::after,
         .vn-control-btn:active::after {
             opacity: 1;
-            transform: translateX(-50%) translateY(-0.4rem);
+            transform: translateX(-50%) translateY(0);
             transition-delay: 0.4s;
         }
 
@@ -1646,6 +1677,7 @@ body::before {
             width: 1.1rem;
             text-align: center;
             line-height: 1;
+            font-size: 0.95rem;
         }
 
         .vn-control-label {
@@ -1732,18 +1764,28 @@ body::before {
             transform: translateX(-50%);
             bottom: 2rem;
             width: min(800px, 80%);
-            background: var(--glass-bg);
+            background: rgba(18, 14, 26, 0.58);
             border: 3px double var(--accent-gold);
             border-radius: 24px;
             padding: 2rem 2rem 2.5rem 8rem;
             box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
             z-index: 150;
             cursor: pointer;
-            backdrop-filter: blur(20px);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
             transition: all 0.3s ease;
         }
         .vn-dialogue-box:hover {
-            box-shadow: 0 25px 70px rgba(0,0,0,0.6), 0 0 30px rgba(201, 168, 108, 0.2);
+            box-shadow: 0 25px 70px rgba(0,0,0,0.6), 0 0 22px rgba(201, 168, 108, 0.38);
+        }
+
+        .vn-dialogue-box.fade-in {
+            animation: vn-message-fade-in 0.5s ease;
+        }
+
+        @keyframes vn-message-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .vn-speaker-avatar {
@@ -1830,6 +1872,37 @@ body::before {
             display: flex;
             gap: 0.45rem;
             z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(4px);
+            transition: opacity 180ms ease, transform 180ms ease;
+        }
+
+        .vn-dialogue-box:hover .vn-dialogue-actions,
+        .vn-dialogue-box:focus-within .vn-dialogue-actions {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        @media (hover: none), (pointer: coarse) {
+            .vn-dialogue-actions {
+                opacity: 1;
+                pointer-events: auto;
+                transform: none;
+            }
+
+            .vn-info-hover-details {
+                position: static;
+                opacity: 1;
+                transform: none;
+                margin-top: 0.35rem;
+                min-width: 0;
+                max-width: none;
+                background: rgba(8, 8, 10, 0.45);
+                border-color: rgba(201, 168, 108, 0.35);
+                box-shadow: none;
+            }
         }
 
         .vn-dialogue-action-btn {
@@ -2302,6 +2375,7 @@ body::before {
             background: rgba(10, 10, 10, 0.92);
             z-index: 20;
             box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
+            max-width: min(220px, 70vw);
         }
 
         .reply-emote-popover.active {
@@ -2326,6 +2400,71 @@ body::before {
             background: rgba(201, 168, 108, 0.2);
             box-shadow: 0 0 10px rgba(201, 168, 108, 0.35);
             transform: translateY(-1px);
+        }
+
+        @media (max-width: 768px) {
+            .vn-controls {
+                top: 10px;
+                right: 10px;
+                gap: 0.25rem;
+                padding: 0.35rem;
+                max-width: calc(100vw - 20px);
+                flex-wrap: wrap;
+                justify-content: flex-end;
+            }
+
+            .vn-dialogue-box {
+                width: calc(100vw - 1.2rem);
+                left: 0.6rem;
+                transform: none;
+                bottom: 0.9rem;
+                padding: 1.2rem 1rem 2.4rem 4.9rem;
+                max-height: 46vh;
+            }
+
+            .vn-speaker-avatar {
+                left: 0.8rem;
+                width: 58px;
+                height: 58px;
+                font-size: 1.7rem;
+            }
+
+            .vn-speaker-plate {
+                left: 4.8rem;
+                top: -0.75rem;
+                font-size: 0.85rem;
+                padding: 0.35rem 0.95rem;
+            }
+
+            .vn-info-card {
+                max-width: calc(100vw - 20px);
+                min-width: 0;
+            }
+
+            .reply-emote-popover {
+                right: -2px;
+                grid-template-columns: repeat(5, 28px);
+                gap: 0.25rem;
+                padding: 0.45rem;
+            }
+
+            .reply-emote-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .vn-dialogue-box.fade-in {
+                animation: none;
+            }
+
+            .vn-dialogue-actions,
+            .vn-info-hover-details,
+            .vn-control-btn::after {
+                transition: none;
+            }
         }
 
         .options-toggle-container {
