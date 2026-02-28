@@ -527,52 +527,80 @@ body::before {
             overflow: hidden;
             pointer-events: none;
             z-index: 1;
+            /* Imagen de fondo definida aquí — fácil de cambiar */
             --menu-base-bg: url('https://png.pngtree.com/background/20250103/original/pngtree-forest-trees-anime-visual-novel-game-nature-plant-and-in-a-picture-image_15870655.jpg');
         }
 
+        /* Las tres capas usan la misma imagen pero se mueven a distinta velocidad
+           y muestran distintas partes del encuadre. El resultado es profundidad
+           sin rotaciones 3D que marean. */
         .parallax-layer {
             position: absolute;
-            inset: -2%;
-            transform: translate3d(var(--parallax-x, 0px), var(--parallax-y, 0px), 0) scale(1.03);
-            transition: transform 0.2s ease-out;
-            will-change: transform;
+            /* Margen extra para que el movimiento no descubra bordes */
+            inset: -6%;
             background-image: var(--menu-base-bg);
-            background-position: center;
             background-size: cover;
             background-repeat: no-repeat;
+            will-change: transform;
+            /* Las capas reaccionan al ratón via JS con --parallax-x/y */
+            transform: translate3d(
+                calc(var(--parallax-x, 0px) * var(--layer-speed, 1)),
+                calc(var(--parallax-y, 0px) * var(--layer-speed, 1)),
+                0
+            ) scale(1.04);
         }
 
+        /* Cielo: muy lento, ligeramente desenfocado y desaturado */
         .layer-sky {
-            opacity: 0.85;
-            filter: blur(0.5px) saturate(0.9) brightness(0.88);
-            background-position: center 10%;
+            --layer-speed: 0.6;
+            background-position: center 8%;
+            opacity: 0.82;
+            filter: blur(0.8px) saturate(0.85) brightness(0.82);
             mask-image: linear-gradient(to bottom,
-                rgba(0, 0, 0, 0.95) 0%,
-                rgba(0, 0, 0, 0.95) 34%,
-                rgba(0, 0, 0, 0.75) 50%,
-                rgba(0, 0, 0, 0) 68%);
+                rgba(0,0,0,0.96) 0%,
+                rgba(0,0,0,0.85) 38%,
+                rgba(0,0,0,0.45) 56%,
+                rgba(0,0,0,0)    70%);
+            -webkit-mask-image: linear-gradient(to bottom,
+                rgba(0,0,0,0.96) 0%,
+                rgba(0,0,0,0.85) 38%,
+                rgba(0,0,0,0.45) 56%,
+                rgba(0,0,0,0)    70%);
         }
 
+        /* Bosque medio: velocidad media, foco normal */
         .layer-midforest {
-            opacity: 0.92;
-            filter: blur(0.2px) saturate(1.06);
-            background-position: center 48%;
+            --layer-speed: 1;
+            background-position: center 46%;
+            opacity: 0.90;
+            filter: blur(0.15px) saturate(1.05);
             mask-image: linear-gradient(to bottom,
-                rgba(0, 0, 0, 0) 20%,
-                rgba(0, 0, 0, 0.88) 35%,
-                rgba(0, 0, 0, 0.88) 74%,
-                rgba(0, 0, 0, 0) 92%);
+                rgba(0,0,0,0)    18%,
+                rgba(0,0,0,0.88) 34%,
+                rgba(0,0,0,0.88) 72%,
+                rgba(0,0,0,0)    90%);
+            -webkit-mask-image: linear-gradient(to bottom,
+                rgba(0,0,0,0)    18%,
+                rgba(0,0,0,0.88) 34%,
+                rgba(0,0,0,0.88) 72%,
+                rgba(0,0,0,0)    90%);
         }
 
+        /* Primer plano: más rápido, más saturado, aparece desde abajo */
         .layer-foreground {
+            --layer-speed: 1.5;
             z-index: 2;
+            background-position: center 82%;
             opacity: 0.97;
-            filter: saturate(1.12) contrast(1.05);
-            background-position: center 83%;
+            filter: saturate(1.1) contrast(1.04);
             mask-image: linear-gradient(to bottom,
-                rgba(0, 0, 0, 0) 42%,
-                rgba(0, 0, 0, 0.92) 58%,
-                rgba(0, 0, 0, 0.97) 100%);
+                rgba(0,0,0,0)    40%,
+                rgba(0,0,0,0.90) 56%,
+                rgba(0,0,0,0.98) 100%);
+            -webkit-mask-image: linear-gradient(to bottom,
+                rgba(0,0,0,0)    40%,
+                rgba(0,0,0,0.90) 56%,
+                rgba(0,0,0,0.98) 100%);
         }
 
         .menu-particles {
@@ -1607,6 +1635,15 @@ body::before {
             color: #fff;
             background-size: cover;
             background-position: center;
+            /* Fondo por defecto: gradiente de bosque nocturno cuando no hay imagen */
+            background-image: linear-gradient(
+                180deg,
+                #0d1a2e 0%,
+                #1a2d4a 20%,
+                #162438 45%,
+                #0f1e10 70%,
+                #081208 100%
+            );
             overflow: hidden;
             transition: filter 0.5s ease, background-image 1s ease, transform 0.55s ease;
             transform-origin: center center;
@@ -1622,12 +1659,28 @@ body::before {
             inset: 0;
             pointer-events: none;
             z-index: 175;
-            background: radial-gradient(circle at center, rgba(0,0,0,0.35), rgba(0,0,0,0.95));
             opacity: 0;
+            background: radial-gradient(ellipse at center,
+                rgba(10, 8, 6, 0.6) 0%,
+                rgba(0, 0, 0, 0.98) 100%);
         }
 
         .vn-scene-transition.active {
-            animation: vn-scene-cinematic 650ms ease forwards;
+            animation: vn-scene-cinematic 750ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        /* Variante wipe (barrido lateral) */
+        .vn-scene-transition.wipe {
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(0, 0, 0, 0.97) 50%,
+                transparent 100%);
+            animation: vn-scene-wipe 700ms ease-in-out forwards;
+        }
+
+        @keyframes vn-scene-wipe {
+            0%   { transform: translateX(-110%); opacity: 1; }
+            100% { transform: translateX(110%);  opacity: 1; }
         }
 
         .vn-section::before {
@@ -1922,12 +1975,10 @@ body::before {
             bottom: 0;
             left: 0;
             right: 0;
-            height: 70vh;
+            height: 75vh;
             pointer-events: none;
             z-index: 100;
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
+            perspective: 1200px;
             overflow: hidden;
         }
 
@@ -1938,98 +1989,152 @@ body::before {
             display: flex;
             align-items: flex-end;
             justify-content: center;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                        filter 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                        transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .vn-sprite img {
-            height: 100%;
+            height: 95%;
             width: auto;
             max-width: none;
             object-fit: cover;
             object-position: top center;
-            filter: drop-shadow(0 0 20px rgba(0,0,0,0.5));
-            transition: all 0.3s ease;
-            animation: sprite-breathing 4.8s ease-in-out infinite;
             transform-origin: center bottom;
+            /* Desvanecido en los pies para integrarse con el fondo */
+            mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
         }
 
-        /* Posiciones fijas */
-        .vn-sprite.position-left { left: 5%; transform: translateX(0); }
-        .vn-sprite.position-center { left: 50%; transform: translateX(-50%); }
-        .vn-sprite.position-right { right: 5%; transform: translateX(0); }
+        /* Posiciones con ligera profundidad Z — se combina con la animación via CSS vars */
+        .vn-sprite.position-left {
+            left: 5%;
+            transform: translateZ(10px);
+        }
+        .vn-sprite.position-center {
+            left: 50%;
+            transform: translateX(-50%) translateZ(30px);
+        }
+        .vn-sprite.position-right {
+            right: 5%;
+            transform: translateZ(10px);
+        }
 
-        /* Estados visuales */
+        /* INACTIVO: oscuro, desaturado, retraído */
         .vn-sprite.inactive {
-            opacity: 0.5;
-            filter: brightness(0.6) grayscale(0.3);
-            transform: scale(0.95);
+            opacity: 0.38;
         }
+        .vn-sprite.inactive img {
+            filter:
+                brightness(0.5)
+                contrast(0.85)
+                grayscale(0.35)
+                drop-shadow(0 10px 18px rgba(0,0,0,0.3));
+            animation: none;
+        }
+        /* Posiciones inactivas: mantenemos el translate original */
+        .vn-sprite.inactive.position-left  { transform: scale(0.94) translateZ(0px); }
+        .vn-sprite.inactive.position-center { transform: translateX(-50%) scale(0.94) translateZ(0px); }
+        .vn-sprite.inactive.position-right { transform: scale(0.94) translateZ(0px); }
 
-        .vn-sprite.inactive.position-left { transform: scale(0.95); }
-        .vn-sprite.inactive.position-center { transform: translateX(-50%) scale(0.95); }
-        .vn-sprite.inactive.position-right { transform: scale(0.95); }
-
+        /* ACTIVO: brillante, con glow dorado suave, animación de respiración */
         .vn-sprite.active {
             opacity: 1;
-            filter: brightness(1.2) drop-shadow(0 0 30px rgba(201, 168, 108, 0.4));
-            z-index: 101;
+            z-index: 105;
         }
-
-        .vn-sprite.active.position-center {
-            animation: bounce-focus 2s ease-in-out infinite;
+        .vn-sprite.active img {
+            filter:
+                brightness(1.08)
+                contrast(1.04)
+                drop-shadow(0 25px 35px rgba(0,0,0,0.45))
+                drop-shadow(0 0 25px rgba(201, 168, 108, 0.12));
+            animation: sprite-breathing 4.8s ease-in-out infinite;
         }
+        .vn-sprite.active.position-left   { transform: scale(1) translateZ(10px); }
+        .vn-sprite.active.position-center { transform: translateX(-50%) scale(1) translateZ(30px); }
+        .vn-sprite.active.position-right  { transform: scale(1) translateZ(10px); }
 
-        /* Modo clásico (sprites desaparecen) */
+        /* Modo clásico: sprites inactivos desaparecen */
         .vn-section.classic-mode .vn-sprite.inactive {
             opacity: 0;
-            transform: translateX(-50%) scale(0.8);
+        }
+        .vn-section.classic-mode .vn-sprite.inactive.position-center {
+            transform: translateX(-50%) scale(0.88) translateZ(0px);
         }
 
-        /* CAJA DE DIÁLOGO MEJORADA */
+        /* CAJA DE DIÁLOGO PREMIUM */
         .vn-dialogue-box {
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
             bottom: 2rem;
-            width: min(840px, 82%);
-            background: linear-gradient(145deg, rgba(72, 46, 28, 0.9), rgba(43, 28, 18, 0.9));
-            border: 2px solid rgba(219, 182, 128, 0.8);
-            border-radius: 18px;
-            padding: 2rem 2rem 2.5rem 8.4rem;
-            box-shadow: 0 24px 62px rgba(0,0,0,0.52), inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -18px 26px rgba(0,0,0,0.2);
+            width: min(900px, 85%);
+
+            /* Fondo de cristal oscuro con textura sutil */
+            background: linear-gradient(135deg,
+                rgba(45, 32, 22, 0.94) 0%,
+                rgba(26, 20, 15, 0.97) 100%);
+
+            /* Border-radius + borde dorado sin usar border-image (incompatible entre sí) */
+            border-radius: 20px;
+            border: 1.5px solid rgba(201, 168, 108, 0.45);
+            padding: 2.2rem 2rem 2rem 9rem;
+
+            /* Sombras en capas */
+            box-shadow:
+                0 24px 64px rgba(0, 0, 0, 0.62),
+                0 0 0 1px rgba(201, 168, 108, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                inset 0 -16px 24px rgba(0, 0, 0, 0.18);
+
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             z-index: 150;
             cursor: pointer;
-            backdrop-filter: blur(2px);
-            -webkit-backdrop-filter: blur(2px);
-            transition: all 0.3s ease;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                        box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        /* Línea interior sutil */
         .vn-dialogue-box::before {
             content: '';
             position: absolute;
             inset: 8px;
-            border-radius: 13px;
-            border: 1px solid rgba(248, 223, 183, 0.2);
+            border-radius: 14px;
+            border: 1px solid rgba(248, 223, 183, 0.1);
             pointer-events: none;
         }
+
+        /* Decoraciones de esquina ornamentales usando ::after */
         .vn-dialogue-box::after {
-            content: '';
+            content: '❧';
             position: absolute;
-            inset: -4px;
-            border-radius: 20px;
+            bottom: 0.9rem;
+            right: 1.1rem;
+            color: rgba(201, 168, 108, 0.3);
+            font-size: 1.1rem;
+            font-family: serif;
+            transform: rotate(135deg);
             pointer-events: none;
-            box-shadow: inset 0 0 0 2px rgba(62, 39, 24, 0.55);
+            line-height: 1;
         }
+
+        /* Elevación suave al hover */
         .vn-dialogue-box:hover {
-            box-shadow: 0 25px 70px rgba(0,0,0,0.6), 0 0 22px rgba(201, 168, 108, 0.38);
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow:
+                0 32px 80px rgba(0, 0, 0, 0.70),
+                0 0 28px rgba(201, 168, 108, 0.14),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
         .vn-dialogue-box.fade-in {
-            animation: vn-message-fade-in 0.5s ease;
+            animation: vn-message-fade-in 0.45s ease;
         }
 
         @keyframes vn-message-fade-in {
             from { opacity: 0; }
-            to { opacity: 1; }
+            to   { opacity: 1; }
         }
 
         .vn-speaker-avatar {
@@ -2037,19 +2142,25 @@ body::before {
             left: 1.5rem;
             top: 50%;
             transform: translateY(-50%);
-            width: 92px;
-            height: 92px;
+            width: 98px;
+            height: 98px;
             border-radius: 50%;
-            border: 2px solid rgba(236, 197, 144, 0.9);
-            background: radial-gradient(circle at 30% 30%, #8d6a47, #2f2418);
+            /* Marco dorado con gradiente sin border-image */
+            border: 2.5px solid rgba(201, 168, 108, 0.75);
+            background:
+                linear-gradient(var(--bg-tertiary), var(--bg-tertiary)) padding-box,
+                linear-gradient(135deg, rgba(201, 168, 108, 0.9), rgba(139, 115, 85, 0.5)) border-box;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2.4rem;
             overflow: visible;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            box-shadow:
+                0 10px 32px rgba(0,0,0,0.45),
+                inset 0 2px 4px rgba(255, 255, 255, 0.1);
             z-index: 10;
             isolation: isolate;
+            transition: box-shadow 0.4s ease;
         }
         .vn-speaker-avatar::before {
             content: '';
@@ -2064,8 +2175,20 @@ body::before {
             pointer-events: none;
             z-index: -1;
         }
+        /* Pulso suave al hablar */
+        .vn-speaker-avatar.is-speaking {
+            box-shadow:
+                0 10px 32px rgba(0,0,0,0.45),
+                0 0 22px rgba(201, 168, 108, 0.28),
+                inset 0 2px 4px rgba(255, 255, 255, 0.1);
+            animation: avatar-speaking-pulse 2.2s ease-in-out infinite;
+        }
         .vn-speaker-avatar.is-speaking::before {
             animation: avatar-rune-pulse 1.6s ease-in-out infinite;
+        }
+        @keyframes avatar-speaking-pulse {
+            0%, 100% { transform: translateY(-50%) scale(1); }
+            50%       { transform: translateY(-50%) scale(1.025); }
         }
         .vn-speaker-plate {
             position: absolute;
@@ -2105,15 +2228,21 @@ body::before {
 
         .vn-continue-indicator {
             position: absolute;
-            right: 2rem;
-            bottom: 1.5rem;
-            width: 12px;
-            height: 12px;
-            background: var(--accent-gold);
-            transform: rotate(45deg);
+            right: 2.2rem;
+            bottom: 1.6rem;
+            width: 0;
+            height: 0;
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-top: 11px solid rgba(201, 168, 108, 0.88);
             opacity: 0;
-            animation: pulse-diamond 1.5s infinite;
-            box-shadow: 0 0 10px var(--accent-gold);
+            filter: drop-shadow(0 0 5px rgba(201, 168, 108, 0.6));
+            animation: continue-bounce 1.6s ease-in-out infinite;
+        }
+
+        @keyframes continue-bounce {
+            0%, 100% { transform: translateY(0);   opacity: 0.55; }
+            50%       { transform: translateY(7px); opacity: 1; }
         }
         
 
@@ -2237,9 +2366,9 @@ body::before {
         }
 
         .vn-option-btn {
-            background: rgba(255, 255, 255, 0.95);
-            border: 2px solid var(--accent-gold);
-            color: var(--text-primary);
+            background: rgba(30, 22, 15, 0.88);
+            border: 1.5px solid rgba(201, 168, 108, 0.55);
+            color: #f0dfc0;
             padding: 1rem 1.5rem;
             border-radius: 50px;
             cursor: pointer;
@@ -2247,10 +2376,12 @@ body::before {
             font-size: 1.1rem;
             text-align: center;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 18px rgba(0,0,0,0.5);
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
         }
 
         .vn-option-btn::before {
@@ -2260,15 +2391,16 @@ body::before {
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.3), transparent);
+            background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.18), transparent);
             transition: left 0.5s;
         }
 
         .vn-option-btn:hover {
-            transform: translateX(10px) scale(1.02);
-            background: white;
-            box-shadow: 0 6px 25px rgba(201, 168, 108, 0.4);
-            border-color: var(--accent-wood);
+            transform: translateX(8px) scale(1.02);
+            background: rgba(50, 36, 22, 0.95);
+            border-color: rgba(201, 168, 108, 0.9);
+            box-shadow: 0 6px 28px rgba(0,0,0,0.6), 0 0 14px rgba(201, 168, 108, 0.2);
+            color: #faebd0;
         }
 
         .vn-option-btn:hover::before {
@@ -2276,15 +2408,15 @@ body::before {
         }
 
         .vn-option-btn.chosen {
-            background: rgba(107, 142, 125, 0.9);
+            background: rgba(107, 142, 125, 0.75);
             border-color: var(--accent-sage);
-            color: white;
-            opacity: 0.8;
+            color: #e8f5f0;
+            opacity: 0.82;
         }
 
         .vn-option-btn:disabled {
             cursor: not-allowed;
-            opacity: 0.6;
+            opacity: 0.5;
         }
 
         .vn-continuation-overlay {

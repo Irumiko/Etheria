@@ -81,10 +81,10 @@
         <div class="setting-item">
             <label class="setting-label">Filtro de atmósfera</label>
             <div class="filter-buttons">
-                <button class="filter-btn active" onclick="setAtmosphere('none')">Normal</button>
-                <button class="filter-btn" onclick="setAtmosphere('sepia')">Sepia</button>
-                <button class="filter-btn" onclick="setAtmosphere('bw')">B/N</button>
-                <button class="filter-btn" onclick="setAtmosphere('cinematic')">Cine</button>
+                <button class="filter-btn active" onclick="setAtmosphere('none', this)">Normal</button>
+                <button class="filter-btn" onclick="setAtmosphere('sepia', this)">Sepia</button>
+                <button class="filter-btn" onclick="setAtmosphere('bw', this)">B/N</button>
+                <button class="filter-btn" onclick="setAtmosphere('cinematic', this)">Cine</button>
             </div>
         </div>
 
@@ -689,9 +689,9 @@
                 </div>
             </div>
             <div class="sheet-tabs">
-                <button class="sheet-tab active" onclick="switchTab('profile')">📋 Perfil</button>
-                <button class="sheet-tab" onclick="switchTab('personality')">🎭 Personalidad</button>
-                <button class="sheet-tab" onclick="switchTab('history')">📖 Historia</button>
+                <button class="sheet-tab active" onclick="switchTab('profile', this)">📋 Perfil</button>
+                <button class="sheet-tab" onclick="switchTab('personality', this)">🎭 Personalidad</button>
+                <button class="sheet-tab" onclick="switchTab('history', this)">📖 Historia</button>
             </div>
             <div class="sheet-body">
                 <div class="sheet-content">
@@ -716,7 +716,17 @@
 <!-- Orden de carga recomendado: utilidades -> UI -> arranque -->
 <script src="js/utils/state.js"></script>
 <script src="js/utils/storage.js"></script>
-<script src="js/ui/interface.js"></script>
+<script src="js/ui/sounds.js"></script>
+<script src="js/ui/ui.js"></script>
+<script src="js/ui/effects.js"></script>
+<script src="js/ui/utils-ui.js"></script>
+<script src="js/ui/roleplay.js"></script>
+<script src="js/ui/characters.js"></script>
+<script src="js/ui/navigation.js"></script>
+<script src="js/ui/sheets.js"></script>
+<script src="js/ui/vn.js"></script>
+<script src="js/ui/topics.js"></script>
+<script src="js/ui/app-ui.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

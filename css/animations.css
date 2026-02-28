@@ -163,7 +163,8 @@
         }
 
 @keyframes vn-scene-cinematic {
-            0% { opacity: 1; }
-            65% { opacity: 0.4; }
-            100% { opacity: 0; }
+            0%   { opacity: 0; backdrop-filter: blur(0px);  }
+            35%  { opacity: 1; backdrop-filter: blur(8px);  }
+            65%  { opacity: 1; backdrop-filter: blur(8px);  }
+            100% { opacity: 0; backdrop-filter: blur(0px);  }
         }
