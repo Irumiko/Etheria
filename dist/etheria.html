@@ -5522,6 +5522,12 @@ body::before {
             </div>
         </div>
 
+        <div id="roomCodeWrap" style="display:none; align-items:center; gap:0.6rem; margin:0.55rem auto 0.15rem; max-width: 860px; background: rgba(0,0,0,0.32); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.45rem 0.7rem;">
+            <span style="font-size:0.82rem; color: var(--text-muted);">Código de sala:</span>
+            <code id="roomCodeValue" style="font-size:0.85rem; color: var(--text-primary); user-select: all;"></code>
+            <button type="button" class="btn-secondary" onclick="copyCurrentRoomCode()" style="margin-left:auto; padding:0.35rem 0.7rem;">Copiar código de sala</button>
+        </div>
+
         <!-- Controles -->
         <div class="vn-controls">
             <!-- Grupo Navegación -->
@@ -5588,7 +5594,7 @@ body::before {
 
             <!-- Grupo Salir/Borrar -->
             <div class="vn-control-slot">
-                <button id="deleteTopicBtn" class="vn-control-btn hidden" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
+                <button id="deleteTopicBtn" class="vn-control-btn" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
                     <span class="vn-control-icon">🗑</span>
                 </button>
             </div>
@@ -5623,7 +5629,7 @@ body::before {
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
             <div class="vn-speaker-avatar-wrap" aria-hidden="true"></div>
             <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
-            <div id="vnDialogueText" class="vn-dialogue-text">...</div>
+            <div id="vnDialogueText" class="vn-dialogue-text"></div>
             <div id="vnContinueIndicator" class="vn-continue-indicator"></div>
             <div class="vn-dialogue-footer">
                 <div class="vn-counter-dice-wrap">
@@ -6120,6 +6126,7 @@ let touchStartY = 0;
 let gallerySearchDebounceTimer = null;
 let galleryImageObserver = null;
 let historyVirtualState = null;
+let pendingRoomInviteId = null;
 const spritePool = [];
 const STORAGE_KEYS = {
     legacy: 'etheria_data',
@@ -7467,9 +7474,16 @@ function showEmoteOnAvatar(emoteType) {
 // ============================================
 function formatText(text) {
     if (!text) return '';
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
-    return text;
+    const escaped = String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    return escaped
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>');
 }
 
 function stripHtml(html) {
@@ -8049,8 +8063,9 @@ function renderUserCards() {
         const ownChars  = appData.characters.filter(c => c.userIndex === idx);
         let totalMsgs = 0;
         ownTopics.forEach(t => {
-            const msgs = appData.messages[t.id];
-            if (Array.isArray(msgs)) totalMsgs += msgs.length;
+            // Solo usar mensajes ya en memoria — no forzar carga desde storage en la pantalla de perfiles
+            const msgs = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
+            totalMsgs += msgs.length;
         });
 
         // Última sesión
@@ -8543,6 +8558,11 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     currentFilter = 'none';
 
     if (clearTopic) {
+        // Cancelar suscripción realtime al salir de una historia
+        if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribe === 'function') {
+            SupabaseMessages.unsubscribe();
+        }
+        if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
         currentTopicId = null;
         currentMessageIndex = 0;
     }
@@ -8879,11 +8899,223 @@ function editFromSheet() {
 
 
 
+/* js/utils/supabaseMessages.js */
+// ============================================
+// SUPABASE REALTIME MESSAGES
+// ============================================
+// Capa adicional para rol en tiempo real.
+// Tabla: id (uuid), session_id (text), author (text),
+//        content (text), created_at (timestamp).
+//
+// No sustituye localStorage ni jsonbin.io.
+// Si Supabase falla, la app continúa sin errores.
+// ============================================
+
+(function (global) {
+
+    const SB_URL = 'https://timtqdrfeuzwwixfnudj.supabase.co';
+    const SB_KEY = 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3';
+
+    const REST_HEADERS = {
+        'apikey'        : SB_KEY,
+        'Authorization' : 'Bearer ' + SB_KEY,
+        'Content-Type'  : 'application/json',
+        'Prefer'        : 'return=minimal'
+    };
+
+    let _client    = null;   // instancia supabase-js (cargada desde CDN)
+    let _channel   = null;   // canal realtime activo
+    let _available = null;   // null = sin verificar | true | false
+
+    // ── Init (lazy) ───────────────────────────────────────────────────────────
+
+    function _init() {
+        if (_client) return true;
+        try {
+            // supabase-js expone window.supabase cuando se carga desde CDN ESM
+            const lib = global.supabase;
+            if (!lib || typeof lib.createClient !== 'function') return false;
+            _client = lib.createClient(SB_URL, SB_KEY);
+            return true;
+        } catch (e) {
+            console.warn('[Supabase] init error:', e.message);
+            _available = false;
+            return false;
+        }
+    }
+
+    // ── send ─────────────────────────────────────────────────────────────────
+    // Guarda el mensaje completo de Etheria serializado en `content`.
+    // Solo escribe las tres columnas que existen: session_id, author, content.
+
+    async function send(sessionId, msgObj) {
+        if (_available === false) return false;
+
+        const row = {
+            session_id : String(sessionId),
+            author     : String(msgObj.userIndex ?? 0),
+            content    : JSON.stringify({
+                id          : msgObj.id,
+                characterId : msgObj.characterId  || null,
+                charName    : msgObj.charName      || null,
+                charColor   : msgObj.charColor     || null,
+                charAvatar  : msgObj.charAvatar    || null,
+                charSprite  : msgObj.charSprite    || null,
+                text        : msgObj.text          || '',
+                isNarrator  : !!msgObj.isNarrator,
+                userIndex   : msgObj.userIndex     ?? 0,
+                timestamp   : msgObj.timestamp     || new Date().toISOString(),
+                weather     : msgObj.weather       || undefined,
+                diceRoll    : msgObj.diceRoll      || undefined,
+                options     : msgObj.options       || undefined
+            })
+        };
+
+        try {
+            const res = await fetch(SB_URL + '/rest/v1/messages', {
+                method  : 'POST',
+                headers : REST_HEADERS,
+                body    : JSON.stringify(row),
+                signal  : AbortSignal.timeout(5000)
+            });
+
+            if (!res.ok) {
+                const detail = await res.text().catch(() => String(res.status));
+                console.warn('[Supabase] send failed (' + res.status + '):', detail);
+                _available = false;
+                return false;
+            }
+
+            _available = true;
+            return true;
+
+        } catch (e) {
+            console.warn('[Supabase] send error:', e.message);
+            _available = false;
+            return false;
+        }
+    }
+
+    // ── load ──────────────────────────────────────────────────────────────────
+    // Devuelve array de objetos mensaje de Etheria, o null si falla.
+    // Ordena por created_at (timestamp oficial de la tabla).
+
+    async function load(sessionId) {
+        try {
+            const res = await fetch(
+                SB_URL + '/rest/v1/messages'
+                    + '?session_id=eq.' + encodeURIComponent(sessionId)
+                    + '&order=created_at.asc',
+                { headers: REST_HEADERS, signal: AbortSignal.timeout(6000) }
+            );
+
+            if (!res.ok) {
+                _available = false;
+                return null;
+            }
+
+            const rows = await res.json();
+            _available = true;
+
+            return rows.reduce(function (acc, row) {
+                try {
+                    const msg = JSON.parse(row.content);
+                    // Usar created_at como timestamp si el mensaje no lo trae
+                    if (!msg.timestamp) msg.timestamp = row.created_at;
+                    acc.push(msg);
+                } catch {
+                    // Fila con content inválido — ignorar silenciosamente
+                }
+                return acc;
+            }, []);
+
+        } catch (e) {
+            console.warn('[Supabase] load error:', e.message);
+            _available = false;
+            return null;
+        }
+    }
+
+    // ── subscribe ─────────────────────────────────────────────────────────────
+    // Usa supabase-js channel().on() para escuchar INSERTs filtrados por session_id.
+    // onMessage(msgObj) recibe el objeto mensaje de Etheria deserializado.
+
+    function subscribe(sessionId, onMessage) {
+        if (!_init()) {
+            console.warn('[Supabase] subscribe: cliente no disponible');
+            return;
+        }
+
+        unsubscribe();
+
+        try {
+            _channel = _client
+                .channel('room:' + sessionId)
+                .on(
+                    'postgres_changes',
+                    {
+                        event  : 'INSERT',
+                        schema : 'public',
+                        table  : 'messages',
+                        filter : 'session_id=eq.' + sessionId
+                    },
+                    function (payload) {
+                        try {
+                            var row = payload.new;
+                            if (!row || !row.content) return;
+                            var msg = JSON.parse(row.content);
+                            if (!msg.timestamp) msg.timestamp = row.created_at;
+                            if (typeof onMessage === 'function') onMessage(msg);
+                        } catch {
+                            // payload inesperado — ignorar
+                        }
+                    }
+                )
+                .subscribe(function (status) {
+                    if (status === 'SUBSCRIBED') {
+                        _available = true;
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        _available = false;
+                        console.warn('[Supabase] channel status:', status);
+                    }
+                });
+
+        } catch (e) {
+            console.warn('[Supabase] subscribe error:', e.message);
+            _available = false;
+        }
+    }
+
+    // ── unsubscribe ───────────────────────────────────────────────────────────
+
+    function unsubscribe() {
+        if (_channel && _client) {
+            try { _client.removeChannel(_channel); } catch { /* ignorar */ }
+            _channel = null;
+        }
+    }
+
+    // ── API pública ───────────────────────────────────────────────────────────
+
+    global.SupabaseMessages = {
+        send        : send,
+        load        : load,
+        subscribe   : subscribe,
+        unsubscribe : unsubscribe,
+        get available() { return _available; }
+    };
+
+}(window));
+
+
 /* js/ui/vn.js */
 // Modo novela visual: renderizado de mensajes, sprites, typewriter, reply panel, opciones y historial.
 // ============================================
 // MODO VN
 // ============================================
+// Variables para el debounce de sincronización al navegar mensajes
+var _lastNavSyncTime = 0;
+var _NAV_SYNC_DEBOUNCE_MS = 3000; // sincronizar como máximo cada 3 segundos al navegar
 const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.jpg';
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
@@ -8948,6 +9180,15 @@ function preloadTopicBackgrounds() {
     uniqueBackgrounds.forEach(path => preloadBackgroundImage(path));
 }
 
+function playVnSceneTransition(vnSection) {
+    const el = document.getElementById('vnSceneTransition');
+    if (!el) return;
+    el.classList.remove('active', 'wipe');
+    void el.offsetWidth; // forzar reflow para reiniciar animación
+    el.classList.add('active');
+    setTimeout(() => el.classList.remove('active'), 800);
+}
+
 function enterTopic(id) {
     if (typeof stopMenuMusic === 'function') stopMenuMusic();
     // Onboarding paso 2: primera vez en una historia
@@ -8964,6 +9205,7 @@ function enterTopic(id) {
 
     const t = appData.topics.find(topic => topic.id === id);
     if(!t) return;
+    if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(id);
 
     // Establecer modo
     currentTopicMode = t.mode || 'roleplay';
@@ -9004,10 +9246,16 @@ function enterTopic(id) {
 
     const deleteBtn = document.getElementById('deleteTopicBtn');
     if (deleteBtn) {
-        if (t.createdByIndex === currentUserIndex) {
+        // Mostrar si el usuario actual es el creador, o si createdByIndex no está definido (topics legados)
+        const isOwner = t.createdByIndex === currentUserIndex || t.createdByIndex === undefined || t.createdByIndex === null;
+        // Usamos el slot padre para mostrar/ocultar, evitando conflicto con el CSS :has(.hidden)
+        const deleteSlot = deleteBtn.closest('.vn-control-slot');
+        if (isOwner) {
             deleteBtn.classList.remove('hidden');
+            if (deleteSlot) deleteSlot.style.display = '';
         } else {
             deleteBtn.classList.add('hidden');
+            if (deleteSlot) deleteSlot.style.display = 'none';
         }
     }
 
@@ -9253,7 +9501,8 @@ function recycleActiveSprites(container) {
             img.onerror = null;
         }
         child.querySelectorAll('.manga-emote').forEach((el) => el.remove());
-        spritePool.push(child);
+        // Limitar el pool a 20 elementos para evitar memory leak
+        if (spritePool.length < 20) spritePool.push(child);
     });
     container.innerHTML = '';
 }
@@ -9282,23 +9531,20 @@ function updateSprites(currentMsg, activeEmote = null) {
             }
         }
 
-        charsToShow = recentChars.slice(0, 3);
-
-        if (charsToShow.length === 1) {
-            charsToShow[0].position = 'center';
-        } else if (charsToShow.length === 2) {
-            charsToShow[0].position = 'left';
-            charsToShow[1].position = 'right';
-        } else if (charsToShow.length >= 3) {
-            charsToShow[0].position = 'left';
-            charsToShow[1].position = 'center';
-            charsToShow[2].position = 'right';
+        // Crear copias shallow para no mutar los objetos de mensaje originales
+        const sliced = recentChars.slice(0, 3);
+        if (sliced.length === 1) {
+            charsToShow = [{ ...sliced[0], position: 'center' }];
+        } else if (sliced.length === 2) {
+            charsToShow = [{ ...sliced[0], position: 'left' }, { ...sliced[1], position: 'right' }];
+        } else if (sliced.length >= 3) {
+            charsToShow = [{ ...sliced[0], position: 'left' }, { ...sliced[1], position: 'center' }, { ...sliced[2], position: 'right' }];
         }
     } else if (currentMsg.characterId && currentMsg.charSprite) {
         const charExists = appData.characters.find(c => c.id === currentMsg.characterId);
         if (charExists) {
-            currentMsg.position = 'center';
-            charsToShow.push(currentMsg);
+            // Crear copia para no mutar el mensaje original con .position
+            charsToShow.push({ ...currentMsg, position: 'center' });
         }
     }
 
@@ -9457,7 +9703,11 @@ function handleDialogueClick() {
         currentMessageIndex++;
         if (typeof playSoundClick === 'function') playSoundClick();
         showCurrentMessage('forward');
-        syncBidirectional({ silent: true, allowRemotePrompt: true });
+        const _now1 = Date.now();
+        if (_now1 - _lastNavSyncTime > _NAV_SYNC_DEBOUNCE_MS) {
+            _lastNavSyncTime = _now1;
+            syncBidirectional({ silent: true, allowRemotePrompt: true });
+        }
     }
 }
 
@@ -9479,7 +9729,11 @@ function nextMessage() {
         currentMessageIndex++;
         if (typeof playSoundClick === 'function') playSoundClick();
         showCurrentMessage('forward');
-        syncBidirectional({ silent: true, allowRemotePrompt: true });
+        const _now2 = Date.now();
+        if (_now2 - _lastNavSyncTime > _NAV_SYNC_DEBOUNCE_MS) {
+            _lastNavSyncTime = _now2;
+            syncBidirectional({ silent: true, allowRemotePrompt: true });
+        }
     }
 }
 
@@ -9528,6 +9782,11 @@ function editCurrentMessage() {
 
     editingMessageId = msg.id;
 
+    // Setear selectedCharId ANTES de openReplyPanel para que updateCharSelector use el correcto
+    if (!msg.isNarrator && msg.characterId) {
+        selectedCharId = msg.characterId;
+    }
+
     openReplyPanel();
 
     const replyText = document.getElementById('vnReplyText');
@@ -9540,7 +9799,6 @@ function editCurrentMessage() {
     }
 
     if (!msg.isNarrator && msg.characterId) {
-        selectedCharId = msg.characterId;
         updateCharSelector();
     }
 
@@ -9604,8 +9862,11 @@ function saveEditedMessage() {
         }
     }
 
-    // Preservar clima si existe
-    const currentWeatherSetting = currentWeather;
+    // Preservar el clima del mensaje original; solo actualizarlo si el usuario lo cambió explícitamente
+    // (se detecta comparando currentWeather con el clima original del mensaje)
+    const originalWeather = msgs[msgIndex].weather;
+    const weatherChanged = currentWeather !== (originalWeather || 'none');
+    const finalWeather = weatherChanged ? (currentWeather !== 'none' ? currentWeather : undefined) : originalWeather;
 
     msgs[msgIndex] = {
         ...msgs[msgIndex],
@@ -9620,7 +9881,7 @@ function saveEditedMessage() {
         selectedOptionIndex: undefined,
         edited: true,
         editedAt: new Date().toISOString(),
-        weather: currentWeatherSetting !== 'none' ? currentWeatherSetting : undefined
+        weather: finalWeather
     };
 
     hasUnsavedChanges = true;
@@ -9703,7 +9964,9 @@ function selectOption(idx) {
             : appData.characters.find(c => c.id === msg.characterId) || null;
 
         const newMsg = {
-            id: Date.now().toString(),
+            id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(16).slice(2)}`,
             characterId: resultChar ? resultChar.id : null,
             charName:    resultChar ? resultChar.name   : 'Narrador',
             charColor:   resultChar ? resultChar.color  : null,
@@ -9807,9 +10070,23 @@ function renderVirtualizedHistory(msgs, container) {
 }
 
 function openHistoryLog() {
+    // Resetear a pestaña "Todos" al abrir para consistencia
+    if (typeof currentHistoryTab !== 'undefined') {
+        currentHistoryTab = 'all';
+        document.getElementById('histTabAll')?.classList.add('active');
+        document.getElementById('histTabFav')?.classList.remove('active');
+    }
+
+    // Usar renderHistoryContent si está disponible (soporta pestañas favoritos)
+    if (typeof renderHistoryContent === 'function') {
+        openModal('historyModal');
+        renderHistoryContent();
+        return;
+    }
+
+    // Fallback: renderizado directo sin pestañas
     const msgs = getTopicMessages(currentTopicId);
     const container = document.getElementById('historyContent');
-
     if (!container) return;
 
     if (msgs.length === 0) {
@@ -9818,7 +10095,6 @@ function openHistoryLog() {
     } else {
         renderVirtualizedHistory(msgs, container);
     }
-
     openModal('historyModal');
 }
 
@@ -9827,7 +10103,6 @@ function openHistoryLog() {
 // RESPUESTAS (Reply Panel)
 // ============================================
 function openReplyPanel() {
-    syncBidirectional({ silent: true, allowRemotePrompt: true });
     const panel = document.getElementById('vnReplyPanel');
     if (!panel) return;
 
@@ -10063,7 +10338,9 @@ function postVNReply() {
     window._diceRollForNextMsg = null;
 
     const newMsg = {
-        id: Date.now().toString(),
+        id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(16).slice(2)}`,
         characterId: isNarratorMode ? null : selectedCharId,
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
@@ -10393,7 +10670,8 @@ function renderTopics() {
     }
 
     container.innerHTML = appData.topics.map(t => {
-        const msgs = getTopicMessages(t.id);
+        // Usar mensajes en memoria si están cargados, evitar cargar desde storage en cada render
+        const msgs = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
         const last = msgs[msgs.length - 1];
         const lastText = last ? stripHtml(formatText(last.text)).substring(0, 80) : '';
         const isRol    = t.mode !== 'fanfic';
@@ -10440,13 +10718,131 @@ function renderTopics() {
 
     let msgCount = 0;
     appData.topics.forEach((topic) => {
-        const topicMsgs = getTopicMessages(topic.id);
+        // Usar solo mensajes en memoria para el conteo, sin forzar carga desde storage
+        const topicMsgs = Array.isArray(appData.messages[topic.id]) ? appData.messages[topic.id] : [];
         msgCount += topicMsgs.filter(m => m.userIndex === currentUserIndex).length;
     });
 
     preloadTopicBackgrounds();
 
     if (statMsgs) statMsgs.textContent = msgCount;
+}
+
+function generateTopicId() {
+    if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+        return globalThis.crypto.randomUUID();
+    }
+    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizeRoomId(value) {
+    const raw = String(value || '').trim();
+    if (!raw || raw.length > 128) return '';
+    return /^[A-Za-z0-9_-]+$/.test(raw) ? raw : '';
+}
+
+function getRoomIdFromQuery() {
+    try {
+        const room = new URLSearchParams(window.location.search).get('room');
+        return normalizeRoomId(room);
+    } catch {
+        return '';
+    }
+}
+
+function ensureTopicByRoomId(roomId) {
+    const normalizedRoomId = normalizeRoomId(roomId);
+    if (!normalizedRoomId) return null;
+
+    let topic = appData.topics.find(t => String(t.id) === normalizedRoomId);
+    if (topic) return topic;
+
+    topic = {
+        id: normalizedRoomId,
+        title: `Sala ${normalizedRoomId.slice(0, 8)}`,
+        background: DEFAULT_TOPIC_BACKGROUND,
+        mode: 'roleplay',
+        roleCharacterId: null,
+        createdBy: userNames[currentUserIndex] || 'Jugador',
+        createdByIndex: currentUserIndex,
+        date: new Date().toLocaleDateString()
+    };
+
+    appData.topics.push(topic);
+    appData.messages[normalizedRoomId] = Array.isArray(appData.messages[normalizedRoomId])
+        ? appData.messages[normalizedRoomId]
+        : [];
+
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    renderTopics();
+    return topic;
+}
+
+function copyCurrentRoomCode() {
+    if (!currentTopicId) return;
+    const roomCode = String(currentTopicId);
+
+    const onSuccess = () => showAutosave('Código de sala copiado', 'saved');
+    const onFailure = () => showAutosave('No se pudo copiar el código', 'error');
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(roomCode).then(onSuccess).catch(onFailure);
+        return;
+    }
+
+    try {
+        const fallback = document.createElement('textarea');
+        fallback.value = roomCode;
+        fallback.setAttribute('readonly', 'readonly');
+        fallback.style.position = 'fixed';
+        fallback.style.opacity = '0';
+        document.body.appendChild(fallback);
+        fallback.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(fallback);
+        if (ok) onSuccess();
+        else onFailure();
+    } catch {
+        onFailure();
+    }
+}
+
+function updateRoomCodeUI(topicId) {
+    const wrap = document.getElementById('roomCodeWrap');
+    const valueEl = document.getElementById('roomCodeValue');
+    if (!wrap || !valueEl) return;
+
+    if (!topicId) {
+        wrap.style.display = 'none';
+        valueEl.textContent = '';
+        return;
+    }
+
+    const topic = appData.topics.find(t => String(t.id) === String(topicId));
+    const isCollaborative = !topic || topic.mode !== 'fanfic';
+    if (!isCollaborative) {
+        wrap.style.display = 'none';
+        valueEl.textContent = '';
+        return;
+    }
+
+    valueEl.textContent = String(topicId);
+    wrap.style.display = 'inline-flex';
+}
+
+async function tryJoinRoomFromUrl() {
+    const roomId = pendingRoomInviteId || getRoomIdFromQuery();
+    if (!roomId) return false;
+
+    pendingRoomInviteId = null;
+    const topic = ensureTopicByRoomId(roomId);
+    if (!topic) return false;
+
+    const topicsSection = document.getElementById('topicsSection');
+    if (topicsSection) topicsSection.classList.add('active');
+    enterTopic(topic.id);
+    return true;
 }
 
 function createTopic() {
@@ -10461,7 +10857,7 @@ function createTopic() {
 
     if(!title || !text) { showAutosave('Completa todos los campos obligatorios', 'error'); return; }
 
-    const id = Date.now().toString();
+    const id = generateTopicId();
     appData.topics.push({
         id,
         title,
@@ -10475,7 +10871,9 @@ function createTopic() {
     });
 
     appData.messages[id] = [{
-        id: Date.now().toString(),
+        id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(16).slice(2)}`,
         characterId: null,
         charName: 'Narrador',
         charColor: null,
@@ -10596,6 +10994,12 @@ function openConfirmModal(message, okLabel = 'Confirmar') {
 
 function openModal(id) {
     if(id === 'topicModal') {
+        // Limpiar el formulario al abrir para que no queden datos del topic anterior
+        const titleInput   = document.getElementById('topicTitleInput');
+        const firstMsgInput = document.getElementById('topicFirstMsg');
+        if (titleInput)    titleInput.value = '';
+        if (firstMsgInput) firstMsgInput.value = '';
+        if (typeof setTopicWeather === 'function') setTopicWeather('none');
         updateTopicModeUI();
     }
     const modal = document.getElementById(id);
@@ -10752,8 +11156,8 @@ function syncOptionsSection() {
         const valEl = document.getElementById('optFontSizeVal');
         if (valEl) valEl.textContent = savedSize + 'px';
     }
-    if (masterSlider) { masterSlider.value = savedMasterVol; document.getElementById('optMasterVolVal').textContent = savedMasterVol + '%'; }
-    if (rainSlider)   { rainSlider.value = savedRainVol;     document.getElementById('optRainVolVal').textContent   = savedRainVol   + '%'; }
+    if (masterSlider) { masterSlider.value = savedMasterVol; const mvEl = document.getElementById('optMasterVolVal'); if (mvEl) mvEl.textContent = savedMasterVol + '%'; }
+    if (rainSlider)   { rainSlider.value = savedRainVol;     const rvEl = document.getElementById('optRainVolVal');   if (rvEl) rvEl.textContent = savedRainVol   + '%'; }
     if (uiCheck)  uiCheck.checked = uiSounds;
     if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
     if (nameInput) nameInput.value = userNames[currentUserIndex] || '';
@@ -10775,6 +11179,9 @@ function deleteCurrentTopic() {
         currentTopicId = null;
         hasUnsavedChanges = true;
         save({ silent: true });
+        // Marcar como sin cambios pendientes para que backToTopics no pregunte
+        // (el guardado ya ocurrió o falló, pero el topic ya no existe en memoria)
+        hasUnsavedChanges = false;
         backToTopics();
     });
 }
@@ -11039,6 +11446,20 @@ document.addEventListener('DOMContentLoaded', () => {
     setupReplyEmotePopover();
     setupGallerySearchListeners();
 
+
+    pendingRoomInviteId = (typeof getRoomIdFromQuery === 'function') ? getRoomIdFromQuery() : null;
+    if (pendingRoomInviteId) {
+        const defaultProfile = getStoredLastProfileId();
+        selectUser(defaultProfile !== null ? defaultProfile : 0, { autoLoad: true })
+            .then(() => {
+                if (typeof tryJoinRoomFromUrl === 'function') return tryJoinRoomFromUrl();
+                return false;
+            })
+            .catch((err) => {
+                console.warn('No se pudo abrir la sala compartida:', err);
+            });
+    }
+
     window.addEventListener('beforeunload', (e) => {
         if (hasUnsavedChanges) {
             e.preventDefault();
@@ -11046,6 +11467,344 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+});
+
+
+/* js/ui/mejoras.js */
+// ============================================
+// MEJORAS v10
+// ============================================
+
+// ============================================
+// MEJORA 9: TRANSICIONES SUAVES ENTRE SECCIONES
+// ============================================
+// Flag: cuando venimos de la pantalla de perfiles, saltamos el overlay negro
+var _skipNextFadeTransition = false;
+
+var _fadeTransitionInProgress = false;
+
+function _clearFadeOverlay(overlay, delay) {
+    setTimeout(function() {
+        if (overlay) {
+            overlay.classList.remove('fade-out');
+            overlay.style.transition = '';
+        }
+        _fadeTransitionInProgress = false;
+    }, delay);
+}
+
+function fadeTransition(callback, duration) {
+    duration = duration || 280;
+
+    // Si viene de seleccionar perfil, ejecutar directamente sin overlay
+    if (_skipNextFadeTransition) {
+        _skipNextFadeTransition = false;
+        try { callback(); } catch(e) { console.error('[fadeTransition] callback error:', e); }
+        return;
+    }
+
+    // Evitar transiciones simultáneas que dejen el overlay atascado
+    if (_fadeTransitionInProgress) {
+        try { callback(); } catch(e) { console.error('[fadeTransition] callback error:', e); }
+        return;
+    }
+
+    var overlay = document.getElementById('sectionTransitionOverlay');
+    if (!overlay) {
+        try { callback(); } catch(e) { console.error('[fadeTransition] callback error:', e); }
+        return;
+    }
+
+    _fadeTransitionInProgress = true;
+    overlay.style.transition = 'opacity ' + duration + 'ms ease';
+    overlay.classList.add('fade-out');
+
+    setTimeout(function() {
+        try {
+            callback();
+        } catch(e) {
+            console.error('[fadeTransition] callback error:', e);
+        } finally {
+            // Siempre quitar el overlay, aunque el callback haya fallado
+            _clearFadeOverlay(overlay, Math.round(duration * 0.6));
+        }
+    }, duration);
+}
+
+// ============================================
+// MEJORA 12: SUSPENSE EN OPCIONES
+// ============================================
+function applySuspenseEffect() {
+    var vn = document.getElementById('vnSection');
+    if (vn) vn.classList.add('suspense-mode');
+}
+
+function removeSuspenseEffect() {
+    var vn = document.getElementById('vnSection');
+    if (vn) vn.classList.remove('suspense-mode');
+}
+
+// ============================================
+// MEJORA 7: DADO DnD — resultado embebido en el mensaje
+// ============================================
+var _pendingDiceRoll = null; // null = sin tirada activa; {value, label, cssClass} = tirada pendiente
+
+var _DICE_INFO = {
+    critical: { label: '¡CRÍTICO!', cssClass: 'badge-critical', emoji: '⭐' },
+    fumble:   { label: '¡PIFIA!',   cssClass: 'badge-fumble',   emoji: '💀' },
+    success:  { label: 'ÉXITO',     cssClass: 'badge-success',  emoji: '✓'  },
+    fail:     { label: 'FALLO',     cssClass: 'badge-fail',     emoji: '✗'  }
+};
+
+function _getDiceResultType(roll) {
+    if (roll === 20) return 'critical';
+    if (roll === 1)  return 'fumble';
+    if (roll % 2 === 0) return 'success';
+    return 'fail';
+}
+
+function toggleDiceMode() {
+    var btn = document.getElementById('diceToggleBtn');
+    var textarea = document.getElementById('vnReplyText');
+
+    // Bloquear si no hay texto escrito
+    if (!textarea || !textarea.value.trim()) {
+        _showDiceHint('Escribe tu mensaje antes de tirar el dado');
+        return;
+    }
+
+    // Si ya hay una tirada pendiente, se quita (toggle off)
+    if (_pendingDiceRoll) {
+        clearDiceRoll();
+        return;
+    }
+
+    // Tirar
+    var roll = Math.floor(Math.random() * 20) + 1;
+    var type = _getDiceResultType(roll);
+    var info = _DICE_INFO[type];
+
+    _pendingDiceRoll = { value: roll, type: type, label: info.label, cssClass: info.cssClass, emoji: info.emoji };
+
+    // Actualizar preview en el panel
+    _updateDicePreview();
+
+    // Sonido
+    if (type === 'critical' && typeof playSoundAffinityUp   === 'function') playSoundAffinityUp();
+    else if (type === 'fumble' && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+    else if (typeof playSoundClick === 'function') playSoundClick();
+}
+
+function clearDiceRoll() {
+    _pendingDiceRoll = null;
+    _updateDicePreview();
+}
+
+function _updateDicePreview() {
+    var badge   = document.getElementById('dicePreviewBadge');
+    var clearBtn = document.getElementById('diceClearBtn');
+    var diceBtn  = document.getElementById('diceToggleBtn');
+
+    if (!badge) return;
+
+    if (_pendingDiceRoll) {
+        var d = _pendingDiceRoll;
+        badge.textContent = d.emoji + ' ' + d.value + ' — ' + d.label;
+        badge.className = 'dice-preview-badge ' + d.cssClass;
+        badge.style.display = 'inline-flex';
+        if (clearBtn) clearBtn.style.display = 'inline-block';
+        if (diceBtn)  diceBtn.classList.add('rolled');
+    } else {
+        badge.style.display = 'none';
+        if (clearBtn) clearBtn.style.display = 'none';
+        if (diceBtn) {
+            diceBtn.classList.remove('rolled');
+            diceBtn.textContent = '🎲 Incluir tirada d20';
+        }
+    }
+}
+
+function _showDiceHint(msg) {
+    var btn = document.getElementById('diceToggleBtn');
+    if (!btn) return;
+    var orig = btn.textContent;
+    btn.textContent = '⚠ ' + msg;
+    btn.classList.add('no-text');
+    setTimeout(function() {
+        btn.textContent = orig;
+        btn.classList.remove('no-text');
+    }, 2000);
+}
+
+// Actualizar el badge EN LA CAJA DE DIÁLOGO al mostrar un mensaje
+function updateDiceBadgeForMessage(msg) {
+    var badge = document.getElementById('vnDiceBadge');
+    if (!badge) return;
+
+    if (msg && msg.diceRoll) {
+        var d = msg.diceRoll;
+        var info = _DICE_INFO[d.type] || _DICE_INFO['success'];
+        badge.textContent = '🎲 ' + d.value + ' — ' + d.label;
+        badge.className = 'vn-dice-badge ' + d.cssClass;
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Obtener y limpiar la tirada pendiente para incluirla en el mensaje
+function consumePendingDiceRoll() {
+    if (!_pendingDiceRoll) return undefined;
+    var roll = {
+        value:   _pendingDiceRoll.value,
+        type:    _pendingDiceRoll.type,
+        label:   _pendingDiceRoll.label,
+        cssClass: _pendingDiceRoll.cssClass,
+        emoji:   _pendingDiceRoll.emoji
+    };
+    clearDiceRoll();
+    return roll;
+}
+
+// Resetear dado al cerrar el panel de respuesta
+function resetDiceOnCloseReply() {
+    clearDiceRoll();
+}
+
+// ============================================
+// MEJORA 5: Indicador cloud — temporal en estado online
+// ============================================
+var _cloudHideTimer = null;
+
+function showCloudIndicatorTemporarily() {
+    var indicator = document.getElementById('cloudSyncIndicator');
+    if (!indicator) return;
+    if (indicator.classList.contains('degraded') || indicator.classList.contains('offline')) return;
+    indicator.classList.add('visible');
+    clearTimeout(_cloudHideTimer);
+    _cloudHideTimer = setTimeout(function() {
+        indicator.classList.remove('visible');
+    }, 3000);
+}
+
+// ============================================
+// INICIALIZACIÓN — parchear funciones globales
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+
+    // Mejora 5: parchar updateCloudSyncIndicator
+    var _origCloud = window.updateCloudSyncIndicator;
+    if (typeof _origCloud === 'function') {
+        window.updateCloudSyncIndicator = function(state, text) {
+            _origCloud.call(this, state, text);
+            if (state === 'online') showCloudIndicatorTemporarily();
+        };
+    }
+    setTimeout(showCloudIndicatorTemporarily, 1500);
+
+    // Mejora 12: parchar showOptions para suspense
+    var _origShowOptions = window.showOptions;
+    if (typeof _origShowOptions === 'function') {
+        window.showOptions = function(options) {
+            _origShowOptions.call(this, options);
+            var container = document.getElementById('vnOptionsContainer');
+            if (container && container.classList.contains('active')) {
+                applySuspenseEffect();
+            }
+        };
+    }
+
+    // Mejora 12: parchar selectOption para quitar suspense
+    var _origSelectOption = window.selectOption;
+    if (typeof _origSelectOption === 'function') {
+        window.selectOption = function(idx) {
+            removeSuspenseEffect();
+            _origSelectOption.call(this, idx);
+        };
+    }
+
+    // Mejora 9: parchar showSection
+    var _origShowSection = window.showSection;
+    if (typeof _origShowSection === 'function') {
+        window.showSection = function(section) {
+            fadeTransition(function() { _origShowSection.call(window, section); });
+        };
+    }
+
+    // Mejora 9: parchar backToMenu
+    var _origBackToMenu = window.backToMenu;
+    if (typeof _origBackToMenu === 'function') {
+        window.backToMenu = function() {
+            fadeTransition(function() { _origBackToMenu.call(window); });
+        };
+    }
+
+    // Mejora 9: parchar backToTopics
+    var _origBackToTopics = window.backToTopics;
+    if (typeof _origBackToTopics === 'function') {
+        window.backToTopics = function() {
+            fadeTransition(function() { _origBackToTopics.call(window); });
+        };
+    }
+
+    // Mejora 9: parchar enterTopic
+    var _origEnterTopic = window.enterTopic;
+    if (typeof _origEnterTopic === 'function') {
+        window.enterTopic = function(id) {
+            fadeTransition(function() { _origEnterTopic.call(window, id); }, 220);
+        };
+    }
+
+    // Mejora 7: habilitar/deshabilitar botón dado según si hay texto
+    var textarea = document.getElementById('vnReplyText');
+    var diceBtn  = document.getElementById('diceToggleBtn');
+    if (textarea && diceBtn) {
+        function syncDiceBtn() {
+            if (textarea.value.trim()) {
+                diceBtn.classList.remove('no-text');
+                diceBtn.removeAttribute('disabled');
+            } else {
+                diceBtn.classList.add('no-text');
+                // No deshabilitar con disabled para que el click muestre el hint
+            }
+        }
+        textarea.addEventListener('input', syncDiceBtn);
+        syncDiceBtn(); // estado inicial
+    }
+
+    // Mejora 7: resetear dado al cerrar panel de respuesta
+    var _origCloseReplyPanel = window.closeReplyPanel;
+    if (typeof _origCloseReplyPanel === 'function') {
+        window.closeReplyPanel = function() {
+            resetDiceOnCloseReply();
+            _origCloseReplyPanel.call(window);
+        };
+    }
+
+    // Mejora 7: inyectar diceRoll en postVNReply y saveEditedMessage
+    var _origPostVNReply = window.postVNReply;
+    if (typeof _origPostVNReply === 'function') {
+        window.postVNReply = function() {
+            // Guardar la tirada pendiente ANTES de que postVNReply limpie el panel
+            window._diceRollForNextMsg = consumePendingDiceRoll();
+            _origPostVNReply.call(window);
+        };
+    }
+
+    // Mejora 7: parchar showCurrentMessage para actualizar el badge del dado
+    var _origShowCurrentMessage = window.showCurrentMessage;
+    if (typeof _origShowCurrentMessage === 'function') {
+        window.showCurrentMessage = function(direction) {
+            _origShowCurrentMessage.call(window, direction);
+            // Actualizar badge tras renderizar el mensaje
+            requestAnimationFrame(function() {
+                var msgs = typeof getTopicMessages === 'function' && currentTopicId
+                    ? getTopicMessages(currentTopicId) : [];
+                var msg = msgs[currentMessageIndex];
+                updateDiceBadgeForMessage(msg);
+            });
+        };
+    }
 });
 
 </script>

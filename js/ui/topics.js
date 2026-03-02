@@ -158,6 +158,123 @@ function renderTopics() {
     if (statMsgs) statMsgs.textContent = msgCount;
 }
 
+function generateTopicId() {
+    if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+        return globalThis.crypto.randomUUID();
+    }
+    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
+function normalizeRoomId(value) {
+    const raw = String(value || '').trim();
+    if (!raw || raw.length > 128) return '';
+    return /^[A-Za-z0-9_-]+$/.test(raw) ? raw : '';
+}
+
+function getRoomIdFromQuery() {
+    try {
+        const room = new URLSearchParams(window.location.search).get('room');
+        return normalizeRoomId(room);
+    } catch {
+        return '';
+    }
+}
+
+function ensureTopicByRoomId(roomId) {
+    const normalizedRoomId = normalizeRoomId(roomId);
+    if (!normalizedRoomId) return null;
+
+    let topic = appData.topics.find(t => String(t.id) === normalizedRoomId);
+    if (topic) return topic;
+
+    topic = {
+        id: normalizedRoomId,
+        title: `Sala ${normalizedRoomId.slice(0, 8)}`,
+        background: DEFAULT_TOPIC_BACKGROUND,
+        mode: 'roleplay',
+        roleCharacterId: null,
+        createdBy: userNames[currentUserIndex] || 'Jugador',
+        createdByIndex: currentUserIndex,
+        date: new Date().toLocaleDateString()
+    };
+
+    appData.topics.push(topic);
+    appData.messages[normalizedRoomId] = Array.isArray(appData.messages[normalizedRoomId])
+        ? appData.messages[normalizedRoomId]
+        : [];
+
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    renderTopics();
+    return topic;
+}
+
+function copyCurrentRoomCode() {
+    if (!currentTopicId) return;
+    const roomCode = String(currentTopicId);
+
+    const onSuccess = () => showAutosave('Código de sala copiado', 'saved');
+    const onFailure = () => showAutosave('No se pudo copiar el código', 'error');
+
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        navigator.clipboard.writeText(roomCode).then(onSuccess).catch(onFailure);
+        return;
+    }
+
+    try {
+        const fallback = document.createElement('textarea');
+        fallback.value = roomCode;
+        fallback.setAttribute('readonly', 'readonly');
+        fallback.style.position = 'fixed';
+        fallback.style.opacity = '0';
+        document.body.appendChild(fallback);
+        fallback.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(fallback);
+        if (ok) onSuccess();
+        else onFailure();
+    } catch {
+        onFailure();
+    }
+}
+
+function updateRoomCodeUI(topicId) {
+    const wrap = document.getElementById('roomCodeWrap');
+    const valueEl = document.getElementById('roomCodeValue');
+    if (!wrap || !valueEl) return;
+
+    if (!topicId) {
+        wrap.style.display = 'none';
+        valueEl.textContent = '';
+        return;
+    }
+
+    const topic = appData.topics.find(t => String(t.id) === String(topicId));
+    const isCollaborative = !topic || topic.mode !== 'fanfic';
+    if (!isCollaborative) {
+        wrap.style.display = 'none';
+        valueEl.textContent = '';
+        return;
+    }
+
+    valueEl.textContent = String(topicId);
+    wrap.style.display = 'inline-flex';
+}
+
+async function tryJoinRoomFromUrl() {
+    const roomId = pendingRoomInviteId || getRoomIdFromQuery();
+    if (!roomId) return false;
+
+    pendingRoomInviteId = null;
+    const topic = ensureTopicByRoomId(roomId);
+    if (!topic) return false;
+
+    const topicsSection = document.getElementById('topicsSection');
+    if (topicsSection) topicsSection.classList.add('active');
+    enterTopic(topic.id);
+    return true;
+}
+
 function createTopic() {
     const titleInput = document.getElementById('topicTitleInput');
     const firstMsgInput = document.getElementById('topicFirstMsg');
@@ -170,8 +287,7 @@ function createTopic() {
 
     if(!title || !text) { showAutosave('Completa todos los campos obligatorios', 'error'); return; }
 
-    const now = Date.now();
-    const id = now.toString();
+    const id = generateTopicId();
     appData.topics.push({
         id,
         title,
@@ -185,7 +301,9 @@ function createTopic() {
     });
 
     appData.messages[id] = [{
-        id: (now + 1).toString(),
+        id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(16).slice(2)}`,
         characterId: null,
         charName: 'Narrador',
         charColor: null,

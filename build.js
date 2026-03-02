@@ -25,11 +25,13 @@ const jsOrder = [
   'js/ui/characters.js',
   'js/ui/navigation.js',
   'js/ui/sheets.js',
+  'js/utils/supabaseMessages.js',
   'js/ui/vn.js',
   'js/ui/journal.js',
   'js/ui/topics.js',
   'js/ui/app-ui.js',
-  'js/app.js'
+  'js/app.js',
+  'js/ui/mejoras.js'
 ];
 
 function read(file) {

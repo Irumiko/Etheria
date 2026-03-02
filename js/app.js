@@ -73,6 +73,20 @@ document.addEventListener('DOMContentLoaded', () => {
     setupReplyEmotePopover();
     setupGallerySearchListeners();
 
+
+    pendingRoomInviteId = (typeof getRoomIdFromQuery === 'function') ? getRoomIdFromQuery() : null;
+    if (pendingRoomInviteId) {
+        const defaultProfile = getStoredLastProfileId();
+        selectUser(defaultProfile !== null ? defaultProfile : 0, { autoLoad: true })
+            .then(() => {
+                if (typeof tryJoinRoomFromUrl === 'function') return tryJoinRoomFromUrl();
+                return false;
+            })
+            .catch((err) => {
+                console.warn('No se pudo abrir la sala compartida:', err);
+            });
+    }
+
     window.addEventListener('beforeunload', (e) => {
         if (hasUnsavedChanges) {
             e.preventDefault();

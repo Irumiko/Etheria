@@ -55,6 +55,7 @@ function resetVNTransientState({ clearTopic = false } = {}) {
         if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribe === 'function') {
             SupabaseMessages.unsubscribe();
         }
+        if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
         currentTopicId = null;
         currentMessageIndex = 0;
     }
