@@ -72,81 +72,134 @@ function removeSuspenseEffect() {
 }
 
 // ============================================
-// MEJORA 7: DADO DnD — resultado embebido en el mensaje
+// MEJORA 7: MONEDA (cara/cruz) — resultado embebido en el mensaje
 // ============================================
-var _pendingDiceRoll = null; // null = sin tirada activa; {value, label, cssClass} = tirada pendiente
+var _pendingDiceRoll = null; // null = sin tirada activa; {value, label, cssClass, emoji}
 
 var _DICE_INFO = {
-    critical: { label: '¡CRÍTICO!', cssClass: 'badge-critical', emoji: '⭐' },
-    fumble:   { label: '¡PIFIA!',   cssClass: 'badge-fumble',   emoji: '💀' },
-    success:  { label: 'ÉXITO',     cssClass: 'badge-success',  emoji: '✓'  },
-    fail:     { label: 'FALLO',     cssClass: 'badge-fail',     emoji: '✗'  }
+    success: { value: 'cara',  label: 'ACIERTO', cssClass: 'badge-success', emoji: '🪙' },
+    fail:    { value: 'cruz',  label: 'FALLO',   cssClass: 'badge-fail',    emoji: '🪙' }
 };
 
-function _getDiceResultType(roll) {
-    if (roll === 20) return 'critical';
-    if (roll === 1)  return 'fumble';
-    if (roll % 2 === 0) return 'success';
-    return 'fail';
+var _COIN_ACTION_STAT = { str: 'STR', vit: 'VIT', int: 'INT', agi: 'AGI' };
+
+function _getCoinActionType() {
+    var select = document.getElementById('coinActionType');
+    return select ? String(select.value || 'general').toLowerCase() : 'general';
+}
+
+function _getSelectedCharacterForCoin() {
+    if (!currentTopicId || currentTopicMode !== 'fanfic' || isNarratorMode) return null;
+    if (!selectedCharId) return null;
+    return appData.characters.find(function(c) { return c.id === selectedCharId; }) || null;
+}
+
+function _getRpgTotalStatValue(char, statKey) {
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return null;
+    var profile = ensureCharacterRpgProfile(char);
+    if (!profile || !profile.stats || typeof RPG_BASE_STATS === 'undefined') return null;
+    return (RPG_BASE_STATS[statKey] || 0) + (profile.stats[statKey] || 0);
+}
+
+function _flipCoin() {
+    return Math.random() < 0.5 ? 'success' : 'fail';
+}
+
+function _resolveCoinRollType() {
+    var actionType = _getCoinActionType();
+    var statKey = _COIN_ACTION_STAT[actionType] || null;
+    var char = _getSelectedCharacterForCoin();
+    var statValue = statKey && char ? _getRpgTotalStatValue(char, statKey) : null;
+
+    if (!statKey || statValue === null) {
+        return { type: _flipCoin(), mode: 'standard', actionType: actionType, statKey: statKey, statValue: statValue };
+    }
+
+    var bonus = Math.floor((statValue - 8) / 2);
+    if (bonus >= 2) {
+        var a = _flipCoin(), b = _flipCoin();
+        return { type: (a === 'success' || b === 'success') ? 'success' : 'fail', mode: 'advantage', actionType: actionType, statKey: statKey, statValue: statValue };
+    }
+    if (bonus <= -2) {
+        var c = _flipCoin(), d = _flipCoin();
+        return { type: (c === 'fail' || d === 'fail') ? 'fail' : 'success', mode: 'disadvantage', actionType: actionType, statKey: statKey, statValue: statValue };
+    }
+
+    return { type: _flipCoin(), mode: 'standard', actionType: actionType, statKey: statKey, statValue: statValue };
 }
 
 function toggleDiceMode() {
     var btn = document.getElementById('diceToggleBtn');
     var textarea = document.getElementById('vnReplyText');
 
+    if (typeof getCurrentTopic === 'function') {
+        var topic = getCurrentTopic();
+        if (!topic || topic.mode !== 'fanfic') {
+            _showDiceHint('La moneda solo está disponible en modo RPG');
+            return;
+        }
+    }
+
     // Bloquear si no hay texto escrito
     if (!textarea || !textarea.value.trim()) {
-        _showDiceHint('Escribe tu mensaje antes de tirar el dado');
+        _showDiceHint('Escribe tu mensaje antes de lanzar la moneda');
         return;
     }
 
-    // Si ya hay una tirada pendiente, se quita (toggle off)
+    // Si ya hay tirada pendiente, no permitir repetir hasta el siguiente mensaje.
     if (_pendingDiceRoll) {
-        clearDiceRoll();
+        _showDiceHint('Ya lanzaste la moneda para este mensaje');
         return;
     }
 
-    // Tirar
-    var roll = Math.floor(Math.random() * 20) + 1;
-    var type = _getDiceResultType(roll);
+    var rollMeta = _resolveCoinRollType();
+    var type = rollMeta.type;
     var info = _DICE_INFO[type];
 
-    _pendingDiceRoll = { value: roll, type: type, label: info.label, cssClass: info.cssClass, emoji: info.emoji };
+    _pendingDiceRoll = {
+        value: info.value,
+        type: type,
+        label: info.label,
+        cssClass: info.cssClass,
+        emoji: info.emoji,
+        actionType: rollMeta.actionType,
+        statKey: rollMeta.statKey,
+        statValue: rollMeta.statValue,
+        rollMode: rollMeta.mode
+    };
 
-    // Actualizar preview en el panel
     _updateDicePreview();
 
-    // Sonido
-    if (type === 'critical' && typeof playSoundAffinityUp   === 'function') playSoundAffinityUp();
-    else if (type === 'fumble' && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
-    else if (typeof playSoundClick === 'function') playSoundClick();
+    if (type === 'success' && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
+    else if (typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
 }
 
 function clearDiceRoll() {
-    _pendingDiceRoll = null;
-    _updateDicePreview();
+    // Se mantiene por compatibilidad con llamadas legacy; no permitir limpiar manualmente.
+    return;
 }
 
 function _updateDicePreview() {
     var badge   = document.getElementById('dicePreviewBadge');
-    var clearBtn = document.getElementById('diceClearBtn');
-    var diceBtn  = document.getElementById('diceToggleBtn');
+    var diceBtn = document.getElementById('diceToggleBtn');
 
     if (!badge) return;
 
     if (_pendingDiceRoll) {
         var d = _pendingDiceRoll;
-        badge.textContent = d.emoji + ' ' + d.value + ' — ' + d.label;
+        var modeHint = d.rollMode === 'advantage' ? ' (Ventaja)' : d.rollMode === 'disadvantage' ? ' (Desventaja)' : '';
+        badge.textContent = d.emoji + ' ' + d.value.toUpperCase() + ' — ' + d.label + modeHint;
         badge.className = 'dice-preview-badge ' + d.cssClass;
         badge.style.display = 'inline-flex';
-        if (clearBtn) clearBtn.style.display = 'inline-block';
-        if (diceBtn)  diceBtn.classList.add('rolled');
+        if (diceBtn) {
+            diceBtn.classList.add('rolled');
+            diceBtn.textContent = '🪙 Moneda lanzada';
+        }
     } else {
         badge.style.display = 'none';
-        if (clearBtn) clearBtn.style.display = 'none';
         if (diceBtn) {
             diceBtn.classList.remove('rolled');
-            diceBtn.textContent = '🎲 Incluir tirada d20';
+            diceBtn.textContent = '🪙 Lanzar moneda';
         }
     }
 }
@@ -171,8 +224,10 @@ function updateDiceBadgeForMessage(msg) {
     if (msg && msg.diceRoll) {
         var d = msg.diceRoll;
         var info = _DICE_INFO[d.type] || _DICE_INFO['success'];
-        badge.textContent = '🎲 ' + d.value + ' — ' + d.label;
-        badge.className = 'vn-dice-badge ' + d.cssClass;
+        var coinFace = (d.value || info.value || '').toUpperCase();
+        var modeHint = d.rollMode === 'advantage' ? ' · Ventaja' : d.rollMode === 'disadvantage' ? ' · Desventaja' : '';
+        badge.textContent = '🪙 ' + coinFace + ' — ' + (d.label || info.label) + modeHint;
+        badge.className = 'vn-dice-badge ' + (d.cssClass || info.cssClass);
         badge.style.display = 'inline-flex';
     } else {
         badge.style.display = 'none';
@@ -183,19 +238,24 @@ function updateDiceBadgeForMessage(msg) {
 function consumePendingDiceRoll() {
     if (!_pendingDiceRoll) return undefined;
     var roll = {
-        value:   _pendingDiceRoll.value,
-        type:    _pendingDiceRoll.type,
-        label:   _pendingDiceRoll.label,
+        value: _pendingDiceRoll.value,
+        type: _pendingDiceRoll.type,
+        label: _pendingDiceRoll.label,
         cssClass: _pendingDiceRoll.cssClass,
-        emoji:   _pendingDiceRoll.emoji
+        emoji: _pendingDiceRoll.emoji,
+        actionType: _pendingDiceRoll.actionType,
+        statKey: _pendingDiceRoll.statKey,
+        statValue: _pendingDiceRoll.statValue,
+        rollMode: _pendingDiceRoll.rollMode
     };
-    clearDiceRoll();
+    _pendingDiceRoll = null;
+    _updateDicePreview();
     return roll;
 }
 
-// Resetear dado al cerrar el panel de respuesta
+// Resetear estado visual al cerrar panel (sin limpiar tirada pendiente)
 function resetDiceOnCloseReply() {
-    clearDiceRoll();
+    _updateDicePreview();
 }
 
 // ============================================

@@ -19,6 +19,7 @@ const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
 ];
 
 const preloadedBackgrounds = new Set();
+let pendingSceneChange = null;
 
 function isDefaultTopicBackground(backgroundPath) {
     const normalized = (backgroundPath || "").trim().toLowerCase();
@@ -120,9 +121,13 @@ function enterTopic(id) {
         // Aplicar modo de sprites (fanfic = persistente por defecto)
         if (currentTopicMode === 'fanfic') {
             vnSection.classList.remove('classic-mode');
+            vnSection.classList.remove('mode-classic');
+            vnSection.classList.add('mode-rpg');
         } else {
             // En modo rol, usar modo clásico (sprites desaparecen)
             vnSection.classList.add('classic-mode');
+            vnSection.classList.add('mode-classic');
+            vnSection.classList.remove('mode-rpg');
         }
     }
 
@@ -341,6 +346,26 @@ function showCurrentMessage(direction = 'forward') {
 
     updateAffinityDisplay();
     if (typeof updateFavButton === "function") updateFavButton();
+
+    // Aplicar cambio de escena dinámico si el mensaje lo contiene
+    if (direction === 'forward') {
+        if (msg.sceneChange && msg.sceneChange.background) {
+            const vnSection = document.getElementById('vnSection');
+            applyTopicBackground(vnSection, msg.sceneChange.background);
+            playVnSceneTransition(vnSection);
+        }
+    } else {
+        let lastBackground = null;
+        for (let i = 0; i <= currentMessageIndex; i++) {
+            if (msgs[i] && msgs[i].sceneChange && msgs[i].sceneChange.background) {
+                lastBackground = msgs[i].sceneChange.background;
+            }
+        }
+        if (lastBackground) {
+            const vnSection = document.getElementById('vnSection');
+            applyTopicBackground(vnSection, lastBackground);
+        }
+    }
 
     // Mejora 3: clima solo al avanzar (no al retroceder)
     // Al retroceder, se busca el último clima activo hasta el índice actual
@@ -731,11 +756,23 @@ function saveEditedMessage() {
     const msgIndex = msgs.findIndex(m => m.id === editingMessageId);
     if (msgIndex === -1) return;
 
+    const topic = getCurrentTopic();
+
+    if (isNarratorMode && !canUseNarratorMode(topic)) { showAutosave('Solo quien crea la historia puede usar Narrador en modo RPG', 'error'); return; }
+
     let char = null;
     if(!isNarratorMode) {
         if(!selectedCharId) { showAutosave('Selecciona un personaje', 'error'); return; }
         char = appData.characters.find(c => c.id === selectedCharId);
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
+        if (topic?.mode === 'fanfic' && typeof ensureCharacterRpgProfile === 'function') {
+            const profile = ensureCharacterRpgProfile(char);
+            if (profile.knockedOutTurns > 0) {
+                showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
+                return;
+            }
+        }
+        persistTopicLockedCharacter(topic, selectedCharId);
     }
 
     let options = null;
@@ -991,6 +1028,157 @@ function openHistoryLog() {
 // ============================================
 // RESPUESTAS (Reply Panel)
 // ============================================
+function getCurrentTopic() {
+    return appData.topics.find(t => t.id === currentTopicId);
+}
+
+function canUseNarratorMode(topic) {
+    if (!topic || topic.mode !== 'fanfic') return true;
+    return topic.createdByIndex === currentUserIndex;
+}
+
+function getTopicLockedCharacterId(topic) {
+    if (!topic) return null;
+    const locks = topic.characterLocks || {};
+    const lockByUser = locks[currentUserIndex];
+    if (lockByUser) return lockByUser;
+
+    // Compatibilidad con lock RPG legado
+    const legacyRpgLocks = topic.rpgCharacterLocks || {};
+    if (legacyRpgLocks[currentUserIndex]) return legacyRpgLocks[currentUserIndex];
+
+    // Compatibilidad con lock clásico legado del creador
+    if (topic.mode === 'roleplay' && topic.roleCharacterId && topic.createdByIndex === currentUserIndex) {
+        return topic.roleCharacterId;
+    }
+
+    return null;
+}
+
+function persistTopicLockedCharacter(topic, charId) {
+    if (!topic || !charId) return;
+    topic.characterLocks = topic.characterLocks || {};
+    if (topic.characterLocks[currentUserIndex]) return;
+    topic.characterLocks[currentUserIndex] = charId;
+
+    // Mantener compatibilidad con lector legacy RPG
+    if (topic.mode === 'fanfic') {
+        topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
+        if (!topic.rpgCharacterLocks[currentUserIndex]) {
+            topic.rpgCharacterLocks[currentUserIndex] = charId;
+        }
+    }
+
+    hasUnsavedChanges = true;
+    save({ silent: true });
+}
+
+function getCharacterById(charId) {
+    return appData.characters.find(c => c.id === charId);
+}
+
+function tickRpgKnockoutTurns(excludedCharId) {
+    appData.characters.forEach((ch) => {
+        const profile = typeof ensureCharacterRpgProfile === 'function' ? ensureCharacterRpgProfile(ch) : null;
+        if (!profile || profile.knockedOutTurns <= 0) return;
+        if (excludedCharId && String(ch.id) === String(excludedCharId)) return;
+        profile.knockedOutTurns = Math.max(0, profile.knockedOutTurns - 1);
+    });
+}
+
+function applyRpgNarrativeProgress(charId, diceRoll) {
+    if (!charId || !diceRoll) return;
+    const char = getCharacterById(charId);
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+
+    const profile = ensureCharacterRpgProfile(char);
+
+    if (diceRoll.type === 'fail') {
+        profile.hp = Math.max(0, profile.hp - 1);
+        if (profile.hp === 0) profile.knockedOutTurns = 5;
+    } else if (diceRoll.type === 'success') {
+        profile.exp += 1;
+        if (profile.exp >= 10) {
+            profile.exp = 0;
+            profile.level += 1;
+        }
+    }
+}
+
+function updateSceneChangePreview() {
+    const preview = document.getElementById('sceneChangePreview');
+    if (!preview) return;
+
+    if (!pendingSceneChange) {
+        preview.style.display = 'none';
+        preview.textContent = '';
+        return;
+    }
+
+    preview.style.display = 'inline-flex';
+    preview.textContent = `Próxima escena: ${pendingSceneChange.title}`;
+}
+
+function prepareSceneChange() {
+    const topic = getCurrentTopic();
+    if (!topic) return;
+
+    if (!isNarratorMode) {
+        showAutosave('Activa Modo Narrador para cambiar de escena', 'error');
+        return;
+    }
+
+    if (!canUseNarratorMode(topic)) {
+        showAutosave('Solo quien crea la historia puede narrar en modo RPG', 'error');
+        return;
+    }
+
+    const replyText = document.getElementById('vnReplyText');
+    if (!replyText || !replyText.value.trim()) {
+        showAutosave('Escribe el mensaje narrativo antes de cambiar escena', 'error');
+        return;
+    }
+
+    const titleRaw = window.prompt('Nombre de la nueva escena (ej: Playa al atardecer):', 'Nueva escena');
+    if (titleRaw === null) return;
+    const title = String(titleRaw || '').trim() || 'Nueva escena';
+
+    const backgroundRaw = window.prompt('URL de fondo para la escena (opcional, deja vacío para mantener el actual):', '');
+    if (backgroundRaw === null) return;
+    const background = String(backgroundRaw || '').trim();
+
+    pendingSceneChange = {
+        title,
+        background: background || undefined,
+        at: new Date().toISOString()
+    };
+
+    updateSceneChangePreview();
+    showAutosave(`Escena preparada: ${title}`, 'saved');
+}
+
+function applySceneChangeToTopic(topic, sceneChange) {
+    if (!topic || !sceneChange) return;
+
+    if (sceneChange.background) {
+        topic.background = sceneChange.background;
+    }
+
+    if (topic.mode === 'fanfic') {
+        appData.characters.forEach((char) => {
+            if (typeof ensureCharacterRpgProfile !== 'function') return;
+            const profile = ensureCharacterRpgProfile(char);
+            if (!profile) return;
+            profile.hp = 10;
+            profile.knockedOutTurns = 0;
+        });
+    }
+
+    const vnSection = document.getElementById('vnSection');
+    applyTopicBackground(vnSection, topic.background || DEFAULT_TOPIC_BACKGROUND);
+    playVnSceneTransition(vnSection);
+}
+
 function openReplyPanel() {
     const panel = document.getElementById('vnReplyPanel');
     if (!panel) return;
@@ -1001,6 +1189,9 @@ function openReplyPanel() {
     const submitBtn = document.getElementById('submitReplyBtn');
     const optionsToggleContainer = document.getElementById('optionsToggleContainer');
     const weatherSelectorContainer = document.getElementById('weatherSelectorContainer');
+    const narratorToggle = document.getElementById('narratorToggle');
+    const coinActionTypeWrap = document.getElementById('coinActionTypeWrap');
+    const coinControlsRow = document.getElementById('coinControlsRow');
 
     if (replyPanelTitle) replyPanelTitle.textContent = editingMessageId ? '✏️ Editar Mensaje' : '💬 Responder';
     if (submitBtn) {
@@ -1016,6 +1207,18 @@ function openReplyPanel() {
     // Mostrar selector de clima siempre
     if (weatherSelectorContainer) {
         weatherSelectorContainer.style.display = 'block';
+    }
+
+    const topic = getCurrentTopic();
+    const isRpg = topic?.mode === 'fanfic';
+    if (coinControlsRow) coinControlsRow.style.display = isRpg ? 'flex' : 'none';
+    if (coinActionTypeWrap) coinActionTypeWrap.style.display = isRpg ? 'inline-flex' : 'none';
+    const narratorAllowed = canUseNarratorMode(topic);
+    if (narratorToggle) narratorToggle.style.display = narratorAllowed ? 'flex' : 'none';
+    if (!narratorAllowed) {
+        isNarratorMode = false;
+        const narratorMode = document.getElementById('narratorMode');
+        if (narratorMode) narratorMode.checked = false;
     }
 
     if (!editingMessageId) {
@@ -1038,6 +1241,7 @@ function openReplyPanel() {
     }
 
     updateCharSelector();
+    updateSceneChangePreview();
 
     // Actualizar botones de clima
     document.querySelectorAll('#weatherSelectorContainer .weather-btn').forEach(btn => {
@@ -1059,20 +1263,26 @@ function closeReplyPanel() {
     isNarratorMode = false;
     editingMessageId = null;
     tempBranches = [];
+    pendingSceneChange = null;
+    updateSceneChangePreview();
 
     const narratorMode = document.getElementById('narratorMode');
     const charSelector = document.getElementById('charSelectorContainer');
     const narratorToggle = document.getElementById('narratorToggle');
+    const coinActionTypeWrap = document.getElementById('coinActionTypeWrap');
+    const coinControlsRow = document.getElementById('coinControlsRow');
 
     if (narratorMode) narratorMode.checked = false;
     if (charSelector) charSelector.style.display = 'flex';
     if (narratorToggle) narratorToggle.classList.remove('active');
+    if (coinActionTypeWrap) coinActionTypeWrap.style.display = 'none';
+    if (coinControlsRow) coinControlsRow.style.display = 'none';
 }
 
 function toggleCharGrid() {
     if (isNarratorMode) return;
-    const topic = appData.topics.find(t => t.id === currentTopicId);
-    if (currentTopicMode === 'roleplay' && topic?.roleCharacterId) return;
+    const topic = getCurrentTopic();
+    if (getTopicLockedCharacterId(topic)) return;
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.toggle('active');
 }
@@ -1097,13 +1307,13 @@ function updateCharSelector() {
         selectedCharId = savedCharId || mine[0]?.id;
     }
 
-    const topic = appData.topics.find(t => t.id === currentTopicId);
-    const roleLocked = currentTopicMode === 'roleplay' && topic?.roleCharacterId;
-    if (roleLocked) {
-        const lockedChar = mine.find(c => c.id === topic.roleCharacterId);
-        if (lockedChar) {
-            selectedCharId = lockedChar.id;
-        }
+    const topic = getCurrentTopic();
+    const lockedCharId = getTopicLockedCharacterId(topic);
+    const isCharLocked = !!lockedCharId;
+
+    if (isCharLocked) {
+        const lockedChar = mine.find(c => c.id === lockedCharId);
+        if (lockedChar) selectedCharId = lockedChar.id;
     }
 
     const currentChar = mine.find(c => c.id === selectedCharId) || mine[0];
@@ -1120,10 +1330,12 @@ function updateCharSelector() {
 
     const hintEl = document.querySelector('.char-selected-hint');
     if (hintEl) {
-        hintEl.textContent = roleLocked ? 'Personaje bloqueado para esta historia' : 'Click en el círculo para cambiar';
+        hintEl.textContent = isCharLocked
+            ? 'Personaje bloqueado para esta historia'
+            : 'Click en el círculo para cambiar';
     }
 
-    if (grid && !roleLocked) {
+    if (grid && !isCharLocked) {
         grid.innerHTML = mine.map(c => `
             <div class="char-grid-item ${c.id === selectedCharId ? 'selected' : ''}" onclick="selectCharFromGrid('${c.id}')">
                 ${c.avatar ?
@@ -1139,8 +1351,8 @@ function updateCharSelector() {
 }
 
 function selectCharFromGrid(charId) {
-    const topic = appData.topics.find(t => t.id === currentTopicId);
-    if (currentTopicMode === 'roleplay' && topic?.roleCharacterId) return;
+    const topic = getCurrentTopic();
+    if (getTopicLockedCharacterId(topic)) return;
 
     selectedCharId = charId;
     localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
@@ -1177,6 +1389,9 @@ function toggleOptionsFields() {
 }
 
 function toggleNarratorMode() {
+    const topic = getCurrentTopic();
+    if (!canUseNarratorMode(topic)) return;
+
     const narratorMode = document.getElementById('narratorMode');
     isNarratorMode = narratorMode ? narratorMode.checked : false;
 
@@ -1199,11 +1414,23 @@ function postVNReply() {
     const text = replyText?.value.trim();
     if(!text) { showAutosave('Escribe algo primero', 'error'); return; }
 
+    const topic = getCurrentTopic();
+
+    if (isNarratorMode && !canUseNarratorMode(topic)) { showAutosave('Solo quien crea la historia puede usar Narrador en modo RPG', 'error'); return; }
+
     let char = null;
     if(!isNarratorMode) {
         if(!selectedCharId) { showAutosave('Selecciona un personaje', 'error'); return; }
         char = appData.characters.find(c => c.id === selectedCharId);
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
+        if (topic?.mode === 'fanfic' && typeof ensureCharacterRpgProfile === 'function') {
+            const profile = ensureCharacterRpgProfile(char);
+            if (profile.knockedOutTurns > 0) {
+                showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
+                return;
+            }
+        }
+        persistTopicLockedCharacter(topic, selectedCharId);
     }
 
     let options = null;
@@ -1225,6 +1452,11 @@ function postVNReply() {
     // Recoger tirada de dado si se activó antes de enviar (inyectada por mejoras.js)
     const diceRoll = window._diceRollForNextMsg || undefined;
     window._diceRollForNextMsg = null;
+    const sceneChange = pendingSceneChange || undefined;
+    pendingSceneChange = null;
+    updateSceneChangePreview();
+
+    const finalText = sceneChange ? `🎬 **Escena: ${sceneChange.title}**\n${text}` : text;
 
     const newMsg = {
         id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
@@ -1235,14 +1467,24 @@ function postVNReply() {
         charColor: isNarratorMode ? null : char.color,
         charAvatar: isNarratorMode ? null : char.avatar,
         charSprite: isNarratorMode ? null : char.sprite,
-        text,
+        text: finalText,
         isNarrator: isNarratorMode,
         userIndex: currentUserIndex,
         timestamp: new Date().toISOString(),
         options: options && options.length > 0 ? options : undefined,
         weather: currentWeather !== 'none' ? currentWeather : undefined,
-        diceRoll: diceRoll
+        diceRoll: diceRoll,
+        sceneChange: sceneChange
     };
+
+    if (sceneChange) {
+        applySceneChangeToTopic(topic, sceneChange);
+    }
+
+    if (topic?.mode === 'fanfic') {
+        tickRpgKnockoutTurns(isNarratorMode ? null : selectedCharId);
+        applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, diceRoll);
+    }
 
     topicMessages.push(newMsg);
 

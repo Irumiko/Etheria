@@ -105,7 +105,7 @@ function renderTopics() {
         const last = msgs[msgs.length - 1];
         const lastText = last ? stripHtml(formatText(last.text)).substring(0, 80) : '';
         const isRol    = t.mode !== 'fanfic';
-        const modeLabel = isRol ? 'Rol' : 'Historia';
+        const modeLabel = isRol ? 'Modo clásico' : 'Modo RPG';
         const weatherBadge = t.weather === 'rain'
             ? '<span class="topic-badge weather">🌧 Lluvia</span>'
             : t.weather === 'fog'
