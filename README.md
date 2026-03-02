@@ -20,8 +20,10 @@ etheria/
 │   │   ├── state.js
 │   │   └── storage.js
 │   ├── ui/
-│   │   └── interface.js
-│   ├── features/
+│   │   ├── vn.js
+│   │   ├── topics.js
+│   │   ├── app-ui.js
+│   │   └── mejoras.js
 │   └── app.js
 └── dist/
 ```
@@ -62,13 +64,24 @@ En `index.html` los scripts se cargan en este orden para evitar errores de varia
 
 1. `js/utils/state.js`
 2. `js/utils/storage.js`
-3. `js/ui/interface.js`
-4. `js/app.js`
+3. `js/ui/vn.js`
+4. `js/ui/topics.js`
+5. `js/ui/app-ui.js`
+6. `js/app.js`
 
 ## Nota para mantenimiento
 
 - Si editas estilos, normalmente toca `css/components.css`.
 - Si cambias constantes/estado global, toca `js/utils/state.js`.
 - Si cambias guardado/carga, toca `js/utils/storage.js`.
-- Si cambias menús/UI, toca `js/ui/interface.js`.
+- Si cambias menús/UI, revisa módulos dentro de `js/ui/` (ej: `topics.js`, `vn.js`, `app-ui.js`).
 - Si cambias inicio de app, toca `js/app.js`.
+
+## Requisitos de colaboración con Supabase
+
+Para que las salas colaborativas funcionen de forma segura (sin cambiar el flujo cliente actual), la tabla `messages` en Supabase debe mantener **RLS habilitado** y policies activas para:
+
+- `SELECT` (lectura de mensajes de sala)
+- `INSERT` (envío de mensajes)
+
+> Importante: este repositorio **no** incluye claves privadas ni crea policies automáticamente. La configuración de RLS/policies debe realizarse en el proyecto de Supabase.

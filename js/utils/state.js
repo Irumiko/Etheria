@@ -78,6 +78,7 @@ let touchStartY = 0;
 let gallerySearchDebounceTimer = null;
 let galleryImageObserver = null;
 let historyVirtualState = null;
+let pendingRoomInviteId = null;
 const spritePool = [];
 const STORAGE_KEYS = {
     legacy: 'etheria_data',

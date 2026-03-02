@@ -94,6 +94,7 @@ function enterTopic(id) {
 
     const t = appData.topics.find(topic => topic.id === id);
     if(!t) return;
+    if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(id);
 
     // Establecer modo
     currentTopicMode = t.mode || 'roleplay';
@@ -852,7 +853,9 @@ function selectOption(idx) {
             : appData.characters.find(c => c.id === msg.characterId) || null;
 
         const newMsg = {
-            id: Date.now().toString(),
+            id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(16).slice(2)}`,
             characterId: resultChar ? resultChar.id : null,
             charName:    resultChar ? resultChar.name   : 'Narrador',
             charColor:   resultChar ? resultChar.color  : null,
@@ -1224,7 +1227,9 @@ function postVNReply() {
     window._diceRollForNextMsg = null;
 
     const newMsg = {
-        id: Date.now().toString(),
+        id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
+            ? globalThis.crypto.randomUUID()
+            : `${Date.now()}_${Math.random().toString(16).slice(2)}`,
         characterId: isNarratorMode ? null : selectedCharId,
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
