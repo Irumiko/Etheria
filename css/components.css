@@ -2603,6 +2603,11 @@ body::before {
             border-color: rgba(201, 168, 108, 0.6);
             box-shadow: 0 0 24px rgba(201, 168, 108, 0.25), 0 8px 30px rgba(0,0,0,0.35);
         }
+        .vn-section.mode-rpg #vnInfoPills,
+        .vn-section.mode-rpg #affinityDisplay,
+        .vn-section.mode-rpg #vnInfoAffection {
+            display: none !important;
+        }
 
 
         #roomCodeWrap {
