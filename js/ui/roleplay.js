@@ -227,6 +227,26 @@ function updateAffinityDisplay() {
 
     const msgs = getTopicMessages(currentTopicId);
     const currentMsg = msgs[currentMessageIndex];
+    const currentTopic = appData.topics.find(t => t.id === currentTopicId);
+    const isFanficModeActive = currentTopicMode === 'fanfic';
+
+    function getPersistentRpgCharacter() {
+        if (!isFanficModeActive || !currentTopic) return null;
+
+        const lockMap = currentTopic.characterLocks || currentTopic.rpgCharacterLocks || {};
+        const lockedCharId = lockMap[currentUserIndex];
+        if (lockedCharId) {
+            const lockedChar = appData.characters.find(c => String(c.id) === String(lockedCharId));
+            if (lockedChar) return lockedChar;
+        }
+
+        if (selectedCharId) {
+            const selectedChar = appData.characters.find(c => String(c.id) === String(selectedCharId));
+            if (selectedChar) return selectedChar;
+        }
+
+        return appData.characters.find(c => c.userIndex === currentUserIndex) || null;
+    }
 
     function setAvatar(char) {
         if (!infoAvatar) return;
@@ -267,6 +287,34 @@ function updateAffinityDisplay() {
         if (pillSep2)   pillSep2.textContent   = (char.race && char.gender) ? '·' : '';
     }
 
+    if (isFanficModeActive) {
+        const rpgChar = getPersistentRpgCharacter();
+        affinityDisplay?.classList.add('hidden');
+        if (vnInfoAffection) vnInfoAffection.style.display = 'none';
+
+        if (!rpgChar) {
+            if (infoName) infoName.textContent = 'Sin personaje RPG';
+            if (infoLastname) infoLastname.textContent = '';
+            setAvatar(null);
+            setPills(null);
+            setRpgCard(null, true);
+            updateInfoHoverDetails(null);
+            return;
+        }
+
+        if (infoName) infoName.textContent = rpgChar.name;
+        if (infoLastname && typeof ensureCharacterRpgProfile === 'function') {
+            const profile = ensureCharacterRpgProfile(rpgChar);
+            const title = typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz';
+            infoLastname.textContent = `⚔ Nivel ${profile.level} · ${title}`;
+        }
+        setAvatar(rpgChar);
+        setPills(null);
+        setRpgCard(rpgChar, true);
+        updateInfoHoverDetails(rpgChar);
+        return;
+    }
+
     // Narrador
     if (!currentMsg || currentMsg.isNarrator) {
         affinityDisplay?.classList.add('hidden');
@@ -285,7 +333,7 @@ function updateAffinityDisplay() {
         if (char) {
             if (infoName) infoName.textContent = char.name;
             const isOwnChar = char.userIndex === currentUserIndex;
-            const isFanfic  = currentTopicMode === 'fanfic';
+            const isFanfic  = isFanficModeActive;
             if (infoLastname) {
                 if (isFanfic && typeof ensureCharacterRpgProfile === 'function') {
                     const profile = ensureCharacterRpgProfile(char);
