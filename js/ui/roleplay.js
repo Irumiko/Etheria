@@ -37,7 +37,7 @@ function openRoleCharacterModal(topicId) {
 
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
     if (!mine.length) {
-        showAutosave('Necesitas al menos un personaje para modo rol', 'error');
+        showAutosave('Necesitas al menos un personaje para modo clásico', 'error');
         pendingRoleTopicId = null;
         enterTopic(topicId);
         return;
@@ -222,14 +222,21 @@ function updateAffinityDisplay() {
     if (currentMsg.characterId) {
         const char = appData.characters.find(c => c.id === currentMsg.characterId);
         if (char) {
-            if (infoName)     infoName.textContent     = char.name;
-            if (infoLastname) infoLastname.textContent = char.lastName || '';
+            if (infoName) infoName.textContent = char.name;
+            const isOwnChar = char.userIndex === currentUserIndex;
+            const isFanfic  = currentTopicMode === 'fanfic';
+            if (infoLastname) {
+                if (isFanfic && typeof ensureCharacterRpgProfile === 'function') {
+                    const profile = ensureCharacterRpgProfile(char);
+                    const title = typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz';
+                    infoLastname.textContent = `⚔ Nivel ${profile.level} · ${title}`;
+                } else {
+                    infoLastname.textContent = char.lastName || '';
+                }
+            }
             setAvatar(char);
             setPills(char);
             updateInfoHoverDetails(char);
-
-            const isOwnChar = char.userIndex === currentUserIndex;
-            const isFanfic  = currentTopicMode === 'fanfic';
 
             // Modo historia: sin afinidad de ningún tipo
             if (isFanfic) {

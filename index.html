@@ -552,12 +552,20 @@
 
 
                 <!-- Mejora 7: Dado DnD — resultado embebido en el mensaje -->
-                <div style="display: flex; align-items: center; gap: 0.7rem; margin-top: 0.4rem; flex-wrap: wrap;">
-                    <button class="dice-toggle-btn" id="diceToggleBtn" onclick="toggleDiceMode()" type="button" title="Tira el dado d20. El resultado se publicará junto con tu mensaje.">
-                        🎲 Incluir tirada d20
+                <div id="coinControlsRow" style="display: flex; align-items: center; gap: 0.7rem; margin-top: 0.4rem; flex-wrap: wrap;">
+                    <button class="dice-toggle-btn" id="diceToggleBtn" onclick="toggleDiceMode()" type="button" title="Lanza la moneda. El resultado se publicará junto con tu mensaje.">
+                        🪙 Lanzar moneda
                     </button>
+                    <div id="coinActionTypeWrap" style="display:none;">
+                        <select id="coinActionType" style="padding:0.35rem 0.5rem; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:0.82rem;">
+                            <option value="general">Acción general</option>
+                            <option value="str">Fuerza (STR)</option>
+                            <option value="vit">Resistencia (VIT)</option>
+                            <option value="int">Inteligencia (INT)</option>
+                            <option value="agi">Agilidad (AGI)</option>
+                        </select>
+                    </div>
                     <span id="dicePreviewBadge" class="dice-preview-badge" style="display:none;"></span>
-                    <button id="diceClearBtn" onclick="clearDiceRoll()" type="button" class="dice-clear-btn" style="display:none;" title="Quitar tirada">✕ Quitar</button>
                 </div>
 
                 <div class="vn-reply-textarea-wrap">
@@ -615,6 +623,11 @@
                         <button class="weather-btn" onclick="setWeather('rain')">🌧️ Lluvia</button>
                         <button class="weather-btn" onclick="setWeather('fog')">🌫️ Niebla</button>
                     </div>
+                </div>
+
+                <div style="margin-top:0.85rem; display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                    <button type="button" class="btn-secondary" id="sceneChangeBtn" onclick="prepareSceneChange()" style="padding:0.45rem 0.75rem;">🎬 Nueva escena</button>
+                    <span id="sceneChangePreview" style="display:none; font-size:0.8rem; color:var(--accent-gold);"></span>
                 </div>
             </div>
 
@@ -703,14 +716,14 @@
                 <div class="topic-mode-toggle">
                     <label class="topic-mode-option active">
                         <input type="radio" name="topicMode" value="roleplay" id="modeRoleplay" checked onchange="updateTopicModeUI()">
-                        <span>🎭 Modo rol</span>
+                        <span>🎭 Modo clásico</span>
                     </label>
                     <label class="topic-mode-option">
                         <input type="radio" name="topicMode" value="fanfic" id="modeFanfic" onchange="updateTopicModeUI()">
-                        <span>📖 Modo historia</span>
+                        <span>📖 Modo RPG</span>
                     </label>
                 </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.55rem;">El inicio siempre será como <strong>Narrador</strong>. El flujo adicional del modo rol se realiza después de crear la historia.</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.55rem;">El inicio siempre será como <strong>Narrador</strong>. El flujo adicional del modo clásico se realiza después de crear la historia.</div>
             </div>
 
             <!-- Título -->
@@ -739,7 +752,7 @@
     <div id="roleCharacterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('roleCharacterModal')">
         <div class="role-char-modal">
             <h3 style="margin:0; text-align:center; color: var(--accent-gold);">Selecciona tu personaje activo</h3>
-            <div style="text-align:center; color: var(--text-muted); font-size: 0.95rem;">En modo rol solo puedes usar un personaje por historia.</div>
+            <div style="text-align:center; color: var(--text-muted); font-size: 0.95rem;">En modo clásico solo puedes usar un personaje por historia.</div>
             <div id="roleCharacterGrid" class="role-char-grid"></div>
             <button class="btn-secondary" onclick="closeModal('roleCharacterModal')">Cancelar</button>
         </div>
@@ -896,7 +909,13 @@
             <div class="sheet-body">
                 <div class="sheet-content">
                     <div id="tab-profile" class="tab-panel active">
-                        <div class="profile-grid" id="profileGrid"></div>
+                        <div class="sheet-profile-tools">
+                            <button type="button" id="sheetRpgToggleBtn" class="sheet-rpg-toggle-btn" onclick="toggleSheetRpgPanel()">⚔ Mostrar bloque RPG</button>
+                        </div>
+                        <div class="sheet-profile-layout" id="sheetProfileLayout">
+                            <div class="profile-grid" id="profileGrid"></div>
+                            <aside id="sheetRpgPanel" class="sheet-rpg-panel" aria-hidden="true"></aside>
+                        </div>
                     </div>
                     <div id="tab-personality" class="tab-panel">
                         <div class="profile-text" id="profilePersonality">Sin datos de personalidad.</div>

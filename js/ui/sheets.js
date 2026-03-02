@@ -1,6 +1,48 @@
 // Fichas de personaje (vista detallada).
 // FICHA DE PERSONAJE
 // ============================================
+const RPG_BASE_STATS = Object.freeze({ STR: 5, VIT: 5, INT: 5, AGI: 5 });
+const RPG_POINTS_POOL = 14;
+const RPG_HP_MAX = 10;
+const RPG_EXP_PER_LEVEL = 10;
+
+function getRpgTitleByLevel(level) {
+    if (level >= 7) return 'Maestro';
+    if (level >= 4) return 'Adepto';
+    return 'Aprendiz';
+}
+
+function ensureCharacterRpgProfile(char) {
+    if (!char) return null;
+    const existingStats = char.rpgProfile?.stats || {};
+    const profile = {
+        stats: {
+            STR: Math.max(0, Number(existingStats.STR) || 0),
+            VIT: Math.max(0, Number(existingStats.VIT) || 0),
+            INT: Math.max(0, Number(existingStats.INT) || 0),
+            AGI: Math.max(0, Number(existingStats.AGI) || 0)
+        },
+        hp: Math.max(0, Math.min(RPG_HP_MAX, Number(char.rpgProfile?.hp) || RPG_HP_MAX)),
+        exp: Math.max(0, Math.min(RPG_EXP_PER_LEVEL - 1, Number(char.rpgProfile?.exp) || 0)),
+        level: Math.max(1, Number(char.rpgProfile?.level) || 1),
+        knockedOutTurns: Math.max(0, Number(char.rpgProfile?.knockedOutTurns) || 0)
+    };
+
+    const spent = profile.stats.STR + profile.stats.VIT + profile.stats.INT + profile.stats.AGI;
+    if (spent > RPG_POINTS_POOL) {
+        const overflow = spent - RPG_POINTS_POOL;
+        profile.stats.AGI = Math.max(0, profile.stats.AGI - overflow);
+    }
+
+    char.rpgProfile = profile;
+    return profile;
+}
+
+function getRpgSpentPoints(profile) {
+    if (!profile || !profile.stats) return 0;
+    return ['STR', 'VIT', 'INT', 'AGI'].reduce((sum, key) => sum + (Number(profile.stats[key]) || 0), 0);
+}
+
 function openSheet(id) {
     currentSheetCharId = id;
     const c = appData.characters.find(ch => ch.id === id);
@@ -44,6 +86,9 @@ function openSheet(id) {
         `;
     }
 
+    renderSheetRpgPanel(c);
+    setSheetRpgPanelOpen(false);
+
     const profilePersonality = document.getElementById('profilePersonality');
     const profileHistory = document.getElementById('profileHistory');
 
@@ -63,6 +108,114 @@ function openSheet(id) {
     if (tabProfile) tabProfile.classList.add('active');
 
     openModal('sheetModal');
+}
+
+function getRpgSheetData(c) {
+    const profile = ensureCharacterRpgProfile(c);
+    const spent = getRpgSpentPoints(profile);
+    const freePoints = Math.max(0, RPG_POINTS_POOL - spent);
+    const totalStats = {
+        STR: RPG_BASE_STATS.STR + profile.stats.STR,
+        VIT: RPG_BASE_STATS.VIT + profile.stats.VIT,
+        INT: RPG_BASE_STATS.INT + profile.stats.INT,
+        AGI: RPG_BASE_STATS.AGI + profile.stats.AGI
+    };
+    return {
+        profile,
+        freePoints,
+        totalStats,
+        title: getRpgTitleByLevel(profile.level)
+    };
+}
+
+function renderSheetRpgPanel(c) {
+    const panel = document.getElementById('sheetRpgPanel');
+    if (!panel) return;
+
+    const data = getRpgSheetData(c);
+    const canEdit = c.userIndex === currentUserIndex;
+
+    panel.innerHTML = `
+        <div class="sheet-rpg-head">
+            <span>⚔ Ficha RPG</span>
+            <span class="sheet-rpg-class">${escapeHtml(data.title)}</span>
+        </div>
+        <div class="sheet-rpg-level">⚔ Nivel ${data.profile.level}</div>
+        <div class="sheet-rpg-bars">
+            <div class="sheet-rpg-bar-row">
+                <span class="sheet-rpg-bar-label">HP</span>
+                <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill hp" style="width:${(data.profile.hp / RPG_HP_MAX) * 100}%;"></div></div>
+                <span class="sheet-rpg-bar-text">${data.profile.hp}/${RPG_HP_MAX}</span>
+            </div>
+            <div class="sheet-rpg-bar-row">
+                <span class="sheet-rpg-bar-label">EXP</span>
+                <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill exp" style="width:${(data.profile.exp / RPG_EXP_PER_LEVEL) * 100}%;"></div></div>
+                <span class="sheet-rpg-bar-text">${data.profile.exp}/${RPG_EXP_PER_LEVEL}</span>
+            </div>
+        </div>
+        <div class="sheet-rpg-attr">
+            ${[
+                ['STR', 'Fuerza (impacto físico)'],
+                ['VIT', 'Vida y resistencia (aguante)'],
+                ['INT', 'Inteligencia (impacto mágico)'],
+                ['AGI', 'Velocidad / reacción']
+            ].map(([key, desc]) => `
+                <div class="sheet-rpg-attr-item">
+                    <div class="sheet-rpg-attr-top">
+                        <div class="sheet-rpg-attr-label">${key}</div>
+                        <div class="sheet-rpg-attr-controls ${canEdit ? '' : 'readonly'}">
+                            <button type="button" onclick="adjustSheetRpgStat('${c.id}','${key}', -1)" ${canEdit ? '' : 'disabled'}>−</button>
+                            <span>${data.totalStats[key]}</span>
+                            <button type="button" onclick="adjustSheetRpgStat('${c.id}','${key}', 1)" ${canEdit ? '' : 'disabled'}>+</button>
+                        </div>
+                    </div>
+                    <div class="sheet-rpg-attr-desc">${desc}</div>
+                </div>
+            `).join('')}
+        </div>
+        <div class="sheet-rpg-points">Puntos por repartir: <strong>${data.freePoints}</strong> / ${RPG_POINTS_POOL}</div>
+        <div class="sheet-rpg-note">Progreso simbólico: no altera moneda ni probabilidades. En modo clásico no se muestra bajo el nombre durante escena.</div>
+    `;
+}
+
+function adjustSheetRpgStat(charId, statKey, delta) {
+    const char = appData.characters.find(ch => String(ch.id) === String(charId));
+    if (!char || char.userIndex !== currentUserIndex) return;
+
+    const profile = ensureCharacterRpgProfile(char);
+    if (!profile.stats[statKey] && profile.stats[statKey] !== 0) return;
+
+    const spent = getRpgSpentPoints(profile);
+    if (delta > 0 && spent >= RPG_POINTS_POOL) {
+        showAutosave('No te quedan puntos para repartir', 'error');
+        return;
+    }
+    if (delta < 0 && profile.stats[statKey] <= 0) return;
+
+    profile.stats[statKey] += delta;
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    renderSheetRpgPanel(char);
+    if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+}
+
+function setSheetRpgPanelOpen(isOpen) {
+    const layout = document.getElementById('sheetProfileLayout');
+    const panel = document.getElementById('sheetRpgPanel');
+    const btn = document.getElementById('sheetRpgToggleBtn');
+    if (!layout || !panel || !btn) return;
+
+    layout.classList.toggle('rpg-open', !!isOpen);
+    panel.classList.toggle('active', !!isOpen);
+    panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    btn.classList.toggle('active', !!isOpen);
+    btn.textContent = isOpen ? '⚔ Ocultar bloque RPG' : '⚔ Mostrar bloque RPG';
+}
+
+function toggleSheetRpgPanel() {
+    const layout = document.getElementById('sheetProfileLayout');
+    if (!layout) return;
+    setSheetRpgPanelOpen(!layout.classList.contains('rpg-open'));
 }
 
 function getAlignmentColor(code) {
@@ -120,6 +273,10 @@ function saveCharacter() {
         history: document.getElementById('charHistory')?.value.trim() || '',
         notes: document.getElementById('charNotes')?.value.trim() || ''
     };
+
+    const prevChar = appData.characters.find(c => c.id === id);
+    if (prevChar?.rpgProfile) charObj.rpgProfile = prevChar.rpgProfile;
+
 
     const idx = appData.characters.findIndex(c => c.id === id);
     if(idx > -1) appData.characters[idx] = charObj;
