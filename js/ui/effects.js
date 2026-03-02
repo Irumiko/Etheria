@@ -222,7 +222,6 @@ function showEmoteOnAvatar(emoteType) {
     emote.style.left = '-10px';
     emote.style.fontSize = '2rem';
 
-    avatarBox.style.position = 'relative';
     avatarBox.appendChild(emote);
 
     // Auto-remover después de 3 segundos

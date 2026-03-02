@@ -392,7 +392,7 @@
 
                 <div id="vnInfoRpg" class="vn-info-rpg hidden">
                     <span id="vnInfoRpgSummary" class="vn-info-rpg-summary">HP 0/10 · EXP 0/10</span>
-                    <button type="button" class="vn-info-rpg-sheet-btn" onclick="openCurrentVnCharacterSheet()" title="Abrir stats RPG">⚔️</button>
+                    <button type="button" class="vn-info-rpg-sheet-btn" onclick="openCurrentVnCharacterSheet()" title="Abrir stats RPG">⚔️ Stats</button>
                 </div>
             </div>
         </div>
@@ -918,8 +918,6 @@
                         <div class="sheet-profile-layout" id="sheetProfileLayout">
                             <div class="profile-grid" id="profileGrid"></div>
                         </div>
-                        <button type="button" id="sheetRpgToggleBtn" class="sheet-rpg-fab" onclick="toggleSheetRpgPanel()">⚔️ Stats</button>
-                        <aside id="sheetRpgPanel" class="sheet-rpg-panel" aria-hidden="true"></aside>
                     </div>
                     <div id="tab-personality" class="tab-panel">
                         <div class="profile-text" id="profilePersonality">Sin datos de personalidad.</div>
@@ -933,6 +931,16 @@
                 <button onclick="closeModal('sheetModal')" class="btn-secondary">Cerrar</button>
                 <button id="sheetEditBtn" onclick="editFromSheet()" class="btn-primary" style="display: none;">✏️ Editar</button>
             </div>
+        </div>
+    </div>
+
+    <div id="rpgStatsModal" class="modal-overlay" onclick="if(event.target === this) closeModal('rpgStatsModal')">
+        <div class="rpg-stats-modal">
+            <div class="rpg-stats-header">
+                <div id="rpgStatsTitle" class="rpg-stats-title">⚔️ Nivel 1</div>
+                <button type="button" class="btn-secondary" onclick="closeModal('rpgStatsModal')">Cerrar</button>
+            </div>
+            <div id="rpgStatsBody" class="rpg-stats-body"></div>
         </div>
     </div>
 

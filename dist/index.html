@@ -1134,6 +1134,89 @@ body::before {
             text-transform: uppercase;
         }
 
+
+        .rpg-stats-modal {
+            background: rgba(16, 11, 8, 0.97);
+            border: 2px solid rgba(201, 168, 108, 0.45);
+            border-radius: 18px;
+            width: min(420px, 92vw);
+            box-shadow: 0 30px 70px rgba(0,0,0,0.56);
+            padding: 1rem;
+        }
+        .rpg-stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.95rem;
+        }
+        .rpg-stats-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.25rem;
+            color: var(--accent-gold);
+            font-weight: 700;
+        }
+        .rpg-stats-body {
+            display: grid;
+            gap: 0.7rem;
+        }
+        .rpg-stats-progress-row {
+            display: grid;
+            grid-template-columns: 34px 1fr auto;
+            align-items: center;
+            gap: 0.55rem;
+        }
+        .rpg-stats-progress-label {
+            color: var(--accent-gold);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+        .rpg-stats-progress-value {
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            min-width: 44px;
+            text-align: right;
+        }
+        .rpg-stats-grid {
+            margin-top: 0.2rem;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.6rem;
+        }
+        .rpg-stats-card {
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 0.55rem;
+            background: rgba(255,255,255,0.02);
+            text-align: center;
+        }
+        .rpg-stats-card-key {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+        .rpg-stats-card-value {
+            margin-top: 0.2rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .rpg-stats-card-desc {
+            margin-top: 0.22rem;
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+        }
+        .rpg-stats-points {
+            margin-top: 0.4rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .rpg-stats-note {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            line-height: 1.4;
+        }
+
         /* Avatar */
         .user-avatar {
             display: flex !important;
@@ -3242,11 +3325,11 @@ body::before {
             background: rgba(201, 168, 108, 0.1);
             color: var(--accent-gold);
             border-radius: 8px;
-            width: 26px;
-            height: 22px;
-            font-size: 0.78rem;
+            padding: 0.22rem 0.48rem;
+            font-size: 0.72rem;
             cursor: pointer;
             flex-shrink: 0;
+            white-space: nowrap;
         }
 
         /* Avatar */
@@ -3606,6 +3689,20 @@ body::before {
             object-position: top center;
             transform-origin: center bottom;
             /* Desvanecido en los pies para integrarse con el fondo */
+            mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+        }
+
+        .vn-sprite.no-sprite {
+            width: min(34vw, 360px);
+            min-width: 220px;
+        }
+        .vn-sprite-hitbox {
+            width: 100%;
+            height: 95%;
+            border-radius: 18px 18px 10px 10px;
+            border: 1px dashed rgba(201, 168, 108, 0.22);
+            background: linear-gradient(to bottom, rgba(201, 168, 108, 0.06), rgba(201, 168, 108, 0.01));
             mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
             -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
         }
@@ -5807,7 +5904,7 @@ body::before {
 
                 <div id="vnInfoRpg" class="vn-info-rpg hidden">
                     <span id="vnInfoRpgSummary" class="vn-info-rpg-summary">HP 0/10 · EXP 0/10</span>
-                    <button type="button" class="vn-info-rpg-sheet-btn" onclick="openCurrentVnCharacterSheet()" title="Abrir stats RPG">⚔️</button>
+                    <button type="button" class="vn-info-rpg-sheet-btn" onclick="openCurrentVnCharacterSheet()" title="Abrir stats RPG">⚔️ Stats</button>
                 </div>
             </div>
         </div>
@@ -6333,8 +6430,6 @@ body::before {
                         <div class="sheet-profile-layout" id="sheetProfileLayout">
                             <div class="profile-grid" id="profileGrid"></div>
                         </div>
-                        <button type="button" id="sheetRpgToggleBtn" class="sheet-rpg-fab" onclick="toggleSheetRpgPanel()">⚔️ Stats</button>
-                        <aside id="sheetRpgPanel" class="sheet-rpg-panel" aria-hidden="true"></aside>
                     </div>
                     <div id="tab-personality" class="tab-panel">
                         <div class="profile-text" id="profilePersonality">Sin datos de personalidad.</div>
@@ -6348,6 +6443,16 @@ body::before {
                 <button onclick="closeModal('sheetModal')" class="btn-secondary">Cerrar</button>
                 <button id="sheetEditBtn" onclick="editFromSheet()" class="btn-primary" style="display: none;">✏️ Editar</button>
             </div>
+        </div>
+    </div>
+
+    <div id="rpgStatsModal" class="modal-overlay" onclick="if(event.target === this) closeModal('rpgStatsModal')">
+        <div class="rpg-stats-modal">
+            <div class="rpg-stats-header">
+                <div id="rpgStatsTitle" class="rpg-stats-title">⚔️ Nivel 1</div>
+                <button type="button" class="btn-secondary" onclick="closeModal('rpgStatsModal')">Cerrar</button>
+            </div>
+            <div id="rpgStatsBody" class="rpg-stats-body"></div>
         </div>
     </div>
 
@@ -7765,7 +7870,6 @@ function showEmoteOnAvatar(emoteType) {
     emote.style.left = '-10px';
     emote.style.fontSize = '2rem';
 
-    avatarBox.style.position = 'relative';
     avatarBox.appendChild(emote);
 
     // Auto-remover después de 3 segundos
@@ -8329,11 +8433,8 @@ function openCurrentVnCharacterSheet() {
     const panel = document.getElementById('vnInfoRpg');
     if (!panel) return;
     const charId = panel.dataset.charId;
-    if (!charId || typeof openSheet !== 'function') return;
-    openSheet(charId);
-    if (typeof setSheetRpgPanelOpen === 'function') {
-        setSheetRpgPanelOpen(true);
-    }
+    if (!charId || typeof openRpgStatsModal !== 'function') return;
+    openRpgStatsModal(charId);
 }
 
 </script>
@@ -9278,9 +9379,6 @@ function openSheet(id) {
         `;
     }
 
-    renderSheetRpgPanel(c);
-    setSheetRpgPanelOpen(false);
-
     const profilePersonality = document.getElementById('profilePersonality');
     const profileHistory = document.getElementById('profileHistory');
 
@@ -9320,92 +9418,51 @@ function getRpgSheetData(c) {
     };
 }
 
-function renderSheetRpgPanel(c) {
-    const panel = document.getElementById('sheetRpgPanel');
-    if (!panel) return;
+function renderRpgStatsModal(c) {
+    const titleEl = document.getElementById('rpgStatsTitle');
+    const bodyEl = document.getElementById('rpgStatsBody');
+    if (!titleEl || !bodyEl) return;
 
     const data = getRpgSheetData(c);
-    const canEdit = c.userIndex === currentUserIndex;
+    const hpWidth = (data.profile.hp / RPG_HP_MAX) * 100;
+    const expWidth = (data.profile.exp / RPG_EXP_PER_LEVEL) * 100;
 
-    panel.innerHTML = `
-        <div class="sheet-rpg-head">
-            <span>⚔ Ficha RPG</span>
-            <span class="sheet-rpg-class">${escapeHtml(data.title)}</span>
+    titleEl.textContent = `⚔️ Nivel ${data.profile.level}`;
+    bodyEl.innerHTML = `
+        <div class="rpg-stats-progress-row">
+            <span class="rpg-stats-progress-label">HP</span>
+            <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill hp" style="width:${hpWidth}%;"></div></div>
+            <span class="rpg-stats-progress-value">${data.profile.hp}/${RPG_HP_MAX}</span>
         </div>
-        <div class="sheet-rpg-level">⚔ Nivel ${data.profile.level}</div>
-        <div class="sheet-rpg-bars">
-            <div class="sheet-rpg-bar-row">
-                <span class="sheet-rpg-bar-label">HP</span>
-                <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill hp" style="width:${(data.profile.hp / RPG_HP_MAX) * 100}%;"></div></div>
-                <span class="sheet-rpg-bar-text">${data.profile.hp}/${RPG_HP_MAX}</span>
-            </div>
-            <div class="sheet-rpg-bar-row">
-                <span class="sheet-rpg-bar-label">EXP</span>
-                <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill exp" style="width:${(data.profile.exp / RPG_EXP_PER_LEVEL) * 100}%;"></div></div>
-                <span class="sheet-rpg-bar-text">${data.profile.exp}/${RPG_EXP_PER_LEVEL}</span>
-            </div>
+        <div class="rpg-stats-progress-row">
+            <span class="rpg-stats-progress-label">EXP</span>
+            <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill exp" style="width:${expWidth}%;"></div></div>
+            <span class="rpg-stats-progress-value">${data.profile.exp}/${RPG_EXP_PER_LEVEL}</span>
         </div>
-        <div class="sheet-rpg-attr">
+        <div class="rpg-stats-grid">
             ${[
-                ['STR', 'Fuerza (impacto físico)'],
-                ['VIT', 'Vida y resistencia (aguante)'],
-                ['INT', 'Inteligencia (impacto mágico)'],
-                ['AGI', 'Velocidad / reacción']
+                ['STR', 'Fuerza'],
+                ['VIT', 'Vida'],
+                ['INT', 'Intel'],
+                ['AGI', 'Veloc']
             ].map(([key, desc]) => `
-                <div class="sheet-rpg-attr-item">
-                    <div class="sheet-rpg-attr-top">
-                        <div class="sheet-rpg-attr-label">${key}</div>
-                        <div class="sheet-rpg-attr-controls ${canEdit ? '' : 'readonly'}">
-                            <button type="button" onclick="adjustSheetRpgStat('${c.id}','${key}', -1)" ${canEdit ? '' : 'disabled'}>−</button>
-                            <span>${data.totalStats[key]}</span>
-                            <button type="button" onclick="adjustSheetRpgStat('${c.id}','${key}', 1)" ${canEdit ? '' : 'disabled'}>+</button>
-                        </div>
-                    </div>
-                    <div class="sheet-rpg-attr-desc">${desc}</div>
+                <div class="rpg-stats-card">
+                    <div class="rpg-stats-card-key">${key}</div>
+                    <div class="rpg-stats-card-value">${data.totalStats[key]}</div>
+                    <div class="rpg-stats-card-desc">${desc}</div>
                 </div>
             `).join('')}
         </div>
-        <div class="sheet-rpg-points">Puntos por repartir: <strong>${data.freePoints}</strong> / ${RPG_POINTS_POOL}</div>
-        <div class="sheet-rpg-note">Progreso simbólico: no altera moneda ni probabilidades. En modo clásico no se muestra bajo el nombre durante escena.</div>
+        <div class="rpg-stats-points">Puntos: ${data.freePoints} / ${RPG_POINTS_POOL}</div>
+        <div class="rpg-stats-note">Progreso RPG activo solo en modo RPG.</div>
     `;
 }
 
-function adjustSheetRpgStat(charId, statKey, delta) {
+function openRpgStatsModal(charId) {
     const char = appData.characters.find(ch => String(ch.id) === String(charId));
-    if (!char || char.userIndex !== currentUserIndex) return;
-
-    const profile = ensureCharacterRpgProfile(char);
-    if (!profile.stats[statKey] && profile.stats[statKey] !== 0) return;
-
-    const spent = getRpgSpentPoints(profile);
-    if (delta > 0 && spent >= RPG_POINTS_POOL) {
-        showAutosave('No te quedan puntos para repartir', 'error');
-        return;
-    }
-    if (delta < 0 && profile.stats[statKey] <= 0) return;
-
-    profile.stats[statKey] += delta;
-    hasUnsavedChanges = true;
-    save({ silent: true });
-    renderSheetRpgPanel(char);
-    if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
-}
-
-function setSheetRpgPanelOpen(isOpen) {
-    const panel = document.getElementById('sheetRpgPanel');
-    const btn = document.getElementById('sheetRpgToggleBtn');
-    if (!panel || !btn) return;
-
-    panel.classList.toggle('active', !!isOpen);
-    panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-    btn.classList.toggle('active', !!isOpen);
-    btn.textContent = isOpen ? '✕ Cerrar stats' : '⚔️ Stats';
-}
-
-function toggleSheetRpgPanel() {
-    const panel = document.getElementById('sheetRpgPanel');
-    if (!panel) return;
-    setSheetRpgPanelOpen(!panel.classList.contains('active'));
+    if (!char) return;
+    renderRpgStatsModal(char);
+    openModal('rpgStatsModal');
 }
 
 function getAlignmentColor(code) {
@@ -9498,7 +9555,6 @@ function editFromSheet() {
     closeModal('sheetModal');
     openCharacterEditor(currentSheetCharId);
 }
-
 
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -10088,10 +10144,6 @@ function showCurrentMessage(direction = 'forward') {
 
     if (avatarBox) avatarBox.classList.toggle('is-speaking', !(msg.isNarrator || !msg.characterId));
 
-    // Mostrar emote en avatar si no hay sprite
-    if (activeEmote && !msg.charSprite) {
-        showEmoteOnAvatar(activeEmote);
-    }
 
     const hasOpt = msg.options && msg.options.length > 0 && msg.selectedOptionIndex === undefined;
     const optionsIndicator = document.getElementById('messageHasOptions');
@@ -10188,13 +10240,14 @@ function recycleActiveSprites(container) {
     Array.from(container.children).forEach((child) => {
         child.className = 'vn-sprite';
         child.removeAttribute('data-char-id');
+        child.classList.remove('no-sprite');
         const img = child.querySelector('img');
         if (img) {
             img.removeAttribute('src');
             img.removeAttribute('alt');
             img.onerror = null;
         }
-        child.querySelectorAll('.manga-emote').forEach((el) => el.remove());
+        child.querySelectorAll('.vn-sprite-hitbox, .manga-emote').forEach((el) => el.remove());
         // Limitar el pool a 20 elementos para evitar memory leak
         if (spritePool.length < 20) spritePool.push(child);
     });
@@ -10216,7 +10269,7 @@ function updateSprites(currentMsg, activeEmote = null) {
 
         for (let i = msgs.length - 1; i >= 0 && seen.size < 5; i--) {
             const m = msgs[i];
-            if (m.characterId && m.charSprite && !seen.has(m.characterId)) {
+            if (m.characterId && !seen.has(m.characterId)) {
                 const charExists = appData.characters.find(c => c.id === m.characterId);
                 if (charExists) {
                     seen.add(m.characterId);
@@ -10234,7 +10287,7 @@ function updateSprites(currentMsg, activeEmote = null) {
         } else if (sliced.length >= 3) {
             charsToShow = [{ ...sliced[0], position: 'left' }, { ...sliced[1], position: 'center' }, { ...sliced[2], position: 'right' }];
         }
-    } else if (currentMsg.characterId && currentMsg.charSprite) {
+    } else if (currentMsg.characterId) {
         const charExists = appData.characters.find(c => c.id === currentMsg.characterId);
         if (charExists) {
             // Crear copia para no mutar el mensaje original con .position
@@ -10252,16 +10305,33 @@ function updateSprites(currentMsg, activeEmote = null) {
         spriteNode.className = `vn-sprite position-${position} ${isCurrent ? 'active' : 'inactive'}`;
         spriteNode.dataset.charId = char.characterId;
 
-        const img = spriteNode.querySelector('img') || document.createElement('img');
-        img.src = escapeHtml(char.charSprite);
-        img.alt = escapeHtml(char.charName);
-        img.onerror = function () {
-            this.style.display = 'none';
-            if (this.parentElement) this.parentElement.style.display = 'none';
-        };
-        img.style.display = 'block';
+        const existingPlaceholder = spriteNode.querySelector('.vn-sprite-hitbox');
+        if (existingPlaceholder) existingPlaceholder.remove();
 
-        if (!spriteNode.contains(img)) spriteNode.appendChild(img);
+        const hasSprite = typeof char.charSprite === 'string' && char.charSprite.trim().length > 0;
+        let img = spriteNode.querySelector('img');
+
+        if (hasSprite) {
+            if (!img) {
+                img = document.createElement('img');
+                spriteNode.appendChild(img);
+            }
+            img.src = escapeHtml(char.charSprite);
+            img.alt = escapeHtml(char.charName || 'Sprite');
+            img.onerror = function () {
+                this.style.display = 'none';
+                if (this.parentElement) this.parentElement.classList.add('no-sprite');
+            };
+            img.style.display = 'block';
+            spriteNode.classList.remove('no-sprite');
+        } else {
+            if (img) img.remove();
+            spriteNode.classList.add('no-sprite');
+            const hitbox = document.createElement('div');
+            hitbox.className = 'vn-sprite-hitbox';
+            hitbox.setAttribute('aria-hidden', 'true');
+            spriteNode.appendChild(hitbox);
+        }
 
         if (isCurrent && activeEmote) {
             const emoteNode = document.createElement('div');
@@ -11151,9 +11221,8 @@ function selectCharFromGrid(charId) {
 function openSelectedCharacterStats() {
     const topic = getCurrentTopic();
     if (topic?.mode !== 'fanfic') return;
-    if (!selectedCharId || typeof openSheet !== 'function') return;
-    openSheet(selectedCharId);
-    if (typeof setSheetRpgPanelOpen === 'function') setSheetRpgPanelOpen(true);
+    if (!selectedCharId || typeof openRpgStatsModal !== 'function') return;
+    openRpgStatsModal(selectedCharId);
 }
 
 function toggleOptionsFields() {

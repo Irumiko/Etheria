@@ -477,9 +477,6 @@ function openCurrentVnCharacterSheet() {
     const panel = document.getElementById('vnInfoRpg');
     if (!panel) return;
     const charId = panel.dataset.charId;
-    if (!charId || typeof openSheet !== 'function') return;
-    openSheet(charId);
-    if (typeof setSheetRpgPanelOpen === 'function') {
-        setSheetRpgPanelOpen(true);
-    }
+    if (!charId || typeof openRpgStatsModal !== 'function') return;
+    openRpgStatsModal(charId);
 }
