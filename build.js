@@ -4,6 +4,7 @@ const path = require('path');
 
 const root = __dirname;
 const distDir = path.join(root, 'dist');
+const indexPath = path.join(root, 'index.html');
 
 const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY || '';
 
@@ -13,47 +14,58 @@ const cssOrder = [
   'css/components.css'
 ];
 
-// Orden de carga: estado global -> persistencia -> modulos UI -> arranque
-const jsOrder = [
-  'js/utils/state.js',
-  'js/utils/storage.js',
-  'js/ui/sounds.js',
-  'js/ui/ui.js',
-  'js/ui/effects.js',
-  'js/ui/utils-ui.js',
-  'js/ui/roleplay.js',
-  'js/ui/characters.js',
-  'js/ui/navigation.js',
-  'js/ui/sheets.js',
-  'js/utils/supabaseMessages.js',
-  'js/ui/vn.js',
-  'js/ui/journal.js',
-  'js/ui/topics.js',
-  'js/ui/app-ui.js',
-  'js/app.js',
-  'js/ui/mejoras.js'
-];
-
 function read(file) {
   return fs.readFileSync(path.join(root, file), 'utf8');
 }
 
-let html = read('index.html');
+function isExternalSrc(src) {
+  return /^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(src) || /^(?:data|blob):/i.test(src);
+}
+
+function normalizeLocalSrc(src) {
+  if (src.startsWith('/')) {
+    return src.slice(1);
+  }
+  return src;
+}
+
+function inlineLocalScripts(html, htmlFilePath) {
+  const htmlDir = path.dirname(htmlFilePath);
+  const scriptSrcRegex = /<script\b([^>]*?)\bsrc=(['"])([^'"]+)\2([^>]*)><\/script>/gi;
+
+  return html.replace(scriptSrcRegex, (fullMatch, preAttrs = '', quote = '"', src = '', postAttrs = '') => {
+    const rawSrc = src.trim();
+
+    if (!rawSrc || isExternalSrc(rawSrc)) {
+      return fullMatch;
+    }
+
+    const localSrc = normalizeLocalSrc(rawSrc);
+    const resolvedPath = path.resolve(htmlDir, localSrc);
+
+    if (!resolvedPath.startsWith(root + path.sep) && resolvedPath !== root) {
+      throw new Error(`Ruta de script fuera del proyecto: ${rawSrc}`);
+    }
+
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`No se encontro el script local referenciado en index.html: ${rawSrc}`);
+    }
+
+    const scriptContent = fs.readFileSync(resolvedPath, 'utf8').replace(/<\/script>/gi, '<\\/script>');
+    const remainingAttrs = `${preAttrs}${postAttrs}`.trim();
+    const attrs = remainingAttrs ? ` ${remainingAttrs}` : '';
+
+    return `<script${attrs}>\n/* ${localSrc} */\n${scriptContent}\n</script>`;
+  });
+}
+
+let html = fs.readFileSync(indexPath, 'utf8');
 
 const bundledCss = cssOrder.map(f => `/* ${f} */\n${read(f)}`).join('\n\n');
-const bundledJs = jsOrder.map(f => `/* ${f} */\n${read(f)}`).join('\n\n');
 
-// Reemplazar CSS
 html = html.replace(/<link rel="stylesheet" href="css\/main\.css">/, `<style>\n${bundledCss}\n</style>`);
+html = inlineLocalScripts(html, indexPath);
 
-// Reemplazar todos los script tags (desde el primero hasta el último app.js)
-// Busca desde state.js hasta el último app.js y lo reemplaza todo por el bundle
-html = html.replace(
-  /<script src="js\/utils\/state\.js"><\/script>[\s\S]*?<script src="js\/app\.js"><\/script>/,
-  `<script>\n${bundledJs}\n</script>`
-);
-
-// Inyectar API key si está disponible
 if (JSONBIN_API_KEY) {
   html = html.replace('</head>', `  <script>window.__ETHERIA_JSONBIN_API_KEY = "${JSONBIN_API_KEY}";</script>\n</head>`);
   console.log('Clave de JSONBin inyectada correctamente.');
