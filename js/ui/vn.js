@@ -88,8 +88,10 @@ function enterTopic(id) {
     }
     resetVNTransientState();
     currentTopicId = id;
+    if (typeof syncVnStore === 'function') syncVnStore({ topicId: currentTopicId });
     getTopicMessages(id);
     currentMessageIndex = 0;
+    if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     pendingContinuation = null;
     editingMessageId = null;
 
@@ -104,6 +106,7 @@ function enterTopic(id) {
         const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
         if (lockedChar) {
             selectedCharId = lockedChar.id;
+            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
         }
     }
 
@@ -111,6 +114,7 @@ function enterTopic(id) {
         const lockedCharId = getTopicLockedCharacterId(t);
         if (lockedCharId) {
             selectedCharId = lockedCharId;
+            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
         } else {
             openRoleCharacterModal(id, { mode: 'fanfic', enterOnSelect: true });
             return;
@@ -191,6 +195,7 @@ async function _sbEnterTopic(topicId) {
 
                 if (currentTopicId === topicId) {
                     currentMessageIndex = localMsgs.length - 1;
+                    if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
                     showCurrentMessage('forward');
                     showSyncToast(newRemote.length + ' mensaje(s) cargado(s) desde la nube', 'OK');
                 }
@@ -523,6 +528,7 @@ function typeWriter(text, element) {
     stopTypewriter();
 
     isTyping = true;
+    if (typeof syncVnStore === 'function') syncVnStore({ isTyping: true });
     element.innerHTML = '';
     const sessionId = typewriterSessionId;
 
@@ -534,6 +540,7 @@ function typeWriter(text, element) {
     if (prefersReducedMotion()) {
         element.innerHTML = text;
         isTyping = false;
+        if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
         if (indicator) indicator.style.opacity = '1';
         return;
     }
@@ -546,6 +553,7 @@ function typeWriter(text, element) {
             if (sessionId !== typewriterSessionId) return;
             element.style.opacity = '1';
             isTyping = false;
+            if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
             if (indicator) indicator.style.opacity = '1';
         }, 100);
         return;
@@ -639,6 +647,7 @@ function handleDialogueClick() {
 
     if (currentMessageIndex < msgs.length - 1) {
         currentMessageIndex++;
+        if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
         if (typeof playSoundClick === 'function') playSoundClick();
         showCurrentMessage('forward');
         const _now1 = Date.now();
@@ -652,12 +661,14 @@ function handleDialogueClick() {
 function previousMessage() {
     if (currentMessageIndex > 0) {
         currentMessageIndex--;
+        if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
         showCurrentMessage('backward');
     }
 }
 
 function firstMessage() {
     currentMessageIndex = 0;
+    if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     showCurrentMessage('backward');
 }
 
@@ -665,6 +676,7 @@ function nextMessage() {
     const msgs = getTopicMessages(currentTopicId);
     if (currentMessageIndex < msgs.length - 1) {
         currentMessageIndex++;
+        if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
         if (typeof playSoundClick === 'function') playSoundClick();
         showCurrentMessage('forward');
         const _now2 = Date.now();
@@ -679,6 +691,7 @@ function lastMessage() {
     const msgs = getTopicMessages(currentTopicId);
     if (msgs.length === 0) return;
     currentMessageIndex = msgs.length - 1;
+    if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     showCurrentMessage('forward');
 }
 
