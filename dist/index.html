@@ -6573,6 +6573,81 @@ const cloudMigrationPendingProfiles = new Set();
 
 </script>
 <script>
+/* js/core/store.js */
+// Store centralizado mínimo para migración incremental sin romper globals.
+(function initEtheriaStore(global) {
+    function createStore(initialState) {
+        let state = { ...initialState };
+        const listeners = new Set();
+
+        return {
+            get: function getState() {
+                return state;
+            },
+            set: function setState(updater) {
+                const prev = state;
+                const patch = (typeof updater === 'function') ? updater(prev) : updater;
+                const next = (patch && typeof patch === 'object') ? { ...prev, ...patch } : prev;
+                if (next === prev) return prev;
+                state = next;
+                listeners.forEach(function notify(listener) {
+                    listener(prev, next);
+                });
+                return next;
+            },
+            subscribe: function subscribe(listener) {
+                listeners.add(listener);
+                return function unsubscribe() {
+                    listeners.delete(listener);
+                };
+            }
+        };
+    }
+
+    const vnStore = createStore({
+        topicId: null,
+        selectedCharId: null,
+        messageIndex: 0,
+        isTyping: false,
+        weather: 'none'
+    });
+
+    function syncVnStore(partial) {
+        return vnStore.set(partial);
+    }
+
+    global.createStore = createStore;
+    global.vnStore = vnStore;
+    global.syncVnStore = syncVnStore;
+})(window);
+
+</script>
+<script>
+/* js/core/events.js */
+// Bus de eventos desacoplado para módulos UI.
+(function initEtheriaEvents(global) {
+    const EVENT_PREFIX = 'etheria:';
+
+    const eventBus = {
+        emit: function emit(type, payload) {
+            document.dispatchEvent(new CustomEvent(EVENT_PREFIX + type, { detail: payload }));
+        },
+        on: function on(type, handler) {
+            const wrapped = function wrapped(e) {
+                handler(e.detail);
+            };
+            document.addEventListener(EVENT_PREFIX + type, wrapped);
+            return function off() {
+                document.removeEventListener(EVENT_PREFIX + type, wrapped);
+            };
+        }
+    };
+
+    global.eventBus = eventBus;
+})(window);
+
+</script>
+<script>
 /* js/utils/storage.js */
 // Utilidades de persistencia y funciones de apoyo del núcleo.
 // ============================================
@@ -7687,6 +7762,8 @@ function createFogEffect() {
 
 function setWeather(weather) {
     currentWeather = weather;
+    if (typeof syncVnStore === 'function') syncVnStore({ weather: currentWeather });
+    if (typeof eventBus !== 'undefined') eventBus.emit('weather:changed', { weather: currentWeather });
 
     // Actualizar botones
     document.querySelectorAll('#weatherSelectorContainer .weather-btn').forEach(btn => {
@@ -8403,11 +8480,20 @@ function modifyAffinity(direction) {
 
     hasUnsavedChanges = true;
     save({ silent: true });
-    updateAffinityDisplay();
 
-    // Sonido sutil según dirección
-    if (direction > 0 && typeof playSoundAffinityUp   === 'function') playSoundAffinityUp();
-    if (direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+    if (typeof eventBus !== 'undefined') {
+        eventBus.emit('affinity:changed', {
+            direction,
+            newValue,
+            topicId: currentTopicId,
+            targetCharId,
+            activeCharId
+        });
+    } else {
+        updateAffinityDisplay();
+        if (direction > 0 && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
+        if (direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+    }
 
     const rankInfo = getAffinityRankInfo(newValue);
 
@@ -8428,6 +8514,14 @@ function modifyAffinity(direction) {
 }
 
 
+
+if (typeof eventBus !== 'undefined') {
+    eventBus.on('affinity:changed', function onAffinityChanged(payload) {
+        updateAffinityDisplay();
+        if (payload && payload.direction > 0 && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
+        if (payload && payload.direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+    });
+}
 
 function openCurrentVnCharacterSheet() {
     const panel = document.getElementById('vnInfoRpg');
@@ -9914,8 +10008,10 @@ function enterTopic(id) {
     }
     resetVNTransientState();
     currentTopicId = id;
+    if (typeof syncVnStore === 'function') syncVnStore({ topicId: currentTopicId });
     getTopicMessages(id);
     currentMessageIndex = 0;
+    if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     pendingContinuation = null;
     editingMessageId = null;
 
@@ -9930,6 +10026,7 @@ function enterTopic(id) {
         const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
         if (lockedChar) {
             selectedCharId = lockedChar.id;
+            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
         }
     }
 
@@ -9937,6 +10034,7 @@ function enterTopic(id) {
         const lockedCharId = getTopicLockedCharacterId(t);
         if (lockedCharId) {
             selectedCharId = lockedCharId;
+            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
         } else {
             openRoleCharacterModal(id, { mode: 'fanfic', enterOnSelect: true });
             return;
@@ -10017,6 +10115,7 @@ async function _sbEnterTopic(topicId) {
 
                 if (currentTopicId === topicId) {
                     currentMessageIndex = localMsgs.length - 1;
+                    if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
                     showCurrentMessage('forward');
                     showSyncToast(newRemote.length + ' mensaje(s) cargado(s) desde la nube', 'OK');
                 }
@@ -10181,22 +10280,22 @@ function showCurrentMessage(direction = 'forward') {
 
     // Aplicar cambio de escena dinámico si el mensaje lo contiene
     if (direction === 'forward') {
-        if (msg.sceneChange && msg.sceneChange.background) {
+        if (msg.sceneChange) {
             const vnSection = document.getElementById('vnSection');
-            applyTopicBackground(vnSection, msg.sceneChange.background);
+            const sceneBackground = resolveTopicBackgroundPath(msg.sceneChange.background || '');
+            applyTopicBackground(vnSection, sceneBackground);
             playVnSceneTransition(vnSection);
         }
     } else {
-        let lastBackground = null;
+        const topic = getCurrentTopic();
+        let lastBackground = resolveTopicBackgroundPath(topic?.background || '');
         for (let i = 0; i <= currentMessageIndex; i++) {
-            if (msgs[i] && msgs[i].sceneChange && msgs[i].sceneChange.background) {
-                lastBackground = msgs[i].sceneChange.background;
+            if (msgs[i] && msgs[i].sceneChange) {
+                lastBackground = resolveTopicBackgroundPath(msgs[i].sceneChange.background || '');
             }
         }
-        if (lastBackground) {
-            const vnSection = document.getElementById('vnSection');
-            applyTopicBackground(vnSection, lastBackground);
-        }
+        const vnSection = document.getElementById('vnSection');
+        applyTopicBackground(vnSection, lastBackground);
     }
 
     // Mejora 3: clima solo al avanzar (no al retroceder)
@@ -10349,6 +10448,7 @@ function typeWriter(text, element) {
     stopTypewriter();
 
     isTyping = true;
+    if (typeof syncVnStore === 'function') syncVnStore({ isTyping: true });
     element.innerHTML = '';
     const sessionId = typewriterSessionId;
 
@@ -10360,6 +10460,7 @@ function typeWriter(text, element) {
     if (prefersReducedMotion()) {
         element.innerHTML = text;
         isTyping = false;
+        if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
         if (indicator) indicator.style.opacity = '1';
         return;
     }
@@ -10372,6 +10473,7 @@ function typeWriter(text, element) {
             if (sessionId !== typewriterSessionId) return;
             element.style.opacity = '1';
             isTyping = false;
+            if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
             if (indicator) indicator.style.opacity = '1';
         }, 100);
         return;
@@ -10465,6 +10567,7 @@ function handleDialogueClick() {
 
     if (currentMessageIndex < msgs.length - 1) {
         currentMessageIndex++;
+        if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
         if (typeof playSoundClick === 'function') playSoundClick();
         showCurrentMessage('forward');
         const _now1 = Date.now();
@@ -10478,12 +10581,14 @@ function handleDialogueClick() {
 function previousMessage() {
     if (currentMessageIndex > 0) {
         currentMessageIndex--;
+        if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
         showCurrentMessage('backward');
     }
 }
 
 function firstMessage() {
     currentMessageIndex = 0;
+    if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     showCurrentMessage('backward');
 }
 
@@ -10491,6 +10596,7 @@ function nextMessage() {
     const msgs = getTopicMessages(currentTopicId);
     if (currentMessageIndex < msgs.length - 1) {
         currentMessageIndex++;
+        if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
         if (typeof playSoundClick === 'function') playSoundClick();
         showCurrentMessage('forward');
         const _now2 = Date.now();
@@ -10505,6 +10611,7 @@ function lastMessage() {
     const msgs = getTopicMessages(currentTopicId);
     if (msgs.length === 0) return;
     currentMessageIndex = msgs.length - 1;
+    if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     showCurrentMessage('forward');
 }
 
@@ -10993,13 +11100,13 @@ function prepareSceneChange() {
     if (titleRaw === null) return;
     const title = String(titleRaw || '').trim() || 'Nueva escena';
 
-    const backgroundRaw = window.prompt('URL de fondo para la escena (opcional, deja vacío para mantener el actual):', '');
+    const backgroundRaw = window.prompt('URL de fondo para la escena (opcional, deja vacío para usar el fondo por defecto):', '');
     if (backgroundRaw === null) return;
-    const background = String(backgroundRaw || '').trim();
+    const background = resolveTopicBackgroundPath(String(backgroundRaw || '').trim());
 
     pendingSceneChange = {
         title,
-        background: background || undefined,
+        background,
         at: new Date().toISOString()
     };
 
@@ -12500,6 +12607,16 @@ function initializeApp() {
 
     const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
     if (savedCharId) selectedCharId = savedCharId;
+
+    if (typeof syncVnStore === 'function') {
+        syncVnStore({
+            topicId: currentTopicId,
+            selectedCharId,
+            messageIndex: currentMessageIndex,
+            isTyping,
+            weather: currentWeather
+        });
+    }
 
     const savedSpeed = localStorage.getItem('etheria_text_speed');
     if (savedSpeed) {

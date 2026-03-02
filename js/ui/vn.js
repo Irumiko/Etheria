@@ -360,22 +360,22 @@ function showCurrentMessage(direction = 'forward') {
 
     // Aplicar cambio de escena dinámico si el mensaje lo contiene
     if (direction === 'forward') {
-        if (msg.sceneChange && msg.sceneChange.background) {
+        if (msg.sceneChange) {
             const vnSection = document.getElementById('vnSection');
-            applyTopicBackground(vnSection, msg.sceneChange.background);
+            const sceneBackground = resolveTopicBackgroundPath(msg.sceneChange.background || '');
+            applyTopicBackground(vnSection, sceneBackground);
             playVnSceneTransition(vnSection);
         }
     } else {
-        let lastBackground = null;
+        const topic = getCurrentTopic();
+        let lastBackground = resolveTopicBackgroundPath(topic?.background || '');
         for (let i = 0; i <= currentMessageIndex; i++) {
-            if (msgs[i] && msgs[i].sceneChange && msgs[i].sceneChange.background) {
-                lastBackground = msgs[i].sceneChange.background;
+            if (msgs[i] && msgs[i].sceneChange) {
+                lastBackground = resolveTopicBackgroundPath(msgs[i].sceneChange.background || '');
             }
         }
-        if (lastBackground) {
-            const vnSection = document.getElementById('vnSection');
-            applyTopicBackground(vnSection, lastBackground);
-        }
+        const vnSection = document.getElementById('vnSection');
+        applyTopicBackground(vnSection, lastBackground);
     }
 
     // Mejora 3: clima solo al avanzar (no al retroceder)
@@ -1180,13 +1180,13 @@ function prepareSceneChange() {
     if (titleRaw === null) return;
     const title = String(titleRaw || '').trim() || 'Nueva escena';
 
-    const backgroundRaw = window.prompt('URL de fondo para la escena (opcional, deja vacío para mantener el actual):', '');
+    const backgroundRaw = window.prompt('URL de fondo para la escena (opcional, deja vacío para usar el fondo por defecto):', '');
     if (backgroundRaw === null) return;
-    const background = String(backgroundRaw || '').trim();
+    const background = resolveTopicBackgroundPath(String(backgroundRaw || '').trim());
 
     pendingSceneChange = {
         title,
-        background: background || undefined,
+        background,
         at: new Date().toISOString()
     };
 
