@@ -5156,6 +5156,21 @@ body::before {
 </head>
 <body>
 
+
+
+    <div id="authScreen" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(9,10,16,.92);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1rem;">
+        <div style="width:min(420px,95vw);background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:1.25rem;display:flex;flex-direction:column;gap:.8rem;">
+            <h2 style="margin:0;font-family:'Cinzel',serif;color:var(--text-primary);">Iniciar sesión</h2>
+            <input id="authEmail" type="email" placeholder="Email" style="width:100%;padding:.75rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
+            <input id="authPassword" type="password" placeholder="Contraseña" style="width:100%;padding:.75rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                <button id="authLoginBtn" type="button" class="btn-primary" style="flex:1;min-width:130px;">Entrar</button>
+                <button id="authRegisterBtn" type="button" class="btn-secondary" style="flex:1;min-width:130px;">Registrarse</button>
+            </div>
+            <p id="authStatus" style="margin:0;min-height:1.2em;color:var(--text-secondary);font-size:.9rem;"></p>
+        </div>
+    </div>
+
     <div id="autosaveIndicator" class="autosave-indicator">
         <span class="autosave-icon">🕯️</span>
         <span class="autosave-text">Guardando...</span>
@@ -8910,6 +8925,43 @@ function editFromSheet() {
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
+/* js/utils/supabaseClient.js */
+// ============================================
+// SUPABASE CLIENT GLOBAL
+// ============================================
+// Cliente único para Auth y operaciones generales.
+// Reutiliza configuración pública para evitar duplicación.
+
+(function (global) {
+    const DEFAULT_SUPABASE_CONFIG = {
+        url: 'https://timtqdrfeuzwwixfnudj.supabase.co',
+        key: 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3'
+    };
+
+    const existingConfig = global.SUPABASE_CONFIG || {};
+    const config = {
+        url: existingConfig.url || DEFAULT_SUPABASE_CONFIG.url,
+        key: existingConfig.key || DEFAULT_SUPABASE_CONFIG.key
+    };
+
+    global.SUPABASE_CONFIG = config;
+
+    try {
+        if (!global.supabase || typeof global.supabase.createClient !== 'function') {
+            console.warn('[Supabase] Librería supabase-js no disponible para inicializar cliente global.');
+            return;
+        }
+
+        if (!global.supabaseClient) {
+            global.supabaseClient = global.supabase.createClient(config.url, config.key);
+        }
+    } catch (error) {
+        console.warn('[Supabase] Error al crear cliente global:', error?.message || error);
+    }
+}(window));
+
+</script>
+<script>
 /* js/utils/supabaseMessages.js */
 // ============================================
 // SUPABASE REALTIME MESSAGES
@@ -8924,8 +8976,13 @@ function editFromSheet() {
 
 (function (global) {
 
-    const SB_URL = 'https://timtqdrfeuzwwixfnudj.supabase.co';
-    const SB_KEY = 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3';
+    const cfg = global.SUPABASE_CONFIG || {
+        url: 'https://timtqdrfeuzwwixfnudj.supabase.co',
+        key: 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3'
+    };
+
+    const SB_URL = cfg.url;
+    const SB_KEY = cfg.key;
 
     const REST_HEADERS = {
         'apikey'        : SB_KEY,
@@ -8946,7 +9003,7 @@ function editFromSheet() {
             // supabase-js expone window.supabase cuando se carga desde CDN ESM
             const lib = global.supabase;
             if (!lib || typeof lib.createClient !== 'function') return false;
-            _client = lib.createClient(SB_URL, SB_KEY);
+            _client = global.supabaseClient || lib.createClient(SB_URL, SB_KEY);
             return true;
         } catch (e) {
             console.warn('[Supabase] init error:', e.message);
@@ -8962,27 +9019,39 @@ function editFromSheet() {
     async function send(sessionId, msgObj) {
         if (_available === false) return false;
 
-        const row = {
-            session_id : String(sessionId),
-            author     : String(msgObj.userIndex ?? 0),
-            content    : JSON.stringify({
-                id          : msgObj.id,
-                characterId : msgObj.characterId  || null,
-                charName    : msgObj.charName      || null,
-                charColor   : msgObj.charColor     || null,
-                charAvatar  : msgObj.charAvatar    || null,
-                charSprite  : msgObj.charSprite    || null,
-                text        : msgObj.text          || '',
-                isNarrator  : !!msgObj.isNarrator,
-                userIndex   : msgObj.userIndex     ?? 0,
-                timestamp   : msgObj.timestamp     || new Date().toISOString(),
-                weather     : msgObj.weather       || undefined,
-                diceRoll    : msgObj.diceRoll      || undefined,
-                options     : msgObj.options       || undefined
-            })
-        };
-
         try {
+            const sbClient = global.supabaseClient;
+            if (!sbClient || !sbClient.auth || typeof sbClient.auth.getUser !== 'function') {
+                _available = false;
+                return false;
+            }
+
+            const { data: { user } } = await sbClient.auth.getUser();
+            if (!user || !user.id) {
+                return false;
+            }
+
+            const row = {
+                session_id : String(sessionId),
+                user_id    : user.id,
+                author     : String(msgObj.userIndex ?? 0),
+                content    : JSON.stringify({
+                    id          : msgObj.id,
+                    characterId : msgObj.characterId  || null,
+                    charName    : msgObj.charName      || null,
+                    charColor   : msgObj.charColor     || null,
+                    charAvatar  : msgObj.charAvatar    || null,
+                    charSprite  : msgObj.charSprite    || null,
+                    text        : msgObj.text          || '',
+                    isNarrator  : !!msgObj.isNarrator,
+                    userIndex   : msgObj.userIndex     ?? 0,
+                    timestamp   : msgObj.timestamp     || new Date().toISOString(),
+                    weather     : msgObj.weather       || undefined,
+                    diceRoll    : msgObj.diceRoll      || undefined,
+                    options     : msgObj.options       || undefined
+                })
+            };
+
             const res = await fetch(SB_URL + '/rest/v1/messages', {
                 method  : 'POST',
                 headers : REST_HEADERS,
@@ -11395,10 +11464,107 @@ function closeOnboarding() {
 // Se ejecuta cuando el HTML termina de cargar (DOMContentLoaded).
 
 // ============================================
-// INICIALIZACIÓN
+// AUTH + INICIALIZACIÓN
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
+function setAuthStatus(message, isError) {
+    const statusEl = document.getElementById('authStatus');
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.style.color = isError ? '#ff7b7b' : 'var(--text-secondary)';
+}
+
+function showLoginScreen() {
+    const loginScreen = document.getElementById('authScreen');
+    if (loginScreen) loginScreen.style.display = 'flex';
+}
+
+function hideLoginScreen() {
+    const loginScreen = document.getElementById('authScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+}
+
+async function login() {
+    const email = (document.getElementById('authEmail')?.value || '').trim();
+    const password = document.getElementById('authPassword')?.value || '';
+
+    if (!email || !password) {
+        setAuthStatus('Completa email y contraseña.', true);
+        return;
+    }
+
+    setAuthStatus('Iniciando sesión...');
+    const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+        setAuthStatus(error.message || 'No se pudo iniciar sesión.', true);
+        return;
+    }
+
+    hideLoginScreen();
+    await ensureProfile();
+    initializeApp();
+}
+
+async function register() {
+    const email = (document.getElementById('authEmail')?.value || '').trim();
+    const password = document.getElementById('authPassword')?.value || '';
+
+    if (!email || !password) {
+        setAuthStatus('Completa email y contraseña.', true);
+        return;
+    }
+
+    setAuthStatus('Creando cuenta...');
+    const { data, error } = await window.supabaseClient.auth.signUp({ email, password });
+
+    if (error) {
+        setAuthStatus(error.message || 'No se pudo registrar.', true);
+        return;
+    }
+
+    const needsConfirmation = !data?.session;
+    setAuthStatus(needsConfirmation
+        ? 'Cuenta creada. Revisa tu email para confirmar.'
+        : 'Cuenta creada correctamente.');
+
+    if (!needsConfirmation) {
+        hideLoginScreen();
+        await ensureProfile();
+        initializeApp();
+    }
+}
+
+async function ensureProfile() {
+    try {
+        const { data: userData, error: userError } = await window.supabaseClient.auth.getUser();
+        if (userError || !userData?.user) return;
+
+        const user = userData.user;
+        const { data: existingProfile, error: profileError } = await window.supabaseClient
+            .from('profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (profileError) return;
+        if (existingProfile) return;
+
+        await window.supabaseClient.from('profiles').insert({
+            user_id: user.id,
+            name: user.email || 'Usuario'
+        });
+    } catch {
+        // Silencioso para no bloquear la app
+    }
+}
+
+let appInitialized = false;
+
+function initializeApp() {
+    if (appInitialized) return;
+    appInitialized = true;
+
     appData = loadStoredAppData();
 
     const savedNames = localStorage.getItem('etheria_user_names');
@@ -11482,7 +11648,32 @@ document.addEventListener('DOMContentLoaded', () => {
             e.returnValue = 'Tienes cambios sin guardar. ¿Seguro que quieres salir?';
         }
     });
+}
 
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!window.supabaseClient) {
+        console.error('[Auth] Supabase client no está disponible.');
+        showLoginScreen();
+        setAuthStatus('Error al inicializar autenticación.', true);
+        return;
+    }
+
+    const loginBtn = document.getElementById('authLoginBtn');
+    const registerBtn = document.getElementById('authRegisterBtn');
+    if (loginBtn) loginBtn.addEventListener('click', login);
+    if (registerBtn) registerBtn.addEventListener('click', register);
+
+    const { data, error } = await window.supabaseClient.auth.getSession();
+
+    if (error || !data?.session) {
+        showLoginScreen();
+        if (error) setAuthStatus(error.message || 'Debes iniciar sesión para continuar.', true);
+        return;
+    }
+
+    hideLoginScreen();
+    await ensureProfile();
+    initializeApp();
 });
 
 </script>

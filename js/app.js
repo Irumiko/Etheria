@@ -6,10 +6,107 @@
 // Se ejecuta cuando el HTML termina de cargar (DOMContentLoaded).
 
 // ============================================
-// INICIALIZACIÓN
+// AUTH + INICIALIZACIÓN
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
+function setAuthStatus(message, isError) {
+    const statusEl = document.getElementById('authStatus');
+    if (!statusEl) return;
+    statusEl.textContent = message || '';
+    statusEl.style.color = isError ? '#ff7b7b' : 'var(--text-secondary)';
+}
+
+function showLoginScreen() {
+    const loginScreen = document.getElementById('authScreen');
+    if (loginScreen) loginScreen.style.display = 'flex';
+}
+
+function hideLoginScreen() {
+    const loginScreen = document.getElementById('authScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+}
+
+async function login() {
+    const email = (document.getElementById('authEmail')?.value || '').trim();
+    const password = document.getElementById('authPassword')?.value || '';
+
+    if (!email || !password) {
+        setAuthStatus('Completa email y contraseña.', true);
+        return;
+    }
+
+    setAuthStatus('Iniciando sesión...');
+    const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+        setAuthStatus(error.message || 'No se pudo iniciar sesión.', true);
+        return;
+    }
+
+    hideLoginScreen();
+    await ensureProfile();
+    initializeApp();
+}
+
+async function register() {
+    const email = (document.getElementById('authEmail')?.value || '').trim();
+    const password = document.getElementById('authPassword')?.value || '';
+
+    if (!email || !password) {
+        setAuthStatus('Completa email y contraseña.', true);
+        return;
+    }
+
+    setAuthStatus('Creando cuenta...');
+    const { data, error } = await window.supabaseClient.auth.signUp({ email, password });
+
+    if (error) {
+        setAuthStatus(error.message || 'No se pudo registrar.', true);
+        return;
+    }
+
+    const needsConfirmation = !data?.session;
+    setAuthStatus(needsConfirmation
+        ? 'Cuenta creada. Revisa tu email para confirmar.'
+        : 'Cuenta creada correctamente.');
+
+    if (!needsConfirmation) {
+        hideLoginScreen();
+        await ensureProfile();
+        initializeApp();
+    }
+}
+
+async function ensureProfile() {
+    try {
+        const { data: userData, error: userError } = await window.supabaseClient.auth.getUser();
+        if (userError || !userData?.user) return;
+
+        const user = userData.user;
+        const { data: existingProfile, error: profileError } = await window.supabaseClient
+            .from('profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (profileError) return;
+        if (existingProfile) return;
+
+        await window.supabaseClient.from('profiles').insert({
+            user_id: user.id,
+            name: user.email || 'Usuario'
+        });
+    } catch {
+        // Silencioso para no bloquear la app
+    }
+}
+
+let appInitialized = false;
+
+function initializeApp() {
+    if (appInitialized) return;
+    appInitialized = true;
+
     appData = loadStoredAppData();
 
     const savedNames = localStorage.getItem('etheria_user_names');
@@ -93,5 +190,30 @@ document.addEventListener('DOMContentLoaded', () => {
             e.returnValue = 'Tienes cambios sin guardar. ¿Seguro que quieres salir?';
         }
     });
+}
 
+document.addEventListener('DOMContentLoaded', async () => {
+    if (!window.supabaseClient) {
+        console.error('[Auth] Supabase client no está disponible.');
+        showLoginScreen();
+        setAuthStatus('Error al inicializar autenticación.', true);
+        return;
+    }
+
+    const loginBtn = document.getElementById('authLoginBtn');
+    const registerBtn = document.getElementById('authRegisterBtn');
+    if (loginBtn) loginBtn.addEventListener('click', login);
+    if (registerBtn) registerBtn.addEventListener('click', register);
+
+    const { data, error } = await window.supabaseClient.auth.getSession();
+
+    if (error || !data?.session) {
+        showLoginScreen();
+        if (error) setAuthStatus(error.message || 'Debes iniciar sesión para continuar.', true);
+        return;
+    }
+
+    hideLoginScreen();
+    await ensureProfile();
+    initializeApp();
 });
