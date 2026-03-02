@@ -39,6 +39,8 @@ function createFogEffect() {
 
 function setWeather(weather) {
     currentWeather = weather;
+    if (typeof syncVnStore === 'function') syncVnStore({ weather: currentWeather });
+    if (typeof eventBus !== 'undefined') eventBus.emit('weather:changed', { weather: currentWeather });
 
     // Actualizar botones
     document.querySelectorAll('#weatherSelectorContainer .weather-btn').forEach(btn => {

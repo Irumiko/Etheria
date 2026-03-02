@@ -130,6 +130,16 @@ function initializeApp() {
     const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
     if (savedCharId) selectedCharId = savedCharId;
 
+    if (typeof syncVnStore === 'function') {
+        syncVnStore({
+            topicId: currentTopicId,
+            selectedCharId,
+            messageIndex: currentMessageIndex,
+            isTyping,
+            weather: currentWeather
+        });
+    }
+
     const savedSpeed = localStorage.getItem('etheria_text_speed');
     if (savedSpeed) {
         textSpeed = parseInt(savedSpeed);

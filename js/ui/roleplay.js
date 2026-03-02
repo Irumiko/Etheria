@@ -447,11 +447,20 @@ function modifyAffinity(direction) {
 
     hasUnsavedChanges = true;
     save({ silent: true });
-    updateAffinityDisplay();
 
-    // Sonido sutil según dirección
-    if (direction > 0 && typeof playSoundAffinityUp   === 'function') playSoundAffinityUp();
-    if (direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+    if (typeof eventBus !== 'undefined') {
+        eventBus.emit('affinity:changed', {
+            direction,
+            newValue,
+            topicId: currentTopicId,
+            targetCharId,
+            activeCharId
+        });
+    } else {
+        updateAffinityDisplay();
+        if (direction > 0 && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
+        if (direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+    }
 
     const rankInfo = getAffinityRankInfo(newValue);
 
@@ -472,6 +481,14 @@ function modifyAffinity(direction) {
 }
 
 
+
+if (typeof eventBus !== 'undefined') {
+    eventBus.on('affinity:changed', function onAffinityChanged(payload) {
+        updateAffinityDisplay();
+        if (payload && payload.direction > 0 && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
+        if (payload && payload.direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+    });
+}
 
 function openCurrentVnCharacterSheet() {
     const panel = document.getElementById('vnInfoRpg');
