@@ -200,22 +200,20 @@ function adjustSheetRpgStat(charId, statKey, delta) {
 }
 
 function setSheetRpgPanelOpen(isOpen) {
-    const layout = document.getElementById('sheetProfileLayout');
     const panel = document.getElementById('sheetRpgPanel');
     const btn = document.getElementById('sheetRpgToggleBtn');
-    if (!layout || !panel || !btn) return;
+    if (!panel || !btn) return;
 
-    layout.classList.toggle('rpg-open', !!isOpen);
     panel.classList.toggle('active', !!isOpen);
     panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     btn.classList.toggle('active', !!isOpen);
-    btn.textContent = isOpen ? '⚔ Ocultar bloque RPG' : '⚔ Mostrar bloque RPG';
+    btn.textContent = isOpen ? '✕ Cerrar stats' : '⚔️ Stats';
 }
 
 function toggleSheetRpgPanel() {
-    const layout = document.getElementById('sheetProfileLayout');
-    if (!layout) return;
-    setSheetRpgPanelOpen(!layout.classList.contains('rpg-open'));
+    const panel = document.getElementById('sheetRpgPanel');
+    if (!panel) return;
+    setSheetRpgPanelOpen(!panel.classList.contains('active'));
 }
 
 function getAlignmentColor(code) {

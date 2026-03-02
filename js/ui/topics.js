@@ -322,7 +322,7 @@ function createTopic() {
     renderTopics();
     if (currentTopicMode === 'roleplay') {
         pendingRoleTopicId = id;
-        openRoleCharacterModal(id);
+        openRoleCharacterModal(id, { mode: 'roleplay', preservePendingTopicId: true });
     } else {
         enterTopic(id);
     }
