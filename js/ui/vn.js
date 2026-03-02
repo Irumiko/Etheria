@@ -2,6 +2,9 @@
 // ============================================
 // MODO VN
 // ============================================
+// Variables para el debounce de sincronización al navegar mensajes
+var _lastNavSyncTime = 0;
+var _NAV_SYNC_DEBOUNCE_MS = 3000; // sincronizar como máximo cada 3 segundos al navegar
 const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.jpg';
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
@@ -66,7 +69,22 @@ function preloadTopicBackgrounds() {
     uniqueBackgrounds.forEach(path => preloadBackgroundImage(path));
 }
 
+function playVnSceneTransition(vnSection) {
+    const el = document.getElementById('vnSceneTransition');
+    if (!el) return;
+    el.classList.remove('active', 'wipe');
+    void el.offsetWidth; // forzar reflow para reiniciar animación
+    el.classList.add('active');
+    setTimeout(() => el.classList.remove('active'), 800);
+}
+
 function enterTopic(id) {
+    if (typeof stopMenuMusic === 'function') stopMenuMusic();
+    // Onboarding paso 2: primera vez en una historia
+    const _ob = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
+    if (_ob === 2 && typeof maybeShowOnboarding === 'function') {
+        setTimeout(maybeShowOnboarding, 800);
+    }
     resetVNTransientState();
     currentTopicId = id;
     getTopicMessages(id);
@@ -116,29 +134,85 @@ function enterTopic(id) {
 
     const deleteBtn = document.getElementById('deleteTopicBtn');
     if (deleteBtn) {
-        if (t.createdByIndex === currentUserIndex) {
+        // Mostrar si el usuario actual es el creador, o si createdByIndex no está definido (topics legados)
+        const isOwner = t.createdByIndex === currentUserIndex || t.createdByIndex === undefined || t.createdByIndex === null;
+        // Usamos el slot padre para mostrar/ocultar, evitando conflicto con el CSS :has(.hidden)
+        const deleteSlot = deleteBtn.closest('.vn-control-slot');
+        if (isOwner) {
             deleteBtn.classList.remove('hidden');
+            if (deleteSlot) deleteSlot.style.display = '';
         } else {
             deleteBtn.classList.add('hidden');
+            if (deleteSlot) deleteSlot.style.display = 'none';
         }
     }
 
-    showCurrentMessage();
+    showCurrentMessage('forward');
+
+    // Carga desde Supabase y suscripción realtime (no bloquea el flujo principal)
+    _sbEnterTopic(id);
 }
 
-function playVnSceneTransition(vnSection) {
-    const overlay = document.getElementById('vnSceneTransition');
-    if (!vnSection || !overlay) return;
+async function _sbEnterTopic(topicId) {
+    if (typeof SupabaseMessages === 'undefined') return;
 
-    overlay.classList.remove('active');
-    vnSection.classList.remove('entering-scene');
-    void overlay.offsetWidth;
-    overlay.classList.add('active');
-    vnSection.classList.add('entering-scene');
+    SupabaseMessages.unsubscribe();
 
-    window.setTimeout(() => {
-        vnSection.classList.remove('entering-scene');
-    }, 620);
+    // Cargar historial remoto y fusionar con local por id
+    try {
+        const remoteMsgs = await SupabaseMessages.load(topicId);
+        if (Array.isArray(remoteMsgs) && remoteMsgs.length > 0) {
+            const localMsgs = getTopicMessages(topicId);
+            const localIds  = new Set(localMsgs.map(function (m) { return String(m.id); }));
+            const newRemote = remoteMsgs.filter(function (m) { return m.id && !localIds.has(String(m.id)); });
+
+            if (newRemote.length > 0) {
+                newRemote.forEach(function (m) { localMsgs.push(m); });
+                localMsgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+                appData.messages[topicId] = localMsgs;
+                hasUnsavedChanges = true;
+                save({ silent: true });
+
+                if (currentTopicId === topicId) {
+                    currentMessageIndex = localMsgs.length - 1;
+                    showCurrentMessage('forward');
+                    showSyncToast(newRemote.length + ' mensaje(s) cargado(s) desde la nube', 'OK');
+                }
+            }
+        }
+    } catch (e) {
+        // Supabase no disponible — el sistema sigue con local
+    }
+
+    // Suscripción realtime: recibir mensajes del otro jugador en tiempo real
+    SupabaseMessages.subscribe(topicId, function (remoteMsg) {
+        if (currentTopicId !== topicId) return;
+        if (!remoteMsg || !remoteMsg.id) return;
+
+        const msgs = getTopicMessages(topicId);
+        const exists = msgs.some(function (m) { return String(m.id) === String(remoteMsg.id); });
+        if (exists) return;
+
+        // Ignorar si es un mensaje propio (ya está guardado localmente)
+        if (String(remoteMsg.userIndex) === String(currentUserIndex)) return;
+
+        msgs.push(remoteMsg);
+        msgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+        appData.messages[topicId] = msgs;
+        hasUnsavedChanges = true;
+        save({ silent: true });
+
+        const isAtEnd = currentMessageIndex >= msgs.length - 2;
+        if (isAtEnd) {
+            currentMessageIndex = msgs.length - 1;
+            showCurrentMessage('forward');
+        } else {
+            showSyncToast('Nuevo mensaje recibido', 'Ver ahora', function () {
+                currentMessageIndex = msgs.length - 1;
+                showCurrentMessage('forward');
+            });
+        }
+    });
 }
 
 function stopTypewriter() {
@@ -159,7 +233,7 @@ function triggerDialogueFadeIn() {
     dialogueBox.classList.add('fade-in');
 }
 
-function showCurrentMessage() {
+function showCurrentMessage(direction = 'forward') {
     const msgs = getTopicMessages(currentTopicId);
 
     const dialogueText = document.getElementById('vnDialogueText');
@@ -199,6 +273,9 @@ function showCurrentMessage() {
             namePlate.style.background = 'linear-gradient(135deg, #4a4540, #2a2724)';
         }
         if (avatarBox) avatarBox.innerHTML = '📖';
+        // Color de acento para el narrador: dorado neutro
+        document.documentElement.style.setProperty('--char-color', 'rgba(139, 115, 85, 0.6)');
+        document.documentElement.style.setProperty('--char-color-full', '#8b7355');
     } else if (!charExists) {
         if (namePlate) {
             namePlate.textContent = msg.charName || 'Desconocido';
@@ -206,9 +283,10 @@ function showCurrentMessage() {
         }
         if (avatarBox) {
             avatarBox.innerHTML = msg.charAvatar ?
-                `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName || "Desconocido")}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${(msg.charName || '?')[0]}'">` :
+                `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName || "Desconocido")}" onerror="this.style.display='none'; this.parentElement.textContent='${(msg.charName || '?')[0]}'">` :
                 (msg.charName || '?')[0];
         }
+        applyCharColor(msg.charColor);
     } else {
         if (namePlate) {
             namePlate.textContent = msg.charName;
@@ -216,9 +294,10 @@ function showCurrentMessage() {
         }
         if (avatarBox) {
             avatarBox.innerHTML = msg.charAvatar ?
-                `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` :
+                `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName)}" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` :
                 msg.charName[0];
         }
+        applyCharColor(msg.charColor);
     }
 
     if (avatarBox) avatarBox.classList.toggle('is-speaking', !(msg.isNarrator || !msg.characterId));
@@ -260,6 +339,31 @@ function showCurrentMessage() {
     }
 
     updateAffinityDisplay();
+    if (typeof updateFavButton === "function") updateFavButton();
+
+    // Mejora 3: clima solo al avanzar (no al retroceder)
+    // Al retroceder, se busca el último clima activo hasta el índice actual
+    if (direction === 'forward') {
+        // Aplicar clima del mensaje actual
+        const newWeather = msg.weather || 'none';
+        if (newWeather !== currentWeather) {
+            setWeather(newWeather);
+        }
+    } else {
+        // Al retroceder: calcular cuál es el último clima aplicado hasta aquí
+        let lastWeather = 'none';
+        for (let i = 0; i <= currentMessageIndex; i++) {
+            if (msgs[i] && msgs[i].weather) {
+                lastWeather = msgs[i].weather;
+            } else if (msgs[i] && msgs[i].weather === undefined) {
+                // Sin clima en este mensaje — no cambia
+            }
+        }
+        // Solo cambiar si difiere del actual para evitar resets innecesarios
+        if (lastWeather !== currentWeather) {
+            setWeather(lastWeather);
+        }
+    }
 }
 
 function getPooledSpriteElement(container) {
@@ -285,7 +389,8 @@ function recycleActiveSprites(container) {
             img.onerror = null;
         }
         child.querySelectorAll('.manga-emote').forEach((el) => el.remove());
-        spritePool.push(child);
+        // Limitar el pool a 20 elementos para evitar memory leak
+        if (spritePool.length < 20) spritePool.push(child);
     });
     container.innerHTML = '';
 }
@@ -314,23 +419,20 @@ function updateSprites(currentMsg, activeEmote = null) {
             }
         }
 
-        charsToShow = recentChars.slice(0, 3);
-
-        if (charsToShow.length === 1) {
-            charsToShow[0].position = 'center';
-        } else if (charsToShow.length === 2) {
-            charsToShow[0].position = 'left';
-            charsToShow[1].position = 'right';
-        } else if (charsToShow.length >= 3) {
-            charsToShow[0].position = 'left';
-            charsToShow[1].position = 'center';
-            charsToShow[2].position = 'right';
+        // Crear copias shallow para no mutar los objetos de mensaje originales
+        const sliced = recentChars.slice(0, 3);
+        if (sliced.length === 1) {
+            charsToShow = [{ ...sliced[0], position: 'center' }];
+        } else if (sliced.length === 2) {
+            charsToShow = [{ ...sliced[0], position: 'left' }, { ...sliced[1], position: 'right' }];
+        } else if (sliced.length >= 3) {
+            charsToShow = [{ ...sliced[0], position: 'left' }, { ...sliced[1], position: 'center' }, { ...sliced[2], position: 'right' }];
         }
     } else if (currentMsg.characterId && currentMsg.charSprite) {
         const charExists = appData.characters.find(c => c.id === currentMsg.characterId);
         if (charExists) {
-            currentMsg.position = 'center';
-            charsToShow.push(currentMsg);
+            // Crear copia para no mutar el mensaje original con .position
+            charsToShow.push({ ...currentMsg, position: 'center' });
         }
     }
 
@@ -389,48 +491,68 @@ function typeWriter(text, element) {
     if (hasHtml) {
         element.innerHTML = text;
         element.style.opacity = '0';
-        element.style.transition = 'opacity 0.3s';
+        element.style.transition = 'opacity 0.4s ease';
         setTimeout(() => {
             if (sessionId !== typewriterSessionId) return;
             element.style.opacity = '1';
             isTyping = false;
             if (indicator) indicator.style.opacity = '1';
         }, 100);
-    } else {
-        const wordsFastMode = textSpeed <= 25;
-        const tokens = wordsFastMode ? (text.match(/\S+\s*/g) || [text]) : text.split('');
-        let i = 0;
-        let lastTick = 0;
+        return;
+    }
 
-        const step = (timestamp) => {
-            if (sessionId !== typewriterSessionId) {
-                typewriterInterval = null;
-                return;
+    // ── Typewriter dramático ──────────────────────────────────────
+    // Divide el texto en tokens: palabras para modo rápido, chars para lento
+    const wordsFastMode = textSpeed <= 25;
+    const tokens = wordsFastMode ? (text.match(/\S+\s*/g) || [text]) : text.split('');
+    let i = 0;
+    let lastTick = 0;
+
+    // Cada carácter se envuelve en un <span> que hace fade+slide in
+    // Para no destruir el DOM en cada frame, usamos un DocumentFragment
+    // y añadimos spans de uno en uno.
+    const addToken = (token) => {
+        // Los espacios se añaden sin span para no crear saltos
+        if (token.trim() === '') {
+            element.appendChild(document.createTextNode(token));
+            return;
+        }
+        const span = document.createElement('span');
+        span.className = 'tw-char';
+        span.textContent = token;
+        element.appendChild(span);
+        // Forzar reflow para que la animación arranque
+        void span.offsetWidth;
+        span.classList.add('tw-char--in');
+    };
+
+    const step = (timestamp) => {
+        if (sessionId !== typewriterSessionId) {
+            typewriterInterval = null;
+            return;
+        }
+
+        if (!lastTick || timestamp - lastTick >= textSpeed) {
+            const chunkSize = wordsFastMode ? 2 : 1;
+            let consumed = 0;
+            while (consumed < chunkSize && i < tokens.length) {
+                addToken(tokens[i]);
+                i++;
+                consumed++;
             }
+            lastTick = timestamp;
+        }
 
-            if (!lastTick || timestamp - lastTick >= textSpeed) {
-                const chunkSize = wordsFastMode ? 2 : 1;
-                let consumed = 0;
-
-                while (consumed < chunkSize && i < tokens.length) {
-                    element.innerHTML += tokens[i];
-                    i++;
-                    consumed++;
-                }
-                lastTick = timestamp;
-            }
-
-            if (i >= tokens.length) {
-                stopTypewriter();
-                if (indicator) indicator.style.opacity = '1';
-                return;
-            }
-
-            typewriterInterval = window.requestAnimationFrame(step);
-        };
+        if (i >= tokens.length) {
+            stopTypewriter();
+            if (indicator) indicator.style.opacity = '1';
+            return;
+        }
 
         typewriterInterval = window.requestAnimationFrame(step);
-    }
+    };
+
+    typewriterInterval = window.requestAnimationFrame(step);
 }
 
 function handleDialogueClick() {
@@ -468,21 +590,25 @@ function handleDialogueClick() {
     if (currentMessageIndex < msgs.length - 1) {
         currentMessageIndex++;
         if (typeof playSoundClick === 'function') playSoundClick();
-        showCurrentMessage();
-        syncBidirectional({ silent: true, allowRemotePrompt: true });
+        showCurrentMessage('forward');
+        const _now1 = Date.now();
+        if (_now1 - _lastNavSyncTime > _NAV_SYNC_DEBOUNCE_MS) {
+            _lastNavSyncTime = _now1;
+            syncBidirectional({ silent: true, allowRemotePrompt: true });
+        }
     }
 }
 
 function previousMessage() {
     if (currentMessageIndex > 0) {
         currentMessageIndex--;
-        showCurrentMessage();
+        showCurrentMessage('backward');
     }
 }
 
 function firstMessage() {
     currentMessageIndex = 0;
-    showCurrentMessage();
+    showCurrentMessage('backward');
 }
 
 function nextMessage() {
@@ -490,8 +616,12 @@ function nextMessage() {
     if (currentMessageIndex < msgs.length - 1) {
         currentMessageIndex++;
         if (typeof playSoundClick === 'function') playSoundClick();
-        showCurrentMessage();
-        syncBidirectional({ silent: true, allowRemotePrompt: true });
+        showCurrentMessage('forward');
+        const _now2 = Date.now();
+        if (_now2 - _lastNavSyncTime > _NAV_SYNC_DEBOUNCE_MS) {
+            _lastNavSyncTime = _now2;
+            syncBidirectional({ silent: true, allowRemotePrompt: true });
+        }
     }
 }
 
@@ -499,7 +629,7 @@ function lastMessage() {
     const msgs = getTopicMessages(currentTopicId);
     if (msgs.length === 0) return;
     currentMessageIndex = msgs.length - 1;
-    showCurrentMessage();
+    showCurrentMessage('forward');
 }
 
 function handleActionButtonClick(event) {
@@ -512,16 +642,17 @@ function handleActionButtonClick(event) {
 function deleteCurrentMessage() {
     const msgs = getTopicMessages(currentTopicId);
     if (msgs.length === 0 || currentMessageIndex >= msgs.length) return;
-    if (!confirm('¿Borrar este mensaje?')) return;
 
-    msgs.splice(currentMessageIndex, 1);
-    if (currentMessageIndex >= msgs.length) {
-        currentMessageIndex = Math.max(0, msgs.length - 1);
-    }
-
-    hasUnsavedChanges = true;
-    save();
-    showCurrentMessage();
+    openConfirmModal('¿Borrar este mensaje?', 'Borrar').then(ok => {
+        if (!ok) return;
+        msgs.splice(currentMessageIndex, 1);
+        if (currentMessageIndex >= msgs.length) {
+            currentMessageIndex = Math.max(0, msgs.length - 1);
+        }
+        hasUnsavedChanges = true;
+        save({ silent: true });
+        showCurrentMessage('forward');
+    });
 }
 
 // ============================================
@@ -533,11 +664,16 @@ function editCurrentMessage() {
 
     const msg = msgs[currentMessageIndex];
     if (msg.userIndex !== currentUserIndex) {
-        alert('Solo puedes editar tus propios mensajes');
+        showAutosave('Solo puedes editar tus propios mensajes', 'error');
         return;
     }
 
     editingMessageId = msg.id;
+
+    // Setear selectedCharId ANTES de openReplyPanel para que updateCharSelector use el correcto
+    if (!msg.isNarrator && msg.characterId) {
+        selectedCharId = msg.characterId;
+    }
 
     openReplyPanel();
 
@@ -551,7 +687,6 @@ function editCurrentMessage() {
     }
 
     if (!msg.isNarrator && msg.characterId) {
-        selectedCharId = msg.characterId;
         updateCharSelector();
     }
 
@@ -589,7 +724,7 @@ function editCurrentMessage() {
 function saveEditedMessage() {
     const replyText = document.getElementById('vnReplyText');
     const text = replyText?.value.trim();
-    if(!text) { alert('Escribe algo'); return; }
+    if(!text) { showAutosave('Escribe algo primero', 'error'); return; }
 
     const msgs = getTopicMessages(currentTopicId);
     const msgIndex = msgs.findIndex(m => m.id === editingMessageId);
@@ -597,9 +732,9 @@ function saveEditedMessage() {
 
     let char = null;
     if(!isNarratorMode) {
-        if(!selectedCharId) { alert('Selecciona personaje'); return; }
+        if(!selectedCharId) { showAutosave('Selecciona un personaje', 'error'); return; }
         char = appData.characters.find(c => c.id === selectedCharId);
-        if (!char) { alert('Personaje no encontrado'); return; }
+        if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
     }
 
     let options = null;
@@ -615,8 +750,11 @@ function saveEditedMessage() {
         }
     }
 
-    // Preservar clima si existe
-    const currentWeatherSetting = currentWeather;
+    // Preservar el clima del mensaje original; solo actualizarlo si el usuario lo cambió explícitamente
+    // (se detecta comparando currentWeather con el clima original del mensaje)
+    const originalWeather = msgs[msgIndex].weather;
+    const weatherChanged = currentWeather !== (originalWeather || 'none');
+    const finalWeather = weatherChanged ? (currentWeather !== 'none' ? currentWeather : undefined) : originalWeather;
 
     msgs[msgIndex] = {
         ...msgs[msgIndex],
@@ -631,15 +769,15 @@ function saveEditedMessage() {
         selectedOptionIndex: undefined,
         edited: true,
         editedAt: new Date().toISOString(),
-        weather: currentWeatherSetting !== 'none' ? currentWeatherSetting : undefined
+        weather: finalWeather
     };
 
     hasUnsavedChanges = true;
-    save();
+    save({ silent: true });
     closeReplyPanel();
 
     editingMessageId = null;
-    showCurrentMessage();
+    showCurrentMessage('forward');
 }
 
 // ============================================
@@ -657,8 +795,22 @@ function showOptions(options) {
         return;
     }
 
-    const total = options.length;
-    container.innerHTML = options.map((opt, idx) => {
+    // Guard: normalizar opciones que vengan en formatos legacy o corruptos
+    const normalizedOptions = options.map((opt, i) => {
+        if (opt && typeof opt === 'object' && typeof opt.text === 'string') return opt;
+        // Si es string simple o número, usarlo como texto
+        if (typeof opt === 'string' || typeof opt === 'number') {
+            return { text: String(opt), continuation: '' };
+        }
+        // Si tiene text pero no es string
+        if (opt && opt.text !== undefined) {
+            return { text: String(opt.text), continuation: String(opt.continuation || '') };
+        }
+        return { text: `Opción ${i + 1}`, continuation: '' };
+    });
+
+    const total = normalizedOptions.length;
+    container.innerHTML = normalizedOptions.map((opt, idx) => {
         const selected = currentMsg.selectedOptionIndex === idx;
         const disabled = currentMsg.selectedOptionIndex !== undefined;
         const optionLabel = `${opt.text}, opción ${idx + 1} de ${total}`;
@@ -687,7 +839,7 @@ function selectOption(idx) {
     msg.selectedBy = currentUserIndex;
 
     hasUnsavedChanges = true;
-    save();
+    save({ silent: true });
 
     const selectedOption = msg.options[idx];
 
@@ -717,7 +869,7 @@ function selectOption(idx) {
         const topicMessages = getTopicMessages(currentTopicId);
         topicMessages.push(newMsg);
         hasUnsavedChanges = true;
-        save();
+        save({ silent: true });
     }
 
     const optionsContainer = document.getElementById('vnOptionsContainer');
@@ -728,7 +880,7 @@ function selectOption(idx) {
 
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
     triggerDialogueFadeIn();
-    showCurrentMessage();
+    showCurrentMessage('forward');
 }
 
 function showContinuation(text) {
@@ -747,18 +899,20 @@ function closeContinuation() {
 // ============================================
 // HISTORIAL
 // ============================================
-function buildHistoryEntry(msg, idx) {
+function buildHistoryEntry(msg, idx, showFavBadge = false) {
     const isNarrator = msg.isNarrator || !msg.characterId;
     const speaker = isNarrator ? 'Narrador' : msg.charName;
     const date = new Date(msg.timestamp).toLocaleString();
     const edited = msg.edited ? ' (editado)' : '';
     const optionResult = msg.isOptionResult ? ' [Respuesta elegida]' : '';
+    const isFav = showFavBadge && currentTopicId && isMessageFavorite(currentTopicId, String(msg.id));
+    const favBadge = isFav ? '<span class="history-entry-fav" title="Favorito">⭐</span>' : '';
 
     return `
-        <div class="history-entry ${isNarrator ? 'narrator' : ''} ${msg.isOptionResult ? 'option-result' : ''}">
+        <div class="history-entry ${isNarrator ? 'narrator' : ''} ${msg.isOptionResult ? 'option-result' : ''}${isFav ? ' is-favorite' : ''}">
             <div class="history-speaker">
                 ${msg.charAvatar && !isNarrator ? `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar en historial de ${escapeHtml(speaker)}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-gold);">` : ''}
-                ${escapeHtml(speaker)}${edited}${optionResult}
+                ${escapeHtml(speaker)}${edited}${optionResult}${favBadge}
             </div>
             <div class="history-text">${formatText(msg.text)}</div>
             <div class="history-timestamp">${date} • Mensaje ${idx + 1}</div>
@@ -802,9 +956,23 @@ function renderVirtualizedHistory(msgs, container) {
 }
 
 function openHistoryLog() {
+    // Resetear a pestaña "Todos" al abrir para consistencia
+    if (typeof currentHistoryTab !== 'undefined') {
+        currentHistoryTab = 'all';
+        document.getElementById('histTabAll')?.classList.add('active');
+        document.getElementById('histTabFav')?.classList.remove('active');
+    }
+
+    // Usar renderHistoryContent si está disponible (soporta pestañas favoritos)
+    if (typeof renderHistoryContent === 'function') {
+        openModal('historyModal');
+        renderHistoryContent();
+        return;
+    }
+
+    // Fallback: renderizado directo sin pestañas
     const msgs = getTopicMessages(currentTopicId);
     const container = document.getElementById('historyContent');
-
     if (!container) return;
 
     if (msgs.length === 0) {
@@ -813,7 +981,6 @@ function openHistoryLog() {
     } else {
         renderVirtualizedHistory(msgs, container);
     }
-
     openModal('historyModal');
 }
 
@@ -822,7 +989,6 @@ function openHistoryLog() {
 // RESPUESTAS (Reply Panel)
 // ============================================
 function openReplyPanel() {
-    syncBidirectional({ silent: true, allowRemotePrompt: true });
     const panel = document.getElementById('vnReplyPanel');
     if (!panel) return;
 
@@ -1028,13 +1194,13 @@ function toggleNarratorMode() {
 function postVNReply() {
     const replyText = document.getElementById('vnReplyText');
     const text = replyText?.value.trim();
-    if(!text) { alert('Escribe algo'); return; }
+    if(!text) { showAutosave('Escribe algo primero', 'error'); return; }
 
     let char = null;
     if(!isNarratorMode) {
-        if(!selectedCharId) { alert('Selecciona personaje'); return; }
+        if(!selectedCharId) { showAutosave('Selecciona un personaje', 'error'); return; }
         char = appData.characters.find(c => c.id === selectedCharId);
-        if (!char) { alert('Personaje no encontrado. Puede haber sido borrado.'); return; }
+        if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
     }
 
     let options = null;
@@ -1048,10 +1214,14 @@ function postVNReply() {
             const c = contInput?.value.trim() || '';
             if(t && c) options.push({text: t, continuation: c});
         }
-        if(options.length === 0) { alert('Rellena al menos una opción con texto y continuación'); return; }
+        if(options.length === 0) { showAutosave('Rellena al menos una opción con texto y continuación', 'error'); return; }
     }
 
     const topicMessages = getTopicMessages(currentTopicId);
+
+    // Recoger tirada de dado si se activó antes de enviar (inyectada por mejoras.js)
+    const diceRoll = window._diceRollForNextMsg || undefined;
+    window._diceRollForNextMsg = null;
 
     const newMsg = {
         id: Date.now().toString(),
@@ -1065,17 +1235,23 @@ function postVNReply() {
         userIndex: currentUserIndex,
         timestamp: new Date().toISOString(),
         options: options && options.length > 0 ? options : undefined,
-        weather: currentWeather !== 'none' ? currentWeather : undefined
+        weather: currentWeather !== 'none' ? currentWeather : undefined,
+        diceRoll: diceRoll
     };
 
     topicMessages.push(newMsg);
 
+    // Envío a Supabase (no bloquea — fallback local automático si falla)
+    if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
+        SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
+    }
+
     hasUnsavedChanges = true;
-    save();
+    save({ silent: true });
     closeReplyPanel();
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
     triggerDialogueFadeIn();
-    showCurrentMessage();
+    showCurrentMessage('forward');
 }
 
 // ============================================

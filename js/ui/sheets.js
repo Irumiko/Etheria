@@ -91,7 +91,7 @@ function switchTab(tabName, element) {
 function saveCharacter() {
     const nameInput = document.getElementById('charName');
     const name = nameInput?.value.trim();
-    if(!name) { alert('Nombre obligatorio'); return; }
+    if(!name) { showAutosave('El nombre es obligatorio', 'error'); return; }
 
     const id = document.getElementById('editCharacterId')?.value || Date.now().toString();
 
@@ -126,7 +126,7 @@ function saveCharacter() {
     else appData.characters.push(charObj);
 
     hasUnsavedChanges = true;
-    save();
+    save({ silent: true });
     closeModal('characterModal');
     resetCharForm();
     renderGallery();

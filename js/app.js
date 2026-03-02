@@ -53,21 +53,18 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         document.documentElement.setAttribute('data-theme', 'light');
     }
+    // Sincronizar botón de tema en pantalla de perfiles
+    if (typeof updateProfileThemeBtn === 'function') updateProfileThemeBtn();
 
     renderUserCards();
     generateProfileParticles();
+    if (typeof maybeShowOnboarding === 'function') maybeShowOnboarding();
     initMenuParallax();
     updateCloudSyncIndicator('online', 'Conectado');
     updateSyncButtonState('synced', 'Sincronizar');
     startCloudSync();
 
-    const lastProfileId = getStoredLastProfileId();
-    if (lastProfileId !== null) {
-        selectUser(lastProfileId, { instant: true, autoLoad: true });
-    } else {
-        localStorage.removeItem(LAST_PROFILE_KEY);
-        toggleWelcomeOverlay(true);
-    }
+    // renderUserCards() ya gestiona el welcomeOverlay internamente.
 
     // Setup keyboard listeners
     setupKeyboardListeners();

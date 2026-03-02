@@ -37,7 +37,7 @@ function openRoleCharacterModal(topicId) {
 
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
     if (!mine.length) {
-        alert('Necesitas al menos un personaje para jugar en modo rol.');
+        showAutosave('Necesitas al menos un personaje para modo rol', 'error');
         pendingRoleTopicId = null;
         enterTopic(topicId);
         return;
@@ -62,7 +62,7 @@ function selectRoleCharacterForTopic(topicId, charId) {
     localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
 
     hasUnsavedChanges = true;
-    save();
+    save({ silent: true });
     pendingRoleTopicId = null;
     closeModal('roleCharacterModal');
     enterTopic(topicId);
@@ -167,106 +167,124 @@ function getCurrentAffinity() {
 
 function updateAffinityDisplay() {
     const affinityDisplay = document.getElementById('affinityDisplay');
-    const infoName = document.getElementById('vnInfoName');
-    const infoClub = document.getElementById('vnInfoClub');
-    const infoAvatar = document.getElementById('vnInfoAvatar');
+    const affinityControls = document.querySelector('.affinity-controls-inline');
+    const infoName     = document.getElementById('vnInfoName');
+    const infoLastname = document.getElementById('vnInfoLastname');
+    const infoAvatar   = document.getElementById('vnInfoAvatar');
     const vnInfoAffection = document.getElementById('vnInfoAffection');
+
+    // Elementos de píldoras
+    const pillAge    = document.getElementById('vnInfoPillAge');
+    const pillSep1   = document.getElementById('vnInfoPillSep1');
+    const pillRace   = document.getElementById('vnInfoPillRace');
+    const pillSep2   = document.getElementById('vnInfoPillSep2');
+    const pillGender = document.getElementById('vnInfoPillGender');
 
     const msgs = getTopicMessages(currentTopicId);
     const currentMsg = msgs[currentMessageIndex];
 
-    // Caso narrador
-    if (currentMsg && currentMsg.isNarrator) {
+    function setAvatar(char) {
+        if (!infoAvatar) return;
+        infoAvatar.innerHTML = char && char.avatar
+            ? `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.textContent='${char.name[0]}'">`
+            : `<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">${char ? char.name[0] : '👤'}</div>`;
+    }
+
+    function setPills(char) {
+        if (!char) {
+            if (pillAge)    pillAge.textContent    = '';
+            if (pillRace)   pillRace.textContent   = '';
+            if (pillGender) pillGender.textContent = '';
+            if (pillSep1)   pillSep1.textContent   = '';
+            if (pillSep2)   pillSep2.textContent   = '';
+            return;
+        }
+        if (pillAge)    pillAge.textContent    = char.age    ? `${char.age} años` : '';
+        if (pillRace)   pillRace.textContent   = char.race   ? char.race          : '';
+        if (pillGender) pillGender.textContent = char.gender ? char.gender        : '';
+        // Separadores: solo si ambos lados tienen contenido
+        if (pillSep1)   pillSep1.textContent   = (char.age && char.race)    ? '·' : '';
+        if (pillSep2)   pillSep2.textContent   = (char.race && char.gender) ? '·' : '';
+    }
+
+    // Narrador
+    if (!currentMsg || currentMsg.isNarrator) {
         affinityDisplay?.classList.add('hidden');
         if (vnInfoAffection) vnInfoAffection.style.display = 'none';
-        if (infoName) infoName.textContent = 'Narrador';
-        if (infoClub) infoClub.textContent = currentTopicMode === 'roleplay' ? 'Modo rol' : 'Modo historia';
-        if (infoAvatar) infoAvatar.innerHTML = '<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">📖</div>';
+        if (infoName)     infoName.textContent     = 'Narrador';
+        if (infoLastname) infoLastname.textContent = '';
+        if (infoAvatar)   infoAvatar.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">📖</div>';
+        setPills(null);
         updateInfoHoverDetails(null);
         return;
     }
 
-    // Caso personaje propio
-    if (currentMsg && currentMsg.characterId) {
+    if (currentMsg.characterId) {
         const char = appData.characters.find(c => c.id === currentMsg.characterId);
         if (char) {
-            if (char.userIndex === currentUserIndex) {
-                affinityDisplay?.classList.remove('hidden');
+            if (infoName)     infoName.textContent     = char.name;
+            if (infoLastname) infoLastname.textContent = char.lastName || '';
+            setAvatar(char);
+            setPills(char);
+            updateInfoHoverDetails(char);
+
+            const isOwnChar = char.userIndex === currentUserIndex;
+            const isFanfic  = currentTopicMode === 'fanfic';
+
+            // Modo historia: sin afinidad de ningún tipo
+            if (isFanfic) {
+                affinityDisplay?.classList.add('hidden');
                 if (vnInfoAffection) vnInfoAffection.style.display = 'none';
-                if (infoName) infoName.textContent = char.name;
-                if (infoClub) infoClub.textContent = char.race || 'Sin raza';
-
-                const rankNameEl = document.getElementById('affinityRankName');
-                if (rankNameEl) {
-                    rankNameEl.textContent = 'Afinidad: Propio (100%)';
-                    rankNameEl.style.color = 'var(--accent-gold)';
-                    rankNameEl.style.textShadow = '0 0 10px rgba(201, 168, 108, 0.6)';
-                }
-
-                if (infoAvatar) {
-                    if (char.avatar) {
-                        infoAvatar.innerHTML = `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
-                    } else {
-                        infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
-                    }
-                }
-                updateInfoHoverDetails(char);
                 return;
             }
 
-            // Personaje de otro usuario
+            // Modo rol — personaje propio: etiqueta sin controles
+            if (isOwnChar) {
+                affinityDisplay?.classList.remove('hidden');
+                if (affinityControls) affinityControls.style.display = 'none';
+                if (vnInfoAffection) vnInfoAffection.style.display = 'none';
+                const rankNameEl = document.getElementById('affinityRankName');
+                if (rankNameEl) {
+                    rankNameEl.textContent = '✦ Tu personaje';
+                    rankNameEl.style.color = 'var(--accent-sage)';
+                    rankNameEl.style.textShadow = '0 0 8px rgba(107, 142, 125, 0.5)';
+                }
+                return;
+            }
+
+            // Modo rol — personaje ajeno: sistema completo
             const affinityValue = getCurrentAffinity();
             if (affinityValue !== -1) {
                 affinityDisplay?.classList.remove('hidden');
+                if (affinityControls) affinityControls.style.display = '';
                 if (vnInfoAffection) vnInfoAffection.style.display = 'none';
-
                 const rankInfo = getAffinityRankInfo(affinityValue);
-
-                if (infoName) infoName.textContent = char.name;
-                if (infoClub) infoClub.textContent = char.race || 'Sin raza';
-
                 const rankNameEl = document.getElementById('affinityRankName');
-
                 if (rankNameEl) {
                     rankNameEl.textContent = rankInfo.name;
                     rankNameEl.style.color = rankInfo.color;
                     rankNameEl.style.textShadow = `0 0 10px ${rankInfo.color}`;
                 }
-
-                if (infoAvatar) {
-                    if (char.avatar) {
-                        infoAvatar.innerHTML = `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\' style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;\\'>${char.name[0]}</div>'">`;
-                    } else {
-                        infoAvatar.innerHTML = `<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">${char.name[0]}</div>`;
-                    }
-                }
-
                 currentAffinity = affinityValue;
-                updateInfoHoverDetails(char);
                 return;
             }
         }
     }
 
-    // Caso por defecto
+    // Por defecto
     affinityDisplay?.classList.add('hidden');
     if (vnInfoAffection) vnInfoAffection.style.display = 'none';
-    if (infoName) infoName.textContent = 'Sin personaje';
-    if (infoClub) infoClub.textContent = 'Selecciona un personaje';
-    if (infoAvatar) infoAvatar.innerHTML = '<div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">👤</div>';
+    if (infoName)     infoName.textContent     = 'Sin personaje';
+    if (infoLastname) infoLastname.textContent = '';
+    if (infoAvatar)   infoAvatar.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">👤</div>';
+    setPills(null);
     updateInfoHoverDetails(null);
 }
 
 function updateInfoHoverDetails(char) {
-    const modeEl = document.getElementById('vnInfoModeDetail');
-    const ageEl = document.getElementById('vnInfoAgeDetail');
-    const storyEl = document.getElementById('vnInfoStoryDetail');
-
-    if (modeEl) modeEl.textContent = `Modo: ${currentTopicMode === 'roleplay' ? 'Rol' : 'Historia'}`;
-    if (ageEl) ageEl.textContent = `Edad: ${char?.age || '-'}`;
-
-    const story = (char?.history || '').trim();
-    if (storyEl) storyEl.textContent = `Historia: ${story ? story.slice(0, 90) : 'Sin detalles'}`;
+    // Los elementos de descripción/personalidad fueron eliminados del info card en v10
+    // Esta función se mantiene por compatibilidad pero ya no actualiza el DOM
+    // Si en el futuro se re-añaden esos elementos, volver a activar este código
 }
 
 function modifyAffinity(direction) {
@@ -310,7 +328,7 @@ function modifyAffinity(direction) {
     appData.affinities[currentTopicId][key] = newValue;
 
     hasUnsavedChanges = true;
-    save();
+    save({ silent: true });
     updateAffinityDisplay();
 
     // Sonido sutil según dirección
@@ -318,6 +336,20 @@ function modifyAffinity(direction) {
     if (direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
 
     const rankInfo = getAffinityRankInfo(newValue);
-    showAutosave(`Afinidad: ${rankInfo.name}`, 'saved');
+
+    // Mostrar feedback INLINE dentro del card de afinidad (no en esquina)
+    const feedbackEl = document.getElementById('affinityFeedback');
+    if (feedbackEl) {
+        feedbackEl.className = 'affinity-feedback';
+        feedbackEl.textContent = direction > 0
+            ? `▲ ${rankInfo.name}`
+            : `▼ ${rankInfo.name}`;
+        void feedbackEl.offsetWidth;
+        feedbackEl.classList.add('visible', direction > 0 ? 'up' : 'down');
+        clearTimeout(feedbackEl._timer);
+        feedbackEl._timer = setTimeout(() => {
+            feedbackEl.classList.remove('visible');
+        }, 1800);
+    }
 }
 

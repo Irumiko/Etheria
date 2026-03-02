@@ -1,8 +1,9 @@
 // Utilidades generales de app: guardado, modales, tema visual y ajustes de lectura.
 // UTILIDADES
 // ============================================
-function save() {
+function save(opts = {}) {
     const wasUnsaved = hasUnsavedChanges;
+    const { silent = false } = opts;
 
     try {
         persistPartitionedData();
@@ -12,7 +13,8 @@ function save() {
         updateSyncButtonState('pending-upload', 'Subir cambios');
         updateCloudSyncIndicator('degraded', 'Pendiente de subida');
         showAutosave('Guardado', 'saved');
-        if (typeof playSoundSave === 'function') playSoundSave();
+        // Solo reproducir sonido en guardados manuales explícitos, no en autoguardado
+        if (!silent && typeof playSoundSave === 'function') playSoundSave();
         return true;
     } catch (e) {
         hasUnsavedChanges = wasUnsaved;
@@ -48,11 +50,51 @@ function showAutosave(text, state) {
 
     setTimeout(() => {
         indicator.classList.remove('visible');
-    }, 2000);
+    }, state === 'error' ? 4000 : 2000);
+}
+
+// Modal de confirmación genérico — reemplaza confirm() nativo
+function openConfirmModal(message, okLabel = 'Confirmar') {
+    return new Promise((resolve) => {
+        const modal     = document.getElementById('confirmModal');
+        const titleEl   = document.getElementById('confirmModalTitle');
+        const btnOk     = document.getElementById('confirmModalOk');
+        const btnCancel = document.getElementById('confirmModalCancel');
+
+        if (!modal || !titleEl || !btnOk || !btnCancel) {
+            resolve(confirm(message));
+            return;
+        }
+
+        titleEl.textContent = message;
+        btnOk.textContent = okLabel;
+
+        const cleanup = (result) => {
+            modal.classList.remove('active');
+            document.body.classList.remove('modal-open');
+            btnOk.removeEventListener('click', onOk);
+            btnCancel.removeEventListener('click', onCancel);
+            resolve(result);
+        };
+        const onOk     = () => cleanup(true);
+        const onCancel = () => cleanup(false);
+
+        btnOk.addEventListener('click', onOk);
+        btnCancel.addEventListener('click', onCancel);
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+        btnOk.focus();
+    });
 }
 
 function openModal(id) {
     if(id === 'topicModal') {
+        // Limpiar el formulario al abrir para que no queden datos del topic anterior
+        const titleInput   = document.getElementById('topicTitleInput');
+        const firstMsgInput = document.getElementById('topicFirstMsg');
+        if (titleInput)    titleInput.value = '';
+        if (firstMsgInput) firstMsgInput.value = '';
+        if (typeof setTopicWeather === 'function') setTopicWeather('none');
         updateTopicModeUI();
     }
     const modal = document.getElementById(id);
@@ -75,7 +117,7 @@ function closeModal(id) {
         delete appData.messages[pendingRoleTopicId];
         pendingRoleTopicId = null;
         hasUnsavedChanges = true;
-        save();
+        save({ silent: true });
         renderTopics();
     }
 
@@ -97,9 +139,25 @@ function changeUser() {
         const currentUserDisplay = document.getElementById('currentUserDisplay');
         if (currentUserDisplay) currentUserDisplay.textContent = newName.trim();
 
-        save();
+        save({ silent: true });
         renderUserCards();
     }
+}
+
+// Propaga el color del personaje activo como variable CSS global
+// para que la caja de diálogo y el avatar ring lo reflejen
+function applyCharColor(hexColor) {
+    if (!hexColor) {
+        document.documentElement.style.setProperty('--char-color', 'rgba(139, 115, 85, 0.6)');
+        document.documentElement.style.setProperty('--char-color-full', '#8b7355');
+        return;
+    }
+    // Convertir hex a rgba con opacidad para el borde
+    const r = parseInt(hexColor.slice(1,3), 16);
+    const g = parseInt(hexColor.slice(3,5), 16);
+    const b = parseInt(hexColor.slice(5,7), 16);
+    document.documentElement.style.setProperty('--char-color', `rgba(${r}, ${g}, ${b}, 0.55)`);
+    document.documentElement.style.setProperty('--char-color-full', hexColor);
 }
 
 function toggleTheme() {
@@ -108,25 +166,123 @@ function toggleTheme() {
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', newTheme);
     localStorage.setItem('etheria_theme', newTheme);
-
+    // Botón menú ajustes: texto descriptivo
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) themeBtn.textContent = newTheme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
+    // Botón circular perfil: icono del modo actual
+    const profileBtn = document.getElementById('profileThemeBtn');
+    if (profileBtn) profileBtn.textContent = newTheme === 'dark' ? '🌙' : '☀️';
     generateParticles();
 }
 
+function updateProfileThemeBtn() {
+    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+    // Botón menú ajustes
+    const themeBtn = document.getElementById('themeToggleBtn');
+    if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
+    // Botón circular perfil: muestra el icono del modo en que SE ESTÁ actualmente
+    const profileBtn = document.getElementById('profileThemeBtn');
+    if (profileBtn) profileBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+}
+
+function updateMasterVolume(val) {
+    if (typeof masterVolume !== 'undefined') masterVolume = parseInt(val) / 100 * 0.36;
+    localStorage.setItem('etheria_master_volume', val);
+    const el = document.getElementById('optMasterVolVal');
+    if (el) el.textContent = val + '%';
+}
+
+function updateRainVolume(val) {
+    const gain = (parseInt(val) / 100) * 0.08;
+    if (typeof rainGainNode !== 'undefined' && rainGainNode && typeof audioCtx !== 'undefined' && audioCtx) {
+        try { rainGainNode.gain.linearRampToValueAtTime(gain, audioCtx.currentTime + 0.4); } catch(e) {}
+    }
+    localStorage.setItem('etheria_rain_volume', val);
+    const el = document.getElementById('optRainVolVal');
+    if (el) el.textContent = val + '%';
+}
+
+function updateUiSounds(enabled) {
+    localStorage.setItem('etheria_ui_sounds', enabled ? '1' : '0');
+}
+
+function syncSpeedLabel(val) {
+    const el = document.getElementById('optSpeedVal');
+    if (!el) return;
+    const v = parseInt(val);
+    el.textContent = v < 40 ? 'Rápido' : v < 70 ? 'Normal' : 'Lento';
+}
+
+function saveProfileNameFromOptions() {
+    const input = document.getElementById('optProfileName');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) { showAutosave('Escribe un nombre', 'error'); return; }
+    userNames[currentUserIndex] = name;
+    localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    const display = document.getElementById('currentUserDisplay');
+    if (display) display.textContent = name;
+    showAutosave('Nombre actualizado', 'saved');
+}
+
+function syncOptionsSection() {
+    const savedSpeed = localStorage.getItem('etheria_text_speed');
+    const savedSize  = localStorage.getItem('etheria_font_size');
+    const savedMasterVol = parseInt(localStorage.getItem('etheria_master_volume') || '50');
+    const savedRainVol   = parseInt(localStorage.getItem('etheria_rain_volume') || '30');
+    const uiSounds = localStorage.getItem('etheria_ui_sounds') !== '0';
+    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+
+    const speedSlider  = document.getElementById('optTextSpeed');
+    const sizeSlider   = document.getElementById('optFontSize');
+    const masterSlider = document.getElementById('optMasterVol');
+    const rainSlider   = document.getElementById('optRainVol');
+    const uiCheck  = document.getElementById('optUiSounds');
+    const themeBtn = document.getElementById('themeToggleBtn');
+    const nameInput = document.getElementById('optProfileName');
+
+    if (speedSlider && savedSpeed) {
+        const sliderVal = 110 - parseInt(savedSpeed);
+        speedSlider.value = sliderVal;
+        syncSpeedLabel(sliderVal);
+    }
+    if (sizeSlider && savedSize) {
+        sizeSlider.value = savedSize;
+        const valEl = document.getElementById('optFontSizeVal');
+        if (valEl) valEl.textContent = savedSize + 'px';
+    }
+    if (masterSlider) { masterSlider.value = savedMasterVol; const mvEl = document.getElementById('optMasterVolVal'); if (mvEl) mvEl.textContent = savedMasterVol + '%'; }
+    if (rainSlider)   { rainSlider.value = savedRainVol;     const rvEl = document.getElementById('optRainVolVal');   if (rvEl) rvEl.textContent = savedRainVol   + '%'; }
+    if (uiCheck)  uiCheck.checked = uiSounds;
+    if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
+    if (nameInput) nameInput.value = userNames[currentUserIndex] || '';
+
+    const statsEl = document.getElementById('optProfileStats');
+    if (statsEl) {
+        const myTopics = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
+        const myChars  = appData.characters.filter(c => c.userIndex === currentUserIndex).length;
+        statsEl.textContent = `${myTopics} historias · ${myChars} personajes`;
+    }
+}
+
 function deleteCurrentTopic() {
-    if(!confirm('¿Borrar esta historia?')) return;
-
-    appData.topics = appData.topics.filter(t => t.id !== currentTopicId);
-    delete appData.messages[currentTopicId];
-    delete appData.affinities[currentTopicId];
-
-    currentTopicId = null;
-    hasUnsavedChanges = true;
-    save();
-    backToTopics();
+    openConfirmModal('¿Borrar esta historia? Esta acción no se puede deshacer.', 'Borrar').then(ok => {
+        if (!ok) return;
+        appData.topics = appData.topics.filter(t => t.id !== currentTopicId);
+        delete appData.messages[currentTopicId];
+        delete appData.affinities[currentTopicId];
+        currentTopicId = null;
+        hasUnsavedChanges = true;
+        save({ silent: true });
+        // Marcar como sin cambios pendientes para que backToTopics no pregunte
+        // (el guardado ya ocurrió o falló, pero el topic ya no existe en memoria)
+        hasUnsavedChanges = false;
+        backToTopics();
+    });
 }
 
 async function manualSyncFromScene() {
-    if (hasUnsavedChanges) save();
+    if (hasUnsavedChanges) save({ silent: true });
     await syncBidirectional({ silent: false, allowRemotePrompt: true });
 }
 
@@ -161,6 +317,7 @@ function saveGameFromMenu() {
     URL.revokeObjectURL(a.href);
 
     showAutosave('Archivo de guardado descargado', 'saved');
+    if (typeof playSoundSave === 'function') playSoundSave();
 }
 
 function loadGameFromMenu() {
@@ -178,22 +335,24 @@ function loadGameFromMenu() {
                 validateImportedData(data);
 
                 const profileInfo = data.profileName ? ` (perfil: ${data.profileName})` : '';
-                const exportDate = data.exportedAt ? `\nGuardado el: ${new Date(data.exportedAt).toLocaleString()}` : '';
+                const exportDate = data.exportedAt ? ` · guardado el ${new Date(data.exportedAt).toLocaleString()}` : '';
+                const msg = `¿Cargar el archivo${profileInfo}${exportDate}? Esto reemplazará todos los datos actuales.`;
 
-                if (confirm(`¿Cargar este archivo de guardado?${profileInfo}${exportDate}\n\nEsto reemplazará todos los datos actuales del perfil activo.`)) {
+                openConfirmModal(msg, 'Cargar').then(ok => {
+                    if (!ok) return;
                     appData.topics     = Array.isArray(data.topics)     ? data.topics     : [];
                     appData.characters = Array.isArray(data.characters) ? data.characters : [];
                     appData.messages   = (data.messages   && typeof data.messages   === 'object' && !Array.isArray(data.messages))   ? data.messages   : {};
                     appData.affinities = (data.affinities && typeof data.affinities === 'object' && !Array.isArray(data.affinities)) ? data.affinities : {};
 
                     hasUnsavedChanges = true;
-                    save();
+                    save({ silent: true });
                     showAutosave('Partida cargada correctamente', 'saved');
                     renderTopics();
                     renderGallery();
-                }
+                });
             } catch (err) {
-                alert('Error al cargar el archivo: ' + err.message);
+                showAutosave('Error al cargar el archivo: ' + err.message, 'error');
             }
         };
         reader.readAsText(file);
@@ -212,19 +371,20 @@ function exportData() {
 function deleteCharFromModal() {
     const id = document.getElementById('editCharacterId')?.value;
     if(!id) return;
-    if(!confirm('¿Borrar personaje?')) return;
 
-    if (selectedCharId === id) {
-        selectedCharId = null;
-        localStorage.removeItem(`etheria_selected_char_${currentUserIndex}`);
-    }
-
-    appData.characters = appData.characters.filter(c => c.id !== id);
-    hasUnsavedChanges = true;
-    save();
-    closeModal('characterModal');
-    resetCharForm();
-    renderGallery();
+    openConfirmModal('¿Borrar este personaje? Esta acción no se puede deshacer.', 'Borrar').then(ok => {
+        if (!ok) return;
+        if (selectedCharId === id) {
+            selectedCharId = null;
+            localStorage.removeItem(`etheria_selected_char_${currentUserIndex}`);
+        }
+        appData.characters = appData.characters.filter(c => c.id !== id);
+        hasUnsavedChanges = true;
+        save({ silent: true });
+        closeModal('characterModal');
+        resetCharForm();
+        renderGallery();
+    });
 }
 
 // ============================================
@@ -267,4 +427,39 @@ function setAtmosphere(filter, element) {
     document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
     const btn = element || document.querySelector(`.filter-btn[onclick*="'${filter}'"]`);
     if (btn) btn.classList.add('active');
+}
+
+// ── ONBOARDING PRIMER ACCESO ──────────────────────────────
+const _ONBOARDING_KEY = 'etheria_onboarding_done';
+
+const _ONBOARDING_MESSAGES = [
+    'Bienvenida a Etheria.\n\nElige un perfil para comenzar. Cada perfil guarda tu propio universo de historias y personajes, completamente separado del de los demás.',
+    'Aquí encontrarás tus historias en curso.\n\nPuedes crear nuevas, retomar las existentes o explorar lo que han escrito otros. Todo a tu ritmo.',
+    'Cuando estés dentro de una historia, pulsa en la caja de diálogo para avanzar.\n\nUsa el botón "Responder" para añadir tu voz a la narrativa.'
+];
+
+function maybeShowOnboarding() {
+    if (localStorage.getItem(_ONBOARDING_KEY)) return;
+    const step = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
+    if (step >= _ONBOARDING_MESSAGES.length) {
+        localStorage.setItem(_ONBOARDING_KEY, '1');
+        return;
+    }
+    const overlay = document.getElementById('onboardingOverlay');
+    const textEl  = document.getElementById('onboardingText');
+    if (!overlay || !textEl) return;
+    textEl.textContent = _ONBOARDING_MESSAGES[step];
+    overlay.style.display = 'flex';
+}
+
+function closeOnboarding() {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) overlay.style.display = 'none';
+    const step = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
+    const next = step + 1;
+    if (next >= _ONBOARDING_MESSAGES.length) {
+        localStorage.setItem(_ONBOARDING_KEY, '1');
+    } else {
+        localStorage.setItem('etheria_onboarding_step', String(next));
+    }
 }

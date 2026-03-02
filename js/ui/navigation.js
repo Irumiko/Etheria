@@ -2,17 +2,26 @@
 // NAVEGACIÓN
 // ============================================
 function confirmUnsavedChanges(callback) {
-    if (hasUnsavedChanges) {
-        if (confirm('Tienes cambios sin guardar. ¿Deseas guardar antes de salir?')) {
-            save();
-            callback();
-        } else if (confirm('¿Descartar cambios?')) {
-            hasUnsavedChanges = false;
-            callback();
-        }
-    } else {
+    if (!hasUnsavedChanges) {
         callback();
+        return;
     }
+    // Primero: ¿guardar antes de salir?
+    openConfirmModal('Tienes cambios sin guardar. ¿Guardar antes de salir?', 'Guardar').then(wantsSave => {
+        if (wantsSave) {
+            save({ silent: true });
+            callback();
+        } else {
+            // Segundo: ¿descartar?
+            openConfirmModal('¿Descartar los cambios sin guardar?', 'Descartar').then(wantsDiscard => {
+                if (wantsDiscard) {
+                    hasUnsavedChanges = false;
+                    callback();
+                }
+                // Si cancela en ambos, no hace nada
+            });
+        }
+    });
 }
 
 function resetVNTransientState({ clearTopic = false } = {}) {
@@ -33,11 +42,19 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     const weatherContainer = document.getElementById('weatherContainer');
     if (weatherContainer) weatherContainer.innerHTML = '';
 
+    // Detener sonido ambiental de lluvia si estaba activo
+    if (typeof stopRainSound === 'function') stopRainSound();
+
     editingMessageId = null;
     pendingContinuation = null;
     currentWeather = 'none';
+    currentFilter = 'none';
 
     if (clearTopic) {
+        // Cancelar suscripción realtime al salir de una historia
+        if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribe === 'function') {
+            SupabaseMessages.unsubscribe();
+        }
         currentTopicId = null;
         currentMessageIndex = 0;
     }
@@ -55,6 +72,7 @@ function showSection(section) {
 
     const mainMenu = document.getElementById('mainMenu');
     if (mainMenu) mainMenu.classList.add('hidden');
+    if (typeof stopMenuMusic === 'function') stopMenuMusic();
 
     resetVNTransientState({ clearTopic: true });
     closeActiveModals();
@@ -72,6 +90,7 @@ function showSection(section) {
     } else if(section === 'options') {
         const optionsSection = document.getElementById('optionsSection');
         if (optionsSection) optionsSection.classList.add('active');
+        if (typeof syncOptionsSection === 'function') syncOptionsSection();
     }
 }
 
@@ -84,6 +103,7 @@ function backToMenu() {
         if (mainMenu) {
             mainMenu.classList.remove('hidden');
             generateParticles();
+            if (typeof startMenuMusic === 'function') startMenuMusic();
         }
     });
 }

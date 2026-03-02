@@ -26,6 +26,7 @@ const jsOrder = [
   'js/ui/navigation.js',
   'js/ui/sheets.js',
   'js/ui/vn.js',
+  'js/ui/journal.js',
   'js/ui/topics.js',
   'js/ui/app-ui.js',
   'js/app.js'

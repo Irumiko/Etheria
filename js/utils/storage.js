@@ -47,7 +47,9 @@ function loadStoredAppData() {
             topics: Array.isArray(topics) ? topics : [],
             characters: Array.isArray(characters) ? characters : [],
             messages: {},
-            affinities: parseStoredJSON(STORAGE_KEYS.affinities, {}) || {}
+            affinities: parseStoredJSON(STORAGE_KEYS.affinities, {}) || {},
+            favorites: parseStoredJSON('etheria_favorites', {}) || {},
+            journals:  parseStoredJSON('etheria_journals', {}) || {}
         };
     }
 
@@ -57,11 +59,13 @@ function loadStoredAppData() {
             topics: Array.isArray(legacy.topics) ? legacy.topics : [],
             characters: Array.isArray(legacy.characters) ? legacy.characters : [],
             messages: (legacy.messages && typeof legacy.messages === 'object' && !Array.isArray(legacy.messages)) ? legacy.messages : {},
-            affinities: (legacy.affinities && typeof legacy.affinities === 'object' && !Array.isArray(legacy.affinities)) ? legacy.affinities : {}
+            affinities: (legacy.affinities && typeof legacy.affinities === 'object' && !Array.isArray(legacy.affinities)) ? legacy.affinities : {},
+            favorites: (legacy.favorites && typeof legacy.favorites === 'object') ? legacy.favorites : {},
+            journals:  (legacy.journals  && typeof legacy.journals  === 'object') ? legacy.journals  : {}
         };
     }
 
-    return { topics: [], characters: [], messages: {}, affinities: {} };
+    return { topics: [], characters: [], messages: {}, affinities: {}, favorites: {}, journals: {} };
 }
 
 function loadTopicMessagesFromStorage(topicId) {
@@ -81,6 +85,8 @@ function persistPartitionedData() {
     localStorage.setItem(STORAGE_KEYS.topics, JSON.stringify(appData.topics));
     localStorage.setItem(STORAGE_KEYS.characters, JSON.stringify(appData.characters));
     localStorage.setItem(STORAGE_KEYS.affinities, JSON.stringify(appData.affinities));
+    localStorage.setItem('etheria_favorites', JSON.stringify(appData.favorites || {}));
+    localStorage.setItem('etheria_journals', JSON.stringify(appData.journals || {}));
 
     const topicIds = appData.topics.map(t => String(t.id));
     localStorage.setItem(STORAGE_KEYS.messageTopics, JSON.stringify(topicIds));
@@ -105,7 +111,9 @@ function persistPartitionedData() {
         topics: appData.topics,
         characters: appData.characters,
         messages: appData.messages,
-        affinities: appData.affinities
+        affinities: appData.affinities,
+        favorites: appData.favorites || {},
+        journals: appData.journals || {}
     };
     localStorage.setItem(STORAGE_KEYS.legacy, JSON.stringify(legacySnapshot));
 }
@@ -158,8 +166,16 @@ function updateSyncButtonState(status, message = '') {
     if (label) label.textContent = message || 'Sincronizar';
 }
 
+function hideSyncToast() {
+    const toast = document.getElementById('syncToast');
+    const backdrop = document.getElementById('syncToastBackdrop');
+    if (toast) toast.classList.remove('visible');
+    if (backdrop) backdrop.classList.remove('visible');
+}
+
 function showSyncToast(message, actionText, onAction) {
     const toast = document.getElementById('syncToast');
+    const backdrop = document.getElementById('syncToastBackdrop');
     if (!toast) return;
 
     const textEl = toast.querySelector('.sync-toast-text');
@@ -168,13 +184,20 @@ function showSyncToast(message, actionText, onAction) {
     if (button) {
         button.textContent = actionText || 'Ver ahora';
         button.onclick = () => {
-            toast.classList.remove('visible');
+            hideSyncToast();
             if (typeof onAction === 'function') onAction();
         };
     }
 
+    // Cerrar también al clicar el backdrop
+    if (backdrop) {
+        backdrop.classList.add('visible');
+        backdrop.onclick = hideSyncToast;
+    }
+
     toast.classList.add('visible');
-    window.setTimeout(() => toast.classList.remove('visible'), 5500);
+    // Auto-cierre a los 8 segundos
+    window.setTimeout(hideSyncToast, 8000);
 }
 
 function getLocalProfileUpdatedAt(profileIndex = currentUserIndex) {
@@ -274,8 +297,34 @@ async function putCloudBin(record) {
 
 function openSyncConflictModal() {
     return new Promise((resolve) => {
-        const keepLocal = confirm('Se detectó conflicto: cambios locales y remotos. ¿Conservar cambios locales?');
-        resolve(keepLocal ? 'local' : 'server');
+        const modal = document.getElementById('syncConflictModal');
+        const btnLocal  = document.getElementById('syncKeepLocalBtn');
+        const btnServer = document.getElementById('syncKeepServerBtn');
+
+        if (!modal || !btnLocal || !btnServer) {
+            // Fallback al confirm nativo si el modal no existe aún
+            const keepLocal = confirm('Se detectó conflicto: cambios locales y remotos. ¿Conservar cambios locales?');
+            resolve(keepLocal ? 'local' : 'server');
+            return;
+        }
+
+        const cleanup = (choice) => {
+            modal.classList.remove('active');
+            document.body.classList.remove('modal-open');
+            btnLocal.removeEventListener('click', onLocal);
+            btnServer.removeEventListener('click', onServer);
+            resolve(choice);
+        };
+
+        const onLocal  = () => cleanup('local');
+        const onServer = () => cleanup('server');
+
+        btnLocal.addEventListener('click', onLocal);
+        btnServer.addEventListener('click', onServer);
+
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+        btnLocal.focus();
     });
 }
 

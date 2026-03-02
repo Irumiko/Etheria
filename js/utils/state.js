@@ -45,7 +45,9 @@ let appData = {
     topics: [],
     characters: [],
     messages: {},
-    affinities: {}
+    affinities: {},
+    favorites: {},
+    journals: {}
 };
 let currentTopicId = null;
 let selectedCharId = null;

@@ -114,8 +114,31 @@ async function selectUser(idx, options = {}) {
     const mainMenu = document.getElementById('mainMenu');
     const currentUserDisplay = document.getElementById('currentUserDisplay');
 
-    if (userSelectScreen) userSelectScreen.classList.add('hidden');
-    if (mainMenu) mainMenu.classList.remove('hidden');
+    // Transición suave: fade out de la pantalla de perfiles, fade in del menú
+    if (userSelectScreen && !safeOptions.instant) {
+        userSelectScreen.style.transition = 'opacity 0.35s ease';
+        userSelectScreen.style.opacity = '0';
+        await new Promise(resolve => setTimeout(resolve, 350));
+    }
+    if (userSelectScreen) {
+        userSelectScreen.classList.add('hidden');
+        userSelectScreen.style.opacity = '';
+        userSelectScreen.style.transition = '';
+    }
+    if (mainMenu) {
+        mainMenu.classList.remove('hidden');
+        mainMenu.style.opacity = '0';
+        mainMenu.style.transition = 'opacity 0.3s ease';
+        void mainMenu.offsetWidth;
+        mainMenu.style.opacity = '1';
+        setTimeout(() => { mainMenu.style.transition = ''; mainMenu.style.opacity = ''; }, 320);
+        if (typeof startMenuMusic === 'function') startMenuMusic();
+        // Onboarding paso 1: menú principal
+        const _ob = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
+        if (_ob === 1 && typeof maybeShowOnboarding === 'function') {
+            setTimeout(maybeShowOnboarding, 600);
+        }
+    }
     if (currentUserDisplay) currentUserDisplay.textContent = userNames[idx] || 'Jugador';
 
     await loadFromCloud();
@@ -138,12 +161,80 @@ function renderUserCards() {
         const card = document.createElement('div');
         card.className = 'user-card';
         card.dataset.profileIndex = idx;
-        card.onclick = () => selectUser(idx);
+
+        // Calcular estadísticas por perfil
+        const ownTopics = appData.topics.filter(t => t.createdByIndex === idx);
+        const ownChars  = appData.characters.filter(c => c.userIndex === idx);
+        let totalMsgs = 0;
+        ownTopics.forEach(t => {
+            // Solo usar mensajes ya en memoria — no forzar carga desde storage en la pantalla de perfiles
+            const msgs = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
+            totalMsgs += msgs.length;
+        });
+
+        // Última sesión
+        const lastUpdatedKey = `etheria_profile_updated_${idx}`;
+        const lastUpdatedRaw = parseInt(localStorage.getItem(lastUpdatedKey) || '0', 10);
+        let lastSessionText = 'Sin sesiones';
+        if (lastUpdatedRaw > 0) {
+            const d = new Date(lastUpdatedRaw);
+            const now = new Date();
+            const diffDays = Math.floor((now - d) / 86400000);
+            if (diffDays === 0) lastSessionText = 'Hoy';
+            else if (diffDays === 1) lastSessionText = 'Ayer';
+            else if (diffDays < 7) lastSessionText = `Hace ${diffDays} días`;
+            else lastSessionText = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+        }
+
+        // Última historia activa
+        const lastTopic = ownTopics[ownTopics.length - 1] || null;
+
         card.innerHTML = `
+            <div class="save-slot-number">Archivo ${String(idx + 1).padStart(2, '0')}</div>
             <div class="user-avatar">👤</div>
             <div class="user-name">${escapeHtml(name)}</div>
-            <div class="user-hint">Click para entrar</div>
+            <div class="user-card-divider"></div>
+            <div class="user-card-stats">
+                <div class="user-stat">
+                    <span class="user-stat-val">${ownTopics.length}</span>
+                    <span class="user-stat-lbl">Historias</span>
+                </div>
+                <div class="user-stat-sep"></div>
+                <div class="user-stat">
+                    <span class="user-stat-val">${ownChars.length}</span>
+                    <span class="user-stat-lbl">Personajes</span>
+                </div>
+                <div class="user-stat-sep"></div>
+                <div class="user-stat">
+                    <span class="user-stat-val">${totalMsgs}</span>
+                    <span class="user-stat-lbl">Mensajes</span>
+                </div>
+            </div>
+            <div class="user-card-footer">
+                <div class="user-last-session">${lastSessionText}</div>
+                ${lastTopic ? `<div class="user-last-topic">📖 ${escapeHtml(lastTopic.title)}</div>` : ''}
+                ${lastTopic ? `<button class="user-continue-btn">▶ Continuar</button>` : ''}
+            </div>
         `;
+
+        // Botón continuar — stopPropagation para no activar selectUser a la vez
+        const btn = card.querySelector('.user-continue-btn');
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectUser(idx).then(() => {
+                    if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
+                    if (typeof stopMenuMusic === 'function') stopMenuMusic();
+                    enterTopic(lastTopic.id);
+                });
+            });
+        }
+
+        card.onclick = () => {
+            // Al entrar al perfil sin ir directo a un topic, también suprimir el overlay
+            if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
+            selectUser(idx);
+        };
         container.appendChild(card);
     });
 
@@ -155,7 +246,7 @@ function renderUserCards() {
         addCard.onclick = addNewProfile;
         addCard.innerHTML = `
             <div class="add-profile-icon">+</div>
-            <div class="add-profile-text">Crear Perfil</div>
+            <div class="add-profile-text">Nuevo Archivo</div>
         `;
         container.appendChild(addCard);
     }
@@ -232,8 +323,8 @@ function initMenuParallax() {
     // Cada capa define --layer-speed en CSS; aquí solo gestionamos --parallax-x/y
     // que la capa multiplica por su propia velocidad.
     // Amplitud máxima: movimiento visible pero no mareante.
-    const MAX_X = 18;
-    const MAX_Y = 10;
+    const MAX_X = 10;
+    const MAX_Y = 6;
 
     const updateParallax = () => {
         const layers = parallax.querySelectorAll('.parallax-layer');
@@ -245,8 +336,8 @@ function initMenuParallax() {
 
     // Factor de suavizado 0.055: más suave que antes (era 0.07), sin inercia brusca
     const animateParallax = () => {
-        menuMouseState.x += (menuMouseState.targetX - menuMouseState.x) * 0.055;
-        menuMouseState.y += (menuMouseState.targetY - menuMouseState.y) * 0.055;
+        menuMouseState.x += (menuMouseState.targetX - menuMouseState.x) * 0.03;
+        menuMouseState.y += (menuMouseState.targetY - menuMouseState.y) * 0.03;
         updateParallax();
         menuParallaxAnimationId = window.requestAnimationFrame(animateParallax);
     };
@@ -275,76 +366,120 @@ function animateFireflies() {
     if (fireflyAnimationId) window.cancelAnimationFrame(fireflyAnimationId);
 
     let lastTime = performance.now();
+
     const loop = (timeNow) => {
-        const dt = Math.min((timeNow - lastTime) / 16.67, 1.8);
+        const dt = Math.min((timeNow - lastTime) / 16.67, 2);
         lastTime = timeNow;
 
         fireflyEntities.forEach((entity) => {
-            entity.phase += entity.curveSpeed * dt;
-            entity.wobble += entity.wobbleSpeed * dt;
-
-            const figureX = Math.sin(entity.phase) * entity.figureScale;
-            const figureY = Math.sin(entity.phase * 2 + entity.figureOffset) * (entity.figureScale * 0.52);
-            const driftX = Math.cos(entity.wobble) * entity.driftRadius;
-            const driftY = Math.sin(entity.wobble * 0.8) * (entity.driftRadius * 0.8);
-
-            const targetX = entity.originX + figureX + driftX;
-            const targetY = entity.originY + figureY + driftY;
-
-            entity.vx += (targetX - entity.x) * 0.017 * entity.speedFactor * dt;
-            entity.vy += (targetY - entity.y) * 0.017 * entity.speedFactor * dt;
-
-            const mouseDx = entity.x - menuMouseState.px;
-            const mouseDy = entity.y - menuMouseState.py;
-            const mouseDist = Math.hypot(mouseDx, mouseDy);
-            if (mouseDist < entity.fleeRadius) {
-                const push = (1 - (mouseDist / entity.fleeRadius)) * entity.fleeForce * dt;
-                entity.vx += (mouseDx / (mouseDist || 1)) * push;
-                entity.vy += (mouseDy / (mouseDist || 1)) * push;
+            // --- Comportamiento de luciérnaga real ---
+            // Cada luciérnaga tiene fases: volar, pausar, subir, girar
+            entity.stateTimer -= dt;
+            if (entity.stateTimer <= 0) {
+                // Transición aleatoria de estado
+                const r = Math.random();
+                if (r < 0.35) {
+                    entity.state = 'float';      // deriva lenta
+                    entity.stateTimer = 40 + Math.random() * 80;
+                    entity.targetDx = (Math.random() - 0.5) * 60;
+                    entity.targetDy = -10 - Math.random() * 30; // tienden a subir
+                } else if (r < 0.6) {
+                    entity.state = 'pause';      // pausa quieta, solo parpadeo
+                    entity.stateTimer = 20 + Math.random() * 50;
+                    entity.targetDx = 0;
+                    entity.targetDy = 0;
+                } else if (r < 0.80) {
+                    entity.state = 'drift';      // deriva lateral suave
+                    entity.stateTimer = 30 + Math.random() * 60;
+                    entity.targetDx = (Math.random() - 0.5) * 80;
+                    entity.targetDy = (Math.random() - 0.5) * 25;
+                } else {
+                    entity.state = 'rise';       // ascenso curvo más vivo
+                    entity.stateTimer = 15 + Math.random() * 30;
+                    entity.targetDx = (Math.random() - 0.5) * 40;
+                    entity.targetDy = -30 - Math.random() * 50;
+                }
             }
 
-            entity.vx *= 0.93;
-            entity.vy *= 0.93;
+            // Velocidad base según estado
+            const speed = entity.state === 'pause' ? 0.003
+                        : entity.state === 'float' ? 0.008
+                        : entity.state === 'rise'  ? 0.014
+                        :                            0.006;
+
+            const tx = entity.originX + entity.targetDx;
+            const ty = entity.originY + entity.targetDy;
+            entity.vx += (tx - entity.x) * speed * entity.speedFactor * dt;
+            entity.vy += (ty - entity.y) * speed * entity.speedFactor * dt;
+
+            // Micro-oscilación orgánica (aleteos leves)
+            entity.wobble += entity.wobbleSpeed * dt;
+            entity.vx += Math.sin(entity.wobble * 2.3) * 0.012 * dt;
+            entity.vy += Math.cos(entity.wobble * 1.7) * 0.008 * dt;
+
+            // Huida del ratón
+            const mdx = entity.x - menuMouseState.px;
+            const mdy = entity.y - menuMouseState.py;
+            const mdist = Math.hypot(mdx, mdy);
+            if (mdist < entity.fleeRadius && mdist > 0) {
+                const push = (1 - mdist / entity.fleeRadius) * entity.fleeForce * dt;
+                entity.vx += (mdx / mdist) * push;
+                entity.vy += (mdy / mdist) * push;
+            }
+
+            // Amortiguación — más alta en pausa, baja al volar
+            const damp = entity.state === 'pause' ? 0.88 : 0.94;
+            entity.vx *= damp;
+            entity.vy *= damp;
 
             entity.x += entity.vx * dt;
             entity.y += entity.vy * dt;
 
-            if (entity.x < 0) {
-                entity.x = 0;
-                entity.vx = Math.abs(entity.vx) * 0.72;
-                entity.originX = Math.max(entity.figureScale, entity.originX);
-            } else if (entity.x > entity.maxX) {
-                entity.x = entity.maxX;
-                entity.vx = -Math.abs(entity.vx) * 0.72;
-                entity.originX = Math.min(entity.maxX - entity.figureScale, entity.originX);
+            // Rebote en bordes — relocalizan el origen para que no queden atrapadas
+            if (entity.x < 4) {
+                entity.x = 4; entity.vx = Math.abs(entity.vx) * 0.5;
+                entity.originX = 20 + Math.random() * (entity.maxX * 0.3);
+            } else if (entity.x > entity.maxX - 4) {
+                entity.x = entity.maxX - 4; entity.vx = -Math.abs(entity.vx) * 0.5;
+                entity.originX = entity.maxX * 0.7 + Math.random() * (entity.maxX * 0.25);
+            }
+            if (entity.y < 4) {
+                entity.y = 4; entity.vy = Math.abs(entity.vy) * 0.5;
+                entity.originY = entity.maxY * 0.3 + Math.random() * (entity.maxY * 0.3);
+            } else if (entity.y > entity.maxY - 4) {
+                entity.y = entity.maxY - 4; entity.vy = -Math.abs(entity.vy) * 0.5;
+                entity.originY = entity.maxY * 0.4 + Math.random() * (entity.maxY * 0.3);
             }
 
-            if (entity.y < 0) {
-                entity.y = 0;
-                entity.vy = Math.abs(entity.vy) * 0.72;
-                entity.originY = Math.max(entity.figureScale, entity.originY);
-            } else if (entity.y > entity.maxY) {
-                entity.y = entity.maxY;
-                entity.vy = -Math.abs(entity.vy) * 0.72;
-                entity.originY = Math.min(entity.maxY - entity.figureScale, entity.originY);
-            }
-
+            // Deriva suave del origen para que exploren el espacio
             entity.originX += (Math.random() - 0.5) * entity.originDrift * dt;
-            entity.originY += (Math.random() - 0.5) * entity.originDrift * dt;
-            entity.originX = Math.min(Math.max(entity.figureScale, entity.originX), entity.maxX - entity.figureScale);
-            entity.originY = Math.min(Math.max(entity.figureScale, entity.originY), entity.maxY - entity.figureScale);
+            entity.originY += (Math.random() - 0.5) * entity.originDrift * 0.6 * dt;
+            entity.originX = Math.max(10, Math.min(entity.maxX - 10, entity.originX));
+            entity.originY = Math.max(entity.maxY * 0.1, Math.min(entity.maxY * 0.92, entity.originY));
 
-            const heading = Math.atan2(entity.vy, entity.vx) * (180 / Math.PI);
-            const upBoost = Math.max(0, -entity.vy * 0.42);
-            const downFade = Math.max(0, entity.vy * 0.25);
-            const movementGlow = Math.min(1.2, entity.baseGlow + upBoost - downFade);
+            // Parpadeo: brillo pulsante lento, más intenso al subir
             entity.twinkle += entity.twinkleSpeed * dt;
-            const twinkle = 0.75 + (Math.sin(entity.twinkle) * 0.25);
-            const movementOpacity = Math.min(1, Math.max(0.5, (entity.baseOpacity + (upBoost * 0.2) - (downFade * 0.12)) * twinkle));
+            // Ciclo de encendido/apagado: luciérnagas reales parpadean ~0.5–2 Hz
+            entity.blinkTimer -= dt;
+            if (entity.blinkTimer < 0) {
+                entity.blinkOn = !entity.blinkOn;
+                entity.blinkTimer = entity.blinkOn
+                    ? (8 + Math.random() * 20)   // encendida: 0.5–2s a 60fps
+                    : (4 + Math.random() * 12);  // apagada: más corto
+            }
 
-            entity.el.style.opacity = movementOpacity.toFixed(3);
-            entity.el.style.filter = `blur(0.2px) drop-shadow(0 0 ${6 + (movementGlow * 6)}px rgba(255, 214, 120, ${0.45 + movementGlow * 0.35}))`;
-            entity.el.style.transform = `translate(${entity.x}px, ${entity.y}px) rotate(${heading}deg)`;
+            const glowBase = entity.blinkOn ? entity.baseGlow : entity.baseGlow * 0.08;
+            const glowPulse = 0.85 + Math.sin(entity.twinkle) * 0.15;
+            const glow = glowBase * glowPulse;
+            const opacity = entity.blinkOn
+                ? Math.max(0.25, entity.baseOpacity * glowPulse)
+                : entity.baseOpacity * 0.06;
+
+            entity.el.style.opacity = opacity.toFixed(3);
+            entity.el.style.filter = entity.blinkOn
+                ? `drop-shadow(0 0 ${3 + glow * 5}px rgba(255, 255, 200, ${0.9 + glow * 0.1})) drop-shadow(0 0 ${8 + glow * 12}px rgba(255, 200, 40, ${0.6 + glow * 0.3}))`
+                : `blur(1px)`;
+            entity.el.style.transform = `translate(${entity.x.toFixed(1)}px, ${entity.y.toFixed(1)}px)`;
         });
 
         fireflyAnimationId = window.requestAnimationFrame(loop);
@@ -355,7 +490,7 @@ function animateFireflies() {
 
 function addNewProfile() {
     if (userNames.length >= 10) {
-        alert('Máximo de 10 perfiles alcanzado');
+        showAutosave('Máximo de 10 perfiles alcanzado', 'error');
         return;
     }
     const newName = prompt('Nombre del nuevo perfil:');
@@ -377,7 +512,7 @@ function generateParticles() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
     if (isDark) {
-        const totalFireflies = 24 + Math.floor(Math.random() * 8);
+        const totalFireflies = 18 + Math.floor(Math.random() * 6);
 
         // getBoundingClientRect puede devolver 0 si el contenedor acaba de mostrarse.
         // Usamos window como fallback y actualizamos los bounds en el primer frame.
@@ -394,35 +529,42 @@ function generateParticles() {
             firefly.style.animationDuration = (1.6 + Math.random() * 2.1) + 's';
 
             const depth = 0.72 + Math.random() * 0.46;
-            const size = 7 + (depth * 4);
+            const size = 4 + (depth * 4);
             firefly.style.setProperty('--firefly-size-w', `${size.toFixed(2)}px`);
-            firefly.style.setProperty('--firefly-size-h', `${(size * 0.58).toFixed(2)}px`);
+            firefly.style.setProperty('--firefly-size-h', `${size.toFixed(2)}px`);
+            // Longitud de los rayos proporcional al tamaño
+            const rayLen = (16 + depth * 18).toFixed(1);
+            firefly.style.setProperty('--firefly-ray', `${rayLen}px`);
 
             const entity = {
                 el: firefly,
                 x: Math.random() * W,
                 y: (H * 0.18) + (Math.random() * H * 0.74),
                 originX: Math.random() * W,
-                originY: (H * 0.16) + (Math.random() * H * 0.78),
+                originY: (H * 0.25) + (Math.random() * H * 0.60),
                 maxX: Math.max(1, W - 2),
                 maxY: Math.max(1, H - 2),
-                vx: (Math.random() - 0.5) * 0.25,
-                vy: (Math.random() - 0.5) * 0.2,
-                phase: Math.random() * Math.PI * 2,
-                curveSpeed: 0.005 + Math.random() * 0.02,
-                figureScale: 10 + Math.random() * 24,
-                figureOffset: Math.random() * Math.PI,
+                vx: (Math.random() - 0.5) * 0.15,
+                vy: (Math.random() - 0.5) * 0.1,
+                // Estado de comportamiento
+                state: 'float',
+                stateTimer: Math.random() * 60,
+                targetDx: (Math.random() - 0.5) * 40,
+                targetDy: -5 - Math.random() * 20,
+                // Parámetros de movimiento
                 wobble: Math.random() * Math.PI * 2,
-                wobbleSpeed: 0.002 + Math.random() * 0.01,
-                driftRadius: 5 + Math.random() * 12,
-                speedFactor: 0.45 + Math.random() * 0.9,
-                fleeRadius: 75 + Math.random() * 55,
-                fleeForce: 0.18 + Math.random() * 0.42,
-                originDrift: 0.12 + Math.random() * 0.3,
-                baseGlow: 0.38 + (depth * 0.58),
-                baseOpacity: 0.58 + (depth * 0.25),
+                wobbleSpeed: 0.008 + Math.random() * 0.018,
+                speedFactor: 0.35 + Math.random() * 0.65,
+                fleeRadius: 70 + Math.random() * 50,
+                fleeForce: 0.15 + Math.random() * 0.35,
+                originDrift: 0.08 + Math.random() * 0.22,
+                // Parpadeo tipo luciérnaga
+                blinkOn: Math.random() > 0.4,
+                blinkTimer: 5 + Math.random() * 25,
+                baseGlow: 0.7 + (depth * 0.4),
+                baseOpacity: 0.82 + (depth * 0.18),
                 twinkle: Math.random() * Math.PI * 2,
-                twinkleSpeed: 0.02 + Math.random() * 0.04
+                twinkleSpeed: 0.015 + Math.random() * 0.025
             };
 
             firefly.style.setProperty('--firefly-opacity', entity.baseOpacity.toFixed(2));

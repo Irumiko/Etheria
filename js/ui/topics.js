@@ -67,7 +67,7 @@ function saveBranches() {
     const validBranches = tempBranches.filter(b => b.text.trim() && b.continuation.trim());
 
     if (validBranches.length === 0 && tempBranches.length > 0) {
-        alert('Las ramas deben tener tanto texto como continuación');
+        showAutosave('Cada rama necesita texto y continuación', 'error');
         return;
     }
 
@@ -95,29 +95,48 @@ function renderTopics() {
     if (!container) return;
 
     if(appData.topics.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">No hay historias. ¡Crea una!</div>';
+        container.innerHTML = '<div class="topics-empty">No hay historias todavía.<br><span>Crea la primera con el botón de arriba.</span></div>';
         return;
     }
 
     container.innerHTML = appData.topics.map(t => {
-        const msgs = getTopicMessages(t.id);
+        // Usar mensajes en memoria si están cargados, evitar cargar desde storage en cada render
+        const msgs = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
         const last = msgs[msgs.length - 1];
-        const lastText = last ? stripHtml(formatText(last.text)).substring(0, 50) : '';
-        const modeIcon = t.mode === 'fanfic' ? '📖' : '🎭';
-        const modeText = t.mode === 'fanfic' ? 'Fanfic' : 'Rol';
+        const lastText = last ? stripHtml(formatText(last.text)).substring(0, 80) : '';
+        const isRol    = t.mode !== 'fanfic';
+        const modeLabel = isRol ? 'Rol' : 'Historia';
+        const weatherBadge = t.weather === 'rain'
+            ? '<span class="topic-badge weather">🌧 Lluvia</span>'
+            : t.weather === 'fog'
+            ? '<span class="topic-badge weather">🌫 Niebla</span>'
+            : '';
+
+        // Personaje principal si tiene roleCharacterId
+        let charAvatarHtml = '';
+        if (t.roleCharacterId) {
+            const char = appData.characters.find(c => String(c.id) === String(t.roleCharacterId));
+            if (char && char.avatar) {
+                charAvatarHtml = `<img src="${escapeHtml(char.avatar)}" class="topic-card-char-avatar" alt="${escapeHtml(char.name)}">`;
+            }
+        }
 
         return `
-            <div style="background: var(--bg-secondary); border: 2px solid var(--border-color); border-radius: 16px; padding: 1.5rem; cursor: pointer; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-gold)'" onmouseout="this.style.borderColor='var(--border-color)'" onclick="enterTopic('${t.id}')">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <h3 style="font-family: Cinzel; color: var(--accent-wood);">${escapeHtml(t.title)}</h3>
-                    <span style="background: var(--accent-wood); color: white; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">${msgs.length}</span>
+            <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}" onclick="enterTopic('${t.id}')">
+                <div class="topic-card-accent"></div>
+                <div class="topic-card-inner">
+                    <div class="topic-card-top">
+                        <div class="topic-card-badges">
+                            <span class="topic-badge mode">${modeLabel}</span>
+                            ${weatherBadge}
+                        </div>
+                        <span class="topic-card-count">${msgs.length}</span>
+                    </div>
+                    <h3 class="topic-card-title">${escapeHtml(t.title)}</h3>
+                    <p class="topic-card-author">por ${escapeHtml(t.createdBy)}</p>
+                    ${lastText ? `<p class="topic-card-excerpt">"${escapeHtml(lastText)}${lastText.length >= 80 ? '…' : ''}"</p>` : '<p class="topic-card-excerpt topic-card-excerpt--empty">Historia sin mensajes aún.</p>'}
+                    ${charAvatarHtml}
                 </div>
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                    <span style="background: rgba(201, 168, 108, 0.2); color: var(--accent-gold); padding: 0.2rem 0.6rem; border-radius: 8px; font-size: 0.75rem;">${modeIcon} ${modeText}</span>
-                    ${t.weather ? `<span style="background: rgba(100, 149, 237, 0.2); color: #6495ed; padding: 0.2rem 0.6rem; border-radius: 8px; font-size: 0.75rem;">${t.weather === 'rain' ? '🌧️' : '🌫️'}</span>` : ''}
-                </div>
-                <p style="font-size: 0.9rem; color: var(--text-secondary);">Por ${escapeHtml(t.createdBy)}</p>
-                ${last ? `<p style="font-style: italic; color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">"${escapeHtml(lastText)}..."</p>` : ''}
             </div>
         `;
     }).join('');
@@ -129,7 +148,8 @@ function renderTopics() {
 
     let msgCount = 0;
     appData.topics.forEach((topic) => {
-        const topicMsgs = getTopicMessages(topic.id);
+        // Usar solo mensajes en memoria para el conteo, sin forzar carga desde storage
+        const topicMsgs = Array.isArray(appData.messages[topic.id]) ? appData.messages[topic.id] : [];
         msgCount += topicMsgs.filter(m => m.userIndex === currentUserIndex).length;
     });
 
@@ -148,9 +168,10 @@ function createTopic() {
     const weather = weatherInput?.value || 'none';
     const topicBackground = DEFAULT_TOPIC_BACKGROUND;
 
-    if(!title || !text) { alert('Completa todos los campos obligatorios'); return; }
+    if(!title || !text) { showAutosave('Completa todos los campos obligatorios', 'error'); return; }
 
-    const id = Date.now().toString();
+    const now = Date.now();
+    const id = now.toString();
     appData.topics.push({
         id,
         title,
@@ -164,7 +185,7 @@ function createTopic() {
     });
 
     appData.messages[id] = [{
-        id: Date.now().toString(),
+        id: (now + 1).toString(),
         characterId: null,
         charName: 'Narrador',
         charColor: null,
@@ -178,7 +199,7 @@ function createTopic() {
     }];
 
     hasUnsavedChanges = true;
-    save();
+    save({ silent: true });
     closeModal('topicModal');
     renderTopics();
     if (currentTopicMode === 'roleplay') {

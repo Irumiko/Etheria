@@ -16,16 +16,22 @@
         <span class="autosave-text">Guardando...</span>
     </div>
 
+    <!-- Mejora 9: Overlay de transición entre secciones -->
+    <div id="sectionTransitionOverlay"></div>
+
     <div id="cloudSyncIndicator" class="cloud-sync-indicator online" aria-live="polite">
         <span class="cloud-sync-icon">⚠️</span>
         <span class="cloud-sync-text">Solo local</span>
     </div>
 
 
+    <div id="syncToastBackdrop" class="sync-toast-backdrop"></div>
     <div id="syncToast" class="sync-toast" role="status" aria-live="polite">
         <span class="sync-toast-text">Hay mensajes nuevos</span>
-        <button class="sync-toast-action" type="button">Ver ahora</button>
-        <button class="sync-toast-dismiss" type="button" onclick="this.parentElement.classList.remove('visible')">Más tarde</button>
+        <div class="sync-toast-buttons">
+            <button class="sync-toast-action" type="button">Ver ahora</button>
+            <button class="sync-toast-dismiss" type="button" onclick="hideSyncToast()">Más tarde</button>
+        </div>
     </div>
 
     <div id="loadingOverlay" class="loading-overlay">
@@ -94,13 +100,15 @@
     <!-- User Select -->
     <div id="userSelectScreen" class="user-select-screen">
         <div class="profile-particles" id="profileParticles"></div>
+        <button class="profile-theme-btn" id="profileThemeBtn" onclick="toggleTheme();" type="button" title="Cambiar tema">🌙</button>
         <h1 class="game-title">ETHERIA</h1>
-        <p class="game-subtitle">Elige tu perfil para comenzar la aventura...</p>
+        <div class="save-screen-rule"></div>
+        <p class="game-subtitle">Seleccionar Archivo de Guardado</p>
         <div class="user-cards" id="userCardsContainer">
             <!-- Los perfiles se generarán dinámicamente -->
         </div>
         <div class="welcome-overlay" id="welcomeOverlay">
-            <div class="welcome-message">¡Bienvenid@ a Etheria! Crea tu primer perfil</div>
+            <div class="welcome-message">¡Bienvenid@ a Etheria!<br>Crea tu primer perfil para comenzar</div>
         </div>
     </div>
 
@@ -109,14 +117,14 @@
         <div class="menu-parallax" id="menuParallax">
             <div class="parallax-layer layer-sky" data-depth="0.08"></div>
             <div class="parallax-layer layer-midforest" data-depth="0.22"></div>
-            <div class="parallax-layer layer-foreground" data-depth="0.38">
-                <div class="menu-particles" id="particlesContainer"></div>
-            </div>
+            <div class="parallax-layer layer-foreground" data-depth="0.38"></div>
         </div>
+        <!-- Luciérnagas fuera del parallax para evitar filtros de color -->
+        <div class="menu-fireflies" id="particlesContainer"></div>
 
         <div class="menu-sidebar">
             <div class="menu-brand">
-                <h1 class="menu-title">📖 ETHERIA</h1>
+                <h1 class="menu-title">📖 <span class="menu-title-animated"><span class="title-letter">E</span><span class="title-letter">T</span><span class="title-letter">H</span><span class="title-letter">E</span><span class="title-letter">R</span><span class="title-letter">I</span><span class="title-letter">A</span></span></h1>
                 <p class="menu-subtitle">¿Qué deseas hacer hoy?</p>
             </div>
 
@@ -153,31 +161,37 @@
     <!-- Topics Section -->
     <div id="topicsSection" class="game-section">
         <div class="section-header-bar">
-            <h2 class="section-title">✨ Nueva Partida</h2>
+            <h2 class="section-title">📖 Historias</h2>
             <button class="back-button" onclick="backToMenu()">← Volver</button>
         </div>
         <div class="section-content">
-            <div style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem;">
-                <div style="background: var(--bg-card); border-radius: 20px; border: 2px solid var(--border-color); padding: 2rem;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                        <h3 style="font-family: 'Cinzel', serif; color: var(--accent-wood);">Historias</h3>
-                        <button onclick="openModal('topicModal')" style="background: var(--accent-wood); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer;">+ Crear</button>
+            <div class="topics-layout">
+                <!-- Lista de historias -->
+                <div class="topics-main">
+                    <div class="topics-toolbar">
+                        <h3 class="topics-toolbar-title">Tus historias</h3>
+                        <button onclick="openModal('topicModal')" class="btn-create-topic">+ Nueva historia</button>
                     </div>
-                    <div id="topicsList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;"></div>
+                    <div id="topicsList" class="topics-grid"></div>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                    <div style="background: var(--bg-card); border-radius: 16px; border: 2px solid var(--border-color); padding: 1.5rem;">
-                        <h4 style="font-family: 'Cinzel', serif; color: var(--accent-wood); margin-bottom: 1rem;">📊 Progreso</h4>
-                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 12px; text-align: center; margin-bottom: 1rem;">
-                            <div id="statTopics" style="font-family: 'Cinzel'; font-size: 2rem; color: var(--accent-wood);">0</div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Historias</div>
-                        </div>
-                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 12px; text-align: center;">
-                            <div id="statMsgs" style="font-family: 'Cinzel'; font-size: 2rem; color: var(--accent-wood);">0</div>
-                            <div style="font-size: 0.8rem; color: var(--text-secondary);">Mensajes</div>
+
+                <!-- Panel lateral con stats -->
+                <aside class="topics-sidebar">
+                    <div class="topics-stats-card">
+                        <h4 class="topics-stats-title">Progreso</h4>
+                        <div class="topics-stat-row">
+                            <div class="topics-stat">
+                                <span id="statTopics" class="topics-stat-val">0</span>
+                                <span class="topics-stat-lbl">Historias</span>
+                            </div>
+                            <div class="topics-stat-divider"></div>
+                            <div class="topics-stat">
+                                <span id="statMsgs" class="topics-stat-val">0</span>
+                                <span class="topics-stat-lbl">Mensajes</span>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </aside>
             </div>
         </div>
     </div>
@@ -213,12 +227,105 @@
             <button class="back-button" onclick="backToMenu()">← Volver</button>
         </div>
         <div class="section-content">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto;">
-                <div style="background: var(--bg-card); border: 2px solid var(--border-color); border-radius: 20px; padding: 2rem; text-align: center;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem;">🌙</div>
-                    <h3 style="font-family: 'Cinzel'; color: var(--accent-wood); margin-bottom: 1rem;">Tema Visual</h3>
-                    <button onclick="toggleTheme()" class="btn-primary">Cambiar Claro/Oscuro</button>
+            <div class="options-grid">
+
+                <!-- Apariencia -->
+                <div class="options-card">
+                    <div class="options-card-icon">🎨</div>
+                    <h3 class="options-card-title">Apariencia</h3>
+                    <div class="options-card-body">
+                        <div class="option-row">
+                            <span class="option-label">Tema visual</span>
+                            <button onclick="toggleTheme()" class="opt-toggle-btn" id="themeToggleBtn">🌙 Oscuro</button>
+                        </div>
+                        <div class="option-row">
+                            <label class="option-label" for="optFontSize">Tamaño de fuente</label>
+                            <div class="option-slider-wrap">
+                                <input type="range" id="optFontSize" class="setting-slider" min="14" max="24" value="19" oninput="updateFontSize(this.value); document.getElementById('optFontSizeVal').textContent = this.value + 'px'">
+                                <span class="option-slider-val" id="optFontSizeVal">19px</span>
+                            </div>
+                        </div>
+                        <div class="option-row">
+                            <label class="option-label">Filtro de escena</label>
+                            <div class="filter-buttons">
+                                <button class="filter-btn active" onclick="setAtmosphere('none', this)">Normal</button>
+                                <button class="filter-btn" onclick="setAtmosphere('sepia', this)">Sépia</button>
+                                <button class="filter-btn" onclick="setAtmosphere('bw', this)">B/N</button>
+                                <button class="filter-btn" onclick="setAtmosphere('cinematic', this)">Cine</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Lectura -->
+                <div class="options-card">
+                    <div class="options-card-icon">📖</div>
+                    <h3 class="options-card-title">Lectura</h3>
+                    <div class="options-card-body">
+                        <div class="option-row">
+                            <label class="option-label" for="optTextSpeed">Velocidad del texto</label>
+                            <div class="option-slider-wrap">
+                                <input type="range" id="optTextSpeed" class="setting-slider" min="10" max="100" value="75" oninput="updateTextSpeed(this.value); syncSpeedLabel(this.value)">
+                                <span class="option-slider-val" id="optSpeedVal">Normal</span>
+                            </div>
+                        </div>
+                        <div class="option-row">
+                            <span class="option-label">Texto instantáneo</span>
+                            <label class="opt-switch">
+                                <input type="checkbox" id="optInstantText" onchange="updateTextSpeed(this.checked ? 10 : parseInt(document.getElementById('optTextSpeed').value))">
+                                <span class="opt-switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sonido -->
+                <div class="options-card">
+                    <div class="options-card-icon">🔊</div>
+                    <h3 class="options-card-title">Sonido</h3>
+                    <div class="options-card-body">
+                        <div class="option-row">
+                            <label class="option-label" for="optMasterVol">Volumen general</label>
+                            <div class="option-slider-wrap">
+                                <input type="range" id="optMasterVol" class="setting-slider" min="0" max="100" value="50" oninput="updateMasterVolume(this.value)">
+                                <span class="option-slider-val" id="optMasterVolVal">50%</span>
+                            </div>
+                        </div>
+                        <div class="option-row">
+                            <label class="option-label" for="optRainVol">Volumen lluvia</label>
+                            <div class="option-slider-wrap">
+                                <input type="range" id="optRainVol" class="setting-slider" min="0" max="100" value="30" oninput="updateRainVolume(this.value)">
+                                <span class="option-slider-val" id="optRainVolVal">30%</span>
+                            </div>
+                        </div>
+                        <div class="option-row">
+                            <span class="option-label">Efectos de UI</span>
+                            <label class="opt-switch">
+                                <input type="checkbox" id="optUiSounds" checked onchange="updateUiSounds(this.checked)">
+                                <span class="opt-switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Perfil -->
+                <div class="options-card">
+                    <div class="options-card-icon">👤</div>
+                    <h3 class="options-card-title">Perfil actual</h3>
+                    <div class="options-card-body">
+                        <div class="option-row" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
+                            <label class="option-label" for="optProfileName">Nombre del perfil</label>
+                            <div style="display: flex; gap: 0.5rem; width: 100%;">
+                                <input type="text" id="optProfileName" class="opt-text-input" placeholder="Nombre..." style="flex: 1;">
+                                <button onclick="saveProfileNameFromOptions()" class="opt-small-btn">Guardar</button>
+                            </div>
+                        </div>
+                        <div class="option-row" style="margin-top: 0.5rem;">
+                            <span class="option-label" style="color: var(--text-muted); font-size: 0.8rem;" id="optProfileStats"></span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -235,21 +342,32 @@
                 <div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">👤</div>
             </div>
             <div class="vn-info-details">
-                <div class="vn-info-name" id="vnInfoName">Sin personaje</div>
-                <div class="vn-info-club" id="vnInfoClub">Selecciona un personaje</div>
-                <div class="vn-info-hover-details" id="vnInfoHoverDetails" aria-live="polite">
-                    <div id="vnInfoModeDetail">Modo: Historia</div>
-                    <div id="vnInfoAgeDetail">Edad: -</div>
-                    <div id="vnInfoStoryDetail">Historia: Sin detalles</div>
+
+                <!-- Nombre + apellido en la misma línea -->
+                <div class="vn-info-name-row">
+                    <div class="vn-info-name" id="vnInfoName">Sin personaje</div>
+                    <div class="vn-info-lastname" id="vnInfoLastname"></div>
                 </div>
 
-                <!-- Sistema de Afinidad - Solo nombre de rango -->
+                <!-- Píldoras: edad · raza · género -->
+                <div class="vn-info-pills" id="vnInfoPills">
+                    <span class="vn-info-pill" id="vnInfoPillAge"></span>
+                    <span class="vn-info-pill-sep" id="vnInfoPillSep1"></span>
+                    <span class="vn-info-pill" id="vnInfoPillRace"></span>
+                    <span class="vn-info-pill-sep" id="vnInfoPillSep2"></span>
+                    <span class="vn-info-pill" id="vnInfoPillGender"></span>
+                </div>
+
+                <!-- Sistema de Afinidad Revamp -->
                 <div id="affinityDisplay" class="affinity-rank-display hidden">
-                    <div class="affinity-rank-name" id="affinityRankName">Desconocidos</div>
-                    <div class="affinity-controls-inline">
-                        <button class="affinity-btn-inline minus" onclick="modifyAffinity(-1)" title="Disminuir afinidad">−</button>
-                        <button class="affinity-btn-inline plus" onclick="modifyAffinity(1)" title="Aumentar afinidad">+</button>
+                    <div class="affinity-rank-row">
+                        <div class="affinity-rank-name" id="affinityRankName">Desconocidos</div>
+                        <div class="affinity-controls-inline">
+                            <button class="affinity-btn-inline minus" onclick="modifyAffinity(-1)" title="Disminuir afinidad">−</button>
+                            <button class="affinity-btn-inline plus" onclick="modifyAffinity(1)" title="Aumentar afinidad">+</button>
+                        </div>
                     </div>
+                    <div class="affinity-feedback" id="affinityFeedback"></div>
                 </div>
 
                 <div class="vn-info-affection" id="vnInfoAffection" style="display: none;">
@@ -261,64 +379,77 @@
 
         <!-- Controles -->
         <div class="vn-controls">
+            <!-- Grupo Navegación -->
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="firstMessage()" aria-label="Primer mensaje">
                     <span class="vn-control-icon">«</span>
-                    <span class="vn-control-label">Inicio</span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="previousMessage()" aria-label="Mensaje anterior">
                     <span class="vn-control-icon">‹</span>
-                    <span class="vn-control-label">Atrás</span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="nextMessage()" aria-label="Mensaje siguiente">
                     <span class="vn-control-icon">›</span>
-                    <span class="vn-control-label">Siguiente</span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="lastMessage()" aria-label="Último mensaje">
                     <span class="vn-control-icon">»</span>
-                    <span class="vn-control-label">Final</span>
                 </button>
             </div>
+
+            <div class="vn-control-divider"></div>
+
+            <!-- Grupo Historial/Diario -->
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="openHistoryLog()" aria-label="Historial">
                     <span class="vn-control-icon">☰</span>
-                    <span class="vn-control-label">Historial</span>
                 </button>
             </div>
+            <div class="vn-control-slot">
+                <button id="favMsgBtn" class="vn-control-btn" onclick="toggleFavoriteCurrentMessage()" aria-label="Marcar favorito">
+                    <span class="vn-control-icon" id="favMsgIcon">☆</span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="openJournal()" aria-label="Diario de sesión">
+                    <span class="vn-control-icon">📓</span>
+                </button>
+            </div>
+
+            <div class="vn-control-divider"></div>
+
+            <!-- Grupo Herramientas -->
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="openSettings()" aria-label="Ajustes">
                     <span class="vn-control-icon">⚙</span>
-                    <span class="vn-control-label">Ajustes</span>
                 </button>
             </div>
             <div class="vn-control-slot">
-                <button class="vn-control-btn" onclick="openModal('shortcutsModal')" aria-label="Mostrar ayuda de atajos de teclado">
+                <button class="vn-control-btn" onclick="openModal('shortcutsModal')" aria-label="Atajos de teclado">
                     <span class="vn-control-icon">❔</span>
-                    <span class="vn-control-label">Atajos</span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button id="syncNowBtn" class="vn-control-btn sync-btn is-synced" onclick="manualSyncFromScene()" aria-label="Sincronizar">
-                    <span class="vn-control-icon">☁️↻</span>
-                    <span class="vn-control-label">Sincronizar</span>
+                    <span class="vn-control-icon">☁</span>
                 </button>
             </div>
+
+            <div class="vn-control-divider"></div>
+
+            <!-- Grupo Salir/Borrar -->
             <div class="vn-control-slot">
-                <button id="deleteTopicBtn" class="vn-control-btn hidden" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
-                    <span class="vn-control-icon">🗑️</span>
-                    <span class="vn-control-label">Borrar</span>
+                <button id="deleteTopicBtn" class="vn-control-btn" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
+                    <span class="vn-control-icon">🗑</span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="backToTopics()" aria-label="Salir">
                     <span class="vn-control-icon">↩</span>
-                    <span class="vn-control-label">Salir</span>
                 </button>
             </div>
         </div>
@@ -345,14 +476,26 @@
         <div class="vn-dialogue-box" onclick="handleDialogueClick()">
             <div id="messageHasOptions" class="message-has-options hidden">🎭 Opciones disponibles</div>
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
+            <div class="vn-speaker-avatar-wrap" aria-hidden="true"></div>
             <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
-            <div id="vnDialogueText" class="vn-dialogue-text">...</div>
+            <div id="vnDialogueText" class="vn-dialogue-text"></div>
             <div id="vnContinueIndicator" class="vn-continue-indicator"></div>
-            <div id="vnMessageCounter" class="vn-message-counter">0 / 0</div>
-            <div class="vn-dialogue-actions">
-                <button id="editMsgBtn" class="vn-dialogue-action-btn" data-tooltip="Editar mensaje" onclick="handleActionButtonClick(event); editCurrentMessage()">✎</button>
-                <button class="vn-dialogue-action-btn delete-message-btn" data-tooltip="Borrar mensaje" onclick="handleActionButtonClick(event); deleteCurrentMessage()">❌</button>
-                <button class="vn-dialogue-action-btn" data-tooltip="Responder" onclick="handleActionButtonClick(event); openReplyPanel()">💬</button>
+            <div class="vn-dialogue-footer">
+                <div class="vn-counter-dice-wrap">
+                    <div id="vnMessageCounter" class="vn-message-counter">0 / 0</div>
+                    <div id="vnDiceBadge" class="vn-dice-badge" style="display:none;"></div>
+                </div>
+                <div class="vn-dialogue-actions">
+                    <button class="vn-dialogue-action-btn reply-btn" onclick="handleActionButtonClick(event); openReplyPanel()" aria-label="Responder">
+                        <span class="action-icon">💬</span><span class="action-label">Responder</span>
+                    </button>
+                    <button id="editMsgBtn" class="vn-dialogue-action-btn" onclick="handleActionButtonClick(event); editCurrentMessage()" aria-label="Editar mensaje">
+                        <span class="action-icon">✎</span><span class="action-label">Editar</span>
+                    </button>
+                    <button class="vn-dialogue-action-btn delete-message-btn" onclick="handleActionButtonClick(event); deleteCurrentMessage()" aria-label="Borrar mensaje">
+                        <span class="action-icon">🗑</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -384,6 +527,16 @@
                 <div class="narrator-toggle" id="narratorToggle" onclick="toggleNarratorMode()">
                     <input type="checkbox" id="narratorMode" onchange="event.stopPropagation()">
                     <label for="narratorMode">Modo Narrador</label>
+                </div>
+
+
+                <!-- Mejora 7: Dado DnD — resultado embebido en el mensaje -->
+                <div style="display: flex; align-items: center; gap: 0.7rem; margin-top: 0.4rem; flex-wrap: wrap;">
+                    <button class="dice-toggle-btn" id="diceToggleBtn" onclick="toggleDiceMode()" type="button" title="Tira el dado d20. El resultado se publicará junto con tu mensaje.">
+                        🎲 Incluir tirada d20
+                    </button>
+                    <span id="dicePreviewBadge" class="dice-preview-badge" style="display:none;"></span>
+                    <button id="diceClearBtn" onclick="clearDiceRoll()" type="button" class="dice-clear-btn" style="display:none;" title="Quitar tirada">✕ Quitar</button>
                 </div>
 
                 <div class="vn-reply-textarea-wrap">
@@ -455,10 +608,36 @@
     <div id="historyModal" class="modal-overlay" onclick="if(event.target === this) closeModal('historyModal')">
         <div class="history-modal">
             <div class="history-header">
-                <h3 class="history-title">📜 Historial de la Historia</h3>
+                <h3 class="history-title">📜 Historial</h3>
+                <div class="history-tabs">
+                    <button class="history-tab active" id="histTabAll" onclick="switchHistoryTab('all')">Todos</button>
+                    <button class="history-tab" id="histTabFav" onclick="switchHistoryTab('favorites')">⭐ Favoritos</button>
+                </div>
                 <button onclick="closeModal('historyModal')" class="btn-secondary" aria-label="Cerrar historial">✕ Cerrar</button>
             </div>
             <div id="historyContent" class="history-content"></div>
+        </div>
+    </div>
+
+    <!-- Diario de Sesión Modal -->
+    <div id="journalModal" class="modal-overlay" onclick="if(event.target === this) closeJournal()">
+        <div class="journal-modal">
+            <div class="journal-header">
+                <h3 class="journal-title">📓 Diario de Sesión</h3>
+                <div class="journal-meta" id="journalMeta"></div>
+                <button onclick="closeJournal()" class="btn-secondary" aria-label="Cerrar diario">✕ Cerrar</button>
+            </div>
+            <div class="journal-body">
+                <div class="journal-hint">Espacio libre para notas, resúmenes de sesión, ideas pendientes...</div>
+                <textarea id="journalTextarea" class="journal-textarea" placeholder="Escribe aquí tus notas de sesión...&#10;&#10;Puedes anotar:&#10;• Lo que ocurrió en esta sesión&#10;• Giros de trama planificados&#10;• Detalles que no quieres olvidar&#10;• Tareas pendientes para la próxima sesión"></textarea>
+            </div>
+            <div class="journal-footer">
+                <span class="journal-saved-indicator" id="journalSavedIndicator"></span>
+                <div class="journal-footer-actions">
+                    <button onclick="clearJournal()" class="btn-secondary">🗑 Limpiar</button>
+                    <button onclick="saveJournal()" class="btn-primary">💾 Guardar notas</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -724,9 +903,55 @@
 <script src="js/ui/characters.js"></script>
 <script src="js/ui/navigation.js"></script>
 <script src="js/ui/sheets.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/utils/supabaseMessages.js"></script>
 <script src="js/ui/vn.js"></script>
+<script src="js/ui/journal.js"></script>
 <script src="js/ui/topics.js"></script>
 <script src="js/ui/app-ui.js"></script>
 <script src="js/app.js"></script>
+<script src="js/ui/mejoras.js"></script>
+    <!-- Modal de conflicto de sincronización -->
+    <div id="syncConflictModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="syncConflictTitle">
+        <div class="modal-content" style="max-width: 420px; text-align: center;">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">⚡</div>
+            <h3 id="syncConflictTitle" style="font-family: 'Cinzel', serif; color: var(--accent-gold); margin-bottom: 0.75rem;">Conflicto de sincronización</h3>
+            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem;">
+                Tienes cambios locales y también hay cambios en la nube.<br>
+                ¿Cuál versión quieres conservar?
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button class="btn-primary" id="syncKeepLocalBtn" style="min-width: 140px;">
+                    💾 Mis cambios locales
+                </button>
+                <button class="btn-secondary" id="syncKeepServerBtn" style="min-width: 140px;">
+                    ☁️ Versión de la nube
+                </button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 1rem;">
+                La versión no elegida se perderá.
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal de confirmación genérico -->
+    <div id="confirmModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+        <div class="modal-content" style="max-width: 380px; text-align: center;">
+            <p id="confirmModalTitle" style="font-family: 'Cinzel', serif; color: var(--text-primary); font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.5;"></p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button class="btn-primary" id="confirmModalOk" style="min-width: 110px;">Confirmar</button>
+                <button class="btn-secondary" id="confirmModalCancel" style="min-width: 110px;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboarding primer acceso -->
+    <div id="onboardingOverlay" class="onboarding-overlay" style="display:none;">
+        <div class="onboarding-box">
+            <div class="onboarding-deco">✦</div>
+            <p class="onboarding-text" id="onboardingText"></p>
+            <button class="onboarding-btn" onclick="closeOnboarding()">Entendido</button>
+        </div>
+    </div>
 </body>
 </html>

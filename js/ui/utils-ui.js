@@ -29,7 +29,7 @@ function isValidHttpUrl(value) {
 function validateImageUrlField(value, label) {
     if (!value) return true;
     if (!isValidHttpUrl(value)) {
-        alert(`${label} debe ser una URL válida (http o https).`);
+        showAutosave(`${label}: debe ser una URL válida (http o https)`, 'error');
         return false;
     }
     return true;
