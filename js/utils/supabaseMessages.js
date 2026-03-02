@@ -11,8 +11,13 @@
 
 (function (global) {
 
-    const SB_URL = 'https://timtqdrfeuzwwixfnudj.supabase.co';
-    const SB_KEY = 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3';
+    const cfg = global.SUPABASE_CONFIG || {
+        url: 'https://timtqdrfeuzwwixfnudj.supabase.co',
+        key: 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3'
+    };
+
+    const SB_URL = cfg.url;
+    const SB_KEY = cfg.key;
 
     const REST_HEADERS = {
         'apikey'        : SB_KEY,
@@ -33,7 +38,7 @@
             // supabase-js expone window.supabase cuando se carga desde CDN ESM
             const lib = global.supabase;
             if (!lib || typeof lib.createClient !== 'function') return false;
-            _client = lib.createClient(SB_URL, SB_KEY);
+            _client = global.supabaseClient || lib.createClient(SB_URL, SB_KEY);
             return true;
         } catch (e) {
             console.warn('[Supabase] init error:', e.message);
@@ -49,27 +54,39 @@
     async function send(sessionId, msgObj) {
         if (_available === false) return false;
 
-        const row = {
-            session_id : String(sessionId),
-            author     : String(msgObj.userIndex ?? 0),
-            content    : JSON.stringify({
-                id          : msgObj.id,
-                characterId : msgObj.characterId  || null,
-                charName    : msgObj.charName      || null,
-                charColor   : msgObj.charColor     || null,
-                charAvatar  : msgObj.charAvatar    || null,
-                charSprite  : msgObj.charSprite    || null,
-                text        : msgObj.text          || '',
-                isNarrator  : !!msgObj.isNarrator,
-                userIndex   : msgObj.userIndex     ?? 0,
-                timestamp   : msgObj.timestamp     || new Date().toISOString(),
-                weather     : msgObj.weather       || undefined,
-                diceRoll    : msgObj.diceRoll      || undefined,
-                options     : msgObj.options       || undefined
-            })
-        };
-
         try {
+            const sbClient = global.supabaseClient;
+            if (!sbClient || !sbClient.auth || typeof sbClient.auth.getUser !== 'function') {
+                _available = false;
+                return false;
+            }
+
+            const { data: { user } } = await sbClient.auth.getUser();
+            if (!user || !user.id) {
+                return false;
+            }
+
+            const row = {
+                session_id : String(sessionId),
+                user_id    : user.id,
+                author     : String(msgObj.userIndex ?? 0),
+                content    : JSON.stringify({
+                    id          : msgObj.id,
+                    characterId : msgObj.characterId  || null,
+                    charName    : msgObj.charName      || null,
+                    charColor   : msgObj.charColor     || null,
+                    charAvatar  : msgObj.charAvatar    || null,
+                    charSprite  : msgObj.charSprite    || null,
+                    text        : msgObj.text          || '',
+                    isNarrator  : !!msgObj.isNarrator,
+                    userIndex   : msgObj.userIndex     ?? 0,
+                    timestamp   : msgObj.timestamp     || new Date().toISOString(),
+                    weather     : msgObj.weather       || undefined,
+                    diceRoll    : msgObj.diceRoll      || undefined,
+                    options     : msgObj.options       || undefined
+                })
+            };
+
             const res = await fetch(SB_URL + '/rest/v1/messages', {
                 method  : 'POST',
                 headers : REST_HEADERS,
