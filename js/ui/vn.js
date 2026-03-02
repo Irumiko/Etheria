@@ -107,6 +107,16 @@ function enterTopic(id) {
         }
     }
 
+    if (currentTopicMode === 'fanfic') {
+        const lockedCharId = getTopicLockedCharacterId(t);
+        if (lockedCharId) {
+            selectedCharId = lockedCharId;
+        } else {
+            openRoleCharacterModal(id, { mode: 'fanfic', enterOnSelect: true });
+            return;
+        }
+    }
+
     // Aplicar clima si existe
     if (t.weather) {
         setWeather(t.weather);
@@ -1292,6 +1302,7 @@ function updateCharSelector() {
     const display = document.getElementById('charSelectedDisplay');
     const nameEl = document.getElementById('charSelectedName');
     const grid = document.getElementById('charGridDropdown');
+    const statsBtn = document.getElementById('charStatsQuickBtn');
 
     if(!display || !nameEl) return;
 
@@ -1299,6 +1310,7 @@ function updateCharSelector() {
         display.innerHTML = '<div class="placeholder">👤</div>';
         nameEl.textContent = 'Crea un personaje primero';
         if (grid) grid.innerHTML = '';
+        if (statsBtn) statsBtn.style.display = 'none';
         return;
     }
 
@@ -1335,6 +1347,10 @@ function updateCharSelector() {
             : 'Click en el círculo para cambiar';
     }
 
+    if (statsBtn) {
+        statsBtn.style.display = (topic?.mode === 'fanfic' && selectedCharId) ? 'inline-flex' : 'none';
+    }
+
     if (grid && !isCharLocked) {
         grid.innerHTML = mine.map(c => `
             <div class="char-grid-item ${c.id === selectedCharId ? 'selected' : ''}" onclick="selectCharFromGrid('${c.id}')">
@@ -1360,6 +1376,14 @@ function selectCharFromGrid(charId) {
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
+}
+
+function openSelectedCharacterStats() {
+    const topic = getCurrentTopic();
+    if (topic?.mode !== 'fanfic') return;
+    if (!selectedCharId || typeof openSheet !== 'function') return;
+    openSheet(selectedCharId);
+    if (typeof setSheetRpgPanelOpen === 'function') setSheetRpgPanelOpen(true);
 }
 
 function toggleOptionsFields() {

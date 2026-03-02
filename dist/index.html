@@ -2182,25 +2182,25 @@ body::before {
             backdrop-filter: blur(5px);
         }
         .profile-item.full-width { grid-column: 1 / -1; }
-        .sheet-profile-tools {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 1rem;
-        }
-        .sheet-rpg-toggle-btn {
-            background: rgba(139, 115, 85, 0.2);
-            border: 1px solid var(--border-light);
+        #tab-profile { position: relative; }
+        .sheet-rpg-fab {
+            position: absolute;
+            right: 0.6rem;
+            bottom: 0.4rem;
+            z-index: 3;
+            background: rgba(28, 22, 14, 0.92);
+            border: 1px solid rgba(201, 168, 108, 0.35);
             color: var(--accent-gold);
-            border-radius: 10px;
-            padding: 0.55rem 0.9rem;
-            font-size: 0.85rem;
+            border-radius: 999px;
+            padding: 0.4rem 0.72rem;
+            font-size: 0.76rem;
             cursor: pointer;
-            transition: all 0.25s ease;
+            transition: all 0.2s ease;
         }
-        .sheet-rpg-toggle-btn:hover,
-        .sheet-rpg-toggle-btn.active {
+        .sheet-rpg-fab:hover,
+        .sheet-rpg-fab.active {
             border-color: var(--accent-gold);
-            box-shadow: 0 0 16px rgba(201, 168, 108, 0.35);
+            box-shadow: 0 0 14px rgba(201, 168, 108, 0.28);
             background: rgba(201, 168, 108, 0.12);
         }
         .sheet-profile-layout {
@@ -2209,19 +2209,30 @@ body::before {
             gap: 1rem;
             align-items: start;
         }
-        .sheet-profile-layout.rpg-open {
-            grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
-        }
-        .sheet-rpg-panel {
-            display: none;
+                .sheet-rpg-panel {
+            position: absolute;
+            top: 0.3rem;
+            right: 0.2rem;
+            width: min(360px, calc(100% - 1rem));
+            max-height: calc(100% - 0.6rem);
+            overflow-y: auto;
             border: 1px solid var(--border-light);
             border-radius: 12px;
-            background: rgba(139, 115, 85, 0.1);
+            background: rgba(20, 15, 10, 0.96);
             box-shadow: 0 0 18px rgba(201, 168, 108, 0.25);
             padding: 1rem;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(8px);
+            transform: translateX(calc(100% + 12px));
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.24s ease, opacity 0.2s ease;
+            z-index: 2;
         }
-        .sheet-rpg-panel.active { display: block; }
+        .sheet-rpg-panel.active {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
         .sheet-rpg-head {
             display: flex;
             align-items: center;
@@ -2366,9 +2377,6 @@ body::before {
             line-height: 1.45;
         }
         @media (max-width: 1024px) {
-            .sheet-profile-layout.rpg-open {
-                grid-template-columns: minmax(0, 1fr);
-            }
         }
         .profile-label { font-size: 0.75rem; text-transform: uppercase; color: var(--accent-gold); font-weight: bold; margin-bottom: 0.3rem; font-family: 'Inter', sans-serif; }
         .profile-value { font-size: 1.1rem; color: var(--text-primary); }
@@ -3109,6 +3117,24 @@ body::before {
             box-shadow: 0 0 24px rgba(201, 168, 108, 0.25), 0 8px 30px rgba(0,0,0,0.35);
         }
 
+
+        #roomCodeWrap {
+            position: fixed;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0 !important;
+            width: min(560px, calc(100vw - 360px));
+            z-index: 190;
+        }
+
+        @media (max-width: 900px) {
+            #roomCodeWrap {
+                width: calc(100vw - 2rem);
+                top: 90px;
+            }
+        }
+
         .vn-section > * {
             position: relative;
             z-index: 1;
@@ -3137,8 +3163,8 @@ body::before {
                 0 12px 36px rgba(0,0,0,0.45),
                 0 0 0 1px rgba(255,255,255,0.03),
                 inset 0 1px 0 rgba(255,255,255,0.05);
-            min-width: 260px;
-            max-width: 320px;
+            min-width: 220px;
+            max-width: 290px;
             transition: border-color 0.5s ease, box-shadow 0.5s ease;
             overflow: visible;
             /* El borde adopta el color del personaje activo */
@@ -3187,6 +3213,35 @@ body::before {
             font-style: italic;
             font-size: 0.85rem;
             color: rgba(200, 185, 160, 0.6);
+        }
+
+
+        .vn-info-rpg {
+            margin-top: 0.42rem;
+            border-top: 1px solid rgba(201, 168, 108, 0.16);
+            padding-top: 0.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.45rem;
+        }
+        .vn-info-rpg.hidden { display: none; }
+        .vn-info-rpg-summary {
+            font-size: 0.68rem;
+            color: rgba(210, 188, 148, 0.86);
+            letter-spacing: 0.02em;
+            font-family: 'Inter', sans-serif;
+        }
+        .vn-info-rpg-sheet-btn {
+            border: 1px solid rgba(201, 168, 108, 0.36);
+            background: rgba(201, 168, 108, 0.1);
+            color: var(--accent-gold);
+            border-radius: 8px;
+            width: 26px;
+            height: 22px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            flex-shrink: 0;
         }
 
         /* Avatar */
@@ -5732,6 +5787,11 @@ body::before {
                     <span>❤️</span>
                     <span id="vnAffectionValue">0</span>
                 </div>
+
+                <div id="vnInfoRpg" class="vn-info-rpg hidden">
+                    <span id="vnInfoRpgSummary" class="vn-info-rpg-summary">HP 0/10 · EXP 0/10</span>
+                    <button type="button" class="vn-info-rpg-sheet-btn" onclick="openCurrentVnCharacterSheet()" title="Abrir stats RPG">⚔️</button>
+                </div>
             </div>
         </div>
 
@@ -5886,6 +5946,7 @@ body::before {
                     </div>
 
                     <div class="char-grid-dropdown" id="charGridDropdown"></div>
+                    <button type="button" id="charStatsQuickBtn" class="char-stats-quick-btn" onclick="openSelectedCharacterStats()" title="Abrir stats RPG">⚔️ Stats</button>
                 </div>
 
                 <div class="narrator-toggle" id="narratorToggle" onclick="toggleNarratorMode()">
@@ -6094,8 +6155,8 @@ body::before {
 
     <div id="roleCharacterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('roleCharacterModal')">
         <div class="role-char-modal">
-            <h3 style="margin:0; text-align:center; color: var(--accent-gold);">Selecciona tu personaje activo</h3>
-            <div style="text-align:center; color: var(--text-muted); font-size: 0.95rem;">En modo clásico solo puedes usar un personaje por historia.</div>
+            <h3 id="roleCharacterTitle" style="margin:0; text-align:center; color: var(--accent-gold);">Selecciona tu personaje activo</h3>
+            <div id="roleCharacterSubtitle" style="text-align:center; color: var(--text-muted); font-size: 0.95rem;">Debes elegir un personaje para continuar.</div>
             <div id="roleCharacterGrid" class="role-char-grid"></div>
             <button class="btn-secondary" onclick="closeModal('roleCharacterModal')">Cancelar</button>
         </div>
@@ -6252,13 +6313,11 @@ body::before {
             <div class="sheet-body">
                 <div class="sheet-content">
                     <div id="tab-profile" class="tab-panel active">
-                        <div class="sheet-profile-tools">
-                            <button type="button" id="sheetRpgToggleBtn" class="sheet-rpg-toggle-btn" onclick="toggleSheetRpgPanel()">⚔ Mostrar bloque RPG</button>
-                        </div>
                         <div class="sheet-profile-layout" id="sheetProfileLayout">
                             <div class="profile-grid" id="profileGrid"></div>
-                            <aside id="sheetRpgPanel" class="sheet-rpg-panel" aria-hidden="true"></aside>
                         </div>
+                        <button type="button" id="sheetRpgToggleBtn" class="sheet-rpg-fab" onclick="toggleSheetRpgPanel()">⚔️ Stats</button>
+                        <aside id="sheetRpgPanel" class="sheet-rpg-panel" aria-hidden="true"></aside>
                     </div>
                     <div id="tab-personality" class="tab-panel">
                         <div class="profile-text" id="profilePersonality">Sin datos de personalidad.</div>
@@ -7779,6 +7838,7 @@ function validateImportedData(data) {
 // MODO FANFIC VS ROLEPLAY
 // ============================================
 const TOPIC_MODE_STORAGE_KEY = 'etheria_topic_mode';
+let roleCharacterModalContext = null;
 
 function updateTopicModeUI() {
     const modeRoleplay = document.getElementById('modeRoleplay');
@@ -7805,17 +7865,44 @@ function updateTopicModeUI() {
     fanficLabel?.classList.toggle('active', selectedMode === 'fanfic');
 }
 
-function openRoleCharacterModal(topicId) {
+function openRoleCharacterModal(topicId, options = {}) {
     const grid = document.getElementById('roleCharacterGrid');
     if (!grid) return;
 
-    pendingRoleTopicId = topicId;
+    const topic = appData.topics.find(t => t.id === topicId);
+    const isFanfic = topic?.mode === 'fanfic' || options.mode === 'fanfic';
+
+    roleCharacterModalContext = {
+        topicId,
+        isFanfic,
+        enterOnSelect: !!options.enterOnSelect,
+        preservePendingTopicId: !!options.preservePendingTopicId
+    };
+
+    if (!roleCharacterModalContext.preservePendingTopicId) {
+        pendingRoleTopicId = null;
+    }
+
+    const title = document.getElementById('roleCharacterTitle');
+    const subtitle = document.getElementById('roleCharacterSubtitle');
+    if (title) title.textContent = isFanfic ? 'Selecciona tu personaje para modo RPG' : 'Selecciona tu personaje activo';
+    if (subtitle) subtitle.textContent = isFanfic
+        ? 'En modo RPG también debes elegir un personaje al entrar.'
+        : 'En modo clásico solo puedes usar un personaje por historia.';
 
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
     if (!mine.length) {
-        showAutosave('Necesitas al menos un personaje para modo clásico', 'error');
-        pendingRoleTopicId = null;
-        enterTopic(topicId);
+        showAutosave(`Necesitas al menos un personaje para modo ${isFanfic ? 'RPG' : 'clásico'}`, 'error');
+        roleCharacterModalContext = null;
+        if (!isFanfic && pendingRoleTopicId) {
+            const doomedId = pendingRoleTopicId;
+            pendingRoleTopicId = null;
+            appData.topics = appData.topics.filter(t => t.id !== doomedId);
+            delete appData.messages[doomedId];
+            hasUnsavedChanges = true;
+            save({ silent: true });
+            renderTopics();
+        }
         return;
     }
 
@@ -7833,15 +7920,30 @@ function selectRoleCharacterForTopic(topicId, charId) {
     const topic = appData.topics.find(t => t.id === topicId);
     if (!topic) return;
 
-    topic.roleCharacterId = charId;
+    const context = roleCharacterModalContext || { isFanfic: topic.mode === 'fanfic', enterOnSelect: false };
+
+    if (context.isFanfic || topic.mode === 'fanfic') {
+        topic.characterLocks = topic.characterLocks || {};
+        topic.characterLocks[currentUserIndex] = charId;
+        topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
+        topic.rpgCharacterLocks[currentUserIndex] = charId;
+    } else {
+        topic.roleCharacterId = charId;
+    }
+
     selectedCharId = charId;
     localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
 
     hasUnsavedChanges = true;
     save({ silent: true });
+
     pendingRoleTopicId = null;
+    roleCharacterModalContext = null;
     closeModal('roleCharacterModal');
-    enterTopic(topicId);
+
+    if (context.enterOnSelect) {
+        enterTopic(topicId);
+    }
 }
 
 function isFanficMode() {
@@ -7948,6 +8050,8 @@ function updateAffinityDisplay() {
     const infoLastname = document.getElementById('vnInfoLastname');
     const infoAvatar   = document.getElementById('vnInfoAvatar');
     const vnInfoAffection = document.getElementById('vnInfoAffection');
+    const vnInfoRpg = document.getElementById('vnInfoRpg');
+    const vnInfoRpgSummary = document.getElementById('vnInfoRpgSummary');
 
     // Elementos de píldoras
     const pillAge    = document.getElementById('vnInfoPillAge');
@@ -7964,6 +8068,21 @@ function updateAffinityDisplay() {
         infoAvatar.innerHTML = char && char.avatar
             ? `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.textContent='${char.name[0]}'">`
             : `<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">${char ? char.name[0] : '👤'}</div>`;
+    }
+
+
+    function setRpgCard(char, isFanfic) {
+        if (!vnInfoRpg) return;
+        if (!isFanfic || !char || typeof ensureCharacterRpgProfile !== 'function') {
+            vnInfoRpg.classList.add('hidden');
+            return;
+        }
+
+        const profile = ensureCharacterRpgProfile(char);
+        if (vnInfoRpgSummary) vnInfoRpgSummary.textContent = `HP ${profile.hp}/10 · EXP ${profile.exp}/10`;
+
+        vnInfoRpg.dataset.charId = char.id;
+        vnInfoRpg.classList.remove('hidden');
     }
 
     function setPills(char) {
@@ -7991,6 +8110,7 @@ function updateAffinityDisplay() {
         if (infoLastname) infoLastname.textContent = '';
         if (infoAvatar)   infoAvatar.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">📖</div>';
         setPills(null);
+        setRpgCard(null, false);
         updateInfoHoverDetails(null);
         return;
     }
@@ -8012,6 +8132,7 @@ function updateAffinityDisplay() {
             }
             setAvatar(char);
             setPills(char);
+            setRpgCard(char, isFanfic);
             updateInfoHoverDetails(char);
 
             // Modo historia: sin afinidad de ningún tipo
@@ -8061,6 +8182,7 @@ function updateAffinityDisplay() {
     if (infoLastname) infoLastname.textContent = '';
     if (infoAvatar)   infoAvatar.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">👤</div>';
     setPills(null);
+    setRpgCard(null, false);
     updateInfoHoverDetails(null);
 }
 
@@ -8136,6 +8258,18 @@ function modifyAffinity(direction) {
     }
 }
 
+
+
+function openCurrentVnCharacterSheet() {
+    const panel = document.getElementById('vnInfoRpg');
+    if (!panel) return;
+    const charId = panel.dataset.charId;
+    if (!charId || typeof openSheet !== 'function') return;
+    openSheet(charId);
+    if (typeof setSheetRpgPanelOpen === 'function') {
+        setSheetRpgPanelOpen(true);
+    }
+}
 
 </script>
 <script>
@@ -9193,22 +9327,20 @@ function adjustSheetRpgStat(charId, statKey, delta) {
 }
 
 function setSheetRpgPanelOpen(isOpen) {
-    const layout = document.getElementById('sheetProfileLayout');
     const panel = document.getElementById('sheetRpgPanel');
     const btn = document.getElementById('sheetRpgToggleBtn');
-    if (!layout || !panel || !btn) return;
+    if (!panel || !btn) return;
 
-    layout.classList.toggle('rpg-open', !!isOpen);
     panel.classList.toggle('active', !!isOpen);
     panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     btn.classList.toggle('active', !!isOpen);
-    btn.textContent = isOpen ? '⚔ Ocultar bloque RPG' : '⚔ Mostrar bloque RPG';
+    btn.textContent = isOpen ? '✕ Cerrar stats' : '⚔️ Stats';
 }
 
 function toggleSheetRpgPanel() {
-    const layout = document.getElementById('sheetProfileLayout');
-    if (!layout) return;
-    setSheetRpgPanelOpen(!layout.classList.contains('rpg-open'));
+    const panel = document.getElementById('sheetRpgPanel');
+    if (!panel) return;
+    setSheetRpgPanelOpen(!panel.classList.contains('active'));
 }
 
 function getAlignmentColor(code) {
@@ -9677,6 +9809,16 @@ function enterTopic(id) {
         const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
         if (lockedChar) {
             selectedCharId = lockedChar.id;
+        }
+    }
+
+    if (currentTopicMode === 'fanfic') {
+        const lockedCharId = getTopicLockedCharacterId(t);
+        if (lockedCharId) {
+            selectedCharId = lockedCharId;
+        } else {
+            openRoleCharacterModal(id, { mode: 'fanfic', enterOnSelect: true });
+            return;
         }
     }
 
@@ -10865,6 +11007,7 @@ function updateCharSelector() {
     const display = document.getElementById('charSelectedDisplay');
     const nameEl = document.getElementById('charSelectedName');
     const grid = document.getElementById('charGridDropdown');
+    const statsBtn = document.getElementById('charStatsQuickBtn');
 
     if(!display || !nameEl) return;
 
@@ -10872,6 +11015,7 @@ function updateCharSelector() {
         display.innerHTML = '<div class="placeholder">👤</div>';
         nameEl.textContent = 'Crea un personaje primero';
         if (grid) grid.innerHTML = '';
+        if (statsBtn) statsBtn.style.display = 'none';
         return;
     }
 
@@ -10908,6 +11052,10 @@ function updateCharSelector() {
             : 'Click en el círculo para cambiar';
     }
 
+    if (statsBtn) {
+        statsBtn.style.display = (topic?.mode === 'fanfic' && selectedCharId) ? 'inline-flex' : 'none';
+    }
+
     if (grid && !isCharLocked) {
         grid.innerHTML = mine.map(c => `
             <div class="char-grid-item ${c.id === selectedCharId ? 'selected' : ''}" onclick="selectCharFromGrid('${c.id}')">
@@ -10933,6 +11081,14 @@ function selectCharFromGrid(charId) {
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
+}
+
+function openSelectedCharacterStats() {
+    const topic = getCurrentTopic();
+    if (topic?.mode !== 'fanfic') return;
+    if (!selectedCharId || typeof openSheet !== 'function') return;
+    openSheet(selectedCharId);
+    if (typeof setSheetRpgPanelOpen === 'function') setSheetRpgPanelOpen(true);
 }
 
 function toggleOptionsFields() {
@@ -11598,7 +11754,7 @@ function createTopic() {
     renderTopics();
     if (currentTopicMode === 'roleplay') {
         pendingRoleTopicId = id;
-        openRoleCharacterModal(id);
+        openRoleCharacterModal(id, { mode: 'roleplay', preservePendingTopicId: true });
     } else {
         enterTopic(id);
     }

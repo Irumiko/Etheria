@@ -3,6 +3,7 @@
 // MODO FANFIC VS ROLEPLAY
 // ============================================
 const TOPIC_MODE_STORAGE_KEY = 'etheria_topic_mode';
+let roleCharacterModalContext = null;
 
 function updateTopicModeUI() {
     const modeRoleplay = document.getElementById('modeRoleplay');
@@ -29,17 +30,44 @@ function updateTopicModeUI() {
     fanficLabel?.classList.toggle('active', selectedMode === 'fanfic');
 }
 
-function openRoleCharacterModal(topicId) {
+function openRoleCharacterModal(topicId, options = {}) {
     const grid = document.getElementById('roleCharacterGrid');
     if (!grid) return;
 
-    pendingRoleTopicId = topicId;
+    const topic = appData.topics.find(t => t.id === topicId);
+    const isFanfic = topic?.mode === 'fanfic' || options.mode === 'fanfic';
+
+    roleCharacterModalContext = {
+        topicId,
+        isFanfic,
+        enterOnSelect: !!options.enterOnSelect,
+        preservePendingTopicId: !!options.preservePendingTopicId
+    };
+
+    if (!roleCharacterModalContext.preservePendingTopicId) {
+        pendingRoleTopicId = null;
+    }
+
+    const title = document.getElementById('roleCharacterTitle');
+    const subtitle = document.getElementById('roleCharacterSubtitle');
+    if (title) title.textContent = isFanfic ? 'Selecciona tu personaje para modo RPG' : 'Selecciona tu personaje activo';
+    if (subtitle) subtitle.textContent = isFanfic
+        ? 'En modo RPG también debes elegir un personaje al entrar.'
+        : 'En modo clásico solo puedes usar un personaje por historia.';
 
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
     if (!mine.length) {
-        showAutosave('Necesitas al menos un personaje para modo clásico', 'error');
-        pendingRoleTopicId = null;
-        enterTopic(topicId);
+        showAutosave(`Necesitas al menos un personaje para modo ${isFanfic ? 'RPG' : 'clásico'}`, 'error');
+        roleCharacterModalContext = null;
+        if (!isFanfic && pendingRoleTopicId) {
+            const doomedId = pendingRoleTopicId;
+            pendingRoleTopicId = null;
+            appData.topics = appData.topics.filter(t => t.id !== doomedId);
+            delete appData.messages[doomedId];
+            hasUnsavedChanges = true;
+            save({ silent: true });
+            renderTopics();
+        }
         return;
     }
 
@@ -57,15 +85,30 @@ function selectRoleCharacterForTopic(topicId, charId) {
     const topic = appData.topics.find(t => t.id === topicId);
     if (!topic) return;
 
-    topic.roleCharacterId = charId;
+    const context = roleCharacterModalContext || { isFanfic: topic.mode === 'fanfic', enterOnSelect: false };
+
+    if (context.isFanfic || topic.mode === 'fanfic') {
+        topic.characterLocks = topic.characterLocks || {};
+        topic.characterLocks[currentUserIndex] = charId;
+        topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
+        topic.rpgCharacterLocks[currentUserIndex] = charId;
+    } else {
+        topic.roleCharacterId = charId;
+    }
+
     selectedCharId = charId;
     localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
 
     hasUnsavedChanges = true;
     save({ silent: true });
+
     pendingRoleTopicId = null;
+    roleCharacterModalContext = null;
     closeModal('roleCharacterModal');
-    enterTopic(topicId);
+
+    if (context.enterOnSelect) {
+        enterTopic(topicId);
+    }
 }
 
 function isFanficMode() {
@@ -172,6 +215,8 @@ function updateAffinityDisplay() {
     const infoLastname = document.getElementById('vnInfoLastname');
     const infoAvatar   = document.getElementById('vnInfoAvatar');
     const vnInfoAffection = document.getElementById('vnInfoAffection');
+    const vnInfoRpg = document.getElementById('vnInfoRpg');
+    const vnInfoRpgSummary = document.getElementById('vnInfoRpgSummary');
 
     // Elementos de píldoras
     const pillAge    = document.getElementById('vnInfoPillAge');
@@ -188,6 +233,21 @@ function updateAffinityDisplay() {
         infoAvatar.innerHTML = char && char.avatar
             ? `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.textContent='${char.name[0]}'">`
             : `<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">${char ? char.name[0] : '👤'}</div>`;
+    }
+
+
+    function setRpgCard(char, isFanfic) {
+        if (!vnInfoRpg) return;
+        if (!isFanfic || !char || typeof ensureCharacterRpgProfile !== 'function') {
+            vnInfoRpg.classList.add('hidden');
+            return;
+        }
+
+        const profile = ensureCharacterRpgProfile(char);
+        if (vnInfoRpgSummary) vnInfoRpgSummary.textContent = `HP ${profile.hp}/10 · EXP ${profile.exp}/10`;
+
+        vnInfoRpg.dataset.charId = char.id;
+        vnInfoRpg.classList.remove('hidden');
     }
 
     function setPills(char) {
@@ -215,6 +275,7 @@ function updateAffinityDisplay() {
         if (infoLastname) infoLastname.textContent = '';
         if (infoAvatar)   infoAvatar.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">📖</div>';
         setPills(null);
+        setRpgCard(null, false);
         updateInfoHoverDetails(null);
         return;
     }
@@ -236,6 +297,7 @@ function updateAffinityDisplay() {
             }
             setAvatar(char);
             setPills(char);
+            setRpgCard(char, isFanfic);
             updateInfoHoverDetails(char);
 
             // Modo historia: sin afinidad de ningún tipo
@@ -285,6 +347,7 @@ function updateAffinityDisplay() {
     if (infoLastname) infoLastname.textContent = '';
     if (infoAvatar)   infoAvatar.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">👤</div>';
     setPills(null);
+    setRpgCard(null, false);
     updateInfoHoverDetails(null);
 }
 
@@ -360,3 +423,15 @@ function modifyAffinity(direction) {
     }
 }
 
+
+
+function openCurrentVnCharacterSheet() {
+    const panel = document.getElementById('vnInfoRpg');
+    if (!panel) return;
+    const charId = panel.dataset.charId;
+    if (!charId || typeof openSheet !== 'function') return;
+    openSheet(charId);
+    if (typeof setSheetRpgPanelOpen === 'function') {
+        setSheetRpgPanelOpen(true);
+    }
+}
