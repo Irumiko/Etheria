@@ -86,9 +86,6 @@ function openSheet(id) {
         `;
     }
 
-    renderSheetRpgPanel(c);
-    setSheetRpgPanelOpen(false);
-
     const profilePersonality = document.getElementById('profilePersonality');
     const profileHistory = document.getElementById('profileHistory');
 
@@ -128,92 +125,51 @@ function getRpgSheetData(c) {
     };
 }
 
-function renderSheetRpgPanel(c) {
-    const panel = document.getElementById('sheetRpgPanel');
-    if (!panel) return;
+function renderRpgStatsModal(c) {
+    const titleEl = document.getElementById('rpgStatsTitle');
+    const bodyEl = document.getElementById('rpgStatsBody');
+    if (!titleEl || !bodyEl) return;
 
     const data = getRpgSheetData(c);
-    const canEdit = c.userIndex === currentUserIndex;
+    const hpWidth = (data.profile.hp / RPG_HP_MAX) * 100;
+    const expWidth = (data.profile.exp / RPG_EXP_PER_LEVEL) * 100;
 
-    panel.innerHTML = `
-        <div class="sheet-rpg-head">
-            <span>⚔ Ficha RPG</span>
-            <span class="sheet-rpg-class">${escapeHtml(data.title)}</span>
+    titleEl.textContent = `⚔️ Nivel ${data.profile.level}`;
+    bodyEl.innerHTML = `
+        <div class="rpg-stats-progress-row">
+            <span class="rpg-stats-progress-label">HP</span>
+            <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill hp" style="width:${hpWidth}%;"></div></div>
+            <span class="rpg-stats-progress-value">${data.profile.hp}/${RPG_HP_MAX}</span>
         </div>
-        <div class="sheet-rpg-level">⚔ Nivel ${data.profile.level}</div>
-        <div class="sheet-rpg-bars">
-            <div class="sheet-rpg-bar-row">
-                <span class="sheet-rpg-bar-label">HP</span>
-                <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill hp" style="width:${(data.profile.hp / RPG_HP_MAX) * 100}%;"></div></div>
-                <span class="sheet-rpg-bar-text">${data.profile.hp}/${RPG_HP_MAX}</span>
-            </div>
-            <div class="sheet-rpg-bar-row">
-                <span class="sheet-rpg-bar-label">EXP</span>
-                <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill exp" style="width:${(data.profile.exp / RPG_EXP_PER_LEVEL) * 100}%;"></div></div>
-                <span class="sheet-rpg-bar-text">${data.profile.exp}/${RPG_EXP_PER_LEVEL}</span>
-            </div>
+        <div class="rpg-stats-progress-row">
+            <span class="rpg-stats-progress-label">EXP</span>
+            <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill exp" style="width:${expWidth}%;"></div></div>
+            <span class="rpg-stats-progress-value">${data.profile.exp}/${RPG_EXP_PER_LEVEL}</span>
         </div>
-        <div class="sheet-rpg-attr">
+        <div class="rpg-stats-grid">
             ${[
-                ['STR', 'Fuerza (impacto físico)'],
-                ['VIT', 'Vida y resistencia (aguante)'],
-                ['INT', 'Inteligencia (impacto mágico)'],
-                ['AGI', 'Velocidad / reacción']
+                ['STR', 'Fuerza'],
+                ['VIT', 'Vida'],
+                ['INT', 'Intel'],
+                ['AGI', 'Veloc']
             ].map(([key, desc]) => `
-                <div class="sheet-rpg-attr-item">
-                    <div class="sheet-rpg-attr-top">
-                        <div class="sheet-rpg-attr-label">${key}</div>
-                        <div class="sheet-rpg-attr-controls ${canEdit ? '' : 'readonly'}">
-                            <button type="button" onclick="adjustSheetRpgStat('${c.id}','${key}', -1)" ${canEdit ? '' : 'disabled'}>−</button>
-                            <span>${data.totalStats[key]}</span>
-                            <button type="button" onclick="adjustSheetRpgStat('${c.id}','${key}', 1)" ${canEdit ? '' : 'disabled'}>+</button>
-                        </div>
-                    </div>
-                    <div class="sheet-rpg-attr-desc">${desc}</div>
+                <div class="rpg-stats-card">
+                    <div class="rpg-stats-card-key">${key}</div>
+                    <div class="rpg-stats-card-value">${data.totalStats[key]}</div>
+                    <div class="rpg-stats-card-desc">${desc}</div>
                 </div>
             `).join('')}
         </div>
-        <div class="sheet-rpg-points">Puntos por repartir: <strong>${data.freePoints}</strong> / ${RPG_POINTS_POOL}</div>
-        <div class="sheet-rpg-note">Progreso simbólico: no altera moneda ni probabilidades. En modo clásico no se muestra bajo el nombre durante escena.</div>
+        <div class="rpg-stats-points">Puntos: ${data.freePoints} / ${RPG_POINTS_POOL}</div>
+        <div class="rpg-stats-note">Progreso RPG activo solo en modo RPG.</div>
     `;
 }
 
-function adjustSheetRpgStat(charId, statKey, delta) {
+function openRpgStatsModal(charId) {
     const char = appData.characters.find(ch => String(ch.id) === String(charId));
-    if (!char || char.userIndex !== currentUserIndex) return;
-
-    const profile = ensureCharacterRpgProfile(char);
-    if (!profile.stats[statKey] && profile.stats[statKey] !== 0) return;
-
-    const spent = getRpgSpentPoints(profile);
-    if (delta > 0 && spent >= RPG_POINTS_POOL) {
-        showAutosave('No te quedan puntos para repartir', 'error');
-        return;
-    }
-    if (delta < 0 && profile.stats[statKey] <= 0) return;
-
-    profile.stats[statKey] += delta;
-    hasUnsavedChanges = true;
-    save({ silent: true });
-    renderSheetRpgPanel(char);
-    if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
-}
-
-function setSheetRpgPanelOpen(isOpen) {
-    const panel = document.getElementById('sheetRpgPanel');
-    const btn = document.getElementById('sheetRpgToggleBtn');
-    if (!panel || !btn) return;
-
-    panel.classList.toggle('active', !!isOpen);
-    panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-    btn.classList.toggle('active', !!isOpen);
-    btn.textContent = isOpen ? '✕ Cerrar stats' : '⚔️ Stats';
-}
-
-function toggleSheetRpgPanel() {
-    const panel = document.getElementById('sheetRpgPanel');
-    if (!panel) return;
-    setSheetRpgPanelOpen(!panel.classList.contains('active'));
+    if (!char) return;
+    renderRpgStatsModal(char);
+    openModal('rpgStatsModal');
 }
 
 function getAlignmentColor(code) {
@@ -306,4 +262,3 @@ function editFromSheet() {
     closeModal('sheetModal');
     openCharacterEditor(currentSheetCharId);
 }
-

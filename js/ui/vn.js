@@ -318,10 +318,6 @@ function showCurrentMessage(direction = 'forward') {
 
     if (avatarBox) avatarBox.classList.toggle('is-speaking', !(msg.isNarrator || !msg.characterId));
 
-    // Mostrar emote en avatar si no hay sprite
-    if (activeEmote && !msg.charSprite) {
-        showEmoteOnAvatar(activeEmote);
-    }
 
     const hasOpt = msg.options && msg.options.length > 0 && msg.selectedOptionIndex === undefined;
     const optionsIndicator = document.getElementById('messageHasOptions');
@@ -418,13 +414,14 @@ function recycleActiveSprites(container) {
     Array.from(container.children).forEach((child) => {
         child.className = 'vn-sprite';
         child.removeAttribute('data-char-id');
+        child.classList.remove('no-sprite');
         const img = child.querySelector('img');
         if (img) {
             img.removeAttribute('src');
             img.removeAttribute('alt');
             img.onerror = null;
         }
-        child.querySelectorAll('.manga-emote').forEach((el) => el.remove());
+        child.querySelectorAll('.vn-sprite-hitbox, .manga-emote').forEach((el) => el.remove());
         // Limitar el pool a 20 elementos para evitar memory leak
         if (spritePool.length < 20) spritePool.push(child);
     });
@@ -446,7 +443,7 @@ function updateSprites(currentMsg, activeEmote = null) {
 
         for (let i = msgs.length - 1; i >= 0 && seen.size < 5; i--) {
             const m = msgs[i];
-            if (m.characterId && m.charSprite && !seen.has(m.characterId)) {
+            if (m.characterId && !seen.has(m.characterId)) {
                 const charExists = appData.characters.find(c => c.id === m.characterId);
                 if (charExists) {
                     seen.add(m.characterId);
@@ -464,7 +461,7 @@ function updateSprites(currentMsg, activeEmote = null) {
         } else if (sliced.length >= 3) {
             charsToShow = [{ ...sliced[0], position: 'left' }, { ...sliced[1], position: 'center' }, { ...sliced[2], position: 'right' }];
         }
-    } else if (currentMsg.characterId && currentMsg.charSprite) {
+    } else if (currentMsg.characterId) {
         const charExists = appData.characters.find(c => c.id === currentMsg.characterId);
         if (charExists) {
             // Crear copia para no mutar el mensaje original con .position
@@ -482,16 +479,33 @@ function updateSprites(currentMsg, activeEmote = null) {
         spriteNode.className = `vn-sprite position-${position} ${isCurrent ? 'active' : 'inactive'}`;
         spriteNode.dataset.charId = char.characterId;
 
-        const img = spriteNode.querySelector('img') || document.createElement('img');
-        img.src = escapeHtml(char.charSprite);
-        img.alt = escapeHtml(char.charName);
-        img.onerror = function () {
-            this.style.display = 'none';
-            if (this.parentElement) this.parentElement.style.display = 'none';
-        };
-        img.style.display = 'block';
+        const existingPlaceholder = spriteNode.querySelector('.vn-sprite-hitbox');
+        if (existingPlaceholder) existingPlaceholder.remove();
 
-        if (!spriteNode.contains(img)) spriteNode.appendChild(img);
+        const hasSprite = typeof char.charSprite === 'string' && char.charSprite.trim().length > 0;
+        let img = spriteNode.querySelector('img');
+
+        if (hasSprite) {
+            if (!img) {
+                img = document.createElement('img');
+                spriteNode.appendChild(img);
+            }
+            img.src = escapeHtml(char.charSprite);
+            img.alt = escapeHtml(char.charName || 'Sprite');
+            img.onerror = function () {
+                this.style.display = 'none';
+                if (this.parentElement) this.parentElement.classList.add('no-sprite');
+            };
+            img.style.display = 'block';
+            spriteNode.classList.remove('no-sprite');
+        } else {
+            if (img) img.remove();
+            spriteNode.classList.add('no-sprite');
+            const hitbox = document.createElement('div');
+            hitbox.className = 'vn-sprite-hitbox';
+            hitbox.setAttribute('aria-hidden', 'true');
+            spriteNode.appendChild(hitbox);
+        }
 
         if (isCurrent && activeEmote) {
             const emoteNode = document.createElement('div');
@@ -1381,9 +1395,8 @@ function selectCharFromGrid(charId) {
 function openSelectedCharacterStats() {
     const topic = getCurrentTopic();
     if (topic?.mode !== 'fanfic') return;
-    if (!selectedCharId || typeof openSheet !== 'function') return;
-    openSheet(selectedCharId);
-    if (typeof setSheetRpgPanelOpen === 'function') setSheetRpgPanelOpen(true);
+    if (!selectedCharId || typeof openRpgStatsModal !== 'function') return;
+    openRpgStatsModal(selectedCharId);
 }
 
 function toggleOptionsFields() {

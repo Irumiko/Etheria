@@ -621,6 +621,89 @@ body::before {
             text-transform: uppercase;
         }
 
+
+        .rpg-stats-modal {
+            background: rgba(16, 11, 8, 0.97);
+            border: 2px solid rgba(201, 168, 108, 0.45);
+            border-radius: 18px;
+            width: min(420px, 92vw);
+            box-shadow: 0 30px 70px rgba(0,0,0,0.56);
+            padding: 1rem;
+        }
+        .rpg-stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.8rem;
+            margin-bottom: 0.95rem;
+        }
+        .rpg-stats-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.25rem;
+            color: var(--accent-gold);
+            font-weight: 700;
+        }
+        .rpg-stats-body {
+            display: grid;
+            gap: 0.7rem;
+        }
+        .rpg-stats-progress-row {
+            display: grid;
+            grid-template-columns: 34px 1fr auto;
+            align-items: center;
+            gap: 0.55rem;
+        }
+        .rpg-stats-progress-label {
+            color: var(--accent-gold);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+        .rpg-stats-progress-value {
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            min-width: 44px;
+            text-align: right;
+        }
+        .rpg-stats-grid {
+            margin-top: 0.2rem;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.6rem;
+        }
+        .rpg-stats-card {
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            padding: 0.55rem;
+            background: rgba(255,255,255,0.02);
+            text-align: center;
+        }
+        .rpg-stats-card-key {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+        .rpg-stats-card-value {
+            margin-top: 0.2rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .rpg-stats-card-desc {
+            margin-top: 0.22rem;
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+        }
+        .rpg-stats-points {
+            margin-top: 0.4rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .rpg-stats-note {
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+            line-height: 1.4;
+        }
+
         /* Avatar */
         .user-avatar {
             display: flex !important;
@@ -2729,11 +2812,11 @@ body::before {
             background: rgba(201, 168, 108, 0.1);
             color: var(--accent-gold);
             border-radius: 8px;
-            width: 26px;
-            height: 22px;
-            font-size: 0.78rem;
+            padding: 0.22rem 0.48rem;
+            font-size: 0.72rem;
             cursor: pointer;
             flex-shrink: 0;
+            white-space: nowrap;
         }
 
         /* Avatar */
@@ -3093,6 +3176,20 @@ body::before {
             object-position: top center;
             transform-origin: center bottom;
             /* Desvanecido en los pies para integrarse con el fondo */
+            mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+        }
+
+        .vn-sprite.no-sprite {
+            width: min(34vw, 360px);
+            min-width: 220px;
+        }
+        .vn-sprite-hitbox {
+            width: 100%;
+            height: 95%;
+            border-radius: 18px 18px 10px 10px;
+            border: 1px dashed rgba(201, 168, 108, 0.22);
+            background: linear-gradient(to bottom, rgba(201, 168, 108, 0.06), rgba(201, 168, 108, 0.01));
             mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
             -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
         }
