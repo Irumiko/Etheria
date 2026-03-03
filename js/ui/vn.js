@@ -5,7 +5,11 @@
 // Variables para el debounce de sincronización al navegar mensajes
 var _lastNavSyncTime = 0;
 var _NAV_SYNC_DEBOUNCE_MS = 3000; // sincronizar como máximo cada 3 segundos al navegar
-const DEFAULT_TOPIC_BACKGROUND = '/assets/backgrounds/default_background.jpg';
+const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.jpg';
+const DEFAULT_TOPIC_BACKGROUND_VARIANTS = [
+    DEFAULT_TOPIC_BACKGROUND,
+    `/${DEFAULT_TOPIC_BACKGROUND}`
+];
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
     'assets/backgrounds/default_background.jpg',
@@ -447,54 +451,87 @@ function resolveTopicBackgroundPath(backgroundPath = '') {
     const topicBackground = String(backgroundPath || '').trim();
     if (!topicBackground) return DEFAULT_TOPIC_BACKGROUND;
 
-    const normalizedPath = topicBackground.startsWith('/')
-        ? topicBackground.slice(1)
-        : topicBackground;
+    const normalizedPath = topicBackground.replace(/^\/+/, '');
+    return isDefaultTopicBackground(normalizedPath) ? DEFAULT_TOPIC_BACKGROUND : topicBackground;
+}
 
-    return isDefaultTopicBackground(normalizedPath) ? DEFAULT_TOPIC_BACKGROUND : normalizedPath;
+function getBackgroundCandidates(path) {
+    const normalizedPath = String(path || '').trim();
+    if (!normalizedPath) return [];
+
+    const isAbsoluteUrl = /^(?:[a-z]+:)?\/\//i.test(normalizedPath);
+    const isSpecialUri = /^(?:data:|blob:)/i.test(normalizedPath);
+    if (isAbsoluteUrl || isSpecialUri) return [normalizedPath];
+
+    const withoutLeadingSlash = normalizedPath.replace(/^\/+/, '');
+    const withLeadingSlash = `/${withoutLeadingSlash}`;
+
+    if (DEFAULT_TOPIC_BACKGROUND_VARIANTS.includes(normalizedPath)) {
+        return [...new Set(DEFAULT_TOPIC_BACKGROUND_VARIANTS)];
+    }
+
+    if (normalizedPath.startsWith('/')) {
+        return [...new Set([normalizedPath, withoutLeadingSlash])];
+    }
+
+    return [...new Set([normalizedPath, withLeadingSlash])];
 }
 
 function preloadBackgroundImage(path) {
     const normalizedPath = (path || '').trim();
     if (!normalizedPath || preloadedBackgrounds.has(normalizedPath)) {
-        return Promise.resolve();
+        return Promise.resolve(true);
     }
 
     return new Promise((resolve) => {
         const img = new Image();
         img.onload = () => {
             preloadedBackgrounds.add(normalizedPath);
-            resolve();
+            resolve(true);
         };
-        img.onerror = resolve;
+        img.onerror = () => resolve(false);
         img.src = normalizedPath;
     });
+}
+
+async function resolveFirstAvailableBackground(path) {
+    const candidates = getBackgroundCandidates(path);
+    if (!candidates.length) return '';
+
+    for (const candidate of candidates) {
+        const loaded = await preloadBackgroundImage(candidate);
+        if (loaded) return candidate;
+    }
+
+    return candidates[0];
 }
 
 function applyTopicBackground(vnSection, backgroundPath) {
     if (!vnSection) return;
 
     const sceneBackgroundPath = resolveTopicBackgroundPath(backgroundPath);
-    vnSection.dataset.pendingBackground = sceneBackgroundPath;
+    const pendingBackgroundToken = `${sceneBackgroundPath}|${Date.now()}|${Math.random()}`;
+    vnSection.dataset.pendingBackgroundToken = pendingBackgroundToken;
 
-    const applyBackground = () => {
-        if (vnSection.dataset.pendingBackground !== sceneBackgroundPath) return;
-        const gradient = 'linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)';
-        if (!sceneBackgroundPath) {
-            vnSection.style.backgroundImage = gradient;
-            return;
-        }
-        const sceneBackgroundLayer = `url(${escapeHtml(sceneBackgroundPath)})`;
+    const gradient = 'linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)';
+    if (!sceneBackgroundPath) {
+        vnSection.style.backgroundImage = gradient;
+        return;
+    }
+
+    resolveFirstAvailableBackground(sceneBackgroundPath).then((resolvedPath) => {
+        if (vnSection.dataset.pendingBackgroundToken !== pendingBackgroundToken) return;
+        const sceneBackgroundLayer = `url(${escapeHtml(resolvedPath || sceneBackgroundPath)})`;
         vnSection.style.backgroundImage = `${sceneBackgroundLayer}, ${gradient}`;
-    };
-
-    preloadBackgroundImage(sceneBackgroundPath).finally(applyBackground);
+    });
 }
 
 function preloadTopicBackgrounds() {
     const topicBackgrounds = (appData?.topics || []).map(topic => resolveTopicBackgroundPath(topic.background));
-    const uniqueBackgrounds = new Set([...topicBackgrounds, DEFAULT_TOPIC_BACKGROUND].filter(Boolean));
-    uniqueBackgrounds.forEach(path => preloadBackgroundImage(path));
+    const uniqueBackgrounds = new Set([...topicBackgrounds, ...DEFAULT_TOPIC_BACKGROUND_VARIANTS].filter(Boolean));
+    uniqueBackgrounds.forEach((path) => {
+        getBackgroundCandidates(path).forEach(candidate => preloadBackgroundImage(candidate));
+    });
 }
 
 function playVnSceneTransition(vnSection) {
