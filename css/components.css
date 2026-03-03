@@ -3420,6 +3420,20 @@ body::before {
             z-index: 10;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
+        .vn-oracle-consequence-badge {
+            position: absolute;
+            top: 2.05rem;
+            left: 8.4rem;
+            font-size: 0.72rem;
+            color: rgba(232, 212, 156, 0.95);
+            border: 1px solid rgba(201, 168, 108, 0.36);
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.36);
+            padding: 0.18rem 0.55rem;
+            letter-spacing: 0.03em;
+            backdrop-filter: blur(2px);
+            z-index: 9;
+        }
         .vn-dialogue-text {
             font-family: 'EB Garamond', 'Crimson Text', serif;
             font-size: calc(var(--font-size-base) + 0.05rem);
@@ -3439,6 +3453,28 @@ body::before {
             color: var(--text-secondary);
             font-style: italic;
         }
+        .vn-oracle-result {
+            margin-top: 0.95rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(201, 168, 108, 0.2);
+            font-size: 0.95rem;
+        }
+        .vn-oracle-rule {
+            display: block;
+            color: rgba(201, 168, 108, 0.68);
+            letter-spacing: 0.12em;
+            margin-bottom: 0.35rem;
+        }
+        .vn-oracle-question {
+            color: rgba(229, 219, 194, 0.92);
+            margin-bottom: 0.25rem;
+        }
+        .vn-oracle-outcome {
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .vn-oracle-outcome.result-cara { color: #e9cc7b; }
+        .vn-oracle-outcome.result-cruz { color: #bd7667; }
 
         /* El indicador de continuar ahora se renderiza al final del texto,
            alineado de forma inline, no con position absolute */
@@ -3949,6 +3985,99 @@ body::before {
 
         .vn-reply-textarea-wrap {
             position: relative;
+        }
+
+        .oracle-panel {
+            margin-top: 0.7rem;
+            border: 1px solid rgba(201, 168, 108, 0.3);
+            border-radius: 10px;
+            padding: 0.75rem 0.85rem;
+            background: rgba(0, 0, 0, 0.2);
+            transition: border-color 0.22s ease, box-shadow 0.22s ease;
+        }
+        .oracle-panel.active {
+            border-color: rgba(201, 168, 108, 0.6);
+            box-shadow: 0 0 0 1px rgba(201, 168, 108, 0.16);
+        }
+        .oracle-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.92rem;
+        }
+        .oracle-toggle input {
+            accent-color: var(--accent-gold);
+        }
+        .oracle-fields { margin-top: 0.7rem; }
+        .oracle-question-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            margin-bottom: 0.65rem;
+        }
+        .oracle-question-wrap label,
+        .oracle-stat-label {
+            font-family: 'Cinzel', serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            color: rgba(201, 168, 108, 0.92);
+        }
+        .oracle-question-wrap input {
+            width: 100%;
+            border: 1px solid rgba(201, 168, 108, 0.3);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #f4e6ca;
+            padding: 0.5rem 0.65rem;
+        }
+        .oracle-stat-wrap { margin-bottom: 0.65rem; }
+        .oracle-stat-buttons {
+            margin-top: 0.35rem;
+            display: flex;
+            gap: 0.45rem;
+            flex-wrap: wrap;
+        }
+        .oracle-stat-btn {
+            border: 1px solid rgba(201, 168, 108, 0.28);
+            border-radius: 8px;
+            padding: 0.28rem 0.52rem;
+            background: rgba(0, 0, 0, 0.3);
+            color: rgba(240, 230, 202, 0.84);
+            font-size: 0.78rem;
+            cursor: pointer;
+        }
+        .oracle-stat-btn.active {
+            border-color: rgba(201, 168, 108, 0.75);
+            color: #f6dd9f;
+            background: rgba(201, 168, 108, 0.16);
+        }
+        .oracle-probability-head {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: rgba(222, 209, 176, 0.9);
+            margin-bottom: 0.3rem;
+        }
+        .oracle-probability-bar {
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(66, 54, 32, 0.55);
+            border: 1px solid rgba(201, 168, 108, 0.2);
+            overflow: hidden;
+        }
+        .oracle-probability-fill {
+            height: 100%;
+            width: 50%;
+            background: linear-gradient(90deg, rgba(193, 145, 60, 0.7), rgba(240, 207, 127, 0.95));
+            transition: width 0.2s ease;
+        }
+        .oracle-legend {
+            margin-top: 0.48rem;
+            font-size: 0.74rem;
+            color: rgba(182, 171, 148, 0.95);
         }
 
         .vn-reply-textarea {
@@ -5003,3 +5132,208 @@ body::before {
             border-color: rgba(201,168,108,0.7);
             color: rgba(201,168,108,1);
         }
+
+/* ===== Mobile VN drawer, FAB y modo inmersivo ===== */
+.drawer-handle {
+    display: none;
+    width: 64px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(201, 168, 108, 0.55);
+    margin: 0.5rem auto 0.2rem;
+    touch-action: pan-y;
+}
+
+.vn-mobile-fab-nav {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 0.7rem);
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    gap: 0.6rem;
+    z-index: 260;
+}
+
+.vn-mobile-fab-btn {
+    border: 1px solid rgba(201, 168, 108, 0.4);
+    background: rgba(0, 0, 0, 0.65);
+    color: #f8e6bf;
+    border-radius: 999px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.05rem;
+}
+
+.vn-mobile-fab-btn.main {
+    width: 52px;
+    height: 52px;
+    font-size: 1.2rem;
+    background: rgba(88, 64, 29, 0.8);
+}
+
+body.immersive-mode #vnSection .vn-controls,
+body.immersive-mode #vnSection #vnInfoCard,
+body.immersive-mode #vnSection #roomCodeWrap {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+}
+
+body.immersive-mode.immersive-reveal #vnSection .vn-controls,
+body.immersive-mode.immersive-reveal #vnSection #vnInfoCard,
+body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+    :root { --font-size-base: 1.35rem; }
+
+    .vn-dialogue-box {
+        padding: 0.95rem 0.8rem 1.8rem 4.3rem;
+    }
+
+    .vn-speaker-avatar {
+        width: 52px;
+        height: 52px;
+        font-size: 1.45rem;
+    }
+
+    .vn-reply-panel {
+        height: 35vh;
+        max-height: 85vh;
+        transition: height 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .vn-reply-panel.drawer-expanded {
+        height: 85vh;
+    }
+
+    .vn-reply-panel.drawer-collapsed {
+        height: 35vh;
+    }
+
+    .drawer-handle {
+        display: block;
+    }
+
+    .vn-reply-header {
+        padding: 0.65rem 0.9rem;
+    }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .vn-mobile-fab-nav {
+        bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+}
+
+/* ===== Typing indicator in VN info card ===== */
+.vn-typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+.vn-typing-indicator span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(201,168,108,0.9);
+    animation: vn-typing-dot 1s infinite ease-in-out;
+}
+.vn-typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+.vn-typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes vn-typing-dot {
+    0%, 80%, 100% { transform: translateY(0); opacity: .5; }
+    40% { transform: translateY(-3px); opacity: 1; }
+}
+
+/* ===== Sprite micro-animations ===== */
+.vn-sprite.active img {
+    animation: sprite-active-breathe var(--sprite-breathing-duration, 4s) ease-in-out infinite;
+    transform-origin: center bottom;
+}
+.vn-sprite.active.sprite-blink img {
+    filter: brightness(1.16) saturate(1.08)
+            drop-shadow(0 25px 35px rgba(0,0,0,0.45))
+            drop-shadow(0 0 25px rgba(201, 168, 108, 0.16));
+}
+@keyframes sprite-active-breathe {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.02); }
+}
+@media (hover: hover) {
+    .vn-sprite.hover-near img {
+        transform: scale(1.03);
+        transition: transform 120ms ease;
+    }
+}
+.vn-sprite.focus-pop img {
+    transform: scale(1.04);
+    transition: transform 140ms ease;
+}
+
+.oracle-consequence {
+  border-left: 3px solid var(--oracle-result-color, rgba(201,168,108,0.6));
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.oracle-consequence.cara {
+  --oracle-result-color: var(--accent-gold);
+}
+
+.oracle-consequence.cruz {
+  --oracle-result-color: #c75b5b;
+}
+
+.relationship-constellation {
+  position: relative;
+  margin-top: 0.85rem;
+  min-height: 430px;
+  border: 1px solid rgba(201,168,108,0.22);
+  border-radius: 14px;
+  background: radial-gradient(circle at 30% 20%, rgba(89,73,43,0.18), rgba(0,0,0,0.32));
+  overflow: hidden;
+}
+.relationship-constellation svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.relationship-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.22rem;
+  cursor: pointer;
+}
+.relationship-node-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(201,168,108,0.55);
+  background: rgba(0,0,0,0.42);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+.relationship-node-avatar img { width:100%; height:100%; object-fit:cover; }
+.relationship-node-name {
+  font-size: 0.75rem;
+  color: #f5e9cc;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.relationship-node-stars {
+  font-size: 0.74rem;
+  color: var(--accent-gold);
+}

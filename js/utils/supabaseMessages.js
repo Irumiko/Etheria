@@ -83,7 +83,10 @@
                     timestamp   : msgObj.timestamp     || new Date().toISOString(),
                     weather     : msgObj.weather       || undefined,
                     diceRoll    : msgObj.diceRoll      || undefined,
-                    options     : msgObj.options       || undefined
+                    options     : msgObj.options       || undefined,
+                    oracle      : msgObj.oracle        || undefined,
+                    metaType    : msgObj.metaType      || undefined,
+                    typing      : msgObj.typing        || undefined
                 })
             };
 
@@ -137,6 +140,7 @@
                     const msg = JSON.parse(row.content);
                     // Usar created_at como timestamp si el mensaje no lo trae
                     if (!msg.timestamp) msg.timestamp = row.created_at;
+                    if (msg.metaType === 'typing') return acc;
                     acc.push(msg);
                 } catch {
                     // Fila con content inválido — ignorar silenciosamente
@@ -155,7 +159,7 @@
     // Usa supabase-js channel().on() para escuchar INSERTs filtrados por session_id.
     // onMessage(msgObj) recibe el objeto mensaje de Etheria deserializado.
 
-    function subscribe(sessionId, onMessage) {
+    function subscribe(sessionId, onMessage, onTyping, onReconnect) {
         if (!_init()) {
             console.warn('[Supabase] subscribe: cliente no disponible');
             return;
@@ -180,6 +184,10 @@
                             if (!row || !row.content) return;
                             var msg = JSON.parse(row.content);
                             if (!msg.timestamp) msg.timestamp = row.created_at;
+                            if (msg && msg.metaType === 'typing') {
+                                if (typeof onTyping === 'function') onTyping(msg);
+                                return;
+                            }
                             if (typeof onMessage === 'function') onMessage(msg);
                         } catch {
                             // payload inesperado — ignorar
@@ -189,6 +197,7 @@
                 .subscribe(function (status) {
                     if (status === 'SUBSCRIBED') {
                         _available = true;
+                        if (typeof onReconnect === 'function') onReconnect();
                     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                         _available = false;
                         console.warn('[Supabase] channel status:', status);
@@ -210,12 +219,30 @@
         }
     }
 
+    
+    async function sendTyping(sessionId, payload) {
+        if (_available === false) return false;
+        const msgObj = {
+            id: `typing_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+            userIndex: payload?.userIndex ?? 0,
+            timestamp: new Date().toISOString(),
+            metaType: 'typing',
+            typing: {
+                active: !!payload?.active,
+                characterId: payload?.characterId || null,
+                name: payload?.name || null
+            }
+        };
+        return send(sessionId, msgObj);
+    }
+
     // ── API pública ───────────────────────────────────────────────────────────
 
     global.SupabaseMessages = {
         send        : send,
         load        : load,
         subscribe   : subscribe,
+        sendTyping  : sendTyping,
         unsubscribe : unsubscribe,
         get available() { return _available; }
     };
