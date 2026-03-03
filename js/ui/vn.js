@@ -5,9 +5,11 @@
 // Variables para el debounce de sincronización al navegar mensajes
 var _lastNavSyncTime = 0;
 var _NAV_SYNC_DEBOUNCE_MS = 3000; // sincronizar como máximo cada 3 segundos al navegar
-const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.jpg';
+const DEFAULT_TOPIC_BACKGROUND = '';
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
+    'assets/backgrounds/default_background.jpg',
+    '/assets/backgrounds/default_background.jpg',
     'assets/backgrounds/default_scene.png',
     'Assets/backgrounds/default_scene.png',
     'assets/default_background.png',
@@ -442,8 +444,14 @@ function isDefaultTopicBackground(backgroundPath) {
 }
 
 function resolveTopicBackgroundPath(backgroundPath = '') {
-    const topicBackground = (backgroundPath || '').trim();
-    return isDefaultTopicBackground(topicBackground) ? DEFAULT_TOPIC_BACKGROUND : topicBackground;
+    const topicBackground = String(backgroundPath || '').trim();
+    if (!topicBackground) return DEFAULT_TOPIC_BACKGROUND;
+
+    const normalizedPath = topicBackground.startsWith('/')
+        ? topicBackground.slice(1)
+        : topicBackground;
+
+    return isDefaultTopicBackground(normalizedPath) ? DEFAULT_TOPIC_BACKGROUND : normalizedPath;
 }
 
 function preloadBackgroundImage(path) {
@@ -467,12 +475,17 @@ function applyTopicBackground(vnSection, backgroundPath) {
     if (!vnSection) return;
 
     const sceneBackgroundPath = resolveTopicBackgroundPath(backgroundPath);
-    const sceneBackgroundLayer = `url(${escapeHtml(sceneBackgroundPath)})`;
     vnSection.dataset.pendingBackground = sceneBackgroundPath;
 
     const applyBackground = () => {
         if (vnSection.dataset.pendingBackground !== sceneBackgroundPath) return;
-        vnSection.style.backgroundImage = `${sceneBackgroundLayer}, linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)`;
+        const gradient = 'linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)';
+        if (!sceneBackgroundPath) {
+            vnSection.style.backgroundImage = gradient;
+            return;
+        }
+        const sceneBackgroundLayer = `url(${escapeHtml(sceneBackgroundPath)})`;
+        vnSection.style.backgroundImage = `${sceneBackgroundLayer}, ${gradient}`;
     };
 
     preloadBackgroundImage(sceneBackgroundPath).finally(applyBackground);
@@ -480,7 +493,7 @@ function applyTopicBackground(vnSection, backgroundPath) {
 
 function preloadTopicBackgrounds() {
     const topicBackgrounds = (appData?.topics || []).map(topic => resolveTopicBackgroundPath(topic.background));
-    const uniqueBackgrounds = new Set([DEFAULT_TOPIC_BACKGROUND, ...topicBackgrounds]);
+    const uniqueBackgrounds = new Set([...topicBackgrounds, DEFAULT_TOPIC_BACKGROUND].filter(Boolean));
     uniqueBackgrounds.forEach(path => preloadBackgroundImage(path));
 }
 
