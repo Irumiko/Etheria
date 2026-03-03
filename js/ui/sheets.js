@@ -12,9 +12,8 @@ function getRpgTitleByLevel(level) {
     return 'Aprendiz';
 }
 
-function ensureCharacterRpgProfile(char) {
-    if (!char) return null;
-    const existingStats = char.rpgProfile?.stats || {};
+function sanitizeRpgProfile(raw) {
+    const existingStats = raw?.stats || {};
     const profile = {
         stats: {
             STR: Math.max(0, Number(existingStats.STR) || 0),
@@ -22,10 +21,10 @@ function ensureCharacterRpgProfile(char) {
             INT: Math.max(0, Number(existingStats.INT) || 0),
             AGI: Math.max(0, Number(existingStats.AGI) || 0)
         },
-        hp: Math.max(0, Math.min(RPG_HP_MAX, Number(char.rpgProfile?.hp) || RPG_HP_MAX)),
-        exp: Math.max(0, Math.min(RPG_EXP_PER_LEVEL - 1, Number(char.rpgProfile?.exp) || 0)),
-        level: Math.max(1, Number(char.rpgProfile?.level) || 1),
-        knockedOutTurns: Math.max(0, Number(char.rpgProfile?.knockedOutTurns) || 0)
+        hp: Math.max(0, Math.min(RPG_HP_MAX, Number(raw?.hp) || RPG_HP_MAX)),
+        exp: Math.max(0, Math.min(RPG_EXP_PER_LEVEL - 1, Number(raw?.exp) || 0)),
+        level: Math.max(1, Number(raw?.level) || 1),
+        knockedOutTurns: Math.max(0, Number(raw?.knockedOutTurns) || 0)
     };
 
     const spent = profile.stats.STR + profile.stats.VIT + profile.stats.INT + profile.stats.AGI;
@@ -33,9 +32,31 @@ function ensureCharacterRpgProfile(char) {
         const overflow = spent - RPG_POINTS_POOL;
         profile.stats.AGI = Math.max(0, profile.stats.AGI - overflow);
     }
-
-    char.rpgProfile = profile;
     return profile;
+}
+
+function ensureCharacterRpgProfile(char, topicId = null) {
+    if (!char) return null;
+
+    const baseProfile = sanitizeRpgProfile(char.rpgProfile || {});
+    char.rpgProfile = baseProfile;
+
+    const activeTopicId = topicId || currentTopicId;
+    const topic = appData.topics.find((t) => String(t.id) === String(activeTopicId));
+    if (!topic || topic.mode !== 'fanfic') {
+        return baseProfile;
+    }
+
+    topic.rpgProfiles = topic.rpgProfiles || {};
+    const topicSeedProfile = topic.rpgProfiles[char.id] || {
+        stats: baseProfile.stats,
+        hp: RPG_HP_MAX,
+        exp: 0,
+        level: 1,
+        knockedOutTurns: 0
+    };
+    topic.rpgProfiles[char.id] = sanitizeRpgProfile(topicSeedProfile);
+    return topic.rpgProfiles[char.id];
 }
 
 function getRpgSpentPoints(profile) {
@@ -107,8 +128,8 @@ function openSheet(id) {
     openModal('sheetModal');
 }
 
-function getRpgSheetData(c) {
-    const profile = ensureCharacterRpgProfile(c);
+function getRpgSheetData(c, topicId = null) {
+    const profile = ensureCharacterRpgProfile(c, topicId);
     const spent = getRpgSpentPoints(profile);
     const freePoints = Math.max(0, RPG_POINTS_POOL - spent);
     const totalStats = {
@@ -130,7 +151,7 @@ function renderRpgStatsModal(c) {
     const bodyEl = document.getElementById('rpgStatsBody');
     if (!titleEl || !bodyEl) return;
 
-    const data = getRpgSheetData(c);
+    const data = getRpgSheetData(c, currentTopicId || null);
     const hpWidth = (data.profile.hp / RPG_HP_MAX) * 100;
     const expWidth = (data.profile.exp / RPG_EXP_PER_LEVEL) * 100;
 

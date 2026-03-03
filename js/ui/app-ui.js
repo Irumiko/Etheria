@@ -301,6 +301,10 @@ function quickSave() {
     showAutosave(saved ? 'Guardado rápido' : 'Error al guardar rápido', saved ? 'saved' : 'error');
 }
 
+function openSaveHubModal() {
+    openModal('saveHubModal');
+}
+
 function saveGameFromMenu() {
     // Recopilar mensajes de todos los topics para el archivo completo
     const allMessages = {};

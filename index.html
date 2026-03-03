@@ -80,6 +80,22 @@
         </div>
     </div>
 
+    <div id="saveHubModal" class="modal-overlay" onclick="if(event.target === this) closeModal('saveHubModal')" role="dialog" aria-modal="true" aria-labelledby="saveHubTitle">
+        <div class="shortcuts-modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+                <h3 id="saveHubTitle" style="font-family:Cinzel,serif;">💾 Centro de guardado</h3>
+                <button class="btn-secondary" onclick="closeModal('saveHubModal')">Cerrar</button>
+            </div>
+            <p style="color:var(--text-muted);margin-top:0.35rem;">Elige cómo guardar o cargar tus partidas e historias.</p>
+            <div style="display:grid;gap:0.6rem;margin-top:0.8rem;">
+                <button class="btn-primary" onclick="saveGameFromMenu()">Descargar partida completa (JSON)</button>
+                <button class="btn-secondary" onclick="loadGameFromMenu()">Cargar partida completa (JSON)</button>
+                <button class="btn-secondary" onclick="exportCurrentStoryAsCode()">Generar código de historia</button>
+                <button class="btn-secondary" onclick="importStoryFromCode()">Importar historia por código</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings Panel -->
     <div id="settingsPanel" class="settings-panel">
         <h3 class="settings-title">⚙️ Ajustes de Lectura</h3>
@@ -144,33 +160,21 @@
             </div>
 
             <div class="menu-container">
-                <button class="menu-button primary" onclick="showSection('topics')">
-                    <span>✨</span>
-                    <span>Nueva Partida</span>
+                <button class="menu-button menu-button-console primary" onclick="showSection('topics')">
+                    <span class="menu-icon">✨</span>
+                    <span class="menu-label">Nueva Partida</span>
                 </button>
-                <button class="menu-button" onclick="showSection('gallery')">
-                    <span>🎭</span>
-                    <span>Galería de Personajes</span>
+                <button class="menu-button menu-button-console" onclick="showSection('gallery')">
+                    <span class="menu-icon">🎭</span>
+                    <span class="menu-label">Galería de Personajes</span>
                 </button>
-                <button class="menu-button" onclick="saveGameFromMenu()">
-                    <span>💾</span>
-                    <span>Guardar Partida</span>
+                <button class="menu-button menu-button-console" onclick="openSaveHubModal()">
+                    <span class="menu-icon">💾</span>
+                    <span class="menu-label">Guardar y Cargar</span>
                 </button>
-                <button class="menu-button" onclick="loadGameFromMenu()">
-                    <span>📂</span>
-                    <span>Cargar Partida</span>
-                </button>
-                <button class="menu-button" onclick="exportCurrentStoryAsCode()">
-                    <span>🔐</span>
-                    <span>Compartir historia (código)</span>
-                </button>
-                <button class="menu-button" onclick="importStoryFromCode()">
-                    <span>📥</span>
-                    <span>Importar historia (código)</span>
-                </button>
-                <button class="menu-button" onclick="showSection('options')">
-                    <span>⚙️</span>
-                    <span>Opciones</span>
+                <button class="menu-button menu-button-console" onclick="showSection('options')">
+                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-label">Opciones</span>
                 </button>
             </div>
 
@@ -562,6 +566,10 @@
             </div>
         </div>
 
+        <button id="vnOracleFloatBtn" class="vn-oracle-float-btn" type="button" onclick="triggerOracleReply()" style="display:none;" title="Activar tirada del oráculo para el próximo mensaje">
+            🎲 Oráculo
+        </button>
+
         <!-- Panel Responder -->
         <div id="vnReplyPanel" class="vn-reply-panel">
             <div class="drawer-handle" id="replyDrawerHandle" aria-hidden="true"></div>
@@ -595,23 +603,6 @@
                 </div>
 
 
-                <!-- Mejora 7: Dado DnD — resultado embebido en el mensaje -->
-                <div id="coinControlsRow" style="display: flex; align-items: center; gap: 0.7rem; margin-top: 0.4rem; flex-wrap: wrap;">
-                    <button class="dice-toggle-btn" id="diceToggleBtn" onclick="toggleDiceMode()" type="button" title="Lanza la moneda. El resultado se publicará junto con tu mensaje.">
-                        🪙 Lanzar moneda
-                    </button>
-                    <div id="coinActionTypeWrap" style="display:none;">
-                        <select id="coinActionType" style="padding:0.35rem 0.5rem; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:0.82rem;">
-                            <option value="general">Acción general</option>
-                            <option value="str">Fuerza (STR)</option>
-                            <option value="vit">Resistencia (VIT)</option>
-                            <option value="int">Inteligencia (INT)</option>
-                            <option value="agi">Agilidad (AGI)</option>
-                        </select>
-                    </div>
-                    <span id="dicePreviewBadge" class="dice-preview-badge" style="display:none;"></span>
-                </div>
-
                 <div class="vn-reply-textarea-wrap">
                     <button id="replyEmoteToggle" class="reply-emote-toggle" type="button" aria-label="Emotes" onclick="toggleReplyEmotePopover(event)">☺</button>
                     <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*, y comandos como /angry, /happy, etc."></textarea>
@@ -630,10 +621,7 @@
                 </div>
 
                 <div id="oraclePanel" class="oracle-panel" style="display:none;">
-                    <label class="oracle-toggle">
-                        <input type="checkbox" id="oracleEnabled">
-                        <span>Preguntar al destino</span>
-                    </label>
+                    <button type="button" id="oracleToggleBtn" class="dice-toggle-btn" onclick="toggleOracleMode()" title="Activa una tirada D20 para este mensaje.">🎲 Tirada del Oráculo (D20)</button>
                     <div id="oracleFields" class="oracle-fields" style="display:none;">
                         <div class="oracle-question-wrap">
                             <label for="oracleQuestionInput">¿Qué intentas?</label>
@@ -650,14 +638,14 @@
                         </div>
                         <div class="oracle-probability-wrap">
                             <div class="oracle-probability-head">
-                                <span>Probabilidad</span>
-                                <span id="oracleProbabilityValue">50%</span>
+                                <span>Tirada objetivo</span>
+                                <span id="oracleProbabilityValue">D20 +0 vs 12</span>
                             </div>
                             <div class="oracle-probability-bar">
                                 <div id="oracleProbabilityFill" class="oracle-probability-fill"></div>
                             </div>
                         </div>
-                        <div class="oracle-legend">El resultado afectará al siguiente mensaje</div>
+                        <div class="oracle-legend">La tirada afecta a este mensaje y al progreso RPG del tema actual</div>
                     </div>
                 </div>
 

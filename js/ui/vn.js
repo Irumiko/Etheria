@@ -28,15 +28,18 @@ const preloadedBackgrounds = new Set();
 let pendingSceneChange = null;
 let oracleStat = 'STR';
 let oracleQuestionDirty = false;
+let oracleModeActive = false;
 
 function isRpgTopicMode(mode) {
     return mode === 'fanfic' || mode === 'rpg';
 }
 
-function calculateOracleProbability(statValue) {
-    const base = 50;
-    const bonus = statValue >= 8 ? 15 : statValue <= 4 ? -15 : 0;
-    return Math.min(90, Math.max(10, base + bonus));
+function getOracleModifier(statValue) {
+    return Math.floor((Number(statValue || 10) - 10) / 2);
+}
+
+function calculateOracleDifficulty() {
+    return 12;
 }
 
 function getOracleAutodetectedQuestion(rawText) {
@@ -49,16 +52,19 @@ function getOracleAutodetectedQuestion(rawText) {
 function getOracleSelectedStatValue() {
     const char = appData.characters.find(c => c.id === selectedCharId);
     if (!char || typeof getRpgSheetData !== 'function') return 5;
-    const stats = getRpgSheetData(char)?.totalStats || {};
+    const stats = getRpgSheetData(char, currentTopicId || null)?.totalStats || {};
     return Number(stats[oracleStat]) || 5;
 }
 
 function refreshOracleProbability() {
     const fill = document.getElementById('oracleProbabilityFill');
     const valueEl = document.getElementById('oracleProbabilityValue');
-    const probability = calculateOracleProbability(getOracleSelectedStatValue());
-    if (fill) fill.style.width = `${probability}%`;
-    if (valueEl) valueEl.textContent = `${probability}%`;
+    const statValue = getOracleSelectedStatValue();
+    const modifier = getOracleModifier(statValue);
+    const dc = calculateOracleDifficulty();
+    const expected = Math.max(5, Math.min(95, (21 - (dc - modifier)) * 5));
+    if (fill) fill.style.width = `${expected}%`;
+    if (valueEl) valueEl.textContent = `D20 ${modifier >= 0 ? '+' : ''}${modifier} vs ${dc}`;
 }
 
 function refreshOracleQuestionAutodetect(force = false) {
@@ -80,20 +86,20 @@ function setOracleStat(nextStat) {
 function resetOraclePanelState() {
     oracleStat = 'STR';
     oracleQuestionDirty = false;
-    const enabled = document.getElementById('oracleEnabled');
     const fields = document.getElementById('oracleFields');
     const panel = document.getElementById('oraclePanel');
     const questionInput = document.getElementById('oracleQuestionInput');
-    if (enabled) enabled.checked = false;
+    const toggleBtn = document.getElementById('oracleToggleBtn');
+    oracleModeActive = false;
     if (fields) fields.style.display = 'none';
     if (panel) panel.classList.remove('active');
     if (questionInput) questionInput.value = '';
+    if (toggleBtn) toggleBtn.textContent = '🎲 Tirada del Oráculo (D20)';
     setOracleStat('STR');
 }
 
 function setupOraclePanelForMode() {
     const panel = document.getElementById('oraclePanel');
-    const enabled = document.getElementById('oracleEnabled');
     const fields = document.getElementById('oracleFields');
     const questionInput = document.getElementById('oracleQuestionInput');
     const statButtonsWrap = document.getElementById('oracleStatButtons');
@@ -111,16 +117,6 @@ function setupOraclePanelForMode() {
     panel.style.display = 'block';
     resetOraclePanelState();
     refreshOracleQuestionAutodetect(true);
-
-    if (enabled && !enabled.dataset.boundOracle) {
-        enabled.dataset.boundOracle = '1';
-        enabled.addEventListener('change', () => {
-            const active = !!enabled.checked;
-            if (fields) fields.style.display = active ? 'block' : 'none';
-            panel.classList.toggle('active', active);
-            if (active) refreshOracleProbability();
-        });
-    }
 
     if (replyText && !replyText.dataset.boundOracleInput) {
         replyText.dataset.boundOracleInput = '1';
@@ -142,6 +138,45 @@ function setupOraclePanelForMode() {
             setOracleStat(btn.dataset.stat || 'STR');
         });
     }
+}
+
+
+function toggleOracleMode() {
+    const panel = document.getElementById('oraclePanel');
+    const fields = document.getElementById('oracleFields');
+    const toggleBtn = document.getElementById('oracleToggleBtn');
+    const topic = getCurrentTopic();
+    if (!isRpgTopicMode(topic?.mode)) return;
+
+    oracleModeActive = !oracleModeActive;
+    if (fields) fields.style.display = oracleModeActive ? 'block' : 'none';
+    if (panel) panel.classList.toggle('active', oracleModeActive);
+    if (toggleBtn) toggleBtn.textContent = oracleModeActive ? '🎲 Tirada D20 activada' : '🎲 Tirada del Oráculo (D20)';
+    if (oracleModeActive) refreshOracleProbability();
+    updateOracleFloatButton();
+}
+
+function updateOracleFloatButton() {
+    const floatBtn = document.getElementById('vnOracleFloatBtn');
+    const topic = getCurrentTopic();
+    const panel = document.getElementById('vnReplyPanel');
+    const vnSection = document.getElementById('vnSection');
+    if (!floatBtn) return;
+
+    const isRpg = isRpgTopicMode(topic?.mode);
+    const isInVn = !!vnSection?.classList.contains('active');
+    const isPanelOpen = panel?.style.display === 'flex';
+    const shouldShow = isRpg && isInVn && !isPanelOpen;
+
+    floatBtn.style.display = shouldShow ? 'inline-flex' : 'none';
+    floatBtn.classList.toggle('active', oracleModeActive);
+}
+
+function triggerOracleReply() {
+    const topic = getCurrentTopic();
+    if (!isRpgTopicMode(topic?.mode)) return;
+    openReplyPanel();
+    if (!oracleModeActive) toggleOracleMode();
 }
 
 let spriteIntersectionObserver = null;
@@ -781,30 +816,8 @@ function generateConsequence(oracle) {
     };
 
     const category = detectOracleCategory(oracle?.question || '', oracle?.stat || '');
-    const result = oracle?.result === 'cara' ? 'cara' : 'cruz';
+    const result = oracle?.result === 'success' ? 'cara' : 'cruz';
     return templates[category]?.[result] || templates.generic[result];
-}
-
-function resolvePendingOracleConsequence(msgs, index) {
-    if (!Array.isArray(msgs) || index <= 0) return;
-    const prevMsg = msgs[index - 1];
-    const current = msgs[index];
-    if (!prevMsg?.oracle || prevMsg.oracle.resolved || !current) return;
-
-    prevMsg.oracle.resolved = true;
-
-    if (current.isNarrator && typeof current.text === 'string') {
-        const consequence = generateConsequence(prevMsg.oracle);
-        if (!current.oracleConsequenceApplied) {
-            current.text = `> ${consequence}
-
-${current.text}`;
-            current.oracleConsequenceApplied = true;
-        }
-    }
-
-    hasUnsavedChanges = true;
-    save({ silent: true });
 }
 
 function showCurrentMessage(direction = 'forward') {
@@ -824,9 +837,6 @@ function showCurrentMessage(direction = 'forward') {
     if (currentMessageIndex < 0) currentMessageIndex = 0;
 
     const msg = msgs[currentMessageIndex];
-    const previousMsg = currentMessageIndex > 0 ? msgs[currentMessageIndex - 1] : null;
-
-    resolvePendingOracleConsequence(msgs, currentMessageIndex);
     const namePlate = document.getElementById('vnSpeakerPlate');
     const avatarBox = document.getElementById('vnSpeakerAvatar');
 
@@ -887,19 +897,22 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     const formattedText = formatText(cleanText);
-    const oracle = msg.oracle;
-    const oracleMarkup = oracle ? `
-        <div class="vn-oracle-result oracle-consequence ${oracle.result === 'cara' ? 'cara' : 'cruz'}">
-            <span class="vn-oracle-rule">── 🪙 ──</span>
-            <div class="vn-oracle-question">${escapeHtml(oracle.question || 'Pregunta al destino')}</div>
-            <div class="vn-oracle-outcome result-${oracle.result === 'cara' ? 'cara' : 'cruz'}">Resultado: ${(oracle.result || '').toUpperCase()} (${Number(oracle.probability) || 0}%)</div>
-        </div>
-    ` : '';
-    if (dialogueText) typeWriter(`${formattedText}${oracleMarkup}`, dialogueText);
+    if (dialogueText) typeWriter(formattedText, dialogueText);
 
     const oracleBadge = document.getElementById('vnOracleConsequenceBadge');
-    if (oracleBadge) {
-        oracleBadge.style.display = previousMsg?.oracle ? 'inline-flex' : 'none';
+    if (oracleBadge) oracleBadge.style.display = 'none';
+
+    const diceBadge = document.getElementById('vnDiceBadge');
+    if (diceBadge && msg.oracle) {
+        const roll = Number(msg.oracle.roll) || 0;
+        const total = Number(msg.oracle.total) || 0;
+        const dc = Number(msg.oracle.dc) || calculateOracleDifficulty();
+        const resultOk = msg.oracle.result === 'success';
+        diceBadge.textContent = `🎲 ${roll} (${total} vs ${dc}) · ${resultOk ? 'ÉXITO' : 'FALLO'}`;
+        diceBadge.className = `vn-dice-badge ${resultOk ? 'badge-success' : 'badge-fail'}`;
+        diceBadge.style.display = 'inline-flex';
+    } else if (diceBadge) {
+        diceBadge.style.display = 'none';
     }
 
     const msgCounter = document.getElementById('vnMessageCounter');
@@ -925,6 +938,7 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     updateAffinityDisplay();
+    updateOracleFloatButton();
     scheduleContinuousReadIfNeeded(msg);
     if (typeof updateFavButton === "function") updateFavButton();
 
@@ -1386,7 +1400,7 @@ function saveEditedMessage() {
         char = appData.characters.find(c => c.id === selectedCharId);
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
         if (topic?.mode === 'fanfic' && typeof ensureCharacterRpgProfile === 'function') {
-            const profile = ensureCharacterRpgProfile(char);
+            const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
             if (profile.knockedOutTurns > 0) {
                 showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
                 return;
@@ -1699,24 +1713,24 @@ function getCharacterById(charId) {
 
 function tickRpgKnockoutTurns(excludedCharId) {
     appData.characters.forEach((ch) => {
-        const profile = typeof ensureCharacterRpgProfile === 'function' ? ensureCharacterRpgProfile(ch) : null;
+        const profile = typeof ensureCharacterRpgProfile === 'function' ? ensureCharacterRpgProfile(ch, currentTopicId || null) : null;
         if (!profile || profile.knockedOutTurns <= 0) return;
         if (excludedCharId && String(ch.id) === String(excludedCharId)) return;
         profile.knockedOutTurns = Math.max(0, profile.knockedOutTurns - 1);
     });
 }
 
-function applyRpgNarrativeProgress(charId, diceRoll) {
-    if (!charId || !diceRoll) return;
+function applyRpgNarrativeProgress(charId, oracleRoll) {
+    if (!charId || !oracleRoll) return;
     const char = getCharacterById(charId);
     if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
 
-    const profile = ensureCharacterRpgProfile(char);
+    const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
 
-    if (diceRoll.type === 'fail') {
+    if (oracleRoll.result === 'fail') {
         profile.hp = Math.max(0, profile.hp - 1);
         if (profile.hp === 0) profile.knockedOutTurns = 5;
-    } else if (diceRoll.type === 'success') {
+    } else if (oracleRoll.result === 'success') {
         profile.exp += 1;
         if (profile.exp >= 10) {
             profile.exp = 0;
@@ -1787,7 +1801,7 @@ function applySceneChangeToTopic(topic, sceneChange) {
     if (topic.mode === 'fanfic') {
         appData.characters.forEach((char) => {
             if (typeof ensureCharacterRpgProfile !== 'function') return;
-            const profile = ensureCharacterRpgProfile(char);
+            const profile = ensureCharacterRpgProfile(char, topic.id);
             if (!profile) return;
             profile.hp = 10;
             profile.knockedOutTurns = 0;
@@ -1813,14 +1827,13 @@ function openReplyPanel() {
         panel.classList.remove('drawer-expanded', 'drawer-collapsed');
     }
     updateVnMobileFabVisibility();
+    updateOracleFloatButton();
 
     const replyPanelTitle = document.getElementById('replyPanelTitle');
     const submitBtn = document.getElementById('submitReplyBtn');
     const optionsToggleContainer = document.getElementById('optionsToggleContainer');
     const weatherSelectorContainer = document.getElementById('weatherSelectorContainer');
     const narratorToggle = document.getElementById('narratorToggle');
-    const coinActionTypeWrap = document.getElementById('coinActionTypeWrap');
-    const coinControlsRow = document.getElementById('coinControlsRow');
 
     if (replyPanelTitle) replyPanelTitle.textContent = editingMessageId ? '✏️ Editar Mensaje' : '💬 Responder';
     if (submitBtn) {
@@ -1839,9 +1852,6 @@ function openReplyPanel() {
     }
 
     const topic = getCurrentTopic();
-    const isRpg = isRpgTopicMode(topic?.mode);
-    if (coinControlsRow) coinControlsRow.style.display = isRpg ? 'flex' : 'none';
-    if (coinActionTypeWrap) coinActionTypeWrap.style.display = isRpg ? 'inline-flex' : 'none';
     setupOraclePanelForMode();
     const narratorAllowed = canUseNarratorMode(topic);
     if (narratorToggle) narratorToggle.style.display = narratorAllowed ? 'flex' : 'none';
@@ -1901,15 +1911,12 @@ function closeReplyPanel() {
     const narratorMode = document.getElementById('narratorMode');
     const charSelector = document.getElementById('charSelectorContainer');
     const narratorToggle = document.getElementById('narratorToggle');
-    const coinActionTypeWrap = document.getElementById('coinActionTypeWrap');
-    const coinControlsRow = document.getElementById('coinControlsRow');
 
     if (narratorMode) narratorMode.checked = false;
     if (charSelector) charSelector.style.display = 'flex';
     if (narratorToggle) narratorToggle.classList.remove('active');
-    if (coinActionTypeWrap) coinActionTypeWrap.style.display = 'none';
-    if (coinControlsRow) coinControlsRow.style.display = 'none';
     resetOraclePanelState();
+    updateOracleFloatButton();
 }
 
 function toggleCharGrid() {
@@ -2071,7 +2078,7 @@ function postVNReply() {
         char = appData.characters.find(c => c.id === selectedCharId);
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
         if (topic?.mode === 'fanfic' && typeof ensureCharacterRpgProfile === 'function') {
-            const profile = ensureCharacterRpgProfile(char);
+            const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
             if (profile.knockedOutTurns > 0) {
                 showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
                 return;
@@ -2096,25 +2103,29 @@ function postVNReply() {
 
     const topicMessages = getTopicMessages(currentTopicId);
 
-    // Recoger tirada de dado si se activó antes de enviar (inyectada por mejoras.js)
-    const diceRoll = window._diceRollForNextMsg || undefined;
-    window._diceRollForNextMsg = null;
     const sceneChange = pendingSceneChange || undefined;
     pendingSceneChange = null;
     updateSceneChangePreview();
 
     const finalText = sceneChange ? `🎬 **Escena: ${sceneChange.title}**\n${text}` : text;
-    const oracleEnabled = document.getElementById('oracleEnabled');
     const oracleQuestionInput = document.getElementById('oracleQuestionInput');
-    const shouldApplyOracle = !!oracleEnabled?.checked && isRpgTopicMode(topic?.mode);
+    const shouldApplyOracle = oracleModeActive && isRpgTopicMode(topic?.mode);
     let oracleData;
     if (shouldApplyOracle) {
-        const probability = calculateOracleProbability(getOracleSelectedStatValue());
+        const statValue = getOracleSelectedStatValue();
+        const modifier = getOracleModifier(statValue);
+        const dc = calculateOracleDifficulty();
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const total = roll + modifier;
         oracleData = {
             question: (oracleQuestionInput?.value || '').trim() || getOracleAutodetectedQuestion(text) || 'Pregunta al destino',
             stat: oracleStat,
-            probability,
-            result: Math.random() * 100 <= probability ? 'cara' : 'cruz',
+            statValue,
+            modifier,
+            dc,
+            roll,
+            total,
+            result: total >= dc ? 'success' : 'fail',
             timestamp: Date.now()
         };
     }
@@ -2134,7 +2145,6 @@ function postVNReply() {
         timestamp: new Date().toISOString(),
         options: options && options.length > 0 ? options : undefined,
         weather: currentWeather !== 'none' ? currentWeather : undefined,
-        diceRoll: diceRoll,
         sceneChange: sceneChange,
         oracle: oracleData
     };
@@ -2145,7 +2155,7 @@ function postVNReply() {
 
     if (topic?.mode === 'fanfic') {
         tickRpgKnockoutTurns(isNarratorMode ? null : selectedCharId);
-        applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, diceRoll);
+        applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, oracleData);
     }
 
     topicMessages.push(newMsg);
