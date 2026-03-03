@@ -1720,6 +1720,23 @@ body::before {
             color: white;
         }
 
+        .menu-button-console {
+            min-height: 72px;
+            border-radius: 16px;
+            padding: 1rem 1.2rem;
+            gap: 0.9rem;
+        }
+        .menu-button-console .menu-icon {
+            width: 2.2rem;
+            font-size: 1.45rem;
+            text-align: center;
+            flex: 0 0 auto;
+        }
+        .menu-button-console .menu-label {
+            font-size: 1.05rem;
+            letter-spacing: 0.02em;
+        }
+
         .menu-footer {
             margin-top: auto;
             padding-top: 2rem;
@@ -5804,6 +5821,35 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
   --oracle-result-color: #c75b5b;
 }
 
+.vn-oracle-float-btn {
+  position: fixed;
+  right: 1.3rem;
+  bottom: 12.4rem;
+  z-index: 510;
+  border: 1px solid rgba(201, 168, 108, 0.55);
+  background: linear-gradient(135deg, rgba(60, 48, 33, 0.96), rgba(35, 29, 20, 0.96));
+  color: #f4deaf;
+  border-radius: 999px;
+  padding: 0.58rem 0.9rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.86rem;
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+}
+
+.vn-oracle-float-btn.active {
+  border-color: rgba(230, 198, 122, 0.95);
+  box-shadow: 0 0 0 2px rgba(230,198,122,0.25), 0 10px 24px rgba(0,0,0,.42);
+}
+
+@media (max-width: 768px) {
+  .vn-oracle-float-btn {
+    right: 0.8rem;
+    bottom: 9.6rem;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.78rem;
+  }
+}
+
 .relationship-constellation {
   position: relative;
   margin-top: 0.85rem;
@@ -5926,6 +5972,22 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
         </div>
     </div>
 
+    <div id="saveHubModal" class="modal-overlay" onclick="if(event.target === this) closeModal('saveHubModal')" role="dialog" aria-modal="true" aria-labelledby="saveHubTitle">
+        <div class="shortcuts-modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+                <h3 id="saveHubTitle" style="font-family:Cinzel,serif;">💾 Centro de guardado</h3>
+                <button class="btn-secondary" onclick="closeModal('saveHubModal')">Cerrar</button>
+            </div>
+            <p style="color:var(--text-muted);margin-top:0.35rem;">Elige cómo guardar o cargar tus partidas e historias.</p>
+            <div style="display:grid;gap:0.6rem;margin-top:0.8rem;">
+                <button class="btn-primary" onclick="saveGameFromMenu()">Descargar partida completa (JSON)</button>
+                <button class="btn-secondary" onclick="loadGameFromMenu()">Cargar partida completa (JSON)</button>
+                <button class="btn-secondary" onclick="exportCurrentStoryAsCode()">Generar código de historia</button>
+                <button class="btn-secondary" onclick="importStoryFromCode()">Importar historia por código</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings Panel -->
     <div id="settingsPanel" class="settings-panel">
         <h3 class="settings-title">⚙️ Ajustes de Lectura</h3>
@@ -5990,33 +6052,21 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
             </div>
 
             <div class="menu-container">
-                <button class="menu-button primary" onclick="showSection('topics')">
-                    <span>✨</span>
-                    <span>Nueva Partida</span>
+                <button class="menu-button menu-button-console primary" onclick="showSection('topics')">
+                    <span class="menu-icon">✨</span>
+                    <span class="menu-label">Nueva Partida</span>
                 </button>
-                <button class="menu-button" onclick="showSection('gallery')">
-                    <span>🎭</span>
-                    <span>Galería de Personajes</span>
+                <button class="menu-button menu-button-console" onclick="showSection('gallery')">
+                    <span class="menu-icon">🎭</span>
+                    <span class="menu-label">Galería de Personajes</span>
                 </button>
-                <button class="menu-button" onclick="saveGameFromMenu()">
-                    <span>💾</span>
-                    <span>Guardar Partida</span>
+                <button class="menu-button menu-button-console" onclick="openSaveHubModal()">
+                    <span class="menu-icon">💾</span>
+                    <span class="menu-label">Guardar y Cargar</span>
                 </button>
-                <button class="menu-button" onclick="loadGameFromMenu()">
-                    <span>📂</span>
-                    <span>Cargar Partida</span>
-                </button>
-                <button class="menu-button" onclick="exportCurrentStoryAsCode()">
-                    <span>🔐</span>
-                    <span>Compartir historia (código)</span>
-                </button>
-                <button class="menu-button" onclick="importStoryFromCode()">
-                    <span>📥</span>
-                    <span>Importar historia (código)</span>
-                </button>
-                <button class="menu-button" onclick="showSection('options')">
-                    <span>⚙️</span>
-                    <span>Opciones</span>
+                <button class="menu-button menu-button-console" onclick="showSection('options')">
+                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-label">Opciones</span>
                 </button>
             </div>
 
@@ -6408,6 +6458,10 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
             </div>
         </div>
 
+        <button id="vnOracleFloatBtn" class="vn-oracle-float-btn" type="button" onclick="triggerOracleReply()" style="display:none;" title="Activar tirada del oráculo para el próximo mensaje">
+            🎲 Oráculo
+        </button>
+
         <!-- Panel Responder -->
         <div id="vnReplyPanel" class="vn-reply-panel">
             <div class="drawer-handle" id="replyDrawerHandle" aria-hidden="true"></div>
@@ -6441,23 +6495,6 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
                 </div>
 
 
-                <!-- Mejora 7: Dado DnD — resultado embebido en el mensaje -->
-                <div id="coinControlsRow" style="display: flex; align-items: center; gap: 0.7rem; margin-top: 0.4rem; flex-wrap: wrap;">
-                    <button class="dice-toggle-btn" id="diceToggleBtn" onclick="toggleDiceMode()" type="button" title="Lanza la moneda. El resultado se publicará junto con tu mensaje.">
-                        🪙 Lanzar moneda
-                    </button>
-                    <div id="coinActionTypeWrap" style="display:none;">
-                        <select id="coinActionType" style="padding:0.35rem 0.5rem; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-card); color:var(--text-primary); font-size:0.82rem;">
-                            <option value="general">Acción general</option>
-                            <option value="str">Fuerza (STR)</option>
-                            <option value="vit">Resistencia (VIT)</option>
-                            <option value="int">Inteligencia (INT)</option>
-                            <option value="agi">Agilidad (AGI)</option>
-                        </select>
-                    </div>
-                    <span id="dicePreviewBadge" class="dice-preview-badge" style="display:none;"></span>
-                </div>
-
                 <div class="vn-reply-textarea-wrap">
                     <button id="replyEmoteToggle" class="reply-emote-toggle" type="button" aria-label="Emotes" onclick="toggleReplyEmotePopover(event)">☺</button>
                     <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*, y comandos como /angry, /happy, etc."></textarea>
@@ -6476,10 +6513,7 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
                 </div>
 
                 <div id="oraclePanel" class="oracle-panel" style="display:none;">
-                    <label class="oracle-toggle">
-                        <input type="checkbox" id="oracleEnabled">
-                        <span>Preguntar al destino</span>
-                    </label>
+                    <button type="button" id="oracleToggleBtn" class="dice-toggle-btn" onclick="toggleOracleMode()" title="Activa una tirada D20 para este mensaje.">🎲 Tirada del Oráculo (D20)</button>
                     <div id="oracleFields" class="oracle-fields" style="display:none;">
                         <div class="oracle-question-wrap">
                             <label for="oracleQuestionInput">¿Qué intentas?</label>
@@ -6496,14 +6530,14 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
                         </div>
                         <div class="oracle-probability-wrap">
                             <div class="oracle-probability-head">
-                                <span>Probabilidad</span>
-                                <span id="oracleProbabilityValue">50%</span>
+                                <span>Tirada objetivo</span>
+                                <span id="oracleProbabilityValue">D20 +0 vs 12</span>
                             </div>
                             <div class="oracle-probability-bar">
                                 <div id="oracleProbabilityFill" class="oracle-probability-fill"></div>
                             </div>
                         </div>
-                        <div class="oracle-legend">El resultado afectará al siguiente mensaje</div>
+                        <div class="oracle-legend">La tirada afecta a este mensaje y al progreso RPG del tema actual</div>
                     </div>
                 </div>
 
@@ -10059,9 +10093,8 @@ function getRpgTitleByLevel(level) {
     return 'Aprendiz';
 }
 
-function ensureCharacterRpgProfile(char) {
-    if (!char) return null;
-    const existingStats = char.rpgProfile?.stats || {};
+function sanitizeRpgProfile(raw) {
+    const existingStats = raw?.stats || {};
     const profile = {
         stats: {
             STR: Math.max(0, Number(existingStats.STR) || 0),
@@ -10069,10 +10102,10 @@ function ensureCharacterRpgProfile(char) {
             INT: Math.max(0, Number(existingStats.INT) || 0),
             AGI: Math.max(0, Number(existingStats.AGI) || 0)
         },
-        hp: Math.max(0, Math.min(RPG_HP_MAX, Number(char.rpgProfile?.hp) || RPG_HP_MAX)),
-        exp: Math.max(0, Math.min(RPG_EXP_PER_LEVEL - 1, Number(char.rpgProfile?.exp) || 0)),
-        level: Math.max(1, Number(char.rpgProfile?.level) || 1),
-        knockedOutTurns: Math.max(0, Number(char.rpgProfile?.knockedOutTurns) || 0)
+        hp: Math.max(0, Math.min(RPG_HP_MAX, Number(raw?.hp) || RPG_HP_MAX)),
+        exp: Math.max(0, Math.min(RPG_EXP_PER_LEVEL - 1, Number(raw?.exp) || 0)),
+        level: Math.max(1, Number(raw?.level) || 1),
+        knockedOutTurns: Math.max(0, Number(raw?.knockedOutTurns) || 0)
     };
 
     const spent = profile.stats.STR + profile.stats.VIT + profile.stats.INT + profile.stats.AGI;
@@ -10080,9 +10113,31 @@ function ensureCharacterRpgProfile(char) {
         const overflow = spent - RPG_POINTS_POOL;
         profile.stats.AGI = Math.max(0, profile.stats.AGI - overflow);
     }
-
-    char.rpgProfile = profile;
     return profile;
+}
+
+function ensureCharacterRpgProfile(char, topicId = null) {
+    if (!char) return null;
+
+    const baseProfile = sanitizeRpgProfile(char.rpgProfile || {});
+    char.rpgProfile = baseProfile;
+
+    const activeTopicId = topicId || currentTopicId;
+    const topic = appData.topics.find((t) => String(t.id) === String(activeTopicId));
+    if (!topic || topic.mode !== 'fanfic') {
+        return baseProfile;
+    }
+
+    topic.rpgProfiles = topic.rpgProfiles || {};
+    const topicSeedProfile = topic.rpgProfiles[char.id] || {
+        stats: baseProfile.stats,
+        hp: RPG_HP_MAX,
+        exp: 0,
+        level: 1,
+        knockedOutTurns: 0
+    };
+    topic.rpgProfiles[char.id] = sanitizeRpgProfile(topicSeedProfile);
+    return topic.rpgProfiles[char.id];
 }
 
 function getRpgSpentPoints(profile) {
@@ -10154,8 +10209,8 @@ function openSheet(id) {
     openModal('sheetModal');
 }
 
-function getRpgSheetData(c) {
-    const profile = ensureCharacterRpgProfile(c);
+function getRpgSheetData(c, topicId = null) {
+    const profile = ensureCharacterRpgProfile(c, topicId);
     const spent = getRpgSpentPoints(profile);
     const freePoints = Math.max(0, RPG_POINTS_POOL - spent);
     const totalStats = {
@@ -10177,7 +10232,7 @@ function renderRpgStatsModal(c) {
     const bodyEl = document.getElementById('rpgStatsBody');
     if (!titleEl || !bodyEl) return;
 
-    const data = getRpgSheetData(c);
+    const data = getRpgSheetData(c, currentTopicId || null);
     const hpWidth = (data.profile.hp / RPG_HP_MAX) * 100;
     const expWidth = (data.profile.exp / RPG_EXP_PER_LEVEL) * 100;
 
@@ -10635,15 +10690,18 @@ const preloadedBackgrounds = new Set();
 let pendingSceneChange = null;
 let oracleStat = 'STR';
 let oracleQuestionDirty = false;
+let oracleModeActive = false;
 
 function isRpgTopicMode(mode) {
     return mode === 'fanfic' || mode === 'rpg';
 }
 
-function calculateOracleProbability(statValue) {
-    const base = 50;
-    const bonus = statValue >= 8 ? 15 : statValue <= 4 ? -15 : 0;
-    return Math.min(90, Math.max(10, base + bonus));
+function getOracleModifier(statValue) {
+    return Math.floor((Number(statValue || 10) - 10) / 2);
+}
+
+function calculateOracleDifficulty() {
+    return 12;
 }
 
 function getOracleAutodetectedQuestion(rawText) {
@@ -10656,16 +10714,19 @@ function getOracleAutodetectedQuestion(rawText) {
 function getOracleSelectedStatValue() {
     const char = appData.characters.find(c => c.id === selectedCharId);
     if (!char || typeof getRpgSheetData !== 'function') return 5;
-    const stats = getRpgSheetData(char)?.totalStats || {};
+    const stats = getRpgSheetData(char, currentTopicId || null)?.totalStats || {};
     return Number(stats[oracleStat]) || 5;
 }
 
 function refreshOracleProbability() {
     const fill = document.getElementById('oracleProbabilityFill');
     const valueEl = document.getElementById('oracleProbabilityValue');
-    const probability = calculateOracleProbability(getOracleSelectedStatValue());
-    if (fill) fill.style.width = `${probability}%`;
-    if (valueEl) valueEl.textContent = `${probability}%`;
+    const statValue = getOracleSelectedStatValue();
+    const modifier = getOracleModifier(statValue);
+    const dc = calculateOracleDifficulty();
+    const expected = Math.max(5, Math.min(95, (21 - (dc - modifier)) * 5));
+    if (fill) fill.style.width = `${expected}%`;
+    if (valueEl) valueEl.textContent = `D20 ${modifier >= 0 ? '+' : ''}${modifier} vs ${dc}`;
 }
 
 function refreshOracleQuestionAutodetect(force = false) {
@@ -10687,20 +10748,20 @@ function setOracleStat(nextStat) {
 function resetOraclePanelState() {
     oracleStat = 'STR';
     oracleQuestionDirty = false;
-    const enabled = document.getElementById('oracleEnabled');
     const fields = document.getElementById('oracleFields');
     const panel = document.getElementById('oraclePanel');
     const questionInput = document.getElementById('oracleQuestionInput');
-    if (enabled) enabled.checked = false;
+    const toggleBtn = document.getElementById('oracleToggleBtn');
+    oracleModeActive = false;
     if (fields) fields.style.display = 'none';
     if (panel) panel.classList.remove('active');
     if (questionInput) questionInput.value = '';
+    if (toggleBtn) toggleBtn.textContent = '🎲 Tirada del Oráculo (D20)';
     setOracleStat('STR');
 }
 
 function setupOraclePanelForMode() {
     const panel = document.getElementById('oraclePanel');
-    const enabled = document.getElementById('oracleEnabled');
     const fields = document.getElementById('oracleFields');
     const questionInput = document.getElementById('oracleQuestionInput');
     const statButtonsWrap = document.getElementById('oracleStatButtons');
@@ -10718,16 +10779,6 @@ function setupOraclePanelForMode() {
     panel.style.display = 'block';
     resetOraclePanelState();
     refreshOracleQuestionAutodetect(true);
-
-    if (enabled && !enabled.dataset.boundOracle) {
-        enabled.dataset.boundOracle = '1';
-        enabled.addEventListener('change', () => {
-            const active = !!enabled.checked;
-            if (fields) fields.style.display = active ? 'block' : 'none';
-            panel.classList.toggle('active', active);
-            if (active) refreshOracleProbability();
-        });
-    }
 
     if (replyText && !replyText.dataset.boundOracleInput) {
         replyText.dataset.boundOracleInput = '1';
@@ -10749,6 +10800,45 @@ function setupOraclePanelForMode() {
             setOracleStat(btn.dataset.stat || 'STR');
         });
     }
+}
+
+
+function toggleOracleMode() {
+    const panel = document.getElementById('oraclePanel');
+    const fields = document.getElementById('oracleFields');
+    const toggleBtn = document.getElementById('oracleToggleBtn');
+    const topic = getCurrentTopic();
+    if (!isRpgTopicMode(topic?.mode)) return;
+
+    oracleModeActive = !oracleModeActive;
+    if (fields) fields.style.display = oracleModeActive ? 'block' : 'none';
+    if (panel) panel.classList.toggle('active', oracleModeActive);
+    if (toggleBtn) toggleBtn.textContent = oracleModeActive ? '🎲 Tirada D20 activada' : '🎲 Tirada del Oráculo (D20)';
+    if (oracleModeActive) refreshOracleProbability();
+    updateOracleFloatButton();
+}
+
+function updateOracleFloatButton() {
+    const floatBtn = document.getElementById('vnOracleFloatBtn');
+    const topic = getCurrentTopic();
+    const panel = document.getElementById('vnReplyPanel');
+    const vnSection = document.getElementById('vnSection');
+    if (!floatBtn) return;
+
+    const isRpg = isRpgTopicMode(topic?.mode);
+    const isInVn = !!vnSection?.classList.contains('active');
+    const isPanelOpen = panel?.style.display === 'flex';
+    const shouldShow = isRpg && isInVn && !isPanelOpen;
+
+    floatBtn.style.display = shouldShow ? 'inline-flex' : 'none';
+    floatBtn.classList.toggle('active', oracleModeActive);
+}
+
+function triggerOracleReply() {
+    const topic = getCurrentTopic();
+    if (!isRpgTopicMode(topic?.mode)) return;
+    openReplyPanel();
+    if (!oracleModeActive) toggleOracleMode();
 }
 
 let spriteIntersectionObserver = null;
@@ -11388,30 +11478,8 @@ function generateConsequence(oracle) {
     };
 
     const category = detectOracleCategory(oracle?.question || '', oracle?.stat || '');
-    const result = oracle?.result === 'cara' ? 'cara' : 'cruz';
+    const result = oracle?.result === 'success' ? 'cara' : 'cruz';
     return templates[category]?.[result] || templates.generic[result];
-}
-
-function resolvePendingOracleConsequence(msgs, index) {
-    if (!Array.isArray(msgs) || index <= 0) return;
-    const prevMsg = msgs[index - 1];
-    const current = msgs[index];
-    if (!prevMsg?.oracle || prevMsg.oracle.resolved || !current) return;
-
-    prevMsg.oracle.resolved = true;
-
-    if (current.isNarrator && typeof current.text === 'string') {
-        const consequence = generateConsequence(prevMsg.oracle);
-        if (!current.oracleConsequenceApplied) {
-            current.text = `> ${consequence}
-
-${current.text}`;
-            current.oracleConsequenceApplied = true;
-        }
-    }
-
-    hasUnsavedChanges = true;
-    save({ silent: true });
 }
 
 function showCurrentMessage(direction = 'forward') {
@@ -11431,9 +11499,6 @@ function showCurrentMessage(direction = 'forward') {
     if (currentMessageIndex < 0) currentMessageIndex = 0;
 
     const msg = msgs[currentMessageIndex];
-    const previousMsg = currentMessageIndex > 0 ? msgs[currentMessageIndex - 1] : null;
-
-    resolvePendingOracleConsequence(msgs, currentMessageIndex);
     const namePlate = document.getElementById('vnSpeakerPlate');
     const avatarBox = document.getElementById('vnSpeakerAvatar');
 
@@ -11494,19 +11559,22 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     const formattedText = formatText(cleanText);
-    const oracle = msg.oracle;
-    const oracleMarkup = oracle ? `
-        <div class="vn-oracle-result oracle-consequence ${oracle.result === 'cara' ? 'cara' : 'cruz'}">
-            <span class="vn-oracle-rule">── 🪙 ──</span>
-            <div class="vn-oracle-question">${escapeHtml(oracle.question || 'Pregunta al destino')}</div>
-            <div class="vn-oracle-outcome result-${oracle.result === 'cara' ? 'cara' : 'cruz'}">Resultado: ${(oracle.result || '').toUpperCase()} (${Number(oracle.probability) || 0}%)</div>
-        </div>
-    ` : '';
-    if (dialogueText) typeWriter(`${formattedText}${oracleMarkup}`, dialogueText);
+    if (dialogueText) typeWriter(formattedText, dialogueText);
 
     const oracleBadge = document.getElementById('vnOracleConsequenceBadge');
-    if (oracleBadge) {
-        oracleBadge.style.display = previousMsg?.oracle ? 'inline-flex' : 'none';
+    if (oracleBadge) oracleBadge.style.display = 'none';
+
+    const diceBadge = document.getElementById('vnDiceBadge');
+    if (diceBadge && msg.oracle) {
+        const roll = Number(msg.oracle.roll) || 0;
+        const total = Number(msg.oracle.total) || 0;
+        const dc = Number(msg.oracle.dc) || calculateOracleDifficulty();
+        const resultOk = msg.oracle.result === 'success';
+        diceBadge.textContent = `🎲 ${roll} (${total} vs ${dc}) · ${resultOk ? 'ÉXITO' : 'FALLO'}`;
+        diceBadge.className = `vn-dice-badge ${resultOk ? 'badge-success' : 'badge-fail'}`;
+        diceBadge.style.display = 'inline-flex';
+    } else if (diceBadge) {
+        diceBadge.style.display = 'none';
     }
 
     const msgCounter = document.getElementById('vnMessageCounter');
@@ -11532,6 +11600,7 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     updateAffinityDisplay();
+    updateOracleFloatButton();
     scheduleContinuousReadIfNeeded(msg);
     if (typeof updateFavButton === "function") updateFavButton();
 
@@ -11993,7 +12062,7 @@ function saveEditedMessage() {
         char = appData.characters.find(c => c.id === selectedCharId);
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
         if (topic?.mode === 'fanfic' && typeof ensureCharacterRpgProfile === 'function') {
-            const profile = ensureCharacterRpgProfile(char);
+            const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
             if (profile.knockedOutTurns > 0) {
                 showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
                 return;
@@ -12306,24 +12375,24 @@ function getCharacterById(charId) {
 
 function tickRpgKnockoutTurns(excludedCharId) {
     appData.characters.forEach((ch) => {
-        const profile = typeof ensureCharacterRpgProfile === 'function' ? ensureCharacterRpgProfile(ch) : null;
+        const profile = typeof ensureCharacterRpgProfile === 'function' ? ensureCharacterRpgProfile(ch, currentTopicId || null) : null;
         if (!profile || profile.knockedOutTurns <= 0) return;
         if (excludedCharId && String(ch.id) === String(excludedCharId)) return;
         profile.knockedOutTurns = Math.max(0, profile.knockedOutTurns - 1);
     });
 }
 
-function applyRpgNarrativeProgress(charId, diceRoll) {
-    if (!charId || !diceRoll) return;
+function applyRpgNarrativeProgress(charId, oracleRoll) {
+    if (!charId || !oracleRoll) return;
     const char = getCharacterById(charId);
     if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
 
-    const profile = ensureCharacterRpgProfile(char);
+    const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
 
-    if (diceRoll.type === 'fail') {
+    if (oracleRoll.result === 'fail') {
         profile.hp = Math.max(0, profile.hp - 1);
         if (profile.hp === 0) profile.knockedOutTurns = 5;
-    } else if (diceRoll.type === 'success') {
+    } else if (oracleRoll.result === 'success') {
         profile.exp += 1;
         if (profile.exp >= 10) {
             profile.exp = 0;
@@ -12394,7 +12463,7 @@ function applySceneChangeToTopic(topic, sceneChange) {
     if (topic.mode === 'fanfic') {
         appData.characters.forEach((char) => {
             if (typeof ensureCharacterRpgProfile !== 'function') return;
-            const profile = ensureCharacterRpgProfile(char);
+            const profile = ensureCharacterRpgProfile(char, topic.id);
             if (!profile) return;
             profile.hp = 10;
             profile.knockedOutTurns = 0;
@@ -12420,14 +12489,13 @@ function openReplyPanel() {
         panel.classList.remove('drawer-expanded', 'drawer-collapsed');
     }
     updateVnMobileFabVisibility();
+    updateOracleFloatButton();
 
     const replyPanelTitle = document.getElementById('replyPanelTitle');
     const submitBtn = document.getElementById('submitReplyBtn');
     const optionsToggleContainer = document.getElementById('optionsToggleContainer');
     const weatherSelectorContainer = document.getElementById('weatherSelectorContainer');
     const narratorToggle = document.getElementById('narratorToggle');
-    const coinActionTypeWrap = document.getElementById('coinActionTypeWrap');
-    const coinControlsRow = document.getElementById('coinControlsRow');
 
     if (replyPanelTitle) replyPanelTitle.textContent = editingMessageId ? '✏️ Editar Mensaje' : '💬 Responder';
     if (submitBtn) {
@@ -12446,9 +12514,6 @@ function openReplyPanel() {
     }
 
     const topic = getCurrentTopic();
-    const isRpg = isRpgTopicMode(topic?.mode);
-    if (coinControlsRow) coinControlsRow.style.display = isRpg ? 'flex' : 'none';
-    if (coinActionTypeWrap) coinActionTypeWrap.style.display = isRpg ? 'inline-flex' : 'none';
     setupOraclePanelForMode();
     const narratorAllowed = canUseNarratorMode(topic);
     if (narratorToggle) narratorToggle.style.display = narratorAllowed ? 'flex' : 'none';
@@ -12508,15 +12573,12 @@ function closeReplyPanel() {
     const narratorMode = document.getElementById('narratorMode');
     const charSelector = document.getElementById('charSelectorContainer');
     const narratorToggle = document.getElementById('narratorToggle');
-    const coinActionTypeWrap = document.getElementById('coinActionTypeWrap');
-    const coinControlsRow = document.getElementById('coinControlsRow');
 
     if (narratorMode) narratorMode.checked = false;
     if (charSelector) charSelector.style.display = 'flex';
     if (narratorToggle) narratorToggle.classList.remove('active');
-    if (coinActionTypeWrap) coinActionTypeWrap.style.display = 'none';
-    if (coinControlsRow) coinControlsRow.style.display = 'none';
     resetOraclePanelState();
+    updateOracleFloatButton();
 }
 
 function toggleCharGrid() {
@@ -12678,7 +12740,7 @@ function postVNReply() {
         char = appData.characters.find(c => c.id === selectedCharId);
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
         if (topic?.mode === 'fanfic' && typeof ensureCharacterRpgProfile === 'function') {
-            const profile = ensureCharacterRpgProfile(char);
+            const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
             if (profile.knockedOutTurns > 0) {
                 showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
                 return;
@@ -12703,25 +12765,29 @@ function postVNReply() {
 
     const topicMessages = getTopicMessages(currentTopicId);
 
-    // Recoger tirada de dado si se activó antes de enviar (inyectada por mejoras.js)
-    const diceRoll = window._diceRollForNextMsg || undefined;
-    window._diceRollForNextMsg = null;
     const sceneChange = pendingSceneChange || undefined;
     pendingSceneChange = null;
     updateSceneChangePreview();
 
     const finalText = sceneChange ? `🎬 **Escena: ${sceneChange.title}**\n${text}` : text;
-    const oracleEnabled = document.getElementById('oracleEnabled');
     const oracleQuestionInput = document.getElementById('oracleQuestionInput');
-    const shouldApplyOracle = !!oracleEnabled?.checked && isRpgTopicMode(topic?.mode);
+    const shouldApplyOracle = oracleModeActive && isRpgTopicMode(topic?.mode);
     let oracleData;
     if (shouldApplyOracle) {
-        const probability = calculateOracleProbability(getOracleSelectedStatValue());
+        const statValue = getOracleSelectedStatValue();
+        const modifier = getOracleModifier(statValue);
+        const dc = calculateOracleDifficulty();
+        const roll = Math.floor(Math.random() * 20) + 1;
+        const total = roll + modifier;
         oracleData = {
             question: (oracleQuestionInput?.value || '').trim() || getOracleAutodetectedQuestion(text) || 'Pregunta al destino',
             stat: oracleStat,
-            probability,
-            result: Math.random() * 100 <= probability ? 'cara' : 'cruz',
+            statValue,
+            modifier,
+            dc,
+            roll,
+            total,
+            result: total >= dc ? 'success' : 'fail',
             timestamp: Date.now()
         };
     }
@@ -12741,7 +12807,6 @@ function postVNReply() {
         timestamp: new Date().toISOString(),
         options: options && options.length > 0 ? options : undefined,
         weather: currentWeather !== 'none' ? currentWeather : undefined,
-        diceRoll: diceRoll,
         sceneChange: sceneChange,
         oracle: oracleData
     };
@@ -12752,7 +12817,7 @@ function postVNReply() {
 
     if (topic?.mode === 'fanfic') {
         tickRpgKnockoutTurns(isNarratorMode ? null : selectedCharId);
-        applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, diceRoll);
+        applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, oracleData);
     }
 
     topicMessages.push(newMsg);
@@ -13654,6 +13719,10 @@ function quickSave() {
     showAutosave(saved ? 'Guardado rápido' : 'Error al guardar rápido', saved ? 'saved' : 'error');
 }
 
+function openSaveHubModal() {
+    openModal('saveHubModal');
+}
+
 function saveGameFromMenu() {
     // Recopilar mensajes de todos los topics para el archivo completo
     const allMessages = {};
@@ -14281,191 +14350,13 @@ function removeSuspenseEffect() {
 }
 
 // ============================================
-// MEJORA 7: MONEDA (cara/cruz) — resultado embebido en el mensaje
+// Compatibilidad legacy de tiradas (desactivado)
 // ============================================
-var _pendingDiceRoll = null; // null = sin tirada activa; {value, label, cssClass, emoji}
-
-var _DICE_INFO = {
-    success: { value: 'cara',  label: 'ACIERTO', cssClass: 'badge-success', emoji: '🪙' },
-    fail:    { value: 'cruz',  label: 'FALLO',   cssClass: 'badge-fail',    emoji: '🪙' }
-};
-
-var _COIN_ACTION_STAT = { str: 'STR', vit: 'VIT', int: 'INT', agi: 'AGI' };
-
-function _getCoinActionType() {
-    var select = document.getElementById('coinActionType');
-    return select ? String(select.value || 'general').toLowerCase() : 'general';
-}
-
-function _getSelectedCharacterForCoin() {
-    if (!currentTopicId || currentTopicMode !== 'fanfic' || isNarratorMode) return null;
-    if (!selectedCharId) return null;
-    return appData.characters.find(function(c) { return c.id === selectedCharId; }) || null;
-}
-
-function _getRpgTotalStatValue(char, statKey) {
-    if (!char || typeof ensureCharacterRpgProfile !== 'function') return null;
-    var profile = ensureCharacterRpgProfile(char);
-    if (!profile || !profile.stats || typeof RPG_BASE_STATS === 'undefined') return null;
-    return (RPG_BASE_STATS[statKey] || 0) + (profile.stats[statKey] || 0);
-}
-
-function _flipCoin() {
-    return Math.random() < 0.5 ? 'success' : 'fail';
-}
-
-function _resolveCoinRollType() {
-    var actionType = _getCoinActionType();
-    var statKey = _COIN_ACTION_STAT[actionType] || null;
-    var char = _getSelectedCharacterForCoin();
-    var statValue = statKey && char ? _getRpgTotalStatValue(char, statKey) : null;
-
-    if (!statKey || statValue === null) {
-        return { type: _flipCoin(), mode: 'standard', actionType: actionType, statKey: statKey, statValue: statValue };
-    }
-
-    var bonus = Math.floor((statValue - 8) / 2);
-    if (bonus >= 2) {
-        var a = _flipCoin(), b = _flipCoin();
-        return { type: (a === 'success' || b === 'success') ? 'success' : 'fail', mode: 'advantage', actionType: actionType, statKey: statKey, statValue: statValue };
-    }
-    if (bonus <= -2) {
-        var c = _flipCoin(), d = _flipCoin();
-        return { type: (c === 'fail' || d === 'fail') ? 'fail' : 'success', mode: 'disadvantage', actionType: actionType, statKey: statKey, statValue: statValue };
-    }
-
-    return { type: _flipCoin(), mode: 'standard', actionType: actionType, statKey: statKey, statValue: statValue };
-}
-
-function toggleDiceMode() {
-    var btn = document.getElementById('diceToggleBtn');
-    var textarea = document.getElementById('vnReplyText');
-
-    if (typeof getCurrentTopic === 'function') {
-        var topic = getCurrentTopic();
-        if (!topic || topic.mode !== 'fanfic') {
-            _showDiceHint('La moneda solo está disponible en modo RPG');
-            return;
-        }
-    }
-
-    // Bloquear si no hay texto escrito
-    if (!textarea || !textarea.value.trim()) {
-        _showDiceHint('Escribe tu mensaje antes de lanzar la moneda');
-        return;
-    }
-
-    // Si ya hay tirada pendiente, no permitir repetir hasta el siguiente mensaje.
-    if (_pendingDiceRoll) {
-        _showDiceHint('Ya lanzaste la moneda para este mensaje');
-        return;
-    }
-
-    var rollMeta = _resolveCoinRollType();
-    var type = rollMeta.type;
-    var info = _DICE_INFO[type];
-
-    _pendingDiceRoll = {
-        value: info.value,
-        type: type,
-        label: info.label,
-        cssClass: info.cssClass,
-        emoji: info.emoji,
-        actionType: rollMeta.actionType,
-        statKey: rollMeta.statKey,
-        statValue: rollMeta.statValue,
-        rollMode: rollMeta.mode
-    };
-
-    _updateDicePreview();
-
-    if (type === 'success' && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
-    else if (typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
-}
-
-function clearDiceRoll() {
-    // Se mantiene por compatibilidad con llamadas legacy; no permitir limpiar manualmente.
-    return;
-}
-
-function _updateDicePreview() {
-    var badge   = document.getElementById('dicePreviewBadge');
-    var diceBtn = document.getElementById('diceToggleBtn');
-
-    if (!badge) return;
-
-    if (_pendingDiceRoll) {
-        var d = _pendingDiceRoll;
-        var modeHint = d.rollMode === 'advantage' ? ' (Ventaja)' : d.rollMode === 'disadvantage' ? ' (Desventaja)' : '';
-        badge.textContent = d.emoji + ' ' + d.value.toUpperCase() + ' — ' + d.label + modeHint;
-        badge.className = 'dice-preview-badge ' + d.cssClass;
-        badge.style.display = 'inline-flex';
-        if (diceBtn) {
-            diceBtn.classList.add('rolled');
-            diceBtn.textContent = '🪙 Moneda lanzada';
-        }
-    } else {
-        badge.style.display = 'none';
-        if (diceBtn) {
-            diceBtn.classList.remove('rolled');
-            diceBtn.textContent = '🪙 Lanzar moneda';
-        }
-    }
-}
-
-function _showDiceHint(msg) {
-    var btn = document.getElementById('diceToggleBtn');
-    if (!btn) return;
-    var orig = btn.textContent;
-    btn.textContent = '⚠ ' + msg;
-    btn.classList.add('no-text');
-    setTimeout(function() {
-        btn.textContent = orig;
-        btn.classList.remove('no-text');
-    }, 2000);
-}
-
-// Actualizar el badge EN LA CAJA DE DIÁLOGO al mostrar un mensaje
-function updateDiceBadgeForMessage(msg) {
-    var badge = document.getElementById('vnDiceBadge');
-    if (!badge) return;
-
-    if (msg && msg.diceRoll) {
-        var d = msg.diceRoll;
-        var info = _DICE_INFO[d.type] || _DICE_INFO['success'];
-        var coinFace = (d.value || info.value || '').toUpperCase();
-        var modeHint = d.rollMode === 'advantage' ? ' · Ventaja' : d.rollMode === 'disadvantage' ? ' · Desventaja' : '';
-        badge.textContent = '🪙 ' + coinFace + ' — ' + (d.label || info.label) + modeHint;
-        badge.className = 'vn-dice-badge ' + (d.cssClass || info.cssClass);
-        badge.style.display = 'inline-flex';
-    } else {
-        badge.style.display = 'none';
-    }
-}
-
-// Obtener y limpiar la tirada pendiente para incluirla en el mensaje
-function consumePendingDiceRoll() {
-    if (!_pendingDiceRoll) return undefined;
-    var roll = {
-        value: _pendingDiceRoll.value,
-        type: _pendingDiceRoll.type,
-        label: _pendingDiceRoll.label,
-        cssClass: _pendingDiceRoll.cssClass,
-        emoji: _pendingDiceRoll.emoji,
-        actionType: _pendingDiceRoll.actionType,
-        statKey: _pendingDiceRoll.statKey,
-        statValue: _pendingDiceRoll.statValue,
-        rollMode: _pendingDiceRoll.rollMode
-    };
-    _pendingDiceRoll = null;
-    _updateDicePreview();
-    return roll;
-}
-
-// Resetear estado visual al cerrar panel (sin limpiar tirada pendiente)
-function resetDiceOnCloseReply() {
-    _updateDicePreview();
-}
+function toggleDiceMode() { return; }
+function clearDiceRoll() { return; }
+function updateDiceBadgeForMessage() { return; }
+function consumePendingDiceRoll() { return undefined; }
+function resetDiceOnCloseReply() { return; }
 
 // ============================================
 // MEJORA 5: Indicador cloud — temporal en estado online
@@ -14551,56 +14442,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Mejora 7: habilitar/deshabilitar botón dado según si hay texto
-    var textarea = document.getElementById('vnReplyText');
-    var diceBtn  = document.getElementById('diceToggleBtn');
-    if (textarea && diceBtn) {
-        function syncDiceBtn() {
-            if (textarea.value.trim()) {
-                diceBtn.classList.remove('no-text');
-                diceBtn.removeAttribute('disabled');
-            } else {
-                diceBtn.classList.add('no-text');
-                // No deshabilitar con disabled para que el click muestre el hint
-            }
-        }
-        textarea.addEventListener('input', syncDiceBtn);
-        syncDiceBtn(); // estado inicial
-    }
-
-    // Mejora 7: resetear dado al cerrar panel de respuesta
-    var _origCloseReplyPanel = window.closeReplyPanel;
-    if (typeof _origCloseReplyPanel === 'function') {
-        window.closeReplyPanel = function() {
-            resetDiceOnCloseReply();
-            _origCloseReplyPanel.call(window);
-        };
-    }
-
-    // Mejora 7: inyectar diceRoll en postVNReply y saveEditedMessage
-    var _origPostVNReply = window.postVNReply;
-    if (typeof _origPostVNReply === 'function') {
-        window.postVNReply = function() {
-            // Guardar la tirada pendiente ANTES de que postVNReply limpie el panel
-            window._diceRollForNextMsg = consumePendingDiceRoll();
-            _origPostVNReply.call(window);
-        };
-    }
-
-    // Mejora 7: parchar showCurrentMessage para actualizar el badge del dado
-    var _origShowCurrentMessage = window.showCurrentMessage;
-    if (typeof _origShowCurrentMessage === 'function') {
-        window.showCurrentMessage = function(direction) {
-            _origShowCurrentMessage.call(window, direction);
-            // Actualizar badge tras renderizar el mensaje
-            requestAnimationFrame(function() {
-                var msgs = typeof getTopicMessages === 'function' && currentTopicId
-                    ? getTopicMessages(currentTopicId) : [];
-                var msg = msgs[currentMessageIndex];
-                updateDiceBadgeForMessage(msg);
-            });
-        };
-    }
 });
 
 </script>
