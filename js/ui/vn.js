@@ -5,7 +5,7 @@
 // Variables para el debounce de sincronización al navegar mensajes
 var _lastNavSyncTime = 0;
 var _NAV_SYNC_DEBOUNCE_MS = 3000; // sincronizar como máximo cada 3 segundos al navegar
-const DEFAULT_TOPIC_BACKGROUND = '';
+const DEFAULT_TOPIC_BACKGROUND = '/assets/backgrounds/default_background.jpg';
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
     'assets/backgrounds/default_background.jpg',
