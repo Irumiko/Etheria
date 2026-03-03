@@ -13235,8 +13235,13 @@ async function tryJoinRoomFromUrl() {
     const topic = ensureTopicByRoomId(roomId);
     if (!topic) return false;
 
-    const topicsSection = document.getElementById('topicsSection');
-    if (topicsSection) topicsSection.classList.add('active');
+    if (typeof showSection === 'function') {
+        showSection('topics');
+    } else {
+        const topicsSection = document.getElementById('topicsSection');
+        if (topicsSection) topicsSection.classList.add('active');
+    }
+
     enterTopic(topic.id);
     return true;
 }
@@ -13288,7 +13293,7 @@ function createTopic() {
     renderTopics();
     if (currentTopicMode === 'roleplay') {
         pendingRoleTopicId = id;
-        openRoleCharacterModal(id, { mode: 'roleplay', preservePendingTopicId: true });
+        openRoleCharacterModal(id, { mode: 'roleplay', preservePendingTopicId: true, enterOnSelect: true });
     } else {
         enterTopic(id);
     }
@@ -13847,6 +13852,14 @@ Una carta sellada con lacre negro espera en la barra.`),
     hasUnsavedChanges = true;
     save({ silent: true });
     renderTopics();
+
+    if (typeof showSection === 'function') {
+        showSection('topics');
+    }
+    if (typeof enterTopic === 'function') {
+        enterTopic(topicId);
+    }
+
     showAutosave('Demo "La Última Carta" cargada', 'saved');
 }
 
