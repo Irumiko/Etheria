@@ -172,42 +172,89 @@ function setupKeyboardListeners() {
 function setupTouchGestures() {
     const vnSection = document.getElementById('vnSection');
     if (!vnSection) return;
+    const hasCoarse = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    if (!hasCoarse) return;
+
+    const EXCLUDED_ZONES = [
+        '.vn-dialogue-box',
+        '.vn-options-container',
+        '.vn-reply-panel',
+        '.vn-controls'
+    ];
+
+    const isInExcludedZone = (x, y) => {
+        return EXCLUDED_ZONES.some((selector) => {
+            const el = document.querySelector(selector);
+            if (!el) return false;
+            const rect = el.getBoundingClientRect();
+            return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+        });
+    };
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
 
     vnSection.addEventListener('touchstart', (e) => {
         if (e.touches.length !== 1) return;
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startTime = Date.now();
+
+        if (document.body.classList.contains('immersive-mode') && typeof revealImmersiveUiTemporarily === 'function') {
+            revealImmersiveUiTemporarily();
+        }
     }, { passive: true });
 
     vnSection.addEventListener('touchend', (e) => {
         if (!vnSection.classList.contains('active') || e.changedTouches.length !== 1) return;
+        const target = e.target;
+        if (target && target.closest('#vnReplyPanel, .vn-controls, .vn-mobile-fab-nav, #settingsPanel, #vnOptionsContainer')) return;
 
-        const dx = e.changedTouches[0].clientX - touchStartX;
-        const dy = e.changedTouches[0].clientY - touchStartY;
+        const replyPanel = document.getElementById('vnReplyPanel');
+        const panelOpen = replyPanel?.style.display === 'flex';
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        if (isInExcludedZone(endX, endY)) return;
+        const dx = endX - startX;
+        const dy = endY - startY;
         const absDx = Math.abs(dx);
         const absDy = Math.abs(dy);
+        const elapsed = Date.now() - startTime;
 
-        if (absDx < 50 && absDy < 50) return;
+        if (absDx < 12 && absDy < 12) {
+            handleDialogueClick();
+            if (document.body.classList.contains('immersive-mode')) {
+                if (typeof revealImmersiveUiTemporarily === "function") revealImmersiveUiTemporarily();
+            }
+            return;
+        }
 
-        if (absDx > absDy) {
+        if (absDx > absDy && absDx > 45) {
             if (dx < 0) nextMessage();
             else previousMessage();
             return;
         }
 
-        if (dy > 70) {
-            const replyPanel = document.getElementById('vnReplyPanel');
-            const settingsPanel = document.getElementById('settingsPanel');
-            const continuationOverlay = document.getElementById('continuationOverlay');
-
-            if (continuationOverlay?.classList.contains('active')) {
-                closeContinuation();
-            } else if (replyPanel?.style.display === 'flex') {
-                closeReplyPanel();
-            } else if (settingsPanel?.classList.contains('active')) {
-                closeSettings();
+        if (startY < 88 && dy > 70 && absDy > absDx) {
+            if (!panelOpen && typeof openReplyPanel === 'function') {
+                openReplyPanel();
+                if (typeof setReplyDrawerExpanded === 'function') setReplyDrawerExpanded(false);
             }
+            return;
+        }
+
+        if (panelOpen && dy > 60 && absDy > absDx) {
+            if (typeof setReplyDrawerExpanded === 'function') {
+                setReplyDrawerExpanded(false);
+            } else if (typeof closeReplyPanel === 'function') {
+                closeReplyPanel();
+            }
+            return;
+        }
+
+        if (elapsed < 260 && absDy < 35 && absDx < 35) {
+            handleDialogueClick();
         }
     }, { passive: true });
 }
-

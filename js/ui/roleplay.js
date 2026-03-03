@@ -497,3 +497,194 @@ function openCurrentVnCharacterSheet() {
     if (!charId || typeof openRpgStatsModal !== 'function') return;
     openRpgStatsModal(charId);
 }
+
+
+const RELATIONSHIP_LEVELS = [
+    { threshold: 0,  name: 'Desconocidos', color: '#888' },
+    { threshold: 20, name: 'Conocidos', color: '#9b59b6' },
+    { threshold: 40, name: 'Asociados', color: '#3498db' },
+    { threshold: 60, name: 'Aliados', color: '#27ae60' },
+    { threshold: 80, name: 'Confianza', color: '#f1c40f' },
+    { threshold: 95, name: 'Vínculo', color: '#e74c3c' }
+];
+
+function getAffinity(charId1, charId2, topicId = currentTopicId) {
+    if (!topicId || !charId1 || !charId2 || String(charId1) === String(charId2)) return 0;
+    const topicAffinities = appData.affinities[topicId] || {};
+    return Number(topicAffinities[getAffinityKey(charId1, charId2)] || 0);
+}
+
+function affinityToStars(value) {
+    const stars = Math.max(0, Math.min(5, Math.round((Number(value) || 0) / 20)));
+    return `${'★'.repeat(stars)}${'☆'.repeat(5 - stars)}`;
+}
+
+function calculateAverageAffinity(charId, topicId) {
+    const msgs = getTopicMessages(topicId);
+    const chars = [...new Set(msgs.filter(m => m.characterId).map(m => String(m.characterId)))];
+    const others = chars.filter(id => String(id) !== String(charId));
+    if (others.length === 0) return 0;
+    const sum = others.reduce((acc, id) => acc + getAffinity(charId, id, topicId), 0);
+    return Math.round(sum / others.length);
+}
+
+function countRecentInteractions(charId1, charId2, msgs, lookback = 10) {
+    const slice = msgs.slice(Math.max(0, msgs.length - lookback));
+    let count = 0;
+    for (let i = 1; i < slice.length; i++) {
+        const a = slice[i - 1];
+        const b = slice[i];
+        if (!a?.characterId || !b?.characterId) continue;
+        const pair = [String(a.characterId), String(b.characterId)].sort().join('_');
+        const target = [String(charId1), String(charId2)].sort().join('_');
+        if (pair === target) count++;
+    }
+    return count;
+}
+
+function buildRelationshipGraph(topicId) {
+    const msgs = getTopicMessages(topicId);
+    const chars = [...new Set(msgs.filter(m => m.characterId).map(m => String(m.characterId)))];
+
+    const nodes = chars.map((id) => {
+        const char = appData.characters.find(c => String(c.id) === id);
+        return {
+            id,
+            name: char?.name || 'Desconocido',
+            avatar: char?.avatar || '',
+            avgAffinity: calculateAverageAffinity(id, topicId)
+        };
+    });
+
+    const edges = [];
+    for (let i = 0; i < chars.length; i++) {
+        for (let j = i + 1; j < chars.length; j++) {
+            const affinity = getAffinity(chars[i], chars[j], topicId);
+            if (affinity > 0) {
+                edges.push({
+                    source: chars[i],
+                    target: chars[j],
+                    affinity,
+                    recentInteractions: countRecentInteractions(chars[i], chars[j], msgs, 10)
+                });
+            }
+        }
+    }
+
+    return { nodes, edges };
+}
+
+function renderConstellation(graph, container) {
+    if (!container) return;
+    const w = Math.max(560, container.clientWidth || 560);
+    const h = Math.max(420, container.clientHeight || 420);
+    const cx = w / 2;
+    const cy = h / 2;
+    const radius = Math.min(w, h) * 0.33;
+
+    const positionedNodes = graph.nodes.map((node, idx) => {
+        const angle = (Math.PI * 2 * idx) / Math.max(1, graph.nodes.length);
+        return {
+            ...node,
+            x: cx + Math.cos(angle) * radius,
+            y: cy + Math.sin(angle) * radius,
+            stars: affinityToStars(node.avgAffinity)
+        };
+    });
+
+    const nodeById = new Map(positionedNodes.map(n => [String(n.id), n]));
+
+    const lineSvg = `
+<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+${graph.edges.map((edge) => {
+        const a = nodeById.get(String(edge.source));
+        const b = nodeById.get(String(edge.target));
+        if (!a || !b) return '';
+        const width = 1 + Math.min(4, edge.recentInteractions);
+        const alpha = 0.2 + Math.min(0.7, edge.affinity / 120);
+        return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="rgba(201,168,108,${alpha.toFixed(2)})" stroke-width="${width}" />`;
+    }).join('')}
+</svg>`;
+
+    container.innerHTML = lineSvg + positionedNodes.map((node) => `
+        <div class="relationship-node" data-char-id="${escapeHtml(String(node.id))}" style="left:${node.x}px;top:${node.y}px" title="${escapeHtml(node.name)} · Afinidad media ${node.avgAffinity}">
+            <div class="relationship-node-avatar">${node.avatar ? `<img src="${escapeHtml(node.avatar)}" alt="Avatar de ${escapeHtml(node.name)}">` : escapeHtml(node.name[0] || '?')}</div>
+            <div class="relationship-node-name">${escapeHtml(node.name)}</div>
+            <div class="relationship-node-stars">${node.stars}</div>
+        </div>
+    `).join('');
+
+    container.querySelectorAll('.relationship-node').forEach((el) => {
+        el.addEventListener('click', () => {
+            const charId = el.getAttribute('data-char-id');
+            const node = positionedNodes.find((n) => String(n.id) === String(charId));
+            if (!node) return;
+
+            const related = graph.edges
+                .filter((e) => String(e.source) === String(charId) || String(e.target) === String(charId))
+                .sort((a, b) => b.affinity - a.affinity)
+                .slice(0, 3)
+                .map((edge) => {
+                    const otherId = String(edge.source) === String(charId) ? edge.target : edge.source;
+                    const other = nodeById.get(String(otherId));
+                    const otherName = other?.name || 'Desconocido';
+                    return `${otherName}: ${Math.round(edge.affinity)} (${edge.recentInteractions} interacciones)`;
+                });
+
+            const summary = related.length
+                ? related.join(' · ')
+                : 'Sin vínculos recientes.';
+            showAutosave(`${node.name} → ${summary}`, 'info');
+        });
+    });
+
+}
+
+let relationshipGraphResizeBound = false;
+let relationshipGraphRaf = null;
+
+function renderRelationshipGraphForActiveTopic() {
+    if (!currentTopicId) return;
+    const graph = buildRelationshipGraph(currentTopicId);
+    const container = document.getElementById('relationshipGraphCanvas');
+    if (!container) return;
+
+    if (!graph.nodes.length) {
+        container.innerHTML = '<div style="padding:1.2rem; color:var(--text-muted);">Aún no hay interacciones entre personajes en esta historia.</div>';
+        return;
+    }
+
+    renderConstellation(graph, container);
+}
+
+function openRelationshipGraph() {
+    if (!currentTopicId) {
+        showAutosave('Abre una historia para ver su grafo de relaciones.', 'info');
+        return;
+    }
+
+    const subtitle = document.getElementById('relationshipGraphSubtitle');
+    const topic = appData.topics.find(t => String(t.id) === String(currentTopicId));
+    if (subtitle) subtitle.textContent = topic ? `RELACIONES EN "${topic.title.toUpperCase()}"` : 'Relaciones';
+
+    if (typeof openModal === 'function') openModal('relationshipGraphModal');
+
+    if (relationshipGraphRaf) cancelAnimationFrame(relationshipGraphRaf);
+    relationshipGraphRaf = requestAnimationFrame(() => {
+        relationshipGraphRaf = null;
+        renderRelationshipGraphForActiveTopic();
+    });
+
+    if (!relationshipGraphResizeBound) {
+        relationshipGraphResizeBound = true;
+        window.addEventListener('resize', () => {
+            const modal = document.getElementById('relationshipGraphModal');
+            if (!modal || modal.classList.contains('hidden')) return;
+            if (relationshipGraphRaf) cancelAnimationFrame(relationshipGraphRaf);
+            relationshipGraphRaf = requestAnimationFrame(() => {
+                relationshipGraphRaf = null;
+                renderRelationshipGraphForActiveTopic();
+            });
+        }, { passive: true });
+    }
+}

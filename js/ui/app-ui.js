@@ -240,6 +240,9 @@ function syncOptionsSection() {
     const uiCheck  = document.getElementById('optUiSounds');
     const themeBtn = document.getElementById('themeToggleBtn');
     const nameInput = document.getElementById('optProfileName');
+    const immersiveCheck = document.getElementById('optImmersiveMode');
+    const continuousCheck = document.getElementById('optContinuousRead');
+    const continuousDelay = document.getElementById('optContinuousDelay');
 
     if (speedSlider && savedSpeed) {
         const sliderVal = 110 - parseInt(savedSpeed);
@@ -256,6 +259,13 @@ function syncOptionsSection() {
     if (uiCheck)  uiCheck.checked = uiSounds;
     if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
     if (nameInput) nameInput.value = userNames[currentUserIndex] || '';
+    if (immersiveCheck) immersiveCheck.checked = localStorage.getItem('etheria_immersive_mode') === '1';
+    const savedContinuous = localStorage.getItem('etheria_continuous_read') === '1';
+    const savedContinuousDelay = Math.max(3, Math.min(5, Number(localStorage.getItem('etheria_continuous_delay') || 4)));
+    if (continuousCheck) continuousCheck.checked = savedContinuous;
+    if (continuousDelay) continuousDelay.value = savedContinuousDelay;
+    const continuousDelayLabel = document.getElementById('optContinuousDelayVal');
+    if (continuousDelayLabel) continuousDelayLabel.textContent = `${savedContinuousDelay}s`;
 
     const statsEl = document.getElementById('optProfileStats');
     if (statsEl) {
@@ -360,6 +370,184 @@ function loadGameFromMenu() {
     input.click();
 }
 
+
+
+function _storyCodeStorageKey(code) {
+    return `etheria_story_code_${code}`;
+}
+
+const STORY_CODE_BLOCKLIST = new Set(['PUTO', 'CACA', 'KKK']);
+
+function _generateStoryCode() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let out = '';
+    do {
+        out = '';
+        for (let i = 0; i < 6; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    } while (STORY_CODE_BLOCKLIST.has(out));
+    return out;
+}
+
+function _drawStoryCodeQr(code) {
+    const canvas = document.getElementById('storyCodeQrCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const size = 22;
+    const cell = Math.floor(canvas.width / size);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    let seed = 0;
+    for (let i = 0; i < code.length; i++) seed = (seed * 31 + code.charCodeAt(i)) >>> 0;
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            const v = (x * 73856093) ^ (y * 19349663) ^ seed;
+            const on = ((v >>> 2) & 1) === 1 || x < 2 || y < 2 || x > size - 3 || y > size - 3;
+            if (on) {
+                ctx.fillStyle = '#111';
+                ctx.fillRect(x * cell, y * cell, cell - 1, cell - 1);
+            }
+        }
+    }
+}
+
+function exportCurrentStoryAsCode() {
+    if (!currentTopicId) {
+        showAutosave('Abre una historia primero', 'error');
+        return;
+    }
+    const topic = appData.topics.find(t => String(t.id) === String(currentTopicId));
+    if (!topic) return;
+
+    const payload = {
+        v: 1,
+        topic,
+        messages: getTopicMessages(currentTopicId),
+        chars: appData.characters
+    };
+
+    const serialized = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    let code = _generateStoryCode();
+    let retries = 0;
+    while (localStorage.getItem(_storyCodeStorageKey(code)) && retries < 10) {
+        code = _generateStoryCode();
+        retries++;
+    }
+    localStorage.setItem(_storyCodeStorageKey(code), serialized);
+    localStorage.setItem('etheria_last_story_code', code);
+
+    const codeEl = document.getElementById('storyCodeValue');
+    if (codeEl) codeEl.textContent = code;
+    _drawStoryCodeQr(code);
+    openModal('storyCodeModal');
+    showAutosave('Código de historia generado', 'saved');
+}
+
+function importStoryFromCode() {
+    const code = (window.prompt('Introduce el código de 6 caracteres:') || '').trim().toUpperCase();
+    if (!code) return;
+    const raw = localStorage.getItem(_storyCodeStorageKey(code));
+    if (!raw) {
+        showAutosave('Código no encontrado en este dispositivo', 'error');
+        return;
+    }
+
+    try {
+        const payload = JSON.parse(decodeURIComponent(escape(atob(raw))));
+        if (!payload || !payload.topic) throw new Error('Payload inválido');
+
+        const importedTopic = { ...payload.topic, id: `${payload.topic.id}_${Date.now()}` };
+        appData.topics.push(importedTopic);
+        appData.messages[importedTopic.id] = Array.isArray(payload.messages) ? payload.messages.map((m) => ({ ...m, id: `${m.id}_${Math.random().toString(16).slice(2)}` })) : [];
+
+        if (Array.isArray(payload.chars)) {
+            const known = new Set(appData.characters.map(c => String(c.id)));
+            payload.chars.forEach((c) => {
+                if (!known.has(String(c.id))) appData.characters.push(c);
+            });
+        }
+
+        hasUnsavedChanges = true;
+        save({ silent: true });
+        renderTopics();
+        showAutosave('Historia importada desde código', 'saved');
+    } catch (err) {
+        showAutosave('No se pudo importar el código', 'error');
+    }
+}
+
+
+
+function loadUltimaCartaDemo() {
+    const topicId = (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
+        ? globalThis.crypto.randomUUID()
+        : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+    const topic = {
+        id: topicId,
+        title: 'La Última Carta',
+        background: 'assets/backgrounds/default_background.jpg',
+        mode: 'fanfic',
+        createdBy: userNames[currentUserIndex] || 'Jugador',
+        createdByIndex: currentUserIndex,
+        weather: 'rain',
+        date: new Date().toLocaleDateString()
+    };
+
+    const narratorMsg = (id, text, extra = {}) => ({
+        id,
+        characterId: null,
+        charName: 'Narrador',
+        text,
+        isNarrator: true,
+        userIndex: currentUserIndex,
+        timestamp: new Date().toISOString(),
+        ...extra
+    });
+
+    const messages = [
+        narratorMsg(`${topicId}_m1`, `La lluvia golpea el cristal de la posada 'El Jabalí Dorado'.
+Una carta sellada con lacre negro espera en la barra.`),
+        {
+            id: `${topicId}_m2`,
+            characterId: null,
+            charName: 'Narrador',
+            text: 'Respiro hondo y tomo la carta entre mis manos.',
+            isNarrator: true,
+            userIndex: currentUserIndex,
+            timestamp: new Date().toISOString(),
+            oracle: {
+                question: '¿Abro la carta?',
+                stat: 'INT',
+                probability: 60,
+                result: 'cara',
+                timestamp: Date.now()
+            }
+        },
+        narratorMsg(`${topicId}_m3`, 'El sello cede con un crujido tenue. Dentro, una advertencia firmada con iniciales desconocidas.', {
+            options: [
+                { text: 'Confrontar al mensajero', continuation: 'Sales a la calle lluviosa en busca de la silueta encapuchada.' },
+                { text: 'Guardar carta, investigar solo', continuation: 'Anotas los símbolos del lacre y preguntas discretamente a la posadera.' },
+                { text: 'Quemar sin leer', continuation: 'El papel se consume. El humo deja un olor metálico en el aire.' }
+            ]
+        }),
+        narratorMsg(`${topicId}_m4`, 'La puerta se abre. El Mensajero te observa desde la calle lluviosa.', {
+            sceneChange: {
+                title: 'Calle lluviosa',
+                background: 'assets/backgrounds/default_background.jpg',
+                at: new Date().toISOString()
+            }
+        })
+    ];
+
+    appData.topics.push(topic);
+    appData.messages[topicId] = messages;
+
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    renderTopics();
+    showAutosave('Demo "La Última Carta" cargada', 'saved');
+}
+
 function exportData() {
     const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
     const a = document.createElement('a');
@@ -385,6 +573,34 @@ function deleteCharFromModal() {
         resetCharForm();
         renderGallery();
     });
+}
+
+let immersiveUiHideTimer = null;
+let immersiveUiShowTimer = null;
+const IMMERSIVE_REVEAL_DELAY = 200;
+const IMMERSIVE_HIDE_AFTER_MS = 3000;
+
+function toggleImmersiveModeSetting(enabled) {
+    const active = !!enabled;
+    localStorage.setItem('etheria_immersive_mode', active ? '1' : '0');
+    document.body.classList.toggle('immersive-mode', active);
+    if (active) revealImmersiveUiTemporarily();
+}
+
+function revealImmersiveUiTemporarily() {
+    if (!document.body.classList.contains('immersive-mode')) return;
+    const vnSection = document.getElementById('vnSection');
+    if (!vnSection || !vnSection.classList.contains('active')) return;
+
+    if (immersiveUiShowTimer) clearTimeout(immersiveUiShowTimer);
+    immersiveUiShowTimer = setTimeout(() => {
+        document.body.classList.add('immersive-reveal');
+    }, IMMERSIVE_REVEAL_DELAY);
+
+    if (immersiveUiHideTimer) clearTimeout(immersiveUiHideTimer);
+    immersiveUiHideTimer = setTimeout(() => {
+        document.body.classList.remove('immersive-reveal');
+    }, IMMERSIVE_HIDE_AFTER_MS);
 }
 
 // ============================================
@@ -462,4 +678,15 @@ function closeOnboarding() {
     } else {
         localStorage.setItem('etheria_onboarding_step', String(next));
     }
+}
+
+function applyPersistedImmersiveMode() {
+    const enabled = localStorage.getItem('etheria_immersive_mode') === '1';
+    document.body.classList.toggle('immersive-mode', enabled);
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('DOMContentLoaded', () => {
+        applyPersistedImmersiveMode();
+    });
 }

@@ -20,6 +20,420 @@ const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
 
 const preloadedBackgrounds = new Set();
 let pendingSceneChange = null;
+let oracleStat = 'STR';
+let oracleQuestionDirty = false;
+
+function isRpgTopicMode(mode) {
+    return mode === 'fanfic' || mode === 'rpg';
+}
+
+function calculateOracleProbability(statValue) {
+    const base = 50;
+    const bonus = statValue >= 8 ? 15 : statValue <= 4 ? -15 : 0;
+    return Math.min(90, Math.max(10, base + bonus));
+}
+
+function getOracleAutodetectedQuestion(rawText) {
+    const trimmed = String(rawText || '').trim();
+    if (!trimmed) return '';
+    const sentence = trimmed.split('\n').map(part => part.trim()).find(Boolean) || trimmed;
+    return sentence.length > 120 ? `${sentence.slice(0, 117)}...` : sentence;
+}
+
+function getOracleSelectedStatValue() {
+    const char = appData.characters.find(c => c.id === selectedCharId);
+    if (!char || typeof getRpgSheetData !== 'function') return 5;
+    const stats = getRpgSheetData(char)?.totalStats || {};
+    return Number(stats[oracleStat]) || 5;
+}
+
+function refreshOracleProbability() {
+    const fill = document.getElementById('oracleProbabilityFill');
+    const valueEl = document.getElementById('oracleProbabilityValue');
+    const probability = calculateOracleProbability(getOracleSelectedStatValue());
+    if (fill) fill.style.width = `${probability}%`;
+    if (valueEl) valueEl.textContent = `${probability}%`;
+}
+
+function refreshOracleQuestionAutodetect(force = false) {
+    const questionInput = document.getElementById('oracleQuestionInput');
+    const replyText = document.getElementById('vnReplyText');
+    if (!questionInput || !replyText) return;
+    if (!force && oracleQuestionDirty) return;
+    questionInput.value = getOracleAutodetectedQuestion(replyText.value);
+}
+
+function setOracleStat(nextStat) {
+    oracleStat = ['STR', 'VIT', 'INT', 'AGI'].includes(nextStat) ? nextStat : 'STR';
+    document.querySelectorAll('.oracle-stat-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.stat === oracleStat);
+    });
+    refreshOracleProbability();
+}
+
+function resetOraclePanelState() {
+    oracleStat = 'STR';
+    oracleQuestionDirty = false;
+    const enabled = document.getElementById('oracleEnabled');
+    const fields = document.getElementById('oracleFields');
+    const panel = document.getElementById('oraclePanel');
+    const questionInput = document.getElementById('oracleQuestionInput');
+    if (enabled) enabled.checked = false;
+    if (fields) fields.style.display = 'none';
+    if (panel) panel.classList.remove('active');
+    if (questionInput) questionInput.value = '';
+    setOracleStat('STR');
+}
+
+function setupOraclePanelForMode() {
+    const panel = document.getElementById('oraclePanel');
+    const enabled = document.getElementById('oracleEnabled');
+    const fields = document.getElementById('oracleFields');
+    const questionInput = document.getElementById('oracleQuestionInput');
+    const statButtonsWrap = document.getElementById('oracleStatButtons');
+    const replyText = document.getElementById('vnReplyText');
+    const topic = getCurrentTopic();
+    const isRpg = isRpgTopicMode(topic?.mode || currentTopicMode);
+
+    if (!panel) return;
+    if (!isRpg) {
+        panel.style.display = 'none';
+        resetOraclePanelState();
+        return;
+    }
+
+    panel.style.display = 'block';
+    resetOraclePanelState();
+    refreshOracleQuestionAutodetect(true);
+
+    if (enabled && !enabled.dataset.boundOracle) {
+        enabled.dataset.boundOracle = '1';
+        enabled.addEventListener('change', () => {
+            const active = !!enabled.checked;
+            if (fields) fields.style.display = active ? 'block' : 'none';
+            panel.classList.toggle('active', active);
+            if (active) refreshOracleProbability();
+        });
+    }
+
+    if (replyText && !replyText.dataset.boundOracleInput) {
+        replyText.dataset.boundOracleInput = '1';
+        replyText.addEventListener('input', () => refreshOracleQuestionAutodetect(false));
+    }
+
+    if (questionInput && !questionInput.dataset.boundOracleInput) {
+        questionInput.dataset.boundOracleInput = '1';
+        questionInput.addEventListener('input', () => {
+            oracleQuestionDirty = questionInput.value.trim().length > 0;
+        });
+    }
+
+    if (statButtonsWrap && !statButtonsWrap.dataset.boundOracle) {
+        statButtonsWrap.dataset.boundOracle = '1';
+        statButtonsWrap.addEventListener('click', (event) => {
+            const btn = event.target.closest('.oracle-stat-btn');
+            if (!btn) return;
+            setOracleStat(btn.dataset.stat || 'STR');
+        });
+    }
+}
+
+let spriteIntersectionObserver = null;
+let replyDrawerExpanded = false;
+let replyDrawerBound = false;
+let vnMobileFabBound = false;
+
+function hasCoarsePointer() {
+    return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+}
+
+function isNarrowScreen() {
+    return typeof window !== 'undefined' && window.innerWidth <= 768;
+}
+
+function shouldUseMobileDrawer() {
+    return hasCoarsePointer() || isNarrowScreen();
+}
+
+function ensureSpriteLazyObserver() {
+    if (spriteIntersectionObserver || typeof IntersectionObserver === 'undefined') return spriteIntersectionObserver;
+    spriteIntersectionObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            const img = entry.target;
+            const src = img?.dataset?.src;
+            if (src) {
+                img.src = src;
+                delete img.dataset.src;
+            }
+            observer.unobserve(img);
+        });
+    }, { root: document.getElementById('vnSection') || null, threshold: 0.1 });
+    return spriteIntersectionObserver;
+}
+
+function queueSpriteImageLoad(img, src) {
+    if (!img) return;
+    const observer = ensureSpriteLazyObserver();
+    if (!observer) {
+        img.src = src;
+        return;
+    }
+    img.removeAttribute('src');
+    img.dataset.src = src;
+    observer.observe(img);
+}
+
+function setReplyDrawerExpanded(expanded) {
+    const panel = document.getElementById('vnReplyPanel');
+    if (!panel) return;
+    replyDrawerExpanded = !!expanded;
+    triggerSubtleHaptic();
+    panel.classList.toggle('drawer-expanded', replyDrawerExpanded);
+    panel.classList.toggle('drawer-collapsed', !replyDrawerExpanded);
+}
+
+function updateVnMobileFabVisibility() {
+    const fab = document.getElementById('vnMobileFabNav');
+    const panel = document.getElementById('vnReplyPanel');
+    const vnSection = document.getElementById('vnSection');
+    if (!fab) return;
+    const panelOpen = panel?.style.display === 'flex';
+    const active = vnSection?.classList.contains('active');
+    const show = active && shouldUseMobileDrawer() && !panelOpen;
+    fab.style.display = show ? 'flex' : 'none';
+
+    if (!vnMobileFabBound) {
+        vnMobileFabBound = true;
+        window.addEventListener('resize', () => updateVnMobileFabVisibility(), { passive: true });
+    }
+}
+
+function bindReplyDrawerGestures() {
+    if (replyDrawerBound) return;
+    const handle = document.getElementById('replyDrawerHandle');
+    if (!handle) return;
+
+    let startY = 0;
+    let dragging = false;
+
+    const onStart = (clientY) => {
+        dragging = true;
+        startY = clientY;
+    };
+
+    const onEnd = (clientY) => {
+        if (!dragging) return;
+        dragging = false;
+        const delta = clientY - startY;
+        if (Math.abs(delta) < 24) return;
+        if (delta < 0) setReplyDrawerExpanded(true);
+        else setReplyDrawerExpanded(false);
+    };
+
+    handle.addEventListener('touchstart', (e) => {
+        if (!shouldUseMobileDrawer()) return;
+        if (e.touches.length !== 1) return;
+        onStart(e.touches[0].clientY);
+    }, { passive: true });
+
+    handle.addEventListener('touchend', (e) => {
+        if (!shouldUseMobileDrawer()) return;
+        if (e.changedTouches.length !== 1) return;
+        onEnd(e.changedTouches[0].clientY);
+    }, { passive: true });
+
+    handle.addEventListener('pointerdown', (e) => {
+        if (!shouldUseMobileDrawer()) return;
+        onStart(e.clientY);
+    });
+
+    handle.addEventListener('pointerup', (e) => {
+        if (!shouldUseMobileDrawer()) return;
+        onEnd(e.clientY);
+    });
+
+    replyDrawerBound = true;
+}
+
+
+let remoteTypingState = {};
+let typingUiLastPaint = 0;
+let typingIdleTimer = null;
+let typingEmitTimer = null;
+let continuousReadEnabled = false;
+let continuousReadDelaySec = 4;
+let continuousReadTimer = null;
+let continuousReadStartedAt = 0;
+let continuousReadAutoStopTimer = null;
+let continuousLastInteractionAt = Date.now();
+let spritePointerBound = false;
+let spriteBlinkTimer = null;
+
+function updateTypingIndicatorUi(force = false) {
+    const now = Date.now();
+    if (!force && now - typingUiLastPaint < 1000) return;
+    typingUiLastPaint = now;
+    const indicator = document.getElementById('vnTypingIndicator');
+    if (!indicator) return;
+    if (document.hidden) {
+        indicator.style.display = 'none';
+        return;
+    }
+    const active = Object.values(remoteTypingState || {}).some((entry) => entry && entry.active && now - (entry.ts || 0) < 5000);
+    indicator.style.display = active ? 'inline-flex' : 'none';
+}
+
+function clearTypingState() {
+    remoteTypingState = {};
+    if (typingIdleTimer) clearTimeout(typingIdleTimer);
+    if (typingEmitTimer) clearTimeout(typingEmitTimer);
+    typingIdleTimer = null;
+    typingEmitTimer = null;
+    updateTypingIndicatorUi(true);
+}
+
+function emitTypingState(active) {
+    if (!currentTopicId || typeof SupabaseMessages === 'undefined' || typeof SupabaseMessages.sendTyping !== 'function') return;
+    const char = appData.characters.find(c => c.id === selectedCharId);
+    SupabaseMessages.sendTyping(currentTopicId, {
+        active,
+        userIndex: currentUserIndex,
+        characterId: selectedCharId || null,
+        name: char?.name || null
+    }).catch(() => {});
+}
+
+function bindReplyTypingEmitter() {
+    const input = document.getElementById('vnReplyText');
+    if (!input || input.dataset.typingBound) return;
+    input.dataset.typingBound = '1';
+    input.addEventListener('input', () => {
+        if (document.hidden) return;
+        if (typingEmitTimer) clearTimeout(typingEmitTimer);
+        typingEmitTimer = setTimeout(() => emitTypingState(true), 300);
+        if (typingIdleTimer) clearTimeout(typingIdleTimer);
+        typingIdleTimer = setTimeout(() => emitTypingState(false), 5000);
+    });
+}
+
+function markContinuousInteraction() {
+    continuousLastInteractionAt = Date.now();
+}
+
+function cancelContinuousRead(reason = '') {
+    if (continuousReadTimer) clearTimeout(continuousReadTimer);
+    continuousReadTimer = null;
+}
+
+function shouldPauseContinuousRead(msg) {
+    if (!continuousReadEnabled) return true;
+    if (document.hidden) return true;
+    if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return true;
+    const panel = document.getElementById('vnReplyPanel');
+    if (panel?.style.display === 'flex') return true;
+    if (msg?.options?.length) return true;
+    if (msg?.oracle) return true;
+    return false;
+}
+
+function scheduleContinuousReadIfNeeded(msg) {
+    cancelContinuousRead();
+    if (shouldPauseContinuousRead(msg)) return;
+    const msgs = getTopicMessages(currentTopicId);
+    if (!Array.isArray(msgs) || currentMessageIndex >= msgs.length - 1) return;
+
+    continuousReadStartedAt = Date.now();
+    continuousReadTimer = setTimeout(() => {
+        if (Date.now() - continuousLastInteractionAt > 30000) {
+            continuousReadEnabled = false;
+            localStorage.setItem('etheria_continuous_read', '0');
+            const cb = document.getElementById('optContinuousRead');
+            if (cb) cb.checked = false;
+            showAutosave('Lectura continua pausada por inactividad', 'info');
+            cancelContinuousRead('autostop');
+            return;
+        }
+        if (shouldPauseContinuousRead(msg)) return;
+        nextMessage();
+    }, Math.max(3000, Math.min(5000, Number(continuousReadDelaySec) * 1000)));
+}
+
+function bindSpriteMicroInteractions() {
+    if (spritePointerBound) return;
+    const container = document.getElementById('vnSpriteContainer');
+    if (!container) return;
+
+    if (window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+        container.addEventListener('pointermove', (e) => {
+            const sprites = Array.from(container.querySelectorAll('.vn-sprite.active'));
+            if (!sprites.length) return;
+            let nearest = null;
+            let minDist = Infinity;
+            sprites.forEach((sprite) => {
+                const rect = sprite.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const d = Math.hypot(e.clientX - cx, e.clientY - cy);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = sprite;
+                }
+            });
+            sprites.forEach((sprite) => sprite.classList.remove('hover-near'));
+            if (nearest && minDist < 180) nearest.classList.add('hover-near');
+        }, { passive: true });
+        container.addEventListener('pointerleave', () => {
+            container.querySelectorAll('.vn-sprite.hover-near').forEach((el) => el.classList.remove('hover-near'));
+        }, { passive: true });
+    }
+
+    container.addEventListener('touchstart', (e) => {
+        const sprite = e.target.closest('.vn-sprite');
+        if (!sprite) return;
+        sprite.classList.add('focus-pop');
+        setTimeout(() => sprite.classList.remove('focus-pop'), 220);
+    }, { passive: true });
+
+    spritePointerBound = true;
+}
+
+function scheduleRandomSpriteBlink() {
+    if (spriteBlinkTimer) clearTimeout(spriteBlinkTimer);
+    const profile = applySpriteAnimationProfile();
+    if (profile.lite) return;
+
+    const delay = 8000 + Math.random() * 4000;
+    spriteBlinkTimer = setTimeout(() => {
+        const activeSprites = Array.from(document.querySelectorAll('#vnSpriteContainer .vn-sprite.active'));
+        if (activeSprites.length) {
+            const sprite = activeSprites[Math.floor(Math.random() * activeSprites.length)];
+            sprite.classList.add('sprite-blink');
+            setTimeout(() => sprite.classList.remove('sprite-blink'), 220);
+        }
+        scheduleRandomSpriteBlink();
+    }, delay);
+}
+
+
+function triggerSubtleHaptic() {
+    if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+    if (typeof prefersReducedMotion === 'function' && prefersReducedMotion()) return;
+    if (!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) return;
+    navigator.vibrate(10);
+}
+
+function isLowPowerDevice() {
+    const cores = Number(navigator?.hardwareConcurrency || 8);
+    return cores <= 4;
+}
+
+function applySpriteAnimationProfile() {
+    const reduced = typeof prefersReducedMotion === 'function' && prefersReducedMotion();
+    const lite = reduced || isLowPowerDevice();
+    document.documentElement.style.setProperty('--sprite-breathing-duration', lite ? '6s' : '4s');
+    return { lite, reduced };
+}
 
 function isDefaultTopicBackground(backgroundPath) {
     const normalized = (backgroundPath || "").trim().toLowerCase();
@@ -168,6 +582,13 @@ function enterTopic(id) {
     }
 
     showCurrentMessage('forward');
+    updateVnMobileFabVisibility();
+    bindReplyTypingEmitter();
+    bindSpriteMicroInteractions();
+    applySpriteAnimationProfile();
+    scheduleRandomSpriteBlink();
+    continuousReadEnabled = localStorage.getItem('etheria_continuous_read') === '1';
+    continuousReadDelaySec = Math.max(3, Math.min(5, Number(localStorage.getItem('etheria_continuous_delay') || 4)));
 
     // Carga desde Supabase y suscripción realtime (no bloquea el flujo principal)
     _sbEnterTopic(id);
@@ -177,6 +598,7 @@ async function _sbEnterTopic(topicId) {
     if (typeof SupabaseMessages === 'undefined') return;
 
     SupabaseMessages.unsubscribe();
+    clearTypingState();
 
     // Cargar historial remoto y fusionar con local por id
     try {
@@ -223,16 +645,30 @@ async function _sbEnterTopic(topicId) {
         hasUnsavedChanges = true;
         save({ silent: true });
 
+        if (continuousReadEnabled) {
+            toggleContinuousReading(false);
+        }
+
         const isAtEnd = currentMessageIndex >= msgs.length - 2;
         if (isAtEnd) {
             currentMessageIndex = msgs.length - 1;
             showCurrentMessage('forward');
+            showSyncToast('Nuevo mensaje recibido. Lectura continua pausada.', 'Continuar auto', function () {
+                toggleContinuousReading(true);
+            });
         } else {
             showSyncToast('Nuevo mensaje recibido', 'Ver ahora', function () {
                 currentMessageIndex = msgs.length - 1;
                 showCurrentMessage('forward');
             });
         }
+    }, function (typingMsg) {
+        if (!typingMsg || String(typingMsg.userIndex) === String(currentUserIndex)) return;
+        remoteTypingState[String(typingMsg.userIndex)] = { active: !!typingMsg.typing?.active, ts: Date.now() };
+        updateTypingIndicatorUi();
+        setTimeout(() => updateTypingIndicatorUi(true), 5200);
+    }, function () {
+        clearTypingState();
     });
 }
 
@@ -254,6 +690,73 @@ function triggerDialogueFadeIn() {
     dialogueBox.classList.add('fade-in');
 }
 
+
+function detectOracleCategory(question = '', stat = '') {
+    const q = String(question || '').toLowerCase();
+    const statKey = String(stat || '').toUpperCase();
+    if (statKey === 'INT' || /analizar|descifrar|investigar|leer|pensar|recordar/.test(q)) return 'analysis';
+    if (statKey === 'STR' || /forzar|romper|empujar|levantar|golpear/.test(q)) return 'force';
+    if (statKey === 'AGI' || /esquivar|correr|saltar|huir|sigilo/.test(q)) return 'agility';
+    if (statKey === 'VIT' || /resistir|aguantar|soportar|mantener/.test(q)) return 'endurance';
+    if (/convencer|negociar|persuadir|mentir|pedir/.test(q)) return 'negotiation';
+    return 'generic';
+}
+
+function generateConsequence(oracle) {
+    const templates = {
+        negotiation: {
+            cara: 'Tu labia convence incluso al más recalcitrante. Has logrado lo que pedías.',
+            cruz: 'Tus palabras se atascan. El interlocutor frunce el ceño, insatisfecho.'
+        },
+        force: {
+            cara: 'La fuerza fluye por tus músculos. El obstáculo cede ante tu empuje.',
+            cruz: 'Un tirón equivocado. El dolor te avisa: esta vez, la fuerza no bastó.'
+        },
+        agility: {
+            cara: 'Tus reflejos se adelantan al peligro. El movimiento sale impecable.',
+            cruz: 'Te descoordinas un instante y pierdes la ventaja.'
+        },
+        endurance: {
+            cara: 'Respiras hondo y resistes. El desgaste no te vence.',
+            cruz: 'El cansancio te gana terreno y te obliga a ceder.'
+        },
+        analysis: {
+            cara: 'Las piezas encajan en tu mente. Comprendes lo esencial de la situación.',
+            cruz: 'La información se te escapa entre detalles confusos.'
+        },
+        generic: {
+            cara: 'Lo has conseguido.',
+            cruz: 'No ha funcionado.'
+        }
+    };
+
+    const category = detectOracleCategory(oracle?.question || '', oracle?.stat || '');
+    const result = oracle?.result === 'cara' ? 'cara' : 'cruz';
+    return templates[category]?.[result] || templates.generic[result];
+}
+
+function resolvePendingOracleConsequence(msgs, index) {
+    if (!Array.isArray(msgs) || index <= 0) return;
+    const prevMsg = msgs[index - 1];
+    const current = msgs[index];
+    if (!prevMsg?.oracle || prevMsg.oracle.resolved || !current) return;
+
+    prevMsg.oracle.resolved = true;
+
+    if (current.isNarrator && typeof current.text === 'string') {
+        const consequence = generateConsequence(prevMsg.oracle);
+        if (!current.oracleConsequenceApplied) {
+            current.text = `> ${consequence}
+
+${current.text}`;
+            current.oracleConsequenceApplied = true;
+        }
+    }
+
+    hasUnsavedChanges = true;
+    save({ silent: true });
+}
+
 function showCurrentMessage(direction = 'forward') {
     const msgs = getTopicMessages(currentTopicId);
 
@@ -271,6 +774,9 @@ function showCurrentMessage(direction = 'forward') {
     if (currentMessageIndex < 0) currentMessageIndex = 0;
 
     const msg = msgs[currentMessageIndex];
+    const previousMsg = currentMessageIndex > 0 ? msgs[currentMessageIndex - 1] : null;
+
+    resolvePendingOracleConsequence(msgs, currentMessageIndex);
     const namePlate = document.getElementById('vnSpeakerPlate');
     const avatarBox = document.getElementById('vnSpeakerAvatar');
 
@@ -331,7 +837,20 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     const formattedText = formatText(cleanText);
-    if (dialogueText) typeWriter(formattedText, dialogueText);
+    const oracle = msg.oracle;
+    const oracleMarkup = oracle ? `
+        <div class="vn-oracle-result oracle-consequence ${oracle.result === 'cara' ? 'cara' : 'cruz'}">
+            <span class="vn-oracle-rule">── 🪙 ──</span>
+            <div class="vn-oracle-question">${escapeHtml(oracle.question || 'Pregunta al destino')}</div>
+            <div class="vn-oracle-outcome result-${oracle.result === 'cara' ? 'cara' : 'cruz'}">Resultado: ${(oracle.result || '').toUpperCase()} (${Number(oracle.probability) || 0}%)</div>
+        </div>
+    ` : '';
+    if (dialogueText) typeWriter(`${formattedText}${oracleMarkup}`, dialogueText);
+
+    const oracleBadge = document.getElementById('vnOracleConsequenceBadge');
+    if (oracleBadge) {
+        oracleBadge.style.display = previousMsg?.oracle ? 'inline-flex' : 'none';
+    }
 
     const msgCounter = document.getElementById('vnMessageCounter');
     if (msgCounter) msgCounter.textContent = `${currentMessageIndex + 1} / ${msgs.length}`;
@@ -356,6 +875,7 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     updateAffinityDisplay();
+    scheduleContinuousReadIfNeeded(msg);
     if (typeof updateFavButton === "function") updateFavButton();
 
     // Aplicar cambio de escena dinámico si el mensaje lo contiene
@@ -422,8 +942,10 @@ function recycleActiveSprites(container) {
         child.classList.remove('no-sprite');
         const img = child.querySelector('img');
         if (img) {
+            if (spriteIntersectionObserver) spriteIntersectionObserver.unobserve(img);
             img.removeAttribute('src');
             img.removeAttribute('alt');
+            delete img.dataset.src;
             img.onerror = null;
         }
         child.querySelectorAll('.vn-sprite-hitbox, .manga-emote').forEach((el) => el.remove());
@@ -495,7 +1017,7 @@ function updateSprites(currentMsg, activeEmote = null) {
                 img = document.createElement('img');
                 spriteNode.appendChild(img);
             }
-            img.src = escapeHtml(char.charSprite);
+            queueSpriteImageLoad(img, escapeHtml(char.charSprite));
             img.alt = escapeHtml(char.charName || 'Sprite');
             img.onerror = function () {
                 this.style.display = 'none';
@@ -542,6 +1064,7 @@ function typeWriter(text, element) {
         isTyping = false;
         if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
         if (indicator) indicator.style.opacity = '1';
+        scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
         return;
     }
 
@@ -555,6 +1078,7 @@ function typeWriter(text, element) {
             isTyping = false;
             if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
             if (indicator) indicator.style.opacity = '1';
+            scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
         }, 100);
         return;
     }
@@ -604,6 +1128,7 @@ function typeWriter(text, element) {
         if (i >= tokens.length) {
             stopTypewriter();
             if (indicator) indicator.style.opacity = '1';
+            scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
             return;
         }
 
@@ -614,6 +1139,8 @@ function typeWriter(text, element) {
 }
 
 function handleDialogueClick() {
+    markContinuousInteraction();
+    cancelContinuousRead('touch');
     const replyPanel = document.getElementById('vnReplyPanel');
     const optionsContainer = document.getElementById('vnOptionsContainer');
     const settingsPanel = document.getElementById('settingsPanel');
@@ -636,6 +1163,7 @@ function handleDialogueClick() {
         }
         const indicator = document.getElementById('vnContinueIndicator');
         if (indicator) indicator.style.opacity = '1';
+        scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
         return;
     }
 
@@ -659,6 +1187,7 @@ function handleDialogueClick() {
 }
 
 function previousMessage() {
+    markContinuousInteraction();
     if (currentMessageIndex > 0) {
         currentMessageIndex--;
         if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
@@ -667,12 +1196,14 @@ function previousMessage() {
 }
 
 function firstMessage() {
+    markContinuousInteraction();
     currentMessageIndex = 0;
     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     showCurrentMessage('backward');
 }
 
 function nextMessage() {
+    markContinuousInteraction();
     const msgs = getTopicMessages(currentTopicId);
     if (currentMessageIndex < msgs.length - 1) {
         currentMessageIndex++;
@@ -688,6 +1219,7 @@ function nextMessage() {
 }
 
 function lastMessage() {
+    markContinuousInteraction();
     const msgs = getTopicMessages(currentTopicId);
     if (msgs.length === 0) return;
     currentMessageIndex = msgs.length - 1;
@@ -787,6 +1319,7 @@ function editCurrentMessage() {
 function saveEditedMessage() {
     const replyText = document.getElementById('vnReplyText');
     const text = replyText?.value.trim();
+    emitTypingState(false);
     if(!text) { showAutosave('Escribe algo primero', 'error'); return; }
 
     const msgs = getTopicMessages(currentTopicId);
@@ -1217,10 +1750,19 @@ function applySceneChangeToTopic(topic, sceneChange) {
 }
 
 function openReplyPanel() {
+    markContinuousInteraction();
     const panel = document.getElementById('vnReplyPanel');
     if (!panel) return;
 
     panel.style.display = 'flex';
+    cancelContinuousRead('reply-open');
+    bindReplyDrawerGestures();
+    if (shouldUseMobileDrawer()) {
+        setReplyDrawerExpanded(false);
+    } else {
+        panel.classList.remove('drawer-expanded', 'drawer-collapsed');
+    }
+    updateVnMobileFabVisibility();
 
     const replyPanelTitle = document.getElementById('replyPanelTitle');
     const submitBtn = document.getElementById('submitReplyBtn');
@@ -1247,9 +1789,10 @@ function openReplyPanel() {
     }
 
     const topic = getCurrentTopic();
-    const isRpg = topic?.mode === 'fanfic';
+    const isRpg = isRpgTopicMode(topic?.mode);
     if (coinControlsRow) coinControlsRow.style.display = isRpg ? 'flex' : 'none';
     if (coinActionTypeWrap) coinActionTypeWrap.style.display = isRpg ? 'inline-flex' : 'none';
+    setupOraclePanelForMode();
     const narratorAllowed = canUseNarratorMode(topic);
     if (narratorToggle) narratorToggle.style.display = narratorAllowed ? 'flex' : 'none';
     if (!narratorAllowed) {
@@ -1292,6 +1835,8 @@ function openReplyPanel() {
 function closeReplyPanel() {
     const panel = document.getElementById('vnReplyPanel');
     if (panel) panel.style.display = 'none';
+    emitTypingState(false);
+    updateVnMobileFabVisibility();
     closeReplyEmotePopover();
 
     const replyText = document.getElementById('vnReplyText');
@@ -1314,6 +1859,7 @@ function closeReplyPanel() {
     if (narratorToggle) narratorToggle.classList.remove('active');
     if (coinActionTypeWrap) coinActionTypeWrap.style.display = 'none';
     if (coinControlsRow) coinControlsRow.style.display = 'none';
+    resetOraclePanelState();
 }
 
 function toggleCharGrid() {
@@ -1462,6 +2008,7 @@ function toggleNarratorMode() {
 function postVNReply() {
     const replyText = document.getElementById('vnReplyText');
     const text = replyText?.value.trim();
+    emitTypingState(false);
     if(!text) { showAutosave('Escribe algo primero', 'error'); return; }
 
     const topic = getCurrentTopic();
@@ -1507,6 +2054,20 @@ function postVNReply() {
     updateSceneChangePreview();
 
     const finalText = sceneChange ? `🎬 **Escena: ${sceneChange.title}**\n${text}` : text;
+    const oracleEnabled = document.getElementById('oracleEnabled');
+    const oracleQuestionInput = document.getElementById('oracleQuestionInput');
+    const shouldApplyOracle = !!oracleEnabled?.checked && isRpgTopicMode(topic?.mode);
+    let oracleData;
+    if (shouldApplyOracle) {
+        const probability = calculateOracleProbability(getOracleSelectedStatValue());
+        oracleData = {
+            question: (oracleQuestionInput?.value || '').trim() || getOracleAutodetectedQuestion(text) || 'Pregunta al destino',
+            stat: oracleStat,
+            probability,
+            result: Math.random() * 100 <= probability ? 'cara' : 'cruz',
+            timestamp: Date.now()
+        };
+    }
 
     const newMsg = {
         id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
@@ -1524,7 +2085,8 @@ function postVNReply() {
         options: options && options.length > 0 ? options : undefined,
         weather: currentWeather !== 'none' ? currentWeather : undefined,
         diceRoll: diceRoll,
-        sceneChange: sceneChange
+        sceneChange: sceneChange,
+        oracle: oracleData
     };
 
     if (sceneChange) {
@@ -1552,3 +2114,43 @@ function postVNReply() {
 }
 
 // ============================================
+
+function toggleContinuousReading(enabled) {
+    continuousReadEnabled = !!enabled;
+    markContinuousInteraction();
+    localStorage.setItem('etheria_continuous_read', continuousReadEnabled ? '1' : '0');
+    if (!continuousReadEnabled) {
+        cancelContinuousRead('disabled');
+        return;
+    }
+    scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
+}
+
+function updateContinuousReadDelay(seconds) {
+    continuousReadDelaySec = Math.max(3, Math.min(5, Number(seconds) || 4));
+    localStorage.setItem('etheria_continuous_delay', String(continuousReadDelaySec));
+    const valEl = document.getElementById('optContinuousDelayVal');
+    if (valEl) valEl.textContent = `${continuousReadDelaySec}s`;
+}
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            cancelContinuousRead('hidden');
+            return;
+        }
+        if (continuousReadEnabled) scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
+    });
+}
+
+if (typeof window !== 'undefined') {
+    window.etheriaDebug = window.etheriaDebug || {};
+    window.etheriaDebug.logRenderTimes = false;
+    window.etheriaDebug.simulateLowMemory = function () {
+        document.querySelectorAll('.vn-sprite').forEach((s) => { s.style.animation = 'none'; });
+    };
+    window.etheriaDebug.simulateOffline = function () {
+        if (typeof SupabaseMessages !== 'undefined') SupabaseMessages.unsubscribe();
+        if (typeof isOfflineMode !== 'undefined') isOfflineMode = true;
+    };
+};

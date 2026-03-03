@@ -317,7 +317,17 @@ let fireflyEntities = [];
 
 function initMenuParallax() {
     if (menuParallaxBound) return;
+    const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
     const parallax = document.getElementById('menuParallax');
+    if (coarsePointer) {
+        if (parallax) {
+            parallax.querySelectorAll('.parallax-layer').forEach((layer) => {
+                layer.style.setProperty('--parallax-x', '0px');
+                layer.style.setProperty('--parallax-y', '0px');
+            });
+        }
+        return;
+    }
     if (!parallax) return;
 
     // Cada capa define --layer-speed en CSS; aquí solo gestionamos --parallax-x/y
@@ -512,7 +522,8 @@ function generateParticles() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
     if (isDark) {
-        const totalFireflies = 18 + Math.floor(Math.random() * 6);
+        const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+        const totalFireflies = coarsePointer ? 8 : (18 + Math.floor(Math.random() * 6));
 
         // getBoundingClientRect puede devolver 0 si el contenedor acaba de mostrarse.
         // Usamos window como fallback y actualizamos los bounds en el primer frame.

@@ -55,6 +55,8 @@ function resetVNTransientState({ clearTopic = false } = {}) {
         if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribe === 'function') {
             SupabaseMessages.unsubscribe();
         }
+        if (typeof clearTypingState === 'function') clearTypingState();
+        if (typeof cancelContinuousRead === 'function') cancelContinuousRead('exit-topic');
         if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
         currentTopicId = null;
         currentMessageIndex = 0;
@@ -169,6 +171,15 @@ function initGalleryLazyImages() {
     });
 }
 
+function fuzzySearch(query, items) {
+    const terms = String(query || "").toLowerCase().trim().split(/\s+/).filter(Boolean);
+    if (!terms.length) return items;
+    return items.filter((item) => {
+        const text = `${item.name || ""} ${item.race || ""} ${item.ownerName || ""}`.toLowerCase();
+        return terms.every((term) => text.includes(term));
+    });
+}
+
 function renderGallery() {
     const grid = document.getElementById('galleryGrid');
     if (!grid) return;
@@ -182,11 +193,7 @@ function renderGallery() {
     let chars = [...appData.characters];
 
     if (searchTerm) {
-        chars = chars.filter(c =>
-            (c.name?.toLowerCase().includes(searchTerm)) ||
-            (c.race?.toLowerCase().includes(searchTerm)) ||
-            (userNames[c.userIndex]?.toLowerCase().includes(searchTerm))
-        );
+        chars = fuzzySearch(searchTerm, chars.map((c) => ({ ...c, ownerName: userNames[c.userIndex] || '' })));
     }
 
     if (sortBy === 'owner') {

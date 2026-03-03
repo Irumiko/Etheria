@@ -160,6 +160,18 @@
                     <span>📂</span>
                     <span>Cargar Partida</span>
                 </button>
+                <button class="menu-button" onclick="exportCurrentStoryAsCode()">
+                    <span>🔐</span>
+                    <span>Compartir historia (código)</span>
+                </button>
+                <button class="menu-button" onclick="importStoryFromCode()">
+                    <span>📥</span>
+                    <span>Importar historia (código)</span>
+                </button>
+                <button class="menu-button" onclick="loadUltimaCartaDemo()">
+                    <span>🃏</span>
+                    <span>Cargar demo: La Última Carta</span>
+                </button>
                 <button class="menu-button" onclick="showSection('options')">
                     <span>⚙️</span>
                     <span>Opciones</span>
@@ -288,8 +300,29 @@
                             <span class="option-label">Texto instantáneo</span>
                             <label class="opt-switch">
                                 <input type="checkbox" id="optInstantText" onchange="updateTextSpeed(this.checked ? 10 : parseInt(document.getElementById('optTextSpeed').value))">
-                                <span class="opt-switch-slider"></span>
+                                <span class="opt-slider"></span>
                             </label>
+                        </div>
+                        <div class="option-row">
+                            <span class="option-label">Modo inmersivo VN</span>
+                            <label class="opt-switch">
+                                <input type="checkbox" id="optImmersiveMode" onchange="toggleImmersiveModeSetting(this.checked)">
+                                <span class="opt-slider"></span>
+                            </label>
+                        </div>
+                        <div class="option-row">
+                            <span class="option-label">Lectura continua</span>
+                            <label class="opt-switch">
+                                <input type="checkbox" id="optContinuousRead" onchange="toggleContinuousReading(this.checked)">
+                                <span class="opt-slider"></span>
+                            </label>
+                        </div>
+                        <div class="option-row">
+                            <label class="option-label" for="optContinuousDelay">Espera autoavance</label>
+                            <div class="option-slider-wrap">
+                                <input type="range" id="optContinuousDelay" class="setting-slider" min="3" max="5" value="4" oninput="updateContinuousReadDelay(this.value)">
+                                <span class="option-slider-val" id="optContinuousDelayVal">4s</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -360,7 +393,7 @@
 
                 <!-- Nombre + apellido en la misma línea -->
                 <div class="vn-info-name-row">
-                    <div class="vn-info-name" id="vnInfoName">Sin personaje</div>
+                    <div class="vn-info-name" id="vnInfoName">Sin personaje <span id="vnTypingIndicator" class="vn-typing-indicator" style="display:none;"><span></span><span></span><span></span></span></div>
                     <div class="vn-info-lastname" id="vnInfoLastname"></div>
                 </div>
 
@@ -380,6 +413,7 @@
                         <div class="affinity-controls-inline">
                             <button class="affinity-btn-inline minus" onclick="modifyAffinity(-1)" title="Disminuir afinidad">−</button>
                             <button class="affinity-btn-inline plus" onclick="modifyAffinity(1)" title="Aumentar afinidad">+</button>
+                            <button class="affinity-btn-inline" onclick="openRelationshipGraph()" title="Ver grafo de relaciones">✶</button>
                         </div>
                     </div>
                     <div class="affinity-feedback" id="affinityFeedback"></div>
@@ -480,6 +514,12 @@
             </div>
         </div>
 
+        <div id="vnMobileFabNav" class="vn-mobile-fab-nav" style="display:none;">
+            <button type="button" class="vn-mobile-fab-btn" onclick="previousMessage()" aria-label="Mensaje anterior">◀</button>
+            <button type="button" class="vn-mobile-fab-btn main" onclick="openReplyPanel()" aria-label="Responder">💬</button>
+            <button type="button" class="vn-mobile-fab-btn" onclick="nextMessage()" aria-label="Mensaje siguiente">▶</button>
+        </div>
+
         <!-- Emote Picker -->
         <div id="emotePicker" class="emote-picker">
             <button class="emote-btn" onclick="selectEmote('angry')" title="/angry" aria-label="Insertar emote angry">💢</button>
@@ -504,6 +544,7 @@
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
             <div class="vn-speaker-avatar-wrap" aria-hidden="true"></div>
             <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
+            <div id="vnOracleConsequenceBadge" class="vn-oracle-consequence-badge" style="display:none;">🪙 Consecuencia del destino</div>
             <div id="vnDialogueText" class="vn-dialogue-text"></div>
             <div id="vnContinueIndicator" class="vn-continue-indicator"></div>
             <div class="vn-dialogue-footer">
@@ -527,6 +568,7 @@
 
         <!-- Panel Responder -->
         <div id="vnReplyPanel" class="vn-reply-panel">
+            <div class="drawer-handle" id="replyDrawerHandle" aria-hidden="true"></div>
             <div class="vn-reply-header">
                 <div class="vn-reply-title">
                     <span>💬</span>
@@ -588,6 +630,38 @@
                         <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" aria-label="Insertar emote embarrassed">😳</button>
                         <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')" aria-label="Insertar emote idea">💡</button>
                         <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')" aria-label="Insertar emote sleep">💤</button>
+                    </div>
+                </div>
+
+                <div id="oraclePanel" class="oracle-panel" style="display:none;">
+                    <label class="oracle-toggle">
+                        <input type="checkbox" id="oracleEnabled">
+                        <span>Preguntar al destino</span>
+                    </label>
+                    <div id="oracleFields" class="oracle-fields" style="display:none;">
+                        <div class="oracle-question-wrap">
+                            <label for="oracleQuestionInput">¿Qué intentas?</label>
+                            <input type="text" id="oracleQuestionInput" placeholder="Tu intención para la tirada del destino...">
+                        </div>
+                        <div class="oracle-stat-wrap">
+                            <span class="oracle-stat-label">Stat</span>
+                            <div class="oracle-stat-buttons" id="oracleStatButtons">
+                                <button type="button" class="oracle-stat-btn active" data-stat="STR">STR</button>
+                                <button type="button" class="oracle-stat-btn" data-stat="VIT">VIT</button>
+                                <button type="button" class="oracle-stat-btn" data-stat="INT">INT</button>
+                                <button type="button" class="oracle-stat-btn" data-stat="AGI">AGI</button>
+                            </div>
+                        </div>
+                        <div class="oracle-probability-wrap">
+                            <div class="oracle-probability-head">
+                                <span>Probabilidad</span>
+                                <span id="oracleProbabilityValue">50%</span>
+                            </div>
+                            <div class="oracle-probability-bar">
+                                <div id="oracleProbabilityFill" class="oracle-probability-fill"></div>
+                            </div>
+                        </div>
+                        <div class="oracle-legend">El resultado afectará al siguiente mensaje</div>
                     </div>
                 </div>
 
@@ -966,6 +1040,19 @@
 <script src="js/ui/app-ui.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ui/mejoras.js"></script>
+
+    <div id="relationshipGraphModal" class="modal-overlay" onclick="if(event.target===this) closeModal('relationshipGraphModal')">
+        <div class="modal" style="max-width:820px; width:min(96vw,820px);">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+                <h3 style="margin:0; font-family:Cinzel,serif; color:var(--accent-gold);">🌌 Relaciones en la historia</h3>
+                <button class="btn-secondary" onclick="closeModal('relationshipGraphModal')">Cerrar</button>
+            </div>
+            <div id="relationshipGraphSubtitle" style="color:var(--text-muted); margin-top:0.45rem;"></div>
+            <div id="relationshipGraphCanvas" class="relationship-constellation"></div>
+            <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.6rem;">★ = nivel de afinidad (0-5). Grosor de línea = interacciones recientes.</div>
+        </div>
+    </div>
+
     <!-- Modal de conflicto de sincronización -->
     <div id="syncConflictModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="syncConflictTitle">
         <div class="modal-content" style="max-width: 420px; text-align: center;">
@@ -1006,6 +1093,15 @@
             <div class="onboarding-deco">✦</div>
             <p class="onboarding-text" id="onboardingText"></p>
             <button class="onboarding-btn" onclick="closeOnboarding()">Entendido</button>
+        </div>
+    </div>
+    <div id="storyCodeModal" class="modal-overlay" onclick="if(event.target===this) closeModal('storyCodeModal')">
+        <div class="modal" style="max-width:420px;">
+            <h3 style="margin-top:0; font-family:Cinzel,serif;">🔐 Código de historia</h3>
+            <div id="storyCodeValue" style="font-size:1.5rem; letter-spacing:0.2em; color:var(--accent-gold); margin-bottom:0.6rem;"></div>
+            <canvas id="storyCodeQrCanvas" width="220" height="220" style="display:block; margin:0 auto 0.7rem; background:#fff; border-radius:8px;"></canvas>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin:0 0 0.8rem;">Comparte este código de 6 caracteres o el QR (escanear con otra app).</p>
+            <button class="btn-primary" onclick="closeModal('storyCodeModal')" style="width:100%;">Cerrar</button>
         </div>
     </div>
 </body>
