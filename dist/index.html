@@ -6014,10 +6014,6 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
                     <span>📥</span>
                     <span>Importar historia (código)</span>
                 </button>
-                <button class="menu-button" onclick="loadUltimaCartaDemo()">
-                    <span>🃏</span>
-                    <span>Cargar demo: La Última Carta</span>
-                </button>
                 <button class="menu-button" onclick="showSection('options')">
                     <span>⚙️</span>
                     <span>Opciones</span>
@@ -10616,9 +10612,11 @@ function editFromSheet() {
 // Variables para el debounce de sincronización al navegar mensajes
 var _lastNavSyncTime = 0;
 var _NAV_SYNC_DEBOUNCE_MS = 3000; // sincronizar como máximo cada 3 segundos al navegar
-const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.jpg';
+const DEFAULT_TOPIC_BACKGROUND = '';
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
+    'assets/backgrounds/default_background.jpg',
+    '/assets/backgrounds/default_background.jpg',
     'assets/backgrounds/default_scene.png',
     'Assets/backgrounds/default_scene.png',
     'assets/default_background.png',
@@ -11053,8 +11051,14 @@ function isDefaultTopicBackground(backgroundPath) {
 }
 
 function resolveTopicBackgroundPath(backgroundPath = '') {
-    const topicBackground = (backgroundPath || '').trim();
-    return isDefaultTopicBackground(topicBackground) ? DEFAULT_TOPIC_BACKGROUND : topicBackground;
+    const topicBackground = String(backgroundPath || '').trim();
+    if (!topicBackground) return DEFAULT_TOPIC_BACKGROUND;
+
+    const normalizedPath = topicBackground.startsWith('/')
+        ? topicBackground.slice(1)
+        : topicBackground;
+
+    return isDefaultTopicBackground(normalizedPath) ? DEFAULT_TOPIC_BACKGROUND : normalizedPath;
 }
 
 function preloadBackgroundImage(path) {
@@ -11078,12 +11082,17 @@ function applyTopicBackground(vnSection, backgroundPath) {
     if (!vnSection) return;
 
     const sceneBackgroundPath = resolveTopicBackgroundPath(backgroundPath);
-    const sceneBackgroundLayer = `url(${escapeHtml(sceneBackgroundPath)})`;
     vnSection.dataset.pendingBackground = sceneBackgroundPath;
 
     const applyBackground = () => {
         if (vnSection.dataset.pendingBackground !== sceneBackgroundPath) return;
-        vnSection.style.backgroundImage = `${sceneBackgroundLayer}, linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)`;
+        const gradient = 'linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)';
+        if (!sceneBackgroundPath) {
+            vnSection.style.backgroundImage = gradient;
+            return;
+        }
+        const sceneBackgroundLayer = `url(${escapeHtml(sceneBackgroundPath)})`;
+        vnSection.style.backgroundImage = `${sceneBackgroundLayer}, ${gradient}`;
     };
 
     preloadBackgroundImage(sceneBackgroundPath).finally(applyBackground);
@@ -11091,7 +11100,7 @@ function applyTopicBackground(vnSection, backgroundPath) {
 
 function preloadTopicBackgrounds() {
     const topicBackgrounds = (appData?.topics || []).map(topic => resolveTopicBackgroundPath(topic.background));
-    const uniqueBackgrounds = new Set([DEFAULT_TOPIC_BACKGROUND, ...topicBackgrounds]);
+    const uniqueBackgrounds = new Set([...topicBackgrounds, DEFAULT_TOPIC_BACKGROUND].filter(Boolean));
     uniqueBackgrounds.forEach(path => preloadBackgroundImage(path));
 }
 
@@ -13780,87 +13789,6 @@ function importStoryFromCode() {
     } catch (err) {
         showAutosave('No se pudo importar el código', 'error');
     }
-}
-
-
-
-function loadUltimaCartaDemo() {
-    const topicId = (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
-        ? globalThis.crypto.randomUUID()
-        : `${Date.now()}_${Math.random().toString(16).slice(2)}`;
-
-    const topic = {
-        id: topicId,
-        title: 'La Última Carta',
-        background: 'assets/backgrounds/default_background.jpg',
-        mode: 'fanfic',
-        createdBy: userNames[currentUserIndex] || 'Jugador',
-        createdByIndex: currentUserIndex,
-        weather: 'rain',
-        date: new Date().toLocaleDateString()
-    };
-
-    const narratorMsg = (id, text, extra = {}) => ({
-        id,
-        characterId: null,
-        charName: 'Narrador',
-        text,
-        isNarrator: true,
-        userIndex: currentUserIndex,
-        timestamp: new Date().toISOString(),
-        ...extra
-    });
-
-    const messages = [
-        narratorMsg(`${topicId}_m1`, `La lluvia golpea el cristal de la posada 'El Jabalí Dorado'.
-Una carta sellada con lacre negro espera en la barra.`),
-        {
-            id: `${topicId}_m2`,
-            characterId: null,
-            charName: 'Narrador',
-            text: 'Respiro hondo y tomo la carta entre mis manos.',
-            isNarrator: true,
-            userIndex: currentUserIndex,
-            timestamp: new Date().toISOString(),
-            oracle: {
-                question: '¿Abro la carta?',
-                stat: 'INT',
-                probability: 60,
-                result: 'cara',
-                timestamp: Date.now()
-            }
-        },
-        narratorMsg(`${topicId}_m3`, 'El sello cede con un crujido tenue. Dentro, una advertencia firmada con iniciales desconocidas.', {
-            options: [
-                { text: 'Confrontar al mensajero', continuation: 'Sales a la calle lluviosa en busca de la silueta encapuchada.' },
-                { text: 'Guardar carta, investigar solo', continuation: 'Anotas los símbolos del lacre y preguntas discretamente a la posadera.' },
-                { text: 'Quemar sin leer', continuation: 'El papel se consume. El humo deja un olor metálico en el aire.' }
-            ]
-        }),
-        narratorMsg(`${topicId}_m4`, 'La puerta se abre. El Mensajero te observa desde la calle lluviosa.', {
-            sceneChange: {
-                title: 'Calle lluviosa',
-                background: 'assets/backgrounds/default_background.jpg',
-                at: new Date().toISOString()
-            }
-        })
-    ];
-
-    appData.topics.push(topic);
-    appData.messages[topicId] = messages;
-
-    hasUnsavedChanges = true;
-    save({ silent: true });
-    renderTopics();
-
-    if (typeof showSection === 'function') {
-        showSection('topics');
-    }
-    if (typeof enterTopic === 'function') {
-        enterTopic(topicId);
-    }
-
-    showAutosave('Demo "La Última Carta" cargada', 'saved');
 }
 
 function exportData() {
