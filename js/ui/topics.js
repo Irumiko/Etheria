@@ -269,8 +269,13 @@ async function tryJoinRoomFromUrl() {
     const topic = ensureTopicByRoomId(roomId);
     if (!topic) return false;
 
-    const topicsSection = document.getElementById('topicsSection');
-    if (topicsSection) topicsSection.classList.add('active');
+    if (typeof showSection === 'function') {
+        showSection('topics');
+    } else {
+        const topicsSection = document.getElementById('topicsSection');
+        if (topicsSection) topicsSection.classList.add('active');
+    }
+
     enterTopic(topic.id);
     return true;
 }
@@ -322,7 +327,7 @@ function createTopic() {
     renderTopics();
     if (currentTopicMode === 'roleplay') {
         pendingRoleTopicId = id;
-        openRoleCharacterModal(id, { mode: 'roleplay', preservePendingTopicId: true });
+        openRoleCharacterModal(id, { mode: 'roleplay', preservePendingTopicId: true, enterOnSelect: true });
     } else {
         enterTopic(id);
     }

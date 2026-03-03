@@ -545,6 +545,14 @@ Una carta sellada con lacre negro espera en la barra.`),
     hasUnsavedChanges = true;
     save({ silent: true });
     renderTopics();
+
+    if (typeof showSection === 'function') {
+        showSection('topics');
+    }
+    if (typeof enterTopic === 'function') {
+        enterTopic(topicId);
+    }
+
     showAutosave('Demo "La Última Carta" cargada', 'saved');
 }
 
