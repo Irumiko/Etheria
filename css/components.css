@@ -3014,13 +3014,12 @@ body::before {
             top: 18px;
             left: 50%;
             transform: translateX(-50%);
-            margin: 0 !important;
-            /* Centra entre info-card (≈310px desde izq) y controles (≈440px desde der) */
-            max-width: min(520px, calc(100vw - 380px - 460px));
-            min-width: 260px;
-            z-index: 190;
-            /* No puede tocar la barra de controles */
-            right: auto;
+            z-index: 195;
+            /* Centrado entre info-card izq y controles der */
+            /* info-card ≈ 310px desde izq, controles ≈ 450px desde der */
+            /* En vez de max-width que daba negativo, usamos margins laterales */
+            margin-left: 155px;   /* empuja desde el centro hacia la derecha de info-card */
+            margin-right: 225px;  /* empuja hacia la izquierda de controls */
         }
 
         @media (max-width: 900px) {
@@ -4533,18 +4532,20 @@ body::before {
 
         .reply-emote-popover {
             position: absolute;
-            right: 0;
+            left: 0;
+            right: auto;
             bottom: calc(100% + 8px);
             display: none;
-            grid-template-columns: repeat(5, 32px);
+            grid-template-columns: repeat(5, 44px);
             gap: 0.35rem;
-            padding: 0.5rem;
-            border-radius: 12px;
-            border: 1px solid rgba(201, 168, 108, 0.6);
-            background: rgba(10, 10, 10, 0.92);
-            z-index: 20;
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
-            max-width: min(220px, 70vw);
+            padding: 0.55rem;
+            border-radius: 14px;
+            border: 1px solid rgba(201, 168, 108, 0.55);
+            background: rgba(12, 9, 5, 0.97);
+            z-index: 500;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+            max-width: min(260px, 80vw);
+            backdrop-filter: blur(10px);
         }
 
         .reply-emote-popover.active {
@@ -9324,35 +9325,32 @@ body.mode-classic .shadow-glow {
     display: none;
 }
 
-/* Emote popover — grid con icono grande + etiqueta pequeña */
-.reply-emote-popover {
-    display: none;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    width: 200px;
-}
-.reply-emote-popover.active { display: flex; }
+/* reply-emote-popover: ver bloque principal arriba */
 
 .reply-emote-btn {
+    display: flex !important;
     flex-direction: column !important;
-    gap: 0.15rem !important;
-    width: 54px !important;
-    height: 54px !important;
-    border-radius: 10px !important;
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(200,170,100,0.15) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.12rem !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 9px !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(201, 168, 108, 0.15) !important;
     cursor: pointer;
     transition: background 0.15s, transform 0.15s, border-color 0.15s;
+    padding: 0 !important;
 }
 .reply-emote-btn:hover {
     background: rgba(201,168,108,0.15) !important;
-    border-color: rgba(201,168,108,0.4) !important;
-    transform: scale(1.1) !important;
+    border-color: rgba(201,168,108,0.45) !important;
+    transform: scale(1.08) translateY(-1px) !important;
 }
-.re-icon { font-size: 1.4rem; line-height: 1; }
+.re-icon { font-size: 1.35rem; line-height: 1; }
 .re-label {
-    font-size: 0.5rem;
-    color: rgba(190,165,110,0.65);
+    font-size: 0.47rem;
+    color: rgba(190,165,110,0.6);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     line-height: 1;
@@ -9368,3 +9366,437 @@ body.mode-classic .shadow-glow {
     background: transparent !important;
 }
 */
+
+/* ═══════════════════════════════════════════════════════════════════
+   VN CONTROLS — Panel de juego con grupos y animación de entrada
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Animación de entrada */
+@keyframes controlsFade {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+/* Override del panel completo — usa variables para adaptarse al tema */
+.vn-controls {
+    animation: controlsFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+    background: var(--glass-bg) !important;
+    border: 1px solid rgba(var(--accent-gold-rgb, 139, 105, 20), 0.45) !important;
+    border-color: var(--border-color) !important;
+    box-shadow:
+        0 8px 32px var(--shadow-heavy),
+        inset 0 1px 0 rgba(255, 220, 140, 0.05) !important;
+    padding: 0.3rem 0.45rem !important;
+    gap: 0.2rem !important;
+    align-items: center;
+}
+
+/* Divisor más elegante — gradiente vertical */
+.vn-control-divider {
+    width: 1px !important;
+    height: 20px !important;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(201, 168, 108, 0.4) 30%,
+        rgba(201, 168, 108, 0.4) 70%,
+        transparent
+    ) !important;
+    margin: 0 0.3rem !important;
+}
+
+/* Botones individuales — variables para adaptarse a tema */
+.vn-control-btn {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: var(--text-secondary) !important;
+    border-radius: 7px !important;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.12s ease !important;
+}
+.vn-control-btn:hover {
+    background: rgba(139, 105, 20, 0.12) !important;
+    border-color: var(--border-color) !important;
+    color: var(--accent-gold) !important;
+    box-shadow: 0 0 10px var(--shadow) !important;
+    transform: translateY(-1px) !important;
+}
+.vn-control-btn:active {
+    transform: translateY(0) scale(0.94) !important;
+    background: rgba(139, 105, 20, 0.2) !important;
+}
+
+/* Botones de navegación — peso visual ligeramente mayor */
+.vn-control-slot:nth-child(-n+4) .vn-control-btn {
+    font-size: 1.1rem !important;
+}
+
+/* Sync button states — mantener colores de estado */
+.vn-control-btn.is-upload-pending { color: rgba(255, 180, 60, 0.9) !important; }
+.vn-control-btn.is-error { color: rgba(255, 100, 80, 0.9) !important; }
+.vn-control-btn.is-syncing { color: rgba(120, 200, 255, 0.9) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ROOM CODE PANEL — Panel flotante elegante
+   ═══════════════════════════════════════════════════════════════════ */
+.room-code-panel {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: linear-gradient(135deg, rgba(12, 9, 5, 0.94), rgba(20, 15, 8, 0.96));
+    border: 1px solid rgba(201, 168, 108, 0.38);
+    border-radius: 10px;
+    padding: 0.38rem 0.65rem;
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 220, 140, 0.06);
+    animation: controlsFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.room-code-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(180, 150, 90, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+.room-code-value {
+    font-size: 0.92rem;
+    font-family: 'Courier New', monospace;
+    color: rgba(235, 205, 140, 0.95);
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    user-select: all;
+    background: rgba(201, 168, 108, 0.07);
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
+    border: 1px solid rgba(201, 168, 108, 0.18);
+}
+.room-code-copy-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    border: 1px solid rgba(201, 168, 108, 0.25);
+    background: rgba(201, 168, 108, 0.06);
+    color: rgba(200, 170, 100, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+}
+.room-code-copy-btn:hover {
+    background: rgba(201, 168, 108, 0.18);
+    border-color: rgba(201, 168, 108, 0.55);
+    color: rgba(235, 200, 130, 1);
+    transform: scale(1.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SAVE HUB — Botones con icono + texto + jerarquía visual
+   ═══════════════════════════════════════════════════════════════════ */
+.save-hub-grid {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+}
+.save-hub-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(200, 175, 130, 0.2);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s;
+    font-family: 'Inter', sans-serif;
+}
+.save-hub-btn:hover {
+    background: rgba(201, 168, 108, 0.1);
+    border-color: rgba(201, 168, 108, 0.4);
+    transform: translateX(3px);
+}
+.save-hub-btn:active { transform: translateX(1px) scale(0.99); }
+.save-hub-primary {
+    background: rgba(201, 168, 108, 0.12) !important;
+    border-color: rgba(201, 168, 108, 0.45) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 0 0 1px rgba(201, 168, 108, 0.08);
+    padding: 0.9rem 1rem !important;
+}
+.save-hub-primary:hover {
+    background: rgba(201, 168, 108, 0.2) !important;
+    box-shadow: 0 4px 20px rgba(201, 168, 108, 0.18) !important;
+}
+.save-hub-icon {
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    width: 2rem;
+    text-align: center;
+}
+.save-hub-primary .save-hub-icon { font-size: 1.5rem; }
+.save-hub-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    line-height: 1.3;
+}
+.save-hub-text strong {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+.save-hub-text small {
+    font-size: 0.72rem;
+    color: rgba(160, 140, 100, 0.7);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   OPTIONS CARDS — Más profundidad y sliders mejorados
+   ═══════════════════════════════════════════════════════════════════ */
+.options-card {
+    background: linear-gradient(
+        160deg,
+        rgba(28, 22, 14, 0.95) 0%,
+        rgba(22, 17, 10, 0.98) 100%
+    ) !important;
+    border: 1px solid rgba(201, 168, 108, 0.22) !important;
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 220, 140, 0.04) !important;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+}
+.options-card:hover {
+    border-color: rgba(201, 168, 108, 0.42) !important;
+    box-shadow:
+        0 8px 36px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(201, 168, 108, 0.08),
+        inset 0 1px 0 rgba(255, 220, 140, 0.06) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Sliders — track con gradiente y thumb luminoso */
+.setting-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px !important;
+    border-radius: 3px !important;
+    background: rgba(201, 168, 108, 0.15) !important;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+}
+.setting-slider::-webkit-slider-runnable-track {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(201, 168, 108, 0.15);
+}
+.setting-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 230, 160, 1), rgba(201, 168, 108, 1)) !important;
+    cursor: pointer !important;
+    box-shadow:
+        0 0 0 3px rgba(201, 168, 108, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.5) !important;
+    transition: box-shadow 0.18s ease, transform 0.18s ease !important;
+}
+.setting-slider::-webkit-slider-thumb:hover {
+    box-shadow:
+        0 0 0 5px rgba(201, 168, 108, 0.25),
+        0 2px 12px rgba(201, 168, 108, 0.4) !important;
+    transform: scale(1.15) !important;
+}
+.setting-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 230, 160, 1), rgba(201, 168, 108, 1));
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 0 3px rgba(201, 168, 108, 0.2), 0 2px 8px rgba(0,0,0,0.5);
+}
+.setting-slider::-moz-range-track {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(201, 168, 108, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REPLY TOOLBAR — barra de herramientas sobre el textarea
+   ═══════════════════════════════════════════════════════════════════ */
+.vn-reply-toolbar {
+    position: relative; /* context for popover */
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+}
+/* Emote toggle — rediseñado como pill con icono + label */
+#replyEmoteToggle.reply-emote-toggle {
+    position: static !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.65rem !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 20px !important;
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    color: rgba(190, 162, 110, 0.8) !important;
+    background: rgba(201, 168, 108, 0.07) !important;
+    border: 1px solid rgba(201, 168, 108, 0.22) !important;
+    transition: all 0.18s ease !important;
+    cursor: pointer;
+}
+#replyEmoteToggle.reply-emote-toggle:hover,
+#replyEmoteToggle.reply-emote-toggle.active {
+    background: rgba(201, 168, 108, 0.16) !important;
+    border-color: rgba(201, 168, 108, 0.5) !important;
+    color: rgba(235, 200, 130, 1) !important;
+    box-shadow: 0 0 10px rgba(201, 168, 108, 0.15) !important;
+}
+#replyEmoteToggle.reply-emote-toggle span {
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+}
+#replyEmoteToggle.reply-emote-toggle svg {
+    width: 14px !important;
+    height: 14px !important;
+    flex-shrink: 0;
+}
+/* Popover sale hacia arriba desde la toolbar */
+/* reply-emote-popover: ver bloque principal arriba */
+
+/* ═══════════════════════════════════════════════════════════════════
+   PARALLAX DE FONDO AL CAMBIAR ESCENA
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes bgParallaxIn {
+    from { transform: scale(1.04) translateY(6px); filter: brightness(0.7); }
+    to   { transform: scale(1)    translateY(0);   filter: brightness(1);   }
+}
+.vn-section.scene-change-anim {
+    animation: bgParallaxIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SVG ICONS EN VN-CONTROL-BTN
+   ═══════════════════════════════════════════════════════════════════ */
+.vn-control-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.vn-control-icon svg {
+    width: 15px;
+    height: 15px;
+    display: block;
+    flex-shrink: 0;
+}
+/* Navegación — iconos ligeramente más grandes */
+.vn-control-slot:nth-child(-n+4) .vn-control-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+@keyframes syncSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.vn-control-btn.is-syncing .vn-control-icon {
+    animation: syncSpin 1.2s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLL GLOBAL — Eliminar overflow horizontal, inputs, modales
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 1. Sin scroll horizontal global */
+html, body {
+    overflow-x: hidden;
+}
+
+/* 2. Inputs no desbordan su contenedor */
+input,
+textarea,
+select {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* 3. Flex containers sin overflow horizontal */
+.vn-dialogue-actions,
+.vn-dialogue-actions-left,
+.vn-dialogue-actions-right,
+.vn-controls,
+.vn-reply-toolbar,
+.topic-header-row {
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+/* 4. Modales sin scroll horizontal */
+.modal-overlay,
+.shortcuts-modal,
+.save-hub-modal,
+.history-modal,
+.journal-modal,
+.char-modal,
+.charsheet-modal,
+.vn-narrate-panel,
+.sync-conflict-modal {
+    overflow-x: hidden;
+}
+
+/* 5. Scrollbar estética — fina y dorada */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(201, 168, 108, 0.45);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(201, 168, 108, 0.7);
+}
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* 6. Scrollbar gutter estable en paneles con scroll */
+.topic-modal-body,
+.history-content,
+.journal-body,
+.gallery-grid,
+.charsheet-content,
+.section-content {
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+/* 7. vn-controls nunca desborda */
+.vn-controls {
+    overflow: hidden;
+    flex-wrap: nowrap; /* botones de control no se rompen en dos líneas */
+}

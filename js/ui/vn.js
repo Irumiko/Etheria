@@ -723,6 +723,15 @@ function playVnSceneTransition(vnSection) {
     void el.offsetWidth; // forzar reflow para reiniciar animación
     el.classList.add('active');
     setTimeout(() => el.classList.remove('active'), 800);
+
+    // Parallax suave del fondo al cambiar escena
+    const section = vnSection || document.getElementById('vnSection');
+    if (section && !prefersReducedMotion()) {
+        section.classList.remove('scene-change-anim');
+        void section.offsetWidth;
+        section.classList.add('scene-change-anim');
+        setTimeout(() => section.classList.remove('scene-change-anim'), 700);
+    }
 }
 
 function enterTopic(id) {

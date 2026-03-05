@@ -331,18 +331,9 @@ function updateRoomCodeUI(topicId) {
         return;
     }
 
-    const topic = appData.topics.find(t => String(t.id) === String(topicId));
-    // Mostrar código de sala en modo RPG y en modo clásico colaborativo
-    // Antes estaba invertido: ocultaba exactamente el modo RPG
-    const isCollaborative = !topic || topic.mode === 'rpg' || !topic.mode;
-    if (!isCollaborative) {
-        wrap.style.display = 'none';
-        valueEl.textContent = '';
-        return;
-    }
-
+    // Mostrar código de sala siempre — útil en ambos modos para colaborar
     valueEl.textContent = String(topicId);
-    wrap.style.display = 'inline-flex';
+    wrap.style.display = 'flex';
 }
 
 async function tryJoinRoomFromUrl() {

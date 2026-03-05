@@ -3555,13 +3555,12 @@ body::before {
             top: 18px;
             left: 50%;
             transform: translateX(-50%);
-            margin: 0 !important;
-            /* Centra entre info-card (≈310px desde izq) y controles (≈440px desde der) */
-            max-width: min(520px, calc(100vw - 380px - 460px));
-            min-width: 260px;
-            z-index: 190;
-            /* No puede tocar la barra de controles */
-            right: auto;
+            z-index: 195;
+            /* Centrado entre info-card izq y controles der */
+            /* info-card ≈ 310px desde izq, controles ≈ 450px desde der */
+            /* En vez de max-width que daba negativo, usamos margins laterales */
+            margin-left: 155px;   /* empuja desde el centro hacia la derecha de info-card */
+            margin-right: 225px;  /* empuja hacia la izquierda de controls */
         }
 
         @media (max-width: 900px) {
@@ -5074,18 +5073,20 @@ body::before {
 
         .reply-emote-popover {
             position: absolute;
-            right: 0;
+            left: 0;
+            right: auto;
             bottom: calc(100% + 8px);
             display: none;
-            grid-template-columns: repeat(5, 32px);
+            grid-template-columns: repeat(5, 44px);
             gap: 0.35rem;
-            padding: 0.5rem;
-            border-radius: 12px;
-            border: 1px solid rgba(201, 168, 108, 0.6);
-            background: rgba(10, 10, 10, 0.92);
-            z-index: 20;
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
-            max-width: min(220px, 70vw);
+            padding: 0.55rem;
+            border-radius: 14px;
+            border: 1px solid rgba(201, 168, 108, 0.55);
+            background: rgba(12, 9, 5, 0.97);
+            z-index: 500;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+            max-width: min(260px, 80vw);
+            backdrop-filter: blur(10px);
         }
 
         .reply-emote-popover.active {
@@ -9865,35 +9866,32 @@ body.mode-classic .shadow-glow {
     display: none;
 }
 
-/* Emote popover — grid con icono grande + etiqueta pequeña */
-.reply-emote-popover {
-    display: none;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    width: 200px;
-}
-.reply-emote-popover.active { display: flex; }
+/* reply-emote-popover: ver bloque principal arriba */
 
 .reply-emote-btn {
+    display: flex !important;
     flex-direction: column !important;
-    gap: 0.15rem !important;
-    width: 54px !important;
-    height: 54px !important;
-    border-radius: 10px !important;
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(200,170,100,0.15) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.12rem !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 9px !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(201, 168, 108, 0.15) !important;
     cursor: pointer;
     transition: background 0.15s, transform 0.15s, border-color 0.15s;
+    padding: 0 !important;
 }
 .reply-emote-btn:hover {
     background: rgba(201,168,108,0.15) !important;
-    border-color: rgba(201,168,108,0.4) !important;
-    transform: scale(1.1) !important;
+    border-color: rgba(201,168,108,0.45) !important;
+    transform: scale(1.08) translateY(-1px) !important;
 }
-.re-icon { font-size: 1.4rem; line-height: 1; }
+.re-icon { font-size: 1.35rem; line-height: 1; }
 .re-label {
-    font-size: 0.5rem;
-    color: rgba(190,165,110,0.65);
+    font-size: 0.47rem;
+    color: rgba(190,165,110,0.6);
     text-transform: uppercase;
     letter-spacing: 0.04em;
     line-height: 1;
@@ -9909,6 +9907,440 @@ body.mode-classic .shadow-glow {
     background: transparent !important;
 }
 */
+
+/* ═══════════════════════════════════════════════════════════════════
+   VN CONTROLS — Panel de juego con grupos y animación de entrada
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Animación de entrada */
+@keyframes controlsFade {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+/* Override del panel completo — usa variables para adaptarse al tema */
+.vn-controls {
+    animation: controlsFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+    background: var(--glass-bg) !important;
+    border: 1px solid rgba(var(--accent-gold-rgb, 139, 105, 20), 0.45) !important;
+    border-color: var(--border-color) !important;
+    box-shadow:
+        0 8px 32px var(--shadow-heavy),
+        inset 0 1px 0 rgba(255, 220, 140, 0.05) !important;
+    padding: 0.3rem 0.45rem !important;
+    gap: 0.2rem !important;
+    align-items: center;
+}
+
+/* Divisor más elegante — gradiente vertical */
+.vn-control-divider {
+    width: 1px !important;
+    height: 20px !important;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(201, 168, 108, 0.4) 30%,
+        rgba(201, 168, 108, 0.4) 70%,
+        transparent
+    ) !important;
+    margin: 0 0.3rem !important;
+}
+
+/* Botones individuales — variables para adaptarse a tema */
+.vn-control-btn {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: var(--text-secondary) !important;
+    border-radius: 7px !important;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.12s ease !important;
+}
+.vn-control-btn:hover {
+    background: rgba(139, 105, 20, 0.12) !important;
+    border-color: var(--border-color) !important;
+    color: var(--accent-gold) !important;
+    box-shadow: 0 0 10px var(--shadow) !important;
+    transform: translateY(-1px) !important;
+}
+.vn-control-btn:active {
+    transform: translateY(0) scale(0.94) !important;
+    background: rgba(139, 105, 20, 0.2) !important;
+}
+
+/* Botones de navegación — peso visual ligeramente mayor */
+.vn-control-slot:nth-child(-n+4) .vn-control-btn {
+    font-size: 1.1rem !important;
+}
+
+/* Sync button states — mantener colores de estado */
+.vn-control-btn.is-upload-pending { color: rgba(255, 180, 60, 0.9) !important; }
+.vn-control-btn.is-error { color: rgba(255, 100, 80, 0.9) !important; }
+.vn-control-btn.is-syncing { color: rgba(120, 200, 255, 0.9) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ROOM CODE PANEL — Panel flotante elegante
+   ═══════════════════════════════════════════════════════════════════ */
+.room-code-panel {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: linear-gradient(135deg, rgba(12, 9, 5, 0.94), rgba(20, 15, 8, 0.96));
+    border: 1px solid rgba(201, 168, 108, 0.38);
+    border-radius: 10px;
+    padding: 0.38rem 0.65rem;
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 220, 140, 0.06);
+    animation: controlsFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.room-code-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(180, 150, 90, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+.room-code-value {
+    font-size: 0.92rem;
+    font-family: 'Courier New', monospace;
+    color: rgba(235, 205, 140, 0.95);
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    user-select: all;
+    background: rgba(201, 168, 108, 0.07);
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
+    border: 1px solid rgba(201, 168, 108, 0.18);
+}
+.room-code-copy-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    border: 1px solid rgba(201, 168, 108, 0.25);
+    background: rgba(201, 168, 108, 0.06);
+    color: rgba(200, 170, 100, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+}
+.room-code-copy-btn:hover {
+    background: rgba(201, 168, 108, 0.18);
+    border-color: rgba(201, 168, 108, 0.55);
+    color: rgba(235, 200, 130, 1);
+    transform: scale(1.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SAVE HUB — Botones con icono + texto + jerarquía visual
+   ═══════════════════════════════════════════════════════════════════ */
+.save-hub-grid {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+}
+.save-hub-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(200, 175, 130, 0.2);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s;
+    font-family: 'Inter', sans-serif;
+}
+.save-hub-btn:hover {
+    background: rgba(201, 168, 108, 0.1);
+    border-color: rgba(201, 168, 108, 0.4);
+    transform: translateX(3px);
+}
+.save-hub-btn:active { transform: translateX(1px) scale(0.99); }
+.save-hub-primary {
+    background: rgba(201, 168, 108, 0.12) !important;
+    border-color: rgba(201, 168, 108, 0.45) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 0 0 1px rgba(201, 168, 108, 0.08);
+    padding: 0.9rem 1rem !important;
+}
+.save-hub-primary:hover {
+    background: rgba(201, 168, 108, 0.2) !important;
+    box-shadow: 0 4px 20px rgba(201, 168, 108, 0.18) !important;
+}
+.save-hub-icon {
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    width: 2rem;
+    text-align: center;
+}
+.save-hub-primary .save-hub-icon { font-size: 1.5rem; }
+.save-hub-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    line-height: 1.3;
+}
+.save-hub-text strong {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+.save-hub-text small {
+    font-size: 0.72rem;
+    color: rgba(160, 140, 100, 0.7);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   OPTIONS CARDS — Más profundidad y sliders mejorados
+   ═══════════════════════════════════════════════════════════════════ */
+.options-card {
+    background: linear-gradient(
+        160deg,
+        rgba(28, 22, 14, 0.95) 0%,
+        rgba(22, 17, 10, 0.98) 100%
+    ) !important;
+    border: 1px solid rgba(201, 168, 108, 0.22) !important;
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 220, 140, 0.04) !important;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+}
+.options-card:hover {
+    border-color: rgba(201, 168, 108, 0.42) !important;
+    box-shadow:
+        0 8px 36px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(201, 168, 108, 0.08),
+        inset 0 1px 0 rgba(255, 220, 140, 0.06) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Sliders — track con gradiente y thumb luminoso */
+.setting-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px !important;
+    border-radius: 3px !important;
+    background: rgba(201, 168, 108, 0.15) !important;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+}
+.setting-slider::-webkit-slider-runnable-track {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(201, 168, 108, 0.15);
+}
+.setting-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 230, 160, 1), rgba(201, 168, 108, 1)) !important;
+    cursor: pointer !important;
+    box-shadow:
+        0 0 0 3px rgba(201, 168, 108, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.5) !important;
+    transition: box-shadow 0.18s ease, transform 0.18s ease !important;
+}
+.setting-slider::-webkit-slider-thumb:hover {
+    box-shadow:
+        0 0 0 5px rgba(201, 168, 108, 0.25),
+        0 2px 12px rgba(201, 168, 108, 0.4) !important;
+    transform: scale(1.15) !important;
+}
+.setting-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 230, 160, 1), rgba(201, 168, 108, 1));
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 0 3px rgba(201, 168, 108, 0.2), 0 2px 8px rgba(0,0,0,0.5);
+}
+.setting-slider::-moz-range-track {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(201, 168, 108, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REPLY TOOLBAR — barra de herramientas sobre el textarea
+   ═══════════════════════════════════════════════════════════════════ */
+.vn-reply-toolbar {
+    position: relative; /* context for popover */
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+}
+/* Emote toggle — rediseñado como pill con icono + label */
+#replyEmoteToggle.reply-emote-toggle {
+    position: static !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.65rem !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 20px !important;
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    color: rgba(190, 162, 110, 0.8) !important;
+    background: rgba(201, 168, 108, 0.07) !important;
+    border: 1px solid rgba(201, 168, 108, 0.22) !important;
+    transition: all 0.18s ease !important;
+    cursor: pointer;
+}
+#replyEmoteToggle.reply-emote-toggle:hover,
+#replyEmoteToggle.reply-emote-toggle.active {
+    background: rgba(201, 168, 108, 0.16) !important;
+    border-color: rgba(201, 168, 108, 0.5) !important;
+    color: rgba(235, 200, 130, 1) !important;
+    box-shadow: 0 0 10px rgba(201, 168, 108, 0.15) !important;
+}
+#replyEmoteToggle.reply-emote-toggle span {
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+}
+#replyEmoteToggle.reply-emote-toggle svg {
+    width: 14px !important;
+    height: 14px !important;
+    flex-shrink: 0;
+}
+/* Popover sale hacia arriba desde la toolbar */
+/* reply-emote-popover: ver bloque principal arriba */
+
+/* ═══════════════════════════════════════════════════════════════════
+   PARALLAX DE FONDO AL CAMBIAR ESCENA
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes bgParallaxIn {
+    from { transform: scale(1.04) translateY(6px); filter: brightness(0.7); }
+    to   { transform: scale(1)    translateY(0);   filter: brightness(1);   }
+}
+.vn-section.scene-change-anim {
+    animation: bgParallaxIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SVG ICONS EN VN-CONTROL-BTN
+   ═══════════════════════════════════════════════════════════════════ */
+.vn-control-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.vn-control-icon svg {
+    width: 15px;
+    height: 15px;
+    display: block;
+    flex-shrink: 0;
+}
+/* Navegación — iconos ligeramente más grandes */
+.vn-control-slot:nth-child(-n+4) .vn-control-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+@keyframes syncSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.vn-control-btn.is-syncing .vn-control-icon {
+    animation: syncSpin 1.2s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLL GLOBAL — Eliminar overflow horizontal, inputs, modales
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 1. Sin scroll horizontal global */
+html, body {
+    overflow-x: hidden;
+}
+
+/* 2. Inputs no desbordan su contenedor */
+input,
+textarea,
+select {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* 3. Flex containers sin overflow horizontal */
+.vn-dialogue-actions,
+.vn-dialogue-actions-left,
+.vn-dialogue-actions-right,
+.vn-controls,
+.vn-reply-toolbar,
+.topic-header-row {
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+/* 4. Modales sin scroll horizontal */
+.modal-overlay,
+.shortcuts-modal,
+.save-hub-modal,
+.history-modal,
+.journal-modal,
+.char-modal,
+.charsheet-modal,
+.vn-narrate-panel,
+.sync-conflict-modal {
+    overflow-x: hidden;
+}
+
+/* 5. Scrollbar estética — fina y dorada */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(201, 168, 108, 0.45);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(201, 168, 108, 0.7);
+}
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* 6. Scrollbar gutter estable en paneles con scroll */
+.topic-modal-body,
+.history-content,
+.journal-body,
+.gallery-grid,
+.charsheet-content,
+.section-content {
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+/* 7. vn-controls nunca desborda */
+.vn-controls {
+    overflow: hidden;
+    flex-wrap: nowrap; /* botones de control no se rompen en dos líneas */
+}
 
 </style>
 
@@ -10422,10 +10854,15 @@ body.mode-classic .shadow-glow {
             <div id="vnNarratePending" class="vn-narrate-pending" style="display:none;"></div>
         </div>
 
-        <div id="roomCodeWrap" style="display:none; align-items:center; gap:0.6rem; background: rgba(0,0,0,0.32); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.45rem 0.7rem;">
-            <span style="font-size:0.82rem; color: var(--text-muted);">Código de sala:</span>
-            <code id="roomCodeValue" style="font-size:0.85rem; color: var(--text-primary); user-select: all;"></code>
-            <button type="button" class="btn-secondary" onclick="copyCurrentRoomCode()" style="margin-left:auto; padding:0.35rem 0.7rem;">Copiar código de sala</button>
+        <div id="roomCodeWrap" class="room-code-panel" style="display:none;">
+            <span class="room-code-label">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                Sala
+            </span>
+            <code id="roomCodeValue" class="room-code-value"></code>
+            <button type="button" class="room-code-copy-btn" onclick="copyCurrentRoomCode()" title="Copiar código">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
         </div>
 
         <!-- Controles -->
@@ -10433,22 +10870,22 @@ body.mode-classic .shadow-glow {
             <!-- Grupo Navegación -->
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="firstMessage()" aria-label="Primer mensaje">
-                    <span class="vn-control-icon">«</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="3" x2="3" y2="13"/><polyline points="6,4 2,8 6,12"/><polyline points="11,4 7,8 11,12"/></svg></span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="previousMessage()" aria-label="Mensaje anterior">
-                    <span class="vn-control-icon">‹</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/><line x1="10" y1="3" x2="10" y2="3"/></svg></span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="nextMessage()" aria-label="Mensaje siguiente">
-                    <span class="vn-control-icon">›</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,3 11,8 6,13"/></svg></span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="lastMessage()" aria-label="Último mensaje">
-                    <span class="vn-control-icon">»</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="13" y1="3" x2="13" y2="13"/><polyline points="5,4 9,8 5,12"/><polyline points="10,4 14,8 10,12"/></svg></span>
                 </button>
             </div>
 
@@ -10457,17 +10894,17 @@ body.mode-classic .shadow-glow {
             <!-- Grupo Historial/Diario -->
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="openHistoryLog()" aria-label="Historial">
-                    <span class="vn-control-icon">☰</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2 h7 l3 3 v9 a1 1 0 0 1-1 1 H4 a1 1 0 0 1-1-1 z"/><polyline points="10,2 10,5 13,5"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg></span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button id="favMsgBtn" class="vn-control-btn" onclick="toggleFavoriteCurrentMessage()" aria-label="Marcar favorito">
-                    <span class="vn-control-icon" id="favMsgIcon">☆</span>
+                    <span class="vn-control-icon" id="favMsgIcon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/></svg></span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="openJournal()" aria-label="Diario de sesión">
-                    <span class="vn-control-icon">📓</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1" width="10" height="14" rx="1.5"/><line x1="2" y1="4" x2="3" y2="4"/><line x1="2" y1="8" x2="3" y2="8"/><line x1="2" y1="12" x2="3" y2="12"/><line x1="6" y1="5" x2="11" y2="5"/><line x1="6" y1="8" x2="11" y2="8"/><line x1="6" y1="11" x2="9" y2="11"/></svg></span>
                 </button>
             </div>
 
@@ -10476,17 +10913,17 @@ body.mode-classic .shadow-glow {
             <!-- Grupo Herramientas -->
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="openSettings()" aria-label="Ajustes">
-                    <span class="vn-control-icon">⚙</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5 v1.8 M8 12.7 v1.8 M1.5 8 h1.8 M12.7 8 h1.8 M3.2 3.2 l1.3 1.3 M11.5 11.5 l1.3 1.3 M12.8 3.2 l-1.3 1.3 M4.5 11.5 l-1.3 1.3"/></svg></span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="openModal('shortcutsModal')" aria-label="Atajos de teclado">
-                    <span class="vn-control-icon">❔</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M6 6.2 a2 2 0 1 1 2.5 2 c-.4.2-.5.6-.5 1.1"/><circle cx="8" cy="11.5" r="0.6" fill="currentColor" stroke="none"/></svg></span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button id="syncNowBtn" class="vn-control-btn sync-btn is-synced" onclick="manualSyncFromScene()" aria-label="Sincronizar">
-                    <span class="vn-control-icon">☁</span>
+                    <span class="vn-control-icon" id="syncBtnIcon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 a5 5 0 0 1 9-3"/><path d="M13 8 a5 5 0 0 1-9 3"/><polyline points="12,2 12,5 15,5"/><polyline points="4,11 4,14 1,14"/></svg></span>
                 </button>
             </div>
 
@@ -10495,7 +10932,7 @@ body.mode-classic .shadow-glow {
             <!-- Botón Narrar — visible en modo clásico para el owner -->
             <div id="vnNarrateBtn" class="vn-control-slot" style="display:none;">
                 <button class="vn-control-btn vn-narrate-ctrl-btn" onclick="openNarratePanel()" aria-label="Narrar / Nueva escena" title="Nueva escena">
-                    <span class="vn-control-icon">✒</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 L5 10 L13 2 a1.4 1.4 0 0 1 2 2 L7 12 Z"/><path d="M11 4 l2 2"/><line x1="3" y1="14" x2="13" y2="14"/></svg></span>
                 </button>
             </div>
 
@@ -10504,12 +10941,12 @@ body.mode-classic .shadow-glow {
             <!-- Grupo Salir/Borrar -->
             <div class="vn-control-slot">
                 <button id="deleteTopicBtn" class="vn-control-btn" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
-                    <span class="vn-control-icon">🗑</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 14,4"/><path d="M5 4 V3 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 v1"/><rect x="4" y="5" width="8" height="8" rx="1"/><line x1="7" y1="7.5" x2="7" y2="11"/><line x1="9" y1="7.5" x2="9" y2="11"/></svg></span>
                 </button>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="backToTopics()" aria-label="Salir">
-                    <span class="vn-control-icon">↩</span>
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3 L2 8 L7 13"/><line x1="2" y1="8" x2="14" y2="8"/></svg></span>
                 </button>
             </div>
         </div>
@@ -10656,16 +11093,21 @@ body.mode-classic .shadow-glow {
                 </div>
 
 
+                <!-- Barra de herramientas del panel de respuesta -->
+                <div class="vn-reply-toolbar">
+                    <button id="replyEmoteToggle" class="reply-emote-toggle" type="button"
+                            aria-label="Emotes del personaje" title="Expresiones del personaje"
+                            onclick="toggleReplyEmotePopover(event)">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M8 13s1.5 2 4 2 4-2 4-2"/>
+                            <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/>
+                            <circle cx="15" cy="9" r="1" fill="currentColor" stroke="none"/>
+                        </svg>
+                        <span>Emotes</span>
+                    </button>
+                </div>
                 <div class="vn-reply-textarea-wrap">
-                    <button id="replyEmoteToggle" class="reply-emote-toggle" type="button" aria-label="Emotes — expresiones del personaje" title="Emotes del personaje" onclick="toggleReplyEmotePopover(event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="10"/>
-  <path d="M8 13s1.5 2 4 2 4-2 4-2"/>
-  <line x1="9" y1="9" x2="9.01" y2="9" stroke-width="3"/>
-  <line x1="15" y1="9" x2="15.01" y2="9" stroke-width="3"/>
-  <!-- ceja leve -->
-  <path d="M7.5 7.5 Q9 6.5 10.5 7.5" stroke-width="1.2"/>
-  <path d="M13.5 7.5 Q15 6.5 16.5 7.5" stroke-width="1.2"/>
-</svg></button>
                     <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*, y comandos como /angry, /happy, etc."></textarea>
                     <div id="replyEmotePopover" class="reply-emote-popover" aria-hidden="true">
                         <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')" title="/angry — Ira" aria-label="Ira"><span class="re-icon">💢</span><span class="re-label">Ira</span></button>
@@ -10764,11 +11206,23 @@ body.mode-classic .shadow-glow {
                 <button class="btn-secondary" onclick="closeModal('saveHubModal')">Cerrar</button>
             </div>
             <p style="color:var(--text-muted);margin-top:0.35rem;">Elige cómo guardar o cargar tus partidas e historias.</p>
-            <div style="display:grid;gap:0.6rem;margin-top:0.8rem;">
-                <button class="btn-primary" onclick="saveGameFromMenu()">Descargar partida completa (JSON)</button>
-                <button class="btn-secondary" onclick="loadGameFromMenu()">Cargar partida completa (JSON)</button>
-                <button class="btn-secondary" onclick="exportCurrentStoryAsCode()">Generar código de historia</button>
-                <button class="btn-secondary" onclick="importStoryFromCode()">Importar historia por código</button>
+            <div class="save-hub-grid">
+                <button class="save-hub-btn save-hub-primary" onclick="saveGameFromMenu()">
+                    <span class="save-hub-icon">⬇</span>
+                    <span class="save-hub-text"><strong>Descargar partida</strong><small>Exporta todo a JSON local</small></span>
+                </button>
+                <button class="save-hub-btn" onclick="loadGameFromMenu()">
+                    <span class="save-hub-icon">📂</span>
+                    <span class="save-hub-text"><strong>Cargar partida</strong><small>Importa desde archivo JSON</small></span>
+                </button>
+                <button class="save-hub-btn" onclick="exportCurrentStoryAsCode()">
+                    <span class="save-hub-icon">🔑</span>
+                    <span class="save-hub-text"><strong>Generar código</strong><small>Comparte la historia activa</small></span>
+                </button>
+                <button class="save-hub-btn" onclick="importStoryFromCode()">
+                    <span class="save-hub-icon">📥</span>
+                    <span class="save-hub-text"><strong>Importar código</strong><small>Recibe una historia compartida</small></span>
+                </button>
             </div>
         </div>
     </div>
@@ -11482,21 +11936,30 @@ function updateSyncButtonState(status, message = '') {
     const icon = btn.querySelector('.vn-control-icon');
     const label = btn.querySelector('.vn-control-label');
 
+    const SVG_SYNC  = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 a5 5 0 0 1 9-3"/><path d="M13 8 a5 5 0 0 1-9 3"/><polyline points="12,2 12,5 15,5"/><polyline points="4,11 4,14 1,14"/></svg>';
+    const SVG_UP    = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,3 8,13"/><polyline points="4,7 8,3 12,7"/><line x1="3" y1="13" x2="13" y2="13"/></svg>';
+    const SVG_DOWN  = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,13 8,3"/><polyline points="4,9 8,13 12,9"/><line x1="3" y1="3" x2="13" y2="3"/></svg>';
+    const SVG_WARN  = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 L14.5 13 H1.5 Z"/><line x1="8" y1="6.5" x2="8" y2="10"/><circle cx="8" cy="11.8" r="0.6" fill="currentColor" stroke="none"/></svg>';
+
     if (status === 'syncing') {
         btn.classList.add('is-syncing');
-        if (icon) icon.textContent = '🔄';
+        if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = 'syncSpin 1.2s linear infinite'; }
     } else if (status === 'pending-upload') {
         btn.classList.add('is-upload-pending');
-        if (icon) icon.textContent = '⬆️';
+        if (icon) icon.innerHTML = SVG_UP;
+        btn.style.animation = '';
     } else if (status === 'pending-download') {
         btn.classList.add('is-download-pending');
-        if (icon) icon.textContent = '⬇️';
+        if (icon) icon.innerHTML = SVG_DOWN;
+        btn.style.animation = '';
     } else if (status === 'error') {
         btn.classList.add('is-error');
-        if (icon) icon.textContent = '⚠️';
+        if (icon) icon.innerHTML = SVG_WARN;
+        btn.style.animation = '';
     } else {
         btn.classList.add('is-synced');
-        if (icon) icon.textContent = '☁️↻';
+        if (icon) icon.innerHTML = SVG_SYNC;
+        btn.style.animation = '';
     }
 
     if (label) label.textContent = message || 'Sincronizar';
@@ -16120,6 +16583,15 @@ function playVnSceneTransition(vnSection) {
     void el.offsetWidth; // forzar reflow para reiniciar animación
     el.classList.add('active');
     setTimeout(() => el.classList.remove('active'), 800);
+
+    // Parallax suave del fondo al cambiar escena
+    const section = vnSection || document.getElementById('vnSection');
+    if (section && !prefersReducedMotion()) {
+        section.classList.remove('scene-change-anim');
+        void section.offsetWidth;
+        section.classList.add('scene-change-anim');
+        setTimeout(() => section.classList.remove('scene-change-anim'), 700);
+    }
 }
 
 function enterTopic(id) {
@@ -18604,11 +19076,13 @@ function toggleFavoriteCurrentMessage() {
 function updateFavButton() {
     const icon = document.getElementById('favMsgIcon');
     if (!icon) return;
-    if (!currentTopicId) { icon.textContent = '☆'; return; }
+    const SVG_EMPTY = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/></svg>';
+    const SVG_FULL  = '<svg viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/></svg>';
+    if (!currentTopicId) { icon.innerHTML = SVG_EMPTY; return; }
     const msgs = getTopicMessages(currentTopicId);
     const msg  = msgs[currentMessageIndex];
-    if (!msg) { icon.textContent = '☆'; return; }
-    icon.textContent = isMessageFavorite(currentTopicId, String(msg.id)) ? '⭐' : '☆';
+    if (!msg) { icon.innerHTML = SVG_EMPTY; return; }
+    icon.innerHTML = isMessageFavorite(currentTopicId, String(msg.id)) ? SVG_FULL : SVG_EMPTY;
 }
 
 // ============================================
@@ -19420,18 +19894,9 @@ function updateRoomCodeUI(topicId) {
         return;
     }
 
-    const topic = appData.topics.find(t => String(t.id) === String(topicId));
-    // Mostrar código de sala en modo RPG y en modo clásico colaborativo
-    // Antes estaba invertido: ocultaba exactamente el modo RPG
-    const isCollaborative = !topic || topic.mode === 'rpg' || !topic.mode;
-    if (!isCollaborative) {
-        wrap.style.display = 'none';
-        valueEl.textContent = '';
-        return;
-    }
-
+    // Mostrar código de sala siempre — útil en ambos modos para colaborar
     valueEl.textContent = String(topicId);
-    wrap.style.display = 'inline-flex';
+    wrap.style.display = 'flex';
 }
 
 async function tryJoinRoomFromUrl() {
