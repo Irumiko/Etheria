@@ -43,7 +43,7 @@ function ensureCharacterRpgProfile(char, topicId = null) {
 
     const activeTopicId = topicId || currentTopicId;
     const topic = appData.topics.find((t) => String(t.id) === String(activeTopicId));
-    if (!topic || topic.mode !== 'fanfic') {
+    if (!topic || topic.mode !== 'rpg') {
         return baseProfile;
     }
 
@@ -66,62 +66,99 @@ function getRpgSpentPoints(profile) {
 
 function openSheet(id) {
     currentSheetCharId = id;
-    const c = appData.characters.find(ch => ch.id === id);
+    const c = appData.characters.find(ch => String(ch.id) === String(id));
     if(!c) return;
 
-    const sheetName = document.getElementById('sheetName');
-    const sheetOwner = document.getElementById('sheetOwner');
+    // Avatar con color de borde del personaje
     const sheetAvatar = document.getElementById('sheetAvatar');
-    const sheetQuickStats = document.getElementById('sheetQuickStats');
-
-    if (sheetName) sheetName.textContent = c.name;
-    if (sheetOwner) sheetOwner.textContent = `Por ${c.owner || userNames[c.userIndex]}`;
-
     if (sheetAvatar) {
-        sheetAvatar.innerHTML = c.avatar ? `<img src="${escapeHtml(c.avatar)}" alt="Avatar ampliado de ${escapeHtml(c.name)}" onerror="this.textContent='${c.name[0]}'">` : c.name[0];
+        const color = c.color || 'var(--accent-gold)';
+        sheetAvatar.style.setProperty('--sheet-char-color', color);
+        sheetAvatar.innerHTML = c.avatar
+            ? `<img src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" onerror="this.style.display='none';this.parentElement.textContent='${c.name[0]}'">`
+            : `<span class="sheet-avatar-initial">${c.name[0]}</span>`;
     }
 
+    // Nombre y apellido
+    const nameEl = document.getElementById('sheetName');
+    const lastNameBadge = document.getElementById('sheetLastNameBadge');
+    if (nameEl) nameEl.textContent = c.name;
+    if (lastNameBadge) {
+        lastNameBadge.textContent = c.lastName || '';
+        lastNameBadge.style.display = c.lastName ? '' : 'none';
+    }
+
+    // Propietario
+    const ownerEl = document.getElementById('sheetOwner');
+    if (ownerEl) {
+        const isOwn = c.userIndex === currentUserIndex;
+        ownerEl.innerHTML = isOwn
+            ? `<span class="sheet-own-badge">✦ Tu personaje</span>`
+            : `<span>Por <strong>${escapeHtml(c.owner || userNames[c.userIndex] || '—')}</strong></span>`;
+    }
+
+    // Cinta de ocupación
+    const ribbon = document.getElementById('sheetJobRibbon');
+    if (ribbon) {
+        ribbon.textContent = c.job || '';
+        ribbon.style.display = c.job ? '' : 'none';
+        ribbon.style.background = c.color || 'var(--accent-wood)';
+    }
+
+    // Quick stats (raza, género, edad, alineamiento)
+    const sheetQuickStats = document.getElementById('sheetQuickStats');
     if (sheetQuickStats) {
-        sheetQuickStats.innerHTML = `
-            <span class="quick-stat">${escapeHtml(c.race) || 'Sin raza'}</span>
-            <span class="quick-stat">${c.gender || '?'}</span>
-            <span class="quick-stat">${c.age || '?'} años</span>
-            <span class="quick-stat" style="background: ${getAlignmentColor(c.alignment)}; color: white;">${alignments[c.alignment] || 'Neutral'}</span>
-        `;
+        sheetQuickStats.innerHTML = [
+            c.race      && `<span class="quick-stat-v2">${escapeHtml(c.race)}</span>`,
+            c.gender    && `<span class="quick-stat-v2">${c.gender}</span>`,
+            c.age       && `<span class="quick-stat-v2">${c.age} años</span>`,
+            c.alignment && `<span class="quick-stat-v2 qs-align" style="--align-color:${getAlignmentColor(c.alignment)}">${alignments[c.alignment] || c.alignment}</span>`,
+        ].filter(Boolean).join('');
     }
 
+    // Tab Perfil: columna izquierda (tarjetas de datos) y derecha (descripción física)
     const profileGrid = document.getElementById('profileGrid');
     if (profileGrid) {
-        profileGrid.innerHTML = `
-            <div class="profile-item"><div class="profile-label">Nombre</div><div class="profile-value">${escapeHtml(c.name)}</div></div>
-            <div class="profile-item"><div class="profile-label">Apellido</div><div class="profile-value">${escapeHtml(c.lastName) || '-'}</div></div>
-            <div class="profile-item"><div class="profile-label">Edad</div><div class="profile-value">${c.age || '-'}</div></div>
-            <div class="profile-item"><div class="profile-label">Raza</div><div class="profile-value">${escapeHtml(c.race) || '-'}</div></div>
-            <div class="profile-item"><div class="profile-label">Género</div><div class="profile-value">${c.gender || '-'}</div></div>
-            <div class="profile-item"><div class="profile-label">Alineamiento</div><div class="profile-value">${alignments[c.alignment] || '-'}</div></div>
-            <div class="profile-item full-width"><div class="profile-label">Ocupación</div><div class="profile-value">${escapeHtml(c.job) || '-'}</div></div>
-            <div class="profile-item full-width" style="margin-top: 1rem;">
-                <div class="profile-label">Descripción Física</div>
-                <div style="margin-top: 0.5rem; line-height: 1.6;">${escapeHtml(c.basic) || 'Sin descripción.'}</div>
+        const dataFields = [
+            { label: 'Nombre',      val: c.name },
+            c.lastName  && { label: 'Apellido',    val: c.lastName },
+            c.age       && { label: 'Edad',         val: `${c.age} años` },
+            c.race      && { label: 'Raza',          val: c.race },
+            c.gender    && { label: 'Género',        val: c.gender },
+            c.alignment && { label: 'Alineamiento',  val: alignments[c.alignment] || c.alignment },
+            c.job       && { label: 'Ocupación',     val: c.job },
+        ].filter(Boolean);
+        profileGrid.innerHTML = dataFields.map(f => `
+            <div class="profile-card-item">
+                <div class="profile-card-label">${f.label}</div>
+                <div class="profile-card-value">${escapeHtml(String(f.val))}</div>
             </div>
-        `;
+        `).join('');
+    }
+    const profilePhysical = document.getElementById('profilePhysical');
+    if (profilePhysical) {
+        profilePhysical.innerHTML = c.basic
+            ? `<div class="profile-physical-label">Descripción física</div><div class="profile-physical-text">${escapeHtml(c.basic)}</div>`
+            : `<div class="profile-physical-empty">Sin descripción física.</div>`;
     }
 
+    // Tabs de texto
     const profilePersonality = document.getElementById('profilePersonality');
-    const profileHistory = document.getElementById('profileHistory');
-
+    const profileHistory     = document.getElementById('profileHistory');
+    const profileNotes       = document.getElementById('profileNotes');
     if (profilePersonality) profilePersonality.textContent = c.personality || 'Sin datos de personalidad.';
-    if (profileHistory) profileHistory.textContent = c.history || 'Sin historia registrada.';
+    if (profileHistory)     profileHistory.textContent     = c.history     || 'Sin historia registrada.';
+    if (profileNotes)       profileNotes.textContent       = c.notes       || 'Sin notas del jugador.';
 
+    // Botón editar
     const sheetEditBtn = document.getElementById('sheetEditBtn');
-    if (sheetEditBtn) sheetEditBtn.style.display = c.userIndex === currentUserIndex ? 'inline-block' : 'none';
+    if (sheetEditBtn) sheetEditBtn.style.display = c.userIndex === currentUserIndex ? 'inline-flex' : 'none';
 
-    document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+    // Reset tabs
+    document.querySelectorAll('.sheet-tab-v2').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-
-    const firstTab = document.querySelector('.sheet-tab');
+    const firstTab = document.querySelector('.sheet-tab-v2');
     if (firstTab) firstTab.classList.add('active');
-
     const tabProfile = document.getElementById('tab-profile');
     if (tabProfile) tabProfile.classList.add('active');
 
@@ -154,8 +191,10 @@ function renderRpgStatsModal(c) {
     const data = getRpgSheetData(c, currentTopicId || null);
     const hpWidth = (data.profile.hp / RPG_HP_MAX) * 100;
     const expWidth = (data.profile.exp / RPG_EXP_PER_LEVEL) * 100;
+    const isOwn = c.userIndex === currentUserIndex;
 
-    titleEl.textContent = `⚔️ Nivel ${data.profile.level}`;
+    titleEl.textContent = `⚔ Nv.${data.profile.level} · ${data.title}`;
+
     bodyEl.innerHTML = `
         <div class="rpg-stats-progress-row">
             <span class="rpg-stats-progress-label">HP</span>
@@ -173,16 +212,27 @@ function renderRpgStatsModal(c) {
                 ['VIT', 'Vida'],
                 ['INT', 'Intel'],
                 ['AGI', 'Veloc']
-            ].map(([key, desc]) => `
+            ].map(([key, desc]) => {
+                const base  = RPG_BASE_STATS[key];
+                const bonus = data.profile.stats[key];
+                const total = data.totalStats[key];
+                const canAdd = isOwn && data.freePoints > 0;
+                const canSub = isOwn && bonus > 0;
+                return `
                 <div class="rpg-stats-card">
-                    <div class="rpg-stats-card-key">${key}</div>
-                    <div class="rpg-stats-card-value">${data.totalStats[key]}</div>
-                    <div class="rpg-stats-card-desc">${desc}</div>
-                </div>
-            `).join('')}
+                    <span class="rpg-stats-card-key">${key}</span>
+                    <span class="rpg-stats-card-desc">${desc}</span>
+                    <span class="rpg-stats-card-value" id="rpgStat_${key}">${total}</span>
+                    ${isOwn ? `
+                    <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',-1)" ${canSub?'':'disabled'} title="Quitar punto">−</button>
+                    <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',1)" ${canAdd?'':'disabled'} title="Añadir punto">+</button>
+                    ` : '<span></span><span></span>'}
+                </div>`;
+            }).join('')}
         </div>
-        <div class="rpg-stats-points">Puntos: ${data.freePoints} / ${RPG_POINTS_POOL}</div>
-        <div class="rpg-stats-note">Progreso RPG activo solo en modo RPG.</div>
+        <div class="rpg-stats-points" id="rpgFreePoints">
+            ${isOwn ? `✦ Puntos libres: <strong>${data.freePoints}</strong> / ${RPG_POINTS_POOL}` : `Puntos asignados: ${RPG_POINTS_POOL - data.freePoints} / ${RPG_POINTS_POOL}`}
+        </div>
     `;
 }
 
@@ -191,6 +241,38 @@ function openRpgStatsModal(charId) {
     if (!char) return;
     renderRpgStatsModal(char);
     openModal('rpgStatsModal');
+}
+
+// Ajusta un stat RPG del personaje en +1 o -1 y actualiza el modal en tiempo real
+function adjustRpgStat(charId, stat, delta) {
+    const char = appData.characters.find(ch => String(ch.id) === String(charId));
+    if (!char || char.userIndex !== currentUserIndex) return;
+
+    const profile = ensureCharacterRpgProfile(char, currentTopicId);
+    const current = profile.stats[stat] || 0;
+    const spent   = getRpgSpentPoints(profile);
+
+    if (delta > 0 && spent >= RPG_POINTS_POOL) return; // sin puntos libres
+    if (delta < 0 && current <= 0) return;              // ya en mínimo
+
+    profile.stats[stat] = current + delta;
+
+    // Persistir
+    if (currentTopicId) {
+        const topic = appData.topics.find(t => String(t.id) === String(currentTopicId));
+        if (topic && topic.mode === 'rpg') {
+            topic.rpgProfiles = topic.rpgProfiles || {};
+            topic.rpgProfiles[charId] = profile;
+        }
+    }
+    char.rpgProfile = profile;
+    hasUnsavedChanges = true;
+    if (typeof save === 'function') save({ silent: true });
+
+    // Re-renderizar el modal sin cerrarlo
+    renderRpgStatsModal(char);
+    // Actualizar también el resumen de la info-card
+    if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
 }
 
 function getAlignmentColor(code) {
@@ -203,10 +285,13 @@ function getAlignmentColor(code) {
 }
 
 function switchTab(tabName, element) {
-    document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+    // Soporta tanto .sheet-tab (legacy) como .sheet-tab-v2 (nuevo modal)
+    document.querySelectorAll('.sheet-tab, .sheet-tab-v2').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
 
-    const btn = element || document.querySelector(`.sheet-tab[onclick*="'${tabName}'"]`);
+    const btn = element
+        || document.querySelector(`.sheet-tab-v2[data-tab="${tabName}"]`)
+        || document.querySelector(`.sheet-tab[onclick*="'${tabName}'"]`);
     if (btn) btn.classList.add('active');
 
     const tab = document.getElementById(`tab-${tabName}`);
@@ -249,11 +334,11 @@ function saveCharacter() {
         notes: document.getElementById('charNotes')?.value.trim() || ''
     };
 
-    const prevChar = appData.characters.find(c => c.id === id);
+    const prevChar = appData.characters.find(c => String(c.id) === String(id));
     if (prevChar?.rpgProfile) charObj.rpgProfile = prevChar.rpgProfile;
 
 
-    const idx = appData.characters.findIndex(c => c.id === id);
+    const idx = appData.characters.findIndex(c => String(c.id) === String(id));
     if(idx > -1) appData.characters[idx] = charObj;
     else appData.characters.push(charObj);
 

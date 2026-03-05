@@ -141,13 +141,15 @@ async function selectUser(idx, options = {}) {
     }
     if (currentUserDisplay) currentUserDisplay.textContent = userNames[idx] || 'Jugador';
 
-    await loadFromCloud();
-
+    // Ocultar overlay y liberar isLoading ANTES de loadFromCloud.
+    // Esto permite que los botones del menú respondan aunque la sync de red tarde.
     if (loadingOverlay) loadingOverlay.classList.remove('active');
     isLoading = false;
-
     generateParticles();
     if (!safeOptions.autoLoad) showAutosave('Sesión iniciada', 'info');
+
+    // Sincronización en background — no bloquea la UI
+    loadFromCloud().catch(() => {});
 }
 
 // Generar tarjetas de usuario dinámicamente

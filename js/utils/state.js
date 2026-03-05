@@ -68,8 +68,9 @@ let currentAffinity = 0;
 let tempBranches = [];
 let currentEmote = null;
 let currentWeather = 'none';
-let currentTopicMode = 'roleplay'; // 'roleplay' o 'fanfic'
-let spriteModeClassic = false; // false = modo fanfic persistente, true = modo clásico
+let currentTopicMode = 'roleplay'; // 'roleplay' o 'rpg'
+let spriteModeClassic = false; // false = modo rpg persistente, true = modo clásico
+let oracleModeActive = false; // true cuando el oráculo está activo en el panel de respuesta
 let pendingRoleTopicId = null;
 let tooltipRoot = null;
 let lastFocusedElement = null;

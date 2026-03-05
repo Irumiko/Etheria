@@ -5,10 +5,12 @@
 // Variables para el debounce de sincronización al navegar mensajes
 var _lastNavSyncTime = 0;
 var _NAV_SYNC_DEBOUNCE_MS = 3000; // sincronizar como máximo cada 3 segundos al navegar
-const DEFAULT_TOPIC_BACKGROUND = 'assets/backgrounds/default_background.jpg';
+const DEFAULT_TOPIC_BACKGROUND =
+    'https://raw.githubusercontent.com/Irumiko/Etheria/main/assets/backgrounds/default_background.jpg';
 const DEFAULT_TOPIC_BACKGROUND_VARIANTS = [
     DEFAULT_TOPIC_BACKGROUND,
-    `/${DEFAULT_TOPIC_BACKGROUND}`
+    'assets/backgrounds/default_background.jpg',
+    '/assets/backgrounds/default_background.jpg'
 ];
 const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'default_scene',
@@ -21,17 +23,19 @@ const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
     'assets/backgrounds/default_background.png.jpg',
     'Assets/backgrounds/default_background.png.jpg',
     'assets/backgrounds/default-scene-sunset.png',
-    'Assets/backgrounds/default-scene-sunset.png'
+    'Assets/backgrounds/default-scene-sunset.png',
+    'https://raw.githubusercontent.com/Irumiko/Etheria/main/assets/backgrounds/default_background.jpg'
 ];
 
 const preloadedBackgrounds = new Set();
 let pendingSceneChange = null;
+let pendingChapter     = null;
 let oracleStat = 'STR';
 let oracleQuestionDirty = false;
-let oracleModeActive = false;
+// oracleModeActive está declarado en state.js
 
 function isRpgTopicMode(mode) {
-    return mode === 'fanfic' || mode === 'rpg';
+    return mode === 'rpg';
 }
 
 function getOracleModifier(statValue) {
@@ -40,6 +44,48 @@ function getOracleModifier(statValue) {
 
 function calculateOracleDifficulty() {
     return 12;
+}
+
+function getOracleRollResult(roll, total) {
+    if (roll === 1)  return 'fumble';
+    if (roll === 20) return 'critical';
+    return total >= calculateOracleDifficulty() ? 'success' : 'fail';
+}
+
+function getOracleResultLabel(result) {
+    return { critical: 'ÉXITO CRÍTICO', success: 'ACIERTO', fail: 'FALLO', fumble: 'FALLO CRÍTICO' }[result] || result;
+}
+
+function showDiceResultOverlay(rollData) {
+    // rollData: { roll, modifier, total, result, stat, statValue }
+    const existing = document.getElementById('diceResultOverlay');
+    if (existing) existing.remove();
+
+    const cssClass = { critical: 'dice-result-critical', success: 'dice-result-success', fail: 'dice-result-fail', fumble: 'dice-result-fumble' }[rollData.result] || 'dice-result-success';
+    const label = getOracleResultLabel(rollData.result);
+    const modSign = rollData.modifier >= 0 ? '+' : '';
+    const statHint = rollData.stat ? ` [${rollData.stat}]` : '';
+    const advantageText = rollData.statValue >= 14 ? '<div class="dice-close-hint" style="color:rgba(107,221,154,0.7);margin-top:0.3rem;">▲ VENTAJA</div>'
+                        : rollData.statValue <= 6  ? '<div class="dice-close-hint" style="color:rgba(221,107,107,0.7);margin-top:0.3rem;">▼ DESVENTAJA</div>'
+                        : '';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'diceResultOverlay';
+    overlay.className = 'dice-result-overlay';
+    overlay.innerHTML = `
+        <div class="dice-result-box">
+            <div class="dice-number ${cssClass}">${rollData.roll}</div>
+            <div class="dice-result-label ${cssClass}">${label}</div>
+            <div class="dice-close-hint" style="margin-top:0.5rem;font-size:0.95rem;color:rgba(220,210,190,0.75);">
+                D20 (${rollData.roll}) ${modSign}${rollData.modifier} = ${rollData.total}${statHint}
+            </div>
+            ${advantageText}
+            <div class="dice-close-hint" style="margin-top:1rem;">Clic para cerrar</div>
+        </div>`;
+
+    overlay.addEventListener('click', () => overlay.remove());
+    document.body.appendChild(overlay);
+    setTimeout(() => { if (document.getElementById('diceResultOverlay')) overlay.remove(); }, 4000);
 }
 
 function getOracleAutodetectedQuestion(rawText) {
@@ -57,24 +103,23 @@ function getOracleSelectedStatValue() {
 }
 
 function refreshOracleProbability() {
-    const fill = document.getElementById('oracleProbabilityFill');
-    const valueEl = document.getElementById('oracleProbabilityValue');
+    // Actualiza el indicador de probabilidad en el mini-panel del oráculo
+    const infoEl = document.getElementById('oracleMiniInfo');
     const statValue = getOracleSelectedStatValue();
     const modifier = getOracleModifier(statValue);
     const dc = calculateOracleDifficulty();
-    const expected = Math.max(5, Math.min(95, (21 - (dc - modifier)) * 5));
-    if (fill) fill.style.width = `${expected}%`;
-    if (valueEl) valueEl.textContent = `D20 ${modifier >= 0 ? '+' : ''}${modifier} vs ${dc}`;
+    const modSign = modifier >= 0 ? '+' : '';
+    if (infoEl) infoEl.textContent = `D20 ${modSign}${modifier} vs ${dc}`;
 }
-
 function refreshOracleQuestionAutodetect(force = false) {
-    const questionInput = document.getElementById('oracleQuestionInput');
+    // El autodetect ahora aplica al mini-panel del oráculo
+    const questionInput = document.getElementById('oracleMiniQuestion');
     const replyText = document.getElementById('vnReplyText');
     if (!questionInput || !replyText) return;
     if (!force && oracleQuestionDirty) return;
-    questionInput.value = getOracleAutodetectedQuestion(replyText.value);
+    const autoQ = getOracleAutodetectedQuestion(replyText.value);
+    if (autoQ && !questionInput.value.trim()) questionInput.value = autoQ;
 }
-
 function setOracleStat(nextStat) {
     oracleStat = ['STR', 'VIT', 'INT', 'AGI'].includes(nextStat) ? nextStat : 'STR';
     document.querySelectorAll('.oracle-stat-btn').forEach((btn) => {
@@ -84,99 +129,192 @@ function setOracleStat(nextStat) {
 }
 
 function resetOraclePanelState() {
-    oracleStat = 'STR';
-    oracleQuestionDirty = false;
-    const fields = document.getElementById('oracleFields');
-    const panel = document.getElementById('oraclePanel');
-    const questionInput = document.getElementById('oracleQuestionInput');
-    const toggleBtn = document.getElementById('oracleToggleBtn');
+    // Resetea el estado del oráculo y cierra el mini-panel si está abierto
+    if (typeof oracleStat !== 'undefined') oracleStat = 'STR';
+    if (typeof oracleQuestionDirty !== 'undefined') oracleQuestionDirty = false;
     oracleModeActive = false;
-    if (fields) fields.style.display = 'none';
-    if (panel) panel.classList.remove('active');
-    if (questionInput) questionInput.value = '';
-    if (toggleBtn) toggleBtn.textContent = '🎲 Tirada del Oráculo (D20)';
-    setOracleStat('STR');
+    closeOracleMiniPanel();
+    updateOracleFloatButton();
 }
-
 function setupOraclePanelForMode() {
-    const panel = document.getElementById('oraclePanel');
-    const fields = document.getElementById('oracleFields');
-    const questionInput = document.getElementById('oracleQuestionInput');
-    const statButtonsWrap = document.getElementById('oracleStatButtons');
-    const replyText = document.getElementById('vnReplyText');
+    // El mini-panel del oráculo (vnOracleMiniPanel) se gestiona independientemente.
+    // Esta función solo actualiza el botón flotante según el modo actual.
+    updateOracleFloatButton();
     const topic = getCurrentTopic();
     const isRpg = isRpgTopicMode(topic?.mode || currentTopicMode);
-
-    if (!panel) return;
     if (!isRpg) {
-        panel.style.display = 'none';
+        closeOracleMiniPanel();
         resetOraclePanelState();
         return;
     }
-
-    panel.style.display = 'block';
     resetOraclePanelState();
     refreshOracleQuestionAutodetect(true);
-
-    if (replyText && !replyText.dataset.boundOracleInput) {
-        replyText.dataset.boundOracleInput = '1';
-        replyText.addEventListener('input', () => refreshOracleQuestionAutodetect(false));
-    }
-
-    if (questionInput && !questionInput.dataset.boundOracleInput) {
-        questionInput.dataset.boundOracleInput = '1';
-        questionInput.addEventListener('input', () => {
-            oracleQuestionDirty = questionInput.value.trim().length > 0;
-        });
-    }
-
-    if (statButtonsWrap && !statButtonsWrap.dataset.boundOracle) {
-        statButtonsWrap.dataset.boundOracle = '1';
-        statButtonsWrap.addEventListener('click', (event) => {
-            const btn = event.target.closest('.oracle-stat-btn');
-            if (!btn) return;
-            setOracleStat(btn.dataset.stat || 'STR');
-        });
-    }
 }
 
 
 function toggleOracleMode() {
-    const panel = document.getElementById('oraclePanel');
-    const fields = document.getElementById('oracleFields');
-    const toggleBtn = document.getElementById('oracleToggleBtn');
     const topic = getCurrentTopic();
     if (!isRpgTopicMode(topic?.mode)) return;
-
+    // El oráculo ahora usa el mini-panel independiente
     oracleModeActive = !oracleModeActive;
-    if (fields) fields.style.display = oracleModeActive ? 'block' : 'none';
-    if (panel) panel.classList.toggle('active', oracleModeActive);
-    if (toggleBtn) toggleBtn.textContent = oracleModeActive ? '🎲 Tirada D20 activada' : '🎲 Tirada del Oráculo (D20)';
-    if (oracleModeActive) refreshOracleProbability();
+    if (oracleModeActive) {
+        toggleOracleMiniPanel();
+    } else {
+        closeOracleMiniPanel();
+    }
     updateOracleFloatButton();
 }
 
 function updateOracleFloatButton() {
     const floatBtn = document.getElementById('vnOracleFloatBtn');
     const topic = getCurrentTopic();
-    const panel = document.getElementById('vnReplyPanel');
     const vnSection = document.getElementById('vnSection');
     if (!floatBtn) return;
 
     const isRpg = isRpgTopicMode(topic?.mode);
     const isInVn = !!vnSection?.classList.contains('active');
-    const isPanelOpen = panel?.style.display === 'flex';
-    const shouldShow = isRpg && isInVn && !isPanelOpen;
+    // El botón ahora vive dentro de la caja de diálogo: se muestra si es RPG y estamos en VN
+    const shouldShow = isRpg && isInVn;
 
     floatBtn.style.display = shouldShow ? 'inline-flex' : 'none';
+    // Keep innkeeper button in sync too
+    if (typeof updateNarrateButton === 'function') updateNarrateButton();
     floatBtn.classList.toggle('active', oracleModeActive);
+    floatBtn.dataset.oracleActive = oracleModeActive ? 'true' : 'false';
 }
 
 function triggerOracleReply() {
-    const topic = getCurrentTopic();
-    if (!isRpgTopicMode(topic?.mode)) return;
-    openReplyPanel();
-    if (!oracleModeActive) toggleOracleMode();
+    toggleOracleMiniPanel();
+}
+
+// ---- Mini-panel del Oráculo ----
+let oracleMiniStat = 'STR';
+
+function toggleOracleMiniPanel() {
+    const panel = document.getElementById('vnOracleMiniPanel');
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    if (isOpen) { closeOracleMiniPanel(); return; }
+    panel.style.display = 'block';
+    refreshOracleMiniInfo();
+    panel.querySelectorAll('.oracle-stat-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.stat === oracleMiniStat);
+        btn.onclick = () => {
+            oracleMiniStat = btn.dataset.stat;
+            panel.querySelectorAll('.oracle-stat-btn').forEach(b =>
+                b.classList.toggle('active', b.dataset.stat === oracleMiniStat));
+            refreshOracleMiniInfo();
+        };
+    });
+    const ta = document.getElementById('oracleMiniQuestion');
+    if (ta) setTimeout(() => ta.focus(), 60);
+}
+
+function closeOracleMiniPanel() {
+    const panel = document.getElementById('vnOracleMiniPanel');
+    if (panel) panel.style.display = 'none';
+}
+
+function refreshOracleMiniInfo() {
+    const infoEl = document.getElementById('oracleMiniInfo');
+    if (!infoEl) return;
+    const char = appData.characters.find(c => c.id === selectedCharId);
+    const stats = (char && typeof getRpgSheetData === 'function')
+        ? (getRpgSheetData(char, currentTopicId || null)?.totalStats || {})
+        : {};
+    const statValue = Number(stats[oracleMiniStat]) || 5;
+    const modifier = getOracleModifier(statValue);
+    const dc = calculateOracleDifficulty();
+    const sign = modifier >= 0 ? '+' : '';
+    const advantage = statValue >= 14 ? ' · ▲ Ventaja' : statValue <= 6 ? ' · ▼ Desventaja' : '';
+    infoEl.textContent = `D20 ${sign}${modifier} vs ${dc}${advantage}`;
+}
+
+function rollOracleMini() {
+    const ta = document.getElementById('oracleMiniQuestion');
+    const questionText = (ta?.value || '').trim();
+
+    const char = appData.characters.find(c => c.id === selectedCharId);
+    const stats = (char && typeof getRpgSheetData === 'function')
+        ? (getRpgSheetData(char, currentTopicId || null)?.totalStats || {})
+        : {};
+    const statValue = Number(stats[oracleMiniStat]) || 5;
+    const modifier = getOracleModifier(statValue);
+    const dc = calculateOracleDifficulty();
+    const roll = Math.floor(Math.random() * 20) + 1;
+    const total = Math.max(1, Math.min(20, roll + modifier));
+    const result = getOracleRollResult(roll, total);
+    const label = getOracleResultLabel(result);
+
+    showDiceResultOverlay({ roll, modifier, total, result, stat: oracleMiniStat, statValue });
+    closeOracleMiniPanel();
+    if (ta) ta.value = '';
+
+    // ══ VOZ: EL ECO DEL DESTINO ══════════════════════════════════════════════
+    // Entidad teatral, fatalista. Segunda persona. Metáforas de hilos / sombras /
+    // fuego / eco. Testigo que disfruta el espectáculo. Nunca certezas, siempre
+    // presagios. Nunca menciona números directamente — los transforma en imagen.
+    const _accion = questionText || 'lo que intentas';
+    const _Accion = _accion.charAt(0).toUpperCase() + _accion.slice(1);
+
+    const ecoVoices = {
+        critical: [
+            `*El hilo vibra con una frecuencia que no debería existir.* Escúchalo bien — el eco regresa amplificado, con el peso entero del destino detrás. **${_Accion}**: no solo era posible. Era inevitable. Aunque eso debería inquietarte más de lo que te alegra.`,
+            `*Hay momentos en que el tejido del destino no cruza, sino que se funde.* Este es uno de ellos. Tu sombra se alargó hasta tocar lo que buscabas, y el eco no regresó — porque el eco *eras tú* todo el tiempo. **El destino se doblegó. Completamente.** Disfruta del calor. Dura menos de lo que crees.`,
+            `*Silencio primero. Luego un destello que me hace parpadear.* Raramente contemplo algo así sin cierta admiración incómoda. El hilo no crujió — *cantó*. **${_Accion}: lo que le pediste al destino, el destino lo entregó sin regatear.** La próxima tirada no te conoce.`
+        ],
+        success: [
+            `*El hilo se tensa… y aguanta.* No sin esfuerzo. No sin la sombra del fracaso rozándote. Pero aguanta. **${_Accion} — el destino decidió mirarte esta vez.** El fuego no te quema. Avanzas. No te acostumbres a ser observado con tanta benevolencia.`,
+            `*Veo el eco de tu intención regresar distorsionado, pero reconocible.* El camino estaba cerrado. Lo forzaste lo suficiente. **La sombra cedió terreno. Sigues en pie.** Soy testigo de tu pequeño triunfo — y de los hilos que acabas de mover sin darte cuenta.`,
+            `*El fuego vaciló antes de decidir en qué dirección arder.* Hoy ardió hacia ti. **${_Accion} tuvo el peso justo para inclinar la balanza.** El destino dice sí — aunque susurra advertencias que tal vez no estás escuchando.`
+        ],
+        fail: [
+            `*El hilo se afloja.* Observa cómo cae — qué imagen tan honesta. El destino no te odia. Simplemente miraba hacia otro lado cuando más lo necesitabas. **La sombra de ${_accion} no llegó a su destino.** Eso tiene consecuencias. Siempre las tiene.`,
+            `*El eco regresa vacío.* Tu acción resonó en el tejido del destino y encontró una pared de silencio frío. **El fuego que querías encender se apagó antes de nacer.** No es el fin — pero es un inicio diferente al que planeabas. Interesante, a mi manera.`,
+            `*Contemplo el hilo roto y encuentro cierta belleza en ello.* El fracaso tiene su propia arquitectura. **${_Accion} no prosperó — el destino te cerró esa puerta con una cortesía que no merecías.** Las sombras ganan terreno. Por ahora.`
+        ],
+        fumble: [
+            `*El hilo no solo se rompe — corta.* Aparta la mano, demasiado tarde. **${_Accion} abrió una grieta que no estaba en tus planes.** El eco no regresó — regresó transformado en algo que no reconocerás hasta que te haga daño. Soy testigo. Y debo admitir: el espectáculo mejora.`,
+            `*El fuego decidió arder en la dirección equivocada.* Vi el momento exacto en que el destino dejó de ser neutral y se volvió adversario. **La sombra que caíste no es tuya — es de algo que acabas de despertar.** Sus consecuencias ya están en camino, aunque aún no puedas verlas.`,
+            `*Silencio largo. Luego mi voz, muy baja.* Hay tiradas que no solo fallan — que reescriben lo que viene después. **${_Accion}: el hilo no crujió. Se deshilachó. Y cada hebra suelta tiene su propio destino ahora.** Yo lo veo todo. Tú, aún no.`
+        ]
+    };
+
+    const _voices = ecoVoices[result] || ecoVoices.success;
+    const narratorText = _voices[Math.floor(Math.random() * _voices.length)];
+
+    const oracleData = {
+        question: questionText || `Tirada de ${oracleMiniStat}`,
+        stat: oracleMiniStat, statValue, modifier, dc, roll, total, result,
+        timestamp: Date.now()
+    };
+
+    const topicMessages = getTopicMessages(currentTopicId);
+    const topic = appData.topics.find(t => t.id === currentTopicId);
+    const newMsg = {
+        id: (globalThis.crypto?.randomUUID?.()) || `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        characterId: null,
+        charName: 'Eco del Destino',
+        charColor: null, charAvatar: null, charSprite: null,
+        text: narratorText,
+        isNarrator: true,
+        isOracleResult: true,
+        userIndex: currentUserIndex,
+        timestamp: new Date().toISOString(),
+        oracle: oracleData
+    };
+
+    if (topic?.mode === 'rpg') applyRpgNarrativeProgress(selectedCharId, oracleData);
+
+    topicMessages.push(newMsg);
+    if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
+        SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
+    }
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
+    triggerDialogueFadeIn();
+    showCurrentMessage('forward');
 }
 
 let spriteIntersectionObserver = null;
@@ -246,7 +384,16 @@ function updateVnMobileFabVisibility() {
 
     if (!vnMobileFabBound) {
         vnMobileFabBound = true;
-        window.addEventListener('resize', () => updateVnMobileFabVisibility(), { passive: true });
+        let _resizeDebounce = null;
+        const debouncedUpdate = () => {
+            clearTimeout(_resizeDebounce);
+            _resizeDebounce = setTimeout(updateVnMobileFabVisibility, 120);
+        };
+        window.addEventListener('resize', debouncedUpdate, { passive: true });
+        // Actualizar también al cambiar orientación (móvil)
+        window.addEventListener('orientationchange', () => {
+            setTimeout(updateVnMobileFabVisibility, 200);
+        }, { passive: true });
     }
 }
 
@@ -580,6 +727,18 @@ function playVnSceneTransition(vnSection) {
 
 function enterTopic(id) {
     if (typeof stopMenuMusic === 'function') stopMenuMusic();
+
+    const t = appData.topics.find(topic => topic.id === id);
+    if (!t) return;
+
+    // Si es modo RPG y no tiene personaje asignado, mostrar el modal SIN
+    // haber limpiado estado (evita el flash de pantalla negra). Igual que en modo clásico.
+    const topicMode = t.mode || 'roleplay';
+    if (topicMode === 'rpg' && !getTopicLockedCharacterId(t)) {
+        openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
+        return;
+    }
+
     // Onboarding paso 2: primera vez en una historia
     const _ob = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
     if (_ob === 2 && typeof maybeShowOnboarding === 'function') {
@@ -594,12 +753,10 @@ function enterTopic(id) {
     pendingContinuation = null;
     editingMessageId = null;
 
-    const t = appData.topics.find(topic => topic.id === id);
-    if(!t) return;
     if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(id);
 
     // Establecer modo
-    currentTopicMode = t.mode || 'roleplay';
+    currentTopicMode = topicMode;
 
     if (currentTopicMode === 'roleplay' && t.roleCharacterId) {
         const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
@@ -609,13 +766,14 @@ function enterTopic(id) {
         }
     }
 
-    if (currentTopicMode === 'fanfic') {
+    if (currentTopicMode === 'rpg') {
         const lockedCharId = getTopicLockedCharacterId(t);
         if (lockedCharId) {
             selectedCharId = lockedCharId;
             if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
         } else {
-            openRoleCharacterModal(id, { mode: 'fanfic', enterOnSelect: true });
+            // Fallback: no debería llegar aquí por el check de arriba, pero por seguridad
+            openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
             return;
         }
     }
@@ -631,18 +789,24 @@ function enterTopic(id) {
     if (vnSection) {
         applyTopicBackground(vnSection, t.background);
 
-        // Aplicar modo de sprites (fanfic = persistente por defecto)
-        if (currentTopicMode === 'fanfic') {
+        // Aplicar modo de sprites (rpg = persistente por defecto)
+        if (currentTopicMode === 'rpg') {
             vnSection.classList.remove('classic-mode');
             vnSection.classList.remove('mode-classic');
             vnSection.classList.add('mode-rpg');
+            document.body.classList.add('mode-rpg');
         } else {
             // En modo rol, usar modo clásico (sprites desaparecen)
             vnSection.classList.add('classic-mode');
             vnSection.classList.add('mode-classic');
             vnSection.classList.remove('mode-rpg');
+            document.body.classList.remove('mode-rpg');
+            document.body.classList.add('mode-classic');
         }
     }
+
+    // Resetear estado de capítulo al entrar a una historia
+    pendingChapter = null;
 
     const topicsSection = document.getElementById('topicsSection');
     if (topicsSection) topicsSection.classList.remove('active');
@@ -765,6 +929,12 @@ function stopTypewriter() {
     }
     typewriterSessionId++;
     isTyping = false;
+    // Resetear opacity inline por si quedó en 0 del modo HTML
+    const el = document.getElementById('vnDialogueText');
+    if (el && el.style.opacity === '0') {
+        el.style.transition = '';
+        el.style.opacity = '';
+    }
 }
 
 function triggerDialogueFadeIn() {
@@ -788,36 +958,66 @@ function detectOracleCategory(question = '', stat = '') {
 }
 
 function generateConsequence(oracle) {
-    const templates = {
+    // VOZ: El Eco del Destino — teatral, fatalista, segunda persona directa.
+    // Metáforas de hilos, sombras, fuego y eco. Nunca certezas — siempre presagios.
+    const category = detectOracleCategory(oracle?.question || '', oracle?.stat || '');
+    const isSuccess  = (oracle?.result === 'success' || oracle?.result === 'critical');
+    const isCritical = oracle?.result === 'critical';
+    const isFumble   = oracle?.result === 'fumble';
+
+    const voices = {
         negotiation: {
-            cara: 'Tu labia convence incluso al más recalcitrante. Has logrado lo que pedías.',
-            cruz: 'Tus palabras se atascan. El interlocutor frunce el ceño, insatisfecho.'
+            cara: isCritical
+                ? `*La palabra que pronunciaste atravesó el silencio como una flecha que ya sabía su destino.* El otro hilo cedió — no por convicción, sino porque el tejido lo exigía. **Tu voz fue el fuego esta vez.** Úsala con cuidado.`
+                : `*El eco de tus palabras llegó — distorsionado, pero llegó.* La sombra del rechazo retrocedió un paso. **El hilo de la negociación aguantó.** Por ahora. Las promesas tienen su propia gravedad.`,
+            cruz: isFumble
+                ? `*Tus palabras cayeron como brasas en agua fría.* No solo no convenciste — plantaste una semilla de desconfianza que crecerá en el momento menos oportuno. **El hilo no se tensó. Se enredó.**`
+                : `*El eco regresó hueco.* Tus palabras resonaron en el tejido del destino y encontraron una pared. **La sombra del otro no cedió.** Hay puertas que el lenguaje no puede abrir. Esta era una de ellas.`
         },
         force: {
-            cara: 'La fuerza fluye por tus músculos. El obstáculo cede ante tu empuje.',
-            cruz: 'Un tirón equivocado. El dolor te avisa: esta vez, la fuerza no bastó.'
+            cara: isCritical
+                ? `*El fuego recorrió tus brazos antes de que decidieras actuar.* El obstáculo no solo cedió — desapareció como si nunca hubiera tenido intención de resistir. **Tu sombra aplastó a la suya.**`
+                : `*El hilo de tu esfuerzo se tensó hasta casi romperse… y aguantó.* Lo que se interponía cedió, no sin dejar su marca. **El fuego de la fuerza encontró su destino.** El cuerpo recuerda lo que la mente olvida.`,
+            cruz: isFumble
+                ? `*El fuego giró en tu contra.* El esfuerzo que pusiste se convirtió en el arma del destino contra ti. **La sombra que empujaste te empujó de vuelta, más fuerte.** Algo se rompió — dentro o fuera, aún no sabes cuál.`
+                : `*El hilo se aflojó justo cuando más necesitabas que tensara.* La fuerza que invocaste no encontró el ángulo correcto. **El obstáculo permanece. Y ahora sabe que intentaste moverlo.**`
         },
         agility: {
-            cara: 'Tus reflejos se adelantan al peligro. El movimiento sale impecable.',
-            cruz: 'Te descoordinas un instante y pierdes la ventaja.'
+            cara: isCritical
+                ? `*Tu sombra se movió antes que tú.* El destino abrió un instante de claridad absoluta — y tu cuerpo lo habitó sin vacilar. **El hilo del peligro pasó rozando. Solo rozando.** Eso no fue suerte. Fue algo más inquietante.`
+                : `*El eco de tu movimiento llegó a donde tenía que llegar.* No fue elegante — fue suficiente. **La sombra del obstáculo no te alcanzó.** Por un margen que solo yo contemplé en su totalidad.`,
+            cruz: isFumble
+                ? `*El hilo que intentabas esquivar se enredó en tus pies.* El movimiento que creías tener se fracturó en el momento crítico. **Tu sombra tropezó con la del destino — y el destino no se disculpa.**`
+                : `*Una fracción de segundo. Eso fue lo que faltó.* El fuego del instante se extinguió antes de que pudieras aprovecharlo. **La ventaja se esfumó.** El destino no la desperdicia — la guarda para quien la merezca después.`
         },
         endurance: {
-            cara: 'Respiras hondo y resistes. El desgaste no te vence.',
-            cruz: 'El cansancio te gana terreno y te obliga a ceder.'
+            cara: isCritical
+                ? `*El fuego que debería haberte consumido te encontró incombustible.* No resististe el desgaste — lo ignoraste. **Tu sombra permanece entera cuando otras ya serían ceniza.** Ese precio se cobrará más adelante.`
+                : `*El hilo de tu resistencia crujió — y aguantó.* No sin coste. El eco del esfuerzo queda grabado en algún lugar que no puedes ver. **Sigues en pie. Eso es suficiente… por ahora.**`,
+            cruz: isFumble
+                ? `*El fuego te encontró con las defensas caídas.* Lo que creías que podías aguantar resultó ser exactamente lo que no podías. **El hilo cedió en el peor momento.** El desgaste ahora es deuda — y el destino cobra con intereses.`
+                : `*La sombra del agotamiento llegó antes que tú.* No puedes resistir lo que ya te habita. **El hilo se aflojó.** El destino lo notó. Y anotó.`
         },
         analysis: {
-            cara: 'Las piezas encajan en tu mente. Comprendes lo esencial de la situación.',
-            cruz: 'La información se te escapa entre detalles confusos.'
+            cara: isCritical
+                ? `*El eco de la verdad regresó nítido, sin distorsión.* Las piezas que estaban dispersas formaron una imagen que nadie más podría haber leído. **Tu sombra tocó el fondo del misterio.** Ahora sabes algo que cambia lo que viene. Témelo o úsalo.`
+                : `*El hilo de la comprensión se tendió entre el caos y tu mente.* No todo, pero suficiente. **El fuego de la deducción encendió lo que necesitabas ver.** Hay sombras que siguen sin nombre, pero ya sabes dónde buscarlas.`,
+            cruz: isFumble
+                ? `*El eco regresó fragmentado — y cada fragmento señala en una dirección diferente.* Creías entender. Ahora entiendes menos que antes, y lo que "sabes" podría ser exactamente lo que alguien quería que creyeras. **El hilo de la verdad se enredó a propósito.**`
+                : `*La información fluyó… y se filtró antes de llegar.* Los detalles que buscabas se esconden detrás de otros detalles. **La sombra del conocimiento no alcanzó tu mano.** A veces el destino protege sus secretos con más celo que sus tesoros.`
         },
         generic: {
-            cara: 'Lo has conseguido.',
-            cruz: 'No ha funcionado.'
+            cara: isCritical
+                ? `*El hilo cantó. El fuego obedeció. La sombra cedió.* El destino no siempre es tan explícito — aprovecha el momento. **Lo que intentabas era posible, y el universo lo confirmó sin ambigüedad.** Aunque eso raramente dura.`
+                : `*El eco regresó cargado.* Tu intención encontró el ángulo correcto en el tejido del destino. **El hilo aguantó. Avanzas.** Las sombras no desaparecen — pero, por ahora, se apartan.`,
+            cruz: isFumble
+                ? `*El eco no regresó.* Lo que enviaste al tejido del destino fue absorbido por algo que no tienes nombre para llamar. **El hilo no crujió — desapareció.** Y las consecuencias de ese vacío ya se están formando en algún lugar que aún no puedes ver.`
+                : `*El hilo se aflojó en el momento exacto en que más importaba.* El destino no es cruel — es indiferente, que es peor. **Lo que intentabas no encontró su camino.** Encuentra otro, o espera que el tejido cambie solo.`
         }
     };
 
-    const category = detectOracleCategory(oracle?.question || '', oracle?.stat || '');
-    const result = oracle?.result === 'success' ? 'cara' : 'cruz';
-    return templates[category]?.[result] || templates.generic[result];
+    const categoryVoices = voices[category] || voices.generic;
+    return categoryVoices[isSuccess ? 'cara' : 'cruz'];
 }
 
 function showCurrentMessage(direction = 'forward') {
@@ -854,15 +1054,44 @@ function showCurrentMessage(direction = 'forward') {
         if (!charData) charExists = false;
     }
 
+    // Aplicar/quitar atributo data-garrick en la caja de diálogo
+    const dialogueBox = document.querySelector('.vn-dialogue-box');
+    if (dialogueBox) {
+        dialogueBox.dataset.garrick = msg.isGarrick ? 'true' : 'false';
+    }
+
     if (msg.isNarrator || !msg.characterId) {
         if (namePlate) {
-            namePlate.textContent = 'Narrador';
-            namePlate.style.background = 'linear-gradient(135deg, #4a4540, #2a2724)';
+            if (msg.isGarrick) {
+                // Posadero Garrick — nameplate especial
+                namePlate.textContent = 'Garrick';
+                namePlate.dataset.garrick = 'true';
+                namePlate.style.background = 'linear-gradient(135deg, #1c0f04, #3d1e08, #1c0f04)';
+                namePlate.style.borderColor = 'rgba(180, 110, 40, 0.6)';
+                namePlate.style.color = 'rgba(240, 195, 120, 0.95)';
+            } else if (msg.isOracleResult) {
+                namePlate.textContent = 'Eco del Destino';
+                namePlate.dataset.garrick = 'false';
+                namePlate.style.background = 'linear-gradient(135deg, #1a1008, #3a2010)';
+                namePlate.style.borderColor = 'rgba(180,130,40,0.6)';
+                namePlate.style.color = '';
+            } else {
+                namePlate.textContent = msg.charName || 'Narrador';
+                namePlate.dataset.garrick = 'false';
+                namePlate.style.background = 'linear-gradient(135deg, #4a4540, #2a2724)';
+                namePlate.style.borderColor = '';
+                namePlate.style.color = '';
+            }
         }
-        if (avatarBox) avatarBox.innerHTML = '📖';
-        // Color de acento para el narrador: dorado neutro
-        document.documentElement.style.setProperty('--char-color', 'rgba(139, 115, 85, 0.6)');
-        document.documentElement.style.setProperty('--char-color-full', '#8b7355');
+        if (avatarBox) avatarBox.innerHTML = msg.isGarrick ? '🍺' : (msg.isOracleResult ? '🌀' : '📖');
+        const accentColor = msg.isGarrick
+            ? 'rgba(160, 100, 40, 0.75)'
+            : msg.isOracleResult ? 'rgba(160, 100, 20, 0.7)' : 'rgba(139, 115, 85, 0.6)';
+        const accentFull = msg.isGarrick ? '#a06428'
+            : msg.isOracleResult ? '#a06414' : '#8b7355';
+        document.documentElement.style.setProperty('--char-color', accentColor);
+        document.documentElement.style.setProperty('--char-color-full', accentFull);
+        const oracleColor = accentColor;
     } else if (!charExists) {
         if (namePlate) {
             namePlate.textContent = msg.charName || 'Desconocido';
@@ -893,26 +1122,50 @@ function showCurrentMessage(direction = 'forward') {
     const hasOpt = msg.options && msg.options.length > 0 && msg.selectedOptionIndex === undefined;
     const optionsIndicator = document.getElementById('messageHasOptions');
     if (optionsIndicator) {
-        optionsIndicator.classList.toggle('hidden', !hasOpt || isFanficMode());
+        optionsIndicator.classList.toggle('hidden', !hasOpt || isRpgModeMode());
     }
 
     const formattedText = formatText(cleanText);
     if (dialogueText) typeWriter(formattedText, dialogueText);
 
+    // ── Oracle consequence badge ────────────────────────────────────────────
     const oracleBadge = document.getElementById('vnOracleConsequenceBadge');
-    if (oracleBadge) oracleBadge.style.display = 'none';
+    if (oracleBadge) {
+        // Solo mostramos consecuencia en mensajes que NO son del propio oráculo
+        // (los mensajes isOracleResult ya tienen el texto completo como narratorText)
+        if (msg.oracle && !msg.isOracleResult) {
+            const consequence = generateConsequence(msg.oracle);
+            oracleBadge.textContent = consequence;
+            oracleBadge.style.display = '';
+        } else {
+            oracleBadge.style.display = 'none';
+        }
+    }
 
     const diceBadge = document.getElementById('vnDiceBadge');
     if (diceBadge && msg.oracle) {
-        const roll = Number(msg.oracle.roll) || 0;
-        const total = Number(msg.oracle.total) || 0;
-        const dc = Number(msg.oracle.dc) || calculateOracleDifficulty();
-        const resultOk = msg.oracle.result === 'success';
-        diceBadge.textContent = `🎲 ${roll} (${total} vs ${dc}) · ${resultOk ? 'ÉXITO' : 'FALLO'}`;
-        diceBadge.className = `vn-dice-badge ${resultOk ? 'badge-success' : 'badge-fail'}`;
+        const roll    = Number(msg.oracle.roll) || 0;
+        const total   = Number(msg.oracle.total) || 0;
+        const dc      = Number(msg.oracle.dc) || calculateOracleDifficulty();
+        const mod     = Number(msg.oracle.modifier) || 0;
+        const modSign = mod >= 0 ? '+' : '';
+        const stat    = msg.oracle.stat || '';
+        const result  = msg.oracle.result || 'success';
+
+        const resultMeta = {
+            critical: { label: 'ÉXITO CRÍTICO', cls: 'badge-critical', icon: '✦', borderColor: '#f1c40f' },
+            success:  { label: 'ACIERTO',        cls: 'badge-success',  icon: '◆', borderColor: '#27ae60' },
+            fail:     { label: 'FALLO',           cls: 'badge-fail',     icon: '◇', borderColor: '#c0392b' },
+            fumble:   { label: 'FALLO CRÍTICO',   cls: 'badge-fumble',   icon: '✕', borderColor: '#ff4444' }
+        }[result] || { label: result.toUpperCase(), cls: 'badge-success', icon: '◆', borderColor: '#27ae60' };
+
+        diceBadge.innerHTML = `<span style="margin-right:0.35rem;">${resultMeta.icon}</span><strong>${resultMeta.label}</strong><span style="opacity:0.7;margin-left:0.5rem;font-size:0.85em;">D20(${roll}) ${modSign}${mod} = ${total} vs ${dc}${stat ? ' [' + stat + ']' : ''}</span>`;
+        diceBadge.className = `vn-dice-badge ${resultMeta.cls}`;
+        diceBadge.style.borderLeft = `3px solid ${resultMeta.borderColor}`;
         diceBadge.style.display = 'inline-flex';
     } else if (diceBadge) {
         diceBadge.style.display = 'none';
+        diceBadge.style.borderLeft = '';
     }
 
     const msgCounter = document.getElementById('vnMessageCounter');
@@ -931,7 +1184,7 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     const optionsContainer = document.getElementById('vnOptionsContainer');
-    if (currentMessageIndex === msgs.length - 1 && hasOpt && !isFanficMode()) {
+    if (currentMessageIndex === msgs.length - 1 && hasOpt && !isRpgModeMode()) {
         showOptions(msg.options);
     } else {
         if (optionsContainer) optionsContainer.classList.remove('active');
@@ -941,6 +1194,19 @@ function showCurrentMessage(direction = 'forward') {
     updateOracleFloatButton();
     scheduleContinuousReadIfNeeded(msg);
     if (typeof updateFavButton === "function") updateFavButton();
+
+    // Modo clásico: panel de personaje
+    if (typeof updateClassicLiteraryPanel === 'function') updateClassicLiteraryPanel();
+    // Botón de narración flotante
+    if (typeof updateNarrateButton === 'function') updateNarrateButton();
+
+    // Mostrar banner de capítulo al avanzar a un mensaje que abre capítulo
+    if (direction === 'forward' && msg.chapter) {
+        showChapterReveal(msg.chapter);
+    }
+
+    // Reacciones
+    if (typeof updateReactionDisplay === 'function') updateReactionDisplay();
 
     // Aplicar cambio de escena dinámico si el mensaje lo contiene
     if (direction === 'forward') {
@@ -1012,11 +1278,122 @@ function recycleActiveSprites(container) {
             delete img.dataset.src;
             img.onerror = null;
         }
-        child.querySelectorAll('.vn-sprite-hitbox, .manga-emote').forEach((el) => el.remove());
+        child.querySelectorAll('.vn-sprite-hitbox, .manga-emote, .sprite-shadow').forEach((el) => el.remove());
         // Limitar el pool a 20 elementos para evitar memory leak
         if (spritePool.length < 20) spritePool.push(child);
     });
     container.innerHTML = '';
+}
+
+// ── Normaliza el campo gender de un personaje a la clase CSS de sombra ──────
+function getShadowGenderClass(gender) {
+    const g = String(gender || '').toLowerCase().trim();
+    if (['male', 'm', 'masculino', 'hombre', 'masculine', 'masc'].includes(g)) return 'shadow-masc';
+    if (['female', 'f', 'femenino', 'mujer', 'feminine', 'fem'].includes(g)) return 'shadow-fem';
+    return null; // neutral / no especificado → silueta base etérea
+}
+
+// ── SVG paths para siluetas humanas realistas ────────────────────────────────
+const SHADOW_SVG_FEM = `<svg viewBox="0 0 200 520" xmlns="http://www.w3.org/2000/svg">
+  <g fill="currentColor">
+    <!-- Cabeza -->
+    <ellipse cx="100" cy="36" rx="26" ry="32"/>
+    <!-- Cuello -->
+    <rect x="91" y="64" width="18" height="20" rx="4"/>
+    <!-- Torso + cintura -->
+    <path d="M72,82 C60,88 54,100 54,116 L56,148 C56,160 62,170 72,175 L78,188 C82,196 80,206 76,214 L68,240 C64,252 66,264 72,274 L76,300 L124,300 L128,274 C134,264 136,252 132,240 L124,214 C120,206 118,196 122,188 L128,175 C138,170 144,160 144,148 L146,116 C146,100 140,88 128,82 C120,78 108,76 100,76 C92,76 80,78 72,82 Z"/>
+    <!-- Caderas más anchas -->
+    <path d="M68,296 C58,298 50,306 48,316 L44,340 C42,352 46,364 54,372 L58,400 L88,400 L90,370 L100,365 L110,370 L112,400 L142,400 L146,372 C154,364 158,352 156,340 L152,316 C150,306 142,298 132,296 Z"/>
+    <!-- Pierna izquierda -->
+    <path d="M58,396 L60,440 C60,452 58,464 56,476 L52,508 C51,514 55,520 61,520 L80,520 C86,520 89,514 88,508 L86,476 C84,464 84,452 86,440 L88,396 Z"/>
+    <!-- Pierna derecha -->
+    <path d="M112,396 L114,440 C116,452 116,464 114,476 L112,508 C111,514 114,520 120,520 L139,520 C145,520 149,514 148,508 L144,476 C142,464 140,452 140,440 L142,396 Z"/>
+    <!-- Brazos -->
+    <path d="M70,82 L48,86 C38,90 32,100 34,110 L42,158 C44,166 52,170 60,168 L68,166 L62,120 C60,106 64,92 70,82 Z"/>
+    <path d="M130,82 L152,86 C162,90 168,100 166,110 L158,158 C156,166 148,170 140,168 L132,166 L138,120 C140,106 136,92 130,82 Z"/>
+  </g>
+</svg>`;
+
+const SHADOW_SVG_MASC = `<svg viewBox="0 0 220 520" xmlns="http://www.w3.org/2000/svg">
+  <g fill="currentColor">
+    <!-- Cabeza -->
+    <ellipse cx="110" cy="34" rx="28" ry="30"/>
+    <!-- Cuello -->
+    <rect x="100" y="60" width="20" height="22" rx="3"/>
+    <!-- Torso ancho + hombros cuadrados -->
+    <path d="M62,80 C48,84 38,96 38,112 L40,152 C40,166 48,176 60,180 L64,200 C66,210 64,220 60,230 L54,258 C50,270 52,282 60,290 L66,316 L154,316 L160,290 C168,282 170,270 166,258 L160,230 C156,220 154,210 156,200 L160,180 C172,176 180,166 180,152 L182,112 C182,96 172,84 158,80 C144,74 128,72 110,72 C92,72 76,74 62,80 Z"/>
+    <!-- Caderas -->
+    <path d="M64,312 C54,314 46,322 44,332 L40,356 C38,368 42,380 50,388 L54,416 L86,416 L88,384 L110,380 L132,384 L134,416 L166,416 L170,388 C178,380 182,368 180,356 L176,332 C174,322 166,314 156,312 Z"/>
+    <!-- Pierna izquierda -->
+    <path d="M52,412 L54,455 C54,468 52,480 50,492 L46,514 C45,518 48,522 52,522 L80,522 C84,522 87,518 86,514 L84,492 C82,480 82,468 84,455 L88,412 Z"/>
+    <!-- Pierna derecha -->
+    <path d="M132,412 L136,455 C138,468 138,480 136,492 L134,514 C133,518 136,522 140,522 L168,522 C172,522 175,518 174,514 L170,492 C168,480 166,468 166,455 L168,412 Z"/>
+    <!-- Brazo izquierdo — más separado del cuerpo -->
+    <path d="M60,80 L32,88 C20,94 14,108 16,122 L26,170 C28,180 38,186 48,182 L62,178 L56,128 C54,110 56,92 60,80 Z"/>
+    <!-- Mano izquierda -->
+    <ellipse cx="40" cy="186" rx="10" ry="14"/>
+    <!-- Brazo derecho -->
+    <path d="M160,80 L188,88 C200,94 206,108 204,122 L194,170 C192,180 182,186 172,182 L158,178 L164,128 C166,110 164,92 160,80 Z"/>
+    <!-- Mano derecha -->
+    <ellipse cx="180" cy="186" rx="10" ry="14"/>
+  </g>
+</svg>`;
+
+const SHADOW_SVG_NEUTRAL = `<svg viewBox="0 0 210 520" xmlns="http://www.w3.org/2000/svg">
+  <g fill="currentColor">
+    <!-- Cabeza -->
+    <ellipse cx="105" cy="35" rx="27" ry="31"/>
+    <!-- Cuello -->
+    <rect x="95" y="62" width="20" height="21" rx="3"/>
+    <!-- Torso -->
+    <path d="M66,80 C54,86 46,98 46,114 L48,152 C48,164 56,174 66,178 L70,196 C72,206 70,216 66,226 L60,252 C56,264 58,276 66,284 L70,310 L140,310 L144,284 C152,276 154,264 150,252 L144,226 C140,216 138,206 140,196 L144,178 C154,174 162,164 162,152 L164,114 C164,98 156,86 144,80 C132,74 118,72 105,72 C92,72 78,74 66,80 Z"/>
+    <!-- Caderas -->
+    <path d="M66,306 C56,308 48,316 46,326 L42,350 C40,362 44,374 52,382 L56,410 L88,410 L90,378 L105,374 L120,378 L122,410 L154,410 L158,382 C166,374 170,362 168,350 L164,326 C162,316 154,308 144,306 Z"/>
+    <!-- Pierna izquierda -->
+    <path d="M54,406 L56,450 C56,462 54,474 52,486 L48,514 C47,518 50,522 54,522 L82,522 C86,522 89,518 88,514 L86,486 C84,474 84,462 86,450 L90,406 Z"/>
+    <!-- Pierna derecha -->
+    <path d="M120,406 L124,450 C126,462 126,474 124,486 L122,514 C121,518 124,522 128,522 L156,522 C160,522 163,518 162,514 L158,486 C156,474 154,462 154,450 L156,406 Z"/>
+    <!-- Brazos -->
+    <path d="M64,80 L40,88 C28,94 22,108 24,120 L34,166 C36,176 46,182 56,178 L66,174 L60,124 C58,106 60,90 64,80 Z"/>
+    <path d="M146,80 L170,88 C182,94 188,108 186,120 L176,166 C174,176 164,182 154,178 L144,174 L150,124 C152,106 150,90 146,80 Z"/>
+  </g>
+</svg>`;
+
+// ── Construye la estructura DOM completa de una silueta-sombra ───────────────
+// Usa SVGs realistas en lugar de div con clip-path
+function _buildSpriteShadow(characterId) {
+    const char = characterId
+        ? appData.characters.find(c => String(c.id) === String(characterId))
+        : null;
+
+    const genderClass = char ? getShadowGenderClass(char.gender) : null;
+
+    const shadow = document.createElement('div');
+    shadow.className = 'sprite-shadow';
+    shadow.setAttribute('aria-hidden', 'true');
+
+    // Elegir SVG según género
+    let svgContent;
+    if (genderClass === 'shadow-fem')  svgContent = SHADOW_SVG_FEM;
+    else if (genderClass === 'shadow-masc') svgContent = SHADOW_SVG_MASC;
+    else svgContent = SHADOW_SVG_NEUTRAL;
+
+    // Insertar SVG y aplicar clases de color/glow
+    const wrapper = document.createElement('div');
+    wrapper.className = 'shadow-silhouette' + (genderClass ? ` ${genderClass}` : '');
+    wrapper.innerHTML = svgContent;
+
+    const glow = document.createElement('div');
+    glow.className = 'shadow-glow' + (genderClass ? ` ${genderClass}` : '');
+
+    const hitbox = document.createElement('div');
+    hitbox.className = 'vn-sprite-hitbox';
+
+    shadow.appendChild(wrapper);
+    shadow.appendChild(glow);
+    shadow.appendChild(hitbox);
+
+    return shadow;
 }
 
 function updateSprites(currentMsg, activeEmote = null) {
@@ -1024,11 +1401,11 @@ function updateSprites(currentMsg, activeEmote = null) {
     if (!container) return;
 
     const msgs = getTopicMessages(currentTopicId);
-    const isFanfic = isFanficMode();
+    const isRpgMode = isRpgModeMode();
 
     let charsToShow = [];
 
-    if (isFanfic) {
+    if (isRpgMode) {
         const recentChars = [];
         const seen = new Set();
 
@@ -1085,17 +1462,25 @@ function updateSprites(currentMsg, activeEmote = null) {
             img.alt = escapeHtml(char.charName || 'Sprite');
             img.onerror = function () {
                 this.style.display = 'none';
-                if (this.parentElement) this.parentElement.classList.add('no-sprite');
+                const parent = this.parentElement;
+                if (parent) {
+                    parent.classList.add('no-sprite');
+                    // Construir sombra como fallback si no existe ya
+                    if (!parent.querySelector('.sprite-shadow')) {
+                        const shadow = _buildSpriteShadow(parent.dataset.charId);
+                        parent.appendChild(shadow);
+                    }
+                }
             };
             img.style.display = 'block';
             spriteNode.classList.remove('no-sprite');
         } else {
             if (img) img.remove();
             spriteNode.classList.add('no-sprite');
-            const hitbox = document.createElement('div');
-            hitbox.className = 'vn-sprite-hitbox';
-            hitbox.setAttribute('aria-hidden', 'true');
-            spriteNode.appendChild(hitbox);
+
+            // ── Silueta sombra (en lugar de hitbox vacío) ────────────────
+            const shadow = _buildSpriteShadow(char.characterId);
+            spriteNode.appendChild(shadow);
         }
 
         if (isCurrent && activeEmote) {
@@ -1351,7 +1736,7 @@ function editCurrentMessage() {
 
     setWeather(msg.weather || 'none');
 
-    if (msg.options && msg.options.length > 0 && !isFanficMode()) {
+    if (msg.options && msg.options.length > 0 && !isRpgModeMode()) {
         const enableOptions = document.getElementById('enableOptions');
         const optionsFields = document.getElementById('optionsFields');
 
@@ -1399,7 +1784,7 @@ function saveEditedMessage() {
         if(!selectedCharId) { showAutosave('Selecciona un personaje', 'error'); return; }
         char = appData.characters.find(c => c.id === selectedCharId);
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
-        if (topic?.mode === 'fanfic' && typeof ensureCharacterRpgProfile === 'function') {
+        if (topic?.mode === 'rpg' && typeof ensureCharacterRpgProfile === 'function') {
             const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
             if (profile.knockedOutTurns > 0) {
                 showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
@@ -1411,7 +1796,7 @@ function saveEditedMessage() {
 
     let options = null;
     const enableOptions = document.getElementById('enableOptions');
-    if(enableOptions && enableOptions.checked && !isFanficMode()) {
+    if(enableOptions && enableOptions.checked && !isRpgModeMode()) {
         options = [];
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
@@ -1462,7 +1847,7 @@ function showOptions(options) {
     const msgs = getTopicMessages(currentTopicId);
     const currentMsg = msgs[currentMessageIndex];
 
-    if (!options || options.length === 0 || isFanficMode()) {
+    if (!options || options.length === 0 || isRpgModeMode()) {
         container.classList.remove('active');
         return;
     }
@@ -1582,13 +1967,33 @@ function buildHistoryEntry(msg, idx, showFavBadge = false) {
     const isFav = showFavBadge && currentTopicId && isMessageFavorite(currentTopicId, String(msg.id));
     const favBadge = isFav ? '<span class="history-entry-fav" title="Favorito">⭐</span>' : '';
 
-    return `
+    // Separador de capítulo (modo clásico)
+    const chapterDivider = msg.chapter ? `
+        <div class="history-chapter-divider">
+            <div class="history-chapter-divider-line"></div>
+            <div class="history-chapter-divider-text">✦ ${escapeHtml(msg.chapter.title)} ✦</div>
+            <div class="history-chapter-divider-line"></div>
+        </div>` : '';
+
+    // Reacciones en el historial
+    let reactionRow = '';
+    if (currentTopicId && typeof getReactionSummary === 'function') {
+        const summary = getReactionSummary(currentTopicId, String(msg.id));
+        const chips = Object.entries(summary)
+            .sort((a, b) => b[1] - a[1])
+            .map(([emoji, count]) => `<span class="history-reaction-chip">${emoji}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`)
+            .join('');
+        if (chips) reactionRow = `<div class="history-reactions">${chips}</div>`;
+    }
+
+    return `${chapterDivider}
         <div class="history-entry ${isNarrator ? 'narrator' : ''} ${msg.isOptionResult ? 'option-result' : ''}${isFav ? ' is-favorite' : ''}">
             <div class="history-speaker">
                 ${msg.charAvatar && !isNarrator ? `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar en historial de ${escapeHtml(speaker)}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-gold);">` : ''}
                 ${escapeHtml(speaker)}${edited}${optionResult}${favBadge}
             </div>
             <div class="history-text">${formatText(msg.text)}</div>
+            ${reactionRow}
             <div class="history-timestamp">${date} • Mensaje ${idx + 1}</div>
         </div>
     `;
@@ -1667,7 +2072,7 @@ function getCurrentTopic() {
 }
 
 function canUseNarratorMode(topic) {
-    if (!topic || topic.mode !== 'fanfic') return true;
+    if (!topic || topic.mode !== 'rpg') return true;
     return topic.createdByIndex === currentUserIndex;
 }
 
@@ -1696,7 +2101,7 @@ function persistTopicLockedCharacter(topic, charId) {
     topic.characterLocks[currentUserIndex] = charId;
 
     // Mantener compatibilidad con lector legacy RPG
-    if (topic.mode === 'fanfic') {
+    if (topic.mode === 'rpg') {
         topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
         if (!topic.rpgCharacterLocks[currentUserIndex]) {
             topic.rpgCharacterLocks[currentUserIndex] = charId;
@@ -1712,12 +2117,15 @@ function getCharacterById(charId) {
 }
 
 function tickRpgKnockoutTurns(excludedCharId) {
+    let anyChanged = false;
     appData.characters.forEach((ch) => {
         const profile = typeof ensureCharacterRpgProfile === 'function' ? ensureCharacterRpgProfile(ch, currentTopicId || null) : null;
         if (!profile || profile.knockedOutTurns <= 0) return;
         if (excludedCharId && String(ch.id) === String(excludedCharId)) return;
         profile.knockedOutTurns = Math.max(0, profile.knockedOutTurns - 1);
+        anyChanged = true;
     });
+    if (anyChanged) { hasUnsavedChanges = true; save({ silent: true }); }
 }
 
 function applyRpgNarrativeProgress(charId, oracleRoll) {
@@ -1727,15 +2135,352 @@ function applyRpgNarrativeProgress(charId, oracleRoll) {
 
     const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
 
-    if (oracleRoll.result === 'fail') {
+    if (oracleRoll.result === 'fumble') {
+        profile.hp = Math.max(0, profile.hp - 2);
+        if (profile.hp === 0) profile.knockedOutTurns = 5;
+    } else if (oracleRoll.result === 'fail') {
         profile.hp = Math.max(0, profile.hp - 1);
         if (profile.hp === 0) profile.knockedOutTurns = 5;
     } else if (oracleRoll.result === 'success') {
         profile.exp += 1;
-        if (profile.exp >= 10) {
-            profile.exp = 0;
-            profile.level += 1;
+        if (profile.exp >= 10) { profile.exp = 0; profile.level += 1; }
+    } else if (oracleRoll.result === 'critical') {
+        profile.exp += 2;
+        if (profile.exp >= 10) { profile.exp = 0; profile.level += 1; }
+    }
+    // Persistir cambios de perfil RPG inmediatamente
+    hasUnsavedChanges = true;
+    save({ silent: true });
+}
+
+// ============================================
+// ============================================
+// MODO CLÁSICO — CAPÍTULOS
+// ============================================
+function getNextChapterNumber() {
+    const msgs = getTopicMessages(currentTopicId);
+    return msgs.filter(m => m.chapter).length + 1;
+}
+
+function updateChapterPreview() {
+    const preview = document.getElementById('chapterPreview');
+    if (!preview) return;
+    if (!pendingChapter) {
+        preview.style.display = 'none';
+        preview.textContent = '';
+        return;
+    }
+    preview.style.display = 'inline-flex';
+    preview.textContent = `${pendingChapter.title}`;
+}
+
+function prepareChapter() {
+    const topic = getCurrentTopic();
+    if (!canUseNarratorMode(topic)) {
+        showAutosave('Activa Modo Narrador para marcar capítulos', 'error');
+        return;
+    }
+    const num    = getNextChapterNumber();
+    const def    = `Capítulo ${['I','II','III','IV','V','VI','VII','VIII','IX','X'][num - 1] || num}`;
+    const titleRaw = window.prompt(`Título del capítulo ${num}:`, def);
+    if (titleRaw === null) return;
+    const title = String(titleRaw || '').trim() || def;
+
+    // Opcionalmente cambiar el fondo de escena
+    const backgroundRaw = window.prompt('URL del fondo para este capítulo (opcional, deja vacío para mantener el actual):', '');
+    if (backgroundRaw === null) return;
+    const background = backgroundRaw.trim()
+        ? resolveTopicBackgroundPath(backgroundRaw.trim())
+        : null;
+
+    pendingChapter = { title, number: num };
+    if (background) {
+        pendingSceneChange = { title, background, at: new Date().toISOString() };
+        updateSceneChangePreview();
+    }
+    updateChapterPreview();
+    if (typeof _updateNarratePending === 'function') _updateNarratePending();
+    showAutosave(`📖 ${title} preparado`, 'saved');
+}
+
+function showChapterReveal(chapterData) {
+    if (!chapterData) return;
+    const banner = document.getElementById('vnChapterReveal');
+    const titleEl = document.getElementById('vnChapterRevealTitle');
+    if (!banner || !titleEl) return;
+    titleEl.textContent = chapterData.title;
+    banner.classList.add('active');
+    setTimeout(() => { banner.classList.remove('active'); }, 2400);
+}
+
+// ============================================
+// MODO CLÁSICO — PANEL DE FICHA DE PERSONAJE
+// ============================================
+
+function updateClassicLiteraryPanel() {
+    // El badge 📋 está en la name-row — lo controlamos por su ID
+    const badge = document.getElementById('vnInfoClassicToggleBtn');
+    if (!badge) return;
+
+    if (currentTopicMode === 'rpg') {
+        badge.classList.add('hidden');
+        return;
+    }
+
+    const msgs = getTopicMessages(currentTopicId);
+    const msg  = msgs[currentMessageIndex];
+    if (!msg || msg.isNarrator || !msg.characterId) {
+        badge.classList.add('hidden');
+        return;
+    }
+
+    const char = appData.characters.find(c => String(c.id) === String(msg.characterId));
+    badge.classList.toggle('hidden', !char);
+}
+
+// Abre el fichaModal compacto (tipo Stats RPG) con el personaje del diálogo activo
+function openVnActiveCharSheet() {
+    const msgs = getTopicMessages(currentTopicId);
+    const msg  = msgs[currentMessageIndex];
+    if (!msg || !msg.characterId) return;
+    const char = appData.characters.find(c => String(c.id) === String(msg.characterId));
+    if (!char) return;
+
+    // Rellenar avatar
+    const avatarEl = document.getElementById('fichaModalAvatar');
+    if (avatarEl) {
+        avatarEl.innerHTML = char.avatar
+            ? `<img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" onerror="this.style.display='none';this.parentElement.textContent='${char.name[0]}';">`
+            : char.name[0];
+    }
+
+    // Nombre y propietario
+    const nameEl  = document.getElementById('fichaModalName');
+    const ownerEl = document.getElementById('fichaModalOwner');
+    if (nameEl)  nameEl.textContent  = `${char.name}${char.lastName ? ' ' + char.lastName : ''}`;
+    if (ownerEl) ownerEl.textContent = `Por ${char.owner || (typeof userNames !== 'undefined' && userNames[char.userIndex]) || '—'}`;
+
+    // Cuerpo: grid de datos básicos
+    const bodyEl = document.getElementById('fichaModalBody');
+    if (bodyEl) {
+        const rows = [
+            char.age       && { label: 'Edad',       val: char.age,        full: false },
+            char.race      && { label: 'Raza',        val: char.race,       full: false },
+            char.gender    && { label: 'Género',      val: char.gender,     full: false },
+            char.alignment && { label: 'Alineación',  val: (typeof alignments !== 'undefined' && alignments[char.alignment]) || char.alignment, full: false },
+            char.job       && { label: 'Ocupación',   val: char.job,        full: false },
+            char.basic     && { label: 'Descripción', val: char.basic.slice(0, 180) + (char.basic.length > 180 ? '…' : ''), full: true, italic: true },
+        ].filter(Boolean);
+
+        bodyEl.innerHTML = rows.map(r => `
+            <div class="ficha-modal-row${r.full ? ' full-width' : ''}">
+                <span class="ficha-modal-label">${r.label}</span>
+                <span class="ficha-modal-value${r.italic ? ' italic' : ''}">${escapeHtml(String(r.val))}</span>
+            </div>
+        `).join('');
+    }
+
+    if (typeof openModal === 'function') openModal('fichaModal');
+}
+
+function toggleCharacterInfoPanel() {
+    const panel = document.getElementById('vnCharInfoPanel');
+    if (!panel) return;
+    if (panel.style.display !== 'none') {
+        closeCharacterInfoPanel();
+    } else {
+        openCharacterInfoPanel();
+    }
+}
+
+function openCharacterInfoPanel() {
+    const msgs = getTopicMessages(currentTopicId);
+    const msg  = msgs[currentMessageIndex];
+    if (!msg || !msg.characterId) return;
+    const char = appData.characters.find(c => String(c.id) === String(msg.characterId));
+    if (!char) return;
+
+    _renderCharInfoPanel(char);
+    const panel = document.getElementById('vnCharInfoPanel');
+    if (panel) {
+        panel.style.display = 'flex';
+        setTimeout(() => panel.classList.add('char-panel-visible'), 10);
+    }
+
+    setTimeout(() => {
+        document.addEventListener('click', _closeCharPanelOnOutside, { once: true, capture: true });
+    }, 50);
+}
+
+function closeCharacterInfoPanel() {
+    const panel = document.getElementById('vnCharInfoPanel');
+    if (panel) {
+        panel.classList.remove('char-panel-visible');
+        setTimeout(() => {
+            if (!panel.classList.contains('char-panel-visible')) {
+                panel.style.display = 'none';
+            }
+        }, 220);
+    }
+}
+
+function _closeCharPanelOnOutside(e) {
+    const panel = document.getElementById('vnCharInfoPanel');
+    const btn   = document.getElementById('vnInfoClassicToggleBtn');
+    if (!panel) return;
+    if (!panel.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+        closeCharacterInfoPanel();
+    }
+}
+
+function _renderCharInfoPanel(char) {
+    if (!char) return;
+    const nameEl = document.getElementById('vnCharInfoName');
+    const bodyEl = document.getElementById('vnCharInfoBody');
+    const relEl  = document.getElementById('vnCharInfoRelations');
+
+    if (nameEl) nameEl.textContent = `${char.name}${char.lastName ? ' ' + char.lastName : ''}`;
+
+    // ── DATOS DE LA FICHA ─────────────────────
+    if (bodyEl) {
+        const fields = [
+            char.age       && { label: 'Edad',       val: char.age },
+            char.race      && { label: 'Raza',       val: char.race },
+            char.gender    && { label: 'Género',     val: char.gender },
+            char.job       && { label: 'Ocupación',  val: char.job },
+            char.alignment && { label: 'Alineación', val: (typeof alignments !== 'undefined' && alignments[char.alignment]) || char.alignment },
+        ].filter(Boolean);
+
+        const fieldsHtml = fields.map(f =>
+            `<div class="cip-row"><span class="cip-label">${f.label}</span><span class="cip-val">${escapeHtml(String(f.val))}</span></div>`
+        ).join('');
+
+        const basicHtml = char.basic
+            ? `<div class="cip-basic">"${escapeHtml(char.basic.slice(0, 200))}${char.basic.length > 200 ? '…' : ''}"</div>`
+            : '';
+
+        bodyEl.innerHTML = fieldsHtml + basicHtml;
+    }
+
+    // ── TODAS LAS RELACIONES EN LA PARTIDA ─────
+    if (relEl && currentTopicId) {
+        const msgs = getTopicMessages(currentTopicId);
+        const topicAffinities = (appData.affinities || {})[currentTopicId] || {};
+        const charIdStr = String(char.id);
+
+        const appearedIds = [...new Set(msgs.filter(m => m.characterId).map(m => String(m.characterId)))];
+        const relations = appearedIds
+            .filter(id => id !== charIdStr)
+            .map(id => {
+                const key   = [charIdStr, id].sort().join('_');
+                const value = Number(topicAffinities[key] || 0);
+                const other = appData.characters.find(c => String(c.id) === id);
+                return other ? { char: other, value } : null;
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.value - a.value);
+
+        if (!relations.length) {
+            relEl.innerHTML = '<div class="cip-no-rel">Sin relaciones registradas aún</div>';
+        } else {
+            const getR = (v) => (typeof affinityRanks !== 'undefined')
+                ? (affinityRanks.find(r => v >= r.min && v <= r.max) || { name: 'Desconocidos', color: '#888' })
+                : { name: '—', color: '#888' };
+
+            const rowsHtml = relations.map(({ char: other, value }) => {
+                const r   = getR(value);
+                const pct = Math.max(4, value);
+                const avatar = other.avatar
+                    ? `<img src="${escapeHtml(other.avatar)}" alt="${escapeHtml(other.name)}" onerror="this.style.display='none';this.parentElement.textContent='${other.name[0]}'">`
+                    : `<span>${other.name[0]}</span>`;
+                return `
+                <div class="cip-rel-row">
+                    <div class="cip-rel-avatar" style="border-color:${r.color}">${avatar}</div>
+                    <div class="cip-rel-info">
+                        <div class="cip-rel-name">${escapeHtml(other.name)}</div>
+                        <div class="cip-rel-rank" style="color:${r.color}">${r.name}</div>
+                        <div class="cip-rel-bar"><div class="cip-rel-fill" style="width:${pct}%;background:${r.color}"></div></div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            relEl.innerHTML = `<div class="cip-rel-header">Relaciones en esta historia</div>${rowsHtml}`;
         }
+    }
+}
+
+// ============================================
+// BOTÓN DE NARRACIÓN FLOTANTE (escena/capítulo)
+// ============================================
+
+function updateNarrateButton() {
+    const topic = getCurrentTopic();
+    const isOwner = !topic || topic.createdByIndex === currentUserIndex
+        || topic.createdByIndex === undefined
+        || topic.createdByIndex === null;
+    const isRpg = topic?.mode === 'rpg';
+
+    // 🍺 Posada: caja de diálogo, solo RPG + owner
+    const innBtn = document.getElementById('vnInnkeeperBtn');
+    if (innBtn) innBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
+
+    // ✒ Nueva escena: caja de diálogo, solo clásico + owner
+    const narrateDialogBtn = document.getElementById('vnNarrateDialogBtn');
+    if (narrateDialogBtn) narrateDialogBtn.style.display = (!isRpg && isOwner) ? 'inline-flex' : 'none';
+
+    // ✒ Narrar en barra de controles: ya no necesario, quitar si existe
+    const narrateCtrl = document.getElementById('vnNarrateBtn');
+    if (narrateCtrl) narrateCtrl.style.display = 'none';
+
+    _updateNarratePending();
+}
+
+function _updateNarratePending() {
+    const el = document.getElementById('vnNarratePending');
+    if (!el) return;
+    const parts = [];
+    if (pendingSceneChange) parts.push(`🎬 ${pendingSceneChange.title}`);
+    if (pendingChapter)     parts.push(`📖 ${pendingChapter.title}`);
+    if (parts.length) {
+        el.style.display = 'block';
+        el.innerHTML = parts.map(p => `<div class="narrate-pending-item">${escapeHtml(p)}</div>`).join('');
+    } else {
+        el.style.display = 'none';
+    }
+}
+
+function openNarratePanel() {
+    const panel = document.getElementById('vnNarratePanel');
+    if (!panel) return;
+    if (panel.style.display !== 'none') { closeNarratePanel(); return; }
+
+    // En modo RPG el panel no se usa (Garrick tiene su propio botón)
+    // En modo clásico solo mostramos la opción de escena libre
+    const topic = getCurrentTopic();
+    const isRpg = topic?.mode === 'rpg';
+    const innkeeperOption = panel.querySelector('.vn-narrate-option[data-option="innkeeper"]');
+    const freeOption      = panel.querySelector('.vn-narrate-option[data-option="free"]');
+    if (innkeeperOption) innkeeperOption.style.display = isRpg ? 'flex' : 'none';
+    if (freeOption)      freeOption.style.display      = 'flex'; // siempre visible
+
+    panel.style.display = 'flex';
+    _updateNarratePending();
+    setTimeout(() => {
+        document.addEventListener('click', _closeNarratePanelOnOutside, { once: true, capture: true });
+    }, 50);
+}
+
+function closeNarratePanel() {
+    const panel = document.getElementById('vnNarratePanel');
+    if (panel) panel.style.display = 'none';
+}
+
+function _closeNarratePanelOnOutside(e) {
+    const panel  = document.getElementById('vnNarratePanel');
+    const trigger = document.querySelector('.vn-narrate-btn-inner');
+    if (!panel) return;
+    if (!panel.contains(e.target) && e.target !== trigger && !trigger?.contains(e.target)) {
+        closeNarratePanel();
     }
 }
 
@@ -1788,6 +2533,7 @@ function prepareSceneChange() {
     };
 
     updateSceneChangePreview();
+    if (typeof _updateNarratePending === 'function') _updateNarratePending();
     showAutosave(`Escena preparada: ${title}`, 'saved');
 }
 
@@ -1798,7 +2544,7 @@ function applySceneChangeToTopic(topic, sceneChange) {
         topic.background = sceneChange.background;
     }
 
-    if (topic.mode === 'fanfic') {
+    if (topic.mode === 'rpg') {
         appData.characters.forEach((char) => {
             if (typeof ensureCharacterRpgProfile !== 'function') return;
             const profile = ensureCharacterRpgProfile(char, topic.id);
@@ -1843,7 +2589,7 @@ function openReplyPanel() {
 
     // Mostrar/ocultar opciones según modo
     if (optionsToggleContainer) {
-        optionsToggleContainer.style.display = isFanficMode() ? 'none' : 'flex';
+        optionsToggleContainer.style.display = isRpgModeMode() ? 'none' : 'flex';
     }
 
     // Mostrar selector de clima siempre
@@ -1851,6 +2597,7 @@ function openReplyPanel() {
         weatherSelectorContainer.style.display = 'block';
     }
 
+    // (escena y capítulo se gestionan desde el botón flotante vnNarrateBtn)
     const topic = getCurrentTopic();
     setupOraclePanelForMode();
     const narratorAllowed = canUseNarratorMode(topic);
@@ -1978,7 +2725,7 @@ function updateCharSelector() {
     }
 
     if (statsBtn) {
-        statsBtn.style.display = (topic?.mode === 'fanfic' && selectedCharId) ? 'inline-flex' : 'none';
+        statsBtn.style.display = (topic?.mode === 'rpg' && selectedCharId) ? 'inline-flex' : 'none';
     }
 
     if (grid && !isCharLocked) {
@@ -2010,7 +2757,7 @@ function selectCharFromGrid(charId) {
 
 function openSelectedCharacterStats() {
     const topic = getCurrentTopic();
-    if (topic?.mode !== 'fanfic') return;
+    if (topic?.mode !== 'rpg') return;
     if (!selectedCharId || typeof openRpgStatsModal !== 'function') return;
     openRpgStatsModal(selectedCharId);
 }
@@ -2077,7 +2824,7 @@ function postVNReply() {
         if(!selectedCharId) { showAutosave('Selecciona un personaje', 'error'); return; }
         char = appData.characters.find(c => c.id === selectedCharId);
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
-        if (topic?.mode === 'fanfic' && typeof ensureCharacterRpgProfile === 'function') {
+        if (topic?.mode === 'rpg' && typeof ensureCharacterRpgProfile === 'function') {
             const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
             if (profile.knockedOutTurns > 0) {
                 showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
@@ -2089,7 +2836,7 @@ function postVNReply() {
 
     let options = null;
     const enableOptions = document.getElementById('enableOptions');
-    if(enableOptions && enableOptions.checked && !isFanficMode()) {
+    if(enableOptions && enableOptions.checked && !isRpgModeMode()) {
         options = [];
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
@@ -2108,7 +2855,7 @@ function postVNReply() {
     updateSceneChangePreview();
 
     const finalText = sceneChange ? `🎬 **Escena: ${sceneChange.title}**\n${text}` : text;
-    const oracleQuestionInput = document.getElementById('oracleQuestionInput');
+    const oracleQuestionInput = document.getElementById('oracleMiniQuestion'); // fix: id correcto
     const shouldApplyOracle = oracleModeActive && isRpgTopicMode(topic?.mode);
     let oracleData;
     if (shouldApplyOracle) {
@@ -2116,7 +2863,8 @@ function postVNReply() {
         const modifier = getOracleModifier(statValue);
         const dc = calculateOracleDifficulty();
         const roll = Math.floor(Math.random() * 20) + 1;
-        const total = roll + modifier;
+        const total = Math.max(1, Math.min(20, roll + modifier));
+        const result = getOracleRollResult(roll, total);
         oracleData = {
             question: (oracleQuestionInput?.value || '').trim() || getOracleAutodetectedQuestion(text) || 'Pregunta al destino',
             stat: oracleStat,
@@ -2125,9 +2873,10 @@ function postVNReply() {
             dc,
             roll,
             total,
-            result: total >= dc ? 'success' : 'fail',
+            result,
             timestamp: Date.now()
         };
+        showDiceResultOverlay({ roll, modifier, total, result, stat: oracleStat, statValue });
     }
 
     const newMsg = {
@@ -2146,14 +2895,22 @@ function postVNReply() {
         options: options && options.length > 0 ? options : undefined,
         weather: currentWeather !== 'none' ? currentWeather : undefined,
         sceneChange: sceneChange,
-        oracle: oracleData
+        oracle: oracleData,
+        tone: undefined,
+        chapter: (topic?.mode !== 'rpg' && pendingChapter) ? pendingChapter : undefined,
     };
 
     if (sceneChange) {
         applySceneChangeToTopic(topic, sceneChange);
     }
 
-    if (topic?.mode === 'fanfic') {
+    // Limpiar capítulo pendiente después de usarlo
+    if (newMsg.chapter) {
+        pendingChapter = null;
+        updateChapterPreview();
+    }
+
+    if (topic?.mode === 'rpg') {
         tickRpgKnockoutTurns(isNarratorMode ? null : selectedCharId);
         applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, oracleData);
     }
@@ -2214,3 +2971,188 @@ if (typeof window !== 'undefined') {
         if (typeof isOfflineMode !== 'undefined') isOfflineMode = true;
     };
 };
+
+// ============================================
+// SISTEMA DEL POSADERO — GARRICK
+// La Chimenea Rota
+// ============================================
+
+const GARRICK = {
+    id: '__garrick__',
+    name: 'Garrick',
+    subtitle: 'La Chimenea Rota',
+    color: 'rgba(160, 100, 40, 0.9)',
+    colorFull: '#a06428',
+};
+
+// Diálogos por fase — cada uno con variantes aleatorias
+// fase: 'arrival' | 'night' | 'morning' | 'hp_full' | 'hp_low' | 'farewell'
+const GARRICK_DIALOGUES = {
+
+    arrival: [
+        `*La puerta cruje. El fuego en la chimenea no se inmuta.* El camino os ha dejado su firma encima. No hace falta que lo digáis. **Las camas están al fondo. La sopa, en el caldero.** Si queréis algo más, decídmelo antes de que me siente.`,
+        `*Deja el paño sobre la barra sin mirar hacia la puerta.* El fuego arde. Las camas existen. Lo que traéis de afuera, dejadlo en el umbral — aquí no entra el camino. **Hay sitio para todos los que paguen o para los que no molesten.** Vosotros parecéis de los segundos.`,
+        `*Lleva años leyendo llegadas en la forma en que se abre una puerta.* Cansancio real, no el de los que buscan excusa. **Bien.** Eso significa que esta noche dormiréis. La chimenea no hace preguntas, el colchón tampoco.`,
+        `*Alza los ojos del libro de cuentas. Los baja otra vez.* Hay espacio. Hay fuego. Hay silencio, si se lo cuidáis. **Lo que necesitéis está donde siempre ha estado.** Lo que no esté, no lo tengo.`,
+    ],
+
+    night: [
+        `*El fuego ya es brasas. La posada respira despacio.* Las heridas que no arden ya no sangran. Las que sí... el sueño las conoce mejor que yo. **Descansad.** El camino no os espera esta noche — eso es suficiente.`,
+        `*Apaga la última vela de la barra sin mirar hacia las habitaciones.* He visto a gente marcharse de aquí peor de como llegó por no saber cuándo parar. **Vosotros paráis esta noche.** Eso ya es saber algo que muchos no aprenden nunca.`,
+        `*Solo queda el crepitar de las brasas y el peso del silencio.* El cuerpo recuerda lo que la cabeza olvida cuando está ocupada. **Esta noche, recordad.** Mañana el camino tendrá opinión. Ahora, no.`,
+        `*Pone el pestillo sin hacer ruido.* Los que duermen aquí suelen salir mejor de como entraron. No es magia — es lo que hace el silencio cuando se le da tiempo. **Buenas noches. O lo que quede de ellas.**`,
+    ],
+
+    morning: [
+        `*El olor a pan recién hecho llega antes que la luz.* Las brasas llevan horas trabajando para vosotros. **Levantaos.** El camino os devuelve lo que le disteis anoche — solo que con intereses.`,
+        `*Ya tiene la bolsa de provisiones en la barra cuando bajáis.* No tengo discursos de despedida. **El fuego os ha hecho el favor que podía.** Lo que hagáis con eso es cosa vuestra.`,
+        `*Sirve el desayuno sin que se lo pidan.* He visto partir a suficiente gente como para saber que los que se van bien desayunados duran más. **Comed. Luego salid. En ese orden.**`,
+        `*Limpia el mostrador sin mirar hacia las escaleras.* El camino os espera igual que os dejó anoche — solo que vosotros ya no sois exactamente los mismos. **Eso, a veces, es suficiente ventaja.**`,
+    ],
+
+    hp_full: [
+        `*Os mira de arriba abajo. Apenas una fracción de segundo.* No estáis heridos. **Entonces el fuego esta noche es lujo, no necesidad.** Igual de bienvenido. Pero que conste que lo sé.`,
+        `*Deja la llave encima de la barra sin comentario.* Venís enteros. Raro, pero existe. **Aprovechadlo — el camino tiene memoria y la usa cuando menos conviene.**`,
+    ],
+
+    hp_low: [
+        `*Hace un gesto mínimo hacia las sillas más cercanas al fuego.* Las heridas que entran aquí tienen la costumbre de quedarse un poco menos cuando salen. **Sentaos cerca del calor.** No lo explico, solo lo he visto.`,
+        `*Sin drama, sin comentario. Solo deja vendas limpias en la habitación.* He aprendido a no preguntar cómo. Solo cuenta el cuánto y el ahora. **El fuego sabe lo que hace. Dejad que trabaje.**`,
+        `*El fuego arde un poco más alto esta noche. No es coincidencia.* El camino os ha cobrado. **La chimenea os devuelve lo que puede.** El resto, el sueño.`,
+    ],
+
+    farewell: [
+        `*No levanta la vista del libro de cuentas.* El camino os llama. **Bien.** Aquí estará cuando volváis — o cuando llegue quien venga después. La chimenea no tiene favoritos.`,
+        `*Un gesto seco con la barbilla hacia la puerta.* Habéis descansado lo que necesitabais. **Eso ya es más de lo que muchos consiguen.** Id.`,
+        `*Solo dice esto, sin mirar:* Las cenizas de esta noche fueron vuestras. Las del camino que viene... esas aún no tienen nombre. **Bien. Así debe ser.**`,
+        `*Coloca algo en la barra — provisiones, sin pedir nada a cambio.* Por si el camino se alarga más de lo previsto. **No es generosidad. Es pragmatismo.** Un cliente que llega es mejor que uno que no llega.`,
+    ],
+};
+
+function _garrickPick(phase) {
+    const pool = GARRICK_DIALOGUES[phase] || GARRICK_DIALOGUES.arrival;
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function _garrickHpPhase() {
+    // Evalúa el HP del personaje activo del usuario actual
+    const char = appData.characters.find(c => c.id === selectedCharId);
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return 'arrival';
+    const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
+    const hp = profile?.hp ?? 10;
+    const maxHp = 10;
+    if (hp >= maxHp) return 'hp_full';
+    if (hp <= 4)  return 'hp_low';
+    return null; // herido pero moderado — no cambia el diálogo de llegada
+}
+
+function _postGarrickMessage(text, isLast = false) {
+    const topicMessages = getTopicMessages(currentTopicId);
+    const newMsg = {
+        id: (globalThis.crypto?.randomUUID?.()) || `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        characterId: null,
+        charName: GARRICK.name,
+        charColor: GARRICK.color,
+        charAvatar: null,
+        charSprite: null,
+        text,
+        isNarrator: true,
+        isGarrick: true,
+        isGarrickFarewell: isLast,
+        userIndex: currentUserIndex,
+        timestamp: new Date().toISOString(),
+    };
+    topicMessages.push(newMsg);
+    if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
+        SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
+    }
+    return newMsg;
+}
+
+function triggerInnkeeperScene() {
+    const topic = getCurrentTopic();
+    if (!topic || !canUseNarratorMode(topic)) {
+        showAutosave('Solo el narrador puede invocar al posadero', 'error');
+        return;
+    }
+    if (topic.mode !== 'rpg') {
+        showAutosave('El posadero solo aparece en partidas RPG', 'error');
+        return;
+    }
+
+    // 1. Pedir título del nuevo capítulo (igual que prepareChapter)
+    const num = getNextChapterNumber();
+    const def = `Capítulo ${['I','II','III','IV','V','VI','VII','VIII','IX','X'][num - 1] || num}`;
+    const titleRaw = window.prompt(`Título del capítulo ${num}:`, def);
+    if (titleRaw === null) return;
+    const title = String(titleRaw || '').trim() || def;
+
+    // 2. Fondo de escena opcional
+    const backgroundRaw = window.prompt('URL del fondo para esta escena (opcional — deja vacío para el fondo actual):', '');
+    if (backgroundRaw === null) return;
+    const background = backgroundRaw.trim()
+        ? resolveTopicBackgroundPath(backgroundRaw.trim())
+        : null;
+
+    // 3. Preparar el capítulo como siempre (restaura HP en applySceneChangeToTopic)
+    pendingChapter = { title, number: num };
+    if (background) {
+        pendingSceneChange = { title, background, at: new Date().toISOString() };
+    }
+    updateChapterPreview();
+
+    // 4. Calcular estado del personaje activo ANTES de restaurar HP
+    const char = appData.characters.find(c => c.id === selectedCharId);
+    let hpPhase = 'arrival';
+    let hpBefore = 10;
+    if (char && typeof ensureCharacterRpgProfile === 'function') {
+        const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
+        hpBefore = profile?.hp ?? 10;
+        const override = _garrickHpPhase();
+        if (override) hpPhase = override;
+    }
+
+    // 5. Publicar los tres mensajes de Garrick en secuencia
+    hasUnsavedChanges = true;
+
+    // Aplicar el cambio de escena YA (restaura HP, cambia fondo)
+    if (pendingSceneChange) {
+        applySceneChangeToTopic(topic, pendingSceneChange);
+        pendingSceneChange = null;
+        updateSceneChangePreview();
+    } else {
+        // Sin cambio de fondo pero igual restaurar HP
+        if (topic.mode === 'rpg') {
+            appData.characters.forEach((ch) => {
+                if (typeof ensureCharacterRpgProfile !== 'function') return;
+                const p = ensureCharacterRpgProfile(ch, topic.id);
+                if (p) { p.hp = 10; p.knockedOutTurns = 0; }
+            });
+        }
+    }
+
+    // Mensaje 1: llegada
+    const arrivalText = _garrickPick(hpPhase === 'hp_full' ? 'hp_full' : hpPhase === 'hp_low' ? 'hp_low' : 'arrival');
+    const arrivalMsg = _postGarrickMessage(arrivalText);
+    // Vincular el capítulo al primer mensaje de Garrick
+    arrivalMsg.chapter = pendingChapter;
+    pendingChapter = null;
+    updateChapterPreview();
+
+    // Mensaje 2: noche
+    const nightMsg = _postGarrickMessage(_garrickPick('night'));
+
+    // Mensaje 3: despedida (mañana) — marca que el HP ya está restaurado
+    const farewellMsg = _postGarrickMessage(_garrickPick(hpBefore < 10 ? 'morning' : 'farewell'), true);
+
+    save({ silent: true });
+
+    // Mostrar el primer mensaje y dejar que el líder narrador continúe
+    currentMessageIndex = getTopicMessages(currentTopicId).length - 3; // ir al primer mensaje de Garrick
+    triggerDialogueFadeIn();
+    showCurrentMessage('forward');
+
+    showAutosave(`🍺 Garrick ha hablado — HP restaurado. Ahora usa el Narrador para continuar.`, 'saved');
+    if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+    if (typeof updateNarrateButton === 'function') updateNarrateButton();
+}

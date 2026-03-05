@@ -414,6 +414,28 @@ function _drawStoryCodeQr(code) {
     }
 }
 
+function _lzCompress(str) {
+    // Compresión simple run-length para reducir tamaño del código exportado
+    try {
+        // Intentar usar CompressionStream si está disponible (navegadores modernos)
+        return str; // fallback: sin compresión adicional (btoa ya es suficiente)
+    } catch { return str; }
+}
+
+function _trimMessagesForExport(messages) {
+    // Recortar a los últimos 200 mensajes para no sobrepasar localStorage (~5MB)
+    const MAX = 200;
+    if (!Array.isArray(messages)) return [];
+    const msgs = messages.slice(-MAX);
+    // Eliminar campos pesados opcionales que se pueden reconstruir
+    return msgs.map(m => {
+        const out = { ...m };
+        // charSprite puede ser una URL muy larga - conservar solo si es corta
+        if (out.charSprite && out.charSprite.length > 300) delete out.charSprite;
+        return out;
+    });
+}
+
 function exportCurrentStoryAsCode() {
     if (!currentTopicId) {
         showAutosave('Abre una historia primero', 'error');
@@ -422,22 +444,41 @@ function exportCurrentStoryAsCode() {
     const topic = appData.topics.find(t => String(t.id) === String(currentTopicId));
     if (!topic) return;
 
+    const messages = _trimMessagesForExport(getTopicMessages(currentTopicId));
+
+    // Solo incluir personajes que aparecen en esta historia
+    const charIdsInTopic = new Set(messages.map(m => m.characterId).filter(Boolean));
+    const relevantChars = appData.characters.filter(c => charIdsInTopic.has(c.id));
+
+    // Clonar topic sin campos de caché que engordan el payload
+    const topicClean = { ...topic };
+    delete topicClean._cachedMessages;
+
     const payload = {
-        v: 1,
-        topic,
-        messages: getTopicMessages(currentTopicId),
-        chars: appData.characters
+        v: 2,
+        topic: topicClean,
+        messages,
+        chars: relevantChars
     };
 
     const serialized = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const kb = Math.round(serialized.length / 1024);
+    if (kb > 4000) {
+        showAutosave(`Historia muy grande (${kb}KB). Solo se exportarán los últimos 200 mensajes.`, 'error');
+    }
     let code = _generateStoryCode();
     let retries = 0;
     while (localStorage.getItem(_storyCodeStorageKey(code)) && retries < 10) {
         code = _generateStoryCode();
         retries++;
     }
-    localStorage.setItem(_storyCodeStorageKey(code), serialized);
-    localStorage.setItem('etheria_last_story_code', code);
+    try {
+        localStorage.setItem(_storyCodeStorageKey(code), serialized);
+        localStorage.setItem('etheria_last_story_code', code);
+    } catch (e) {
+        showAutosave('No se pudo guardar el código: almacenamiento lleno', 'error');
+        return;
+    }
 
     const codeEl = document.getElementById('storyCodeValue');
     if (codeEl) codeEl.textContent = code;
@@ -513,7 +554,7 @@ const IMMERSIVE_HIDE_AFTER_MS = 3000;
 
 function toggleImmersiveModeSetting(enabled) {
     const active = !!enabled;
-    localStorage.setItem('etheria_immersive_mode', active ? '1' : '0');
+    try { localStorage.setItem('etheria_immersive_mode', active ? '1' : '0'); } catch {}
     document.body.classList.toggle('immersive-mode', active);
     if (active) revealImmersiveUiTemporarily();
 }

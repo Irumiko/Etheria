@@ -1,33 +1,33 @@
-// Sistema de modo rol/fanfic y afinidad entre personajes.
+// Sistema de modo rpg y afinidad entre personajes.
 // ============================================
-// MODO FANFIC VS ROLEPLAY
+// MODO RPG VS ROLEPLAY
 // ============================================
 const TOPIC_MODE_STORAGE_KEY = 'etheria_topic_mode';
 let roleCharacterModalContext = null;
 
 function updateTopicModeUI() {
     const modeRoleplay = document.getElementById('modeRoleplay');
-    const modeFanfic = document.getElementById('modeFanfic');
+    const modeRpg = document.getElementById('modeRpg');
 
     const persistedMode = localStorage.getItem(TOPIC_MODE_STORAGE_KEY);
-    let selectedMode = currentTopicMode === 'fanfic' ? 'fanfic' : 'roleplay';
+    let selectedMode = currentTopicMode === 'rpg' ? 'rpg' : 'roleplay';
 
-    if (modeFanfic && modeFanfic.checked) selectedMode = 'fanfic';
+    if (modeRpg && modeRpg.checked) selectedMode = 'rpg';
     else if (modeRoleplay && modeRoleplay.checked) selectedMode = 'roleplay';
-    else if (persistedMode === 'fanfic' || persistedMode === 'roleplay') selectedMode = persistedMode;
+    else if (persistedMode === 'rpg' || persistedMode === 'roleplay') selectedMode = persistedMode;
 
     currentTopicMode = selectedMode;
     localStorage.setItem(TOPIC_MODE_STORAGE_KEY, selectedMode);
 
     if (modeRoleplay) modeRoleplay.checked = selectedMode === 'roleplay';
-    if (modeFanfic) modeFanfic.checked = selectedMode === 'fanfic';
+    if (modeRpg) modeRpg.checked = selectedMode === 'rpg';
 
     // Actualizar estilos visuales
     const roleplayLabel = modeRoleplay?.parentElement;
-    const fanficLabel = modeFanfic?.parentElement;
+    const rpgLabel = modeRpg?.parentElement;
 
     roleplayLabel?.classList.toggle('active', selectedMode === 'roleplay');
-    fanficLabel?.classList.toggle('active', selectedMode === 'fanfic');
+    rpgLabel?.classList.toggle('active', selectedMode === 'rpg');
 }
 
 function openRoleCharacterModal(topicId, options = {}) {
@@ -35,11 +35,11 @@ function openRoleCharacterModal(topicId, options = {}) {
     if (!grid) return;
 
     const topic = appData.topics.find(t => t.id === topicId);
-    const isFanfic = topic?.mode === 'fanfic' || options.mode === 'fanfic';
+    const isRpgMode = topic?.mode === 'rpg' || options.mode === 'rpg';
 
     roleCharacterModalContext = {
         topicId,
-        isFanfic,
+        isRpgMode,
         enterOnSelect: !!options.enterOnSelect,
         preservePendingTopicId: !!options.preservePendingTopicId
     };
@@ -50,23 +50,22 @@ function openRoleCharacterModal(topicId, options = {}) {
 
     const title = document.getElementById('roleCharacterTitle');
     const subtitle = document.getElementById('roleCharacterSubtitle');
-    if (title) title.textContent = isFanfic ? 'Selecciona tu personaje para modo RPG' : 'Selecciona tu personaje activo';
-    if (subtitle) subtitle.textContent = isFanfic
+    if (title) title.textContent = isRpgMode ? 'Selecciona tu personaje para modo RPG' : 'Selecciona tu personaje activo';
+    if (subtitle) subtitle.textContent = isRpgMode
         ? 'En modo RPG también debes elegir un personaje al entrar.'
         : 'En modo clásico solo puedes usar un personaje por historia.';
 
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
     if (!mine.length) {
-        showAutosave(`Necesitas al menos un personaje para modo ${isFanfic ? 'RPG' : 'clásico'}`, 'error');
         roleCharacterModalContext = null;
-        if (!isFanfic && pendingRoleTopicId) {
-            const doomedId = pendingRoleTopicId;
+        if (!isRpgMode && pendingRoleTopicId) {
+            // Sin personajes en modo clásico: entrar como Narrador en vez de eliminar la historia
+            const topicIdToEnter = pendingRoleTopicId;
             pendingRoleTopicId = null;
-            appData.topics = appData.topics.filter(t => t.id !== doomedId);
-            delete appData.messages[doomedId];
-            hasUnsavedChanges = true;
-            save({ silent: true });
-            renderTopics();
+            showAutosave('No tienes personajes — entrando como Narrador. Crea uno desde la Galería.', 'info');
+            enterTopic(topicIdToEnter);
+        } else {
+            showAutosave(`Necesitas al menos un personaje para modo ${isRpgMode ? 'RPG' : 'clásico'}`, 'error');
         }
         return;
     }
@@ -85,9 +84,9 @@ function selectRoleCharacterForTopic(topicId, charId) {
     const topic = appData.topics.find(t => t.id === topicId);
     if (!topic) return;
 
-    const context = roleCharacterModalContext || { isFanfic: topic.mode === 'fanfic', enterOnSelect: false };
+    const context = roleCharacterModalContext || { isRpgMode: topic.mode === 'rpg', enterOnSelect: false };
 
-    if (context.isFanfic || topic.mode === 'fanfic') {
+    if (context.isRpgMode || topic.mode === 'rpg') {
         topic.characterLocks = topic.characterLocks || {};
         topic.characterLocks[currentUserIndex] = charId;
         topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
@@ -111,15 +110,15 @@ function selectRoleCharacterForTopic(topicId, charId) {
     }
 }
 
-function isFanficMode() {
+function isRpgModeMode() {
     if (!currentTopicId) return false;
     const topic = appData.topics.find(t => t.id === currentTopicId);
-    return topic && topic.mode === 'fanfic';
+    return topic && topic.mode === 'rpg';
 }
 
 function shouldShowAffinity() {
-    // No mostrar afinidad en modo fanfic
-    if (isFanficMode()) return false;
+    // No mostrar afinidad en modo rpg
+    if (isRpgModeMode()) return false;
 
     if (!currentTopicId) return false;
 
@@ -212,7 +211,7 @@ function updateAffinityDisplay() {
     const affinityDisplay = document.getElementById('affinityDisplay');
     const affinityControls = document.querySelector('.affinity-controls-inline');
     const infoName     = document.getElementById('vnInfoName');
-    const infoLastname = document.getElementById('vnInfoLastname');
+    const infoSubtitle = document.getElementById('vnInfoSubtitle');
     const infoAvatar   = document.getElementById('vnInfoAvatar');
     const vnInfoAffection = document.getElementById('vnInfoAffection');
     const vnInfoRpg = document.getElementById('vnInfoRpg');
@@ -228,10 +227,10 @@ function updateAffinityDisplay() {
     const msgs = getTopicMessages(currentTopicId);
     const currentMsg = msgs[currentMessageIndex];
     const currentTopic = appData.topics.find(t => t.id === currentTopicId);
-    const isFanficModeActive = currentTopicMode === 'fanfic';
+    const isRpgModeModeActive = currentTopicMode === 'rpg';
 
     function getPersistentRpgCharacter() {
-        if (!isFanficModeActive || !currentTopic) return null;
+        if (!isRpgModeModeActive || !currentTopic) return null;
 
         const lockMap = currentTopic.characterLocks || currentTopic.rpgCharacterLocks || {};
         const lockedCharId = lockMap[currentUserIndex];
@@ -256,15 +255,20 @@ function updateAffinityDisplay() {
     }
 
 
-    function setRpgCard(char, isFanfic) {
+    function setRpgCard(char, isRpgMode) {
         if (!vnInfoRpg) return;
-        if (!isFanfic || !char || typeof ensureCharacterRpgProfile !== 'function') {
+        if (!isRpgMode || !char || typeof ensureCharacterRpgProfile !== 'function') {
             vnInfoRpg.classList.add('hidden');
             return;
         }
 
         const profile = ensureCharacterRpgProfile(char);
-        if (vnInfoRpgSummary) vnInfoRpgSummary.textContent = `HP ${profile.hp}/10 · EXP ${profile.exp}/10`;
+        // Barra HP inline
+        const hpFill = document.getElementById('vnInfoHpFill');
+        const hpVal  = document.getElementById('vnInfoHpVal');
+        const hpPct  = Math.max(0, Math.min(100, (profile.hp / 10) * 100));
+        if (hpFill) hpFill.style.width = `${hpPct}%`;
+        if (hpVal)  hpVal.textContent  = `${profile.hp}/10`;
 
         vnInfoRpg.dataset.charId = char.id;
         vnInfoRpg.classList.remove('hidden');
@@ -287,14 +291,14 @@ function updateAffinityDisplay() {
         if (pillSep2)   pillSep2.textContent   = (char.race && char.gender) ? '·' : '';
     }
 
-    if (isFanficModeActive) {
+    if (isRpgModeModeActive) {
         const rpgChar = getPersistentRpgCharacter();
         affinityDisplay?.classList.add('hidden');
         if (vnInfoAffection) vnInfoAffection.style.display = 'none';
 
         if (!rpgChar) {
             if (infoName) infoName.textContent = 'Sin personaje RPG';
-            if (infoLastname) infoLastname.textContent = '';
+            if (infoSubtitle) infoSubtitle.textContent = '';
             setAvatar(null);
             setPills(null);
             setRpgCard(null, true);
@@ -303,10 +307,10 @@ function updateAffinityDisplay() {
         }
 
         if (infoName) infoName.textContent = rpgChar.name;
-        if (infoLastname && typeof ensureCharacterRpgProfile === 'function') {
+        if (infoSubtitle && typeof ensureCharacterRpgProfile === 'function') {
             const profile = ensureCharacterRpgProfile(rpgChar);
             const title = typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz';
-            infoLastname.textContent = `⚔ Nivel ${profile.level} · ${title}`;
+            infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${title}`;
         }
         setAvatar(rpgChar);
         setPills(null);
@@ -320,7 +324,7 @@ function updateAffinityDisplay() {
         affinityDisplay?.classList.add('hidden');
         if (vnInfoAffection) vnInfoAffection.style.display = 'none';
         if (infoName)     infoName.textContent     = 'Narrador';
-        if (infoLastname) infoLastname.textContent = '';
+        if (infoSubtitle) infoSubtitle.textContent = '';
         if (infoAvatar)   infoAvatar.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">📖</div>';
         setPills(null);
         setRpgCard(null, false);
@@ -333,23 +337,24 @@ function updateAffinityDisplay() {
         if (char) {
             if (infoName) infoName.textContent = char.name;
             const isOwnChar = char.userIndex === currentUserIndex;
-            const isFanfic  = isFanficModeActive;
-            if (infoLastname) {
-                if (isFanfic && typeof ensureCharacterRpgProfile === 'function') {
+            const isRpgMode  = isRpgModeModeActive;
+            if (infoSubtitle) {
+                if (isRpgMode && typeof ensureCharacterRpgProfile === 'function') {
                     const profile = ensureCharacterRpgProfile(char);
                     const title = typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz';
-                    infoLastname.textContent = `⚔ Nivel ${profile.level} · ${title}`;
+                    infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${title}`;
                 } else {
-                    infoLastname.textContent = char.lastName || '';
+                    // Modo clásico: mostrar ocupación como subtítulo si existe
+                    infoSubtitle.textContent = char.job || '';
                 }
             }
             setAvatar(char);
             setPills(char);
-            setRpgCard(char, isFanfic);
+            setRpgCard(char, isRpgMode);
             updateInfoHoverDetails(char);
 
             // Modo historia: sin afinidad de ningún tipo
-            if (isFanfic) {
+            if (isRpgMode) {
                 affinityDisplay?.classList.add('hidden');
                 if (vnInfoAffection) vnInfoAffection.style.display = 'none';
                 return;
@@ -392,18 +397,227 @@ function updateAffinityDisplay() {
     affinityDisplay?.classList.add('hidden');
     if (vnInfoAffection) vnInfoAffection.style.display = 'none';
     if (infoName)     infoName.textContent     = 'Sin personaje';
-    if (infoLastname) infoLastname.textContent = '';
+    if (infoSubtitle) infoSubtitle.textContent = '';
     if (infoAvatar)   infoAvatar.innerHTML = '<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">👤</div>';
     setPills(null);
     setRpgCard(null, false);
     updateInfoHoverDetails(null);
+    // Panel literario (modo clásico)
+    if (typeof updateClassicLiteraryPanel === 'function') updateClassicLiteraryPanel();
 }
 
-function updateInfoHoverDetails(char) {
-    // Los elementos de descripción/personalidad fueron eliminados del info card en v10
-    // Esta función se mantiene por compatibilidad pero ya no actualiza el DOM
-    // Si en el futuro se re-añaden esos elementos, volver a activar este código
+// ── Estado del IHP (Info Hover Panel) ──────────────────────────────
+// 'hidden': solo visible en hover CSS
+// 'pinned': fijo, independiente del hover
+let _ihpPinnedChar = null;
+
+function toggleIhpPin() {
+    const panel = document.getElementById('vnInfoHoverPanel');
+    if (!panel) return;
+    const isPinned = panel.dataset.state === 'pinned';
+    if (isPinned) {
+        unpinIhp();
+    } else {
+        pinIhp();
+    }
 }
+
+function pinIhp() {
+    const panel = document.getElementById('vnInfoHoverPanel');
+    const card  = document.getElementById('vnInfoCard');
+    if (!panel) return;
+    panel.dataset.state = 'pinned';
+    card?.classList.add('ihp-pinned');
+    // Renderizar contenido completo (con relaciones/oráculo)
+    if (_ihpPinnedChar) updateInfoHoverDetails(_ihpPinnedChar, true);
+    // ESC para cerrar
+    document.addEventListener('keydown', _ihpEscHandler);
+    // Click fuera para cerrar (con delay para no cerrarlo inmediatamente)
+    setTimeout(() => {
+        document.addEventListener('click', _ihpOutsideHandler, { capture: true });
+    }, 150);
+}
+
+function unpinIhp() {
+    const panel = document.getElementById('vnInfoHoverPanel');
+    const card  = document.getElementById('vnInfoCard');
+    if (!panel) return;
+    panel.dataset.state = 'hidden';
+    card?.classList.remove('ihp-pinned');
+    document.removeEventListener('keydown', _ihpEscHandler);
+    document.removeEventListener('click', _ihpOutsideHandler, { capture: true });
+    // Re-renderizar sin contenido pinned-only
+    if (_ihpPinnedChar) updateInfoHoverDetails(_ihpPinnedChar, false);
+}
+
+function _ihpEscHandler(e) {
+    if (e.key === 'Escape') unpinIhp();
+}
+
+function _ihpOutsideHandler(e) {
+    const card = document.getElementById('vnInfoCard');
+    if (card && !card.contains(e.target)) {
+        unpinIhp();
+    }
+}
+
+function updateInfoHoverDetails(char, isPinned = false) {
+    const panel = document.getElementById('vnInfoHoverPanel');
+    if (!panel) return;
+
+    // Guardar char para re-renders (pin/unpin)
+    _ihpPinnedChar = char || null;
+
+    // Sin personaje → ocultar todo excepto si hay estado pinned que preservar
+    if (!char) {
+        if (panel.dataset.state !== 'pinned') {
+            panel.dataset.empty = 'true';
+        }
+        return;
+    }
+    panel.dataset.empty = 'false';
+
+    const isRpg   = (currentTopicMode === 'rpg');
+    const pinned  = isPinned || panel.dataset.state === 'pinned';
+
+    // ── Emblema ──────────────────────────────────────────────────────
+    const ihpEmblem = document.getElementById('ihpEmblem');
+    if (ihpEmblem) {
+        ihpEmblem.innerHTML = isRpg ? _getRpgClassEmblem(char.job) : _getClassicSealChar(char.name);
+        ihpEmblem.title = char.job || '';
+    }
+
+    // ── Nombre ───────────────────────────────────────────────────────
+    const ihpName = document.getElementById('ihpName');
+    if (ihpName) ihpName.textContent = char.lastName ? `${char.name} ${char.lastName}` : char.name;
+
+    // ── Datos básicos ─────────────────────────────────────────────────
+    const ihpData = document.getElementById('ihpData');
+    if (ihpData) {
+        const rows = [
+            char.race      && ['Raza',   char.race],
+            char.age       && ['Edad',   `${char.age} años`],
+            char.gender    && ['Género', char.gender],
+            char.alignment && ['Alin.',  (window.alignments?.[char.alignment] || char.alignment)],
+            char.job       && !isRpg && ['Ocup.', char.job],
+            isRpg && char.job && ['Clase', char.job],
+        ].filter(Boolean);
+        ihpData.innerHTML = rows.map(([lbl, val]) =>
+            `<div class="ihp-row"><span class="ihp-lbl">${lbl}</span><span class="ihp-val">${escapeHtml(String(val))}</span></div>`
+        ).join('');
+    }
+
+    // ── Descripción (siempre en RPG; en Clásico solo en pinned) ──────
+    const ihpDesc = document.getElementById('ihpDesc');
+    if (ihpDesc) {
+        const text = char.basic || char.personality || '';
+        ihpDesc.textContent = (isRpg || pinned) ? text : '';
+    }
+
+    // ── Barras HP/EXP en panel (RPG siempre; Clásico nunca) ──────────
+    const ihpRpgBars = document.getElementById('ihpRpgBars');
+    if (ihpRpgBars) {
+        if (isRpg && typeof ensureCharacterRpgProfile === 'function') {
+            const profile = ensureCharacterRpgProfile(char, currentTopicId);
+            const hpPct = Math.max(0, Math.min(100, (profile.hp / 10) * 100));
+            const expPct = Math.max(0, Math.min(100, (profile.exp / 10) * 100));
+            ihpRpgBars.innerHTML = `
+                <div class="ihp-bar-row">
+                    <span class="ihp-bar-lbl hp">HP</span>
+                    <div class="ihp-bar-track"><div class="ihp-bar-fill hp" style="width:${hpPct}%"></div></div>
+                    <span class="ihp-bar-val">${profile.hp}/10</span>
+                </div>
+                <div class="ihp-bar-row">
+                    <span class="ihp-bar-lbl exp">EXP</span>
+                    <div class="ihp-bar-track"><div class="ihp-bar-fill exp" style="width:${expPct}%"></div></div>
+                    <span class="ihp-bar-val">${profile.exp}/10</span>
+                </div>`;
+        } else {
+            ihpRpgBars.innerHTML = '';
+        }
+    }
+
+    // ── Stats grid (RPG) ─────────────────────────────────────────────
+    const ihpStats = document.getElementById('ihpStats');
+    if (ihpStats) {
+        if (isRpg && typeof ensureCharacterRpgProfile === 'function') {
+            const profile   = ensureCharacterRpgProfile(char, currentTopicId);
+            const baseStats = window.RPG_BASE_STATS || { STR: 5, VIT: 5, INT: 5, AGI: 5 };
+            const totalStats = {};
+            for (const k of Object.keys(baseStats)) totalStats[k] = baseStats[k] + (profile.stats?.[k] || 0);
+            ihpStats.innerHTML = Object.keys(baseStats).map(k =>
+                `<div class="ihp-stat-cell"><span class="ihp-stat-key">${k}</span><span class="ihp-stat-num">${totalStats[k]}</span></div>`
+            ).join('');
+        } else {
+            ihpStats.innerHTML = '';
+        }
+    }
+
+    // ── Relaciones (Clásico pinned) ───────────────────────────────────
+    const ihpRelations = document.getElementById('ihpRelations');
+    if (ihpRelations) {
+        if (!isRpg && pinned && currentTopicId && typeof getAffinity === 'function') {
+            const msgs  = getTopicMessages(currentTopicId);
+            const chars = [...new Set(msgs.filter(m => m.characterId).map(m => String(m.characterId)))]
+                .filter(id => String(id) !== String(char.id));
+            if (chars.length > 0) {
+                const relRows = chars.map(otherId => {
+                    const other = appData.characters.find(c => String(c.id) === otherId);
+                    if (!other) return '';
+                    const aff  = getAffinity(String(char.id), otherId, currentTopicId);
+                    const stars = affinityToStars ? affinityToStars(aff) : '';
+                    const rank  = typeof getAffinityRankInfo === 'function' ? getAffinityRankInfo(aff)?.name || '' : '';
+                    return `<div class="ihp-rel-row">
+                        <span class="ihp-rel-name">${escapeHtml(other.name)}</span>
+                        <span class="ihp-rel-stars">${stars}</span>
+                        <span class="ihp-rel-rank">${escapeHtml(rank)}</span>
+                    </div>`;
+                }).filter(Boolean).join('');
+                ihpRelations.innerHTML = `<span class="ihp-relations-title">Relaciones</span>${relRows}`;
+            } else {
+                ihpRelations.innerHTML = '';
+            }
+        } else {
+            ihpRelations.innerHTML = '';
+        }
+    }
+
+    // ── Botón oráculo (RPG pinned) ────────────────────────────────────
+    const ihpOracle = document.getElementById('ihpOracleHint');
+    if (ihpOracle) {
+        ihpOracle.style.display = (isRpg && pinned) ? '' : 'none';
+    }
+}
+
+// Elige un SVG temático de clase RPG según el trabajo del personaje
+function _getRpgClassEmblem(job) {
+    if (!job) return _svgRpgDefault();
+    const j = job.toLowerCase();
+    if (/guerrero|soldier|warrior|paladin|caballero|knight/.test(j))
+        return `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 15 L13 5" stroke="rgba(220,180,80,0.9)" stroke-width="1.8" stroke-linecap="round"/><path d="M13 5 L15 3 L15 5 L13 5Z" fill="rgba(220,180,80,0.8)"/><path d="M7 13 L5 11" stroke="rgba(220,180,80,0.6)" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+    if (/mago|mage|wizard|brujo|hechicero|warlock|arcano/.test(j))
+        return `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><polygon points="9,2 11,7 16,7 12,11 14,16 9,13 4,16 6,11 2,7 7,7" stroke="rgba(220,180,80,0.85)" stroke-width="1.2" fill="none"/></svg>`;
+    if (/bardo|bard|músico|musician|cantor/.test(j))
+        return `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6 14 Q5 8 10 5 Q14 8 13 14" stroke="rgba(220,180,80,0.85)" stroke-width="1.2" fill="none" stroke-linecap="round"/><circle cx="5" cy="14" r="2" stroke="rgba(220,180,80,0.7)" stroke-width="1.1" fill="none"/><circle cx="12" cy="14" r="2" stroke="rgba(220,180,80,0.7)" stroke-width="1.1" fill="none"/></svg>`;
+    if (/ladrón|rogue|asesino|assassin|pícaro|sombra/.test(j))
+        return `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3 L15 15 L9 12 L3 15 Z" stroke="rgba(220,180,80,0.8)" stroke-width="1.2" fill="none" stroke-linejoin="round"/></svg>`;
+    if (/cler|healer|clérigo|sacerdot|priest|monk|monje/.test(j))
+        return `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3 L9 15 M4 9 L14 9" stroke="rgba(220,180,80,0.85)" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+    if (/arquero|archer|ranger|explorador|scout/.test(j))
+        return `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 14 L13 5 M11 4 L14 4 L14 7" stroke="rgba(220,180,80,0.85)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 13 L3 15" stroke="rgba(220,180,80,0.6)" stroke-width="1.2" stroke-linecap="round"/></svg>`;
+    return _svgRpgDefault();
+}
+
+function _svgRpgDefault() {
+    return `<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><polygon points="9,2 11,7 16,8.5 11,10 9,15 7,10 2,8.5 7,7" stroke="rgba(220,180,80,0.8)" stroke-width="1.1" fill="none"/></svg>`;
+}
+
+// Sello de cera: primera letra del nombre en estilo serif
+function _getClassicSealChar(name) {
+    const letter = (name || '?')[0].toUpperCase();
+    return `<span style="font-family:'Cinzel',serif;font-size:1rem;font-weight:700;color:rgba(80,40,5,0.9);text-shadow:0 1px 1px rgba(255,200,80,0.4);">${letter}</span>`;
+}
+
 
 function modifyAffinity(direction) {
     if (!currentTopicId) return;
@@ -443,6 +657,11 @@ function modifyAffinity(direction) {
         return;
     }
 
+    // Detectar cruce de umbral de rango (solo al subir)
+    const oldRank = getAffinityRankInfo(currentValue);
+    const newRank = getAffinityRankInfo(newValue);
+    const crossedMilestone = direction > 0 && newRank.name !== oldRank.name;
+
     appData.affinities[currentTopicId][key] = newValue;
 
     hasUnsavedChanges = true;
@@ -463,6 +682,11 @@ function modifyAffinity(direction) {
     }
 
     const rankInfo = getAffinityRankInfo(newValue);
+
+    // Mostrar hito de afinidad si se cruzó un umbral
+    if (crossedMilestone) {
+        showAffinityMilestone(newRank, activeCharId, targetCharId);
+    }
 
     // Mostrar feedback INLINE dentro del card de afinidad (no en esquina)
     const feedbackEl = document.getElementById('affinityFeedback');
@@ -667,6 +891,9 @@ function openRelationshipGraph() {
     const topic = appData.topics.find(t => String(t.id) === String(currentTopicId));
     if (subtitle) subtitle.textContent = topic ? `RELACIONES EN "${topic.title.toUpperCase()}"` : 'Relaciones';
 
+    // Mostrar controles +/- para el personaje activo en el diálogo
+    _updateGraphAffinityControls();
+
     if (typeof openModal === 'function') openModal('relationshipGraphModal');
 
     if (relationshipGraphRaf) cancelAnimationFrame(relationshipGraphRaf);
@@ -687,4 +914,93 @@ function openRelationshipGraph() {
             });
         }, { passive: true });
     }
+}
+
+function _updateGraphAffinityControls() {
+    const controlsEl   = document.getElementById('graphAffinityControls');
+    const targetNameEl = document.getElementById('graphAffinityTargetName');
+    const rankNameEl   = document.getElementById('graphAffinityRankName');
+    if (!controlsEl) return;
+
+    const msgs = getTopicMessages(currentTopicId);
+    const msg  = msgs[currentMessageIndex];
+    if (!msg || !msg.characterId) {
+        controlsEl.classList.add('hidden');
+        return;
+    }
+
+    const targetChar = appData.characters.find(c => String(c.id) === String(msg.characterId));
+    if (!targetChar) { controlsEl.classList.add('hidden'); return; }
+
+    // Solo mostrar si el personaje activo es ajeno
+    const userChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
+    const isOwn = targetChar.userIndex === currentUserIndex;
+    if (isOwn) { controlsEl.classList.add('hidden'); return; }
+
+    const affVal = getCurrentAffinity();
+    if (affVal === -1) { controlsEl.classList.add('hidden'); return; }
+
+    const rankInfo = getAffinityRankInfo(affVal);
+    if (targetNameEl) targetNameEl.textContent = targetChar.name;
+    if (rankNameEl) {
+        rankNameEl.textContent = rankInfo.name;
+        rankNameEl.style.color = rankInfo.color;
+    }
+    controlsEl.classList.remove('hidden');
+}
+
+function refreshRelationshipGraph() {
+    _updateGraphAffinityControls();
+    if (typeof renderRelationshipGraphForActiveTopic === 'function') {
+        renderRelationshipGraphForActiveTopic();
+    }
+}
+
+// ============================================
+// HITOS DE AFINIDAD — OVERLAY CINEMATOGRÁFICO
+// ============================================
+
+const AFFINITY_RANK_ICONS = {
+    'Conocidos':          { icon: '🤝', color: '#9b59b6' },
+    'Amigos':             { icon: '💙', color: '#3498db' },
+    'Mejores Amigos':     { icon: '💚', color: '#27ae60' },
+    'Interés Romántico':  { icon: '💛', color: '#f1c40f' },
+    'Pareja':             { icon: '❤️', color: '#e74c3c' },
+};
+
+let _affinityMilestoneTimer = null;
+
+function showAffinityMilestone(rankInfo, activeCharId, targetCharId) {
+    const overlay   = document.getElementById('vnAffinityMilestone');
+    const iconEl    = document.getElementById('vnAffinityMilestoneIcon');
+    const rankEl    = document.getElementById('vnAffinityMilestoneRank');
+    if (!overlay || !iconEl || !rankEl) return;
+
+    const meta = AFFINITY_RANK_ICONS[rankInfo.name] || { icon: '✦', color: rankInfo.color || '#c49a3c' };
+
+    iconEl.textContent  = meta.icon;
+    rankEl.textContent  = rankInfo.name;
+    rankEl.style.color  = meta.color;
+    overlay.style.setProperty('--milestone-color', meta.color);
+
+    // Nombre de los personajes en el subtítulo si están disponibles
+    const activeChar = appData.characters.find(c => String(c.id) === String(activeCharId));
+    const targetChar = appData.characters.find(c => String(c.id) === String(targetCharId));
+    const labelEl = overlay.querySelector('.vn-affinity-milestone-label');
+    if (labelEl && activeChar && targetChar) {
+        labelEl.textContent = `${activeChar.name} & ${targetChar.name}`;
+    } else if (labelEl) {
+        labelEl.textContent = 'Nueva etapa de la relación';
+    }
+
+    // Mostrar con animación
+    overlay.classList.remove('milestone-out');
+    overlay.classList.add('milestone-in');
+
+    clearTimeout(_affinityMilestoneTimer);
+    _affinityMilestoneTimer = setTimeout(() => {
+        overlay.classList.remove('milestone-in');
+        overlay.classList.add('milestone-out');
+        setTimeout(() => overlay.classList.remove('milestone-out'), 600);
+    }, 2800);
 }

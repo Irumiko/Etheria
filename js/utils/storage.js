@@ -38,9 +38,28 @@ function getTopicStorageKey(topicId) {
     return `${STORAGE_KEYS.topicPrefix}${topicId}`;
 }
 
+function _migrateTopicModes(topics) {
+    // Migración: topics guardados con mode:'fanfic' (nombre interno antiguo)
+    // se renombran a mode:'rpg' para consistencia con la UI
+    if (!Array.isArray(topics)) return topics;
+    let changed = false;
+    const migrated = topics.map(t => {
+        if (t.mode === 'fanfic') { changed = true; return { ...t, mode: 'rpg' }; }
+        return t;
+    });
+    if (changed) {
+        try { localStorage.setItem(STORAGE_KEYS.topics, JSON.stringify(migrated)); } catch {}
+        console.info('[Etheria] Migración: mode fanfic→rpg aplicada a', migrated.filter(t=>t.mode==='rpg').length, 'topics');
+    }
+    return migrated;
+}
+
 function loadStoredAppData() {
-    const topics = parseStoredJSON(STORAGE_KEYS.topics, null);
+    let topics = parseStoredJSON(STORAGE_KEYS.topics, null);
     const characters = parseStoredJSON(STORAGE_KEYS.characters, null);
+
+    // Migrar topics con modo antiguo 'fanfic' → 'rpg'
+    if (Array.isArray(topics)) topics = _migrateTopicModes(topics);
 
     if (Array.isArray(topics) || Array.isArray(characters)) {
         return {
@@ -49,7 +68,8 @@ function loadStoredAppData() {
             messages: {},
             affinities: parseStoredJSON(STORAGE_KEYS.affinities, {}) || {},
             favorites: parseStoredJSON('etheria_favorites', {}) || {},
-            journals:  parseStoredJSON('etheria_journals', {}) || {}
+            journals:  parseStoredJSON('etheria_journals', {}) || {},
+            reactions: parseStoredJSON('etheria_reactions', {}) || {}
         };
     }
 
@@ -61,11 +81,12 @@ function loadStoredAppData() {
             messages: (legacy.messages && typeof legacy.messages === 'object' && !Array.isArray(legacy.messages)) ? legacy.messages : {},
             affinities: (legacy.affinities && typeof legacy.affinities === 'object' && !Array.isArray(legacy.affinities)) ? legacy.affinities : {},
             favorites: (legacy.favorites && typeof legacy.favorites === 'object') ? legacy.favorites : {},
-            journals:  (legacy.journals  && typeof legacy.journals  === 'object') ? legacy.journals  : {}
+            journals:  (legacy.journals  && typeof legacy.journals  === 'object') ? legacy.journals  : {},
+            reactions: (legacy.reactions && typeof legacy.reactions === 'object') ? legacy.reactions : {}
         };
     }
 
-    return { topics: [], characters: [], messages: {}, affinities: {}, favorites: {}, journals: {} };
+    return { topics: [], characters: [], messages: {}, affinities: {}, favorites: {}, journals: {}, reactions: {} };
 }
 
 function loadTopicMessagesFromStorage(topicId) {
@@ -87,6 +108,7 @@ function persistPartitionedData() {
     localStorage.setItem(STORAGE_KEYS.affinities, JSON.stringify(appData.affinities));
     localStorage.setItem('etheria_favorites', JSON.stringify(appData.favorites || {}));
     localStorage.setItem('etheria_journals', JSON.stringify(appData.journals || {}));
+    localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions || {}));
 
     const topicIds = appData.topics.map(t => String(t.id));
     localStorage.setItem(STORAGE_KEYS.messageTopics, JSON.stringify(topicIds));
@@ -98,6 +120,7 @@ function persistPartitionedData() {
         localStorage.setItem(getTopicStorageKey(topicId), JSON.stringify(topicMsgs));
     });
 
+    // Limpiar keys de mensajes huérfanas (topics eliminados)
     Object.keys(localStorage)
         .filter((k) => k.startsWith(STORAGE_KEYS.topicPrefix))
         .forEach((k) => {
@@ -107,13 +130,24 @@ function persistPartitionedData() {
             }
         });
 
+    // Limpiar reacciones huérfanas de topics eliminados
+    if (appData.reactions && typeof appData.reactions === 'object') {
+        const orphanReactionTopics = Object.keys(appData.reactions)
+            .filter(tid => !topicIds.includes(String(tid)));
+        orphanReactionTopics.forEach(tid => { delete appData.reactions[tid]; });
+        if (orphanReactionTopics.length > 0) {
+            localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions));
+        }
+    }
+
     const legacySnapshot = {
         topics: appData.topics,
         characters: appData.characters,
         messages: appData.messages,
         affinities: appData.affinities,
         favorites: appData.favorites || {},
-        journals: appData.journals || {}
+        journals: appData.journals || {},
+        reactions: appData.reactions || {}
     };
     localStorage.setItem(STORAGE_KEYS.legacy, JSON.stringify(legacySnapshot));
 }

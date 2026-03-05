@@ -35,6 +35,11 @@ async function login() {
         return;
     }
 
+    if (!window.supabaseClient) {
+        setAuthStatus('Sin conexión. Usa el modo local.', true);
+        return;
+    }
+
     setAuthStatus('Iniciando sesión...');
     const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
 
@@ -54,6 +59,11 @@ async function register() {
 
     if (!email || !password) {
         setAuthStatus('Completa email y contraseña.', true);
+        return;
+    }
+
+    if (!window.supabaseClient) {
+        setAuthStatus('Sin conexión. Usa el modo local.', true);
         return;
     }
 
@@ -203,27 +213,30 @@ function initializeApp() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    if (!window.supabaseClient) {
-        console.error('[Auth] Supabase client no está disponible.');
-        showLoginScreen();
-        setAuthStatus('Error al inicializar autenticación.', true);
-        return;
-    }
-
     const loginBtn = document.getElementById('authLoginBtn');
     const registerBtn = document.getElementById('authRegisterBtn');
     if (loginBtn) loginBtn.addEventListener('click', login);
     if (registerBtn) registerBtn.addEventListener('click', register);
 
-    const { data, error } = await window.supabaseClient.auth.getSession();
-
-    if (error || !data?.session) {
-        showLoginScreen();
-        if (error) setAuthStatus(error.message || 'Debes iniciar sesión para continuar.', true);
-        return;
-    }
-
+    // La app siempre arranca en modo local inmediatamente.
+    // La autenticación con Supabase es opcional (para sincronización en la nube).
     hideLoginScreen();
-    await ensureProfile();
     initializeApp();
+
+    // En background, intentar recuperar sesión de Supabase si está disponible.
+    // Si hay sesión activa, se puede usar para sincronización cloud sin interrumpir al usuario.
+    if (window.supabaseClient) {
+        Promise.race([
+            window.supabaseClient.auth.getSession(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+        ]).then(result => {
+            if (result?.data?.session) {
+                ensureProfile().catch(() => {});
+            }
+        }).catch(() => {
+            isOfflineMode = true;
+        });
+    } else {
+        isOfflineMode = true;
+    }
 });

@@ -101,6 +101,26 @@ function showCloudIndicatorTemporarily() {
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
 
+    // MEJORA 1: Frase aleatoria en el subtítulo del menú principal
+    var _menuPhrases = [
+        'Un mundo al borde del olvido',
+        'Cada elección deja una cicatriz',
+        'El destino se escribe con tinta y dados',
+        'Las historias no terminan, se transforman',
+        'Cada personaje guarda un secreto',
+        'El pasado elige quiénes somos',
+        'Algunos hilos no deberían cortarse',
+        'La magia no perdona a los imprudentes',
+        'Hasta los héroes sangran en silencio',
+        'El azar es la firma de los dioses',
+        'Ningún mapa llega hasta el final del camino',
+        'Lo que se escribe, permanece'
+    ];
+    var _subtitle = document.querySelector('.menu-subtitle');
+    if (_subtitle) {
+        _subtitle.textContent = _menuPhrases[Math.floor(Math.random() * _menuPhrases.length)];
+    }
+
     // Mejora 5: parchar updateCloudSyncIndicator
     var _origCloud = window.updateCloudSyncIndicator;
     if (typeof _origCloud === 'function') {
@@ -136,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var _origShowSection = window.showSection;
     if (typeof _origShowSection === 'function') {
         window.showSection = function(section) {
-            fadeTransition(function() { _origShowSection.call(window, section); });
+            fadeTransition(function() { _origShowSection.call(window, section); }, 150);
         };
     }
 
@@ -144,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var _origBackToMenu = window.backToMenu;
     if (typeof _origBackToMenu === 'function') {
         window.backToMenu = function() {
-            fadeTransition(function() { _origBackToMenu.call(window); });
+            fadeTransition(function() { _origBackToMenu.call(window); }, 150);
         };
     }
 
@@ -152,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var _origBackToTopics = window.backToTopics;
     if (typeof _origBackToTopics === 'function') {
         window.backToTopics = function() {
-            fadeTransition(function() { _origBackToTopics.call(window); });
+            fadeTransition(function() { _origBackToTopics.call(window); }, 150);
         };
     }
 

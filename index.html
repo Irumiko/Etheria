@@ -2,12 +2,29 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1815">
+    <meta name="description" content="Etheria — Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.">
     <title>Etheria - Roleplay Visual Novel</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
+    <!-- Open Graph / Twitter Card -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Etheria — Roleplay Visual Novel">
+    <meta property="og:description" content="Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.">
+    <meta property="og:image" content="assets/backgrounds/default_background.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Etheria — Roleplay Visual Novel">
+    <meta name="twitter:description" content="Narrativa colaborativa, modo RPG y oráculo.">
+    <!-- robots y canonical -->
+    <meta name="robots" content="index, follow">
+    <!-- Preconnect para Google Fonts (reduce latencia de fuentes) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="css/main.css">
 
-<base target="_blank">
 </head>
 <body>
 
@@ -16,11 +33,13 @@
     <div id="authScreen" style="display:none;position:fixed;inset:0;z-index:5000;background:rgba(9,10,16,.92);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1rem;">
         <div style="width:min(420px,95vw);background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:1.25rem;display:flex;flex-direction:column;gap:.8rem;">
             <h2 style="margin:0;font-family:'Cinzel',serif;color:var(--text-primary);">Iniciar sesión</h2>
-            <input id="authEmail" type="email" placeholder="Email" style="width:100%;padding:.75rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
-            <input id="authPassword" type="password" placeholder="Contraseña" style="width:100%;padding:.75rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
+            <label for="authEmail" style="font-size:.82rem;color:var(--text-secondary);margin-bottom:.15rem;">Email</label>
+            <input id="authEmail" type="email" placeholder="Email" autocomplete="email" aria-label="Email" style="width:100%;padding:.75rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
+            <label for="authPassword" style="font-size:.82rem;color:var(--text-secondary);margin-bottom:.15rem;">Contraseña</label>
+            <input id="authPassword" type="password" placeholder="Contraseña" autocomplete="current-password" aria-label="Contraseña" style="width:100%;padding:.75rem;border-radius:8px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
             <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
-                <button id="authLoginBtn" type="button" class="btn-primary" style="flex:1;min-width:130px;">Entrar</button>
-                <button id="authRegisterBtn" type="button" class="btn-secondary" style="flex:1;min-width:130px;">Registrarse</button>
+                <button id="authLoginBtn" type="button" class="btn-primary" onclick="login()" aria-label="Iniciar sesión" style="flex:1;min-width:130px;">Entrar</button>
+                <button id="authRegisterBtn" type="button" class="btn-secondary" onclick="register()" aria-label="Crear cuenta nueva" style="flex:1;min-width:130px;">Registrarse</button>
             </div>
             <p id="authStatus" style="margin:0;min-height:1.2em;color:var(--text-secondary);font-size:.9rem;"></p>
         </div>
@@ -63,38 +82,6 @@
     </div>
 
     <div id="screenReaderAnnouncements" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
-
-    <div id="shortcutsModal" class="modal-overlay" onclick="if(event.target === this) closeModal('shortcutsModal')" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
-        <div class="shortcuts-modal">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
-                <h3 id="shortcutsTitle" style="font-family:Cinzel,serif;">⌨️ Atajos de teclado</h3>
-                <button class="btn-secondary" onclick="closeModal('shortcutsModal')" aria-label="Cerrar ayuda de atajos">Cerrar</button>
-            </div>
-            <p style="color:var(--text-muted);margin-top:0.35rem;">Atajos disponibles en modo novela visual.</p>
-            <div class="shortcuts-list" role="list">
-                <div class="shortcut-item" role="listitem"><strong>Espacio</strong><span>Avanzar diálogo / completar typewriter</span></div>
-                <div class="shortcut-item" role="listitem"><strong>← / →</strong><span>Mensaje anterior / siguiente</span></div>
-                <div class="shortcut-item" role="listitem"><strong>Esc</strong><span>Cerrar paneles y modales activos</span></div>
-                <div class="shortcut-item" role="listitem"><strong>?</strong><span>Mostrar esta ayuda</span></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="saveHubModal" class="modal-overlay" onclick="if(event.target === this) closeModal('saveHubModal')" role="dialog" aria-modal="true" aria-labelledby="saveHubTitle">
-        <div class="shortcuts-modal">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
-                <h3 id="saveHubTitle" style="font-family:Cinzel,serif;">💾 Centro de guardado</h3>
-                <button class="btn-secondary" onclick="closeModal('saveHubModal')">Cerrar</button>
-            </div>
-            <p style="color:var(--text-muted);margin-top:0.35rem;">Elige cómo guardar o cargar tus partidas e historias.</p>
-            <div style="display:grid;gap:0.6rem;margin-top:0.8rem;">
-                <button class="btn-primary" onclick="saveGameFromMenu()">Descargar partida completa (JSON)</button>
-                <button class="btn-secondary" onclick="loadGameFromMenu()">Cargar partida completa (JSON)</button>
-                <button class="btn-secondary" onclick="exportCurrentStoryAsCode()">Generar código de historia</button>
-                <button class="btn-secondary" onclick="importStoryFromCode()">Importar historia por código</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Settings Panel -->
     <div id="settingsPanel" class="settings-panel">
@@ -195,9 +182,20 @@
             <div class="topics-layout">
                 <!-- Lista de historias -->
                 <div class="topics-main">
-                    <div class="topics-toolbar">
-                        <h3 class="topics-toolbar-title">Tus historias</h3>
-                        <button onclick="openModal('topicModal')" class="btn-create-topic">+ Nueva historia</button>
+                    <div class="topics-command-bar">
+                        <button onclick="openModal('topicModal')" class="btn-create-topic">
+                            <span class="btn-create-icon">✦</span>
+                            <span>Nueva Historia</span>
+                        </button>
+                        <div class="topics-search-wrap">
+                            <span class="topics-search-icon">🔍</span>
+                            <input type="text" id="topicsSearch" class="topics-search-input" placeholder="Buscar historia..." oninput="filterTopics()">
+                        </div>
+                        <div class="topics-filter-group">
+                            <button class="topic-filter-btn active" data-filter="all" onclick="setTopicFilter('all', this)">Todas</button>
+                            <button class="topic-filter-btn" data-filter="roleplay" onclick="setTopicFilter('roleplay', this)">Clásico</button>
+                            <button class="topic-filter-btn" data-filter="rpg" onclick="setTopicFilter('rpg', this)">RPG</button>
+                        </div>
                     </div>
                     <div id="topicsList" class="topics-grid"></div>
                 </div>
@@ -218,6 +216,22 @@
                             </div>
                         </div>
                     </div>
+                    <div class="topics-mode-legend">
+                        <div class="legend-item legend-rpg">
+                            <span class="legend-dot"></span>
+                            <div>
+                                <div class="legend-name">Modo RPG</div>
+                                <div class="legend-desc">Stats, dados y oráculo</div>
+                            </div>
+                        </div>
+                        <div class="legend-item legend-classic">
+                            <span class="legend-dot"></span>
+                            <div>
+                                <div class="legend-name">Modo Clásico</div>
+                                <div class="legend-desc">Roleplay libre sin mecánicas</div>
+                            </div>
+                        </div>
+                    </div>
                 </aside>
             </div>
         </div>
@@ -225,24 +239,37 @@
 
     <!-- Gallery Section -->
     <div id="gallerySection" class="game-section">
-        <div class="section-header-bar">
-            <h2 class="section-title">🎭 Galería de Personajes</h2>
-            <div style="display: flex; gap: 1rem;">
-                <button onclick="openCharacterEditor()" style="background: var(--accent-wood); color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer;">+ Nuevo</button>
+        <div class="gallery-header-bar">
+            <div class="gallery-title-row">
+                <h2 class="gallery-section-title">Galería de Personajes</h2>
+                <span id="galleryCount" class="gallery-count-badge">0 personajes</span>
+            </div>
+            <div class="gallery-header-actions">
+                <button onclick="openCharacterEditor()" class="gallery-new-btn">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    Nuevo personaje
+                </button>
                 <button class="back-button" onclick="backToMenu()">← Volver</button>
             </div>
         </div>
         <div class="section-content">
-            <div class="gallery-toolbar">
-                <input type="text" id="gallerySearch" class="search-input" placeholder="🔍 Buscar personaje o jugador..." oninput="debounceRenderGallery()">
-                <select id="gallerySort" class="sort-select" onchange="renderGallery()">
-                    <option value="default">Ordenar...</option>
-                    <option value="owner">Por Propietario</option>
-                    <option value="name">Por Nombre</option>
-                    <option value="race">Por Raza</option>
-                </select>
-                <span id="galleryCount" style="color: var(--text-muted); font-family: 'Inter', sans-serif; font-size: 0.9rem;"></span>
+            <!-- Barra de búsqueda y filtros -->
+            <div class="gallery-toolbar-v2">
+                <div class="gallery-search-wrap">
+                    <svg class="gallery-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    <input type="text" id="gallerySearch" class="gallery-search-input" placeholder="Buscar por nombre, raza o jugador..." oninput="onGallerySearch(this.value)" autocomplete="off">
+                    <div id="gallerySuggestions" class="gallery-suggestions"></div>
+                </div>
+                <div class="gallery-sort-pills">
+                    <button class="gallery-sort-pill active" data-sort="default" onclick="setGallerySort('default', this)">Reciente</button>
+                    <button class="gallery-sort-pill" data-sort="name" onclick="setGallerySort('name', this)">A–Z</button>
+                    <button class="gallery-sort-pill" data-sort="owner" onclick="setGallerySort('owner', this)">Jugador</button>
+                    <button class="gallery-sort-pill" data-sort="race" onclick="setGallerySort('race', this)">Raza</button>
+                </div>
             </div>
+            <!-- Pills de raza activas -->
+            <div id="galleryRaceTags" class="gallery-race-tags"></div>
+            <!-- Grid -->
             <div id="galleryGrid" class="gallery-grid"></div>
         </div>
     </div>
@@ -381,23 +408,35 @@
     <!-- VN Section -->
     <div id="vnSection" class="game-section vn-section">
         <div id="vnSceneTransition" class="vn-scene-transition"></div>
+        <div id="vnChapterReveal" class="vn-chapter-reveal">
+            <div class="vn-chapter-reveal-line"></div>
+            <div class="vn-chapter-reveal-title" id="vnChapterRevealTitle">Capítulo I</div>
+            <div class="vn-chapter-reveal-line"></div>
+        </div>
+        <div id="vnAffinityMilestone" class="vn-affinity-milestone" aria-live="polite">
+            <div class="vn-affinity-milestone-inner">
+                <div class="vn-affinity-milestone-glow"></div>
+                <div class="vn-affinity-milestone-icon" id="vnAffinityMilestoneIcon">💜</div>
+                <div class="vn-affinity-milestone-rank" id="vnAffinityMilestoneRank">Amigos</div>
+                <div class="vn-affinity-milestone-label">Nueva etapa de la relación</div>
+            </div>
+        </div>
         <!-- Contenedores de clima -->
         <div id="weatherContainer" class="weather-container"></div>
 
         <!-- Info Card -->
         <div class="vn-info-card" id="vnInfoCard">
-            <div class="vn-info-avatar" id="vnInfoAvatar">
-                <div class="placeholder" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 2rem;">👤</div>
+            <!-- Avatar — click para pinnar/despinnar el IHP -->
+            <div class="vn-info-avatar" id="vnInfoAvatar" onclick="toggleIhpPin()" title="Click para fijar/liberar panel">
+                <div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">👤</div>
             </div>
             <div class="vn-info-details">
-
-                <!-- Nombre + apellido en la misma línea -->
                 <div class="vn-info-name-row">
-                    <div class="vn-info-name" id="vnInfoName">Sin personaje <span id="vnTypingIndicator" class="vn-typing-indicator" style="display:none;"><span></span><span></span><span></span></span></div>
-                    <div class="vn-info-lastname" id="vnInfoLastname"></div>
+                    <div class="vn-info-name" id="vnInfoName">Sin personaje</div>
+                    <span id="vnTypingIndicator" class="vn-typing-indicator" style="display:none;"><span></span><span></span><span></span></span>
                 </div>
-
-                <!-- Píldoras: edad · raza · género -->
+                <div id="vnInfoClassicBtn" style="display:none;"></div>
+                <div class="vn-info-subtitle" id="vnInfoSubtitle"></div>
                 <div class="vn-info-pills" id="vnInfoPills">
                     <span class="vn-info-pill" id="vnInfoPillAge"></span>
                     <span class="vn-info-pill-sep" id="vnInfoPillSep1"></span>
@@ -405,33 +444,98 @@
                     <span class="vn-info-pill-sep" id="vnInfoPillSep2"></span>
                     <span class="vn-info-pill" id="vnInfoPillGender"></span>
                 </div>
-
-                <!-- Sistema de Afinidad Revamp -->
+                <!-- Afinidad simplificada: solo rango + botón grafo -->
                 <div id="affinityDisplay" class="affinity-rank-display hidden">
                     <div class="affinity-rank-row">
                         <div class="affinity-rank-name" id="affinityRankName">Desconocidos</div>
                         <div class="affinity-controls-inline">
-                            <button class="affinity-btn-inline minus" onclick="modifyAffinity(-1)" title="Disminuir afinidad">−</button>
-                            <button class="affinity-btn-inline plus" onclick="modifyAffinity(1)" title="Aumentar afinidad">+</button>
                             <button class="affinity-btn-inline" onclick="openRelationshipGraph()" title="Ver grafo de relaciones">✶</button>
                         </div>
                     </div>
                     <div class="affinity-feedback" id="affinityFeedback"></div>
                 </div>
-
-                <div class="vn-info-affection" id="vnInfoAffection" style="display: none;">
-                    <span>❤️</span>
-                    <span id="vnAffectionValue">0</span>
+                <div class="vn-info-affection" id="vnInfoAffection" style="display:none;">
+                    <span>❤️</span><span id="vnAffectionValue">0</span>
                 </div>
-
+                <!-- HP permanente en RPG: mini barra inline -->
                 <div id="vnInfoRpg" class="vn-info-rpg hidden">
-                    <span id="vnInfoRpgSummary" class="vn-info-rpg-summary">HP 0/10 · EXP 0/10</span>
-                    <button type="button" class="vn-info-rpg-sheet-btn" onclick="openCurrentVnCharacterSheet()" title="Abrir stats RPG">⚔️ Stats</button>
+                    <div class="vn-info-hp-wrap">
+                        <span class="vn-info-hp-label">HP</span>
+                        <div class="vn-info-hp-bar">
+                            <div class="vn-info-hp-fill" id="vnInfoHpFill" style="width:100%"></div>
+                        </div>
+                        <span class="vn-info-hp-val" id="vnInfoHpVal">10/10</span>
+                    </div>
                 </div>
             </div>
+
+            <!-- Panel expandible (IHP): hover=peek, click avatar=pinned -->
+            <div class="vn-info-hover-details" id="vnInfoHoverPanel" data-state="hidden">
+                <!-- Botón cerrar (visible en pinned) -->
+                <button class="ihp-close-btn" id="ihpCloseBtn" onclick="unpinIhp()" title="Cerrar panel">✕</button>
+                <!-- Botón pin indicador -->
+                <div class="ihp-pin-indicator" id="ihpPinIndicator" title="Fijado">📌</div>
+                <!-- Ornamentos de esquina -->
+                <div class="ihp-corner ihp-corner-tl" id="ihpCornerTL"></div>
+                <div class="ihp-corner ihp-corner-tr" id="ihpCornerTR"></div>
+                <!-- Emblema de clase (RPG) / Sello de cera (Clásico) -->
+                <div class="ihp-emblem" id="ihpEmblem"></div>
+                <!-- Nombre -->
+                <div class="ihp-name" id="ihpName"></div>
+                <!-- Filas de datos básicos -->
+                <div class="ihp-data" id="ihpData"></div>
+                <!-- Descripción -->
+                <div class="ihp-desc" id="ihpDesc"></div>
+                <!-- Stats RPG (barras + grid) — pinned en RPG, peek en clásico no las muestra -->
+                <div class="ihp-rpg-bars" id="ihpRpgBars"></div>
+                <div class="ihp-stats" id="ihpStats"></div>
+                <!-- Sección clásico: relaciones (solo visible en pinned + modo clásico) -->
+                <div class="ihp-relations" id="ihpRelations"></div>
+                <!-- Oráculo directo (solo en pinned + modo RPG) -->
+                <div class="ihp-oracle-hint" id="ihpOracleHint" style="display:none;">
+                    <button class="ihp-oracle-btn" onclick="toggleOracleMiniPanel()" title="Consultar el oráculo">🎲 Consultar oráculo</button>
+                </div>
+            </div>
+        
         </div>
 
-        <div id="roomCodeWrap" style="display:none; align-items:center; gap:0.6rem; margin:0.55rem auto 0.15rem; max-width: 860px; background: rgba(0,0,0,0.32); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.45rem 0.7rem;">
+        <!-- Panel de ficha de personaje (desplegable desde la info-card) -->
+        <div id="vnCharInfoPanel" class="vn-char-info-panel" style="display:none;" role="dialog" aria-label="Ficha del personaje">
+            <div class="vn-char-info-header">
+                <span class="vn-char-info-title" id="vnCharInfoName">Personaje</span>
+                <button type="button" class="vn-char-info-close" onclick="closeCharacterInfoPanel()" aria-label="Cerrar">✕</button>
+            </div>
+            <div id="vnCharInfoBody" class="vn-char-info-body"></div>
+            <div id="vnCharInfoRelations" class="vn-char-info-relations"></div>
+        </div>
+
+
+        <!-- Mini-panel de narración -->
+        <div id="vnNarratePanel" class="vn-narrate-panel" style="display:none;" aria-label="Panel de narración">
+            <div class="vn-narrate-panel-header">
+                <span>✒ Narrar</span>
+                <button type="button" onclick="closeNarratePanel()" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="vn-narrate-panel-body">
+                <button type="button" class="vn-narrate-option" data-option="innkeeper" onclick="closeNarratePanel(); triggerInnkeeperScene()">
+                    <span class="vn-narrate-option-icon">🍺</span>
+                    <div class="vn-narrate-option-text">
+                        <strong>Nueva escena — La Posada</strong>
+                        <span>Garrick recibe al grupo. El HP se restaura al amanecer.</span>
+                    </div>
+                </button>
+                <button type="button" class="vn-narrate-option" data-option="free" onclick="closeNarratePanel(); prepareChapter()">
+                    <span class="vn-narrate-option-icon">📖</span>
+                    <div class="vn-narrate-option-text">
+                        <strong>Nueva escena</strong>
+                        <span>Define el rumbo con el narrador.</span>
+                    </div>
+                </button>
+            </div>
+            <div id="vnNarratePending" class="vn-narrate-pending" style="display:none;"></div>
+        </div>
+
+        <div id="roomCodeWrap" style="display:none; align-items:center; gap:0.6rem; background: rgba(0,0,0,0.32); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.45rem 0.7rem;">
             <span style="font-size:0.82rem; color: var(--text-muted);">Código de sala:</span>
             <code id="roomCodeValue" style="font-size:0.85rem; color: var(--text-primary); user-select: all;"></code>
             <button type="button" class="btn-secondary" onclick="copyCurrentRoomCode()" style="margin-left:auto; padding:0.35rem 0.7rem;">Copiar código de sala</button>
@@ -501,6 +605,15 @@
 
             <div class="vn-control-divider"></div>
 
+            <!-- Botón Narrar — visible en modo clásico para el owner -->
+            <div id="vnNarrateBtn" class="vn-control-slot" style="display:none;">
+                <button class="vn-control-btn vn-narrate-ctrl-btn" onclick="openNarratePanel()" aria-label="Narrar / Nueva escena" title="Nueva escena">
+                    <span class="vn-control-icon">✒</span>
+                </button>
+            </div>
+
+            <div class="vn-control-divider"></div>
+
             <!-- Grupo Salir/Borrar -->
             <div class="vn-control-slot">
                 <button id="deleteTopicBtn" class="vn-control-btn" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
@@ -540,12 +653,23 @@
         <div id="vnOptionsContainer" class="vn-options-container"></div>
 
         <div class="vn-dialogue-box" onclick="handleDialogueClick()">
-            <div id="messageHasOptions" class="message-has-options hidden">🎭 Opciones disponibles</div>
+            <!-- Botón de reacción — esquina superior derecha -->
+            <button id="vnReactionCornerBtn" class="vn-reaction-corner-btn" type="button"
+                    onclick="event.stopPropagation(); toggleReactionPicker()"
+                    aria-label="Reaccionar al mensaje" title="Reaccionar">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  <path d="M12 5.67 L14 8 L17 9 L15 12 L16 15 L12 13.5 L8 15 L9 12 L7 9 L10 8 Z" stroke-width="0" fill="currentColor" opacity="0.25"/>
+</svg>
+                <span id="vnReactionCornerActive" class="vn-reaction-corner-active" style="display:none;"></span>
+            </button>
+            <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
             <div class="vn-speaker-avatar-wrap" aria-hidden="true"></div>
-            <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
+            <div id="messageHasOptions" class="message-has-options hidden">🎭 Opciones disponibles</div>
             <div id="vnOracleConsequenceBadge" class="vn-oracle-consequence-badge" style="display:none;">🪙 Consecuencia del destino</div>
             <div id="vnDialogueText" class="vn-dialogue-text"></div>
+            <div id="vnReactionDisplay" class="vn-reaction-display"></div>
             <div id="vnContinueIndicator" class="vn-continue-indicator"></div>
             <div class="vn-dialogue-footer">
                 <div class="vn-counter-dice-wrap">
@@ -553,22 +677,64 @@
                     <div id="vnDiceBadge" class="vn-dice-badge" style="display:none;"></div>
                 </div>
                 <div class="vn-dialogue-actions">
-                    <button class="vn-dialogue-action-btn reply-btn" onclick="handleActionButtonClick(event); openReplyPanel()" aria-label="Responder">
-                        <span class="action-icon">💬</span><span class="action-label">Responder</span>
-                    </button>
-                    <button id="editMsgBtn" class="vn-dialogue-action-btn" onclick="handleActionButtonClick(event); editCurrentMessage()" aria-label="Editar mensaje">
-                        <span class="action-icon">✎</span><span class="action-label">Editar</span>
-                    </button>
-                    <button class="vn-dialogue-action-btn delete-message-btn" onclick="handleActionButtonClick(event); deleteCurrentMessage()" aria-label="Borrar mensaje">
-                        <span class="action-icon">🗑</span>
-                    </button>
+                    <!-- Izquierda: herramientas de narración y partida -->
+                    <div class="vn-dialogue-actions-left">
+                        <button id="vnOracleFloatBtn" class="vn-dialogue-action-btn oracle-action-btn" type="button" onclick="handleActionButtonClick(event); toggleOracleMiniPanel()" style="display:none;" title="Consultar al oráculo" aria-label="Oráculo">
+                            <span class="action-icon">🎲</span><span class="action-label">Oráculo</span>
+                        </button>
+                        <button id="vnInnkeeperBtn" class="vn-dialogue-action-btn innkeeper-action-btn" type="button" onclick="handleActionButtonClick(event); triggerInnkeeperScene()" style="display:none;" title="La Posada — nueva escena" aria-label="Posada">
+                            <span class="action-icon">🍺</span><span class="action-label">Posada</span>
+                        </button>
+                        <button id="vnNarrateDialogBtn" class="vn-dialogue-action-btn narrate-action-btn" type="button" onclick="handleActionButtonClick(event); prepareChapter()" style="display:none;" title="Nueva escena" aria-label="Nueva escena">
+                            <span class="action-icon">✒</span><span class="action-label">Escena</span>
+                        </button>
+                    </div>
+                    <!-- Derecha: acciones comunes -->
+                    <div class="vn-dialogue-actions-right">
+                        <button class="vn-dialogue-action-btn reply-btn" onclick="handleActionButtonClick(event); openReplyPanel()" aria-label="Responder">
+                            <span class="action-icon">💬</span><span class="action-label">Responder</span>
+                        </button>
+                        <button id="editMsgBtn" class="vn-dialogue-action-btn" onclick="handleActionButtonClick(event); editCurrentMessage()" aria-label="Editar mensaje">
+                            <span class="action-icon">✎</span><span class="action-label">Editar</span>
+                        </button>
+                        <!-- reaction-trigger-btn moved to corner badge; keeping icon span for JS -->
+                        <span id="vnReactionBtnIcon" style="display:none;">🙂</span>
+                        <button class="vn-dialogue-action-btn delete-message-btn" onclick="handleActionButtonClick(event); deleteCurrentMessage()" aria-label="Borrar mensaje">
+                            <span class="action-icon">🗑</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+            <!-- Picker de reacciones — se abre sobre el botón esquina -->
+            <div id="vnReactionPicker" class="vn-reaction-picker" style="display:none;">
+                <button class="reaction-pick-btn" data-emoji="❤️" onclick="toggleReaction('❤️')" title="Me encanta">❤️</button>
+                <button class="reaction-pick-btn" data-emoji="😂" onclick="toggleReaction('😂')" title="Me hace gracia">😂</button>
+                <button class="reaction-pick-btn" data-emoji="😱" onclick="toggleReaction('😱')" title="Sorprendente">😱</button>
+                <button class="reaction-pick-btn" data-emoji="🔥" onclick="toggleReaction('🔥')" title="Intenso">🔥</button>
+                <button class="reaction-pick-btn" data-emoji="👏" onclick="toggleReaction('👏')" title="Aplauso">👏</button>
+                <button class="reaction-pick-btn" data-emoji="😢" onclick="toggleReaction('😢')" title="Emotivo">😢</button>
+            </div>
+            <!-- Fin picker de reacciones -->
 
-        <button id="vnOracleFloatBtn" class="vn-oracle-float-btn" type="button" onclick="triggerOracleReply()" style="display:none;" title="Activar tirada del oráculo para el próximo mensaje">
-            🎲 Oráculo
-        </button>
+
+        <!-- Mini-panel del Oráculo (independiente del panel de respuesta) -->
+        <div id="vnOracleMiniPanel" class="vn-oracle-minipanel" style="display:none;" aria-label="Panel del Oráculo">
+            <div class="vn-oracle-minipanel-header">
+                <span class="vn-oracle-minipanel-title">🎲 Oráculo del Destino</span>
+                <button type="button" class="vn-oracle-minipanel-close" onclick="closeOracleMiniPanel()" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="vn-oracle-minipanel-body">
+                <textarea id="oracleMiniQuestion" class="vn-oracle-minipanel-textarea" placeholder="¿Qué intentas hacer? Describe tu acción..." rows="2" onkeydown="event.stopPropagation()" onkeyup="event.stopPropagation()"></textarea>
+                <div class="vn-oracle-minipanel-stats" id="oracleMiniStatButtons">
+                    <button type="button" class="oracle-stat-btn active" data-stat="STR">STR</button>
+                    <button type="button" class="oracle-stat-btn" data-stat="VIT">VIT</button>
+                    <button type="button" class="oracle-stat-btn" data-stat="INT">INT</button>
+                    <button type="button" class="oracle-stat-btn" data-stat="AGI">AGI</button>
+                </div>
+                <div class="vn-oracle-minipanel-info" id="oracleMiniInfo">D20 +0 vs 12</div>
+                <button type="button" class="vn-oracle-minipanel-roll" onclick="rollOracleMini()">🎲 Consultar destino</button>
+            </div>
+        </div>
 
         <!-- Panel Responder -->
         <div id="vnReplyPanel" class="vn-reply-panel">
@@ -604,48 +770,27 @@
 
 
                 <div class="vn-reply-textarea-wrap">
-                    <button id="replyEmoteToggle" class="reply-emote-toggle" type="button" aria-label="Emotes" onclick="toggleReplyEmotePopover(event)">☺</button>
+                    <button id="replyEmoteToggle" class="reply-emote-toggle" type="button" aria-label="Emotes — expresiones del personaje" title="Emotes del personaje" onclick="toggleReplyEmotePopover(event)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="10"/>
+  <path d="M8 13s1.5 2 4 2 4-2 4-2"/>
+  <line x1="9" y1="9" x2="9.01" y2="9" stroke-width="3"/>
+  <line x1="15" y1="9" x2="15.01" y2="9" stroke-width="3"/>
+  <!-- ceja leve -->
+  <path d="M7.5 7.5 Q9 6.5 10.5 7.5" stroke-width="1.2"/>
+  <path d="M13.5 7.5 Q15 6.5 16.5 7.5" stroke-width="1.2"/>
+</svg></button>
                     <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*, y comandos como /angry, /happy, etc."></textarea>
                     <div id="replyEmotePopover" class="reply-emote-popover" aria-hidden="true">
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')" aria-label="Insertar emote angry">💢</button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')" aria-label="Insertar emote happy">✨</button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('shock')" aria-label="Insertar emote shock">💦</button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sad')" aria-label="Insertar emote sad">💧</button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('think')" aria-label="Insertar emote think">💭</button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('love')" aria-label="Insertar emote love">💕</button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('annoyed')" aria-label="Insertar emote annoyed">💢</button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" aria-label="Insertar emote embarrassed">😳</button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')" aria-label="Insertar emote idea">💡</button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')" aria-label="Insertar emote sleep">💤</button>
-                    </div>
-                </div>
-
-                <div id="oraclePanel" class="oracle-panel" style="display:none;">
-                    <button type="button" id="oracleToggleBtn" class="dice-toggle-btn" onclick="toggleOracleMode()" title="Activa una tirada D20 para este mensaje.">🎲 Tirada del Oráculo (D20)</button>
-                    <div id="oracleFields" class="oracle-fields" style="display:none;">
-                        <div class="oracle-question-wrap">
-                            <label for="oracleQuestionInput">¿Qué intentas?</label>
-                            <input type="text" id="oracleQuestionInput" placeholder="Tu intención para la tirada del destino...">
-                        </div>
-                        <div class="oracle-stat-wrap">
-                            <span class="oracle-stat-label">Stat</span>
-                            <div class="oracle-stat-buttons" id="oracleStatButtons">
-                                <button type="button" class="oracle-stat-btn active" data-stat="STR">STR</button>
-                                <button type="button" class="oracle-stat-btn" data-stat="VIT">VIT</button>
-                                <button type="button" class="oracle-stat-btn" data-stat="INT">INT</button>
-                                <button type="button" class="oracle-stat-btn" data-stat="AGI">AGI</button>
-                            </div>
-                        </div>
-                        <div class="oracle-probability-wrap">
-                            <div class="oracle-probability-head">
-                                <span>Tirada objetivo</span>
-                                <span id="oracleProbabilityValue">D20 +0 vs 12</span>
-                            </div>
-                            <div class="oracle-probability-bar">
-                                <div id="oracleProbabilityFill" class="oracle-probability-fill"></div>
-                            </div>
-                        </div>
-                        <div class="oracle-legend">La tirada afecta a este mensaje y al progreso RPG del tema actual</div>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')" title="/angry — Ira" aria-label="Ira"><span class="re-icon">💢</span><span class="re-label">Ira</span></button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')" title="/happy — Alegría" aria-label="Alegría"><span class="re-icon">✨</span><span class="re-label">Alegría</span></button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('shock')" title="/shock — Sorpresa" aria-label="Sorpresa"><span class="re-icon">💦</span><span class="re-label">Sorpresa</span></button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sad')" title="/sad — Tristeza" aria-label="Tristeza"><span class="re-icon">💧</span><span class="re-label">Tristeza</span></button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('think')" title="/think — Pensando" aria-label="Pensando"><span class="re-icon">💭</span><span class="re-label">Pensando</span></button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('love')" title="/love — Amor" aria-label="Amor"><span class="re-icon">💕</span><span class="re-label">Amor</span></button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('annoyed')" title="/annoyed — Frustración" aria-label="Frustración"><span class="re-icon">💢</span><span class="re-label">Frustración</span></button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" title="/embarrassed — Vergüenza" aria-label="Vergüenza"><span class="re-icon">😳</span><span class="re-label">Vergüenza</span></button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')" title="/idea — Idea" aria-label="Idea"><span class="re-icon">💡</span><span class="re-label">Idea</span></button>
+                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')" title="/sleep — Sueño" aria-label="Sueño"><span class="re-icon">💤</span><span class="re-label">Sueño</span></button>
                     </div>
                 </div>
 
@@ -679,7 +824,7 @@
                     </div>
                 </div>
 
-                <!-- Selector de clima (solo en modo fanfic o al responder) -->
+                <!-- Selector de clima (solo en modo rpg o al responder) -->
                 <div id="weatherSelectorContainer" style="display: none; margin-top: 1rem;">
                     <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">🌦️ Cambiar clima</label>
                     <div class="weather-selector">
@@ -689,10 +834,6 @@
                     </div>
                 </div>
 
-                <div style="margin-top:0.85rem; display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-                    <button type="button" class="btn-secondary" id="sceneChangeBtn" onclick="prepareSceneChange()" style="padding:0.45rem 0.75rem;">🎬 Nueva escena</button>
-                    <span id="sceneChangePreview" style="display:none; font-size:0.8rem; color:var(--accent-gold);"></span>
-                </div>
             </div>
 
             <div class="vn-reply-footer">
@@ -703,22 +844,63 @@
     </div>
 
     <!-- History Log Modal -->
-    <div id="historyModal" class="modal-overlay" onclick="if(event.target === this) closeModal('historyModal')">
+
+    <!-- Diario de Sesión Modal -->
+
+    <!-- Branch Editor Modal -->
+
+    <!-- Modals -->
+
+    <!-- Character Editor -->
+
+    </div><!-- /vnSection -->
+
+<div id="shortcutsModal" class="modal-overlay" onclick="if(event.target === this) closeModal('shortcutsModal')" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+        <div class="shortcuts-modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+                <h3 id="shortcutsTitle" style="font-family:Cinzel,serif;">⌨️ Atajos de teclado</h3>
+                <button class="btn-secondary" onclick="closeModal('shortcutsModal')" aria-label="Cerrar ayuda de atajos">Cerrar</button>
+            </div>
+            <p style="color:var(--text-muted);margin-top:0.35rem;">Atajos disponibles en modo novela visual.</p>
+            <div class="shortcuts-list" role="list">
+                <div class="shortcut-item" role="listitem"><strong>Espacio</strong><span>Avanzar diálogo / completar typewriter</span></div>
+                <div class="shortcut-item" role="listitem"><strong>← / →</strong><span>Mensaje anterior / siguiente</span></div>
+                <div class="shortcut-item" role="listitem"><strong>Esc</strong><span>Cerrar paneles y modales activos</span></div>
+                <div class="shortcut-item" role="listitem"><strong>?</strong><span>Mostrar esta ayuda</span></div>
+            </div>
+        </div>
+    </div>
+<div id="saveHubModal" class="modal-overlay" onclick="if(event.target === this) closeModal('saveHubModal')" role="dialog" aria-modal="true" aria-labelledby="saveHubTitle">
+        <div class="shortcuts-modal">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+                <h3 id="saveHubTitle" style="font-family:Cinzel,serif;">💾 Centro de guardado</h3>
+                <button class="btn-secondary" onclick="closeModal('saveHubModal')">Cerrar</button>
+            </div>
+            <p style="color:var(--text-muted);margin-top:0.35rem;">Elige cómo guardar o cargar tus partidas e historias.</p>
+            <div style="display:grid;gap:0.6rem;margin-top:0.8rem;">
+                <button class="btn-primary" onclick="saveGameFromMenu()">Descargar partida completa (JSON)</button>
+                <button class="btn-secondary" onclick="loadGameFromMenu()">Cargar partida completa (JSON)</button>
+                <button class="btn-secondary" onclick="exportCurrentStoryAsCode()">Generar código de historia</button>
+                <button class="btn-secondary" onclick="importStoryFromCode()">Importar historia por código</button>
+            </div>
+        </div>
+    </div>
+<div id="historyModal" class="modal-overlay" onclick="if(event.target === this) closeModal('historyModal')">
         <div class="history-modal">
             <div class="history-header">
                 <h3 class="history-title">📜 Historial</h3>
                 <div class="history-tabs">
                     <button class="history-tab active" id="histTabAll" onclick="switchHistoryTab('all')">Todos</button>
                     <button class="history-tab" id="histTabFav" onclick="switchHistoryTab('favorites')">⭐ Favoritos</button>
+                    <button class="history-tab" id="histTabChapters" onclick="switchHistoryTab('chapters')">📖 Capítulos</button>
                 </div>
+                <button onclick="exportHistoryAsDocument()" class="btn-secondary" style="padding:0.35rem 0.85rem; font-size:0.82rem;" title="Exportar como documento" aria-label="Exportar historia">⬇ Exportar</button>
                 <button onclick="closeModal('historyModal')" class="btn-secondary" aria-label="Cerrar historial">✕ Cerrar</button>
             </div>
             <div id="historyContent" class="history-content"></div>
         </div>
     </div>
-
-    <!-- Diario de Sesión Modal -->
-    <div id="journalModal" class="modal-overlay" onclick="if(event.target === this) closeJournal()">
+<div id="journalModal" class="modal-overlay" onclick="if(event.target === this) closeJournal()">
         <div class="journal-modal">
             <div class="journal-header">
                 <h3 class="journal-title">📓 Diario de Sesión</h3>
@@ -738,9 +920,7 @@
             </div>
         </div>
     </div>
-
-    <!-- Branch Editor Modal -->
-    <div id="branchEditorModal" class="modal-overlay" onclick="if(event.target === this) closeModal('branchEditorModal')">
+<div id="branchEditorModal" class="modal-overlay" onclick="if(event.target === this) closeModal('branchEditorModal')">
         <div class="branch-editor-modal">
             <div class="branch-editor-header">
                 <h3 class="branch-editor-title">🌿 Editor de Ramas Narrativas</h3>
@@ -758,9 +938,7 @@
             </div>
         </div>
     </div>
-
-    <!-- Modals -->
-    <div id="topicModal" class="modal-overlay" onclick="if(event.target === this) closeModal('topicModal')">
+<div id="topicModal" class="modal-overlay" onclick="if(event.target === this) closeModal('topicModal')">
         <div class="modal topic-modal">
             <div class="topic-header-row">
                 <h3 class="topic-title">Nueva Historia</h3>
@@ -783,7 +961,7 @@
                         <span>🎭 Modo clásico</span>
                     </label>
                     <label class="topic-mode-option">
-                        <input type="radio" name="topicMode" value="fanfic" id="modeFanfic" onchange="updateTopicModeUI()">
+                        <input type="radio" name="topicMode" value="rpg" id="modeRpg" onchange="updateTopicModeUI()">
                         <span>📖 Modo RPG</span>
                     </label>
                 </div>
@@ -812,8 +990,7 @@
             </div>
         </div>
     </div>
-
-    <div id="roleCharacterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('roleCharacterModal')">
+<div id="roleCharacterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('roleCharacterModal')">
         <div class="role-char-modal">
             <h3 id="roleCharacterTitle" style="margin:0; text-align:center; color: var(--accent-gold);">Selecciona tu personaje activo</h3>
             <div id="roleCharacterSubtitle" style="text-align:center; color: var(--text-muted); font-size: 0.95rem;">Debes elegir un personaje para continuar.</div>
@@ -821,9 +998,7 @@
             <button class="btn-secondary" onclick="closeModal('roleCharacterModal')">Cancelar</button>
         </div>
     </div>
-
-    <!-- Character Editor -->
-    <div id="characterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('characterModal')">
+<div id="characterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('characterModal')">
         <div class="character-modal">
             <div class="editor-container">
                 <div class="editor-preview">
@@ -956,38 +1131,62 @@
     </div>
 
     <div id="sheetModal" class="modal-overlay" onclick="if(event.target === this) closeModal('sheetModal')">
-        <div class="sheet-modal">
-            <div class="sheet-header">
-                <div id="sheetAvatar" class="sheet-avatar-large"></div>
-                <div class="sheet-header-info">
-                    <h2 id="sheetName" class="sheet-name"></h2>
-                    <p id="sheetOwner" class="sheet-owner"></p>
-                    <div id="sheetQuickStats" class="sheet-quick-stats"></div>
+        <div class="sheet-modal sheet-modal-v2">
+            <!-- Header con avatar y datos clave -->
+            <div class="sheet-header-v2">
+                <button class="sheet-close-btn" onclick="closeModal('sheetModal')" aria-label="Cerrar">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+                <div class="sheet-avatar-v2" id="sheetAvatar"></div>
+                <div class="sheet-header-meta">
+                    <div class="sheet-name-block">
+                        <h2 id="sheetName" class="sheet-name-v2"></h2>
+                        <span id="sheetLastNameBadge" class="sheet-lastname-badge"></span>
+                    </div>
+                    <p id="sheetOwner" class="sheet-owner-v2"></p>
+                    <div id="sheetQuickStats" class="sheet-quick-stats-v2"></div>
+                </div>
+                <div id="sheetJobRibbon" class="sheet-job-ribbon"></div>
+            </div>
+            <!-- Tabs con SVG icons -->
+            <div class="sheet-tabs-v2">
+                <button class="sheet-tab-v2 active" onclick="switchTab('profile', this)" data-tab="profile">
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 4.5h6M3.5 6.5h6M3.5 8.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                    Perfil
+                </button>
+                <button class="sheet-tab-v2" onclick="switchTab('personality', this)" data-tab="personality">
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="5" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 12c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    Personalidad
+                </button>
+                <button class="sheet-tab-v2" onclick="switchTab('history', this)" data-tab="history">
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 1h9v11H2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4 4.5h5M4 6.5h5M4 8.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+                    Historia
+                </button>
+                <button class="sheet-tab-v2" onclick="switchTab('notes', this)" data-tab="notes">
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2h9v7H8l-2 2V9H2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+                    Notas
+                </button>
+            </div>
+            <!-- Contenido de tabs -->
+            <div class="sheet-body-v2">
+                <div id="tab-profile" class="tab-panel active">
+                    <div class="sheet-profile-cols">
+                        <div class="sheet-profile-left" id="profileGrid"></div>
+                        <div class="sheet-profile-right" id="profilePhysical"></div>
+                    </div>
+                </div>
+                <div id="tab-personality" class="tab-panel">
+                    <div class="profile-text-v2" id="profilePersonality">Sin datos de personalidad.</div>
+                </div>
+                <div id="tab-history" class="tab-panel">
+                    <div class="profile-text-v2" id="profileHistory">Sin historia registrada.</div>
+                </div>
+                <div id="tab-notes" class="tab-panel">
+                    <div class="profile-text-v2" id="profileNotes">Sin notas del jugador.</div>
                 </div>
             </div>
-            <div class="sheet-tabs">
-                <button class="sheet-tab active" onclick="switchTab('profile', this)">📋 Perfil</button>
-                <button class="sheet-tab" onclick="switchTab('personality', this)">🎭 Personalidad</button>
-                <button class="sheet-tab" onclick="switchTab('history', this)">📖 Historia</button>
-            </div>
-            <div class="sheet-body">
-                <div class="sheet-content">
-                    <div id="tab-profile" class="tab-panel active">
-                        <div class="sheet-profile-layout" id="sheetProfileLayout">
-                            <div class="profile-grid" id="profileGrid"></div>
-                        </div>
-                    </div>
-                    <div id="tab-personality" class="tab-panel">
-                        <div class="profile-text" id="profilePersonality">Sin datos de personalidad.</div>
-                    </div>
-                    <div id="tab-history" class="tab-panel">
-                        <div class="profile-text" id="profileHistory">Sin historia registrada.</div>
-                    </div>
-                </div>
-            </div>
-            <div class="sheet-actions">
-                <button onclick="closeModal('sheetModal')" class="btn-secondary">Cerrar</button>
-                <button id="sheetEditBtn" onclick="editFromSheet()" class="btn-primary" style="display: none;">✏️ Editar</button>
+            <div class="sheet-actions-v2">
+                <button id="sheetEditBtn" onclick="editFromSheet()" class="btn-primary" style="display: none;">Editar personaje</button>
             </div>
         </div>
     </div>
@@ -1002,6 +1201,24 @@
         </div>
     </div>
 
+    <!-- Modal compacto: Ficha resumida (modo clásico) -->
+    <div id="fichaModal" class="modal-overlay" onclick="if(event.target === this) closeModal('fichaModal')">
+        <div class="ficha-modal">
+            <div class="ficha-modal-header">
+                <div class="ficha-modal-identity">
+                    <div class="ficha-modal-avatar" id="fichaModalAvatar"></div>
+                    <div>
+                        <div class="ficha-modal-name" id="fichaModalName">—</div>
+                        <div class="ficha-modal-owner" id="fichaModalOwner"></div>
+                    </div>
+                </div>
+                <button type="button" class="btn-secondary" onclick="closeModal('fichaModal')">✕</button>
+            </div>
+            <div id="fichaModalBody" class="ficha-modal-body"></div>
+        </div>
+    </div>
+
+
 <!-- Orden de carga recomendado: utilidades -> UI -> arranque -->
 <script src="js/utils/state.js"></script>
 <script src="js/core/store.js"></script>
@@ -1015,7 +1232,7 @@
 <script src="js/ui/characters.js"></script>
 <script src="js/ui/navigation.js"></script>
 <script src="js/ui/sheets.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js" crossorigin="anonymous" onerror="console.warn('[Etheria] supabase-js no pudo cargar — modo local activo'); window.__supabaseFailed=true;"></script>
 <script src="js/utils/supabaseClient.js"></script>
 <script src="js/utils/supabaseMessages.js"></script>
 <script src="js/ui/vn.js"></script>
@@ -1032,6 +1249,13 @@
                 <button class="btn-secondary" onclick="closeModal('relationshipGraphModal')">Cerrar</button>
             </div>
             <div id="relationshipGraphSubtitle" style="color:var(--text-muted); margin-top:0.45rem;"></div>
+            <!-- Controles de afinidad: solo visibles cuando hay personaje activo -->
+            <div id="graphAffinityControls" class="graph-affinity-controls hidden">
+                <span class="graph-affinity-label">Afinidad con <strong id="graphAffinityTargetName">—</strong>:</span>
+                <span class="graph-affinity-rank" id="graphAffinityRankName">—</span>
+                <button class="graph-affinity-btn minus" onclick="modifyAffinity(-1); refreshRelationshipGraph();" title="Disminuir afinidad">−</button>
+                <button class="graph-affinity-btn plus" onclick="modifyAffinity(1); refreshRelationshipGraph();" title="Aumentar afinidad">+</button>
+            </div>
             <div id="relationshipGraphCanvas" class="relationship-constellation"></div>
             <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.6rem;">★ = nivel de afinidad (0-5). Grosor de línea = interacciones recientes.</div>
         </div>

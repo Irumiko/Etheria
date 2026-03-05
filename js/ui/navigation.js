@@ -49,6 +49,11 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     pendingContinuation = null;
     currentWeather = 'none';
     currentFilter = 'none';
+    document.body.classList.remove('mode-rpg');
+    document.body.classList.remove('mode-classic');
+    // Cerrar mini-panel del oráculo si está abierto
+    const oracleMini = document.getElementById('vnOracleMiniPanel');
+    if (oracleMini) oracleMini.style.display = 'none';
 
     if (clearTopic) {
         // Cancelar suscripción realtime al salir de una historia
@@ -180,63 +185,139 @@ function fuzzySearch(query, items) {
     });
 }
 
+// REEMPLAZO COMPLETO de la lógica de galería
+let _gallerySortMode = 'default';
+let _galleryActiveRaces = new Set();
+
+function setGallerySort(mode, btn) {
+    _gallerySortMode = mode;
+    document.querySelectorAll('.gallery-sort-pill').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    renderGallery();
+}
+
+function onGallerySearch(val) {
+    const suggestions = document.getElementById('gallerySuggestions');
+    if (!suggestions) return;
+    if (!val.trim()) { suggestions.style.display = 'none'; renderGallery(); return; }
+    renderGallery();
+
+    // Sugerencias predictivas
+    const lower = val.toLowerCase();
+    const allNames = appData.characters.flatMap(c => [c.name, c.race, c.job, userNames[c.userIndex]].filter(Boolean));
+    const matches = [...new Set(allNames)].filter(n => n.toLowerCase().includes(lower) && n.toLowerCase() !== lower).slice(0, 5);
+
+    if (matches.length) {
+        suggestions.innerHTML = matches.map(m =>
+            `<div class="gallery-suggestion" onclick="document.getElementById('gallerySearch').value='${escapeHtml(m)}';this.parentElement.style.display='none';renderGallery()">${escapeHtml(m)}</div>`
+        ).join('');
+        suggestions.style.display = 'block';
+    } else {
+        suggestions.style.display = 'none';
+    }
+}
+
+function toggleRaceFilter(race) {
+    if (_galleryActiveRaces.has(race)) _galleryActiveRaces.delete(race);
+    else _galleryActiveRaces.add(race);
+    renderRaceTagPills();
+    renderGallery();
+}
+
+function renderRaceTagPills() {
+    const container = document.getElementById('galleryRaceTags');
+    if (!container) return;
+    const allRaces = [...new Set(appData.characters.map(c => c.race).filter(Boolean))].sort();
+    if (allRaces.length === 0) { container.innerHTML = ''; return; }
+    container.innerHTML = allRaces.map(r => `
+        <button class="race-pill ${_galleryActiveRaces.has(r) ? 'active' : ''}" onclick="toggleRaceFilter('${escapeHtml(r)}')">${escapeHtml(r)}</button>
+    `).join('');
+}
+
 function renderGallery() {
     const grid = document.getElementById('galleryGrid');
     if (!grid) return;
 
-    const searchInput = document.getElementById('gallerySearch');
-    const sortSelect = document.getElementById('gallerySort');
+    document.getElementById('gallerySuggestions')?.style && (document.getElementById('gallerySuggestions').style.display = 'none');
 
-    const searchTerm = (searchInput?.value || '').toLowerCase();
-    const sortBy = sortSelect?.value || 'default';
+    const searchTerm = (document.getElementById('gallerySearch')?.value || '').toLowerCase().trim();
 
     let chars = [...appData.characters];
 
-    if (searchTerm) {
-        chars = fuzzySearch(searchTerm, chars.map((c) => ({ ...c, ownerName: userNames[c.userIndex] || '' })));
-    }
+    if (searchTerm) chars = fuzzySearch(searchTerm, chars.map(c => ({ ...c, ownerName: userNames[c.userIndex] || '' })));
+    if (_galleryActiveRaces.size > 0) chars = chars.filter(c => _galleryActiveRaces.has(c.race));
 
-    if (sortBy === 'owner') {
-        chars.sort((a, b) => a.userIndex - b.userIndex || a.name.localeCompare(b.name));
-    } else if (sortBy === 'name') {
-        chars.sort((a, b) => a.name.localeCompare(b.name));
-    } else if (sortBy === 'race') {
-        chars.sort((a, b) => (a.race || '').localeCompare(b.race || ''));
-    }
+    if (_gallerySortMode === 'owner')  chars.sort((a, b) => a.userIndex - b.userIndex || a.name.localeCompare(b.name));
+    else if (_gallerySortMode === 'name')  chars.sort((a, b) => a.name.localeCompare(b.name));
+    else if (_gallerySortMode === 'race')  chars.sort((a, b) => (a.race||'').localeCompare(b.race||''));
 
     const galleryCount = document.getElementById('galleryCount');
     if (galleryCount) galleryCount.textContent = `${chars.length} personaje${chars.length !== 1 ? 's' : ''}`;
 
+    renderRaceTagPills();
+
     if (chars.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-muted);">No se encontraron personajes</div>';
+        const isEmpty = appData.characters.length === 0;
+        grid.innerHTML = isEmpty
+            ? `<div class="gallery-empty">
+                <div class="gallery-empty-icon">
+                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                        <ellipse cx="40" cy="68" rx="22" ry="6" fill="rgba(201,168,108,0.1)"/>
+                        <rect x="14" y="18" width="52" height="42" rx="4" fill="rgba(201,168,108,0.06)" stroke="rgba(201,168,108,0.3)" stroke-width="1.5"/>
+                        <path d="M28 34 Q40 20 52 34" stroke="rgba(201,168,108,0.5)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                        <path d="M35 42 Q37 38 40 42 Q43 38 45 42" stroke="rgba(201,168,108,0.4)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                        <circle cx="33" cy="38" r="1.5" fill="rgba(201,168,108,0.5)"/>
+                        <circle cx="47" cy="38" r="1.5" fill="rgba(201,168,108,0.5)"/>
+                        <path d="M58 10 C58 10 62 22 55 24" stroke="rgba(201,168,108,0.35)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                        <path d="M56 10 L60 8 L58 12" fill="rgba(201,168,108,0.35)"/>
+                    </svg>
+                </div>
+                <p class="gallery-empty-text">Ningún alma ha sido plasmada todavía…</p>
+                <p class="gallery-empty-sub">El libro de personajes aguarda su primera historia.</p>
+                <button class="gallery-empty-btn" onclick="openCharacterEditor()">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    Crear primer personaje
+                </button>
+            </div>`
+            : `<div class="gallery-empty"><p class="gallery-empty-text" style="font-size:1rem;">Sin resultados para esa búsqueda</p></div>`;
         return;
     }
 
-    grid.innerHTML = chars.map(c => {
-        const genderIcon = c.gender === 'Femenino' ? '♀️' : c.gender === 'Masculino' ? '♂️' : '⚪';
+    grid.innerHTML = chars.map((c, i) => {
         const ownerName = userNames[c.userIndex] || 'Desconocido';
+        const isOwn = c.userIndex === currentUserIndex;
+        const charColor = c.color || '#8b7355';
+        const genderLabel = c.gender === 'Femenino' ? '♀' : c.gender === 'Masculino' ? '♂' : '◇';
 
         return `
-            <div class="character-card" onclick="openSheet('${c.id}')">
-                <div class="character-card-avatar">
-                    ${c.avatar ? `<img data-src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'placeholder\'>${c.name[0]}</div>'">` : `<div class="placeholder">${c.name[0]}</div>`}
+        <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${charColor}; animation-delay:${i * 0.03}s">
+            <div class="char-card-avatar">
+                ${c.avatar
+                    ? `<img data-src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'char-card-initial\\'>${c.name[0]}</div>'">`
+                    : `<div class="char-card-initial">${c.name[0]}</div>`}
+            </div>
+            <div class="char-card-overlay">
+                <div class="char-card-top-badge ${isOwn ? 'own' : 'other'}">
+                    ${isOwn ? '✦ Tu personaje' : escapeHtml(ownerName)}
                 </div>
-                <div class="character-card-info">
-                    <div class="character-card-name">${escapeHtml(c.name)}</div>
-                    <div class="character-card-meta">
-                        <span class="gender-icon">${genderIcon}</span>
-                        <span>${escapeHtml(c.race) || 'Sin raza'}</span>
+                <div class="char-card-info">
+                    <div class="char-card-name">${escapeHtml(c.name)}</div>
+                    <div class="char-card-meta">
+                        <span class="char-card-gender">${genderLabel}</span>
+                        ${c.race ? `<span class="char-card-race">${escapeHtml(c.race)}</span>` : ''}
+                        ${c.age ? `<span class="char-card-age">${c.age} años</span>` : ''}
                     </div>
                 </div>
-                <div class="character-card-hover-info">
-                    <div>Por: ${escapeHtml(ownerName)}</div>
-                    <div>${escapeHtml(c.race) || 'Sin raza'}</div>
+                <div class="char-card-hover-extra">
+                    ${c.job ? `<div class="char-card-job">${escapeHtml(c.job)}</div>` : ''}
+                    ${c.basic ? `<div class="char-card-desc">${escapeHtml(c.basic.slice(0, 90))}${c.basic.length > 90 ? '…' : ''}</div>` : ''}
                 </div>
             </div>
-        `;
+        </div>`;
     }).join('');
 
     initGalleryLazyImages();
 }
+
 
 // ============================================
