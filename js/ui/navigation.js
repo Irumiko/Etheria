@@ -1,3 +1,29 @@
+
+// VisibilityManager — sincroniza --section-animations con la sección activa
+// Más preciso que el selector CSS :not(.active) para transiciones con delay
+const _sectionAnimControl = {
+    pause(sectionEl) {
+        if (!sectionEl) return;
+        sectionEl.style.setProperty('--section-animations', 'paused');
+        sectionEl.querySelectorAll('.vn-sprite img').forEach(img => {
+            img.style.animationPlayState = 'paused';
+        });
+    },
+    resume(sectionEl) {
+        if (!sectionEl) return;
+        sectionEl.style.removeProperty('--section-animations');
+        sectionEl.querySelectorAll('.vn-sprite img').forEach(img => {
+            img.style.animationPlayState = '';
+        });
+    },
+    sync() {
+        document.querySelectorAll('.game-section').forEach(s => {
+            if (s.classList.contains('active')) this.resume(s);
+            else this.pause(s);
+        });
+    }
+};
+
 // Navegación entre secciones y galería de personajes.
 // NAVEGACIÓN
 // ============================================
@@ -86,6 +112,8 @@ function showSection(section) {
     closeActiveModals();
 
     document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+    // Sincronizar estado de animaciones con visibilidad real
+    requestAnimationFrame(() => _sectionAnimControl.sync());
 
     if(section === 'topics') {
         const topicsSection = document.getElementById('topicsSection');
@@ -118,6 +146,19 @@ function backToMenu() {
 
 function backToTopics() {
     confirmUnsavedChanges(() => {
+        // Detener guard colaborativo al salir del topic
+        if (typeof CollaborativeGuard !== 'undefined') {
+            CollaborativeGuard.stop();
+        }
+        // Desuscribir canal global realtime
+        if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribeGlobal === 'function') {
+            SupabaseMessages.unsubscribeGlobal();
+        }
+        // Memory leak fix: remove the global realtime handler on topic exit
+        if (typeof _globalRealtimeHandlerRef !== 'undefined' && _globalRealtimeHandlerRef) {
+            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+            _globalRealtimeHandlerRef = null;
+        }
         resetVNTransientState({ clearTopic: true });
 
         const vnSection = document.getElementById('vnSection');
@@ -164,14 +205,39 @@ function initGalleryLazyImages() {
             const image = entry.target;
             const src = image.dataset.src;
             if (src) {
-                image.src = src;
-                image.removeAttribute('data-src');
+                // Blur-up: mostrar shimmer, luego transición suave
+                image.classList.add('gallery-img-loading');
+                const tmp = new Image();
+                tmp.onload = () => {
+                    image.src = src;
+                    image.removeAttribute('data-src');
+                    requestAnimationFrame(() => {
+                        image.classList.remove('gallery-img-loading');
+                        image.classList.add('gallery-img-loaded');
+                    });
+                };
+                tmp.onerror = () => {
+                    image.classList.remove('gallery-img-loading');
+                    image.removeAttribute('data-src');
+                };
+                tmp.src = src;
             }
             observer.unobserve(image);
         });
     }, { rootMargin: '200px 0px', threshold: 0.01 });
 
     document.querySelectorAll('#galleryGrid img[data-src]').forEach((img) => {
+        // XSS fix: bind onerror here where we have DOM access (data-fallback set in template)
+        if (!img._onerrorBound) {
+            img._onerrorBound = true;
+            img.onerror = function () {
+                this.style.display = 'none';
+                const _fb = document.createElement('div');
+                _fb.className = 'char-card-initial';
+                _fb.textContent = this.dataset.fallback || '?';
+                this.parentElement.appendChild(_fb);
+            };
+        }
         galleryImageObserver.observe(img);
     });
 }
@@ -208,9 +274,21 @@ function onGallerySearch(val) {
     const matches = [...new Set(allNames)].filter(n => n.toLowerCase().includes(lower) && n.toLowerCase() !== lower).slice(0, 5);
 
     if (matches.length) {
-        suggestions.innerHTML = matches.map(m =>
-            `<div class="gallery-suggestion" onclick="document.getElementById('gallerySearch').value='${escapeHtml(m)}';this.parentElement.style.display='none';renderGallery()">${escapeHtml(m)}</div>`
-        ).join('');
+        // XSS/injection fix: use data attribute + safe click handler
+        // (inline onclick with escapeHtml can break on apostrophes in JS string context)
+        suggestions.innerHTML = '';
+        matches.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'gallery-suggestion';
+            div.textContent = m;
+            div.addEventListener('click', function () {
+                const searchInput = document.getElementById('gallerySearch');
+                if (searchInput) searchInput.value = m;
+                suggestions.style.display = 'none';
+                renderGallery();
+            });
+            suggestions.appendChild(div);
+        });
         suggestions.style.display = 'block';
     } else {
         suggestions.style.display = 'none';
@@ -293,8 +371,8 @@ function renderGallery() {
         <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${charColor}; animation-delay:${i * 0.03}s">
             <div class="char-card-avatar">
                 ${c.avatar
-                    ? `<img data-src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'char-card-initial\\'>${c.name[0]}</div>'">`
-                    : `<div class="char-card-initial">${c.name[0]}</div>`}
+                    ? `<img data-src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" data-fallback="${escapeHtml((c.name || '?')[0])}" class="char-card-img">`
+                    : `<div class="char-card-initial">${escapeHtml((c.name || '?')[0])}</div>`}
             </div>
             <div class="char-card-overlay">
                 <div class="char-card-top-badge ${isOwn ? 'own' : 'other'}">

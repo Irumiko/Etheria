@@ -47,7 +47,10 @@ let appData = {
     messages: {},
     affinities: {},
     favorites: {},
-    journals: {}
+    journals: {},
+    cloudProfiles: [],   // Perfiles globales de Supabase (no persisten en local)
+    cloudCharacters: {}, // Personajes de Supabase por profileId: { [profileId]: Array }
+    stories: []          // Historias de Supabase (cargadas en memoria)
 };
 let currentTopicId = null;
 let selectedCharId = null;
@@ -80,6 +83,8 @@ let gallerySearchDebounceTimer = null;
 let galleryImageObserver = null;
 let historyVirtualState = null;
 let pendingRoomInviteId = null;
+let currentStoryId = null;           // UUID de la historia activa en Supabase
+let currentStoryParticipants = [];   // Participantes de la historia activa
 const spritePool = [];
 const STORAGE_KEYS = {
     legacy: 'etheria_data',
@@ -93,11 +98,11 @@ const LAST_PROFILE_KEY = 'lastProfileId';
 const LOCAL_PROFILE_UPDATED_PREFIX = 'etheria_profile_updated_';
 const AUTO_SYNC_INTERVAL = 30000;
 const OFFLINE_SYNC_INTERVAL = 60000;
+// Fix 5: JSONBin is DISABLED — Supabase handles all cloud persistence.
+// The config is kept as a stub so callers don't crash; ensureCloudConfig() blocks all calls.
 const JSONBIN_CONFIG = {
-    // Nota: la API key no debe hardcodearse en cliente.
-    // Se puede inyectar vía window.__ETHERIA_JSONBIN_API_KEY desde un entorno controlado.
-    apiKey: (typeof window !== 'undefined' && window.__ETHERIA_JSONBIN_API_KEY) ? String(window.__ETHERIA_JSONBIN_API_KEY) : '',
-    binId: '6999c9aed0ea881f40ccab53',
+    apiKey: '',
+    binId: '',
     baseUrl: 'https://api.jsonbin.io/v3/b'
 };
 let cloudSyncStatus = 'idle';

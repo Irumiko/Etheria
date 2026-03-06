@@ -73,7 +73,20 @@ function updatePreview() {
     const previewImg = document.getElementById('editorPreviewImage');
     if (previewImg) {
         if (avatar) {
-            previewImg.innerHTML = `<img src="${escapeHtml(avatar)}" alt="Vista previa del avatar" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\\'font-size: 5rem;\\'>👤</span>'">`;
+            // XSS fix: DOM creation even though fallback is static (consistent pattern)
+            const _imgPrev = document.createElement('img');
+            _imgPrev.src = avatar;
+            _imgPrev.alt = 'Vista previa del avatar';
+            _imgPrev.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+            _imgPrev.onerror = function () {
+                this.style.display = 'none';
+                const _sp = document.createElement('span');
+                _sp.style.fontSize = '5rem';
+                _sp.textContent = '👤';
+                this.parentElement.appendChild(_sp);
+            };
+            previewImg.innerHTML = '';
+            previewImg.appendChild(_imgPrev);
         } else {
             previewImg.innerHTML = '<span style="font-size: 5rem;">👤</span>';
         }
@@ -284,23 +297,37 @@ function generateProfileParticles() {
     const container = document.getElementById('profileParticles');
     if (!container) return;
 
+    // En móvil: 6 partículas (vs 18 en desktop) y duraciones más largas.
+    // body.low-spec oculta el contenedor vía CSS — no generamos nada.
+    if (document.body.classList.contains('low-spec')) return;
+
+    const isMobile = document.body.classList.contains('is-mobile');
+    const count = isMobile ? 6 : 18;
+    const durationBase = isMobile ? 10 : 6;
+    const durationRange = isMobile ? 5 : 7;
+
     container.innerHTML = '';
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < count; i++) {
         const particle = document.createElement('div');
         particle.className = 'profile-particle';
         particle.style.left = (Math.random() * 100) + '%';
         particle.style.top = (60 + Math.random() * 45) + '%';
-        particle.style.animationDuration = (6 + Math.random() * 7) + 's';
+        particle.style.animationDuration = (durationBase + Math.random() * durationRange) + 's';
         particle.style.animationDelay = (Math.random() * 4) + 's';
         particle.style.setProperty('--float-x', ((Math.random() * 90) - 45) + 'px');
         container.appendChild(particle);
     }
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+// Fix B: escapeHtml moved to utils-ui.js (loaded earlier, no deps).
+// Safety stub: if load order ever changes, this ensures escapeHtml is still available.
+// Uses var so it becomes a global assignment, not a block-scoped function declaration.
+if (typeof escapeHtml === 'undefined') {
+    var escapeHtml = function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
 }
 
 
@@ -524,8 +551,22 @@ function generateParticles() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
     if (isDark) {
+        // Límite de luciérnagas según capacidad del dispositivo
+        const isLowSpec     = document.body.classList.contains('low-spec');
+        const isMobileClass = document.body.classList.contains('is-mobile');
         const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
-        const totalFireflies = coarsePointer ? 8 : (18 + Math.floor(Math.random() * 6));
+
+        // low-spec: 0 (CSS también las oculta, pero no generamos el DOM)
+        // is-mobile o coarse: máximo 6
+        // desktop: 18–24
+        let totalFireflies;
+        if (isLowSpec) {
+            totalFireflies = 0;
+        } else if (isMobileClass || coarsePointer) {
+            totalFireflies = 6;
+        } else {
+            totalFireflies = 18 + Math.floor(Math.random() * 6);
+        }
 
         // getBoundingClientRect puede devolver 0 si el contenedor acaba de mostrarse.
         // Usamos window como fallback y actualizamos los bounds en el primer frame.
@@ -607,12 +648,19 @@ function generateParticles() {
             fireflyAnimationId = null;
         }
 
-        for (let i = 0; i < 12; i++) {
+        // Límite de hojas: 0 en low-spec, 5 en mobile, 12 en desktop
+        const leafIsLowSpec = document.body.classList.contains('low-spec');
+        const leafIsMobile  = document.body.classList.contains('is-mobile');
+        const leafCount = leafIsLowSpec ? 0 : leafIsMobile ? 5 : 12;
+        const leafDurationBase  = leafIsMobile ? 10 : 6;
+        const leafDurationRange = leafIsMobile ? 5  : 4;
+
+        for (let i = 0; i < leafCount; i++) {
             const leaf = document.createElement('div');
             leaf.className = 'leaf';
             leaf.style.left = Math.random() * 100 + '%';
             leaf.style.animationDelay = Math.random() * 8 + 's';
-            leaf.style.animationDuration = (6 + Math.random() * 4) + 's';
+            leaf.style.animationDuration = (leafDurationBase + Math.random() * leafDurationRange) + 's';
             container.appendChild(leaf);
         }
     }

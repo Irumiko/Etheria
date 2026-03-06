@@ -10,6 +10,9 @@
     <meta name="description" content="Etheria — Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.">
     <title>Etheria - Roleplay Visual Novel</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
+    <!-- PWA: manifest + iconos -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
     <!-- Open Graph / Twitter Card -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Etheria — Roleplay Visual Novel">
@@ -20,15 +23,34 @@
     <meta name="twitter:description" content="Narrativa colaborativa, modo RPG y oráculo.">
     <!-- robots y canonical -->
     <meta name="robots" content="index, follow">
-    <!-- Preconnect para Google Fonts (reduce latencia de fuentes) -->
+    <!-- Preconnect + DNS prefetch para Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <!-- Preload de imagen de fondo del menú (recurso más pesado del first paint) -->
+    <link rel="preload" href="https://raw.githubusercontent.com/Irumiko/Etheria/main/assets/backgrounds/default_background.jpg" as="image" fetchpriority="low">
     <style>
 /* css/variables.css */
 /* Variables globales, tema y tipografías */
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=EB+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
         :root {
+            /* Sistema de z-index escalonado — evita guerras de especificidad */
+            --z-base:     0;
+            --z-sprites:  100;
+            --z-dialogue: 150;
+            --z-controls: 200;
+            --z-hud:      300;
+            --z-modals:   500;
+            --z-toasts:   600;
+            --z-overlays: 700;
+            --z-loading:  5000;
+            --z-auth:     5500;
+            /* Stacks de fuente con fallbacks seguros */
+            --font-display: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
+            --font-body: 'Crimson Text', 'Georgia', 'Times New Roman', serif;
+            --font-ui: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            --font-mono: 'Courier New', 'Lucida Console', monospace;
             --char-color: rgba(139, 115, 85, 0.55);
             --char-color-full: #8b7355;
             --bg-primary: #f5f1e8;
@@ -664,7 +686,7 @@ body::before {
             top: -20px;
             left: -20px;
             font-size: 3rem;
-            z-index: 200;
+            z-index: var(--z-controls, 200);
             pointer-events: none;
             filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
             transform-origin: center center;
@@ -788,7 +810,7 @@ body::before {
             background: rgba(14, 16, 24, 0.82);
             color: #f2f2f2;
             font-size: 0.72rem;
-            z-index: 3900;
+            z-index: var(--z-modals, 500);
             backdrop-filter: blur(4px);
             opacity: 0;
             transform: translateY(6px);
@@ -837,7 +859,7 @@ body::before {
             border: 1px solid rgba(201, 168, 108, 0.35);
             border-radius: 8px;
             padding: 2rem 2.8rem 1.6rem;
-            z-index: 4500;
+            z-index: var(--z-overlays, 700);
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
@@ -919,7 +941,7 @@ body::before {
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.45);
-            z-index: 4499;
+            z-index: var(--z-overlays, 700);
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.35s ease;
@@ -944,7 +966,7 @@ body::before {
             font-family: 'Cinzel', serif;
             font-size: 0.82rem;
             letter-spacing: 0.25px;
-            z-index: 4000;
+            z-index: var(--z-modals, 500);
             opacity: 0;
             transform: translateY(-22px) scale(0.92);
             transform-origin: top right;
@@ -3462,10 +3484,12 @@ body::before {
                 #0f1e10 70%,
                 #081208 100%
             );
-            /* BUGFIX: overflow:clip en lugar de hidden para no crear stacking context
-               que rompería los position:fixed hijos (vn-dialogue-box, vn-controls, vn-info-card).
-               overflow:clip recorta sin crear contexto de posicionamiento. */
-            overflow: clip;
+            /* BUGFIX: overflow:visible para no crear stacking context en Safari iOS.
+               overflow:clip puede causar que position:fixed hijos se comporten como
+               position:absolute en ciertos motores (WebKit/Blink con compositing layers).
+               contain:layout style aisla el elemento sin afectar fixed children. */
+            overflow: visible;
+            contain: layout style;
             /* BUGFIX: eliminamos transform de la transición base para no relativizar
                los position:fixed durante las transiciones de escena. */
             transition: filter 0.5s ease, background-image 1s ease;
@@ -3584,7 +3608,7 @@ body::before {
             position: fixed;
             top: 20px;
             left: 20px;
-            z-index: 200;
+            z-index: var(--z-controls, 200);
             background: linear-gradient(135deg, rgba(38, 28, 18, 0.92), rgba(22, 16, 11, 0.96));
             border: 1.5px solid rgba(201, 168, 108, 0.4);
             border-radius: 16px;
@@ -3908,7 +3932,7 @@ body::before {
             position: fixed;
             top: 18px;
             right: 20px;
-            z-index: 200;
+            z-index: var(--z-controls, 200);
             display: flex;
             gap: 0.35rem;
             background: rgba(8, 8, 10, 0.72);
@@ -4120,6 +4144,7 @@ body::before {
                 drop-shadow(0 25px 35px rgba(0,0,0,0.45))
                 drop-shadow(0 0 25px rgba(201, 168, 108, 0.12));
             animation: sprite-breathing 4.8s ease-in-out infinite;
+            animation-play-state: var(--section-animations, running);
         }
         .vn-sprite.active.position-left   { transform: scale(1) translateZ(10px); }
         .vn-sprite.active.position-center { transform: translateX(-50%) scale(1) translateZ(30px); }
@@ -5721,7 +5746,7 @@ body::before {
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 5000;
+            z-index: var(--z-auth, 5000);
             flex-direction: column;
             gap: 1rem;
         }
@@ -6163,6 +6188,7 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
 /* ===== Sprite micro-animations ===== */
 .vn-sprite.active img {
     animation: sprite-active-breathe var(--sprite-breathing-duration, 4s) ease-in-out infinite;
+    animation-play-state: var(--section-animations, running);
     transform-origin: center bottom;
 }
 .vn-sprite.active.sprite-blink img {
@@ -8042,7 +8068,7 @@ body.mode-classic .vn-message-counter {
     background: rgba(26,18,10,0.98);
     border: 1px solid rgba(201,168,108,0.28);
     border-radius: 10px;
-    z-index: 200;
+    z-index: var(--z-controls, 200);
     display: none;
     overflow: hidden;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
@@ -10342,6 +10368,990 @@ select {
     flex-wrap: nowrap; /* botones de control no se rompen en dos líneas */
 }
 
+/* ── Performance: pausar animaciones infinitas fuera de la sección activa ── */
+/* Secciones inactivas: pausar via CSS var para control por JS */
+.game-section {
+    --section-animations: running;
+}
+.game-section:not(.active) {
+    --section-animations: paused;
+}
+.game-section:not(.active) *,
+.vn-section:not(.active) * {
+    animation-play-state: paused !important;
+}
+/* Excepción: el indicador de carga debe seguir animándose */
+#loadingOverlay *,
+.autosave-indicator * {
+    animation-play-state: running !important;
+}
+
+/* ── Sprite loading shimmer (mientras la imagen carga) ── */
+@keyframes spriteShimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
+}
+.vn-sprite img.is-loading {
+    background: linear-gradient(
+        90deg,
+        rgba(26, 21, 13, 0.8) 0%,
+        rgba(50, 40, 25, 0.6) 40%,
+        rgba(70, 55, 30, 0.5) 50%,
+        rgba(50, 40, 25, 0.6) 60%,
+        rgba(26, 21, 13, 0.8) 100%
+    );
+    background-size: 200% 100%;
+    animation: spriteShimmer 1.8s ease-in-out infinite !important;
+}
+
+/* ── Gallery blur-up loading transition ── */
+.gallery-img-loading {
+    filter: blur(8px) brightness(0.7);
+    transform: scale(0.98);
+    transition: filter 0.35s ease, transform 0.35s ease;
+}
+.gallery-img-loaded {
+    filter: none;
+    transform: scale(1);
+    transition: filter 0.35s ease, transform 0.35s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   COLLAB GUARD — Indicador "Alguien está escribiendo"
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes collabTypingDot {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30%            { opacity: 1;   transform: translateY(-3px); }
+}
+
+.collab-typing-indicator {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: rgba(14, 10, 6, 0.92);
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    border-radius: 20px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.75rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(201, 168, 108, 0.75);
+    letter-spacing: 0.06em;
+    z-index: var(--z-toasts, 600);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    backdrop-filter: blur(8px);
+    white-space: nowrap;
+}
+.collab-typing-indicator.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+.collab-typing-indicator::after {
+    content: ' ···';
+    display: inline-block;
+    animation: collabTypingDot 1.4s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SILUETAS PNG — Sprites por defecto cuando el personaje no tiene imagen
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* La imagen PNG dentro del wrapper de silueta */
+.shadow-silhouette-img {
+    /* Ocupa el alto del contenedor padre, ancho proporcional */
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    display: block;
+    object-fit: contain;
+    object-position: bottom center;
+
+    /* Fondo transparente — las PNGs ya tienen fondo transparente */
+    /* Tinte oscuro para integrarse con la escena */
+    filter:
+        brightness(0.08)        /* muy oscuro, como silueta real */
+        contrast(1.2)
+        drop-shadow(0 12px 28px rgba(0, 0, 0, 0.55));
+
+    /* Fundido en pies igual que los sprites reales */
+    mask-image: linear-gradient(to bottom, black 78%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 78%, transparent 100%);
+
+    /* Transiciones suaves al cambiar estado activo/inactivo */
+    transition: filter 0.5s ease, opacity 0.5s ease;
+
+    /* Sin arrastre ni selección */
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+}
+
+/* Ajuste de tamaño por contenedor — la silueta femenina es más estrecha */
+.shadow-silhouette.shadow-fem .shadow-silhouette-img {
+    height: 96%;
+    /* La PNG femenina tiene proporciones más estrechas — ajustamos */
+    max-width: 72%;
+    margin: 0 auto;
+}
+
+.shadow-silhouette.shadow-masc .shadow-silhouette-img {
+    height: 100%;
+    max-width: 80%;
+    margin: 0 auto;
+}
+
+/* Sprite activo — ligeramente más iluminado (pero sigue siendo silueta) */
+.vn-sprite.active .shadow-silhouette-img {
+    filter:
+        brightness(0.12)
+        contrast(1.15)
+        drop-shadow(0 14px 32px rgba(0, 0, 0, 0.6));
+}
+
+/* Sprite inactivo — más oscuro y difuminado */
+.vn-sprite.inactive .shadow-silhouette-img {
+    filter:
+        brightness(0.05)
+        contrast(1.0)
+        blur(2px)
+        drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+    opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CLOUD PROFILES — Tarjetas de perfiles globales de Supabase
+   ═══════════════════════════════════════════════════════════════════ */
+
+.cloud-profiles-empty {
+    color: var(--text-muted, rgba(180, 165, 130, 0.5));
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.9rem;
+}
+
+.cloud-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid rgba(201, 168, 108, 0.15);
+    background: rgba(20, 15, 8, 0.6);
+    transition: border-color 0.2s ease, background 0.2s ease;
+    margin-bottom: 0.45rem;
+}
+
+.cloud-profile-card.profile-free {
+    border-color: rgba(100, 200, 130, 0.25);
+    background: rgba(20, 40, 25, 0.5);
+}
+.cloud-profile-card.profile-mine {
+    border-color: rgba(201, 168, 108, 0.45);
+    background: rgba(40, 30, 10, 0.7);
+    box-shadow: 0 0 0 1px rgba(201, 168, 108, 0.1) inset;
+}
+.cloud-profile-card.profile-taken {
+    opacity: 0.55;
+}
+
+.cloud-profile-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(201, 168, 108, 0.12);
+    border: 1px solid rgba(201, 168, 108, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: rgba(201, 168, 108, 0.8);
+    flex-shrink: 0;
+}
+
+.cloud-profile-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.cloud-profile-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: rgba(232, 220, 190, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cloud-profile-stats {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.cloud-stat {
+    font-size: 0.68rem;
+    color: rgba(180, 160, 120, 0.65);
+    background: rgba(201, 168, 108, 0.06);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+.cloud-stat em {
+    font-style: normal;
+    color: rgba(201, 168, 108, 0.7);
+    margin-right: 0.2rem;
+}
+
+.cloud-profile-status-badge {
+    font-size: 0.65rem;
+    font-family: 'Cinzel', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.cloud-profile-status-badge.profile-free  { background: rgba(100,200,130,0.12); color: rgba(120,220,150,0.85); border: 1px solid rgba(100,200,130,0.25); }
+.cloud-profile-status-badge.profile-mine  { background: rgba(201,168,108,0.12); color: rgba(230,200,140,0.9);  border: 1px solid rgba(201,168,108,0.3);  }
+.cloud-profile-status-badge.profile-taken { background: rgba(200,100,100,0.10); color: rgba(220,140,140,0.75); border: 1px solid rgba(200,100,100,0.2);  }
+
+.cloud-profile-select-btn {
+    font-size: 0.72rem;
+    font-family: 'Cinzel', serif;
+    padding: 0.3rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid rgba(201, 168, 108, 0.35);
+    background: rgba(201, 168, 108, 0.08);
+    color: rgba(201, 168, 108, 0.85);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+.cloud-profile-select-btn:hover {
+    background: rgba(201, 168, 108, 0.18);
+    border-color: rgba(201, 168, 108, 0.55);
+}
+.cloud-profile-select-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   STORIES PANEL
+   ============================================ */
+.stories-panel {
+    background: rgba(15, 12, 8, 0.65);
+    border: 1px solid rgba(201, 168, 108, 0.2);
+    border-radius: 10px;
+    padding: 0.85rem;
+    margin-top: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.stories-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+}
+
+.stories-panel-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    color: rgba(201, 168, 108, 0.9);
+    letter-spacing: 0.04em;
+}
+
+.stories-panel-refresh {
+    background: none;
+    border: 1px solid rgba(201, 168, 108, 0.25);
+    border-radius: 5px;
+    color: rgba(201, 168, 108, 0.65);
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0.15rem 0.4rem;
+    transition: color 0.15s, border-color 0.15s, transform 0.2s;
+}
+.stories-panel-refresh:hover {
+    color: rgba(201, 168, 108, 1);
+    border-color: rgba(201, 168, 108, 0.6);
+    transform: rotate(45deg);
+}
+
+.btn-create-story {
+    width: 100%;
+    padding: 0.45rem 0.7rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    color: rgba(201, 168, 108, 0.9);
+    background: rgba(201, 168, 108, 0.07);
+    border: 1px dashed rgba(201, 168, 108, 0.35);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.btn-create-story:hover {
+    background: rgba(201, 168, 108, 0.14);
+    border-color: rgba(201, 168, 108, 0.6);
+    border-style: solid;
+}
+
+.stories-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-height: 220px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201, 168, 108, 0.25) transparent;
+}
+
+.stories-empty,
+.stories-loading {
+    font-size: 0.78rem;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+    text-align: center;
+    padding: 0.7rem 0;
+}
+
+.story-card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.6rem;
+    background: rgba(201, 168, 108, 0.05);
+    border: 1px solid rgba(201, 168, 108, 0.15);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+}
+.story-card:hover {
+    background: rgba(201, 168, 108, 0.12);
+    border-color: rgba(201, 168, 108, 0.4);
+}
+.story-card--active {
+    background: rgba(201, 168, 108, 0.15);
+    border-color: rgba(201, 168, 108, 0.55);
+}
+
+.story-card-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.story-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    overflow: hidden;
+    flex: 1;
+}
+
+.story-card-title {
+    font-size: 0.8rem;
+    color: rgba(255, 245, 220, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.story-card-date {
+    font-size: 0.68rem;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+}
+
+.story-card-active-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(201, 168, 108, 0.9);
+    box-shadow: 0 0 5px rgba(201, 168, 108, 0.6);
+    flex-shrink: 0;
+    animation: story-dot-pulse 2s ease-in-out infinite;
+}
+@keyframes story-dot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* Active story badge in VN bar */
+.active-story-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.7rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(201, 168, 108, 0.9);
+    background: rgba(201, 168, 108, 0.1);
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    border-radius: 5px;
+    padding: 0.2rem 0.5rem;
+    white-space: nowrap;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: default;
+}
+
+/* Story participants row */
+.story-participants-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.2rem;
+    flex-wrap: wrap;
+}
+
+.story-participants-label {
+    font-size: 0.75rem;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+    flex-shrink: 0;
+}
+
+.story-participants-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.story-participant-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 168, 108, 0.35);
+    object-fit: cover;
+}
+
+.story-participant-chip {
+    font-size: 0.7rem;
+    color: rgba(255, 245, 220, 0.75);
+    background: rgba(201, 168, 108, 0.1);
+    border: 1px solid rgba(201, 168, 108, 0.2);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+}
+
+.story-participants-empty {
+    font-size: 0.72rem;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+}
+
+
+/* css/mobile-perf.css */
+/* ================================================================
+   ETHERIA — MOBILE PERFORMANCE OPTIMIZATIONS
+   css/mobile-perf.css
+   ================================================================
+   Cargado DESPUÉS de components.css (ver main.css).
+   Estrategia:
+     1. @media (max-width: 767px) — reduce intensidad sin eliminar.
+     2. @media (prefers-reduced-motion: reduce) — pausa todo lo no esencial.
+     3. body.is-mobile — clase JS para control fino (partículas, typewriter).
+     4. body.low-spec — clase JS para gama baja adicional.
+
+   REGLA: nada aquí afecta a min-width: 1024px.
+         Los efectos originales permanecen intactos en desktop.
+   ================================================================ */
+
+
+/* ================================================================
+   A. PARTÍCULAS Y WEATHER EFFECTS
+   profile-particle, rain-drop, fog-layer, firefly, leaf
+   ================================================================ */
+
+/* --- A1. Profile particles: más lentas en mobile --- */
+@media (max-width: 767px) {
+    .profile-particle {
+        /* Duraciones más largas = menos frames por segundo */
+        animation-duration: calc(var(--particle-duration, 8s) * 1.8) !important;
+    }
+}
+
+/* --- A2. Lluvia: menos gotas (JS) + animación más lenta --- */
+@media (max-width: 767px) {
+    .rain-drop {
+        /* Aumentar duración base: la generación JS ya limita la cantidad */
+        animation-duration: calc(var(--rain-duration, 0.7s) * 1.6) !important;
+        opacity: 0.4; /* ligeramente más sutil */
+    }
+}
+
+/* --- A3. Niebla: blur reducido + transición más lenta --- */
+@media (max-width: 767px) {
+    .fog-layer {
+        filter: blur(10px); /* 20px → 10px: la mitad de GPU */
+        opacity: 0.25;      /* 0.4 → 0.25 */
+    }
+    .fog-layer:nth-child(1) { animation-duration: 50s; }  /* 30s → 50s */
+    .fog-layer:nth-child(2) { animation-duration: 40s; }  /* 25s → 40s */
+    .fog-layer:nth-child(3) { animation-duration: 56s; }  /* 35s → 56s */
+}
+
+/* --- A4. Fireflies: sin rayos ::before/::after en mobile (los más caros) --- */
+@media (max-width: 767px) {
+    .firefly::before,
+    .firefly::after {
+        display: none; /* Elimina los pseudo-elementos con filter:blur — efecto se mantiene con el core */
+    }
+    /* El body del firefly sigue siendo visible, solo sin los rayos GPU-intensivos */
+}
+
+/* --- A5. Hojas: animación más lenta --- */
+@media (max-width: 767px) {
+    .leaf {
+        animation-duration: calc(var(--leaf-duration, 8s) * 1.5) !important;
+    }
+}
+
+/* --- A6. Low-spec: ocultar partículas de perfil completamente --- */
+body.low-spec .profile-particle,
+body.low-spec .leaf {
+    display: none;
+}
+body.low-spec .firefly {
+    display: none;
+}
+body.low-spec .fog-layer {
+    filter: none;
+    opacity: 0.15;
+}
+
+
+/* ================================================================
+   B. SUSPENSE MODE (blur + overlay)
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* B1. Blur suavizado: 4px → 2px */
+    .vn-section.suspense-mode .vn-sprite-container,
+    .vn-section.suspense-mode > .weather-container {
+        filter: blur(2px);          /* 4px → 2px */
+        transform: scale(0.985);    /* 0.97 → 0.985 — menos GPU */
+        transition: filter 0.3s ease, transform 0.3s ease; /* 0.5s → 0.3s */
+    }
+
+    /* B2. Overlay más ligero */
+    .vn-section.suspense-mode::after {
+        background: rgba(0, 0, 0, 0.22); /* 0.35 → 0.22 */
+        animation: suspenseFadeIn 0.3s ease forwards; /* 0.5s → 0.3s */
+    }
+}
+
+body.low-spec .vn-section.suspense-mode .vn-sprite-container,
+body.low-spec .vn-section.suspense-mode > .weather-container {
+    filter: none; /* Sin blur en gama baja */
+    transform: scale(0.99);
+}
+
+
+/* ================================================================
+   C. TYPEWRITER — la clase JS body.is-mobile ajusta la velocidad
+      en JS directamente. El CSS sólo acorta la animación del span.
+   ================================================================ */
+
+@media (max-width: 767px) {
+    .tw-char--in {
+        /* 0.22s → 0.13s: el fade por carácter es menos pesado */
+        animation-duration: 0.13s;
+    }
+
+    /* En mobile el blur inicial también consume GPU — lo reducimos */
+    .tw-char {
+        filter: blur(2px);          /* 4px → 2px */
+        transform: translateY(4px); /* 6px → 4px */
+    }
+}
+
+body.low-spec .tw-char--in {
+    /* Gama baja: sin animación per-char, solo aparece */
+    animation-duration: 0.04s;
+}
+body.low-spec .tw-char {
+    filter: none;
+    transform: none;
+}
+
+
+/* ================================================================
+   D. EMOTES MANGA
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* D1. Animación de aparición más rápida (0.3s → 0.2s) */
+    .manga-emote {
+        animation-duration: 0.2s !important; /* emote-appear */
+        /* Eliminar drop-shadow en mobile — es caro en compositing */
+        filter: none;
+    }
+
+    /* D2. Loops más lentos: 2s → 2.8s, 1.5s → 2.2s, 0.5s → 0.9s */
+    .emote-angry     { animation-duration: 2.8s !important; }
+    .emote-happy     { animation-duration: 2.8s !important; }
+    .emote-shock     { animation-duration: 2.8s !important; }
+    .emote-sad       { animation-duration: 2.8s !important; }
+    .emote-think     { animation-duration: 2.8s !important; }
+    .emote-love      { animation-duration: 2.2s !important; }
+    .emote-annoyed   { animation-duration: 0.9s !important; } /* Era 0.5s — muy rápido */
+    .emote-embarrassed { animation-duration: 2.8s !important; }
+    .emote-idea      { animation-duration: 2.8s !important; }
+    .emote-sleep     { animation-duration: 4s   !important; }  /* 3s → 4s */
+}
+
+body.low-spec .manga-emote {
+    /* Gama baja: sin bucle, solo la aparición */
+    animation-iteration-count: 1 !important;
+}
+
+
+/* ================================================================
+   E. SPRITE BREATHING + SHADOW BREATHE
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* E1. Breathing muy suave: duplicar duración */
+    .vn-sprite.active img {
+        animation-duration: 8s !important;  /* 4s → 8s */
+    }
+
+    /* E2. shadow-breathe */
+    .vn-sprite.active .shadow-silhouette {
+        animation-duration: 8s !important;  /* 4.8s → 8s */
+    }
+
+    /* E3. sprite-breathing del keyframe estático (línea 3583 components.css) */
+    .vn-sprite.active .vn-sprite-img,
+    .vn-sprite.active > img {
+        animation-duration: 8s !important;
+    }
+
+    /* E4. Reducir blur de sombras inactivas — son costosas */
+    .vn-sprite.inactive .shadow-silhouette {
+        filter: blur(3px);          /* 5px → 3px */
+    }
+    .shadow-silhouette {
+        filter: blur(1px);          /* 1.5px → 1px */
+        transition: filter 0.35s ease, transform 0.35s ease, opacity 0.35s ease; /* 0.6s → 0.35s */
+    }
+    .shadow-silhouette.shadow-masc { filter: blur(0.6px); } /* sin cambio */
+    .shadow-silhouette.shadow-fem  { filter: blur(1.2px); } /* 1.8px → 1.2px */
+}
+
+body.low-spec .vn-sprite.active img,
+body.low-spec .vn-sprite.active .shadow-silhouette {
+    /* Gama baja: sin respiración */
+    animation: none !important;
+}
+body.low-spec .shadow-silhouette {
+    filter: none !important;
+    transition: none !important;
+}
+
+
+/* ================================================================
+   F. DICE ANIMATIONS
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* F1. Overlay de resultado: sin backdrop-filter (MUY caro) */
+    .dice-result-overlay {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(0, 0, 0, 0.82); /* Compensa visualmente */
+    }
+
+    /* F2. Animación de reveal: 0.5s → 0.3s + scale más corto */
+    .dice-result-box {
+        animation-duration: 0.3s;
+        /* Eliminar box-shadow doble — una capa es suficiente */
+        box-shadow: 0 0 40px rgba(150, 100, 255, 0.25);
+    }
+
+    /* F3. diceRoll: 0.6s → 0.4s + menos scale */
+    .dice-rolling {
+        animation-duration: 0.4s !important;
+    }
+
+    /* F4. Número del dado: sin text-shadow pesado */
+    .dice-result-critical { text-shadow: 0 0 12px rgba(241, 196, 15, 0.7); }
+    .dice-result-fumble   { text-shadow: 0 0 12px rgba(255, 68, 68, 0.7);  }
+    .dice-result-success  { text-shadow: none; }
+    .dice-result-fail     { text-shadow: none; }
+}
+
+
+/* ================================================================
+   G. ANIMACIONES GENERALES: backdrop-filter y blurs pesados
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* G1. Menu sidebar: backdrop-filter 20px → 8px */
+    .menu-sidebar {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    /* G2. Modal overlays: backdrop-filter reducido */
+    .modal-overlay {
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+
+    /* G3. Settings panel */
+    .settings-panel {
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    /* G4. Collab typing indicator */
+    .collab-typing-indicator {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(20, 16, 12, 0.88);
+    }
+
+    /* G5. vn-scene-cinematic: sin backdrop-filter animado */
+    @keyframes vn-scene-cinematic-mobile {
+        0%   { opacity: 0; }
+        35%  { opacity: 1; }
+        65%  { opacity: 1; }
+        100% { opacity: 0; }
+    }
+    .vn-scene-transition.active {
+        animation-name: vn-scene-cinematic-mobile;
+        animation-duration: 600ms; /* 750ms → 600ms */
+    }
+
+    /* G6. Section transition overlay: más rápido */
+    #sectionTransitionOverlay {
+        transition: opacity 0.12s ease; /* 0.18s → 0.12s */
+    }
+
+    /* G7. Glow de sprites: versión ligera */
+    .vn-sprite.active.sprite-blink img {
+        filter: brightness(1.1) saturate(1.04)
+                drop-shadow(0 18px 24px rgba(0,0,0,0.4)); /* Reduce 2 capas a 1 */
+    }
+
+    /* G8. shadow-silhouette-img: menos capas de drop-shadow */
+    .shadow-silhouette-img {
+        filter:
+            drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5));  /* 2 drop-shadow → 1 */
+    }
+    .vn-sprite.active .shadow-silhouette-img {
+        filter:
+            drop-shadow(0 10px 20px rgba(0, 0, 0, 0.55));
+    }
+    .vn-sprite.inactive .shadow-silhouette-img {
+        filter:
+            blur(1.5px)
+            drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+    }
+
+    /* G9. btn-pulse-soft: más lento */
+    .add-profile-btn {
+        animation-duration: 4s; /* 2.8s → 4s */
+    }
+
+    /* G10. Autosave icon wax-stamp */
+    .autosave-indicator.visible .autosave-icon {
+        animation-duration: 0.25s; /* 0.38s → 0.25s */
+    }
+
+    /* G11. story-dot-pulse */
+    .story-active-dot {
+        animation-duration: 3s; /* 2s → 3s */
+    }
+
+    /* G12. titleFloat — desactivado en mobile (solo hover en desktop) */
+    .menu-title-animated .title-letter {
+        /* La animación titleFloat no está activa en reposo, pero
+           por si acaso se activa programáticamente: */
+        animation: none !important;
+    }
+
+    /* G13. bgParallaxIn: sin filter brightness animado */
+    @keyframes bgParallaxIn-mobile {
+        from { transform: scale(1.03) translateY(4px); }
+        to   { transform: scale(1)    translateY(0);   }
+    }
+    .vn-section-bg-enter {
+        animation-name: bgParallaxIn-mobile;
+        animation-duration: 0.5s;
+    }
+
+    /* G14. Shadow glow: transición más corta */
+    .shadow-glow {
+        transition: opacity 0.35s ease; /* 0.6s → 0.35s */
+    }
+}
+
+
+/* ================================================================
+   H. SPRITE SHIMMER LOADING
+   ================================================================ */
+@media (max-width: 767px) {
+    /* H1. Shimmer de carga: animación más lenta */
+    .vn-sprite img.is-loading {
+        animation-duration: 2.4s !important; /* 1.8s → 2.4s */
+    }
+}
+
+
+/* ================================================================
+   I. COLLAB TYPING DOTS
+   ================================================================ */
+@media (max-width: 767px) {
+    .collab-typing-indicator::after {
+        animation-duration: 1.8s; /* 1.4s → 1.8s */
+    }
+}
+
+
+/* ================================================================
+   J. GALLERY lazy-load transition
+   ================================================================ */
+@media (max-width: 767px) {
+    .gallery-img-loading {
+        /* En mobile, el blur-up de 8px es caro */
+        filter: blur(4px) brightness(0.75);
+        transition: filter 0.25s ease, transform 0.25s ease;
+    }
+    .gallery-img-loaded {
+        transition: filter 0.25s ease, transform 0.25s ease;
+    }
+}
+
+
+/* ================================================================
+   K. PREFERS-REDUCED-MOTION — extiende el bloque ya existente
+      en components.css. Añade lo que faltaba cubrir.
+   ================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    /* K1. Efectos de clima — parar por completo */
+    .rain-drop,
+    .fog-layer,
+    .leaf,
+    .profile-particle {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* K2. Fireflies — parar rAF es responsabilidad del JS (ver characters.js).
+           El CSS elimina la animación CSS de parpadeo si la hubiera */
+    .firefly {
+        animation: none !important;
+        opacity: 0.5;
+    }
+
+    /* K3. Suspense mode — sin blur ni scale */
+    .vn-section.suspense-mode .vn-sprite-container,
+    .vn-section.suspense-mode > .weather-container {
+        filter: none !important;
+        transform: none !important;
+        transition: none !important;
+    }
+    .vn-section.suspense-mode::after {
+        animation: none !important;
+        opacity: 0.3;
+    }
+
+    /* K4. Typewriter — sin animación por carácter */
+    .tw-char--in {
+        animation: none !important;
+        opacity: 1 !important;
+        filter: none !important;
+        transform: none !important;
+    }
+    .tw-char {
+        opacity: 0; /* El JS los muestra uno a uno, esto es solo estado inicial */
+        filter: none;
+        transform: none;
+    }
+
+    /* K5. Emotes — solo aparición, sin loop */
+    .manga-emote {
+        animation: none !important;
+        filter: none !important;
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+    /* K6. Sprite breathing — parar */
+    .vn-sprite.active img,
+    .vn-sprite.active .shadow-silhouette {
+        animation: none !important;
+    }
+
+    /* K7. Sprite shimmer */
+    .vn-sprite img.is-loading {
+        animation: none !important;
+        filter: brightness(0.7);
+    }
+
+    /* K8. Dice */
+    .dice-result-box {
+        animation: none !important;
+    }
+    .dice-rolling {
+        animation: none !important;
+    }
+
+    /* K9. Shadow glow transition */
+    .shadow-glow {
+        transition: none !important;
+    }
+
+    /* K10. Section transition overlay */
+    #sectionTransitionOverlay {
+        transition: none !important;
+    }
+
+    /* K11. Story dot pulse */
+    .story-active-dot {
+        animation: none !important;
+    }
+
+    /* K12. btn-pulse-soft */
+    .add-profile-btn {
+        animation: none !important;
+    }
+
+    /* K13. collab typing dots */
+    .collab-typing-indicator::after {
+        animation: none !important;
+    }
+
+    /* K14. Gallery transitions */
+    .gallery-img-loading,
+    .gallery-img-loaded {
+        filter: none !important;
+        transform: none !important;
+        transition: none !important;
+    }
+
+    /* K15. Autosave indicator */
+    .autosave-indicator.visible .autosave-icon {
+        animation: none !important;
+    }
+
+    /* K16. bgParallaxIn — sin transform animado */
+    .vn-section-bg-enter {
+        animation: none !important;
+    }
+}
+
 </style>
 
 </head>
@@ -10378,6 +11388,8 @@ select {
     </div>
 
 
+    <!-- Indicador colaborativo "escribiendo" -->
+    <div id="collabTypingIndicator" class="collab-typing-indicator" aria-live="polite"></div>
     <div id="syncToastBackdrop" class="sync-toast-backdrop"></div>
     <div id="syncToast" class="sync-toast" role="status" aria-live="polite">
         <span class="sync-toast-text">Hay mensajes nuevos</span>
@@ -10535,6 +11547,25 @@ select {
                             </div>
                         </div>
                     </div>
+
+                    <!-- Stories Cloud Panel -->
+                    <div class="stories-panel">
+                        <div class="stories-panel-header">
+                            <span class="stories-panel-title">☁ Historias en la nube</span>
+                            <button class="stories-panel-refresh" onclick="storiesLoadAndRender()" title="Recargar historias">⟳</button>
+                        </div>
+                        <button class="btn-create-story" onclick="openModal('createStoryModal')">
+                            <span>✦ Nueva historia en la nube</span>
+                        </button>
+                        <div id="storiesList" class="stories-list">
+                            <div class="stories-empty">Carga las historias para verlas</div>
+                        </div>
+                        <div class="story-participants-row" id="storyParticipantsRow" style="display:none">
+                            <span class="story-participants-label">👥</span>
+                            <div id="storyParticipantsList" class="story-participants-list"></div>
+                        </div>
+                    </div>
+
                     <div class="topics-mode-legend">
                         <div class="legend-item legend-rpg">
                             <span class="legend-dot"></span>
@@ -10943,6 +11974,9 @@ select {
                 <button id="deleteTopicBtn" class="vn-control-btn" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
                     <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 14,4"/><path d="M5 4 V3 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 v1"/><rect x="4" y="5" width="8" height="8" rx="1"/><line x1="7" y1="7.5" x2="7" y2="11"/><line x1="9" y1="7.5" x2="9" y2="11"/></svg></span>
                 </button>
+            </div>
+            <div class="vn-control-slot" id="activeStorySlot" style="display:none">
+                <span id="activeStoryBadge" class="active-story-badge" title="Historia en la nube activa" style="display:none"></span>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="backToTopics()" aria-label="Salir">
@@ -11428,7 +12462,13 @@ select {
                                 </div>
                                 <div class="form-group">
                                     <label>Avatar URL</label>
-                                    <input type="text" id="charAvatar" oninput="updatePreview()">
+                                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                                        <input type="text" id="charAvatar" oninput="updatePreview()" style="flex:1;">
+                                        <label class="avatar-upload-btn" title="Subir imagen a Supabase Storage" style="cursor:pointer; padding:0.4rem 0.7rem; border:1px solid rgba(201,168,108,0.35); border-radius:8px; font-size:0.75rem; color:rgba(201,168,108,0.85); white-space:nowrap; flex-shrink:0;">
+                                            ⬆ Subir
+                                            <input type="file" accept="image/*" style="display:none;" onchange="uploadAvatarForChar(this)">
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
@@ -11612,7 +12652,10 @@ let appData = {
     messages: {},
     affinities: {},
     favorites: {},
-    journals: {}
+    journals: {},
+    cloudProfiles: [],   // Perfiles globales de Supabase (no persisten en local)
+    cloudCharacters: {}, // Personajes de Supabase por profileId: { [profileId]: Array }
+    stories: []          // Historias de Supabase (cargadas en memoria)
 };
 let currentTopicId = null;
 let selectedCharId = null;
@@ -11645,6 +12688,8 @@ let gallerySearchDebounceTimer = null;
 let galleryImageObserver = null;
 let historyVirtualState = null;
 let pendingRoomInviteId = null;
+let currentStoryId = null;           // UUID de la historia activa en Supabase
+let currentStoryParticipants = [];   // Participantes de la historia activa
 const spritePool = [];
 const STORAGE_KEYS = {
     legacy: 'etheria_data',
@@ -11658,11 +12703,11 @@ const LAST_PROFILE_KEY = 'lastProfileId';
 const LOCAL_PROFILE_UPDATED_PREFIX = 'etheria_profile_updated_';
 const AUTO_SYNC_INTERVAL = 30000;
 const OFFLINE_SYNC_INTERVAL = 60000;
+// Fix 5: JSONBin is DISABLED — Supabase handles all cloud persistence.
+// The config is kept as a stub so callers don't crash; ensureCloudConfig() blocks all calls.
 const JSONBIN_CONFIG = {
-    // Nota: la API key no debe hardcodearse en cliente.
-    // Se puede inyectar vía window.__ETHERIA_JSONBIN_API_KEY desde un entorno controlado.
-    apiKey: (typeof window !== 'undefined' && window.__ETHERIA_JSONBIN_API_KEY) ? String(window.__ETHERIA_JSONBIN_API_KEY) : '',
-    binId: '6999c9aed0ea881f40ccab53',
+    apiKey: '',
+    binId: '',
     baseUrl: 'https://api.jsonbin.io/v3/b'
 };
 let cloudSyncStatus = 'idle';
@@ -11858,54 +12903,125 @@ function getTopicMessages(topicId) {
     return loaded;
 }
 
-function persistPartitionedData() {
-    localStorage.setItem(STORAGE_KEYS.topics, JSON.stringify(appData.topics));
-    localStorage.setItem(STORAGE_KEYS.characters, JSON.stringify(appData.characters));
-    localStorage.setItem(STORAGE_KEYS.affinities, JSON.stringify(appData.affinities));
-    localStorage.setItem('etheria_favorites', JSON.stringify(appData.favorites || {}));
-    localStorage.setItem('etheria_journals', JSON.stringify(appData.journals || {}));
-    localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions || {}));
+// ── Fix 9: dirty-partition tracking ────────────────────────────────────────
+// Instead of serialising every collection on every save(), callers mark only
+// the partitions that changed. persistPartitionedData() then flushes only
+// those dirty buckets, skipping the rest.
+//
+// Usage:
+//   markDirty('topics');          // after adding/removing/editing a topic
+//   markDirty('characters');      // after editing characters
+//   markDirty('messages', id);    // after appending/merging messages for topicId
+//   markDirty('affinities');
+//   markDirty('favorites');
+//   markDirty('journals');
+//   markDirty('reactions');
+//
+// Calling persistPartitionedData() without any markDirty() calls is a no-op
+// for the partition buckets (legacy snapshot and message-topics index are
+// always refreshed for backward-compat, but they are small).
+const _dirtyPartitions = new Set();
+const _dirtyMessageTopics = new Set();
 
+function markDirty(partition, topicId) {
+    _dirtyPartitions.add(partition);
+    if (partition === 'messages' && topicId != null) {
+        _dirtyMessageTopics.add(String(topicId));
+    }
+}
+
+function _flushAllDirty() {
+    // Force-mark everything — used after bulk imports or cloud downloads
+    _dirtyPartitions.add('topics');
+    _dirtyPartitions.add('characters');
+    _dirtyPartitions.add('affinities');
+    _dirtyPartitions.add('favorites');
+    _dirtyPartitions.add('journals');
+    _dirtyPartitions.add('reactions');
+    _dirtyPartitions.add('messages');
+    if (appData && Array.isArray(appData.topics)) {
+        appData.topics.forEach(t => _dirtyMessageTopics.add(String(t.id)));
+    }
+}
+
+function persistPartitionedData(forceAll = false) {
+    if (forceAll) _flushAllDirty();
+
+    // Flush only changed partitions
+    if (_dirtyPartitions.has('topics')) {
+        localStorage.setItem(STORAGE_KEYS.topics, JSON.stringify(appData.topics));
+    }
+    if (_dirtyPartitions.has('characters')) {
+        localStorage.setItem(STORAGE_KEYS.characters, JSON.stringify(appData.characters));
+    }
+    if (_dirtyPartitions.has('affinities')) {
+        localStorage.setItem(STORAGE_KEYS.affinities, JSON.stringify(appData.affinities));
+    }
+    if (_dirtyPartitions.has('favorites')) {
+        localStorage.setItem('etheria_favorites', JSON.stringify(appData.favorites || {}));
+    }
+    if (_dirtyPartitions.has('journals')) {
+        localStorage.setItem('etheria_journals', JSON.stringify(appData.journals || {}));
+    }
+    if (_dirtyPartitions.has('reactions')) {
+        localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions || {}));
+    }
+
+    // Always refresh the topic-ID index (tiny — just an array of IDs)
     const topicIds = appData.topics.map(t => String(t.id));
     localStorage.setItem(STORAGE_KEYS.messageTopics, JSON.stringify(topicIds));
 
-    topicIds.forEach((topicId) => {
+    // Flush only the per-topic message partitions that changed
+    const topicsToFlush = (_dirtyPartitions.has('messages') && _dirtyMessageTopics.size === 0)
+        ? topicIds   // 'messages' marked but no specific topic → flush all (e.g. bulk import)
+        : [..._dirtyMessageTopics].filter(id => topicIds.includes(id));
+
+    topicsToFlush.forEach((topicId) => {
         const topicMsgs = Array.isArray(appData.messages[topicId])
             ? appData.messages[topicId]
             : loadTopicMessagesFromStorage(topicId);
         localStorage.setItem(getTopicStorageKey(topicId), JSON.stringify(topicMsgs));
     });
 
-    // Limpiar keys de mensajes huérfanas (topics eliminados)
-    Object.keys(localStorage)
-        .filter((k) => k.startsWith(STORAGE_KEYS.topicPrefix))
-        .forEach((k) => {
-            const topicId = k.replace(STORAGE_KEYS.topicPrefix, '');
-            if (!topicIds.includes(topicId)) {
-                localStorage.removeItem(k);
-            }
-        });
+    // Orphan cleanup — only when topic list changed (avoids scanning localStorage every save)
+    if (_dirtyPartitions.has('topics')) {
+        Object.keys(localStorage)
+            .filter((k) => k.startsWith(STORAGE_KEYS.topicPrefix))
+            .forEach((k) => {
+                const topicId = k.replace(STORAGE_KEYS.topicPrefix, '');
+                if (!topicIds.includes(topicId)) {
+                    localStorage.removeItem(k);
+                }
+            });
 
-    // Limpiar reacciones huérfanas de topics eliminados
-    if (appData.reactions && typeof appData.reactions === 'object') {
-        const orphanReactionTopics = Object.keys(appData.reactions)
-            .filter(tid => !topicIds.includes(String(tid)));
-        orphanReactionTopics.forEach(tid => { delete appData.reactions[tid]; });
-        if (orphanReactionTopics.length > 0) {
-            localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions));
+        if (appData.reactions && typeof appData.reactions === 'object') {
+            const orphanReactionTopics = Object.keys(appData.reactions)
+                .filter(tid => !topicIds.includes(String(tid)));
+            orphanReactionTopics.forEach(tid => { delete appData.reactions[tid]; });
+            if (orphanReactionTopics.length > 0) {
+                localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions));
+            }
         }
     }
 
-    const legacySnapshot = {
-        topics: appData.topics,
-        characters: appData.characters,
-        messages: appData.messages,
-        affinities: appData.affinities,
-        favorites: appData.favorites || {},
-        journals: appData.journals || {},
-        reactions: appData.reactions || {}
-    };
-    localStorage.setItem(STORAGE_KEYS.legacy, JSON.stringify(legacySnapshot));
+    // Legacy snapshot — only rebuild when structural data changed
+    if (_dirtyPartitions.has('topics') || _dirtyPartitions.has('characters') ||
+        _dirtyPartitions.has('affinities') || _dirtyPartitions.has('messages')) {
+        const legacySnapshot = {
+            topics: appData.topics,
+            characters: appData.characters,
+            messages: appData.messages,
+            affinities: appData.affinities,
+            favorites: appData.favorites || {},
+            journals: appData.journals || {},
+            reactions: appData.reactions || {}
+        };
+        localStorage.setItem(STORAGE_KEYS.legacy, JSON.stringify(legacySnapshot));
+    }
+
+    // Reset dirty sets now that everything is flushed
+    _dirtyPartitions.clear();
+    _dirtyMessageTopics.clear();
 }
 
 function updateCloudSyncIndicator(status, message = '') {
@@ -12062,9 +13178,10 @@ function applyProfileData(profileIndex, profileData) {
 }
 
 function ensureCloudConfig() {
-    if (!JSONBIN_CONFIG.apiKey) {
-        throw new Error('Cloud sync disabled: missing JSONBin API key');
-    }
+    // Fix 5: JSONBin disabled — Supabase is now the sole cloud backend.
+    // Throwing here causes fetchCloudBin/putCloudBin callers to fall back to local
+    // (all call sites already catch errors from these functions).
+    throw new Error('[Etheria] JSONBin sync is disabled. Use Supabase for cloud persistence.');
 }
 
 async function fetchCloudBin() {
@@ -12162,7 +13279,7 @@ async function saveToCloud(profileIndex = currentUserIndex) {
 
 async function applyServerProfile(profileIndex, cloudProfile, { refreshUI = true } = {}) {
     applyProfileData(profileIndex, cloudProfile.appData);
-    persistPartitionedData();
+    persistPartitionedData(true); // Fix 9: bulk download — force-flush all partitions
     const timestamp = Number.parseInt(cloudProfile.lastModified || '0', 10) || Date.parse(cloudProfile.updatedAt || '') || Date.now();
     setLocalProfileUpdatedAt(profileIndex, timestamp);
     lastSyncTimestamp = timestamp;
@@ -12925,13 +14042,20 @@ function createRainEffect() {
     container.className = 'weather-rain';
     container.id = 'rainEffect';
 
-    // Crear 60 gotas máximo
-    for (let i = 0; i < 60; i++) {
+    // Cantidad y velocidad según capacidad del dispositivo
+    const isLowSpec = document.body.classList.contains('low-spec');
+    const isMobile  = document.body.classList.contains('is-mobile');
+    const dropCount = isLowSpec ? 12 : isMobile ? 22 : 60;
+    // En mobile las gotas van más despacio = menos frames GPU por segundo
+    const durationBase  = isMobile ? 0.85 : 0.5;
+    const durationRange = isMobile ? 0.65 : 0.5;
+
+    for (let i = 0; i < dropCount; i++) {
         const drop = document.createElement('div');
         drop.className = 'rain-drop';
         drop.style.left = Math.random() * 100 + '%';
         drop.style.height = (10 + Math.random() * 20) + 'px';
-        drop.style.animationDuration = (0.5 + Math.random() * 0.5) + 's';
+        drop.style.animationDuration = (durationBase + Math.random() * durationRange) + 's';
         drop.style.animationDelay = Math.random() * 2 + 's';
         drop.style.opacity = 0.3 + Math.random() * 0.4;
         container.appendChild(drop);
@@ -13161,6 +14285,19 @@ function showEmoteOnAvatar(emoteType) {
 // ============================================
 // UTILIDADES
 // ============================================
+
+/**
+ * escapeHtml — Fix B: moved here from characters.js so all modules can rely on
+ * it regardless of load order. characters.js keeps a compatibility stub.
+ * Uses the DOM-based approach (creates a text node) which is the canonical,
+ * browser-native way to escape HTML entities.
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function formatText(text) {
     if (!text) return '';
     const escaped = String(text)
@@ -13477,9 +14614,28 @@ function updateAffinityDisplay() {
 
     function setAvatar(char) {
         if (!infoAvatar) return;
-        infoAvatar.innerHTML = char && char.avatar
-            ? `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.textContent='${char.name[0]}'">`
-            : `<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">${char ? char.name[0] : '👤'}</div>`;
+        infoAvatar.innerHTML = '';
+        if (char && char.avatar) {
+            // XSS fix: DOM creation avoids char.name[0] injection in onerror attribute
+            const _imgAvatar = document.createElement('img');
+            _imgAvatar.src = char.avatar;
+            _imgAvatar.alt = 'Avatar de ' + char.name;
+            _imgAvatar.onerror = function () {
+                this.style.display = 'none';
+                const _fb = document.createElement('div');
+                _fb.className = 'placeholder';
+                _fb.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;';
+                _fb.textContent = (char.name || '?')[0];
+                this.parentElement.appendChild(_fb);
+            };
+            infoAvatar.appendChild(_imgAvatar);
+        } else {
+            const _ph = document.createElement('div');
+            _ph.className = 'placeholder';
+            _ph.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;';
+            _ph.textContent = char ? (char.name || '?')[0] : '👤';
+            infoAvatar.appendChild(_ph);
+        }
     }
 
 
@@ -14311,7 +15467,20 @@ function updatePreview() {
     const previewImg = document.getElementById('editorPreviewImage');
     if (previewImg) {
         if (avatar) {
-            previewImg.innerHTML = `<img src="${escapeHtml(avatar)}" alt="Vista previa del avatar" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\\'font-size: 5rem;\\'>👤</span>'">`;
+            // XSS fix: DOM creation even though fallback is static (consistent pattern)
+            const _imgPrev = document.createElement('img');
+            _imgPrev.src = avatar;
+            _imgPrev.alt = 'Vista previa del avatar';
+            _imgPrev.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+            _imgPrev.onerror = function () {
+                this.style.display = 'none';
+                const _sp = document.createElement('span');
+                _sp.style.fontSize = '5rem';
+                _sp.textContent = '👤';
+                this.parentElement.appendChild(_sp);
+            };
+            previewImg.innerHTML = '';
+            previewImg.appendChild(_imgPrev);
         } else {
             previewImg.innerHTML = '<span style="font-size: 5rem;">👤</span>';
         }
@@ -14522,23 +15691,37 @@ function generateProfileParticles() {
     const container = document.getElementById('profileParticles');
     if (!container) return;
 
+    // En móvil: 6 partículas (vs 18 en desktop) y duraciones más largas.
+    // body.low-spec oculta el contenedor vía CSS — no generamos nada.
+    if (document.body.classList.contains('low-spec')) return;
+
+    const isMobile = document.body.classList.contains('is-mobile');
+    const count = isMobile ? 6 : 18;
+    const durationBase = isMobile ? 10 : 6;
+    const durationRange = isMobile ? 5 : 7;
+
     container.innerHTML = '';
-    for (let i = 0; i < 18; i++) {
+    for (let i = 0; i < count; i++) {
         const particle = document.createElement('div');
         particle.className = 'profile-particle';
         particle.style.left = (Math.random() * 100) + '%';
         particle.style.top = (60 + Math.random() * 45) + '%';
-        particle.style.animationDuration = (6 + Math.random() * 7) + 's';
+        particle.style.animationDuration = (durationBase + Math.random() * durationRange) + 's';
         particle.style.animationDelay = (Math.random() * 4) + 's';
         particle.style.setProperty('--float-x', ((Math.random() * 90) - 45) + 'px');
         container.appendChild(particle);
     }
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+// Fix B: escapeHtml moved to utils-ui.js (loaded earlier, no deps).
+// Safety stub: if load order ever changes, this ensures escapeHtml is still available.
+// Uses var so it becomes a global assignment, not a block-scoped function declaration.
+if (typeof escapeHtml === 'undefined') {
+    var escapeHtml = function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    };
 }
 
 
@@ -14762,8 +15945,22 @@ function generateParticles() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
     if (isDark) {
+        // Límite de luciérnagas según capacidad del dispositivo
+        const isLowSpec     = document.body.classList.contains('low-spec');
+        const isMobileClass = document.body.classList.contains('is-mobile');
         const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
-        const totalFireflies = coarsePointer ? 8 : (18 + Math.floor(Math.random() * 6));
+
+        // low-spec: 0 (CSS también las oculta, pero no generamos el DOM)
+        // is-mobile o coarse: máximo 6
+        // desktop: 18–24
+        let totalFireflies;
+        if (isLowSpec) {
+            totalFireflies = 0;
+        } else if (isMobileClass || coarsePointer) {
+            totalFireflies = 6;
+        } else {
+            totalFireflies = 18 + Math.floor(Math.random() * 6);
+        }
 
         // getBoundingClientRect puede devolver 0 si el contenedor acaba de mostrarse.
         // Usamos window como fallback y actualizamos los bounds en el primer frame.
@@ -14845,12 +16042,19 @@ function generateParticles() {
             fireflyAnimationId = null;
         }
 
-        for (let i = 0; i < 12; i++) {
+        // Límite de hojas: 0 en low-spec, 5 en mobile, 12 en desktop
+        const leafIsLowSpec = document.body.classList.contains('low-spec');
+        const leafIsMobile  = document.body.classList.contains('is-mobile');
+        const leafCount = leafIsLowSpec ? 0 : leafIsMobile ? 5 : 12;
+        const leafDurationBase  = leafIsMobile ? 10 : 6;
+        const leafDurationRange = leafIsMobile ? 5  : 4;
+
+        for (let i = 0; i < leafCount; i++) {
             const leaf = document.createElement('div');
             leaf.className = 'leaf';
             leaf.style.left = Math.random() * 100 + '%';
             leaf.style.animationDelay = Math.random() * 8 + 's';
-            leaf.style.animationDuration = (6 + Math.random() * 4) + 's';
+            leaf.style.animationDuration = (leafDurationBase + Math.random() * leafDurationRange) + 's';
             container.appendChild(leaf);
         }
     }
@@ -14861,6 +16065,32 @@ function generateParticles() {
 </script>
 <script>
 /* js/ui/navigation.js */
+
+// VisibilityManager — sincroniza --section-animations con la sección activa
+// Más preciso que el selector CSS :not(.active) para transiciones con delay
+const _sectionAnimControl = {
+    pause(sectionEl) {
+        if (!sectionEl) return;
+        sectionEl.style.setProperty('--section-animations', 'paused');
+        sectionEl.querySelectorAll('.vn-sprite img').forEach(img => {
+            img.style.animationPlayState = 'paused';
+        });
+    },
+    resume(sectionEl) {
+        if (!sectionEl) return;
+        sectionEl.style.removeProperty('--section-animations');
+        sectionEl.querySelectorAll('.vn-sprite img').forEach(img => {
+            img.style.animationPlayState = '';
+        });
+    },
+    sync() {
+        document.querySelectorAll('.game-section').forEach(s => {
+            if (s.classList.contains('active')) this.resume(s);
+            else this.pause(s);
+        });
+    }
+};
+
 // Navegación entre secciones y galería de personajes.
 // NAVEGACIÓN
 // ============================================
@@ -14949,6 +16179,8 @@ function showSection(section) {
     closeActiveModals();
 
     document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+    // Sincronizar estado de animaciones con visibilidad real
+    requestAnimationFrame(() => _sectionAnimControl.sync());
 
     if(section === 'topics') {
         const topicsSection = document.getElementById('topicsSection');
@@ -14981,6 +16213,19 @@ function backToMenu() {
 
 function backToTopics() {
     confirmUnsavedChanges(() => {
+        // Detener guard colaborativo al salir del topic
+        if (typeof CollaborativeGuard !== 'undefined') {
+            CollaborativeGuard.stop();
+        }
+        // Desuscribir canal global realtime
+        if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribeGlobal === 'function') {
+            SupabaseMessages.unsubscribeGlobal();
+        }
+        // Memory leak fix: remove the global realtime handler on topic exit
+        if (typeof _globalRealtimeHandlerRef !== 'undefined' && _globalRealtimeHandlerRef) {
+            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+            _globalRealtimeHandlerRef = null;
+        }
         resetVNTransientState({ clearTopic: true });
 
         const vnSection = document.getElementById('vnSection');
@@ -15027,14 +16272,39 @@ function initGalleryLazyImages() {
             const image = entry.target;
             const src = image.dataset.src;
             if (src) {
-                image.src = src;
-                image.removeAttribute('data-src');
+                // Blur-up: mostrar shimmer, luego transición suave
+                image.classList.add('gallery-img-loading');
+                const tmp = new Image();
+                tmp.onload = () => {
+                    image.src = src;
+                    image.removeAttribute('data-src');
+                    requestAnimationFrame(() => {
+                        image.classList.remove('gallery-img-loading');
+                        image.classList.add('gallery-img-loaded');
+                    });
+                };
+                tmp.onerror = () => {
+                    image.classList.remove('gallery-img-loading');
+                    image.removeAttribute('data-src');
+                };
+                tmp.src = src;
             }
             observer.unobserve(image);
         });
     }, { rootMargin: '200px 0px', threshold: 0.01 });
 
     document.querySelectorAll('#galleryGrid img[data-src]').forEach((img) => {
+        // XSS fix: bind onerror here where we have DOM access (data-fallback set in template)
+        if (!img._onerrorBound) {
+            img._onerrorBound = true;
+            img.onerror = function () {
+                this.style.display = 'none';
+                const _fb = document.createElement('div');
+                _fb.className = 'char-card-initial';
+                _fb.textContent = this.dataset.fallback || '?';
+                this.parentElement.appendChild(_fb);
+            };
+        }
         galleryImageObserver.observe(img);
     });
 }
@@ -15071,9 +16341,21 @@ function onGallerySearch(val) {
     const matches = [...new Set(allNames)].filter(n => n.toLowerCase().includes(lower) && n.toLowerCase() !== lower).slice(0, 5);
 
     if (matches.length) {
-        suggestions.innerHTML = matches.map(m =>
-            `<div class="gallery-suggestion" onclick="document.getElementById('gallerySearch').value='${escapeHtml(m)}';this.parentElement.style.display='none';renderGallery()">${escapeHtml(m)}</div>`
-        ).join('');
+        // XSS/injection fix: use data attribute + safe click handler
+        // (inline onclick with escapeHtml can break on apostrophes in JS string context)
+        suggestions.innerHTML = '';
+        matches.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'gallery-suggestion';
+            div.textContent = m;
+            div.addEventListener('click', function () {
+                const searchInput = document.getElementById('gallerySearch');
+                if (searchInput) searchInput.value = m;
+                suggestions.style.display = 'none';
+                renderGallery();
+            });
+            suggestions.appendChild(div);
+        });
         suggestions.style.display = 'block';
     } else {
         suggestions.style.display = 'none';
@@ -15156,8 +16438,8 @@ function renderGallery() {
         <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${charColor}; animation-delay:${i * 0.03}s">
             <div class="char-card-avatar">
                 ${c.avatar
-                    ? `<img data-src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'char-card-initial\\'>${c.name[0]}</div>'">`
-                    : `<div class="char-card-initial">${c.name[0]}</div>`}
+                    ? `<img data-src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" data-fallback="${escapeHtml((c.name || '?')[0])}" class="char-card-img">`
+                    : `<div class="char-card-initial">${escapeHtml((c.name || '?')[0])}</div>`}
             </div>
             <div class="char-card-overlay">
                 <div class="char-card-top-badge ${isOwn ? 'own' : 'other'}">
@@ -15264,9 +16546,26 @@ function openSheet(id) {
     if (sheetAvatar) {
         const color = c.color || 'var(--accent-gold)';
         sheetAvatar.style.setProperty('--sheet-char-color', color);
-        sheetAvatar.innerHTML = c.avatar
-            ? `<img src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" onerror="this.style.display='none';this.parentElement.textContent='${c.name[0]}'">`
-            : `<span class="sheet-avatar-initial">${c.name[0]}</span>`;
+        // XSS fix: DOM creation avoids c.name[0] injection in onerror attribute
+        sheetAvatar.innerHTML = '';
+        if (c.avatar) {
+            const _imgSheet = document.createElement('img');
+            _imgSheet.src = c.avatar;
+            _imgSheet.alt = c.name;
+            _imgSheet.onerror = function () {
+                this.style.display = 'none';
+                const _sp = document.createElement('span');
+                _sp.className = 'sheet-avatar-initial';
+                _sp.textContent = (c.name || '?')[0];
+                this.parentElement.appendChild(_sp);
+            };
+            sheetAvatar.appendChild(_imgSheet);
+        } else {
+            const _sp = document.createElement('span');
+            _sp.className = 'sheet-avatar-initial';
+            _sp.textContent = (c.name || '?')[0];
+            sheetAvatar.appendChild(_sp);
+        }
     }
 
     // Nombre y apellido
@@ -15536,7 +16835,66 @@ function saveCharacter() {
     save({ silent: true });
     closeModal('characterModal');
     resetCharForm();
+    // Sincronizar avatar_url con Supabase si el personaje tiene ID de Supabase
+    if (typeof SupabaseAvatars !== 'undefined') {
+        const savedChar = appData.characters.find(c => String(c.id) === String(id));
+        if (savedChar && savedChar.avatar) {
+            // El personaje tiene URL de avatar — puede ser local o de Supabase Storage
+            // No hacemos nada aquí; uploadAvatarForChar() se llama manualmente desde UI
+        }
+    }
+
     renderGallery();
+}
+
+/**
+ * Sube un archivo de imagen como avatar de un personaje de Supabase.
+ * Se llama desde el input type="file" del editor de personajes.
+ * @param {HTMLInputElement} fileInput
+ */
+async function uploadAvatarForChar(fileInput) {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+
+    if (typeof SupabaseAvatars === 'undefined') {
+        showAutosave('Supabase no disponible para subir avatar', 'error');
+        return;
+    }
+
+    // Obtener el ID del personaje activo en el editor
+    const charId = document.getElementById('editCharacterId')?.value;
+    if (!charId) {
+        showAutosave('Guarda el personaje antes de subir el avatar', 'error');
+        return;
+    }
+
+    // Intentar resolver el UUID de Supabase para este personaje
+    let supabaseCharId = charId;
+    if (typeof appData !== 'undefined' && appData.cloudCharacters) {
+        for (const chars of Object.values(appData.cloudCharacters)) {
+            if (!Array.isArray(chars)) continue;
+            const match = chars.find(c => String(c.id) === String(charId));
+            if (match) { supabaseCharId = match.id; break; }
+        }
+    }
+
+    showAutosave('Subiendo avatar...', 'info');
+    const result = await SupabaseAvatars.uploadCharacterAvatar(supabaseCharId, file);
+
+    if (!result.ok) {
+        showAutosave(result.error || 'Error al subir avatar', 'error');
+        return;
+    }
+
+    // Actualizar el campo de avatar URL en el editor
+    const avatarInput = document.getElementById('charAvatar');
+    if (avatarInput) {
+        avatarInput.value = result.url;
+        if (typeof updatePreview === 'function') updatePreview();
+    }
+
+    showAutosave('Avatar subido correctamente', 'saved');
+    fileInput.value = '';  // limpiar el input
 }
 
 function resetCharForm() {
@@ -15628,9 +16986,12 @@ function editFromSheet() {
         'Prefer'        : 'return=minimal'
     };
 
+    const MESSAGES_PAGE_SIZE = 100; // Fix 8: initial load limit per topic/story
+
     let _client    = null;   // instancia supabase-js (cargada desde CDN)
     let _channel   = null;   // canal realtime activo
     let _available = null;   // null = sin verificar | true | false
+    let _cachedUserId = null; // Fix 6: cached auth user ID — avoids getUser() on every send
 
     // ── Init (lazy) ───────────────────────────────────────────────────────────
 
@@ -15649,9 +17010,77 @@ function editFromSheet() {
         }
     }
 
+    // ── Helpers para character_id ─────────────────────────────────────────────
+
+    /**
+     * Resuelve el character_id de Supabase para el personaje activo.
+     * Busca en appData.cloudCharacters usando el characterId local (UUID local
+     * o ID de appData.characters). Si no hay match, devuelve null — el campo
+     * es opcional y los mensajes siguen funcionando sin él.
+     *
+     * @param  {string|null} localCharId  msgObj.characterId (ID del sistema local)
+     * @returns {string|null}             UUID de la tabla Supabase characters, o null
+     */
+    function _resolveSupabaseCharacterId(localCharId) {
+        if (!localCharId) return null;
+        try {
+            const cloudChars = global.appData?.cloudCharacters;
+            if (!cloudChars || typeof cloudChars !== 'object') return null;
+            // Recorrer todos los perfiles en caché
+            for (const profileChars of Object.values(cloudChars)) {
+                if (!Array.isArray(profileChars)) continue;
+                const match = profileChars.find(function (c) {
+                    return String(c.id) === String(localCharId)
+                        || String(c.local_id) === String(localCharId); // por si se guardó mapping
+                });
+                if (match) return match.id;
+            }
+        } catch { /* silencioso */ }
+        return null;
+    }
+
+    /**
+     * Extrae el nombre del personaje de una fila de Supabase.
+     * Prioridad:
+     *   1. characters.name  — del join (dato fresco de Supabase)
+     *   2. charName         — del JSON serializado en content (compatibilidad)
+     *   3. author           — campo legacy de filas muy antiguas
+     *   4. 'Desconocido'    — fallback final
+     *
+     * @param  {object} row  Fila cruda de Supabase (con join characters)
+     * @param  {object} msg  Objeto ya parseado desde row.content
+     * @returns {string}
+     */
+    function _resolveCharacterName(row, msg) {
+        // 1. Join fresco desde la tabla characters
+        const joinedName = row.characters?.name;
+        if (joinedName && typeof joinedName === 'string' && joinedName.trim()) {
+            return joinedName.trim();
+        }
+        // 2. Campo serializado en content (mensajes nuevos y mensajes antiguos con charName)
+        if (msg.charName && typeof msg.charName === 'string' && msg.charName.trim()) {
+            return msg.charName.trim();
+        }
+        // 3. Campo author legacy (mensajes muy antiguos que usaban author como nombre)
+        if (row.author && typeof row.author === 'string' && row.author.trim()
+                && row.author !== '0' && !/^\d+$/.test(row.author.trim())) {
+            return row.author.trim();
+        }
+        // 4. Fallback
+        return msg.isNarrator ? 'Narrador' : 'Desconocido';
+    }
+
+    // Fix 6: populate _cachedUserId when auth state changes
+    if (typeof window !== 'undefined') {
+        window.addEventListener('etheria:auth-changed', function (e) {
+            _cachedUserId = e.detail?.user?.id || null;
+        });
+    }
+
     // ── send ─────────────────────────────────────────────────────────────────
     // Guarda el mensaje completo de Etheria serializado en `content`.
-    // Solo escribe las tres columnas que existen: session_id, author, content.
+    // Añade character_id (columna nueva) si el personaje activo existe en Supabase.
+    // Retrocompatible: si character_id es null, el mensaje funciona igual.
 
     async function send(sessionId, msgObj) {
         if (_available === false) return false;
@@ -15663,16 +17092,30 @@ function editFromSheet() {
                 return false;
             }
 
-            const { data: { user } } = await sbClient.auth.getUser();
-            if (!user || !user.id) {
-                return false;
+            // Fix 4 + 6: use cached userId; fall back to live getUser() if not yet populated
+            let _uid = _cachedUserId;
+            if (!_uid) {
+                const { data: { user: _u } } = await sbClient.auth.getUser();
+                _uid = _u?.id || null;
+                if (_uid) _cachedUserId = _uid;
             }
+            if (!_uid) { return false; }
+            const user = { id: _uid };
+
+            // Resolver character_id de Supabase (null si no hay match o es Narrador)
+            const supabaseCharId = msgObj.isNarrator
+                ? null
+                : _resolveSupabaseCharacterId(msgObj.characterId);
 
             const row = {
-                session_id : String(sessionId),
-                user_id    : user.id,
-                author     : String(msgObj.userIndex ?? 0),
-                content    : JSON.stringify({
+                session_id   : String(sessionId),
+                user_id      : user.id,
+                author       : String(msgObj.userIndex ?? 0),
+                // story_id — null si no hay historia activa (retrocompatible)
+                story_id     : global.currentStoryId || null,
+                // Nueva columna — null si el personaje no está en Supabase characters
+                character_id : supabaseCharId,
+                content      : JSON.stringify({
                     id               : msgObj.id,
                     characterId      : msgObj.characterId       || null,
                     charName         : msgObj.charName          || null,
@@ -15722,15 +17165,37 @@ function editFromSheet() {
 
     // ── load ──────────────────────────────────────────────────────────────────
     // Devuelve array de objetos mensaje de Etheria, o null si falla.
-    // Ordena por created_at (timestamp oficial de la tabla).
+    // Hace join con characters para obtener el nombre fresco.
+    // Retrocompatible con mensajes sin character_id.
 
-    async function load(sessionId) {
+    async function load(sessionId, storyId) {
         try {
+            // GET no necesita 'Prefer: return=minimal' (eso es para POST/PATCH).
+            // Usamos headers limpios para que PostgREST devuelva el join correctamente.
+            const loadHeaders = {
+                'apikey'        : SB_KEY,
+                'Authorization' : 'Bearer ' + SB_KEY,
+                'Accept'        : 'application/json'
+            };
+
+            // Si hay story_id activo, filtrar por él; si no, usar session_id (retrocompatible)
+            const activeStoryId = storyId || global.currentStoryId || null;
+            const filter = activeStoryId
+                ? '?story_id=eq.' + encodeURIComponent(activeStoryId)
+                : '?session_id=eq.' + encodeURIComponent(sessionId);
+
+            // Fix 8: load most recent MESSAGES_PAGE_SIZE messages (desc), then reverse
+            // Pass before= ISO timestamp to load older pages (cursor-based pagination)
+            const _beforeCursor = (typeof arguments[2] === 'string') ? arguments[2] : null;
+            const _cursorFilter = _beforeCursor ? '&created_at=lt.' + encodeURIComponent(_beforeCursor) : '';
             const res = await fetch(
                 SB_URL + '/rest/v1/messages'
-                    + '?session_id=eq.' + encodeURIComponent(sessionId)
-                    + '&order=created_at.asc',
-                { headers: REST_HEADERS, signal: AbortSignal.timeout(6000) }
+                    + filter
+                    + '&order=created_at.desc'
+                    + '&limit=' + MESSAGES_PAGE_SIZE
+                    + _cursorFilter
+                    + '&select=*,characters(name)',
+                { headers: loadHeaders, signal: AbortSignal.timeout(6000) }
             );
 
             if (!res.ok) {
@@ -15741,12 +17206,30 @@ function editFromSheet() {
             const rows = await res.json();
             _available = true;
 
+            // Fix 8: results come desc (newest first) — reverse for display order
+            rows.reverse();
             return rows.reduce(function (acc, row) {
                 try {
                     const msg = JSON.parse(row.content);
+
                     // Usar created_at como timestamp si el mensaje no lo trae
                     if (!msg.timestamp) msg.timestamp = row.created_at;
+
+                    // Filtrar mensajes de typing
                     if (msg.metaType === 'typing') return acc;
+
+                    // Enriquecer charName con el dato fresco del join.
+                    // _resolveCharacterName aplica la cadena de prioridad y el fallback.
+                    if (!msg.isNarrator) {
+                        msg.charName = _resolveCharacterName(row, msg);
+                    }
+
+                    // Propagar character_id de Supabase al objeto mensaje
+                    // para que el sistema local pueda usarlo si lo necesita.
+                    if (row.character_id) {
+                        msg.supabaseCharacterId = row.character_id;
+                    }
+
                     acc.push(msg);
                 } catch {
                     // Fila con content inválido — ignorar silenciosamente
@@ -15761,6 +17244,13 @@ function editFromSheet() {
         }
     }
 
+    // ── loadOlderMessages (Fix 8: cursor-based pagination) ──────────────────────
+    // Loads messages older than `beforeTimestamp` (ISO string).
+    // Returns array of messages or null on failure.
+    async function loadOlderMessages(sessionId, beforeTimestamp, storyId) {
+        return load(sessionId, storyId, beforeTimestamp);
+    }
+
     // ── subscribe ─────────────────────────────────────────────────────────────
     // Usa supabase-js channel().on() para escuchar INSERTs filtrados por session_id.
     // onMessage(msgObj) recibe el objeto mensaje de Etheria deserializado.
@@ -15773,16 +17263,24 @@ function editFromSheet() {
 
         unsubscribe();
 
+        // Si hay una historia activa, el canal de historia (supabaseStories) ya filtra por story_id.
+        // El canal session filtra mensajes del topic sin story_id para retrocompatibilidad.
+        const activeStoryId = global.currentStoryId || null;
+        const channelName = activeStoryId ? 'story-session:' + activeStoryId : 'room:' + sessionId;
+        const filterExpr = activeStoryId
+            ? 'story_id=eq.' + activeStoryId
+            : 'session_id=eq.' + sessionId;
+
         try {
             _channel = _client
-                .channel('room:' + sessionId)
+                .channel(channelName)
                 .on(
                     'postgres_changes',
                     {
                         event  : 'INSERT',
                         schema : 'public',
                         table  : 'messages',
-                        filter : 'session_id=eq.' + sessionId
+                        filter : filterExpr
                     },
                     function (payload) {
                         try {
@@ -15794,6 +17292,28 @@ function editFromSheet() {
                                 if (typeof onTyping === 'function') onTyping(msg);
                                 return;
                             }
+                            // Realtime no incluye el join — resolver nombre desde caché local
+                            // de SupabaseCharacters si está disponible, o usar charName del content
+                            if (!msg.isNarrator && row.character_id) {
+                                msg.supabaseCharacterId = row.character_id;
+                                // Buscar en caché de personajes de Supabase
+                                try {
+                                    var cloudChars = global.appData && global.appData.cloudCharacters;
+                                    if (cloudChars) {
+                                        for (var pid in cloudChars) {
+                                            var chars = cloudChars[pid];
+                                            if (!Array.isArray(chars)) continue;
+                                            var found = chars.find(function (c) { return c.id === row.character_id; });
+                                            if (found && found.name) {
+                                                msg.charName = found.name;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } catch { /* caché no disponible — charName del content ya es suficiente */ }
+                            }
+                            // Fix 4: attach server-assigned user_id for identity checks
+                            if (row.user_id) msg._supabaseUserId = row.user_id;
                             if (typeof onMessage === 'function') onMessage(msg);
                         } catch {
                             // payload inesperado — ignorar
@@ -15842,14 +17362,136 @@ function editFromSheet() {
         return send(sessionId, msgObj);
     }
 
+    // ── handleIncomingMessage ────────────────────────────────────────────────
+    // Punto de entrada único para mensajes realtime.
+    // Deserializa la fila Supabase y despacha 'etheria:realtime-message'.
+
+    // Triple-channel dedup: track recently-dispatched message IDs to avoid
+    // processing the same row from subscribe() + subscribeGlobal() + _subscribeToStory()
+    const _recentlyDispatched = new Set();
+    const _DISPATCH_TTL_MS = 4000;
+
+    function handleIncomingMessage(row) {
+        if (!row || !row.content) return;
+        try {
+            var msg = JSON.parse(row.content);
+            if (!msg || !msg.id) return;
+            if (!msg.timestamp) msg.timestamp = row.created_at;
+            if (msg.metaType === 'typing') return;
+            // Dedup: if this message was already dispatched recently, skip
+            const _key = String(msg.id);
+            if (_recentlyDispatched.has(_key)) return;
+            _recentlyDispatched.add(_key);
+            setTimeout(function () { _recentlyDispatched.delete(_key); }, _DISPATCH_TTL_MS);
+
+            // Enriquecer charName desde caché de cloudCharacters
+            if (!msg.isNarrator && row.character_id) {
+                msg.supabaseCharacterId = row.character_id;
+                try {
+                    var cloudChars = global.appData && global.appData.cloudCharacters;
+                    if (cloudChars) {
+                        for (var pid in cloudChars) {
+                            var chars = cloudChars[pid];
+                            if (!Array.isArray(chars)) continue;
+                            var found = chars.find(function (c) { return c.id === row.character_id; });
+                            if (found && found.name) { msg.charName = found.name; break; }
+                        }
+                    }
+                } catch { /* silencioso */ }
+            }
+
+            global.dispatchEvent(new CustomEvent('etheria:realtime-message', {
+                detail: { msg: msg, row: row }
+            }));
+        } catch (e) {
+            console.warn('[Supabase] handleIncomingMessage:', e.message);
+        }
+    }
+
+    // ── Canal global messages-realtime ────────────────────────────────────────
+    // Escucha TODOS los INSERTs en messages (sin filtro de session_id).
+    // Complementa al canal 'room:{sessionId}' que filtra por topic activo.
+
+    var _globalChannel = null;
+
+    function subscribeGlobal(onMessage, onTyping, sessionId) {
+        if (!_init()) return;
+        // Allow re-subscribe when story or session context changes
+        // (stale channel would filter wrong story_id after enterStory)
+        const _newActiveId = global.currentStoryId || sessionId || null;
+        if (_globalChannel && _globalChannel.__activeId === _newActiveId) return; // same context — no-op
+        if (_globalChannel) unsubscribeGlobal(); // remove stale channel before re-subscribing
+
+        // Fix 7: apply filter so this channel only receives messages for the active
+        // session or story — prevents receiving all messages across the entire project.
+        const _activeStoryId = global.currentStoryId || null;
+        const _sessionId = sessionId || null;
+        const _globalFilter = _activeStoryId
+            ? 'story_id=eq.' + _activeStoryId
+            : (_sessionId ? 'session_id=eq.' + _sessionId : null);
+        const _filterObj = _globalFilter
+            ? { event: 'INSERT', schema: 'public', table: 'messages', filter: _globalFilter }
+            : { event: 'INSERT', schema: 'public', table: 'messages' };
+
+        try {
+            const _channelId = _activeStoryId || _sessionId || 'all';
+            _globalChannel = _client
+                .channel('messages-realtime-' + _channelId)
+                .on(
+                    'postgres_changes',
+                    _filterObj,
+                    function (payload) {
+                        var row = payload.new;
+                        if (!row || !row.content) return;
+                        // Fix 7: client-side secondary filter for safety
+                        if (_activeStoryId && row.story_id && row.story_id !== _activeStoryId) return;
+                        if (!_activeStoryId && _sessionId && row.session_id && row.session_id !== _sessionId) return;
+                        try {
+                            var msg = JSON.parse(row.content);
+                            if (!msg || !msg.id) return;
+                            if (!msg.timestamp) msg.timestamp = row.created_at;
+
+                            if (msg.metaType === 'typing') {
+                                if (typeof onTyping === 'function') onTyping(msg, row);
+                                return;
+                            }
+                            handleIncomingMessage(row);
+                            if (typeof onMessage === 'function') onMessage(msg, row);
+                        } catch { /* ignorar */ }
+                    }
+                )
+                .subscribe(function (status) {
+                    _available = (status === 'SUBSCRIBED');
+                    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        _globalChannel = null;
+                    }
+                });
+            if (_globalChannel) _globalChannel.__activeId = _newActiveId;
+        } catch (e) {
+            console.warn('[Supabase] subscribeGlobal error:', e.message);
+            _globalChannel = null;
+        }
+    }
+
+    function unsubscribeGlobal() {
+        if (_globalChannel && _client) {
+            try { _client.removeChannel(_globalChannel); } catch { /* ignorar */ }
+            _globalChannel = null;
+        }
+    }
+
     // ── API pública ───────────────────────────────────────────────────────────
 
     global.SupabaseMessages = {
-        send        : send,
-        load        : load,
-        subscribe   : subscribe,
-        sendTyping  : sendTyping,
-        unsubscribe : unsubscribe,
+        send                  : send,
+        load                  : load,
+        loadOlderMessages     : loadOlderMessages,
+        subscribe             : subscribe,
+        subscribeGlobal       : subscribeGlobal,
+        unsubscribeGlobal     : unsubscribeGlobal,
+        handleIncomingMessage : handleIncomingMessage,
+        sendTyping            : sendTyping,
+        unsubscribe           : unsubscribe,
         get available() { return _available; }
     };
 
@@ -16202,6 +17844,9 @@ function ensureSpriteLazyObserver() {
             const img = entry.target;
             const src = img?.dataset?.src;
             if (src) {
+                img.classList.add('is-loading');
+                img.onload = () => img.classList.remove('is-loading');
+                img.onerror = () => img.classList.remove('is-loading');
                 img.src = src;
                 delete img.dataset.src;
             }
@@ -16616,6 +18261,16 @@ function enterTopic(id) {
     resetVNTransientState();
     currentTopicId = id;
     if (typeof syncVnStore === 'function') syncVnStore({ topicId: currentTopicId });
+
+    // Iniciar guard colaborativo (detección de cambios remotos + merge)
+    if (typeof CollaborativeGuard !== 'undefined') {
+        CollaborativeGuard.init(id, typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0);
+    }
+
+    // Activar canal global realtime para este topic
+    if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
+        SupabaseMessages.subscribeGlobal(null, null, id); // Fix 7: pass sessionId for filter
+    }
     getTopicMessages(id);
     currentMessageIndex = 0;
     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
@@ -16712,15 +18367,25 @@ function enterTopic(id) {
     _sbEnterTopic(id);
 }
 
+// Memory leak fix: store handler reference so it can be removed before re-adding
+let _globalRealtimeHandlerRef = null;
+
+// Fix 10: concurrency guard — prevents duplicate loads on rapid double-click
+let _sbEnterInProgress = false;
+
 async function _sbEnterTopic(topicId) {
-    if (typeof SupabaseMessages === 'undefined') return;
+    // Fix 10: prevent concurrent loads from rapid topic entry
+    if (_sbEnterInProgress) return;
+    _sbEnterInProgress = true;
+
+    if (typeof SupabaseMessages === 'undefined') { _sbEnterInProgress = false; return; }
 
     SupabaseMessages.unsubscribe();
     clearTypingState();
 
     // Cargar historial remoto y fusionar con local por id
     try {
-        const remoteMsgs = await SupabaseMessages.load(topicId);
+        const remoteMsgs = await SupabaseMessages.load(topicId, global.currentStoryId || null);
         if (Array.isArray(remoteMsgs) && remoteMsgs.length > 0) {
             const localMsgs = getTopicMessages(topicId);
             const localIds  = new Set(localMsgs.map(function (m) { return String(m.id); }));
@@ -16731,6 +18396,7 @@ async function _sbEnterTopic(topicId) {
                 localMsgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
                 appData.messages[topicId] = localMsgs;
                 hasUnsavedChanges = true;
+                markDirty('messages', topicId); // Fix 9
                 save({ silent: true });
 
                 if (currentTopicId === topicId) {
@@ -16743,6 +18409,8 @@ async function _sbEnterTopic(topicId) {
         }
     } catch (e) {
         // Supabase no disponible — el sistema sigue con local
+        _sbEnterInProgress = false; // Fix 10: release guard on error path
+        return;
     }
 
     // Suscripción realtime: recibir mensajes del otro jugador en tiempo real
@@ -16754,13 +18422,17 @@ async function _sbEnterTopic(topicId) {
         const exists = msgs.some(function (m) { return String(m.id) === String(remoteMsg.id); });
         if (exists) return;
 
-        // Ignorar si es un mensaje propio (ya está guardado localmente)
-        if (String(remoteMsg.userIndex) === String(currentUserIndex)) return;
+        // Fix 4: prefer server-assigned user_id for own-message detection;
+        // fall back to client userIndex for backward compat
+        const _ownUserId = typeof _cachedUserId !== 'undefined' ? _cachedUserId : null;
+        if (_ownUserId && remoteMsg._supabaseUserId && remoteMsg._supabaseUserId === _ownUserId) return;
+        if (!_ownUserId && String(remoteMsg.userIndex) === String(currentUserIndex)) return;
 
         msgs.push(remoteMsg);
         msgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
         appData.messages[topicId] = msgs;
         hasUnsavedChanges = true;
+        markDirty('messages', topicId); // Fix 9
         save({ silent: true });
 
         if (continuousReadEnabled) {
@@ -16788,6 +18460,55 @@ async function _sbEnterTopic(topicId) {
     }, function () {
         clearTypingState();
     });
+
+    // Escuchar mensajes del canal global (messages-realtime) para el topic activo.
+    // Memory leak fix: remove previous handler before registering a new one.
+    if (_globalRealtimeHandlerRef) {
+        window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+        _globalRealtimeHandlerRef = null;
+    }
+    _globalRealtimeHandlerRef = function (e) {
+        const remoteMsg = e.detail?.msg;
+        const remoteRow = e.detail?.row;
+
+        // Solo procesar si el mensaje pertenece al topic activo
+        if (!remoteMsg || !remoteMsg.id) return;
+        if (remoteRow && remoteRow.session_id && String(remoteRow.session_id) !== String(topicId)) return;
+        if (currentTopicId !== topicId) return;
+
+        // Si hay historia activa, solo procesar mensajes de esa historia
+        if (currentStoryId && remoteRow && remoteRow.story_id && remoteRow.story_id !== currentStoryId) return;
+
+        const msgs = getTopicMessages(topicId);
+        const exists = msgs.some(function (m) { return String(m.id) === String(remoteMsg.id); });
+        if (exists) return;
+
+        // Fix 4: use server user_id for own-message detection when available
+        const _ownId = typeof _cachedUserId !== 'undefined' ? _cachedUserId : null;
+        if (_ownId && remoteMsg._supabaseUserId && remoteMsg._supabaseUserId === _ownId) return;
+        if (!_ownId && String(remoteMsg.userIndex) === String(currentUserIndex)) return;
+
+        msgs.push(remoteMsg);
+        msgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+        appData.messages[topicId] = msgs;
+        hasUnsavedChanges = true;
+        markDirty('messages', topicId); // Fix 9
+        save({ silent: true });
+
+        const isAtEnd = currentMessageIndex >= msgs.length - 2;
+        if (isAtEnd) {
+            currentMessageIndex = msgs.length - 1;
+            showCurrentMessage('forward');
+        }
+        // Limpiar listener cuando salgamos del topic
+        if (currentTopicId !== topicId) {
+            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandler);
+        }
+    };
+    window.addEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+
+    // Fix 10: release guard so the next enterTopic() call can proceed
+    _sbEnterInProgress = false;
 }
 
 function stopTypewriter() {
@@ -16967,9 +18688,20 @@ function showCurrentMessage(direction = 'forward') {
             namePlate.style.background = msg.charColor || 'var(--accent-wood)';
         }
         if (avatarBox) {
-            avatarBox.innerHTML = msg.charAvatar ?
-                `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName || "Desconocido")}" onerror="this.style.display='none'; this.parentElement.textContent='${(msg.charName || '?')[0]}'">` :
-                (msg.charName || '?')[0];
+            // XSS fix: build img via DOM to avoid charName injection in onerror attribute
+            if (msg.charAvatar) {
+                const _img1 = document.createElement('img');
+                _img1.src = msg.charAvatar;
+                _img1.alt = 'Avatar de ' + (msg.charName || 'Desconocido');
+                _img1.onerror = function () {
+                    this.style.display = 'none';
+                    this.parentElement.textContent = (msg.charName || '?')[0];
+                };
+                avatarBox.innerHTML = '';
+                avatarBox.appendChild(_img1);
+            } else {
+                avatarBox.textContent = (msg.charName || '?')[0];
+            }
         }
         applyCharColor(msg.charColor);
     } else {
@@ -16978,9 +18710,20 @@ function showCurrentMessage(direction = 'forward') {
             namePlate.style.background = msg.charColor || 'var(--accent-wood)';
         }
         if (avatarBox) {
-            avatarBox.innerHTML = msg.charAvatar ?
-                `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName)}" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` :
-                msg.charName[0];
+            // XSS fix: build img via DOM to avoid charName injection in onerror attribute
+            if (msg.charAvatar) {
+                const _img2 = document.createElement('img');
+                _img2.src = msg.charAvatar;
+                _img2.alt = 'Avatar de ' + msg.charName;
+                _img2.onerror = function () {
+                    this.style.display = 'none';
+                    this.parentElement.textContent = (msg.charName || '?')[0];
+                };
+                avatarBox.innerHTML = '';
+                avatarBox.appendChild(_img2);
+            } else {
+                avatarBox.textContent = (msg.charName || '?')[0];
+            }
         }
         applyCharColor(msg.charColor);
     }
@@ -17228,8 +18971,13 @@ const SHADOW_SVG_NEUTRAL = `<svg viewBox="0 0 210 520" xmlns="http://www.w3.org/
   </g>
 </svg>`;
 
+// ── URLs de siluetas por defecto ────────────────────────────────────────────
+const DEFAULT_SPRITE_FEM    = 'https://e7.pngegg.com/pngimages/108/857/png-clipart-silhouette-human-siluet-child-woman.png';
+const DEFAULT_SPRITE_MASC   = 'https://e7.pngegg.com/pngimages/732/1021/png-clipart-silhouette-silhouette-animals-photography.png';
+const DEFAULT_SPRITE_NEUTRAL = DEFAULT_SPRITE_FEM; // fallback neutro = femenino
+
 // ── Construye la estructura DOM completa de una silueta-sombra ───────────────
-// Usa SVGs realistas en lugar de div con clip-path
+// Usa imágenes PNG externas por género, con glow y hitbox idénticos al sistema anterior
 function _buildSpriteShadow(characterId) {
     const char = characterId
         ? appData.characters.find(c => String(c.id) === String(characterId))
@@ -17241,16 +18989,31 @@ function _buildSpriteShadow(characterId) {
     shadow.className = 'sprite-shadow';
     shadow.setAttribute('aria-hidden', 'true');
 
-    // Elegir SVG según género
-    let svgContent;
-    if (genderClass === 'shadow-fem')  svgContent = SHADOW_SVG_FEM;
-    else if (genderClass === 'shadow-masc') svgContent = SHADOW_SVG_MASC;
-    else svgContent = SHADOW_SVG_NEUTRAL;
+    // Elegir URL según género
+    let spriteUrl;
+    if (genderClass === 'shadow-fem')   spriteUrl = DEFAULT_SPRITE_FEM;
+    else if (genderClass === 'shadow-masc') spriteUrl = DEFAULT_SPRITE_MASC;
+    else spriteUrl = DEFAULT_SPRITE_NEUTRAL;
 
-    // Insertar SVG y aplicar clases de color/glow
+    // Wrapper con la imagen
     const wrapper = document.createElement('div');
     wrapper.className = 'shadow-silhouette' + (genderClass ? ` ${genderClass}` : '');
-    wrapper.innerHTML = svgContent;
+
+    const img = document.createElement('img');
+    img.src = spriteUrl;
+    img.alt = '';
+    img.className = 'shadow-silhouette-img';
+    img.draggable = false;
+    // Fallback si la URL externa falla — usar SVG neutro inline
+    img.onerror = function () {
+        this.onerror = null;
+        const g = genderClass === 'shadow-masc' ? SHADOW_SVG_MASC
+                : genderClass === 'shadow-fem'  ? SHADOW_SVG_FEM
+                : SHADOW_SVG_NEUTRAL;
+        const blob = new Blob([g], { type: 'image/svg+xml' });
+        this.src = URL.createObjectURL(blob);
+    };
+    wrapper.appendChild(img);
 
     const glow = document.createElement('div');
     glow.className = 'shadow-glow' + (genderClass ? ` ${genderClass}` : '');
@@ -17900,6 +19663,37 @@ function renderVirtualizedHistory(msgs, container) {
     };
 
     container.onscroll = paint;
+
+    // Fix 8: when user scrolls to the very top, attempt to load older messages from Supabase
+    container.addEventListener('scroll', function _olderMsgsHandler() {
+        if (container.scrollTop > 40) return;
+        if (!currentTopicId || typeof SupabaseMessages === 'undefined') return;
+        if (!SupabaseMessages.loadOlderMessages) return;
+        if (container.dataset.loadingOlder === '1') return;
+        const allMsgs = getTopicMessages(currentTopicId);
+        if (!allMsgs.length) return;
+        const oldest = allMsgs[0].timestamp;
+        if (!oldest) return;
+        container.dataset.loadingOlder = '1';
+        SupabaseMessages.loadOlderMessages(currentTopicId, oldest)
+            .then(function (older) {
+                if (!Array.isArray(older) || older.length === 0) return;
+                const existingIds = new Set(allMsgs.map(function (m) { return String(m.id); }));
+                const novel = older.filter(function (m) { return m.id && !existingIds.has(String(m.id)); });
+                if (novel.length > 0) {
+                    novel.forEach(function (m) { allMsgs.unshift(m); });
+                    allMsgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+                    appData.messages[currentTopicId] = allMsgs;
+                    if (historyVirtualState) {
+                        historyVirtualState.msgs = allMsgs;
+                        historyVirtualState.spacer.style.height = (allMsgs.length * historyVirtualState.rowHeight) + 'px';
+                        paint();
+                    }
+                    showSyncToast(novel.length + ' mensaje(s) anteriores cargados', 'OK');
+                }
+            })
+            .finally(function () { container.dataset.loadingOlder = '0'; });
+    }, { passive: true });
     paint();
 }
 
@@ -18118,9 +19912,20 @@ function openVnActiveCharSheet() {
     // Rellenar avatar
     const avatarEl = document.getElementById('fichaModalAvatar');
     if (avatarEl) {
-        avatarEl.innerHTML = char.avatar
-            ? `<img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" onerror="this.style.display='none';this.parentElement.textContent='${char.name[0]}';">`
-            : char.name[0];
+        // XSS fix: DOM construction avoids name injection in onerror
+        if (char.avatar) {
+            const _imgFicha = document.createElement('img');
+            _imgFicha.src = char.avatar;
+            _imgFicha.alt = char.name;
+            _imgFicha.onerror = function () {
+                this.style.display = 'none';
+                this.parentElement.textContent = (char.name || '?')[0];
+            };
+            avatarEl.innerHTML = '';
+            avatarEl.appendChild(_imgFicha);
+        } else {
+            avatarEl.textContent = (char.name || '?')[0];
+        }
     }
 
     // Nombre y propietario
@@ -18259,9 +20064,10 @@ function _renderCharInfoPanel(char) {
             const rowsHtml = relations.map(({ char: other, value }) => {
                 const r   = getR(value);
                 const pct = Math.max(4, value);
+                // XSS fix: use data-fallback; onerror wired after relEl.innerHTML
                 const avatar = other.avatar
-                    ? `<img src="${escapeHtml(other.avatar)}" alt="${escapeHtml(other.name)}" onerror="this.style.display='none';this.parentElement.textContent='${other.name[0]}'">`
-                    : `<span>${other.name[0]}</span>`;
+                    ? `<img src="${escapeHtml(other.avatar)}" alt="${escapeHtml(other.name)}" data-fallback="${escapeHtml((other.name || '?')[0])}" class="cip-rel-img">`
+                    : `<span>${escapeHtml((other.name || '?')[0])}</span>`;
                 return `
                 <div class="cip-rel-row">
                     <div class="cip-rel-avatar" style="border-color:${r.color}">${avatar}</div>
@@ -18274,6 +20080,13 @@ function _renderCharInfoPanel(char) {
             }).join('');
 
             relEl.innerHTML = `<div class="cip-rel-header">Relaciones en esta historia</div>${rowsHtml}`;
+            // XSS fix: bind onerror after DOM insertion
+            relEl.querySelectorAll('img.cip-rel-img').forEach(function (img) {
+                img.onerror = function () {
+                    this.style.display = 'none';
+                    this.parentElement.textContent = this.dataset.fallback || '?';
+                };
+            });
         }
     }
 }
@@ -18580,7 +20393,19 @@ function updateCharSelector() {
     selectedCharId = currentChar.id;
 
     if (currentChar.avatar) {
-        display.innerHTML = `<img src="${escapeHtml(currentChar.avatar)}" alt="Avatar de ${escapeHtml(currentChar.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${currentChar.name[0]}</div>'">`;
+        // XSS fix: DOM construction for avatar display
+        const _imgDisp = document.createElement('img');
+        _imgDisp.src = currentChar.avatar;
+        _imgDisp.alt = 'Avatar de ' + currentChar.name;
+        _imgDisp.onerror = function () {
+            this.style.display = 'none';
+            const _ph = document.createElement('div');
+            _ph.className = 'placeholder';
+            _ph.textContent = (currentChar.name || '?')[0];
+            this.parentElement.appendChild(_ph);
+        };
+        display.innerHTML = '';
+        display.appendChild(_imgDisp);
     } else {
         display.innerHTML = `<div class="placeholder">${currentChar.name[0]}</div>`;
     }
@@ -18601,11 +20426,21 @@ function updateCharSelector() {
         grid.innerHTML = mine.map(c => `
             <div class="char-grid-item ${c.id === selectedCharId ? 'selected' : ''}" onclick="selectCharFromGrid('${c.id}')">
                 ${c.avatar ?
-                    `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` :
+                    `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" data-fallback="${escapeHtml((c.name || '?')[0])}" class="char-grid-img">` :
                     `<div class="placeholder">${c.name[0]}</div>`
                 }
             </div>
         `).join('');
+        // XSS fix: bind onerror on grid images after DOM insertion
+        grid.querySelectorAll('img.char-grid-img').forEach(function (img) {
+            img.onerror = function () {
+                this.style.display = 'none';
+                const _ph = document.createElement('div');
+                _ph.className = 'placeholder';
+                _ph.textContent = this.dataset.fallback || '?';
+                this.parentElement.appendChild(_ph);
+            };
+        });
     } else if (grid) {
         grid.innerHTML = '';
         grid.classList.remove('active');
@@ -19844,6 +21679,7 @@ function ensureTopicByRoomId(roomId) {
     };
 
     appData.topics.push(topic);
+    if (typeof markDirty === 'function') markDirty('topics'); // Fix 9
     appData.messages[normalizedRoomId] = Array.isArray(appData.messages[normalizedRoomId])
         ? appData.messages[normalizedRoomId]
         : [];
@@ -19985,6 +21821,11 @@ function save(opts = {}) {
     const { silent = false } = opts;
 
     try {
+        // Fix 9: if no partition has been explicitly marked dirty, assume everything
+        // changed (backward-compat with legacy call sites that don't yet call markDirty).
+        if (typeof _dirtyPartitions !== 'undefined' && _dirtyPartitions.size === 0) {
+            _flushAllDirty();
+        }
         persistPartitionedData();
         setLocalProfileUpdatedAt(currentUserIndex);
         hasUnsavedChanges = false;
@@ -20145,6 +21986,7 @@ function toggleTheme() {
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', newTheme);
     localStorage.setItem('etheria_theme', newTheme);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
     // Botón menú ajustes: texto descriptivo
     const themeBtn = document.getElementById('themeToggleBtn');
     if (themeBtn) themeBtn.textContent = newTheme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
@@ -20167,6 +22009,7 @@ function updateProfileThemeBtn() {
 function updateMasterVolume(val) {
     if (typeof masterVolume !== 'undefined') masterVolume = parseInt(val) / 100 * 0.36;
     localStorage.setItem('etheria_master_volume', val);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
     const el = document.getElementById('optMasterVolVal');
     if (el) el.textContent = val + '%';
 }
@@ -20177,6 +22020,7 @@ function updateRainVolume(val) {
         try { rainGainNode.gain.linearRampToValueAtTime(gain, audioCtx.currentTime + 0.4); } catch(e) {}
     }
     localStorage.setItem('etheria_rain_volume', val);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
     const el = document.getElementById('optRainVolVal');
     if (el) el.textContent = val + '%';
 }
@@ -20570,6 +22414,7 @@ function closeSettings() {
 function updateTextSpeed(val) {
     textSpeed = 110 - parseInt(val);
     localStorage.setItem('etheria_text_speed', textSpeed);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
 
     const speedValue = document.getElementById('speedValue');
     if (speedValue) {
@@ -20582,6 +22427,7 @@ function updateTextSpeed(val) {
 function updateFontSize(val) {
     document.documentElement.style.setProperty('--font-size-base', val + 'px');
     localStorage.setItem('etheria_font_size', val);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
 }
 
 function setAtmosphere(filter, element) {
@@ -20644,6 +22490,1298 @@ if (typeof window !== 'undefined') {
 
 </script>
 <script>
+/* js/utils/supabaseProfiles.js */
+// ============================================
+// SUPABASE PROFILES — Perfiles globales
+// ============================================
+// Tabla `profiles`:
+//   id             uuid  PK
+//   name           text  UNIQUE
+//   stats          jsonb
+//   owner_user_id  uuid  → auth.users.id (null = perfil libre)
+//   created_at     timestamp
+//
+// RLS: SELECT public / INSERT+UPDATE solo owner
+// ============================================
+
+const SupabaseProfiles = (function () {
+
+    let _initDone = false;   // guard contra init() múltiple
+
+    // ── Helpers internos ─────────────────────────────────────────────────────
+
+    function _client() {
+        return window.supabaseClient || null;
+    }
+
+    // supabase-js v2: userId solo disponible async via getUser().
+    // Guardamos el último userId conocido en caché local para comparaciones síncronas.
+    let _cachedUserId = null;
+
+    async function _getCurrentUser() {
+        const sb = _client();
+        if (!sb) return null;
+        try {
+            const { data, error } = await sb.auth.getUser();
+            if (error || !data?.user) return null;
+            _cachedUserId = data.user.id;
+            return data.user;
+        } catch { return null; }
+    }
+
+    function _currentUserId() {
+        return _cachedUserId;
+    }
+
+    function _isAvailable() {
+        return !!_client();
+    }
+
+    function _ensureCloudProfilesKey() {
+        if (typeof appData !== 'undefined' && !Array.isArray(appData.cloudProfiles)) {
+            appData.cloudProfiles = [];
+        }
+    }
+
+    // ── Perfiles ─────────────────────────────────────────────────────────────
+
+    async function loadCloudProfiles() {
+        if (!_isAvailable()) return [];
+        _ensureCloudProfilesKey();
+        try {
+            const { data, error } = await _client()
+                .from('profiles')
+                .select('*')
+                .order('name', { ascending: true });
+
+            if (error) {
+                console.error('[SupabaseProfiles] loadCloudProfiles:', error.message);
+                return [];
+            }
+            appData.cloudProfiles = Array.isArray(data) ? data : [];
+            window.dispatchEvent(new CustomEvent('etheria:cloud-profiles-loaded', {
+                detail: { profiles: appData.cloudProfiles }
+            }));
+            return appData.cloudProfiles;
+        } catch (err) {
+            console.error('[SupabaseProfiles] loadCloudProfiles exception:', err);
+            return [];
+        }
+    }
+
+    async function createCloudProfile(name, stats = {}) {
+        if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
+
+        const user = await _getCurrentUser();
+        if (!user) return { ok: false, error: 'Debes iniciar sesión para crear un perfil.' };
+
+        const trimmedName = String(name || '').trim();
+        if (!trimmedName) return { ok: false, error: 'El nombre del perfil no puede estar vacío.' };
+
+        try {
+            const { data, error } = await _client()
+                .from('profiles')
+                .insert({ name: trimmedName, stats: stats || {}, owner_user_id: user.id })
+                .select()
+                .single();
+
+            if (error) {
+                const isDup = error.code === '23505'
+                    || (error.message || '').toLowerCase().includes('unique')
+                    || (error.message || '').toLowerCase().includes('duplicate')
+                    || (error.details || '').toLowerCase().includes('name');
+                return { ok: false, error: isDup ? 'Ya existe un perfil con ese nombre.' : (error.message || 'Error al crear el perfil.') };
+            }
+
+            _ensureCloudProfilesKey();
+            appData.cloudProfiles.push(data);
+            appData.cloudProfiles.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            window.dispatchEvent(new CustomEvent('etheria:cloud-profile-created', { detail: { profile: data } }));
+            return { ok: true, profile: data };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    async function updateCloudProfileStats(profileId, stats) {
+        if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
+        const user = await _getCurrentUser();
+        if (!user) return { ok: false, error: 'No autenticado.' };
+        try {
+            const { data, error } = await _client()
+                .from('profiles')
+                .update({ stats })
+                .eq('id', profileId)
+                .eq('owner_user_id', user.id)
+                .select()
+                .single();
+            if (error) return { ok: false, error: error.message };
+            _ensureCloudProfilesKey();
+            const idx = appData.cloudProfiles.findIndex(p => p.id === profileId);
+            if (idx !== -1) appData.cloudProfiles[idx] = data;
+            return { ok: true, profile: data };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    async function releaseCloudProfile(profileId) {
+        if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
+        const user = await _getCurrentUser();
+        if (!user) return { ok: false, error: 'No autenticado.' };
+        try {
+            const { data, error } = await _client()
+                .from('profiles')
+                .update({ owner_user_id: null })
+                .eq('id', profileId)
+                .eq('owner_user_id', user.id)
+                .select()
+                .single();
+            if (error) return { ok: false, error: error.message };
+            _ensureCloudProfilesKey();
+            const idx = appData.cloudProfiles.findIndex(p => p.id === profileId);
+            if (idx !== -1) appData.cloudProfiles[idx] = data;
+            return { ok: true, profile: data };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    // ── Helpers de estado ────────────────────────────────────────────────────
+
+    function isProfileTaken(profile) {
+        return profile != null
+            && profile.owner_user_id !== null
+            && profile.owner_user_id !== undefined;
+    }
+
+    function getProfileStatus(profile) {
+        if (!isProfileTaken(profile)) return 'free';
+        const uid = _currentUserId();
+        if (uid && profile.owner_user_id === uid) return 'mine';
+        return 'taken';
+    }
+
+    function getProfileStatusLabel(profile) {
+        const s = getProfileStatus(profile);
+        if (s === 'free') return 'Libre';
+        if (s === 'mine') return 'Tu personaje';
+        return 'Ocupado';
+    }
+
+    function getProfileStatusClass(profile) {
+        return `profile-${getProfileStatus(profile)}`;
+    }
+
+    function getMyProfiles() {
+        const uid = _currentUserId();
+        if (!uid || !Array.isArray(appData?.cloudProfiles)) return [];
+        return appData.cloudProfiles.filter(p => p.owner_user_id === uid);
+    }
+
+    function getFreeProfiles() {
+        if (!Array.isArray(appData?.cloudProfiles)) return [];
+        return appData.cloudProfiles.filter(p => !isProfileTaken(p));
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────
+
+    function renderCloudProfileList(container, { onSelect, showStats = false } = {}) {
+        if (!container) return;
+        _ensureCloudProfilesKey();
+
+        const profiles = appData.cloudProfiles;
+        if (!profiles.length) {
+            container.innerHTML = '<p class="cloud-profiles-empty">No hay perfiles globales aún.</p>';
+            return;
+        }
+
+        container.innerHTML = profiles.map(p => {
+            const status   = getProfileStatus(p);
+            const label    = getProfileStatusLabel(p);
+            const cssClass = getProfileStatusClass(p);
+            const initial  = (p.name || '?')[0].toUpperCase();
+            const disabled = status === 'taken' ? 'disabled' : '';
+            const statsHtml = showStats && p.stats
+                ? `<div class="cloud-profile-stats">${
+                    Object.entries(p.stats).slice(0, 4).map(([k, v]) =>
+                        `<span class="cloud-stat"><em>${escapeHtml(String(k))}</em> ${escapeHtml(String(v))}</span>`
+                    ).join('')
+                  }</div>`
+                : '';
+
+            return `
+            <div class="cloud-profile-card ${cssClass}" data-profile-id="${escapeHtml(p.id)}">
+                <div class="cloud-profile-avatar">${initial}</div>
+                <div class="cloud-profile-info">
+                    <span class="cloud-profile-name">${escapeHtml(p.name || '')}</span>
+                    ${statsHtml}
+                </div>
+                <span class="cloud-profile-status-badge ${cssClass}">${label}</span>
+                ${onSelect && status !== 'taken' ? `
+                <button type="button" class="cloud-profile-select-btn"
+                        onclick="SupabaseProfiles._handleSelect(this)"
+                        data-profile-id="${escapeHtml(p.id)}"
+                        ${disabled}>
+                    ${status === 'mine' ? 'Ver' : 'Usar'}
+                </button>` : ''}
+            </div>`;
+        }).join('');
+
+        if (onSelect) SupabaseProfiles._onSelectCallback = onSelect;
+    }
+
+    function _handleSelect(btn) {
+        const profileId = btn?.dataset?.profileId;
+        if (!profileId || !SupabaseProfiles._onSelectCallback) return;
+        const profile = (appData.cloudProfiles || []).find(p => p.id === profileId);
+        if (profile) SupabaseProfiles._onSelectCallback(profile);
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+
+    function init() {
+        _ensureCloudProfilesKey();
+
+        // Cargar userId en caché para comparaciones síncronas
+        _getCurrentUser().catch(() => {});
+
+        // Cargar perfiles
+        if (_isAvailable()) {
+            loadCloudProfiles().catch(() => {});
+        }
+
+        // Registrar listeners solo una vez
+        if (_initDone) return;
+        _initDone = true;
+
+        // Re-cargar cuando el usuario cambia de sesión
+        window.addEventListener('etheria:auth-changed', () => {
+            _getCurrentUser().then(() => loadCloudProfiles()).catch(() => {});
+        });
+
+        // Cargar personajes cuando se activa un perfil
+        window.addEventListener('etheria:active-profile-changed', (e) => {
+            const profileId = e.detail?.profileId;
+            if (profileId && typeof SupabaseCharacters !== 'undefined') {
+                SupabaseCharacters.setActiveProfile(profileId).catch(() => {});
+            }
+        });
+    }
+
+    // ── API pública ──────────────────────────────────────────────────────────
+
+    return {
+        init,
+        loadCloudProfiles,
+        createCloudProfile,
+        updateCloudProfileStats,
+        releaseCloudProfile,
+        isProfileTaken,
+        getProfileStatus,
+        getProfileStatusLabel,
+        getProfileStatusClass,
+        getMyProfiles,
+        getFreeProfiles,
+        renderCloudProfileList,
+        _handleSelect,
+        _onSelectCallback: null
+    };
+
+})();
+
+window.SupabaseProfiles = SupabaseProfiles;
+
+</script>
+<script>
+/* js/utils/supabaseCharacters.js */
+// ============================================
+// SUPABASE CHARACTERS — Personajes por perfil
+// ============================================
+// Tabla `characters`:
+//   id          uuid  PK
+//   profile_id  uuid  → profiles.id
+//   name        text
+//   stats       jsonb
+//   created_at  timestamp
+//
+// Los personajes se cargan solo para el perfil activo.
+// No modifica appData.characters ni el sistema local.
+// ============================================
+
+const SupabaseCharacters = (function () {
+
+    // profileId → Array<character>
+    const _cache = new Map();
+    let _activeProfileId = null;
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function _client() {
+        return window.supabaseClient || null;
+    }
+
+    function _isAvailable() {
+        return !!_client();
+    }
+
+    // Fix C: cached user id — populated on etheria:auth-changed to avoid getUser() per-operation
+    let _cachedUserId = window._cachedUserId || null;
+    window.addEventListener('etheria:auth-changed', function (e) {
+        _cachedUserId = e.detail?.user?.id || window._cachedUserId || null;
+    });
+
+    async function _getCurrentUser() {
+        const cachedId = _cachedUserId || window._cachedUserId || null;
+        if (cachedId) return { id: cachedId }; // Fix C: fast-path, no network
+        const sb = _client();
+        if (!sb) return null;
+        try {
+            const { data, error } = await sb.auth.getUser();
+            if (error || !data?.user) return null;
+            _cachedUserId = data.user.id;
+            return data.user;
+        } catch { return null; }
+    }
+
+    async function _isProfileOwner(profileId) {
+        const user = await _getCurrentUser();
+        if (!user) return false;
+
+        // Buscar en caché de perfiles primero (evita petición extra)
+        if (Array.isArray(appData?.cloudProfiles)) {
+            const prof = appData.cloudProfiles.find(p => p.id === profileId);
+            if (prof) return prof.owner_user_id === user.id;
+        }
+
+        // Fallback: consultar Supabase directamente
+        try {
+            const { data } = await _client()
+                .from('profiles')
+                .select('owner_user_id')
+                .eq('id', profileId)
+                .single();
+            return data?.owner_user_id === user.id;
+        } catch { return false; }
+    }
+
+    function _updateAppDataCache(profileId, chars) {
+        if (typeof appData === 'undefined') return;
+        if (!appData.cloudCharacters) appData.cloudCharacters = {};
+        appData.cloudCharacters[profileId] = chars;
+    }
+
+    // ── API pública ───────────────────────────────────────────────────────────
+
+    async function loadCharacters(profileId) {
+        if (!_isAvailable() || !profileId) return [];
+        try {
+            const { data, error } = await _client()
+                .from('characters')
+                .select('*')
+                .eq('profile_id', profileId)
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.error('[SupabaseCharacters] loadCharacters:', error.message);
+                return [];
+            }
+
+            const chars = Array.isArray(data) ? data : [];
+            _cache.set(profileId, chars);
+            _activeProfileId = profileId;
+            _updateAppDataCache(profileId, chars);
+
+            window.dispatchEvent(new CustomEvent('etheria:cloud-characters-loaded', {
+                detail: { profileId, characters: chars }
+            }));
+            return chars;
+        } catch (err) {
+            console.error('[SupabaseCharacters] loadCharacters exception:', err);
+            return [];
+        }
+    }
+
+    async function createCharacter(profileId, name, stats = {}) {
+        if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
+        if (!profileId)       return { ok: false, error: 'Se requiere un perfil activo.' };
+
+        const trimmedName = String(name || '').trim();
+        if (!trimmedName) return { ok: false, error: 'El nombre del personaje no puede estar vacío.' };
+
+        const isOwner = await _isProfileOwner(profileId);
+        if (!isOwner) return { ok: false, error: 'Solo el dueño del perfil puede añadir personajes.' };
+
+        try {
+            const { data, error } = await _client()
+                .from('characters')
+                .insert({ profile_id: profileId, name: trimmedName, stats: stats || {} })
+                .select()
+                .single();
+
+            if (error) return { ok: false, error: error.message || 'Error al crear el personaje.' };
+
+            // Actualizar caché
+            const list = _cache.get(profileId) || [];
+            list.push(data);
+            _cache.set(profileId, list);
+            _updateAppDataCache(profileId, list);
+
+            window.dispatchEvent(new CustomEvent('etheria:cloud-character-created', {
+                detail: { profileId, character: data }
+            }));
+            return { ok: true, character: data };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    async function updateCharacter(characterId, stats) {
+        if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
+        try {
+            const { data, error } = await _client()
+                .from('characters')
+                .update({ stats })
+                .eq('id', characterId)
+                .select()
+                .single();
+
+            if (error) return { ok: false, error: error.message };
+
+            const profileId = data.profile_id;
+            const list = _cache.get(profileId);
+            if (list) {
+                const idx = list.findIndex(c => c.id === characterId);
+                if (idx !== -1) { list[idx] = data; _updateAppDataCache(profileId, list); }
+            }
+            return { ok: true, character: data };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    async function deleteCharacter(characterId, profileId) {
+        if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
+        try {
+            const { error } = await _client()
+                .from('characters')
+                .delete()
+                .eq('id', characterId);
+
+            if (error) return { ok: false, error: error.message };
+
+            if (profileId && _cache.has(profileId)) {
+                const updated = _cache.get(profileId).filter(c => c.id !== characterId);
+                _cache.set(profileId, updated);
+                _updateAppDataCache(profileId, updated);
+            }
+            return { ok: true };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    async function setActiveProfile(profileId) {
+        _activeProfileId = profileId;
+        return loadCharacters(profileId);
+    }
+
+    function getActiveCharacters() {
+        if (!_activeProfileId) return [];
+        return _cache.get(_activeProfileId) || [];
+    }
+
+    function getCachedCharacters(profileId) {
+        return _cache.get(profileId) || [];
+    }
+
+    function clearCache(profileId) {
+        if (profileId) {
+            _cache.delete(profileId);
+            if (appData?.cloudCharacters) delete appData.cloudCharacters[profileId];
+        } else {
+            _cache.clear();
+            if (typeof appData !== 'undefined') appData.cloudCharacters = {};
+        }
+    }
+
+    return {
+        loadCharacters,
+        createCharacter,
+        updateCharacter,
+        deleteCharacter,
+        setActiveProfile,
+        getActiveCharacters,
+        getCachedCharacters,
+        clearCache,
+        get activeProfileId() { return _activeProfileId; }
+    };
+
+})();
+
+window.SupabaseCharacters = SupabaseCharacters;
+
+</script>
+<script>
+/* js/utils/supabaseSettings.js */
+// ============================================
+// SUPABASE USER SETTINGS
+// ============================================
+// Tabla `user_settings`:
+//   user_id     uuid  PK (references auth.users.id)
+//   font_size   int
+//   text_speed  int
+//   theme       text  ('light' | 'dark')
+//   ui_volume   int   (0-100) → etheria_master_volume
+//   rain_volume int   (0-100) → etheria_rain_volume
+//
+// Flujo: login → loadUserSettings() → aplicar a UI + localStorage
+// Cuando un slider cambia → saveUserSettings() persiste en Supabase
+// ============================================
+
+const SupabaseSettings = (function () {
+
+    const DEFAULTS = {
+        font_size  : 19,
+        text_speed : 25,    // valor textSpeed real (no el slider invertido)
+        theme      : 'light',
+        ui_volume  : 50,
+        rain_volume: 30
+    };
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function _client() { return window.supabaseClient || null; }
+    function _isAvailable() { return !!_client(); }
+
+    async function _getUserId() {
+        // Fix 6: use global auth cache — avoids network round-trip on every settings save
+        if (window._cachedUserId) return window._cachedUserId;
+        const sb = _client();
+        if (!sb) return null;
+        try {
+            const { data, error } = await sb.auth.getUser();
+            if (error || !data?.user) return null;
+            window._cachedUserId = data.user.id;
+            return data.user.id;
+        } catch { return null; }
+    }
+
+    // ── Leer desde localStorage (fuente de verdad local) ────────────────────
+
+    function _readLocal() {
+        const rawSpeed = localStorage.getItem('etheria_text_speed');
+        const rawSize  = localStorage.getItem('etheria_font_size');
+        return {
+            font_size  : rawSize  ? parseInt(rawSize,  10) : DEFAULTS.font_size,
+            text_speed : rawSpeed ? parseInt(rawSpeed, 10) : DEFAULTS.text_speed,
+            theme      : localStorage.getItem('etheria_theme') || DEFAULTS.theme,
+            ui_volume  : parseInt(localStorage.getItem('etheria_master_volume') || DEFAULTS.ui_volume,  10),
+            rain_volume: parseInt(localStorage.getItem('etheria_rain_volume')   || DEFAULTS.rain_volume, 10)
+        };
+    }
+
+    // ── Aplicar ajustes a localStorage y sliders/UI ──────────────────────────
+
+    function _applyToUI(settings) {
+        const s = Object.assign({}, DEFAULTS, settings);
+
+        // 1. font_size
+        localStorage.setItem('etheria_font_size', String(s.font_size));
+        document.documentElement.style.setProperty('--font-size-base', s.font_size + 'px');
+        const szSlider = document.getElementById('fontSizeSlider') || document.getElementById('optFontSize');
+        if (szSlider) szSlider.value = s.font_size;
+        const szVal = document.getElementById('optFontSizeVal');
+        if (szVal) szVal.textContent = s.font_size + 'px';
+
+        // 2. text_speed  (textSpeed es el valor real; el slider está invertido: slider = 110 - speed)
+        localStorage.setItem('etheria_text_speed', String(s.text_speed));
+        if (typeof textSpeed !== 'undefined') {
+            // eslint-disable-next-line no-undef
+            window.textSpeed = s.text_speed;
+        }
+        const spSlider = document.getElementById('textSpeedSlider') || document.getElementById('optTextSpeed');
+        if (spSlider) {
+            const sliderVal = 110 - s.text_speed;
+            spSlider.value = sliderVal;
+            if (typeof syncSpeedLabel === 'function') syncSpeedLabel(sliderVal);
+        }
+
+        // 3. theme
+        localStorage.setItem('etheria_theme', s.theme);
+        document.documentElement.setAttribute('data-theme', s.theme);
+        const themeBtn = document.getElementById('themeToggleBtn');
+        if (themeBtn) themeBtn.textContent = s.theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
+        if (typeof updateProfileThemeBtn === 'function') updateProfileThemeBtn();
+
+        // 4. ui_volume (master volume)
+        localStorage.setItem('etheria_master_volume', String(s.ui_volume));
+        if (typeof masterVolume !== 'undefined') {
+            window.masterVolume = s.ui_volume / 100 * 0.36;
+        }
+        const mvSlider = document.getElementById('optMasterVol');
+        if (mvSlider) mvSlider.value = s.ui_volume;
+        const mvVal = document.getElementById('optMasterVolVal');
+        if (mvVal) mvVal.textContent = s.ui_volume + '%';
+
+        // 5. rain_volume
+        localStorage.setItem('etheria_rain_volume', String(s.rain_volume));
+        const rvSlider = document.getElementById('optRainVol');
+        if (rvSlider) rvSlider.value = s.rain_volume;
+        const rvVal = document.getElementById('optRainVolVal');
+        if (rvVal) rvVal.textContent = s.rain_volume + '%';
+
+        // Notificar para que otros módulos puedan reaccionar
+        window.dispatchEvent(new CustomEvent('etheria:settings-applied', { detail: s }));
+    }
+
+    // ── API pública ──────────────────────────────────────────────────────────
+
+    /**
+     * Carga los ajustes del usuario desde Supabase.
+     * Si no existe fila, crea una con los valores actuales del localStorage.
+     * Aplica los ajustes cargados a la UI.
+     */
+    async function loadUserSettings() {
+        if (!_isAvailable()) return;
+        const userId = await _getUserId();
+        if (!userId) return;
+
+        try {
+            const { data, error } = await _client()
+                .from('user_settings')
+                .select('*')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (error) {
+                console.error('[SupabaseSettings] loadUserSettings:', error.message);
+                return;
+            }
+
+            if (data) {
+                // Fila existente — aplicar a UI
+                _applyToUI(data);
+            } else {
+                // Primera vez — guardar los valores locales actuales en Supabase
+                const local = _readLocal();
+                await saveUserSettings(local);
+            }
+        } catch (err) {
+            console.error('[SupabaseSettings] loadUserSettings exception:', err);
+        }
+    }
+
+    /**
+     * Persiste un objeto de ajustes en Supabase (upsert).
+     * @param {object} settings  Puede ser parcial — se mezcla con los locales
+     */
+    async function saveUserSettings(settings) {
+        if (!_isAvailable()) return;
+        const userId = await _getUserId();
+        if (!userId) return;
+
+        const merged = Object.assign(_readLocal(), settings || {});
+
+        const row = {
+            user_id    : userId,
+            font_size  : Number(merged.font_size)   || DEFAULTS.font_size,
+            text_speed : Number(merged.text_speed)  || DEFAULTS.text_speed,
+            theme      : String(merged.theme        || DEFAULTS.theme),
+            ui_volume  : Number(merged.ui_volume)   || DEFAULTS.ui_volume,
+            rain_volume: Number(merged.rain_volume) || DEFAULTS.rain_volume
+        };
+
+        try {
+            const { error } = await _client()
+                .from('user_settings')
+                .upsert(row, { onConflict: 'user_id' });
+
+            if (error) {
+                console.error('[SupabaseSettings] saveUserSettings:', error.message);
+            }
+        } catch (err) {
+            console.error('[SupabaseSettings] saveUserSettings exception:', err);
+        }
+    }
+
+    /**
+     * Guarda los ajustes actuales (lee de localStorage).
+     * Atajo para llamar después de cualquier cambio de slider.
+     */
+    async function syncCurrentSettings() {
+        return saveUserSettings(_readLocal());
+    }
+
+    /**
+     * Devuelve los ajustes actuales desde localStorage (síncrono).
+     */
+    function getCurrentSettings() {
+        return _readLocal();
+    }
+
+    return {
+        loadUserSettings,
+        saveUserSettings,
+        syncCurrentSettings,
+        getCurrentSettings
+    };
+
+})();
+
+window.SupabaseSettings = SupabaseSettings;
+
+</script>
+<script>
+/* js/utils/supabaseAvatars.js */
+// ============================================
+// SUPABASE AVATARS — Avatares en Storage
+// ============================================
+// Bucket: "avatars" (público)
+// Path:   avatars/{characterId}.png
+//
+// uploadCharacterAvatar(characterId, file)
+//   1. Sube imagen al bucket
+//   2. Obtiene URL pública
+//   3. Guarda avatar_url en characters
+//   4. Actualiza el campo local appData.characters[*].avatar
+// ============================================
+
+const SupabaseAvatars = (function () {
+
+    const BUCKET = 'avatars';
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function _client() { return window.supabaseClient || null; }
+    function _isAvailable() { return !!_client(); }
+
+    function _ext(file) {
+        const name = file?.name || '';
+        const m = name.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+        return m ? m[1].toLowerCase() : 'png';
+    }
+
+    function _mimeForExt(ext) {
+        const map = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+        return map[ext] || 'image/png';
+    }
+
+    // ── API pública ──────────────────────────────────────────────────────────
+
+    /**
+     * Sube un archivo de imagen como avatar de un personaje.
+     *
+     * @param {string}  characterId  UUID del personaje (tabla Supabase characters)
+     *                               o ID local si no tiene UUID de Supabase.
+     * @param {File}    file         Archivo de imagen seleccionado por el usuario.
+     * @returns {Promise<{ok: boolean, url?: string, error?: string}>}
+     */
+    async function uploadCharacterAvatar(characterId, file) {
+        if (!_isAvailable()) {
+            return { ok: false, error: 'Sin conexión a Supabase.' };
+        }
+        if (!characterId) {
+            return { ok: false, error: 'characterId requerido.' };
+        }
+        if (!file || !file.type.startsWith('image/')) {
+            return { ok: false, error: 'El archivo debe ser una imagen.' };
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            return { ok: false, error: 'La imagen no puede superar 5 MB.' };
+        }
+
+        const ext  = _ext(file);
+        const path = `${characterId}.${ext}`;
+
+        try {
+            const sb = _client();
+
+            // 1. Subir al bucket (upsert para sobreescribir si ya existe)
+            const { error: uploadError } = await sb.storage
+                .from(BUCKET)
+                .upload(path, file, {
+                    contentType : _mimeForExt(ext),
+                    upsert      : true
+                });
+
+            if (uploadError) {
+                console.error('[SupabaseAvatars] upload error:', uploadError.message);
+                return { ok: false, error: uploadError.message || 'Error al subir la imagen.' };
+            }
+
+            // 2. Obtener URL pública
+            const { data: urlData } = sb.storage
+                .from(BUCKET)
+                .getPublicUrl(path);
+
+            const publicUrl = urlData?.publicUrl;
+            if (!publicUrl) {
+                return { ok: false, error: 'No se pudo obtener la URL pública del avatar.' };
+            }
+
+            // 3. Guardar avatar_url en la tabla characters de Supabase
+            const { error: updateError } = await sb
+                .from('characters')
+                .update({ avatar_url: publicUrl })
+                .eq('id', characterId);
+
+            if (updateError) {
+                // No es crítico — la URL ya está disponible aunque no se haya guardado en BD
+                console.warn('[SupabaseAvatars] No se pudo guardar avatar_url en BD:', updateError.message);
+            }
+
+            // 4. Actualizar caché local de cloudCharacters
+            if (typeof appData !== 'undefined' && appData.cloudCharacters) {
+                for (const profileId of Object.keys(appData.cloudCharacters)) {
+                    const chars = appData.cloudCharacters[profileId];
+                    if (!Array.isArray(chars)) continue;
+                    const idx = chars.findIndex(c => c.id === characterId);
+                    if (idx !== -1) {
+                        chars[idx].avatar_url = publicUrl;
+                        break;
+                    }
+                }
+            }
+
+            // 5. Actualizar appData.characters (personajes locales, por si el ID coincide)
+            if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
+                const localChar = appData.characters.find(c => String(c.id) === String(characterId));
+                if (localChar) {
+                    localChar.avatar = publicUrl;
+                    if (typeof persistPartitionedData === 'function') persistPartitionedData();
+                }
+            }
+
+            // 6. Actualizar SupabaseCharacters cache si está disponible
+            if (typeof SupabaseCharacters !== 'undefined') {
+                const cachedChar = SupabaseCharacters.getActiveCharacters()
+                    .find(c => c.id === characterId);
+                if (cachedChar) cachedChar.avatar_url = publicUrl;
+            }
+
+            window.dispatchEvent(new CustomEvent('etheria:avatar-uploaded', {
+                detail: { characterId, url: publicUrl }
+            }));
+
+            return { ok: true, url: publicUrl };
+
+        } catch (err) {
+            console.error('[SupabaseAvatars] uploadCharacterAvatar exception:', err);
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    /**
+     * Elimina el avatar de un personaje del bucket.
+     * @param {string} characterId
+     * @returns {Promise<{ok: boolean, error?: string}>}
+     */
+    async function deleteCharacterAvatar(characterId) {
+        if (!_isAvailable() || !characterId) {
+            return { ok: false, error: 'characterId requerido.' };
+        }
+        try {
+            const sb = _client();
+            // Intentar borrar tanto .png como otras extensiones comunes
+            const paths = ['png', 'jpg', 'jpeg', 'webp', 'gif'].map(ext => `${characterId}.${ext}`);
+            await sb.storage.from(BUCKET).remove(paths); // falla silencioso si no existen
+
+            await sb.from('characters').update({ avatar_url: null }).eq('id', characterId);
+            return { ok: true };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    /**
+     * Devuelve la URL del avatar de un personaje (desde caché o null).
+     * Busca primero en cloudCharacters, luego en appData.characters.
+     * @param {string} characterId
+     * @returns {string|null}
+     */
+    function getAvatarUrl(characterId) {
+        if (!characterId) return null;
+
+        // Buscar en cloudCharacters
+        if (typeof appData !== 'undefined' && appData.cloudCharacters) {
+            for (const chars of Object.values(appData.cloudCharacters)) {
+                if (!Array.isArray(chars)) continue;
+                const c = chars.find(ch => ch.id === characterId);
+                if (c?.avatar_url) return c.avatar_url;
+            }
+        }
+
+        // Buscar en personajes locales
+        if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
+            const local = appData.characters.find(c => String(c.id) === String(characterId));
+            if (local?.avatar) return local.avatar;
+        }
+
+        return null;
+    }
+
+    return {
+        uploadCharacterAvatar,
+        deleteCharacterAvatar,
+        getAvatarUrl
+    };
+
+})();
+
+window.SupabaseAvatars = SupabaseAvatars;
+
+</script>
+<script>
+/* js/collab-guard.js */
+// ============================================
+// COLLAB-GUARD.JS
+// Sistema de colaboración multi-usuario con merge de conflictos.
+//
+// Integración con infraestructura existente:
+//   - Lee/escribe usando fetchCloudBin() / putCloudBin() (JSONbin)
+//   - Merge a nivel de mensajes por ID + timestamp (no reemplaza perfiles enteros)
+//   - Usa showSyncToast() / showAutosave() ya existentes para UI
+//   - Se activa al entrar a un topic, se detiene al salir
+//   - No toca save() ni persistPartitionedData() — sólo añade una capa encima
+// ============================================
+
+const CollaborativeGuard = (function () {
+
+    // ── Configuración ────────────────────────────────────────────────────────
+    const CFG = {
+        POLL_INTERVAL:    8000,   // ms entre checks de cambios remotos
+        TYPING_TTL:      10000,   // ms hasta que un indicador "escribiendo" expira
+        TYPING_KEY:      'etheria_collab_typing',
+        COLLAB_ENABLED:  'etheria_collab_enabled',
+    };
+
+    // ── Estado interno ───────────────────────────────────────────────────────
+    let _topicId      = null;
+    let _profileIdx   = 0;       // currentUserIndex en el momento de init
+    let _pollTimer    = null;
+    let _lastSeenMsgCount = 0;   // cuántos mensajes había en remoto la última vez
+    let _lastRemoteModified = 0; // lastModified del cloud la última vez que checkeamos
+    let _merging      = false;   // semáforo para evitar merges concurrentes
+    let _typingTimer  = null;    // interval ID for typing indicator — cleared in stop()
+
+    // ── Helpers de acceso a datos ────────────────────────────────────────────
+
+    /**
+     * Lee los mensajes locales del topic activo desde appData (ya en memoria).
+     */
+    function _localMessages() {
+        if (!_topicId || typeof getTopicMessages !== 'function') return [];
+        return getTopicMessages(_topicId) || [];
+    }
+
+    /**
+     * Cuenta mensajes de todos los topics en un appData snapshot (igual que
+     * countMessagesInProfile existente, por si no está disponible).
+     */
+    function _countMsgs(profileData) {
+        if (typeof countMessagesInProfile === 'function') {
+            return countMessagesInProfile(profileData);
+        }
+        if (!profileData || !profileData.messages) return 0;
+        return Object.values(profileData.messages)
+            .reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+    }
+
+    /**
+     * Extrae los mensajes de un topic específico del snapshot remoto.
+     * El cloud guarda { profiles: { "0": { appData: { messages: { topicId: [...] } } } } }
+     */
+    function _remoteTopicMessages(cloudRecord) {
+        try {
+            const prof = (cloudRecord?.profiles || {})[String(_profileIdx)];
+            const msgs = prof?.appData?.messages?.[String(_topicId)];
+            return Array.isArray(msgs) ? msgs : [];
+        } catch { return []; }
+    }
+
+    /**
+     * Extrae el lastModified del perfil en el cloud.
+     */
+    function _remoteModified(cloudRecord) {
+        try {
+            const prof = (cloudRecord?.profiles || {})[String(_profileIdx)];
+            return Number(prof?.lastModified || 0);
+        } catch { return 0; }
+    }
+
+    // ── Merge ────────────────────────────────────────────────────────────────
+
+    /**
+     * Fusiona mensajes de dos fuentes por ID.
+     * En caso de conflicto de ID, gana el más reciente (por timestamp ISO).
+     * Devuelve array ordenado cronológicamente.
+     */
+    function _mergeMessages(local, remote) {
+        const byId = new Map();
+
+        const parseTs = (msg) => {
+            const t = msg.timestamp || msg.editedAt || msg.ts;
+            if (!t) return 0;
+            if (typeof t === 'number') return t;
+            const d = Date.parse(t);
+            return isNaN(d) ? 0 : d;
+        };
+
+        for (const msg of [...(local || []), ...(remote || [])]) {
+            if (!msg || !msg.id) continue;
+            const existing = byId.get(msg.id);
+            if (!existing) {
+                byId.set(msg.id, { ...msg });
+            } else {
+                // Gana el más reciente
+                if (parseTs(msg) > parseTs(existing)) {
+                    byId.set(msg.id, { ...msg, _merged: true });
+                }
+            }
+        }
+
+        return Array.from(byId.values())
+            .sort((a, b) => {
+                const ta = parseTs(a), tb = parseTs(b);
+                return ta - tb;
+            });
+    }
+
+    // ── Aplicar merge al estado local ────────────────────────────────────────
+
+    /**
+     * Aplica los mensajes mergeados a appData y refresca la UI sin perder posición.
+     */
+    function _applyMergedMessages(merged) {
+        if (!_topicId || !Array.isArray(merged)) return;
+
+        // Actualizar appData en memoria
+        if (typeof appData !== 'undefined' && appData.messages) {
+            appData.messages[String(_topicId)] = merged;
+        }
+
+        // Persistir localmente (sin subir a cloud — el sync normal se encarga)
+        if (typeof persistPartitionedData === 'function') {
+            persistPartitionedData();
+        }
+
+        // Refrescar UI sin mover el índice de mensaje actual
+        if (typeof showCurrentMessage === 'function') {
+            showCurrentMessage();
+        }
+    }
+
+    // ── Poll ─────────────────────────────────────────────────────────────────
+
+    async function _poll() {
+        if (!_topicId || _merging) return;
+
+        // Sólo si JSONbin está configurado
+        if (typeof fetchCloudBin !== 'function') return;
+        if (typeof JSONBIN_CONFIG === 'undefined' || !JSONBIN_CONFIG.apiKey) return;
+
+        try {
+            const cloud = await fetchCloudBin();
+            const remoteModified = _remoteModified(cloud);
+            const remoteTopicMsgs = _remoteTopicMessages(cloud);
+            const remoteCount = remoteTopicMsgs.length;
+            const localMsgs = _localMessages();
+            const localCount = localMsgs.length;
+
+            // Nada nuevo
+            if (remoteModified <= _lastRemoteModified && remoteCount <= _lastSeenMsgCount) return;
+
+            _lastRemoteModified = remoteModified;
+
+            // Calcular mensajes genuinamente nuevos (no están en local por ID)
+            const localIds = new Set(localMsgs.map(m => m.id));
+            const newRemote = remoteTopicMsgs.filter(m => m.id && !localIds.has(m.id));
+
+            if (newRemote.length === 0) {
+                _lastSeenMsgCount = remoteCount;
+                return;
+            }
+
+            _lastSeenMsgCount = remoteCount;
+
+            // Comprobar si el usuario está escribiendo activamente
+            const replyInput = document.getElementById('vnReplyText');
+            const hasDraft = replyInput && replyInput.value.trim().length > 0;
+
+            if (hasDraft) {
+                // Tiene borrador — notificar sin aplicar, para no interrumpir
+                const n = newRemote.length;
+                const label = n === 1 ? '1 mensaje nuevo' : `${n} mensajes nuevos`;
+                if (typeof showSyncToast === 'function') {
+                    showSyncToast(
+                        label + ' de otro jugador',
+                        'Ver ahora',
+                        () => {
+                            _doMerge(localMsgs, remoteTopicMsgs);
+                        }
+                    );
+                }
+            } else {
+                // Sin borrador — merge silencioso y refresco automático
+                _doMerge(localMsgs, remoteTopicMsgs);
+                const n = newRemote.length;
+                const label = n === 1 ? '1 mensaje nuevo recibido' : `${n} mensajes nuevos recibidos`;
+                if (typeof showAutosave === 'function') {
+                    showAutosave(label, 'info');
+                }
+            }
+
+        } catch (err) {
+            // Silencioso — el sync normal ya gestiona errores de red
+            console.debug('[CollabGuard] poll error:', err?.message || err);
+        }
+    }
+
+    function _doMerge(local, remote) {
+        if (_merging) return;
+        _merging = true;
+        try {
+            const merged = _mergeMessages(local, remote);
+            _applyMergedMessages(merged);
+        } finally {
+            _merging = false;
+        }
+    }
+
+    // ── Indicador "escribiendo" ──────────────────────────────────────────────
+
+    function _setTyping(isTyping) {
+        if (!_topicId) return;
+        try {
+            const state = {
+                topicId:   String(_topicId),
+                userIndex: _profileIdx,
+                isTyping,
+                ts:        Date.now()
+            };
+            localStorage.setItem(CFG.TYPING_KEY, JSON.stringify(state));
+        } catch { /* localStorage lleno — no crítico */ }
+    }
+
+    function _readTyping() {
+        try {
+            const raw = localStorage.getItem(CFG.TYPING_KEY);
+            if (!raw) return null;
+            const s = JSON.parse(raw);
+            // Expirado o del mismo usuario o de otro topic
+            if (!s || Date.now() - s.ts > CFG.TYPING_TTL) return null;
+            if (s.topicId !== String(_topicId)) return null;
+            if (s.userIndex === _profileIdx) return null;
+            return s;
+        } catch { return null; }
+    }
+
+    function _updateTypingUI() {
+        const state = _readTyping();
+        const el = document.getElementById('collabTypingIndicator');
+        if (!el) return;
+
+        if (state && state.isTyping) {
+            el.textContent = 'Alguien está escribiendo…';
+            el.classList.add('visible');
+        } else {
+            el.classList.remove('visible');
+            // Limpiar texto con delay para que la animación termine
+            setTimeout(() => { if (!el.classList.contains('visible')) el.textContent = ''; }, 400);
+        }
+    }
+
+    // ── API pública ──────────────────────────────────────────────────────────
+
+    /**
+     * Inicializar para un topic.
+     * Llamar al entrar a enterTopic().
+     */
+    function init(topicId, profileIndex) {
+        stop(); // limpiar estado previo
+
+        _topicId    = topicId;
+        _profileIdx = (typeof profileIndex === 'number') ? profileIndex
+                    : (typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0);
+
+        // Snapshot inicial para comparar en polls futuros
+        _lastSeenMsgCount    = _localMessages().length;
+        _lastRemoteModified  = 0; // se actualizará en el primer poll
+
+        // Iniciar polling
+        _poll(); // inmediato
+        _pollTimer = setInterval(_poll, CFG.POLL_INTERVAL);
+
+        // Hook: intercepción de emitTypingState (ya existe en vn.js)
+        // Sólo enriquece el canal de localStorage con el estado de typing propio
+        const _origEmit = window.emitTypingState;
+        if (_origEmit && !window._collabEmitPatched) {
+            window._collabEmitPatched = true;
+            window.emitTypingState = function (active) {
+                _setTyping(active);
+                _origEmit.call(this, active);
+            };
+        }
+
+        // Actualizar indicador de typing en cada poll
+        _typingTimer = setInterval(_updateTypingUI, 2000);
+
+        console.debug(`[CollabGuard] activo para topic ${topicId}`);
+    }
+
+    /**
+     * Detener — llamar al salir del topic.
+     */
+    function stop() {
+        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+        if (_typingTimer) { clearInterval(_typingTimer); _typingTimer = null; }
+        if (_topicId) _setTyping(false); // limpiar indicador propio
+        _topicId   = null;
+        _merging   = false;
+        _lastSeenMsgCount   = 0;
+        _lastRemoteModified = 0;
+
+        // Retirar patch de emitTypingState
+        if (window._collabEmitPatched) {
+            // No revertimos para no romper referencias — simplemente lo dejamos
+            // funcionar normalmente (la rama _setTyping es no-op cuando _topicId = null)
+        }
+    }
+
+    /**
+     * Forzar merge manual (útil para botón de "refrescar" si se quiere exponer).
+     */
+    async function forceMerge() {
+        if (!_topicId || typeof fetchCloudBin !== 'function') return;
+        try {
+            const cloud = await fetchCloudBin();
+            const remote = _remoteTopicMessages(cloud);
+            _doMerge(_localMessages(), remote);
+            if (typeof showAutosave === 'function') showAutosave('Sincronizado', 'saved');
+        } catch (err) {
+            if (typeof showAutosave === 'function') showAutosave('Error al sincronizar', 'error');
+        }
+    }
+
+    function getStatus() {
+        return {
+            active:     !!_topicId,
+            topicId:    _topicId,
+            polling:    !!_pollTimer,
+            localCount: _localMessages().length,
+            lastSeen:   _lastSeenMsgCount
+        };
+    }
+
+    return { init, stop, forceMerge, getStatus };
+
+})();
+
+window.CollaborativeGuard = CollaborativeGuard;
+
+</script>
+<script>
 /* js/app.js */
 // Punto de entrada: inicializa la app cuando carga el DOM.
 // ============================================
@@ -20696,8 +23834,8 @@ async function login() {
     }
 
     hideLoginScreen();
-    await ensureProfile();
     initializeApp();
+    await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
 }
 
 async function register() {
@@ -20729,30 +23867,35 @@ async function register() {
 
     if (!needsConfirmation) {
         hideLoginScreen();
-        await ensureProfile();
         initializeApp();
+        await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
     }
 }
 
 async function ensureProfile() {
+    // ensureProfile ya no crea perfiles automáticamente.
+    // Los perfiles globales se crean explícitamente por el usuario via SupabaseProfiles.
+    // Esta función solo inicializa los módulos Supabase tras el login.
     try {
         const { data: userData, error: userError } = await window.supabaseClient.auth.getUser();
         if (userError || !userData?.user) return;
 
-        const user = userData.user;
-        const { data: existingProfile, error: profileError } = await window.supabaseClient
-            .from('profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
+        // Inicializar módulos de perfiles y personajes
+        if (typeof SupabaseProfiles !== 'undefined') {
+            SupabaseProfiles.init();
+        }
 
-        if (profileError) return;
-        if (existingProfile) return;
+        // Cargar ajustes del usuario desde Supabase y aplicar a UI
+        if (typeof SupabaseSettings !== 'undefined') {
+            SupabaseSettings.loadUserSettings().catch(() => {});
+        }
 
-        await window.supabaseClient.from('profiles').insert({
-            user_id: user.id,
-            name: user.email || 'Usuario'
-        });
+        // Fix 6: cache user globally so Supabase modules avoid repeated getUser() calls
+        window._cachedUserId = userData.user.id;
+        // Disparar evento para que otros módulos sepan que hay usuario autenticado
+        window.dispatchEvent(new CustomEvent('etheria:auth-changed', {
+            detail: { user: userData.user }
+        }));
     } catch {
         // Silencioso para no bloquear la app
     }
@@ -20860,6 +24003,34 @@ function initializeApp() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // ── Detección de dispositivo para optimizaciones de rendimiento ──────────
+    // Añadimos clases al <body> que mobile-perf.css usa para reducir
+    // partículas, animaciones y efectos GPU en dispositivos de gama media/baja.
+    (function detectDeviceCapabilities() {
+        const ua = navigator.userAgent || '';
+        const isMobileUA = /Mobi|Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(ua);
+        const isCoarsePointer = typeof window.matchMedia === 'function'
+            && window.matchMedia('(pointer: coarse)').matches;
+
+        if (isMobileUA || isCoarsePointer) {
+            document.body.classList.add('is-mobile');
+        }
+
+        // low-spec: RAM < 4 GB o menos de 4 hilos lógicos
+        const mem = navigator.deviceMemory;        // undefined en Firefox/Safari
+        const cpu = navigator.hardwareConcurrency; // undefined en algunos móviles
+        if ((mem !== undefined && mem < 4) || (cpu !== undefined && cpu < 4)) {
+            document.body.classList.add('low-spec');
+        }
+
+        // Refleja prefers-reduced-motion como clase de body para CSS condicional
+        if (typeof window.matchMedia === 'function'
+                && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.body.classList.add('prefers-reduced-motion');
+        }
+    })();
+    // ─────────────────────────────────────────────────────────────────────────
+
     const loginBtn = document.getElementById('authLoginBtn');
     const registerBtn = document.getElementById('authRegisterBtn');
     if (loginBtn) loginBtn.addEventListener('click', login);
@@ -20886,6 +24057,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         isOfflineMode = true;
     }
+
+    // ── Registro del Service Worker (PWA) ────────────────────────
+    // Solo en HTTPS (obligatorio) y si el navegador lo soporta.
+    // No bloquea el arranque de la app — se registra en background.
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js', { scope: './' })
+                .then((reg) => {
+                    // SW registrado; el scope es el directorio actual
+                    if (reg.installing) {
+                        console.log('[PWA] Service Worker instalando…');
+                    } else if (reg.waiting) {
+                        console.log('[PWA] Service Worker en espera.');
+                    } else if (reg.active) {
+                        console.log('[PWA] Service Worker activo.');
+                    }
+                })
+                .catch((err) => {
+                    // Fallo no crítico — la app funciona igual sin SW
+                    console.warn('[PWA] Service Worker no pudo registrarse:', err);
+                });
+        });
+    }
+    // ─────────────────────────────────────────────────────────────
 });
 
 </script>
@@ -21151,5 +24346,659 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="btn-primary" onclick="closeModal('storyCodeModal')" style="width:100%;">Cerrar</button>
         </div>
     </div>
+
+    <!-- Create Cloud Story Modal -->
+    <div id="createStoryModal" class="modal-overlay" onclick="if(event.target===this) closeModal('createStoryModal')">
+        <div class="modal" style="max-width:420px;">
+            <h3 style="margin-top:0; font-family:Cinzel,serif;">☁ Nueva historia en la nube</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin:0 0 1rem;">
+                Las historias en la nube sincronizan mensajes entre jugadores en tiempo real usando Supabase.
+            </p>
+            <label class="form-label" for="newStoryTitleInput">Título de la historia</label>
+            <input
+                type="text"
+                id="newStoryTitleInput"
+                class="form-input"
+                placeholder="Ej: La caída de Etheria..."
+                maxlength="120"
+                onkeydown="if(event.key==='Enter') storiesHandleCreate()"
+                style="width:100%; margin-bottom:1rem;"
+            >
+            <div style="display:flex; gap:0.6rem;">
+                <button class="btn-secondary" onclick="closeModal('createStoryModal')" style="flex:1;">Cancelar</button>
+                <button class="btn-primary" onclick="storiesHandleCreate()" id="createStorySubmitBtn" style="flex:2;">
+                    ✦ Crear historia
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+/* js/utils/supabaseStories.js */
+// ============================================
+// SUPABASE STORIES
+// ============================================
+// Tabla: stories
+//   id          uuid PK default gen_random_uuid()
+//   title       text NOT NULL
+//   created_by  uuid REFERENCES auth.users(id)
+//   created_at  timestamptz default now()
+//
+// La tabla messages ya tiene (o debe añadirse):
+//   story_id    uuid REFERENCES stories(id)  (nullable, retrocompatible)
+//
+// SQL para Supabase:
+//   create table public.stories (
+//     id         uuid primary key default gen_random_uuid(),
+//     title      text not null,
+//     created_by uuid references auth.users(id),
+//     created_at timestamptz not null default now()
+//   );
+//   alter table public.messages add column if not exists story_id uuid references public.stories(id);
+//   create index if not exists messages_story_id_idx on public.messages(story_id);
+// ============================================
+
+(function (global) {
+
+    const cfg = global.SUPABASE_CONFIG || {
+        url: 'https://timtqdrfeuzwwixfnudj.supabase.co',
+        key: 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3'
+    };
+
+    const SB_URL = cfg.url;
+    const SB_KEY = cfg.key;
+
+    const REST_HEADERS = {
+        'apikey'        : SB_KEY,
+        'Authorization' : 'Bearer ' + SB_KEY,
+        'Content-Type'  : 'application/json',
+        'Prefer'        : 'return=representation'
+    };
+
+    const READ_HEADERS = {
+        'apikey'        : SB_KEY,
+        'Authorization' : 'Bearer ' + SB_KEY,
+        'Accept'        : 'application/json'
+    };
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function _getClient() {
+        return global.supabaseClient || null;
+    }
+
+    async function _getUser() {
+        // Fix 6: use global auth cache to avoid network round-trip on each operation
+        const cached = global._cachedUserId || null;
+        if (cached) return { id: cached };
+        try {
+            const client = _getClient();
+            if (!client || typeof client.auth?.getUser !== 'function') return null;
+            const { data: { user } } = await client.auth.getUser();
+            if (user?.id) global._cachedUserId = user.id;
+            return user || null;
+        } catch { return null; }
+    }
+
+    // ── createStory ───────────────────────────────────────────────────────────
+    /**
+     * Crea una nueva historia en Supabase.
+     * @param  {string} title  Nombre de la historia
+     * @returns {object|null}  Fila creada { id, title, created_by, created_at } o null si falla
+     */
+    async function createStory(title) {
+        if (!title || !title.trim()) {
+            console.warn('[Stories] createStory: título vacío');
+            return null;
+        }
+
+        try {
+            const user = await _getUser();
+            const row = {
+                title      : title.trim(),
+                created_by : user ? user.id : null
+            };
+
+            const res = await fetch(SB_URL + '/rest/v1/stories', {
+                method  : 'POST',
+                headers : REST_HEADERS,
+                body    : JSON.stringify(row),
+                signal  : AbortSignal.timeout(6000)
+            });
+
+            if (!res.ok) {
+                const detail = await res.text().catch(() => String(res.status));
+                console.warn('[Stories] createStory failed (' + res.status + '):', detail);
+                return null;
+            }
+
+            const data = await res.json();
+            const story = Array.isArray(data) ? data[0] : data;
+
+            // Cachear en appData
+            if (typeof appData !== 'undefined') {
+                if (!Array.isArray(appData.stories)) appData.stories = [];
+                appData.stories.unshift(story);
+            }
+
+            global.dispatchEvent(new CustomEvent('etheria:story-created', { detail: { story } }));
+            return story;
+
+        } catch (e) {
+            console.warn('[Stories] createStory error:', e.message);
+            return null;
+        }
+    }
+
+    // ── loadStories ───────────────────────────────────────────────────────────
+    /**
+     * Carga todas las historias desde Supabase, ordenadas por fecha descendente.
+     * Actualiza appData.stories y dispara 'etheria:stories-loaded'.
+     * @returns {Array}  Array de historias o [] si falla
+     */
+    async function loadStories() {
+        try {
+            const res = await fetch(
+                SB_URL + '/rest/v1/stories?order=created_at.desc&select=*',
+                { headers: READ_HEADERS, signal: AbortSignal.timeout(6000) }
+            );
+
+            if (!res.ok) {
+                console.warn('[Stories] loadStories failed (' + res.status + ')');
+                return [];
+            }
+
+            const stories = await res.json();
+
+            if (typeof appData !== 'undefined') {
+                appData.stories = Array.isArray(stories) ? stories : [];
+            }
+
+            global.dispatchEvent(new CustomEvent('etheria:stories-loaded', {
+                detail: { stories: Array.isArray(stories) ? stories : [] }
+            }));
+
+            return Array.isArray(stories) ? stories : [];
+
+        } catch (e) {
+            console.warn('[Stories] loadStories error:', e.message);
+            return [];
+        }
+    }
+
+    // ── loadStoryParticipants ─────────────────────────────────────────────────
+    /**
+     * Carga los participantes de una historia (user_ids únicos en sus mensajes).
+     * @param  {string} storyId
+     * @returns {Array}  Array de { user_id, profile? }
+     */
+    async function loadStoryParticipants(storyId) {
+        if (!storyId) return [];
+        try {
+            // Obtener user_ids únicos de los mensajes de esta historia
+            const res = await fetch(
+                SB_URL + '/rest/v1/messages'
+                    + '?story_id=eq.' + encodeURIComponent(storyId)
+                    + '&select=user_id'
+                    + '&order=created_at.asc',
+                { headers: READ_HEADERS, signal: AbortSignal.timeout(5000) }
+            );
+
+            if (!res.ok) return [];
+            const rows = await res.json();
+
+            // Deduplicar user_ids
+            const seen = new Set();
+            const uniqueUserIds = rows
+                .map(r => r.user_id)
+                .filter(uid => uid && !seen.has(uid) && seen.add(uid));
+
+            // Cruzar con cloudProfiles si están disponibles
+            const participants = uniqueUserIds.map(uid => {
+                const profile = Array.isArray(appData?.cloudProfiles)
+                    ? appData.cloudProfiles.find(p => p.owner_user_id === uid || p.id === uid)
+                    : null;
+                return { user_id: uid, profile: profile || null };
+            });
+
+            return participants;
+
+        } catch (e) {
+            console.warn('[Stories] loadStoryParticipants error:', e.message);
+            return [];
+        }
+    }
+
+    // ── enterStory ────────────────────────────────────────────────────────────
+    /**
+     * Entra en una historia:
+     *   1. Establece currentStoryId
+     *   2. Carga sus mensajes desde Supabase (filtrados por story_id)
+     *   3. Carga participantes
+     *   4. Suscribe al canal realtime filtrado por story_id
+     *   5. Renderiza la vista de historia
+     *
+     * @param  {string} storyId   UUID de la historia
+     */
+    async function enterStory(storyId) {
+        if (!storyId) {
+            console.warn('[Stories] enterStory: storyId requerido');
+            return;
+        }
+
+        // 1. Establecer historia activa
+        global.currentStoryId = storyId;
+
+        const story = (appData?.stories || []).find(s => s.id === storyId) || { id: storyId, title: '...' };
+
+        // Notificar que se está entrando
+        global.dispatchEvent(new CustomEvent('etheria:story-entering', { detail: { storyId, story } }));
+
+        // 2. Cancelar suscripción anterior al entrar a una nueva historia
+        if (typeof SupabaseMessages !== 'undefined') {
+            SupabaseMessages.unsubscribe();
+        }
+
+        // 3. Cargar mensajes de la historia (filtrado por story_id)
+        let storyMessages = [];
+        try {
+            storyMessages = await _loadStoryMessages(storyId);
+        } catch (e) {
+            console.warn('[Stories] enterStory: error cargando mensajes:', e.message);
+        }
+
+        // 4. Fusionar con mensajes locales del topic activo (si existe)
+        if (global.currentTopicId && typeof appData !== 'undefined') {
+            const localMsgs = Array.isArray(appData.messages[global.currentTopicId])
+                ? appData.messages[global.currentTopicId]
+                : [];
+            const localIds = new Set(localMsgs.map(m => String(m.id)));
+            const newRemote = storyMessages.filter(m => m.id && !localIds.has(String(m.id)));
+
+            if (newRemote.length > 0) {
+                newRemote.forEach(m => localMsgs.push(m));
+                localMsgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                appData.messages[global.currentTopicId] = localMsgs;
+
+                if (typeof hasUnsavedChanges !== 'undefined') global.hasUnsavedChanges = true;
+                if (typeof save === 'function') save({ silent: true });
+
+                // Actualizar la vista si el topic activo es este
+                if (typeof currentMessageIndex !== 'undefined') {
+                    global.currentMessageIndex = localMsgs.length - 1;
+                    if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
+                    if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
+                    if (typeof showSyncToast === 'function') {
+                        showSyncToast(newRemote.length + ' mensaje(s) cargado(s) desde la historia', 'OK');
+                    }
+                }
+            }
+        }
+
+        // 5. Cargar participantes en paralelo
+        loadStoryParticipants(storyId).then(function (participants) {
+            global.currentStoryParticipants = participants;
+            global.dispatchEvent(new CustomEvent('etheria:story-participants-loaded', {
+                detail: { storyId, participants }
+            }));
+            _renderStoryParticipants(participants);
+        });
+
+        // 6. Suscripción realtime filtrada por story_id
+        _subscribeToStory(storyId);
+
+        // 7. Notificar que la historia está activa
+        global.dispatchEvent(new CustomEvent('etheria:story-entered', {
+            detail: { storyId, story, messageCount: storyMessages.length }
+        }));
+
+        // 8. Actualizar UI de la historia activa
+        _updateActiveStoryUI(story);
+    }
+
+    // ── _loadStoryMessages ────────────────────────────────────────────────────
+
+    async function _loadStoryMessages(storyId) {
+        const loadHeaders = {
+            'apikey'        : SB_KEY,
+            'Authorization' : 'Bearer ' + SB_KEY,
+            'Accept'        : 'application/json'
+        };
+
+        const res = await fetch(
+            SB_URL + '/rest/v1/messages'
+                + '?story_id=eq.' + encodeURIComponent(storyId)
+                + '&order=created_at.asc'
+                + '&select=*,characters(name)',
+            { headers: loadHeaders, signal: AbortSignal.timeout(8000) }
+        );
+
+        if (!res.ok) return [];
+
+        const rows = await res.json();
+
+        return rows.reduce(function (acc, row) {
+            try {
+                const msg = JSON.parse(row.content);
+                if (!msg.timestamp) msg.timestamp = row.created_at;
+                if (msg.metaType === 'typing') return acc;
+                if (!msg.isNarrator && row.characters?.name) {
+                    msg.charName = row.characters.name.trim() || msg.charName;
+                }
+                if (row.character_id) msg.supabaseCharacterId = row.character_id;
+                // Tag the message with its story
+                msg.storyId = storyId;
+                acc.push(msg);
+            } catch { /* fila inválida */ }
+            return acc;
+        }, []);
+    }
+
+    // ── _subscribeToStory ─────────────────────────────────────────────────────
+
+    function _subscribeToStory(storyId) {
+        let client;
+        try {
+            client = global.supabase?.createClient
+                ? (global.supabaseClient || global.supabase.createClient(SB_URL, SB_KEY))
+                : null;
+        } catch { client = null; }
+
+        if (!client) {
+            console.warn('[Stories] _subscribeToStory: cliente supabase-js no disponible');
+            return;
+        }
+
+        // Limpiar canal anterior de historia
+        if (global._storyRealtimeChannel && client) {
+            try { client.removeChannel(global._storyRealtimeChannel); } catch { /* ignorar */ }
+            global._storyRealtimeChannel = null;
+        }
+
+        try {
+            global._storyRealtimeChannel = client
+                .channel('story:' + storyId)
+                .on(
+                    'postgres_changes',
+                    {
+                        event  : 'INSERT',
+                        schema : 'public',
+                        table  : 'messages',
+                        filter : 'story_id=eq.' + storyId
+                    },
+                    function (payload) {
+                        try {
+                            // Solo procesar mensajes si esta historia sigue activa
+                            if (global.currentStoryId !== storyId) return;
+
+                            const row = payload.new;
+                            if (!row || !row.content) return;
+
+                            const msg = JSON.parse(row.content);
+                            if (!msg || !msg.id) return;
+                            if (!msg.timestamp) msg.timestamp = row.created_at;
+                            if (msg.metaType === 'typing') return;
+
+                            msg.storyId = storyId;
+
+                            // Enriquecer charName desde caché
+                            if (!msg.isNarrator && row.character_id) {
+                                msg.supabaseCharacterId = row.character_id;
+                                try {
+                                    const cloudChars = global.appData?.cloudCharacters;
+                                    if (cloudChars) {
+                                        for (const pid in cloudChars) {
+                                            const chars = cloudChars[pid];
+                                            if (!Array.isArray(chars)) continue;
+                                            const found = chars.find(c => c.id === row.character_id);
+                                            if (found?.name) { msg.charName = found.name; break; }
+                                        }
+                                    }
+                                } catch { /* caché no disponible */ }
+                            }
+
+                            // Despachar como mensaje realtime estándar
+                            global.dispatchEvent(new CustomEvent('etheria:story-message', {
+                                detail: { msg, row, storyId }
+                            }));
+
+                            // También alimentar al handler estándar si el topic activo coincide
+                            _injectRealtimeMessage(msg, row);
+
+                        } catch (e) {
+                            console.warn('[Stories] realtime payload error:', e.message);
+                        }
+                    }
+                )
+                .subscribe(function (status) {
+                    if (status === 'SUBSCRIBED') {
+                        console.info('[Stories] Suscrito a historia:', storyId);
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        console.warn('[Stories] canal realtime estado:', status);
+                        global._storyRealtimeChannel = null;
+                    }
+                });
+
+        } catch (e) {
+            console.warn('[Stories] _subscribeToStory error:', e.message);
+        }
+    }
+
+    // ── _injectRealtimeMessage ────────────────────────────────────────────────
+    // Inyecta el mensaje en el flujo de la historia activa (mismo handler que SupabaseMessages.subscribe)
+
+    function _injectRealtimeMessage(msg, row) {
+        if (!global.currentTopicId || !msg || !msg.id) return;
+
+        try {
+            const msgs = typeof getTopicMessages === 'function'
+                ? getTopicMessages(global.currentTopicId)
+                : (global.appData?.messages?.[global.currentTopicId] || []);
+
+            const exists = msgs.some(m => String(m.id) === String(msg.id));
+            if (exists) return;
+
+            // Fix 4: prefer server user_id for own-message check
+            const _ownId = global._cachedUserId || null;
+            if (_ownId && msg._supabaseUserId && msg._supabaseUserId === _ownId) return;
+            if (!_ownId && String(msg.userIndex) === String(global.currentUserIndex)) return;
+
+            msgs.push(msg);
+            msgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            if (global.appData) global.appData.messages[global.currentTopicId] = msgs;
+            if (typeof save === 'function') save({ silent: true });
+
+            const isAtEnd = global.currentMessageIndex >= msgs.length - 2;
+            if (isAtEnd) {
+                global.currentMessageIndex = msgs.length - 1;
+                if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
+                if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
+                if (typeof showSyncToast === 'function') {
+                    showSyncToast('Nuevo mensaje en la historia', 'OK');
+                }
+            } else {
+                if (typeof showSyncToast === 'function') {
+                    showSyncToast('Nuevo mensaje recibido', 'Ver ahora', function () {
+                        global.currentMessageIndex = msgs.length - 1;
+                        if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
+                        if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('[Stories] _injectRealtimeMessage error:', e.message);
+        }
+    }
+
+    // ── UI helpers ────────────────────────────────────────────────────────────
+
+    function _updateActiveStoryUI(story) {
+        // Actualizar badge de historia activa en la barra VN
+        const badge = document.getElementById('activeStoryBadge');
+        if (badge) {
+            badge.textContent = '📖 ' + (story.title || 'Historia');
+            badge.style.display = 'inline-flex';
+        }
+        // Resaltar la historia activa en la lista
+        document.querySelectorAll('.story-card').forEach(function (card) {
+            card.classList.toggle('story-card--active', card.dataset.storyId === story.id);
+        });
+    }
+
+    function _renderStoryParticipants(participants) {
+        const container = document.getElementById('storyParticipantsList');
+        if (!container) return;
+
+        if (!participants || participants.length === 0) {
+            container.innerHTML = '<span class="story-participants-empty">Sin participantes aún</span>';
+            return;
+        }
+
+        // XSS fix: build participant elements via DOM to avoid name/avatar injection
+        container.innerHTML = '';
+        participants.forEach(function (p) {
+            const name = p.profile?.name || (p.user_id ? String(p.user_id).slice(0, 8) : '?');
+            const avatar = p.profile?.avatar_url || '';
+            let el;
+            if (avatar) {
+                el = document.createElement('img');
+                el.src = avatar;
+                el.className = 'story-participant-avatar';
+                el.title = name;
+                el.alt = name;
+                el.onerror = function () { this.style.display = 'none'; };
+            } else {
+                el = document.createElement('span');
+                el.className = 'story-participant-chip';
+                el.textContent = name;
+            }
+            container.appendChild(el);
+        });
+    }
+
+    // ── leaveStory ────────────────────────────────────────────────────────────
+    /**
+     * Sale de la historia activa y limpia el canal realtime.
+     */
+    function leaveStory() {
+        const client = global.supabaseClient || null;
+        if (global._storyRealtimeChannel && client) {
+            try { client.removeChannel(global._storyRealtimeChannel); } catch { /* ignorar */ }
+            global._storyRealtimeChannel = null;
+        }
+        global.currentStoryId = null;
+        global.currentStoryParticipants = [];
+
+        const badge = document.getElementById('activeStoryBadge');
+        if (badge) badge.style.display = 'none';
+
+        document.querySelectorAll('.story-card').forEach(function (card) {
+            card.classList.remove('story-card--active');
+        });
+    }
+
+    // ── API pública ───────────────────────────────────────────────────────────
+
+    global.SupabaseStories = {
+        createStory           : createStory,
+        loadStories           : loadStories,
+        enterStory            : enterStory,
+        leaveStory            : leaveStory,
+        loadStoryParticipants : loadStoryParticipants
+    };
+
+}(window));
+
+</script>
+    <script>
+    // ── Stories UI bridge ──────────────────────────────────────────────────────
+
+    async function storiesLoadAndRender() {
+        const list = document.getElementById('storiesList');
+        if (list) list.innerHTML = '<div class="stories-loading">Cargando...</div>';
+        const stories = await (window.SupabaseStories?.loadStories?.() || Promise.resolve([]));
+        _renderStoriesList(stories);
+    }
+
+    function _renderStoriesList(stories) {
+        const list = document.getElementById('storiesList');
+        if (!list) return;
+        if (!stories || stories.length === 0) {
+            list.innerHTML = '<div class="stories-empty">Sin historias en la nube aún</div>';
+            return;
+        }
+        list.innerHTML = stories.map(function (s) {
+            const date = s.created_at
+                ? new Date(s.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+                : '';
+            const isActive = window.currentStoryId === s.id;
+            return '<div class="story-card' + (isActive ? ' story-card--active' : '') + '" data-story-id="' + s.id + '" onclick="storiesHandleEnter(\'' + s.id + '\')">'
+                + '<span class="story-card-icon">📖</span>'
+                + '<div class="story-card-info">'
+                + '<span class="story-card-title">' + ((s.title || 'Sin título').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')) + '</span>'
+                + (date ? '<span class="story-card-date">' + date + '</span>' : '')
+                + '</div>'
+                + (isActive ? '<span class="story-card-active-dot" title="Historia activa"></span>' : '')
+                + '</div>';
+        }).join('');
+    }
+
+    async function storiesHandleCreate() {
+        const input = document.getElementById('newStoryTitleInput');
+        const title = input?.value?.trim();
+        if (!title) { if (input) input.focus(); return; }
+
+        const btn = document.getElementById('createStorySubmitBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Creando...'; }
+
+        const story = await (window.SupabaseStories?.createStory?.(title) || Promise.resolve(null));
+
+        if (btn) { btn.disabled = false; btn.textContent = '✦ Crear historia'; }
+
+        if (story) {
+            if (input) input.value = '';
+            closeModal('createStoryModal');
+            _renderStoriesList(appData.stories || []);
+            if (typeof showAutosave === 'function') showAutosave('Historia "' + story.title + '" creada', 'ok');
+        } else {
+            if (typeof showAutosave === 'function') showAutosave('No se pudo crear la historia', 'error');
+        }
+    }
+
+    async function storiesHandleEnter(storyId) {
+        if (!storyId) return;
+        if (window.currentStoryId === storyId) {
+            // Ya estamos en esta historia — sólo actualizar UI
+            _renderStoriesList(appData.stories || []);
+            return;
+        }
+        await (window.SupabaseStories?.enterStory?.(storyId) || Promise.resolve());
+        _renderStoriesList(appData.stories || []);
+    }
+
+    // Mostrar el slot del badge y participantes cuando hay historia activa
+    window.addEventListener('etheria:story-entered', function (e) {
+        const slot = document.getElementById('activeStorySlot');
+        if (slot) slot.style.display = '';
+        const row = document.getElementById('storyParticipantsRow');
+        if (row) row.style.display = '';
+    });
+
+    // Cargar historias al mostrar el panel de topics
+    window.addEventListener('etheria:topics-shown', storiesLoadAndRender);
+
+    // Auto-cargar historias cuando el panel de topics se activa por primera vez
+    (function () {
+        var _loaded = false;
+        var obs = new MutationObserver(function () {
+            var sec = document.getElementById('topicsSection');
+            if (sec && sec.classList.contains('active') && !_loaded) {
+                _loaded = true;
+                storiesLoadAndRender();
+            }
+        });
+        obs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    })();
+    </script>
 </body>
 </html>

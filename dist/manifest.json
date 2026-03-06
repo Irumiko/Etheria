@@ -1,0 +1,26 @@
+{
+  "name": "Etheria - Roleplay Visual Novel",
+  "short_name": "Etheria",
+  "description": "Etheria — Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1a1815",
+  "theme_color": "#1a1815",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

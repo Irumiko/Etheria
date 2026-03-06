@@ -11,7 +11,8 @@ const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY || '';
 const cssOrder = [
   'css/variables.css',
   'css/animations.css',
-  'css/components.css'
+  'css/components.css',
+  'css/mobile-perf.css'
 ];
 
 function read(file) {
@@ -77,3 +78,28 @@ fs.mkdirSync(distDir, { recursive: true });
 fs.writeFileSync(path.join(distDir, 'etheria.html'), html);
 fs.writeFileSync(path.join(distDir, 'index.html'), html);
 console.log('Build completado: dist/etheria.html y dist/index.html');
+
+// ── Copiar archivos PWA a dist/ ───────────────────────────────────
+// manifest.json y sw.js deben servirse desde la raíz del sitio.
+// Los iconos deben estar en la misma ruta relativa que en desarrollo.
+function copyIfExists(src, dest) {
+  if (fs.existsSync(src)) {
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    fs.copyFileSync(src, dest);
+    return true;
+  }
+  return false;
+}
+
+const pwaCopies = [
+  ['manifest.json',                'manifest.json'],
+  ['sw.js',                        'sw.js'],
+  ['assets/icons/icon-192.png',    'assets/icons/icon-192.png'],
+  ['assets/icons/icon-512.png',    'assets/icons/icon-512.png'],
+  ['assets/backgrounds/default_background.jpg', 'assets/backgrounds/default_background.jpg'],
+];
+
+pwaCopies.forEach(([src, dest]) => {
+  const copied = copyIfExists(path.join(root, src), path.join(distDir, dest));
+  if (copied) console.log(`PWA: copiado ${dest}`);
+});

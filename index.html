@@ -10,6 +10,9 @@
     <meta name="description" content="Etheria — Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.">
     <title>Etheria - Roleplay Visual Novel</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
+    <!-- PWA: manifest + iconos -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
     <!-- Open Graph / Twitter Card -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Etheria — Roleplay Visual Novel">
@@ -20,9 +23,12 @@
     <meta name="twitter:description" content="Narrativa colaborativa, modo RPG y oráculo.">
     <!-- robots y canonical -->
     <meta name="robots" content="index, follow">
-    <!-- Preconnect para Google Fonts (reduce latencia de fuentes) -->
+    <!-- Preconnect + DNS prefetch para Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <!-- Preload de imagen de fondo del menú (recurso más pesado del first paint) -->
+    <link rel="preload" href="https://raw.githubusercontent.com/Irumiko/Etheria/main/assets/backgrounds/default_background.jpg" as="image" fetchpriority="low">
     <link rel="stylesheet" href="css/main.css">
 
 </head>
@@ -59,6 +65,8 @@
     </div>
 
 
+    <!-- Indicador colaborativo "escribiendo" -->
+    <div id="collabTypingIndicator" class="collab-typing-indicator" aria-live="polite"></div>
     <div id="syncToastBackdrop" class="sync-toast-backdrop"></div>
     <div id="syncToast" class="sync-toast" role="status" aria-live="polite">
         <span class="sync-toast-text">Hay mensajes nuevos</span>
@@ -216,6 +224,25 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Stories Cloud Panel -->
+                    <div class="stories-panel">
+                        <div class="stories-panel-header">
+                            <span class="stories-panel-title">☁ Historias en la nube</span>
+                            <button class="stories-panel-refresh" onclick="storiesLoadAndRender()" title="Recargar historias">⟳</button>
+                        </div>
+                        <button class="btn-create-story" onclick="openModal('createStoryModal')">
+                            <span>✦ Nueva historia en la nube</span>
+                        </button>
+                        <div id="storiesList" class="stories-list">
+                            <div class="stories-empty">Carga las historias para verlas</div>
+                        </div>
+                        <div class="story-participants-row" id="storyParticipantsRow" style="display:none">
+                            <span class="story-participants-label">👥</span>
+                            <div id="storyParticipantsList" class="story-participants-list"></div>
+                        </div>
+                    </div>
+
                     <div class="topics-mode-legend">
                         <div class="legend-item legend-rpg">
                             <span class="legend-dot"></span>
@@ -624,6 +651,9 @@
                 <button id="deleteTopicBtn" class="vn-control-btn" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
                     <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 14,4"/><path d="M5 4 V3 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 v1"/><rect x="4" y="5" width="8" height="8" rx="1"/><line x1="7" y1="7.5" x2="7" y2="11"/><line x1="9" y1="7.5" x2="9" y2="11"/></svg></span>
                 </button>
+            </div>
+            <div class="vn-control-slot" id="activeStorySlot" style="display:none">
+                <span id="activeStoryBadge" class="active-story-badge" title="Historia en la nube activa" style="display:none"></span>
             </div>
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="backToTopics()" aria-label="Salir">
@@ -1109,7 +1139,13 @@
                                 </div>
                                 <div class="form-group">
                                     <label>Avatar URL</label>
-                                    <input type="text" id="charAvatar" oninput="updatePreview()">
+                                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                                        <input type="text" id="charAvatar" oninput="updatePreview()" style="flex:1;">
+                                        <label class="avatar-upload-btn" title="Subir imagen a Supabase Storage" style="cursor:pointer; padding:0.4rem 0.7rem; border:1px solid rgba(201,168,108,0.35); border-radius:8px; font-size:0.75rem; color:rgba(201,168,108,0.85); white-space:nowrap; flex-shrink:0;">
+                                            ⬆ Subir
+                                            <input type="file" accept="image/*" style="display:none;" onchange="uploadAvatarForChar(this)">
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
@@ -1261,6 +1297,11 @@
 <script src="js/ui/journal.js"></script>
 <script src="js/ui/topics.js"></script>
 <script src="js/ui/app-ui.js"></script>
+<script src="js/utils/supabaseProfiles.js"></script>
+<script src="js/utils/supabaseCharacters.js"></script>
+<script src="js/utils/supabaseSettings.js"></script>
+<script src="js/utils/supabaseAvatars.js"></script>
+<script src="js/collab-guard.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ui/mejoras.js"></script>
 
@@ -1334,5 +1375,123 @@
             <button class="btn-primary" onclick="closeModal('storyCodeModal')" style="width:100%;">Cerrar</button>
         </div>
     </div>
+
+    <!-- Create Cloud Story Modal -->
+    <div id="createStoryModal" class="modal-overlay" onclick="if(event.target===this) closeModal('createStoryModal')">
+        <div class="modal" style="max-width:420px;">
+            <h3 style="margin-top:0; font-family:Cinzel,serif;">☁ Nueva historia en la nube</h3>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin:0 0 1rem;">
+                Las historias en la nube sincronizan mensajes entre jugadores en tiempo real usando Supabase.
+            </p>
+            <label class="form-label" for="newStoryTitleInput">Título de la historia</label>
+            <input
+                type="text"
+                id="newStoryTitleInput"
+                class="form-input"
+                placeholder="Ej: La caída de Etheria..."
+                maxlength="120"
+                onkeydown="if(event.key==='Enter') storiesHandleCreate()"
+                style="width:100%; margin-bottom:1rem;"
+            >
+            <div style="display:flex; gap:0.6rem;">
+                <button class="btn-secondary" onclick="closeModal('createStoryModal')" style="flex:1;">Cancelar</button>
+                <button class="btn-primary" onclick="storiesHandleCreate()" id="createStorySubmitBtn" style="flex:2;">
+                    ✦ Crear historia
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/utils/supabaseStories.js"></script>
+    <script>
+    // ── Stories UI bridge ──────────────────────────────────────────────────────
+
+    async function storiesLoadAndRender() {
+        const list = document.getElementById('storiesList');
+        if (list) list.innerHTML = '<div class="stories-loading">Cargando...</div>';
+        const stories = await (window.SupabaseStories?.loadStories?.() || Promise.resolve([]));
+        _renderStoriesList(stories);
+    }
+
+    function _renderStoriesList(stories) {
+        const list = document.getElementById('storiesList');
+        if (!list) return;
+        if (!stories || stories.length === 0) {
+            list.innerHTML = '<div class="stories-empty">Sin historias en la nube aún</div>';
+            return;
+        }
+        list.innerHTML = stories.map(function (s) {
+            const date = s.created_at
+                ? new Date(s.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
+                : '';
+            const isActive = window.currentStoryId === s.id;
+            return '<div class="story-card' + (isActive ? ' story-card--active' : '') + '" data-story-id="' + s.id + '" onclick="storiesHandleEnter(\'' + s.id + '\')">'
+                + '<span class="story-card-icon">📖</span>'
+                + '<div class="story-card-info">'
+                + '<span class="story-card-title">' + ((s.title || 'Sin título').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')) + '</span>'
+                + (date ? '<span class="story-card-date">' + date + '</span>' : '')
+                + '</div>'
+                + (isActive ? '<span class="story-card-active-dot" title="Historia activa"></span>' : '')
+                + '</div>';
+        }).join('');
+    }
+
+    async function storiesHandleCreate() {
+        const input = document.getElementById('newStoryTitleInput');
+        const title = input?.value?.trim();
+        if (!title) { if (input) input.focus(); return; }
+
+        const btn = document.getElementById('createStorySubmitBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'Creando...'; }
+
+        const story = await (window.SupabaseStories?.createStory?.(title) || Promise.resolve(null));
+
+        if (btn) { btn.disabled = false; btn.textContent = '✦ Crear historia'; }
+
+        if (story) {
+            if (input) input.value = '';
+            closeModal('createStoryModal');
+            _renderStoriesList(appData.stories || []);
+            if (typeof showAutosave === 'function') showAutosave('Historia "' + story.title + '" creada', 'ok');
+        } else {
+            if (typeof showAutosave === 'function') showAutosave('No se pudo crear la historia', 'error');
+        }
+    }
+
+    async function storiesHandleEnter(storyId) {
+        if (!storyId) return;
+        if (window.currentStoryId === storyId) {
+            // Ya estamos en esta historia — sólo actualizar UI
+            _renderStoriesList(appData.stories || []);
+            return;
+        }
+        await (window.SupabaseStories?.enterStory?.(storyId) || Promise.resolve());
+        _renderStoriesList(appData.stories || []);
+    }
+
+    // Mostrar el slot del badge y participantes cuando hay historia activa
+    window.addEventListener('etheria:story-entered', function (e) {
+        const slot = document.getElementById('activeStorySlot');
+        if (slot) slot.style.display = '';
+        const row = document.getElementById('storyParticipantsRow');
+        if (row) row.style.display = '';
+    });
+
+    // Cargar historias al mostrar el panel de topics
+    window.addEventListener('etheria:topics-shown', storiesLoadAndRender);
+
+    // Auto-cargar historias cuando el panel de topics se activa por primera vez
+    (function () {
+        var _loaded = false;
+        var obs = new MutationObserver(function () {
+            var sec = document.getElementById('topicsSection');
+            if (sec && sec.classList.contains('active') && !_loaded) {
+                _loaded = true;
+                storiesLoadAndRender();
+            }
+        });
+        obs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    })();
+    </script>
 </body>
 </html>

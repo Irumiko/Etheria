@@ -2,6 +2,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=EB+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
 
         :root {
+            /* Sistema de z-index escalonado — evita guerras de especificidad */
+            --z-base:     0;
+            --z-sprites:  100;
+            --z-dialogue: 150;
+            --z-controls: 200;
+            --z-hud:      300;
+            --z-modals:   500;
+            --z-toasts:   600;
+            --z-overlays: 700;
+            --z-loading:  5000;
+            --z-auth:     5500;
+            /* Stacks de fuente con fallbacks seguros */
+            --font-display: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
+            --font-body: 'Crimson Text', 'Georgia', 'Times New Roman', serif;
+            --font-ui: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            --font-mono: 'Courier New', 'Lucida Console', monospace;
             --char-color: rgba(139, 115, 85, 0.55);
             --char-color-full: #8b7355;
             --bg-primary: #f5f1e8;

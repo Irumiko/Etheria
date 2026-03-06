@@ -249,9 +249,28 @@ function updateAffinityDisplay() {
 
     function setAvatar(char) {
         if (!infoAvatar) return;
-        infoAvatar.innerHTML = char && char.avatar
-            ? `<img src="${escapeHtml(char.avatar)}" alt="Avatar de ${escapeHtml(char.name)}" onerror="this.style.display='none'; this.parentElement.textContent='${char.name[0]}'">`
-            : `<div class="placeholder" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;">${char ? char.name[0] : '👤'}</div>`;
+        infoAvatar.innerHTML = '';
+        if (char && char.avatar) {
+            // XSS fix: DOM creation avoids char.name[0] injection in onerror attribute
+            const _imgAvatar = document.createElement('img');
+            _imgAvatar.src = char.avatar;
+            _imgAvatar.alt = 'Avatar de ' + char.name;
+            _imgAvatar.onerror = function () {
+                this.style.display = 'none';
+                const _fb = document.createElement('div');
+                _fb.className = 'placeholder';
+                _fb.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;';
+                _fb.textContent = (char.name || '?')[0];
+                this.parentElement.appendChild(_fb);
+            };
+            infoAvatar.appendChild(_imgAvatar);
+        } else {
+            const _ph = document.createElement('div');
+            _ph.className = 'placeholder';
+            _ph.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2rem;';
+            _ph.textContent = char ? (char.name || '?')[0] : '👤';
+            infoAvatar.appendChild(_ph);
+        }
     }
 
 

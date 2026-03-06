@@ -342,6 +342,9 @@ function ensureSpriteLazyObserver() {
             const img = entry.target;
             const src = img?.dataset?.src;
             if (src) {
+                img.classList.add('is-loading');
+                img.onload = () => img.classList.remove('is-loading');
+                img.onerror = () => img.classList.remove('is-loading');
                 img.src = src;
                 delete img.dataset.src;
             }
@@ -756,6 +759,16 @@ function enterTopic(id) {
     resetVNTransientState();
     currentTopicId = id;
     if (typeof syncVnStore === 'function') syncVnStore({ topicId: currentTopicId });
+
+    // Iniciar guard colaborativo (detección de cambios remotos + merge)
+    if (typeof CollaborativeGuard !== 'undefined') {
+        CollaborativeGuard.init(id, typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0);
+    }
+
+    // Activar canal global realtime para este topic
+    if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
+        SupabaseMessages.subscribeGlobal(null, null, id); // Fix 7: pass sessionId for filter
+    }
     getTopicMessages(id);
     currentMessageIndex = 0;
     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
@@ -852,15 +865,25 @@ function enterTopic(id) {
     _sbEnterTopic(id);
 }
 
+// Memory leak fix: store handler reference so it can be removed before re-adding
+let _globalRealtimeHandlerRef = null;
+
+// Fix 10: concurrency guard — prevents duplicate loads on rapid double-click
+let _sbEnterInProgress = false;
+
 async function _sbEnterTopic(topicId) {
-    if (typeof SupabaseMessages === 'undefined') return;
+    // Fix 10: prevent concurrent loads from rapid topic entry
+    if (_sbEnterInProgress) return;
+    _sbEnterInProgress = true;
+
+    if (typeof SupabaseMessages === 'undefined') { _sbEnterInProgress = false; return; }
 
     SupabaseMessages.unsubscribe();
     clearTypingState();
 
     // Cargar historial remoto y fusionar con local por id
     try {
-        const remoteMsgs = await SupabaseMessages.load(topicId);
+        const remoteMsgs = await SupabaseMessages.load(topicId, global.currentStoryId || null);
         if (Array.isArray(remoteMsgs) && remoteMsgs.length > 0) {
             const localMsgs = getTopicMessages(topicId);
             const localIds  = new Set(localMsgs.map(function (m) { return String(m.id); }));
@@ -871,6 +894,7 @@ async function _sbEnterTopic(topicId) {
                 localMsgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
                 appData.messages[topicId] = localMsgs;
                 hasUnsavedChanges = true;
+                markDirty('messages', topicId); // Fix 9
                 save({ silent: true });
 
                 if (currentTopicId === topicId) {
@@ -883,6 +907,8 @@ async function _sbEnterTopic(topicId) {
         }
     } catch (e) {
         // Supabase no disponible — el sistema sigue con local
+        _sbEnterInProgress = false; // Fix 10: release guard on error path
+        return;
     }
 
     // Suscripción realtime: recibir mensajes del otro jugador en tiempo real
@@ -894,13 +920,17 @@ async function _sbEnterTopic(topicId) {
         const exists = msgs.some(function (m) { return String(m.id) === String(remoteMsg.id); });
         if (exists) return;
 
-        // Ignorar si es un mensaje propio (ya está guardado localmente)
-        if (String(remoteMsg.userIndex) === String(currentUserIndex)) return;
+        // Fix 4: prefer server-assigned user_id for own-message detection;
+        // fall back to client userIndex for backward compat
+        const _ownUserId = typeof _cachedUserId !== 'undefined' ? _cachedUserId : null;
+        if (_ownUserId && remoteMsg._supabaseUserId && remoteMsg._supabaseUserId === _ownUserId) return;
+        if (!_ownUserId && String(remoteMsg.userIndex) === String(currentUserIndex)) return;
 
         msgs.push(remoteMsg);
         msgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
         appData.messages[topicId] = msgs;
         hasUnsavedChanges = true;
+        markDirty('messages', topicId); // Fix 9
         save({ silent: true });
 
         if (continuousReadEnabled) {
@@ -928,6 +958,55 @@ async function _sbEnterTopic(topicId) {
     }, function () {
         clearTypingState();
     });
+
+    // Escuchar mensajes del canal global (messages-realtime) para el topic activo.
+    // Memory leak fix: remove previous handler before registering a new one.
+    if (_globalRealtimeHandlerRef) {
+        window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+        _globalRealtimeHandlerRef = null;
+    }
+    _globalRealtimeHandlerRef = function (e) {
+        const remoteMsg = e.detail?.msg;
+        const remoteRow = e.detail?.row;
+
+        // Solo procesar si el mensaje pertenece al topic activo
+        if (!remoteMsg || !remoteMsg.id) return;
+        if (remoteRow && remoteRow.session_id && String(remoteRow.session_id) !== String(topicId)) return;
+        if (currentTopicId !== topicId) return;
+
+        // Si hay historia activa, solo procesar mensajes de esa historia
+        if (currentStoryId && remoteRow && remoteRow.story_id && remoteRow.story_id !== currentStoryId) return;
+
+        const msgs = getTopicMessages(topicId);
+        const exists = msgs.some(function (m) { return String(m.id) === String(remoteMsg.id); });
+        if (exists) return;
+
+        // Fix 4: use server user_id for own-message detection when available
+        const _ownId = typeof _cachedUserId !== 'undefined' ? _cachedUserId : null;
+        if (_ownId && remoteMsg._supabaseUserId && remoteMsg._supabaseUserId === _ownId) return;
+        if (!_ownId && String(remoteMsg.userIndex) === String(currentUserIndex)) return;
+
+        msgs.push(remoteMsg);
+        msgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+        appData.messages[topicId] = msgs;
+        hasUnsavedChanges = true;
+        markDirty('messages', topicId); // Fix 9
+        save({ silent: true });
+
+        const isAtEnd = currentMessageIndex >= msgs.length - 2;
+        if (isAtEnd) {
+            currentMessageIndex = msgs.length - 1;
+            showCurrentMessage('forward');
+        }
+        // Limpiar listener cuando salgamos del topic
+        if (currentTopicId !== topicId) {
+            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandler);
+        }
+    };
+    window.addEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+
+    // Fix 10: release guard so the next enterTopic() call can proceed
+    _sbEnterInProgress = false;
 }
 
 function stopTypewriter() {
@@ -1107,9 +1186,20 @@ function showCurrentMessage(direction = 'forward') {
             namePlate.style.background = msg.charColor || 'var(--accent-wood)';
         }
         if (avatarBox) {
-            avatarBox.innerHTML = msg.charAvatar ?
-                `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName || "Desconocido")}" onerror="this.style.display='none'; this.parentElement.textContent='${(msg.charName || '?')[0]}'">` :
-                (msg.charName || '?')[0];
+            // XSS fix: build img via DOM to avoid charName injection in onerror attribute
+            if (msg.charAvatar) {
+                const _img1 = document.createElement('img');
+                _img1.src = msg.charAvatar;
+                _img1.alt = 'Avatar de ' + (msg.charName || 'Desconocido');
+                _img1.onerror = function () {
+                    this.style.display = 'none';
+                    this.parentElement.textContent = (msg.charName || '?')[0];
+                };
+                avatarBox.innerHTML = '';
+                avatarBox.appendChild(_img1);
+            } else {
+                avatarBox.textContent = (msg.charName || '?')[0];
+            }
         }
         applyCharColor(msg.charColor);
     } else {
@@ -1118,9 +1208,20 @@ function showCurrentMessage(direction = 'forward') {
             namePlate.style.background = msg.charColor || 'var(--accent-wood)';
         }
         if (avatarBox) {
-            avatarBox.innerHTML = msg.charAvatar ?
-                `<img src="${escapeHtml(msg.charAvatar)}" alt="Avatar de ${escapeHtml(msg.charName)}" onerror="this.style.display='none'; this.parentElement.textContent='${msg.charName[0]}'">` :
-                msg.charName[0];
+            // XSS fix: build img via DOM to avoid charName injection in onerror attribute
+            if (msg.charAvatar) {
+                const _img2 = document.createElement('img');
+                _img2.src = msg.charAvatar;
+                _img2.alt = 'Avatar de ' + msg.charName;
+                _img2.onerror = function () {
+                    this.style.display = 'none';
+                    this.parentElement.textContent = (msg.charName || '?')[0];
+                };
+                avatarBox.innerHTML = '';
+                avatarBox.appendChild(_img2);
+            } else {
+                avatarBox.textContent = (msg.charName || '?')[0];
+            }
         }
         applyCharColor(msg.charColor);
     }
@@ -1368,8 +1469,13 @@ const SHADOW_SVG_NEUTRAL = `<svg viewBox="0 0 210 520" xmlns="http://www.w3.org/
   </g>
 </svg>`;
 
+// ── URLs de siluetas por defecto ────────────────────────────────────────────
+const DEFAULT_SPRITE_FEM    = 'https://e7.pngegg.com/pngimages/108/857/png-clipart-silhouette-human-siluet-child-woman.png';
+const DEFAULT_SPRITE_MASC   = 'https://e7.pngegg.com/pngimages/732/1021/png-clipart-silhouette-silhouette-animals-photography.png';
+const DEFAULT_SPRITE_NEUTRAL = DEFAULT_SPRITE_FEM; // fallback neutro = femenino
+
 // ── Construye la estructura DOM completa de una silueta-sombra ───────────────
-// Usa SVGs realistas en lugar de div con clip-path
+// Usa imágenes PNG externas por género, con glow y hitbox idénticos al sistema anterior
 function _buildSpriteShadow(characterId) {
     const char = characterId
         ? appData.characters.find(c => String(c.id) === String(characterId))
@@ -1381,16 +1487,31 @@ function _buildSpriteShadow(characterId) {
     shadow.className = 'sprite-shadow';
     shadow.setAttribute('aria-hidden', 'true');
 
-    // Elegir SVG según género
-    let svgContent;
-    if (genderClass === 'shadow-fem')  svgContent = SHADOW_SVG_FEM;
-    else if (genderClass === 'shadow-masc') svgContent = SHADOW_SVG_MASC;
-    else svgContent = SHADOW_SVG_NEUTRAL;
+    // Elegir URL según género
+    let spriteUrl;
+    if (genderClass === 'shadow-fem')   spriteUrl = DEFAULT_SPRITE_FEM;
+    else if (genderClass === 'shadow-masc') spriteUrl = DEFAULT_SPRITE_MASC;
+    else spriteUrl = DEFAULT_SPRITE_NEUTRAL;
 
-    // Insertar SVG y aplicar clases de color/glow
+    // Wrapper con la imagen
     const wrapper = document.createElement('div');
     wrapper.className = 'shadow-silhouette' + (genderClass ? ` ${genderClass}` : '');
-    wrapper.innerHTML = svgContent;
+
+    const img = document.createElement('img');
+    img.src = spriteUrl;
+    img.alt = '';
+    img.className = 'shadow-silhouette-img';
+    img.draggable = false;
+    // Fallback si la URL externa falla — usar SVG neutro inline
+    img.onerror = function () {
+        this.onerror = null;
+        const g = genderClass === 'shadow-masc' ? SHADOW_SVG_MASC
+                : genderClass === 'shadow-fem'  ? SHADOW_SVG_FEM
+                : SHADOW_SVG_NEUTRAL;
+        const blob = new Blob([g], { type: 'image/svg+xml' });
+        this.src = URL.createObjectURL(blob);
+    };
+    wrapper.appendChild(img);
 
     const glow = document.createElement('div');
     glow.className = 'shadow-glow' + (genderClass ? ` ${genderClass}` : '');
@@ -2040,6 +2161,37 @@ function renderVirtualizedHistory(msgs, container) {
     };
 
     container.onscroll = paint;
+
+    // Fix 8: when user scrolls to the very top, attempt to load older messages from Supabase
+    container.addEventListener('scroll', function _olderMsgsHandler() {
+        if (container.scrollTop > 40) return;
+        if (!currentTopicId || typeof SupabaseMessages === 'undefined') return;
+        if (!SupabaseMessages.loadOlderMessages) return;
+        if (container.dataset.loadingOlder === '1') return;
+        const allMsgs = getTopicMessages(currentTopicId);
+        if (!allMsgs.length) return;
+        const oldest = allMsgs[0].timestamp;
+        if (!oldest) return;
+        container.dataset.loadingOlder = '1';
+        SupabaseMessages.loadOlderMessages(currentTopicId, oldest)
+            .then(function (older) {
+                if (!Array.isArray(older) || older.length === 0) return;
+                const existingIds = new Set(allMsgs.map(function (m) { return String(m.id); }));
+                const novel = older.filter(function (m) { return m.id && !existingIds.has(String(m.id)); });
+                if (novel.length > 0) {
+                    novel.forEach(function (m) { allMsgs.unshift(m); });
+                    allMsgs.sort(function (a, b) { return new Date(a.timestamp) - new Date(b.timestamp); });
+                    appData.messages[currentTopicId] = allMsgs;
+                    if (historyVirtualState) {
+                        historyVirtualState.msgs = allMsgs;
+                        historyVirtualState.spacer.style.height = (allMsgs.length * historyVirtualState.rowHeight) + 'px';
+                        paint();
+                    }
+                    showSyncToast(novel.length + ' mensaje(s) anteriores cargados', 'OK');
+                }
+            })
+            .finally(function () { container.dataset.loadingOlder = '0'; });
+    }, { passive: true });
     paint();
 }
 
@@ -2258,9 +2410,20 @@ function openVnActiveCharSheet() {
     // Rellenar avatar
     const avatarEl = document.getElementById('fichaModalAvatar');
     if (avatarEl) {
-        avatarEl.innerHTML = char.avatar
-            ? `<img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" onerror="this.style.display='none';this.parentElement.textContent='${char.name[0]}';">`
-            : char.name[0];
+        // XSS fix: DOM construction avoids name injection in onerror
+        if (char.avatar) {
+            const _imgFicha = document.createElement('img');
+            _imgFicha.src = char.avatar;
+            _imgFicha.alt = char.name;
+            _imgFicha.onerror = function () {
+                this.style.display = 'none';
+                this.parentElement.textContent = (char.name || '?')[0];
+            };
+            avatarEl.innerHTML = '';
+            avatarEl.appendChild(_imgFicha);
+        } else {
+            avatarEl.textContent = (char.name || '?')[0];
+        }
     }
 
     // Nombre y propietario
@@ -2399,9 +2562,10 @@ function _renderCharInfoPanel(char) {
             const rowsHtml = relations.map(({ char: other, value }) => {
                 const r   = getR(value);
                 const pct = Math.max(4, value);
+                // XSS fix: use data-fallback; onerror wired after relEl.innerHTML
                 const avatar = other.avatar
-                    ? `<img src="${escapeHtml(other.avatar)}" alt="${escapeHtml(other.name)}" onerror="this.style.display='none';this.parentElement.textContent='${other.name[0]}'">`
-                    : `<span>${other.name[0]}</span>`;
+                    ? `<img src="${escapeHtml(other.avatar)}" alt="${escapeHtml(other.name)}" data-fallback="${escapeHtml((other.name || '?')[0])}" class="cip-rel-img">`
+                    : `<span>${escapeHtml((other.name || '?')[0])}</span>`;
                 return `
                 <div class="cip-rel-row">
                     <div class="cip-rel-avatar" style="border-color:${r.color}">${avatar}</div>
@@ -2414,6 +2578,13 @@ function _renderCharInfoPanel(char) {
             }).join('');
 
             relEl.innerHTML = `<div class="cip-rel-header">Relaciones en esta historia</div>${rowsHtml}`;
+            // XSS fix: bind onerror after DOM insertion
+            relEl.querySelectorAll('img.cip-rel-img').forEach(function (img) {
+                img.onerror = function () {
+                    this.style.display = 'none';
+                    this.parentElement.textContent = this.dataset.fallback || '?';
+                };
+            });
         }
     }
 }
@@ -2720,7 +2891,19 @@ function updateCharSelector() {
     selectedCharId = currentChar.id;
 
     if (currentChar.avatar) {
-        display.innerHTML = `<img src="${escapeHtml(currentChar.avatar)}" alt="Avatar de ${escapeHtml(currentChar.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${currentChar.name[0]}</div>'">`;
+        // XSS fix: DOM construction for avatar display
+        const _imgDisp = document.createElement('img');
+        _imgDisp.src = currentChar.avatar;
+        _imgDisp.alt = 'Avatar de ' + currentChar.name;
+        _imgDisp.onerror = function () {
+            this.style.display = 'none';
+            const _ph = document.createElement('div');
+            _ph.className = 'placeholder';
+            _ph.textContent = (currentChar.name || '?')[0];
+            this.parentElement.appendChild(_ph);
+        };
+        display.innerHTML = '';
+        display.appendChild(_imgDisp);
     } else {
         display.innerHTML = `<div class="placeholder">${currentChar.name[0]}</div>`;
     }
@@ -2741,11 +2924,21 @@ function updateCharSelector() {
         grid.innerHTML = mine.map(c => `
             <div class="char-grid-item ${c.id === selectedCharId ? 'selected' : ''}" onclick="selectCharFromGrid('${c.id}')">
                 ${c.avatar ?
-                    `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'placeholder\\'>${c.name[0]}</div>'">` :
+                    `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}" data-fallback="${escapeHtml((c.name || '?')[0])}" class="char-grid-img">` :
                     `<div class="placeholder">${c.name[0]}</div>`
                 }
             </div>
         `).join('');
+        // XSS fix: bind onerror on grid images after DOM insertion
+        grid.querySelectorAll('img.char-grid-img').forEach(function (img) {
+            img.onerror = function () {
+                this.style.display = 'none';
+                const _ph = document.createElement('div');
+                _ph.className = 'placeholder';
+                _ph.textContent = this.dataset.fallback || '?';
+                this.parentElement.appendChild(_ph);
+            };
+        });
     } else if (grid) {
         grid.innerHTML = '';
         grid.classList.remove('active');

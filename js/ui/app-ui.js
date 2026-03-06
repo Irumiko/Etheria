@@ -6,6 +6,11 @@ function save(opts = {}) {
     const { silent = false } = opts;
 
     try {
+        // Fix 9: if no partition has been explicitly marked dirty, assume everything
+        // changed (backward-compat with legacy call sites that don't yet call markDirty).
+        if (typeof _dirtyPartitions !== 'undefined' && _dirtyPartitions.size === 0) {
+            _flushAllDirty();
+        }
         persistPartitionedData();
         setLocalProfileUpdatedAt(currentUserIndex);
         hasUnsavedChanges = false;
@@ -166,6 +171,7 @@ function toggleTheme() {
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', newTheme);
     localStorage.setItem('etheria_theme', newTheme);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
     // Botón menú ajustes: texto descriptivo
     const themeBtn = document.getElementById('themeToggleBtn');
     if (themeBtn) themeBtn.textContent = newTheme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
@@ -188,6 +194,7 @@ function updateProfileThemeBtn() {
 function updateMasterVolume(val) {
     if (typeof masterVolume !== 'undefined') masterVolume = parseInt(val) / 100 * 0.36;
     localStorage.setItem('etheria_master_volume', val);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
     const el = document.getElementById('optMasterVolVal');
     if (el) el.textContent = val + '%';
 }
@@ -198,6 +205,7 @@ function updateRainVolume(val) {
         try { rainGainNode.gain.linearRampToValueAtTime(gain, audioCtx.currentTime + 0.4); } catch(e) {}
     }
     localStorage.setItem('etheria_rain_volume', val);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
     const el = document.getElementById('optRainVolVal');
     if (el) el.textContent = val + '%';
 }
@@ -591,6 +599,7 @@ function closeSettings() {
 function updateTextSpeed(val) {
     textSpeed = 110 - parseInt(val);
     localStorage.setItem('etheria_text_speed', textSpeed);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
 
     const speedValue = document.getElementById('speedValue');
     if (speedValue) {
@@ -603,6 +612,7 @@ function updateTextSpeed(val) {
 function updateFontSize(val) {
     document.documentElement.style.setProperty('--font-size-base', val + 'px');
     localStorage.setItem('etheria_font_size', val);
+    if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
 }
 
 function setAtmosphere(filter, element) {

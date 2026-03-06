@@ -102,54 +102,125 @@ function getTopicMessages(topicId) {
     return loaded;
 }
 
-function persistPartitionedData() {
-    localStorage.setItem(STORAGE_KEYS.topics, JSON.stringify(appData.topics));
-    localStorage.setItem(STORAGE_KEYS.characters, JSON.stringify(appData.characters));
-    localStorage.setItem(STORAGE_KEYS.affinities, JSON.stringify(appData.affinities));
-    localStorage.setItem('etheria_favorites', JSON.stringify(appData.favorites || {}));
-    localStorage.setItem('etheria_journals', JSON.stringify(appData.journals || {}));
-    localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions || {}));
+// ── Fix 9: dirty-partition tracking ────────────────────────────────────────
+// Instead of serialising every collection on every save(), callers mark only
+// the partitions that changed. persistPartitionedData() then flushes only
+// those dirty buckets, skipping the rest.
+//
+// Usage:
+//   markDirty('topics');          // after adding/removing/editing a topic
+//   markDirty('characters');      // after editing characters
+//   markDirty('messages', id);    // after appending/merging messages for topicId
+//   markDirty('affinities');
+//   markDirty('favorites');
+//   markDirty('journals');
+//   markDirty('reactions');
+//
+// Calling persistPartitionedData() without any markDirty() calls is a no-op
+// for the partition buckets (legacy snapshot and message-topics index are
+// always refreshed for backward-compat, but they are small).
+const _dirtyPartitions = new Set();
+const _dirtyMessageTopics = new Set();
 
+function markDirty(partition, topicId) {
+    _dirtyPartitions.add(partition);
+    if (partition === 'messages' && topicId != null) {
+        _dirtyMessageTopics.add(String(topicId));
+    }
+}
+
+function _flushAllDirty() {
+    // Force-mark everything — used after bulk imports or cloud downloads
+    _dirtyPartitions.add('topics');
+    _dirtyPartitions.add('characters');
+    _dirtyPartitions.add('affinities');
+    _dirtyPartitions.add('favorites');
+    _dirtyPartitions.add('journals');
+    _dirtyPartitions.add('reactions');
+    _dirtyPartitions.add('messages');
+    if (appData && Array.isArray(appData.topics)) {
+        appData.topics.forEach(t => _dirtyMessageTopics.add(String(t.id)));
+    }
+}
+
+function persistPartitionedData(forceAll = false) {
+    if (forceAll) _flushAllDirty();
+
+    // Flush only changed partitions
+    if (_dirtyPartitions.has('topics')) {
+        localStorage.setItem(STORAGE_KEYS.topics, JSON.stringify(appData.topics));
+    }
+    if (_dirtyPartitions.has('characters')) {
+        localStorage.setItem(STORAGE_KEYS.characters, JSON.stringify(appData.characters));
+    }
+    if (_dirtyPartitions.has('affinities')) {
+        localStorage.setItem(STORAGE_KEYS.affinities, JSON.stringify(appData.affinities));
+    }
+    if (_dirtyPartitions.has('favorites')) {
+        localStorage.setItem('etheria_favorites', JSON.stringify(appData.favorites || {}));
+    }
+    if (_dirtyPartitions.has('journals')) {
+        localStorage.setItem('etheria_journals', JSON.stringify(appData.journals || {}));
+    }
+    if (_dirtyPartitions.has('reactions')) {
+        localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions || {}));
+    }
+
+    // Always refresh the topic-ID index (tiny — just an array of IDs)
     const topicIds = appData.topics.map(t => String(t.id));
     localStorage.setItem(STORAGE_KEYS.messageTopics, JSON.stringify(topicIds));
 
-    topicIds.forEach((topicId) => {
+    // Flush only the per-topic message partitions that changed
+    const topicsToFlush = (_dirtyPartitions.has('messages') && _dirtyMessageTopics.size === 0)
+        ? topicIds   // 'messages' marked but no specific topic → flush all (e.g. bulk import)
+        : [..._dirtyMessageTopics].filter(id => topicIds.includes(id));
+
+    topicsToFlush.forEach((topicId) => {
         const topicMsgs = Array.isArray(appData.messages[topicId])
             ? appData.messages[topicId]
             : loadTopicMessagesFromStorage(topicId);
         localStorage.setItem(getTopicStorageKey(topicId), JSON.stringify(topicMsgs));
     });
 
-    // Limpiar keys de mensajes huérfanas (topics eliminados)
-    Object.keys(localStorage)
-        .filter((k) => k.startsWith(STORAGE_KEYS.topicPrefix))
-        .forEach((k) => {
-            const topicId = k.replace(STORAGE_KEYS.topicPrefix, '');
-            if (!topicIds.includes(topicId)) {
-                localStorage.removeItem(k);
-            }
-        });
+    // Orphan cleanup — only when topic list changed (avoids scanning localStorage every save)
+    if (_dirtyPartitions.has('topics')) {
+        Object.keys(localStorage)
+            .filter((k) => k.startsWith(STORAGE_KEYS.topicPrefix))
+            .forEach((k) => {
+                const topicId = k.replace(STORAGE_KEYS.topicPrefix, '');
+                if (!topicIds.includes(topicId)) {
+                    localStorage.removeItem(k);
+                }
+            });
 
-    // Limpiar reacciones huérfanas de topics eliminados
-    if (appData.reactions && typeof appData.reactions === 'object') {
-        const orphanReactionTopics = Object.keys(appData.reactions)
-            .filter(tid => !topicIds.includes(String(tid)));
-        orphanReactionTopics.forEach(tid => { delete appData.reactions[tid]; });
-        if (orphanReactionTopics.length > 0) {
-            localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions));
+        if (appData.reactions && typeof appData.reactions === 'object') {
+            const orphanReactionTopics = Object.keys(appData.reactions)
+                .filter(tid => !topicIds.includes(String(tid)));
+            orphanReactionTopics.forEach(tid => { delete appData.reactions[tid]; });
+            if (orphanReactionTopics.length > 0) {
+                localStorage.setItem('etheria_reactions', JSON.stringify(appData.reactions));
+            }
         }
     }
 
-    const legacySnapshot = {
-        topics: appData.topics,
-        characters: appData.characters,
-        messages: appData.messages,
-        affinities: appData.affinities,
-        favorites: appData.favorites || {},
-        journals: appData.journals || {},
-        reactions: appData.reactions || {}
-    };
-    localStorage.setItem(STORAGE_KEYS.legacy, JSON.stringify(legacySnapshot));
+    // Legacy snapshot — only rebuild when structural data changed
+    if (_dirtyPartitions.has('topics') || _dirtyPartitions.has('characters') ||
+        _dirtyPartitions.has('affinities') || _dirtyPartitions.has('messages')) {
+        const legacySnapshot = {
+            topics: appData.topics,
+            characters: appData.characters,
+            messages: appData.messages,
+            affinities: appData.affinities,
+            favorites: appData.favorites || {},
+            journals: appData.journals || {},
+            reactions: appData.reactions || {}
+        };
+        localStorage.setItem(STORAGE_KEYS.legacy, JSON.stringify(legacySnapshot));
+    }
+
+    // Reset dirty sets now that everything is flushed
+    _dirtyPartitions.clear();
+    _dirtyMessageTopics.clear();
 }
 
 function updateCloudSyncIndicator(status, message = '') {
@@ -306,9 +377,10 @@ function applyProfileData(profileIndex, profileData) {
 }
 
 function ensureCloudConfig() {
-    if (!JSONBIN_CONFIG.apiKey) {
-        throw new Error('Cloud sync disabled: missing JSONBin API key');
-    }
+    // Fix 5: JSONBin disabled — Supabase is now the sole cloud backend.
+    // Throwing here causes fetchCloudBin/putCloudBin callers to fall back to local
+    // (all call sites already catch errors from these functions).
+    throw new Error('[Etheria] JSONBin sync is disabled. Use Supabase for cloud persistence.');
 }
 
 async function fetchCloudBin() {
@@ -406,7 +478,7 @@ async function saveToCloud(profileIndex = currentUserIndex) {
 
 async function applyServerProfile(profileIndex, cloudProfile, { refreshUI = true } = {}) {
     applyProfileData(profileIndex, cloudProfile.appData);
-    persistPartitionedData();
+    persistPartitionedData(true); // Fix 9: bulk download — force-flush all partitions
     const timestamp = Number.parseInt(cloudProfile.lastModified || '0', 10) || Date.parse(cloudProfile.updatedAt || '') || Date.now();
     setLocalProfileUpdatedAt(profileIndex, timestamp);
     lastSyncTimestamp = timestamp;

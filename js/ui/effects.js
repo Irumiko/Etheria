@@ -7,13 +7,20 @@ function createRainEffect() {
     container.className = 'weather-rain';
     container.id = 'rainEffect';
 
-    // Crear 60 gotas máximo
-    for (let i = 0; i < 60; i++) {
+    // Cantidad y velocidad según capacidad del dispositivo
+    const isLowSpec = document.body.classList.contains('low-spec');
+    const isMobile  = document.body.classList.contains('is-mobile');
+    const dropCount = isLowSpec ? 12 : isMobile ? 22 : 60;
+    // En mobile las gotas van más despacio = menos frames GPU por segundo
+    const durationBase  = isMobile ? 0.85 : 0.5;
+    const durationRange = isMobile ? 0.65 : 0.5;
+
+    for (let i = 0; i < dropCount; i++) {
         const drop = document.createElement('div');
         drop.className = 'rain-drop';
         drop.style.left = Math.random() * 100 + '%';
         drop.style.height = (10 + Math.random() * 20) + 'px';
-        drop.style.animationDuration = (0.5 + Math.random() * 0.5) + 's';
+        drop.style.animationDuration = (durationBase + Math.random() * durationRange) + 's';
         drop.style.animationDelay = Math.random() * 2 + 's';
         drop.style.opacity = 0.3 + Math.random() * 0.4;
         container.appendChild(drop);

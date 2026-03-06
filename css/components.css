@@ -123,7 +123,7 @@ body::before {
             top: -20px;
             left: -20px;
             font-size: 3rem;
-            z-index: 200;
+            z-index: var(--z-controls, 200);
             pointer-events: none;
             filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
             transform-origin: center center;
@@ -247,7 +247,7 @@ body::before {
             background: rgba(14, 16, 24, 0.82);
             color: #f2f2f2;
             font-size: 0.72rem;
-            z-index: 3900;
+            z-index: var(--z-modals, 500);
             backdrop-filter: blur(4px);
             opacity: 0;
             transform: translateY(6px);
@@ -296,7 +296,7 @@ body::before {
             border: 1px solid rgba(201, 168, 108, 0.35);
             border-radius: 8px;
             padding: 2rem 2.8rem 1.6rem;
-            z-index: 4500;
+            z-index: var(--z-overlays, 700);
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
@@ -378,7 +378,7 @@ body::before {
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.45);
-            z-index: 4499;
+            z-index: var(--z-overlays, 700);
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.35s ease;
@@ -403,7 +403,7 @@ body::before {
             font-family: 'Cinzel', serif;
             font-size: 0.82rem;
             letter-spacing: 0.25px;
-            z-index: 4000;
+            z-index: var(--z-modals, 500);
             opacity: 0;
             transform: translateY(-22px) scale(0.92);
             transform-origin: top right;
@@ -2921,10 +2921,12 @@ body::before {
                 #0f1e10 70%,
                 #081208 100%
             );
-            /* BUGFIX: overflow:clip en lugar de hidden para no crear stacking context
-               que rompería los position:fixed hijos (vn-dialogue-box, vn-controls, vn-info-card).
-               overflow:clip recorta sin crear contexto de posicionamiento. */
-            overflow: clip;
+            /* BUGFIX: overflow:visible para no crear stacking context en Safari iOS.
+               overflow:clip puede causar que position:fixed hijos se comporten como
+               position:absolute en ciertos motores (WebKit/Blink con compositing layers).
+               contain:layout style aisla el elemento sin afectar fixed children. */
+            overflow: visible;
+            contain: layout style;
             /* BUGFIX: eliminamos transform de la transición base para no relativizar
                los position:fixed durante las transiciones de escena. */
             transition: filter 0.5s ease, background-image 1s ease;
@@ -3043,7 +3045,7 @@ body::before {
             position: fixed;
             top: 20px;
             left: 20px;
-            z-index: 200;
+            z-index: var(--z-controls, 200);
             background: linear-gradient(135deg, rgba(38, 28, 18, 0.92), rgba(22, 16, 11, 0.96));
             border: 1.5px solid rgba(201, 168, 108, 0.4);
             border-radius: 16px;
@@ -3367,7 +3369,7 @@ body::before {
             position: fixed;
             top: 18px;
             right: 20px;
-            z-index: 200;
+            z-index: var(--z-controls, 200);
             display: flex;
             gap: 0.35rem;
             background: rgba(8, 8, 10, 0.72);
@@ -3579,6 +3581,7 @@ body::before {
                 drop-shadow(0 25px 35px rgba(0,0,0,0.45))
                 drop-shadow(0 0 25px rgba(201, 168, 108, 0.12));
             animation: sprite-breathing 4.8s ease-in-out infinite;
+            animation-play-state: var(--section-animations, running);
         }
         .vn-sprite.active.position-left   { transform: scale(1) translateZ(10px); }
         .vn-sprite.active.position-center { transform: translateX(-50%) scale(1) translateZ(30px); }
@@ -5180,7 +5183,7 @@ body::before {
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 5000;
+            z-index: var(--z-auth, 5000);
             flex-direction: column;
             gap: 1rem;
         }
@@ -5622,6 +5625,7 @@ body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
 /* ===== Sprite micro-animations ===== */
 .vn-sprite.active img {
     animation: sprite-active-breathe var(--sprite-breathing-duration, 4s) ease-in-out infinite;
+    animation-play-state: var(--section-animations, running);
     transform-origin: center bottom;
 }
 .vn-sprite.active.sprite-blink img {
@@ -7501,7 +7505,7 @@ body.mode-classic .vn-message-counter {
     background: rgba(26,18,10,0.98);
     border: 1px solid rgba(201,168,108,0.28);
     border-radius: 10px;
-    z-index: 200;
+    z-index: var(--z-controls, 200);
     display: none;
     overflow: hidden;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
@@ -9799,4 +9803,483 @@ select {
 .vn-controls {
     overflow: hidden;
     flex-wrap: nowrap; /* botones de control no se rompen en dos líneas */
+}
+
+/* ── Performance: pausar animaciones infinitas fuera de la sección activa ── */
+/* Secciones inactivas: pausar via CSS var para control por JS */
+.game-section {
+    --section-animations: running;
+}
+.game-section:not(.active) {
+    --section-animations: paused;
+}
+.game-section:not(.active) *,
+.vn-section:not(.active) * {
+    animation-play-state: paused !important;
+}
+/* Excepción: el indicador de carga debe seguir animándose */
+#loadingOverlay *,
+.autosave-indicator * {
+    animation-play-state: running !important;
+}
+
+/* ── Sprite loading shimmer (mientras la imagen carga) ── */
+@keyframes spriteShimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
+}
+.vn-sprite img.is-loading {
+    background: linear-gradient(
+        90deg,
+        rgba(26, 21, 13, 0.8) 0%,
+        rgba(50, 40, 25, 0.6) 40%,
+        rgba(70, 55, 30, 0.5) 50%,
+        rgba(50, 40, 25, 0.6) 60%,
+        rgba(26, 21, 13, 0.8) 100%
+    );
+    background-size: 200% 100%;
+    animation: spriteShimmer 1.8s ease-in-out infinite !important;
+}
+
+/* ── Gallery blur-up loading transition ── */
+.gallery-img-loading {
+    filter: blur(8px) brightness(0.7);
+    transform: scale(0.98);
+    transition: filter 0.35s ease, transform 0.35s ease;
+}
+.gallery-img-loaded {
+    filter: none;
+    transform: scale(1);
+    transition: filter 0.35s ease, transform 0.35s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   COLLAB GUARD — Indicador "Alguien está escribiendo"
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes collabTypingDot {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30%            { opacity: 1;   transform: translateY(-3px); }
+}
+
+.collab-typing-indicator {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: rgba(14, 10, 6, 0.92);
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    border-radius: 20px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.75rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(201, 168, 108, 0.75);
+    letter-spacing: 0.06em;
+    z-index: var(--z-toasts, 600);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    backdrop-filter: blur(8px);
+    white-space: nowrap;
+}
+.collab-typing-indicator.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+.collab-typing-indicator::after {
+    content: ' ···';
+    display: inline-block;
+    animation: collabTypingDot 1.4s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SILUETAS PNG — Sprites por defecto cuando el personaje no tiene imagen
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* La imagen PNG dentro del wrapper de silueta */
+.shadow-silhouette-img {
+    /* Ocupa el alto del contenedor padre, ancho proporcional */
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    display: block;
+    object-fit: contain;
+    object-position: bottom center;
+
+    /* Fondo transparente — las PNGs ya tienen fondo transparente */
+    /* Tinte oscuro para integrarse con la escena */
+    filter:
+        brightness(0.08)        /* muy oscuro, como silueta real */
+        contrast(1.2)
+        drop-shadow(0 12px 28px rgba(0, 0, 0, 0.55));
+
+    /* Fundido en pies igual que los sprites reales */
+    mask-image: linear-gradient(to bottom, black 78%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 78%, transparent 100%);
+
+    /* Transiciones suaves al cambiar estado activo/inactivo */
+    transition: filter 0.5s ease, opacity 0.5s ease;
+
+    /* Sin arrastre ni selección */
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+}
+
+/* Ajuste de tamaño por contenedor — la silueta femenina es más estrecha */
+.shadow-silhouette.shadow-fem .shadow-silhouette-img {
+    height: 96%;
+    /* La PNG femenina tiene proporciones más estrechas — ajustamos */
+    max-width: 72%;
+    margin: 0 auto;
+}
+
+.shadow-silhouette.shadow-masc .shadow-silhouette-img {
+    height: 100%;
+    max-width: 80%;
+    margin: 0 auto;
+}
+
+/* Sprite activo — ligeramente más iluminado (pero sigue siendo silueta) */
+.vn-sprite.active .shadow-silhouette-img {
+    filter:
+        brightness(0.12)
+        contrast(1.15)
+        drop-shadow(0 14px 32px rgba(0, 0, 0, 0.6));
+}
+
+/* Sprite inactivo — más oscuro y difuminado */
+.vn-sprite.inactive .shadow-silhouette-img {
+    filter:
+        brightness(0.05)
+        contrast(1.0)
+        blur(2px)
+        drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+    opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CLOUD PROFILES — Tarjetas de perfiles globales de Supabase
+   ═══════════════════════════════════════════════════════════════════ */
+
+.cloud-profiles-empty {
+    color: var(--text-muted, rgba(180, 165, 130, 0.5));
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.9rem;
+}
+
+.cloud-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid rgba(201, 168, 108, 0.15);
+    background: rgba(20, 15, 8, 0.6);
+    transition: border-color 0.2s ease, background 0.2s ease;
+    margin-bottom: 0.45rem;
+}
+
+.cloud-profile-card.profile-free {
+    border-color: rgba(100, 200, 130, 0.25);
+    background: rgba(20, 40, 25, 0.5);
+}
+.cloud-profile-card.profile-mine {
+    border-color: rgba(201, 168, 108, 0.45);
+    background: rgba(40, 30, 10, 0.7);
+    box-shadow: 0 0 0 1px rgba(201, 168, 108, 0.1) inset;
+}
+.cloud-profile-card.profile-taken {
+    opacity: 0.55;
+}
+
+.cloud-profile-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(201, 168, 108, 0.12);
+    border: 1px solid rgba(201, 168, 108, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: rgba(201, 168, 108, 0.8);
+    flex-shrink: 0;
+}
+
+.cloud-profile-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.cloud-profile-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: rgba(232, 220, 190, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cloud-profile-stats {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.cloud-stat {
+    font-size: 0.68rem;
+    color: rgba(180, 160, 120, 0.65);
+    background: rgba(201, 168, 108, 0.06);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+.cloud-stat em {
+    font-style: normal;
+    color: rgba(201, 168, 108, 0.7);
+    margin-right: 0.2rem;
+}
+
+.cloud-profile-status-badge {
+    font-size: 0.65rem;
+    font-family: 'Cinzel', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.cloud-profile-status-badge.profile-free  { background: rgba(100,200,130,0.12); color: rgba(120,220,150,0.85); border: 1px solid rgba(100,200,130,0.25); }
+.cloud-profile-status-badge.profile-mine  { background: rgba(201,168,108,0.12); color: rgba(230,200,140,0.9);  border: 1px solid rgba(201,168,108,0.3);  }
+.cloud-profile-status-badge.profile-taken { background: rgba(200,100,100,0.10); color: rgba(220,140,140,0.75); border: 1px solid rgba(200,100,100,0.2);  }
+
+.cloud-profile-select-btn {
+    font-size: 0.72rem;
+    font-family: 'Cinzel', serif;
+    padding: 0.3rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid rgba(201, 168, 108, 0.35);
+    background: rgba(201, 168, 108, 0.08);
+    color: rgba(201, 168, 108, 0.85);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+.cloud-profile-select-btn:hover {
+    background: rgba(201, 168, 108, 0.18);
+    border-color: rgba(201, 168, 108, 0.55);
+}
+.cloud-profile-select-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   STORIES PANEL
+   ============================================ */
+.stories-panel {
+    background: rgba(15, 12, 8, 0.65);
+    border: 1px solid rgba(201, 168, 108, 0.2);
+    border-radius: 10px;
+    padding: 0.85rem;
+    margin-top: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.stories-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem;
+}
+
+.stories-panel-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    color: rgba(201, 168, 108, 0.9);
+    letter-spacing: 0.04em;
+}
+
+.stories-panel-refresh {
+    background: none;
+    border: 1px solid rgba(201, 168, 108, 0.25);
+    border-radius: 5px;
+    color: rgba(201, 168, 108, 0.65);
+    cursor: pointer;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0.15rem 0.4rem;
+    transition: color 0.15s, border-color 0.15s, transform 0.2s;
+}
+.stories-panel-refresh:hover {
+    color: rgba(201, 168, 108, 1);
+    border-color: rgba(201, 168, 108, 0.6);
+    transform: rotate(45deg);
+}
+
+.btn-create-story {
+    width: 100%;
+    padding: 0.45rem 0.7rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.74rem;
+    letter-spacing: 0.04em;
+    color: rgba(201, 168, 108, 0.9);
+    background: rgba(201, 168, 108, 0.07);
+    border: 1px dashed rgba(201, 168, 108, 0.35);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.btn-create-story:hover {
+    background: rgba(201, 168, 108, 0.14);
+    border-color: rgba(201, 168, 108, 0.6);
+    border-style: solid;
+}
+
+.stories-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-height: 220px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201, 168, 108, 0.25) transparent;
+}
+
+.stories-empty,
+.stories-loading {
+    font-size: 0.78rem;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+    text-align: center;
+    padding: 0.7rem 0;
+}
+
+.story-card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.6rem;
+    background: rgba(201, 168, 108, 0.05);
+    border: 1px solid rgba(201, 168, 108, 0.15);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+}
+.story-card:hover {
+    background: rgba(201, 168, 108, 0.12);
+    border-color: rgba(201, 168, 108, 0.4);
+}
+.story-card--active {
+    background: rgba(201, 168, 108, 0.15);
+    border-color: rgba(201, 168, 108, 0.55);
+}
+
+.story-card-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.story-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    overflow: hidden;
+    flex: 1;
+}
+
+.story-card-title {
+    font-size: 0.8rem;
+    color: rgba(255, 245, 220, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.story-card-date {
+    font-size: 0.68rem;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+}
+
+.story-card-active-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(201, 168, 108, 0.9);
+    box-shadow: 0 0 5px rgba(201, 168, 108, 0.6);
+    flex-shrink: 0;
+    animation: story-dot-pulse 2s ease-in-out infinite;
+}
+@keyframes story-dot-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* Active story badge in VN bar */
+.active-story-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.7rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(201, 168, 108, 0.9);
+    background: rgba(201, 168, 108, 0.1);
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    border-radius: 5px;
+    padding: 0.2rem 0.5rem;
+    white-space: nowrap;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: default;
+}
+
+/* Story participants row */
+.story-participants-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.2rem;
+    flex-wrap: wrap;
+}
+
+.story-participants-label {
+    font-size: 0.75rem;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+    flex-shrink: 0;
+}
+
+.story-participants-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+}
+
+.story-participant-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 168, 108, 0.35);
+    object-fit: cover;
+}
+
+.story-participant-chip {
+    font-size: 0.7rem;
+    color: rgba(255, 245, 220, 0.75);
+    background: rgba(201, 168, 108, 0.1);
+    border: 1px solid rgba(201, 168, 108, 0.2);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+}
+
+.story-participants-empty {
+    font-size: 0.72rem;
+    color: var(--text-muted, rgba(255,255,255,0.4));
 }

@@ -281,6 +281,7 @@ function ensureTopicByRoomId(roomId) {
     };
 
     appData.topics.push(topic);
+    if (typeof markDirty === 'function') markDirty('topics'); // Fix 9
     appData.messages[normalizedRoomId] = Array.isArray(appData.messages[normalizedRoomId])
         ? appData.messages[normalizedRoomId]
         : [];

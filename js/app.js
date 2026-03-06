@@ -49,8 +49,8 @@ async function login() {
     }
 
     hideLoginScreen();
-    await ensureProfile();
     initializeApp();
+    await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
 }
 
 async function register() {
@@ -82,30 +82,35 @@ async function register() {
 
     if (!needsConfirmation) {
         hideLoginScreen();
-        await ensureProfile();
         initializeApp();
+        await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
     }
 }
 
 async function ensureProfile() {
+    // ensureProfile ya no crea perfiles automáticamente.
+    // Los perfiles globales se crean explícitamente por el usuario via SupabaseProfiles.
+    // Esta función solo inicializa los módulos Supabase tras el login.
     try {
         const { data: userData, error: userError } = await window.supabaseClient.auth.getUser();
         if (userError || !userData?.user) return;
 
-        const user = userData.user;
-        const { data: existingProfile, error: profileError } = await window.supabaseClient
-            .from('profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
+        // Inicializar módulos de perfiles y personajes
+        if (typeof SupabaseProfiles !== 'undefined') {
+            SupabaseProfiles.init();
+        }
 
-        if (profileError) return;
-        if (existingProfile) return;
+        // Cargar ajustes del usuario desde Supabase y aplicar a UI
+        if (typeof SupabaseSettings !== 'undefined') {
+            SupabaseSettings.loadUserSettings().catch(() => {});
+        }
 
-        await window.supabaseClient.from('profiles').insert({
-            user_id: user.id,
-            name: user.email || 'Usuario'
-        });
+        // Fix 6: cache user globally so Supabase modules avoid repeated getUser() calls
+        window._cachedUserId = userData.user.id;
+        // Disparar evento para que otros módulos sepan que hay usuario autenticado
+        window.dispatchEvent(new CustomEvent('etheria:auth-changed', {
+            detail: { user: userData.user }
+        }));
     } catch {
         // Silencioso para no bloquear la app
     }
@@ -213,6 +218,34 @@ function initializeApp() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // ── Detección de dispositivo para optimizaciones de rendimiento ──────────
+    // Añadimos clases al <body> que mobile-perf.css usa para reducir
+    // partículas, animaciones y efectos GPU en dispositivos de gama media/baja.
+    (function detectDeviceCapabilities() {
+        const ua = navigator.userAgent || '';
+        const isMobileUA = /Mobi|Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(ua);
+        const isCoarsePointer = typeof window.matchMedia === 'function'
+            && window.matchMedia('(pointer: coarse)').matches;
+
+        if (isMobileUA || isCoarsePointer) {
+            document.body.classList.add('is-mobile');
+        }
+
+        // low-spec: RAM < 4 GB o menos de 4 hilos lógicos
+        const mem = navigator.deviceMemory;        // undefined en Firefox/Safari
+        const cpu = navigator.hardwareConcurrency; // undefined en algunos móviles
+        if ((mem !== undefined && mem < 4) || (cpu !== undefined && cpu < 4)) {
+            document.body.classList.add('low-spec');
+        }
+
+        // Refleja prefers-reduced-motion como clase de body para CSS condicional
+        if (typeof window.matchMedia === 'function'
+                && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.body.classList.add('prefers-reduced-motion');
+        }
+    })();
+    // ─────────────────────────────────────────────────────────────────────────
+
     const loginBtn = document.getElementById('authLoginBtn');
     const registerBtn = document.getElementById('authRegisterBtn');
     if (loginBtn) loginBtn.addEventListener('click', login);
@@ -239,4 +272,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         isOfflineMode = true;
     }
+
+    // ── Registro del Service Worker (PWA) ────────────────────────
+    // Solo en HTTPS (obligatorio) y si el navegador lo soporta.
+    // No bloquea el arranque de la app — se registra en background.
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js', { scope: './' })
+                .then((reg) => {
+                    // SW registrado; el scope es el directorio actual
+                    if (reg.installing) {
+                        console.log('[PWA] Service Worker instalando…');
+                    } else if (reg.waiting) {
+                        console.log('[PWA] Service Worker en espera.');
+                    } else if (reg.active) {
+                        console.log('[PWA] Service Worker activo.');
+                    }
+                })
+                .catch((err) => {
+                    // Fallo no crítico — la app funciona igual sin SW
+                    console.warn('[PWA] Service Worker no pudo registrarse:', err);
+                });
+        });
+    }
+    // ─────────────────────────────────────────────────────────────
 });

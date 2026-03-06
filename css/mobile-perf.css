@@ -1,0 +1,502 @@
+/* ================================================================
+   ETHERIA — MOBILE PERFORMANCE OPTIMIZATIONS
+   css/mobile-perf.css
+   ================================================================
+   Cargado DESPUÉS de components.css (ver main.css).
+   Estrategia:
+     1. @media (max-width: 767px) — reduce intensidad sin eliminar.
+     2. @media (prefers-reduced-motion: reduce) — pausa todo lo no esencial.
+     3. body.is-mobile — clase JS para control fino (partículas, typewriter).
+     4. body.low-spec — clase JS para gama baja adicional.
+
+   REGLA: nada aquí afecta a min-width: 1024px.
+         Los efectos originales permanecen intactos en desktop.
+   ================================================================ */
+
+
+/* ================================================================
+   A. PARTÍCULAS Y WEATHER EFFECTS
+   profile-particle, rain-drop, fog-layer, firefly, leaf
+   ================================================================ */
+
+/* --- A1. Profile particles: más lentas en mobile --- */
+@media (max-width: 767px) {
+    .profile-particle {
+        /* Duraciones más largas = menos frames por segundo */
+        animation-duration: calc(var(--particle-duration, 8s) * 1.8) !important;
+    }
+}
+
+/* --- A2. Lluvia: menos gotas (JS) + animación más lenta --- */
+@media (max-width: 767px) {
+    .rain-drop {
+        /* Aumentar duración base: la generación JS ya limita la cantidad */
+        animation-duration: calc(var(--rain-duration, 0.7s) * 1.6) !important;
+        opacity: 0.4; /* ligeramente más sutil */
+    }
+}
+
+/* --- A3. Niebla: blur reducido + transición más lenta --- */
+@media (max-width: 767px) {
+    .fog-layer {
+        filter: blur(10px); /* 20px → 10px: la mitad de GPU */
+        opacity: 0.25;      /* 0.4 → 0.25 */
+    }
+    .fog-layer:nth-child(1) { animation-duration: 50s; }  /* 30s → 50s */
+    .fog-layer:nth-child(2) { animation-duration: 40s; }  /* 25s → 40s */
+    .fog-layer:nth-child(3) { animation-duration: 56s; }  /* 35s → 56s */
+}
+
+/* --- A4. Fireflies: sin rayos ::before/::after en mobile (los más caros) --- */
+@media (max-width: 767px) {
+    .firefly::before,
+    .firefly::after {
+        display: none; /* Elimina los pseudo-elementos con filter:blur — efecto se mantiene con el core */
+    }
+    /* El body del firefly sigue siendo visible, solo sin los rayos GPU-intensivos */
+}
+
+/* --- A5. Hojas: animación más lenta --- */
+@media (max-width: 767px) {
+    .leaf {
+        animation-duration: calc(var(--leaf-duration, 8s) * 1.5) !important;
+    }
+}
+
+/* --- A6. Low-spec: ocultar partículas de perfil completamente --- */
+body.low-spec .profile-particle,
+body.low-spec .leaf {
+    display: none;
+}
+body.low-spec .firefly {
+    display: none;
+}
+body.low-spec .fog-layer {
+    filter: none;
+    opacity: 0.15;
+}
+
+
+/* ================================================================
+   B. SUSPENSE MODE (blur + overlay)
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* B1. Blur suavizado: 4px → 2px */
+    .vn-section.suspense-mode .vn-sprite-container,
+    .vn-section.suspense-mode > .weather-container {
+        filter: blur(2px);          /* 4px → 2px */
+        transform: scale(0.985);    /* 0.97 → 0.985 — menos GPU */
+        transition: filter 0.3s ease, transform 0.3s ease; /* 0.5s → 0.3s */
+    }
+
+    /* B2. Overlay más ligero */
+    .vn-section.suspense-mode::after {
+        background: rgba(0, 0, 0, 0.22); /* 0.35 → 0.22 */
+        animation: suspenseFadeIn 0.3s ease forwards; /* 0.5s → 0.3s */
+    }
+}
+
+body.low-spec .vn-section.suspense-mode .vn-sprite-container,
+body.low-spec .vn-section.suspense-mode > .weather-container {
+    filter: none; /* Sin blur en gama baja */
+    transform: scale(0.99);
+}
+
+
+/* ================================================================
+   C. TYPEWRITER — la clase JS body.is-mobile ajusta la velocidad
+      en JS directamente. El CSS sólo acorta la animación del span.
+   ================================================================ */
+
+@media (max-width: 767px) {
+    .tw-char--in {
+        /* 0.22s → 0.13s: el fade por carácter es menos pesado */
+        animation-duration: 0.13s;
+    }
+
+    /* En mobile el blur inicial también consume GPU — lo reducimos */
+    .tw-char {
+        filter: blur(2px);          /* 4px → 2px */
+        transform: translateY(4px); /* 6px → 4px */
+    }
+}
+
+body.low-spec .tw-char--in {
+    /* Gama baja: sin animación per-char, solo aparece */
+    animation-duration: 0.04s;
+}
+body.low-spec .tw-char {
+    filter: none;
+    transform: none;
+}
+
+
+/* ================================================================
+   D. EMOTES MANGA
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* D1. Animación de aparición más rápida (0.3s → 0.2s) */
+    .manga-emote {
+        animation-duration: 0.2s !important; /* emote-appear */
+        /* Eliminar drop-shadow en mobile — es caro en compositing */
+        filter: none;
+    }
+
+    /* D2. Loops más lentos: 2s → 2.8s, 1.5s → 2.2s, 0.5s → 0.9s */
+    .emote-angry     { animation-duration: 2.8s !important; }
+    .emote-happy     { animation-duration: 2.8s !important; }
+    .emote-shock     { animation-duration: 2.8s !important; }
+    .emote-sad       { animation-duration: 2.8s !important; }
+    .emote-think     { animation-duration: 2.8s !important; }
+    .emote-love      { animation-duration: 2.2s !important; }
+    .emote-annoyed   { animation-duration: 0.9s !important; } /* Era 0.5s — muy rápido */
+    .emote-embarrassed { animation-duration: 2.8s !important; }
+    .emote-idea      { animation-duration: 2.8s !important; }
+    .emote-sleep     { animation-duration: 4s   !important; }  /* 3s → 4s */
+}
+
+body.low-spec .manga-emote {
+    /* Gama baja: sin bucle, solo la aparición */
+    animation-iteration-count: 1 !important;
+}
+
+
+/* ================================================================
+   E. SPRITE BREATHING + SHADOW BREATHE
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* E1. Breathing muy suave: duplicar duración */
+    .vn-sprite.active img {
+        animation-duration: 8s !important;  /* 4s → 8s */
+    }
+
+    /* E2. shadow-breathe */
+    .vn-sprite.active .shadow-silhouette {
+        animation-duration: 8s !important;  /* 4.8s → 8s */
+    }
+
+    /* E3. sprite-breathing del keyframe estático (línea 3583 components.css) */
+    .vn-sprite.active .vn-sprite-img,
+    .vn-sprite.active > img {
+        animation-duration: 8s !important;
+    }
+
+    /* E4. Reducir blur de sombras inactivas — son costosas */
+    .vn-sprite.inactive .shadow-silhouette {
+        filter: blur(3px);          /* 5px → 3px */
+    }
+    .shadow-silhouette {
+        filter: blur(1px);          /* 1.5px → 1px */
+        transition: filter 0.35s ease, transform 0.35s ease, opacity 0.35s ease; /* 0.6s → 0.35s */
+    }
+    .shadow-silhouette.shadow-masc { filter: blur(0.6px); } /* sin cambio */
+    .shadow-silhouette.shadow-fem  { filter: blur(1.2px); } /* 1.8px → 1.2px */
+}
+
+body.low-spec .vn-sprite.active img,
+body.low-spec .vn-sprite.active .shadow-silhouette {
+    /* Gama baja: sin respiración */
+    animation: none !important;
+}
+body.low-spec .shadow-silhouette {
+    filter: none !important;
+    transition: none !important;
+}
+
+
+/* ================================================================
+   F. DICE ANIMATIONS
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* F1. Overlay de resultado: sin backdrop-filter (MUY caro) */
+    .dice-result-overlay {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(0, 0, 0, 0.82); /* Compensa visualmente */
+    }
+
+    /* F2. Animación de reveal: 0.5s → 0.3s + scale más corto */
+    .dice-result-box {
+        animation-duration: 0.3s;
+        /* Eliminar box-shadow doble — una capa es suficiente */
+        box-shadow: 0 0 40px rgba(150, 100, 255, 0.25);
+    }
+
+    /* F3. diceRoll: 0.6s → 0.4s + menos scale */
+    .dice-rolling {
+        animation-duration: 0.4s !important;
+    }
+
+    /* F4. Número del dado: sin text-shadow pesado */
+    .dice-result-critical { text-shadow: 0 0 12px rgba(241, 196, 15, 0.7); }
+    .dice-result-fumble   { text-shadow: 0 0 12px rgba(255, 68, 68, 0.7);  }
+    .dice-result-success  { text-shadow: none; }
+    .dice-result-fail     { text-shadow: none; }
+}
+
+
+/* ================================================================
+   G. ANIMACIONES GENERALES: backdrop-filter y blurs pesados
+   ================================================================ */
+
+@media (max-width: 767px) {
+    /* G1. Menu sidebar: backdrop-filter 20px → 8px */
+    .menu-sidebar {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    /* G2. Modal overlays: backdrop-filter reducido */
+    .modal-overlay {
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+
+    /* G3. Settings panel */
+    .settings-panel {
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    /* G4. Collab typing indicator */
+    .collab-typing-indicator {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(20, 16, 12, 0.88);
+    }
+
+    /* G5. vn-scene-cinematic: sin backdrop-filter animado */
+    @keyframes vn-scene-cinematic-mobile {
+        0%   { opacity: 0; }
+        35%  { opacity: 1; }
+        65%  { opacity: 1; }
+        100% { opacity: 0; }
+    }
+    .vn-scene-transition.active {
+        animation-name: vn-scene-cinematic-mobile;
+        animation-duration: 600ms; /* 750ms → 600ms */
+    }
+
+    /* G6. Section transition overlay: más rápido */
+    #sectionTransitionOverlay {
+        transition: opacity 0.12s ease; /* 0.18s → 0.12s */
+    }
+
+    /* G7. Glow de sprites: versión ligera */
+    .vn-sprite.active.sprite-blink img {
+        filter: brightness(1.1) saturate(1.04)
+                drop-shadow(0 18px 24px rgba(0,0,0,0.4)); /* Reduce 2 capas a 1 */
+    }
+
+    /* G8. shadow-silhouette-img: menos capas de drop-shadow */
+    .shadow-silhouette-img {
+        filter:
+            drop-shadow(0 8px 16px rgba(0, 0, 0, 0.5));  /* 2 drop-shadow → 1 */
+    }
+    .vn-sprite.active .shadow-silhouette-img {
+        filter:
+            drop-shadow(0 10px 20px rgba(0, 0, 0, 0.55));
+    }
+    .vn-sprite.inactive .shadow-silhouette-img {
+        filter:
+            blur(1.5px)
+            drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+    }
+
+    /* G9. btn-pulse-soft: más lento */
+    .add-profile-btn {
+        animation-duration: 4s; /* 2.8s → 4s */
+    }
+
+    /* G10. Autosave icon wax-stamp */
+    .autosave-indicator.visible .autosave-icon {
+        animation-duration: 0.25s; /* 0.38s → 0.25s */
+    }
+
+    /* G11. story-dot-pulse */
+    .story-active-dot {
+        animation-duration: 3s; /* 2s → 3s */
+    }
+
+    /* G12. titleFloat — desactivado en mobile (solo hover en desktop) */
+    .menu-title-animated .title-letter {
+        /* La animación titleFloat no está activa en reposo, pero
+           por si acaso se activa programáticamente: */
+        animation: none !important;
+    }
+
+    /* G13. bgParallaxIn: sin filter brightness animado */
+    @keyframes bgParallaxIn-mobile {
+        from { transform: scale(1.03) translateY(4px); }
+        to   { transform: scale(1)    translateY(0);   }
+    }
+    .vn-section-bg-enter {
+        animation-name: bgParallaxIn-mobile;
+        animation-duration: 0.5s;
+    }
+
+    /* G14. Shadow glow: transición más corta */
+    .shadow-glow {
+        transition: opacity 0.35s ease; /* 0.6s → 0.35s */
+    }
+}
+
+
+/* ================================================================
+   H. SPRITE SHIMMER LOADING
+   ================================================================ */
+@media (max-width: 767px) {
+    /* H1. Shimmer de carga: animación más lenta */
+    .vn-sprite img.is-loading {
+        animation-duration: 2.4s !important; /* 1.8s → 2.4s */
+    }
+}
+
+
+/* ================================================================
+   I. COLLAB TYPING DOTS
+   ================================================================ */
+@media (max-width: 767px) {
+    .collab-typing-indicator::after {
+        animation-duration: 1.8s; /* 1.4s → 1.8s */
+    }
+}
+
+
+/* ================================================================
+   J. GALLERY lazy-load transition
+   ================================================================ */
+@media (max-width: 767px) {
+    .gallery-img-loading {
+        /* En mobile, el blur-up de 8px es caro */
+        filter: blur(4px) brightness(0.75);
+        transition: filter 0.25s ease, transform 0.25s ease;
+    }
+    .gallery-img-loaded {
+        transition: filter 0.25s ease, transform 0.25s ease;
+    }
+}
+
+
+/* ================================================================
+   K. PREFERS-REDUCED-MOTION — extiende el bloque ya existente
+      en components.css. Añade lo que faltaba cubrir.
+   ================================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    /* K1. Efectos de clima — parar por completo */
+    .rain-drop,
+    .fog-layer,
+    .leaf,
+    .profile-particle {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* K2. Fireflies — parar rAF es responsabilidad del JS (ver characters.js).
+           El CSS elimina la animación CSS de parpadeo si la hubiera */
+    .firefly {
+        animation: none !important;
+        opacity: 0.5;
+    }
+
+    /* K3. Suspense mode — sin blur ni scale */
+    .vn-section.suspense-mode .vn-sprite-container,
+    .vn-section.suspense-mode > .weather-container {
+        filter: none !important;
+        transform: none !important;
+        transition: none !important;
+    }
+    .vn-section.suspense-mode::after {
+        animation: none !important;
+        opacity: 0.3;
+    }
+
+    /* K4. Typewriter — sin animación por carácter */
+    .tw-char--in {
+        animation: none !important;
+        opacity: 1 !important;
+        filter: none !important;
+        transform: none !important;
+    }
+    .tw-char {
+        opacity: 0; /* El JS los muestra uno a uno, esto es solo estado inicial */
+        filter: none;
+        transform: none;
+    }
+
+    /* K5. Emotes — solo aparición, sin loop */
+    .manga-emote {
+        animation: none !important;
+        filter: none !important;
+        opacity: 1;
+        transform: scale(1.2);
+    }
+
+    /* K6. Sprite breathing — parar */
+    .vn-sprite.active img,
+    .vn-sprite.active .shadow-silhouette {
+        animation: none !important;
+    }
+
+    /* K7. Sprite shimmer */
+    .vn-sprite img.is-loading {
+        animation: none !important;
+        filter: brightness(0.7);
+    }
+
+    /* K8. Dice */
+    .dice-result-box {
+        animation: none !important;
+    }
+    .dice-rolling {
+        animation: none !important;
+    }
+
+    /* K9. Shadow glow transition */
+    .shadow-glow {
+        transition: none !important;
+    }
+
+    /* K10. Section transition overlay */
+    #sectionTransitionOverlay {
+        transition: none !important;
+    }
+
+    /* K11. Story dot pulse */
+    .story-active-dot {
+        animation: none !important;
+    }
+
+    /* K12. btn-pulse-soft */
+    .add-profile-btn {
+        animation: none !important;
+    }
+
+    /* K13. collab typing dots */
+    .collab-typing-indicator::after {
+        animation: none !important;
+    }
+
+    /* K14. Gallery transitions */
+    .gallery-img-loading,
+    .gallery-img-loaded {
+        filter: none !important;
+        transform: none !important;
+        transition: none !important;
+    }
+
+    /* K15. Autosave indicator */
+    .autosave-indicator.visible .autosave-icon {
+        animation: none !important;
+    }
+
+    /* K16. bgParallaxIn — sin transform animado */
+    .vn-section-bg-enter {
+        animation: none !important;
+    }
+}

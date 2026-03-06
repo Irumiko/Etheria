@@ -2,6 +2,19 @@
 // ============================================
 // UTILIDADES
 // ============================================
+
+/**
+ * escapeHtml — Fix B: moved here from characters.js so all modules can rely on
+ * it regardless of load order. characters.js keeps a compatibility stub.
+ * Uses the DOM-based approach (creates a text node) which is the canonical,
+ * browser-native way to escape HTML entities.
+ */
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function formatText(text) {
     if (!text) return '';
     const escaped = String(text)

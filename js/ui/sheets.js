@@ -74,9 +74,26 @@ function openSheet(id) {
     if (sheetAvatar) {
         const color = c.color || 'var(--accent-gold)';
         sheetAvatar.style.setProperty('--sheet-char-color', color);
-        sheetAvatar.innerHTML = c.avatar
-            ? `<img src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" onerror="this.style.display='none';this.parentElement.textContent='${c.name[0]}'">`
-            : `<span class="sheet-avatar-initial">${c.name[0]}</span>`;
+        // XSS fix: DOM creation avoids c.name[0] injection in onerror attribute
+        sheetAvatar.innerHTML = '';
+        if (c.avatar) {
+            const _imgSheet = document.createElement('img');
+            _imgSheet.src = c.avatar;
+            _imgSheet.alt = c.name;
+            _imgSheet.onerror = function () {
+                this.style.display = 'none';
+                const _sp = document.createElement('span');
+                _sp.className = 'sheet-avatar-initial';
+                _sp.textContent = (c.name || '?')[0];
+                this.parentElement.appendChild(_sp);
+            };
+            sheetAvatar.appendChild(_imgSheet);
+        } else {
+            const _sp = document.createElement('span');
+            _sp.className = 'sheet-avatar-initial';
+            _sp.textContent = (c.name || '?')[0];
+            sheetAvatar.appendChild(_sp);
+        }
     }
 
     // Nombre y apellido
@@ -346,7 +363,66 @@ function saveCharacter() {
     save({ silent: true });
     closeModal('characterModal');
     resetCharForm();
+    // Sincronizar avatar_url con Supabase si el personaje tiene ID de Supabase
+    if (typeof SupabaseAvatars !== 'undefined') {
+        const savedChar = appData.characters.find(c => String(c.id) === String(id));
+        if (savedChar && savedChar.avatar) {
+            // El personaje tiene URL de avatar — puede ser local o de Supabase Storage
+            // No hacemos nada aquí; uploadAvatarForChar() se llama manualmente desde UI
+        }
+    }
+
     renderGallery();
+}
+
+/**
+ * Sube un archivo de imagen como avatar de un personaje de Supabase.
+ * Se llama desde el input type="file" del editor de personajes.
+ * @param {HTMLInputElement} fileInput
+ */
+async function uploadAvatarForChar(fileInput) {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+
+    if (typeof SupabaseAvatars === 'undefined') {
+        showAutosave('Supabase no disponible para subir avatar', 'error');
+        return;
+    }
+
+    // Obtener el ID del personaje activo en el editor
+    const charId = document.getElementById('editCharacterId')?.value;
+    if (!charId) {
+        showAutosave('Guarda el personaje antes de subir el avatar', 'error');
+        return;
+    }
+
+    // Intentar resolver el UUID de Supabase para este personaje
+    let supabaseCharId = charId;
+    if (typeof appData !== 'undefined' && appData.cloudCharacters) {
+        for (const chars of Object.values(appData.cloudCharacters)) {
+            if (!Array.isArray(chars)) continue;
+            const match = chars.find(c => String(c.id) === String(charId));
+            if (match) { supabaseCharId = match.id; break; }
+        }
+    }
+
+    showAutosave('Subiendo avatar...', 'info');
+    const result = await SupabaseAvatars.uploadCharacterAvatar(supabaseCharId, file);
+
+    if (!result.ok) {
+        showAutosave(result.error || 'Error al subir avatar', 'error');
+        return;
+    }
+
+    // Actualizar el campo de avatar URL en el editor
+    const avatarInput = document.getElementById('charAvatar');
+    if (avatarInput) {
+        avatarInput.value = result.url;
+        if (typeof updatePreview === 'function') updatePreview();
+    }
+
+    showAutosave('Avatar subido correctamente', 'saved');
+    fileInput.value = '';  // limpiar el input
 }
 
 function resetCharForm() {
