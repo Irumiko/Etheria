@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -123,10 +123,12 @@
         <button onclick="closeSettings()" class="btn-primary" style="width: 100%; margin-top: 1rem;">Cerrar</button>
     </div>
 
+    <!-- Botón de tema — fuera de userSelectScreen para que position:fixed funcione correctamente -->
+    <button class="profile-theme-btn" id="profileThemeBtn" onclick="toggleTheme();" type="button" title="Cambiar tema">🌙</button>
+
     <!-- User Select -->
     <div id="userSelectScreen" class="user-select-screen">
         <div class="profile-particles" id="profileParticles"></div>
-        <button class="profile-theme-btn" id="profileThemeBtn" onclick="toggleTheme();" type="button" title="Cambiar tema">🌙</button>
         <h1 class="game-title">ETHERIA</h1>
         <div class="save-screen-rule"></div>
         <p class="game-subtitle">Seleccionar Archivo de Guardado</p>
@@ -141,11 +143,33 @@
     <!-- Main Menu -->
     <div id="mainMenu" class="main-menu hidden">
         <div class="menu-parallax" id="menuParallax">
-            <div class="parallax-layer layer-sky" data-depth="0.08"></div>
+            <!-- ── Capa 0: cielo profundo (stars/clouds) — velocidad 0.08 ── -->
+            <div class="parallax-layer layer-sky" data-depth="0.08">
+                <!-- Estrellas CSS puras — solo visibles en dark mode -->
+                <div class="menu-stars" aria-hidden="true">
+                    <div class="star-field star-field--far"></div>
+                    <div class="star-field star-field--mid"></div>
+                    <div class="star-field star-field--near"></div>
+                </div>
+                <!-- Luna/Sol — cambia por tema -->
+                <div class="menu-celestial" aria-hidden="true"></div>
+            </div>
+
+            <!-- ── Capa 1: imagen del bosque lejano — velocidad 0.22 ── -->
             <div class="parallax-layer layer-midforest" data-depth="0.22"></div>
+
+            <!-- ── Capa 2: imagen primer plano — velocidad 0.38 ── -->
             <div class="parallax-layer layer-foreground" data-depth="0.38"></div>
+
+            <!-- ── Capa 3: niebla volumétrica CSS — velocidad 0.15 ── -->
+            <div class="parallax-layer layer-fog" data-depth="0.15" aria-hidden="true">
+                <div class="fog-ribbon fog-ribbon--1"></div>
+                <div class="fog-ribbon fog-ribbon--2"></div>
+                <div class="fog-ribbon fog-ribbon--3"></div>
+            </div>
         </div>
-        <!-- Luciérnagas fuera del parallax para evitar filtros de color -->
+
+        <!-- Luciérnagas / hojas — capa de partículas fuera del parallax -->
         <div class="menu-fireflies" id="particlesContainer"></div>
 
         <div class="menu-sidebar">
@@ -521,6 +545,7 @@
                 <!-- Oráculo directo (solo en pinned + modo RPG) -->
                 <div class="ihp-oracle-hint" id="ihpOracleHint" style="display:none;">
                     <button class="ihp-oracle-btn" onclick="toggleOracleMiniPanel()" title="Consultar el oráculo">🎲 Consultar oráculo</button>
+                    <button class="ihp-oracle-btn ihp-stats-edit-btn" onclick="openSelectedCharacterStats()" title="Editar stats del personaje">⚔️ Editar Stats</button>
                 </div>
             </div>
         
@@ -723,6 +748,23 @@
                         <button id="vnNarrateDialogBtn" class="vn-dialogue-action-btn narrate-action-btn" type="button" onclick="handleActionButtonClick(event); prepareChapter()" style="display:none;" title="Nueva escena" aria-label="Nueva escena">
                             <span class="action-icon">✒</span><span class="action-label">Escena</span>
                         </button>
+                        <!-- Botón Emotes en la caja de diálogo — estilo chat videojuego -->
+                        <button id="vnEmoteDialogBtn" class="vn-dialogue-action-btn emote-action-btn" type="button" onclick="handleActionButtonClick(event); toggleVnDialogEmotePicker(event)" title="Emotes" aria-label="Emotes">
+                            <span class="action-icon">🎭</span><span class="action-label">Emotes</span>
+                        </button>
+                        <!-- Popover de emotes para la caja de diálogo -->
+                        <div id="vnDialogEmotePopover" class="vn-dialog-emote-popover" style="display:none;" aria-hidden="true">
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')" title="/angry"><span class="re-icon">💢</span><span class="re-label">Ira</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')" title="/happy"><span class="re-icon">✨</span><span class="re-label">Alegría</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('shock')" title="/shock"><span class="re-icon">💦</span><span class="re-label">Sorpresa</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sad')" title="/sad"><span class="re-icon">💧</span><span class="re-label">Tristeza</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('think')" title="/think"><span class="re-icon">💭</span><span class="re-label">Pensando</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('love')" title="/love"><span class="re-icon">💕</span><span class="re-label">Amor</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('annoyed')" title="/annoyed"><span class="re-icon">💢</span><span class="re-label">Frustración</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" title="/embarrassed"><span class="re-icon">😳</span><span class="re-label">Vergüenza</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')" title="/idea"><span class="re-icon">💡</span><span class="re-label">Idea</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')" title="/sleep"><span class="re-icon">💤</span><span class="re-label">Sueño</span></button>
+                        </div>
                     </div>
                     <!-- Derecha: acciones comunes -->
                     <div class="vn-dialogue-actions-right">
@@ -772,114 +814,165 @@
         </div>
 
         <!-- Panel Responder -->
-        <div id="vnReplyPanel" class="vn-reply-panel">
-            <div class="drawer-handle" id="replyDrawerHandle" aria-hidden="true"></div>
-            <div class="vn-reply-header">
-                <div class="vn-reply-title">
-                    <span>💬</span>
-                    <span id="replyPanelTitle">Responder</span>
-                </div>
-                <button onclick="closeReplyPanel()" class="btn-secondary" aria-label="Cerrar panel de respuesta">✕ Cerrar</button>
-            </div>
+        <!-- ══════════════════════════════════════════════════════════════
+             MODAL RESPONDER — overlay centrado, split-view en landscape
+             ══════════════════════════════════════════════════════════════ -->
+        <div id="vnReplyPanel" class="vn-reply-panel" role="dialog" aria-modal="true" aria-label="Responder">
+            <!-- Backdrop semitransparente con blur -->
+            <div class="vrp-backdrop" onclick="closeReplyPanel()"></div>
+            <!-- Legacy drawer handle (needed by bindReplyDrawerGestures) -->
+            <div id="replyDrawerHandle" aria-hidden="true" style="display:none;"></div>
 
-            <div class="vn-reply-body">
-                <div class="char-selector-container" id="charSelectorContainer">
-                    <div class="char-selector-main">
-                        <div class="char-selected-display" id="charSelectedDisplay" onclick="toggleCharGrid()">
-                            <div class="placeholder">👤</div>
-                        </div>
-                        <div class="char-selected-info">
-                            <div class="char-selected-name" id="charSelectedName">Selecciona personaje</div>
-                            <div class="char-selected-hint">Click en el círculo para cambiar</div>
-                        </div>
+            <!-- Contenedor del modal -->
+            <div class="vrp-modal">
+
+                <!-- ── HEADER ─────────────────────────────────────────── -->
+                <div class="vrp-header">
+                    <div class="vrp-header-left">
+                        <span class="vrp-icon">💬</span>
+                        <span class="vrp-title" id="replyPanelTitle">Responder</span>
+                        <span class="vrp-char-badge" id="vrpCharBadge"></span>
                     </div>
-
-                    <div class="char-grid-dropdown" id="charGridDropdown"></div>
-                    <button type="button" id="charStatsQuickBtn" class="char-stats-quick-btn" onclick="openSelectedCharacterStats()" title="Abrir stats RPG">⚔️ Stats</button>
-                </div>
-
-                <div class="narrator-toggle" id="narratorToggle" onclick="toggleNarratorMode()">
-                    <input type="checkbox" id="narratorMode" onchange="event.stopPropagation()">
-                    <label for="narratorMode">Modo Narrador</label>
-                </div>
-
-
-                <!-- Barra de herramientas del panel de respuesta -->
-                <div class="vn-reply-toolbar">
-                    <button id="replyEmoteToggle" class="reply-emote-toggle" type="button"
-                            aria-label="Emotes del personaje" title="Expresiones del personaje"
-                            onclick="toggleReplyEmotePopover(event)">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M8 13s1.5 2 4 2 4-2 4-2"/>
-                            <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/>
-                            <circle cx="15" cy="9" r="1" fill="currentColor" stroke="none"/>
-                        </svg>
-                        <span>Emotes</span>
-                    </button>
-                </div>
-                <div class="vn-reply-textarea-wrap">
-                    <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*, y comandos como /angry, /happy, etc."></textarea>
-                    <div id="replyEmotePopover" class="reply-emote-popover" aria-hidden="true">
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')" title="/angry — Ira" aria-label="Ira"><span class="re-icon">💢</span><span class="re-label">Ira</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')" title="/happy — Alegría" aria-label="Alegría"><span class="re-icon">✨</span><span class="re-label">Alegría</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('shock')" title="/shock — Sorpresa" aria-label="Sorpresa"><span class="re-icon">💦</span><span class="re-label">Sorpresa</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sad')" title="/sad — Tristeza" aria-label="Tristeza"><span class="re-icon">💧</span><span class="re-label">Tristeza</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('think')" title="/think — Pensando" aria-label="Pensando"><span class="re-icon">💭</span><span class="re-label">Pensando</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('love')" title="/love — Amor" aria-label="Amor"><span class="re-icon">💕</span><span class="re-label">Amor</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('annoyed')" title="/annoyed — Frustración" aria-label="Frustración"><span class="re-icon">💢</span><span class="re-label">Frustración</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" title="/embarrassed — Vergüenza" aria-label="Vergüenza"><span class="re-icon">😳</span><span class="re-label">Vergüenza</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')" title="/idea — Idea" aria-label="Idea"><span class="re-icon">💡</span><span class="re-label">Idea</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')" title="/sleep — Sueño" aria-label="Sueño"><span class="re-icon">💤</span><span class="re-label">Sueño</span></button>
-                    </div>
-                </div>
-
-                <div class="options-toggle-container" id="optionsToggleContainer">
-                    <div class="options-toggle" onclick="toggleOptionsFields()">
-                        <input type="checkbox" id="enableOptions" onchange="event.stopPropagation()">
-                        <label for="enableOptions">🎭 Crear opciones de elección</label>
-                    </div>
-
-                    <div id="optionsFields" class="options-fields">
-                        <div class="option-field-group">
-                            <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
-                            <input type="text" id="option1Text" class="option-input" placeholder="Texto de la opción">
-                            <textarea id="option1Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                    <div class="vrp-header-right">
+                        <!-- Narrator toggle como switch bonito -->
+                        <div id="narratorToggle" class="vrp-narrator-switch" onclick="toggleNarratorMode()" title="Modo Narrador: escribe como voz narradora">
+                            <input type="checkbox" id="narratorMode" onchange="event.stopPropagation()" tabindex="-1">
+                            <span class="vrp-switch-track">
+                                <span class="vrp-switch-thumb"></span>
+                            </span>
+                            <span class="vrp-switch-label">Narrador</span>
                         </div>
-                        <div class="option-field-group">
-                            <div class="option-field-header"><span>②</span><span>Opción 2</span></div>
-                            <input type="text" id="option2Text" class="option-input" placeholder="Texto de la opción">
-                            <textarea id="option2Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
-                        </div>
-                        <div class="option-field-group">
-                            <div class="option-field-header"><span>③</span><span>Opción 3</span></div>
-                            <input type="text" id="option3Text" class="option-input" placeholder="Texto de la opción">
-                            <textarea id="option3Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
-                        </div>
-
-                        <button class="branch-editor-btn" onclick="openBranchEditor()">
-                            <span>🌿</span>
-                            <span>Editor Avanzado de Ramas</span>
+                        <button class="vrp-close-btn" onclick="closeReplyPanel()" aria-label="Cerrar">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
                         </button>
                     </div>
                 </div>
 
-                <!-- Selector de clima (solo en modo rpg o al responder) -->
-                <div id="weatherSelectorContainer" style="display: none; margin-top: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">🌦️ Cambiar clima</label>
-                    <div class="weather-selector">
-                        <button class="weather-btn active" onclick="setWeather('none')">☀️ Normal</button>
-                        <button class="weather-btn" onclick="setWeather('rain')">🌧️ Lluvia</button>
-                        <button class="weather-btn" onclick="setWeather('fog')">🌫️ Niebla</button>
+                <!-- ── CUERPO: textarea + preview (split en landscape) ── -->
+                <div class="vrp-body">
+
+                    <!-- Selector de personaje compacto -->
+                    <div class="char-selector-container" id="charSelectorContainer">
+                        <div class="char-selector-main">
+                            <div class="char-selected-info">
+                                <div class="char-selected-name" id="charSelectedName">Selecciona personaje</div>
+                            </div>
+                        </div>
+                        <div class="char-grid-dropdown" id="charGridDropdown"></div>
                     </div>
+
+                    <!-- Split pane: izquierda = escritura, derecha = preview -->
+                    <div class="vrp-split">
+
+                        <!-- Panel de escritura -->
+                        <div class="vrp-write-pane">
+                            <div class="vrp-pane-label">
+                                <span>✍️ Escribe</span>
+                                <div class="vrp-format-hints">
+                                    <code>**negrita**</code>
+                                    <code>*cursiva*</code>
+                                    <code>/happy</code>
+                                </div>
+                            </div>
+                            <div class="vn-reply-textarea-wrap">
+                                <textarea
+                                    id="vnReplyText"
+                                    class="vn-reply-textarea"
+                                    placeholder="Escribe tu respuesta... Usa **negrita**, *cursiva* para formato. Comandos de emoción: /angry, /happy, /shock, /sad, /think, /love, /idea, /sleep. ¡Haz que el personaje reaccione!"
+                                    oninput="vrpUpdatePreview(); vrpAutoResize(this)"
+                                    rows="4"
+                                ></textarea>
+                                <!-- Emote popover anclado a la esquina -->
+                                <div id="replyEmotePopover" class="reply-emote-popover" aria-hidden="true">
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')"   title="/angry"  ><span class="re-icon">💢</span><span class="re-label">Ira</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')"   title="/happy"  ><span class="re-icon">✨</span><span class="re-label">Alegría</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('shock')"   title="/shock"  ><span class="re-icon">💦</span><span class="re-label">Sorpresa</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sad')"     title="/sad"    ><span class="re-icon">💧</span><span class="re-label">Tristeza</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('think')"   title="/think"  ><span class="re-icon">💭</span><span class="re-label">Pensando</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('love')"    title="/love"   ><span class="re-icon">💕</span><span class="re-label">Amor</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('annoyed')" title="/annoyed"><span class="re-icon">💢</span><span class="re-label">Frustración</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" title="/embarrassed"><span class="re-icon">😳</span><span class="re-label">Vergüenza</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')"    title="/idea"   ><span class="re-icon">💡</span><span class="re-label">Idea</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')"   title="/sleep"  ><span class="re-icon">💤</span><span class="re-label">Sueño</span></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de preview (oculto en portrait, visible en landscape) -->
+                        <div class="vrp-preview-pane" id="vrpPreviewPane">
+                            <div class="vrp-pane-label">
+                                <span>👁 Vista previa</span>
+                                <span class="vrp-preview-hint" id="vrpPreviewHint">Empieza a escribir…</span>
+                            </div>
+                            <div class="vrp-preview-content" id="vrpPreviewContent"></div>
+                        </div>
+
+                    </div>
+
+                    <!-- Toggle para mostrar preview en portrait -->
+                    <button class="vrp-preview-toggle" id="vrpPreviewToggle" onclick="vrpTogglePreview()" type="button">
+                        <span>👁</span> Ver vista previa
+                    </button>
+
+                    <!-- Opciones de elección (solo modo clásico) -->
+                    <div class="options-toggle-container" id="optionsToggleContainer">
+                        <div class="options-toggle" onclick="toggleOptionsFields()">
+                            <input type="checkbox" id="enableOptions" onchange="event.stopPropagation()">
+                            <label for="enableOptions">🎭 Crear opciones de elección</label>
+                        </div>
+                        <div id="optionsFields" class="options-fields">
+                            <div class="option-field-group">
+                                <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
+                                <input type="text" id="option1Text" class="option-input" placeholder="Texto de la opción">
+                                <textarea id="option1Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                            </div>
+                            <div class="option-field-group">
+                                <div class="option-field-header"><span>②</span><span>Opción 2</span></div>
+                                <input type="text" id="option2Text" class="option-input" placeholder="Texto de la opción">
+                                <textarea id="option2Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                            </div>
+                            <div class="option-field-group">
+                                <div class="option-field-header"><span>③</span><span>Opción 3</span></div>
+                                <input type="text" id="option3Text" class="option-input" placeholder="Texto de la opción">
+                                <textarea id="option3Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                            </div>
+                            <button class="branch-editor-btn" onclick="openBranchEditor()">
+                                <span>🌿</span><span>Editor Avanzado de Ramas</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selector de clima mejorado -->
+                    <div id="weatherSelectorContainer" style="display:none;">
+                        <div class="vrp-section-label">🌦️ Clima de la escena</div>
+                        <div class="vrp-weather-row">
+                            <button class="vrp-weather-btn active" data-weather="none"  onclick="setWeather('none');  vrpSetWeatherBtn(this)">
+                                <span class="vrp-weather-icon">☀️</span>
+                                <span class="vrp-weather-name">Normal</span>
+                            </button>
+                            <button class="vrp-weather-btn" data-weather="rain"  onclick="setWeather('rain');  vrpSetWeatherBtn(this)">
+                                <span class="vrp-weather-icon">🌧️</span>
+                                <span class="vrp-weather-name">Lluvia</span>
+                            </button>
+                            <button class="vrp-weather-btn" data-weather="fog"   onclick="setWeather('fog');   vrpSetWeatherBtn(this)">
+                                <span class="vrp-weather-icon">🌫️</span>
+                                <span class="vrp-weather-name">Niebla</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div><!-- /vrp-body -->
+
+                <!-- ── FOOTER fijo ────────────────────────────────────── -->
+                <div class="vrp-footer">
+                    <button class="vrp-btn-cancel" onclick="closeReplyPanel()">Cancelar</button>
+                    <button class="vrp-btn-send"   onclick="postVNReply()" id="submitReplyBtn">
+                        <span>Enviar Mensaje</span>
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="8" x2="14" y2="8"/><polyline points="10,4 14,8 10,12"/></svg>
+                    </button>
                 </div>
 
-            </div>
-
-            <div class="vn-reply-footer">
-                <button class="btn-secondary" onclick="closeReplyPanel()">Cancelar</button>
-                <button class="btn-primary" onclick="postVNReply()" id="submitReplyBtn">Enviar Mensaje</button>
-            </div>
+            </div><!-- /vrp-modal -->
         </div>
     </div>
 
@@ -1491,6 +1584,28 @@
             }
         });
         obs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    })();
+    </script>
+    <!-- Guardia de arranque: garantiza que las tarjetas de perfil aparecen aunque falle otro script -->
+    <script>
+    (function() {
+        function _ensureProfileCards() {
+            var container = document.getElementById('userCardsContainer');
+            if (!container) return;
+            if (container.children.length > 0) return; // ya hay tarjetas
+            if (typeof renderUserCards === 'function') {
+                try { renderUserCards(); } catch(e) { console.error('[Etheria] renderUserCards error:', e); }
+            }
+        }
+        // Intentar inmediatamente, luego con retardos por si los scripts cargan tarde
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(_ensureProfileCards, 100);
+            setTimeout(_ensureProfileCards, 500);
+            setTimeout(_ensureProfileCards, 1500);
+        });
+        window.addEventListener('load', function() {
+            setTimeout(_ensureProfileCards, 200);
+        });
     })();
     </script>
 </body>

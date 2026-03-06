@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -167,6 +167,11 @@
             0% { transform: scale(0) rotate(-20deg); opacity: 0; }
             50% { transform: scale(1.3) rotate(5deg); }
             100% { transform: scale(1.2) rotate(0deg); opacity: 1; }
+        }
+
+@keyframes emote-disappear {
+            0% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0.6) translateY(-20px); opacity: 0; }
         }
 
 @keyframes emote-angry-anim {
@@ -683,12 +688,12 @@ body::before {
         /* EMOTES MANGA */
         .manga-emote {
             position: absolute;
-            top: -20px;
-            left: -20px;
-            font-size: 3rem;
-            z-index: var(--z-controls, 200);
+            top: 8%;
+            right: 4%;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            z-index: 300;
             pointer-events: none;
-            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
             transform-origin: center center;
             animation: emote-appear 0.3s ease-out forwards;
         }
@@ -1120,6 +1125,7 @@ body::before {
             box-shadow: 0 6px 24px var(--ps-shadow), 0 0 16px var(--ps-gold-faint);
             border-color: var(--ps-gold);
         }
+
 
         /* ── GRID DE TARJETAS ── */
         .user-cards {
@@ -1558,115 +1564,333 @@ body::before {
 
         .main-menu.hidden { display: none; }
 
+        /* ══════════════════════════════════════════════════════════════
+           PARALLAX DE MENÚ — 4 capas con profundidad, CSS-puro para
+           estrellas/luna/niebla. Sin imágenes externas duplicadas.
+           ══════════════════════════════════════════════════════════════ */
+
         .menu-parallax {
             position: absolute;
             inset: 0;
             overflow: hidden;
             pointer-events: none;
             z-index: 1;
-            /* Imagen de fondo definida aquí — fácil de cambiar */
+            /* URL de imagen del bosque — una sola fuente para todas las capas */
             --menu-base-bg: url('https://png.pngtree.com/background/20250103/original/pngtree-forest-trees-anime-visual-novel-game-nature-plant-and-in-a-picture-image_15870655.jpg');
         }
 
-        /* Las tres capas usan la misma imagen pero se mueven a distinta velocidad
-           y muestran distintas partes del encuadre. El resultado es profundidad
-           sin rotaciones 3D que marean. */
+        /* ── Capas de parallax ─────────────────────────────────────── */
         .parallax-layer {
             position: absolute;
-            /* Margen extra para que el movimiento no descubra bordes */
-            inset: -6%;
+            /* 8% de margen extra en cada lado para que el desplazamiento
+               no descubra bordes blancos. Compensamos con scale(1.12). */
+            inset: -8%;
+            will-change: transform;
+            transform: translate3d(
+                calc(var(--px, 0px) * var(--depth, 0)),
+                calc(var(--py, 0px) * var(--depth, 0)),
+                0
+            ) scale(1.12);
+        }
+
+        /* ── Capa cielo: muy lenta, fondo azul-noche + máscara superior ── */
+        .layer-sky {
+            --depth: 0.08;
             background-image: var(--menu-base-bg);
             background-size: cover;
-            background-repeat: no-repeat;
-            will-change: transform;
-            /* Las capas reaccionan al ratón via JS con --parallax-x/y */
-            transform: translate3d(
-                calc(var(--parallax-x, 0px) * var(--layer-speed, 1)),
-                calc(var(--parallax-y, 0px) * var(--layer-speed, 1)),
-                0
-            ) scale(1.04);
-        }
-
-        /* Cielo: muy lento, ligeramente desenfocado y desaturado */
-        .layer-sky {
-            --layer-speed: 0.6;
-            background-position: center 8%;
-            opacity: 0.82;
-            filter: blur(0.8px) saturate(0.85) brightness(0.82);
+            background-position: center 5%;
+            opacity: 0.75;
+            filter: blur(1.2px) saturate(0.6) brightness(0.55) hue-rotate(195deg);
             mask-image: linear-gradient(to bottom,
-                rgba(0,0,0,0.96) 0%,
-                rgba(0,0,0,0.85) 38%,
-                rgba(0,0,0,0.45) 56%,
-                rgba(0,0,0,0)    70%);
+                black 0%, black 32%,
+                rgba(0,0,0,0.55) 52%, transparent 70%);
             -webkit-mask-image: linear-gradient(to bottom,
-                rgba(0,0,0,0.96) 0%,
-                rgba(0,0,0,0.85) 38%,
-                rgba(0,0,0,0.45) 56%,
-                rgba(0,0,0,0)    70%);
+                black 0%, black 32%,
+                rgba(0,0,0,0.55) 52%, transparent 70%);
+            z-index: 1;
         }
 
-        /* Bosque medio: velocidad media, foco normal */
+        /* ── Capa bosque medio: velocidad media, zona central ── */
         .layer-midforest {
-            --layer-speed: 1;
+            --depth: 0.22;
+            background-image: var(--menu-base-bg);
+            background-size: cover;
             background-position: center 46%;
-            opacity: 0.90;
-            filter: blur(0.15px) saturate(1.05);
+            opacity: 0.88;
+            filter: blur(0.2px) saturate(0.72) brightness(0.56) hue-rotate(168deg);
             mask-image: linear-gradient(to bottom,
-                rgba(0,0,0,0)    18%,
-                rgba(0,0,0,0.88) 34%,
-                rgba(0,0,0,0.88) 72%,
-                rgba(0,0,0,0)    90%);
+                transparent 10%, rgba(0,0,0,0.9) 30%,
+                black 60%, rgba(0,0,0,0.9) 80%, transparent 96%);
             -webkit-mask-image: linear-gradient(to bottom,
-                rgba(0,0,0,0)    18%,
-                rgba(0,0,0,0.88) 34%,
-                rgba(0,0,0,0.88) 72%,
-                rgba(0,0,0,0)    90%);
-        }
-
-        /* Primer plano: más rápido, más saturado, aparece desde abajo */
-        .layer-foreground {
-            --layer-speed: 1.5;
+                transparent 10%, rgba(0,0,0,0.9) 30%,
+                black 60%, rgba(0,0,0,0.9) 80%, transparent 96%);
             z-index: 2;
-            background-position: center 82%;
-            opacity: 0.97;
-            filter: saturate(1.1) contrast(1.04);
-            mask-image: linear-gradient(to bottom,
-                rgba(0,0,0,0)    40%,
-                rgba(0,0,0,0.90) 56%,
-                rgba(0,0,0,0.98) 100%);
-            -webkit-mask-image: linear-gradient(to bottom,
-                rgba(0,0,0,0)    40%,
-                rgba(0,0,0,0.90) 56%,
-                rgba(0,0,0,0.98) 100%);
         }
 
-        /* Filtro de noche: sólo en modo oscuro, capa por encima de todo el parallax */
+        /* ── Capa primer plano: más rápida, satura el suelo ── */
+        .layer-foreground {
+            --depth: 0.38;
+            background-image: var(--menu-base-bg);
+            background-size: cover;
+            background-position: center 88%;
+            opacity: 0.92;
+            filter: saturate(0.65) brightness(0.42) contrast(1.08) hue-rotate(148deg);
+            mask-image: linear-gradient(to bottom,
+                transparent 42%, rgba(0,0,0,0.85) 58%, black 100%);
+            -webkit-mask-image: linear-gradient(to bottom,
+                transparent 42%, rgba(0,0,0,0.85) 58%, black 100%);
+            z-index: 3;
+        }
+
+        /* ── Capa niebla CSS-puro: ribbons de gradiente ── */
+        .layer-fog {
+            --depth: 0.15;
+            background: none;
+            filter: none;
+            mask-image: none;
+            -webkit-mask-image: none;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        .fog-ribbon {
+            position: absolute;
+            left: -20%;
+            width: 140%;
+            height: 120px;
+            border-radius: 50%;
+            opacity: 0;
+            will-change: transform, opacity;
+        }
+
+        .fog-ribbon--1 {
+            bottom: 18%;
+            background: radial-gradient(ellipse at 50% 100%,
+                rgba(180, 200, 220, 0.10) 0%,
+                rgba(140, 160, 190, 0.06) 40%,
+                transparent 72%);
+            animation: fog-drift-1 28s ease-in-out infinite;
+        }
+        .fog-ribbon--2 {
+            bottom: 10%;
+            background: radial-gradient(ellipse at 50% 100%,
+                rgba(160, 185, 210, 0.13) 0%,
+                rgba(120, 145, 175, 0.07) 45%,
+                transparent 72%);
+            animation: fog-drift-2 36s ease-in-out infinite;
+            animation-delay: -12s;
+        }
+        .fog-ribbon--3 {
+            bottom: 2%;
+            background: radial-gradient(ellipse at 50% 100%,
+                rgba(200, 215, 230, 0.09) 0%,
+                rgba(160, 180, 205, 0.05) 40%,
+                transparent 68%);
+            animation: fog-drift-3 44s ease-in-out infinite;
+            animation-delay: -22s;
+        }
+
+        @keyframes fog-drift-1 {
+            0%   { opacity: 0;    transform: translateX(0)   scaleY(0.85); }
+            15%  { opacity: 1; }
+            50%  { opacity: 0.8;  transform: translateX(4%)  scaleY(1.05); }
+            85%  { opacity: 1; }
+            100% { opacity: 0;    transform: translateX(0)   scaleY(0.85); }
+        }
+        @keyframes fog-drift-2 {
+            0%   { opacity: 0;    transform: translateX(0)   scaleY(0.9); }
+            20%  { opacity: 0.85; }
+            55%  { opacity: 0.7;  transform: translateX(-3%) scaleY(1.1); }
+            80%  { opacity: 0.85; }
+            100% { opacity: 0;    transform: translateX(0)   scaleY(0.9); }
+        }
+        @keyframes fog-drift-3 {
+            0%   { opacity: 0;    transform: translateX(0)   scaleY(0.95); }
+            25%  { opacity: 0.75; }
+            60%  { opacity: 0.6;  transform: translateX(2%)  scaleY(1.08); }
+            75%  { opacity: 0.75; }
+            100% { opacity: 0;    transform: translateX(0)   scaleY(0.95); }
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           CAMPO DE ESTRELLAS — CSS-puro, 3 profundidades, solo dark mode
+           ══════════════════════════════════════════════════════════════ */
+
+        .menu-stars {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0;  /* Oculto en light mode; JS/CSS activa en dark */
+            transition: opacity 1.2s ease;
+        }
+        [data-theme="dark"] .menu-stars { opacity: 1; }
+
+        .star-field {
+            position: absolute;
+            inset: 0;
+            background-repeat: repeat;
+        }
+
+        /* Far stars: pequeñas y densas */
+        .star-field--far {
+            background-image:
+                radial-gradient(circle, rgba(255,255,255,0.85) 1px, transparent 1px),
+                radial-gradient(circle, rgba(200,220,255,0.6)  1px, transparent 1px),
+                radial-gradient(circle, rgba(255,255,255,0.7)  1px, transparent 1px);
+            background-size: 180px 180px, 220px 220px, 260px 260px;
+            background-position: 14px 22px, 88px 55px, 44px 130px;
+            opacity: 0.55;
+            animation: stars-twinkle-far 8s ease-in-out infinite alternate;
+        }
+
+        /* Mid stars: medianas */
+        .star-field--mid {
+            background-image:
+                radial-gradient(circle, rgba(255,250,220,0.9)  1.5px, transparent 1.5px),
+                radial-gradient(circle, rgba(220,235,255,0.75) 1.2px, transparent 1.2px),
+                radial-gradient(circle, rgba(255,255,255,0.8)  1px,   transparent 1px);
+            background-size: 340px 340px, 280px 280px, 380px 380px;
+            background-position: 60px 40px, 170px 120px, 22px 200px;
+            opacity: 0.65;
+            animation: stars-twinkle-mid 11s ease-in-out infinite alternate;
+            animation-delay: -3s;
+        }
+
+        /* Near stars: pocas, grandes, brillantes — el parallax las mueve más */
+        .star-field--near {
+            background-image:
+                radial-gradient(circle, rgba(255,255,240,1)   2px,   transparent 2px),
+                radial-gradient(circle, rgba(200,220,255,0.9) 1.8px, transparent 1.8px),
+                radial-gradient(circle, rgba(255,245,200,0.95) 1.5px, transparent 1.5px);
+            background-size: 520px 520px, 440px 440px, 600px 600px;
+            background-position: 80px 60px, 250px 180px, 420px 90px;
+            opacity: 0.80;
+            animation: stars-twinkle-near 14s ease-in-out infinite alternate;
+            animation-delay: -7s;
+        }
+
+        @keyframes stars-twinkle-far {
+            0%   { opacity: 0.50; }
+            40%  { opacity: 0.62; }
+            100% { opacity: 0.48; }
+        }
+        @keyframes stars-twinkle-mid {
+            0%   { opacity: 0.60; }
+            60%  { opacity: 0.72; }
+            100% { opacity: 0.55; }
+        }
+        @keyframes stars-twinkle-near {
+            0%   { opacity: 0.75; }
+            50%  { opacity: 0.90; }
+            100% { opacity: 0.68; }
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           LUNA / SOL — elemento decorativo centrado que sigue el parallax
+           ══════════════════════════════════════════════════════════════ */
+
+        .menu-celestial {
+            position: absolute;
+            top: 10%;
+            right: 18%;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            pointer-events: none;
+            /* Dark: luna blanca con halo */
+            background: radial-gradient(circle at 38% 38%,
+                rgba(255, 255, 240, 0.95) 0%,
+                rgba(220, 225, 235, 0.88) 42%,
+                rgba(180, 190, 215, 0.5)  65%,
+                transparent 80%);
+            box-shadow:
+                0 0 18px 4px rgba(220, 225, 255, 0.18),
+                0 0 45px 12px rgba(180, 200, 240, 0.10);
+            opacity: 0;
+            transition: opacity 1.4s ease;
+            animation: celestial-pulse 9s ease-in-out infinite alternate;
+        }
+
+        [data-theme="dark"]  .menu-celestial { opacity: 0.88; }
+        [data-theme="light"] .menu-celestial {
+            /* Sol dorado */
+            background: radial-gradient(circle,
+                rgba(255, 240, 160, 1)   0%,
+                rgba(255, 210, 80, 0.85) 40%,
+                rgba(255, 180, 40, 0.4)  65%,
+                transparent 80%);
+            box-shadow:
+                0 0 24px 8px  rgba(255, 220, 80,  0.28),
+                0 0 60px 20px rgba(255, 200, 40,  0.12);
+            opacity: 0.72;
+        }
+
+        @keyframes celestial-pulse {
+            0%   { box-shadow: 0 0 18px 4px rgba(220,225,255,0.18), 0 0 45px 12px rgba(180,200,240,0.10); }
+            100% { box-shadow: 0 0 26px 8px rgba(220,225,255,0.26), 0 0 65px 20px rgba(180,200,240,0.16); }
+        }
+
+        /* ── Overlay oscurecedor / tinte nocturno (dark mode) ── */
         [data-theme="dark"] .menu-parallax::after {
             content: '';
             position: absolute;
             inset: 0;
-            z-index: 3;
+            z-index: 5;
             pointer-events: none;
-            /* Gradiente azul-índigo que oscurece y enfría el paisaje */
             background:
-                radial-gradient(ellipse at 50% 0%, rgba(10,15,40,0.55) 0%, transparent 65%),
+                radial-gradient(ellipse at 50% 0%, rgba(10,15,42,0.48) 0%, transparent 62%),
                 linear-gradient(to bottom,
-                    rgba(8,12,35,0.72) 0%,
-                    rgba(5,10,28,0.50) 35%,
-                    rgba(3,8,22,0.38) 65%,
-                    rgba(0,5,15,0.55) 100%);
+                    rgba(8,12,36,0.65) 0%,
+                    rgba(5,10,28,0.40) 35%,
+                    rgba(3,8,22,0.28) 65%,
+                    rgba(0,5,15,0.48) 100%);
             mix-blend-mode: multiply;
         }
 
-        /* En modo oscuro las capas también se oscurecen y desaturan más */
-        [data-theme="dark"] .layer-sky {
-            filter: blur(0.8px) saturate(0.45) brightness(0.48) hue-rotate(190deg);
+        /* Light mode: velo cálido */
+        [data-theme="light"] .menu-parallax::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            pointer-events: none;
+            background: linear-gradient(to bottom,
+                rgba(245, 238, 215, 0.35) 0%,
+                rgba(230, 220, 190, 0.18) 55%,
+                rgba(200, 210, 180, 0.28) 100%);
         }
-        [data-theme="dark"] .layer-midforest {
-            filter: blur(0.15px) saturate(0.55) brightness(0.52) hue-rotate(160deg);
+
+        /* Light mode: filtros más cálidos y brillantes */
+        [data-theme="light"] .layer-sky {
+            filter: blur(0.8px) saturate(0.9) brightness(0.85);
+            opacity: 0.80;
         }
-        [data-theme="dark"] .layer-foreground {
-            filter: saturate(0.60) brightness(0.45) contrast(1.1) hue-rotate(140deg);
+        [data-theme="light"] .layer-midforest {
+            filter: blur(0.1px) saturate(1.05) brightness(0.82);
+        }
+        [data-theme="light"] .layer-foreground {
+            filter: saturate(1.0) brightness(0.75) contrast(1.02);
+        }
+        [data-theme="light"] .fog-ribbon--1,
+        [data-theme="light"] .fog-ribbon--2,
+        [data-theme="light"] .fog-ribbon--3 {
+            /* En light: niebla más cálida, tonos marfil */
+            background: radial-gradient(ellipse at 50% 100%,
+                rgba(240, 235, 210, 0.15) 0%,
+                rgba(220, 215, 190, 0.08) 45%,
+                transparent 72%);
+        }
+
+        /* ══════════════════════════════════════════════════════════════
+           REDUCED-MOTION — sin animaciones, sin parallax
+           ══════════════════════════════════════════════════════════════ */
+        @media (prefers-reduced-motion: reduce) {
+            .parallax-layer { will-change: auto; animation: none !important; }
+            .fog-ribbon      { animation: none !important; opacity: 0.55; }
+            .star-field      { animation: none !important; }
+            .menu-celestial  { animation: none !important; }
+            .menu-fireflies .firefly { animation: none !important; }
+            .menu-fireflies .leaf    { animation: none !important; }
         }
 
         /* Luciérnagas — fuera del parallax, sin herencia de filtros */
@@ -3576,15 +3800,9 @@ body::before {
 
         #roomCodeWrap {
             position: fixed;
-            top: 18px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 62px;
+            right: 20px;
             z-index: 195;
-            /* Centrado entre info-card izq y controles der */
-            /* info-card ≈ 310px desde izq, controles ≈ 450px desde der */
-            /* En vez de max-width que daba negativo, usamos margins laterales */
-            margin-left: 155px;   /* empuja desde el centro hacia la derecha de info-card */
-            margin-right: 225px;  /* empuja hacia la izquierda de controls */
         }
 
         @media (max-width: 900px) {
@@ -4003,11 +4221,10 @@ body::before {
         }
 
         .vn-control-btn:hover {
-            background: var(--accent-wood);
-            color: white;
-            border-color: var(--accent-gold);
-            box-shadow: 0 0 15px rgba(201, 168, 108, 0.4);
-            z-index: 1;
+            background: rgba(139, 105, 20, 0.18);
+            color: var(--accent-gold);
+            border-color: rgba(201, 168, 108, 0.5);
+            box-shadow: 0 0 8px rgba(201, 168, 108, 0.25);
         }
 
         .vn-control-btn:hover::after,
@@ -4060,7 +4277,7 @@ body::before {
             pointer-events: none;
             z-index: 100;
             perspective: 1200px;
-            overflow: hidden;
+            overflow: visible; /* Allow manga-emotes to overflow sprite bounds */
         }
 
         .vn-sprite {
@@ -4704,6 +4921,7 @@ body::before {
                 rgba(38, 27, 18, 0.97) 0%,
                 rgba(22, 16, 11, 0.99) 100%);
             border-top: 1px solid var(--char-color, rgba(201, 168, 108, 0.4));
+            border-radius: 0;
             /* Línea decorativa con color del personaje */
             box-shadow:
                 0 -2px 0 0 var(--char-color, rgba(201,168,108,0.25)),
@@ -4712,21 +4930,24 @@ body::before {
             display: none;
             flex-direction: column;
             z-index: 300;
-            max-height: 85vh;
+            max-height: 90vh;
+            overflow: hidden;
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             transition: border-color 0.6s ease, box-shadow 0.6s ease;
+            box-sizing: border-box;
         }
 
         .vn-reply-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem 2rem;
+            padding: 0.7rem 1.5rem;
             border-bottom: 1px solid rgba(201, 168, 108, 0.1);
             background: linear-gradient(90deg,
                 rgba(201, 168, 108, 0.07) 0%,
                 transparent 60%);
+            flex-shrink: 0;
         }
 
         .vn-reply-title {
@@ -4743,10 +4964,12 @@ body::before {
         .vn-reply-body {
             flex: 1;
             overflow-y: auto;
-            padding: 1.2rem 2rem;
+            overflow-x: hidden;
+            padding: 1rem 1.5rem;
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.8rem;
+            min-height: 0;
         }
 
         .char-selector-container {
@@ -4881,11 +5104,11 @@ body::before {
         .narrator-toggle {
             display: flex;
             align-items: center;
-            gap: 0.8rem;
-            padding: 0.8rem 1.2rem;
-            background: rgba(139, 115, 85, 0.2);
-            border-radius: 12px;
-            border: 2px solid var(--border-color);
+            gap: 0.5rem;
+            padding: 0.45rem 0.9rem;
+            background: rgba(139, 115, 85, 0.15);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
             cursor: pointer;
             transition: all 0.3s;
             width: fit-content;
@@ -5012,18 +5235,21 @@ body::before {
 
         .vn-reply-textarea {
             width: 100%;
-            min-height: 110px;
-            padding: 1rem 2.8rem 1rem 1.1rem;
+            height: 120px;
+            min-height: 80px;
+            max-height: 120px;
+            padding: 0.8rem 1rem;
             border-radius: 10px;
             border: 1px solid rgba(201, 168, 108, 0.2);
             background: rgba(0, 0, 0, 0.28);
             color: #f0e6d0;
-            /* Misma tipografía que el diálogo para coherencia */
             font-family: 'EB Garamond', 'Crimson Text', serif;
-            font-size: 1.05rem;
-            line-height: 1.7;
-            resize: vertical;
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: none;
+            overflow-y: auto;
             transition: border-color 0.25s ease, box-shadow 0.25s ease;
+            box-sizing: border-box;
         }
 
         .vn-reply-textarea::placeholder {
@@ -5295,10 +5521,11 @@ body::before {
         .vn-reply-footer {
             display: flex;
             justify-content: flex-end;
-            gap: 1rem;
-            padding: 1.2rem 2rem;
-            border-top: 2px solid var(--border-color);
-            background: rgba(139, 115, 85, 0.2);
+            gap: 0.8rem;
+            padding: 0.7rem 1.5rem;
+            border-top: 1px solid rgba(201, 168, 108, 0.15);
+            background: rgba(139, 115, 85, 0.15);
+            flex-shrink: 0;
         }
 
         .branch-editor-btn {
@@ -8266,7 +8493,27 @@ body.mode-classic .vn-message-counter {
     align-items: center;
     gap: 0.75rem;
 }
-.gallery-empty-icon { opacity: 0.6; margin-bottom: 0.5rem; }
+.gallery-empty-icon { margin-bottom: 0.5rem; }
+
+/* ── Mascota Etheria — colores según tema ── */
+/* Dark mode: dorado suave, original */
+.etheria-mascot .mascot-shadow  { fill: rgba(201,168,108,0.10); }
+.etheria-mascot .mascot-body    { fill: rgba(201,168,108,0.06); stroke: rgba(201,168,108,0.30); stroke-width: 1.5; }
+.etheria-mascot .mascot-arc     { stroke: rgba(201,168,108,0.50); }
+.etheria-mascot .mascot-mouth   { stroke: rgba(201,168,108,0.40); }
+.etheria-mascot .mascot-eye     { fill: rgba(201,168,108,0.50); }
+.etheria-mascot .mascot-antenna { stroke: rgba(201,168,108,0.35); }
+.etheria-mascot .mascot-antenna-tip { fill: rgba(201,168,108,0.35); }
+
+/* Light mode: tonos más oscuros y contrastados */
+[data-theme="light"] .etheria-mascot .mascot-shadow  { fill: rgba(110,88,50,0.15); }
+[data-theme="light"] .etheria-mascot .mascot-body    { fill: rgba(110,88,50,0.08); stroke: rgba(110,88,50,0.50); stroke-width: 1.5; }
+[data-theme="light"] .etheria-mascot .mascot-arc     { stroke: rgba(110,88,50,0.70); }
+[data-theme="light"] .etheria-mascot .mascot-mouth   { stroke: rgba(110,88,50,0.60); }
+[data-theme="light"] .etheria-mascot .mascot-eye     { fill: rgba(110,88,50,0.75); }
+[data-theme="light"] .etheria-mascot .mascot-antenna { stroke: rgba(110,88,50,0.55); }
+[data-theme="light"] .etheria-mascot .mascot-antenna-tip { fill: rgba(110,88,50,0.55); }
+
 .gallery-empty-text {
     font-family: 'Crimson Text', serif;
     font-size: 1.25rem;
@@ -9780,6 +10027,7 @@ body.mode-classic .shadow-glow {
     align-items: center;
     gap: 0.35rem;
     flex-shrink: 0;
+    position: relative;
 }
 .vn-dialogue-actions-right {
     display: flex;
@@ -10007,9 +10255,85 @@ body.mode-classic .shadow-glow {
 .vn-control-btn.is-error { color: rgba(255, 100, 80, 0.9) !important; }
 .vn-control-btn.is-syncing { color: rgba(120, 200, 255, 0.9) !important; }
 
-/* ═══════════════════════════════════════════════════════════════════
-   ROOM CODE PANEL — Panel flotante elegante
-   ═══════════════════════════════════════════════════════════════════ */
+/* Stats button in dialogue box */
+.stats-action-btn {
+    background: rgba(139, 105, 20, 0.12) !important;
+    border-color: rgba(201, 168, 108, 0.3) !important;
+}
+.stats-action-btn:hover {
+    background: rgba(139, 105, 20, 0.25) !important;
+    border-color: rgba(201, 168, 108, 0.6) !important;
+}
+
+/* Reply panel: strict box model to prevent border overflow */
+.vn-reply-panel,
+.vn-reply-panel * {
+    box-sizing: border-box;
+}
+.vn-reply-panel {
+    width: 100%;
+}
+
+/* IHP edit stats button */
+.ihp-stats-edit-btn {
+    margin-top: 0.4rem;
+}
+.ihp-oracle-hint {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+/* Emote button in dialogue box */
+.emote-action-btn {
+    position: relative;
+}
+
+/* Emote popover anchored to the dialogue box actions area */
+.vn-dialog-emote-popover {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 0;
+    display: none;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    background: linear-gradient(135deg, rgba(18, 13, 8, 0.97), rgba(28, 20, 12, 0.99));
+    border: 1px solid rgba(201, 168, 108, 0.35);
+    border-radius: 12px;
+    padding: 0.7rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 220, 140, 0.06);
+    z-index: 400;
+    min-width: 240px;
+    max-width: 320px;
+    animation: fadeSlideUp 0.18s ease;
+}
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Compact char selector (without avatar) */
+.char-selector-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.char-selector-main {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+.char-selected-info {
+    flex: 1;
+}
+.char-selected-name {
+    font-family: 'Cinzel', serif;
+    color: rgba(201, 168, 108, 0.9);
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+}
+
 .room-code-panel {
     display: flex;
     align-items: center;
@@ -10847,6 +11171,645 @@ select {
     color: var(--text-muted, rgba(255,255,255,0.4));
 }
 
+/* ── Fallback portrait: ajustes si el lock falló y el usuario rota ──────────
+   Solo aplica en móviles reales en portrait mode. Desktop nunca entra aquí
+   porque su min-width es siempre mayor que su height.                        */
+@media screen and (orientation: portrait) and (max-width: 767px) {
+
+    /* Aviso visual sutil en la esquina — recuerda rotar sin bloquear la UI */
+    body.is-mobile::before {
+        content: '🔄 Mejor en horizontal';
+        position: fixed;
+        top: 0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(20, 15, 8, 0.88);
+        color: rgba(220, 190, 120, 0.9);
+        font-family: 'Cinzel', serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        padding: 0.3rem 0.9rem;
+        border-radius: 0 0 8px 8px;
+        border: 1px solid rgba(201, 168, 108, 0.3);
+        border-top: none;
+        z-index: 9999;
+        pointer-events: none;
+        white-space: nowrap;
+        /* Respeta prefers-reduced-motion */
+        animation: none;
+    }
+    body.is-mobile.prefers-reduced-motion::before {
+        animation: none;
+    }
+
+    /* La sección VN ocupa el ancho completo sin márgenes laterales */
+    .vn-section {
+        min-height: 100dvh;
+    }
+
+    /* Caja de diálogo: más compacta en portrait */
+    .vn-dialogue-box {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    /* Panel de respuesta: ocupa toda la pantalla en portrait */
+    .vn-reply-panel {
+        max-height: 100dvh;
+        width: 100%;
+    }
+
+    /* Info card: reducida para no tapar el contenido */
+    .vn-info-card {
+        max-width: 200px;
+        font-size: 0.8rem;
+    }
+
+    /* Toolbar de controles: más pequeña */
+    .vn-controls {
+        gap: 0.2rem;
+        padding: 0.3rem;
+    }
+    .vn-control-slot {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+    }
+
+    /* Room code: debajo del toolbar, centrado */
+    #roomCodeWrap {
+        top: 54px;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODAL RESPONDER v2 — overlay centrado flotante, split landscape, preview MD
+   Reemplaza el antiguo drawer anclado al fondo con un modal elevado y moderno.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Contenedor raíz: overlay de pantalla completa ─────────────────────── */
+#vnReplyPanel {
+    /* El panel es ahora un overlay que centra el modal */
+    position: fixed;
+    inset: 0;
+    display: none;            /* JS lo cambia a flex */
+    align-items: center;
+    justify-content: center;
+    z-index: 400;
+    /* Sin fondo propio — el backdrop hijo lo maneja */
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    /* Anular el drawer de mobile */
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    flex-direction: row;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    /* Anular bordes del tema */
+    border-top: none;
+    border-radius: 0;
+}
+#vnReplyPanel.active {
+    display: flex;
+}
+
+/* ── Backdrop con blur ──────────────────────────────────────────────────── */
+.vrp-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 3, 1, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 0;
+    cursor: pointer;
+}
+
+/* ── Modal elevado ──────────────────────────────────────────────────────── */
+.vrp-modal {
+    position: relative;
+    z-index: 1;
+    width: min(92vw, 780px);
+    max-height: min(88vh, 700px);
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+    overflow: hidden;
+    background: linear-gradient(160deg,
+        rgba(36, 25, 14, 0.99) 0%,
+        rgba(20, 14, 8, 1) 100%);
+    border: 1px solid rgba(201, 168, 108, 0.22);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 2px 0 rgba(255, 220, 140, 0.07) inset,
+        0 32px 80px rgba(0, 0, 0, 0.75),
+        0 8px 32px rgba(0, 0, 0, 0.55),
+        0 0 60px rgba(201, 168, 108, 0.04);
+    animation: vrpModalIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes vrpModalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(12px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.vrp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem 0.75rem;
+    border-bottom: 1px solid rgba(201, 168, 108, 0.1);
+    background: linear-gradient(90deg,
+        rgba(201, 168, 108, 0.06) 0%,
+        transparent 55%);
+    flex-shrink: 0;
+    gap: 0.75rem;
+}
+
+.vrp-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.vrp-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.vrp-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(201, 168, 108, 0.9);
+    white-space: nowrap;
+}
+
+/* Badge con el nombre del personaje activo */
+.vrp-char-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 0.1rem 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+.vrp-char-badge:empty { display: none; }
+
+.vrp-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    flex-shrink: 0;
+}
+
+/* ── Narrator switch ────────────────────────────────────────────────────── */
+.vrp-narrator-switch {
+    display: none; /* JS lo muestra cuando aplica */
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.25rem 0.4rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+.vrp-narrator-switch:hover { background: rgba(255,255,255,0.05); }
+
+.vrp-narrator-switch input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0; height: 0;
+}
+
+.vrp-switch-track {
+    width: 34px;
+    height: 19px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(201, 168, 108, 0.25);
+    border-radius: 20px;
+    position: relative;
+    transition: background 0.25s, border-color 0.25s;
+    flex-shrink: 0;
+}
+.vrp-narrator-switch.active .vrp-switch-track {
+    background: rgba(201, 168, 108, 0.35);
+    border-color: rgba(201, 168, 108, 0.7);
+}
+
+.vrp-switch-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 13px;
+    height: 13px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background 0.22s;
+}
+.vrp-narrator-switch.active .vrp-switch-thumb {
+    transform: translateX(15px);
+    background: rgba(201, 168, 108, 1);
+}
+
+.vrp-switch-label {
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+    transition: color 0.2s;
+}
+.vrp-narrator-switch.active .vrp-switch-label {
+    color: rgba(201, 168, 108, 0.85);
+}
+
+/* Botón cerrar */
+.vrp-close-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+.vrp-close-btn:hover {
+    background: rgba(220, 80, 60, 0.2);
+    border-color: rgba(220, 80, 60, 0.4);
+    color: rgba(220, 120, 100, 0.9);
+}
+
+/* ── Body: scrollable ───────────────────────────────────────────────────── */
+.vrp-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-height: 0;
+    /* Scrollbar sutil */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201, 168, 108, 0.2) transparent;
+}
+.vrp-body::-webkit-scrollbar { width: 4px; }
+.vrp-body::-webkit-scrollbar-track { background: transparent; }
+.vrp-body::-webkit-scrollbar-thumb {
+    background: rgba(201, 168, 108, 0.18);
+    border-radius: 4px;
+}
+
+/* ── Split pane ─────────────────────────────────────────────────────────── */
+.vrp-split {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.vrp-write-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+/* Preview pane — oculto en portrait, visible solo en landscape con split activo */
+.vrp-preview-pane {
+    display: none; /* activado por media query landscape */
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+.vrp-preview-pane.vrp-preview-visible {
+    display: flex;
+    flex: 1;
+}
+
+/* Labels de sección */
+.vrp-pane-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(201, 168, 108, 0.45);
+    padding: 0 0.1rem;
+}
+
+/* Hints de formato inline */
+.vrp-format-hints {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+.vrp-format-hints code {
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 0.62rem;
+    color: rgba(201, 168, 108, 0.4);
+    background: rgba(201, 168, 108, 0.07);
+    border: 1px solid rgba(201, 168, 108, 0.15);
+    border-radius: 4px;
+    padding: 0.05rem 0.3rem;
+}
+
+/* Textarea: auto-resize, nunca deforma el modal */
+#vnReplyText {
+    width: 100%;
+    min-height: 120px;
+    max-height: 260px;
+    resize: none;        /* auto-resize via JS; nunca manual */
+    overflow-y: auto;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(201, 168, 108, 0.18);
+    background: rgba(0, 0, 0, 0.32);
+    color: #f2e8d8;
+    font-family: 'EB Garamond', 'Crimson Text', serif;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    box-sizing: border-box;
+}
+#vnReplyText::placeholder {
+    color: rgba(201, 168, 108, 0.28);
+    font-style: italic;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+#vnReplyText:focus {
+    outline: none;
+    border-color: var(--char-color, rgba(201, 168, 108, 0.5));
+    box-shadow:
+        0 0 0 3px rgba(var(--char-color-rgb, 201,168,108), 0.08),
+        inset 0 2px 8px rgba(0,0,0,0.25);
+}
+
+/* Preview content: renderizado de Markdown */
+.vrp-preview-content {
+    flex: 1;
+    min-height: 120px;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(201, 168, 108, 0.12);
+    background: rgba(0, 0, 0, 0.18);
+    color: #f2e8d8;
+    font-family: 'EB Garamond', 'Crimson Text', serif;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    overflow-y: auto;
+    word-break: break-word;
+}
+.vrp-preview-content:empty::before {
+    content: 'La vista previa aparecerá aquí…';
+    color: rgba(201, 168, 108, 0.25);
+    font-style: italic;
+    font-size: 0.9rem;
+}
+.vrp-preview-content strong { color: rgba(220, 195, 140, 1); font-weight: 700; }
+.vrp-preview-content em { color: rgba(200, 180, 140, 0.85); font-style: italic; }
+.vrp-preview-content .emote-tag {
+    display: inline-block;
+    font-size: 1.3rem;
+    vertical-align: middle;
+    margin: 0 0.2em;
+    animation: emote-appear 0.3s ease-out both;
+}
+
+.vrp-preview-hint {
+    font-size: 0.62rem;
+    color: rgba(201, 168, 108, 0.3);
+    font-style: italic;
+}
+
+/* Botón toggle preview en portrait */
+.vrp-preview-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201, 168, 108, 0.15);
+    border-radius: 8px;
+    color: rgba(201, 168, 108, 0.55);
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    padding: 0.35rem 0.8rem;
+    cursor: pointer;
+    width: fit-content;
+    transition: background 0.2s, color 0.2s;
+}
+.vrp-preview-toggle:hover {
+    background: rgba(201, 168, 108, 0.08);
+    color: rgba(201, 168, 108, 0.8);
+}
+.vrp-preview-toggle.active {
+    background: rgba(201, 168, 108, 0.12);
+    color: rgba(201, 168, 108, 0.85);
+    border-color: rgba(201, 168, 108, 0.3);
+}
+
+/* ── Labels de sección ──────────────────────────────────────────────────── */
+.vrp-section-label {
+    font-size: 0.68rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(201, 168, 108, 0.45);
+    margin-bottom: 0.4rem;
+}
+
+/* ── Clima mejorado ─────────────────────────────────────────────────────── */
+.vrp-weather-row {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.vrp-weather-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.6rem 0.5rem;
+    border-radius: 10px;
+    border: 1px solid rgba(201, 168, 108, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.vrp-weather-btn:hover {
+    background: rgba(201, 168, 108, 0.07);
+    border-color: rgba(201, 168, 108, 0.3);
+    color: rgba(201, 168, 108, 0.7);
+}
+.vrp-weather-btn.active {
+    background: rgba(201, 168, 108, 0.14);
+    border-color: rgba(201, 168, 108, 0.5);
+    box-shadow: 0 0 12px rgba(201, 168, 108, 0.12), inset 0 1px 0 rgba(255,220,140,0.1);
+    color: rgba(201, 168, 108, 1);
+}
+.vrp-weather-icon { font-size: 1.4rem; }
+.vrp-weather-name {
+    font-size: 0.68rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+/* ── Footer fijo ────────────────────────────────────────────────────────── */
+.vrp-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid rgba(201, 168, 108, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    /* Espacio extra para teclado móvil */
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+}
+
+.vrp-btn-cancel {
+    padding: 0.55rem 1.1rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.4);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.vrp-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.vrp-btn-send {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.4rem;
+    border-radius: 10px;
+    border: 1px solid rgba(201, 168, 108, 0.45);
+    background: linear-gradient(135deg,
+        rgba(201, 168, 108, 0.22) 0%,
+        rgba(160, 120, 60, 0.25) 100%);
+    color: rgba(220, 190, 130, 1);
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 12px rgba(201, 168, 108, 0.1);
+}
+.vrp-btn-send:hover {
+    background: linear-gradient(135deg,
+        rgba(201, 168, 108, 0.38) 0%,
+        rgba(160, 120, 60, 0.42) 100%);
+    border-color: rgba(201, 168, 108, 0.7);
+    box-shadow: 0 4px 20px rgba(201, 168, 108, 0.2);
+    transform: translateY(-1px);
+}
+.vrp-btn-send:active { transform: translateY(0); }
+
+/* ── LANDSCAPE: split view 50/50 ────────────────────────────────────────── */
+@media (orientation: landscape) and (max-height: 600px) {
+    /* En landscape móvil: modal más ancho y bajo */
+    .vrp-modal {
+        width: min(96vw, 900px);
+        max-height: min(94vh, 520px);
+    }
+
+    .vrp-split {
+        flex-direction: row;
+    }
+
+    /* Activar preview pane en landscape */
+    .vrp-preview-pane {
+        display: flex;
+        flex: 1;
+    }
+
+    /* Textarea más baja en landscape para caber */
+    #vnReplyText {
+        min-height: 80px;
+        max-height: 160px;
+    }
+    .vrp-preview-content {
+        min-height: 80px;
+    }
+
+    /* Ocultar el toggle portrait en landscape */
+    .vrp-preview-toggle { display: none; }
+
+    /* Header más compacto */
+    .vrp-header { padding: 0.6rem 1rem; }
+    .vrp-body   { padding: 0.7rem 1rem; gap: 0.6rem; }
+    .vrp-footer { padding: 0.55rem 1rem; }
+}
+
+/* ── PORTRAIT MÓVIL ─────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .vrp-modal {
+        width: 100vw;
+        max-height: 92dvh;
+        border-radius: 20px 20px 0 0;
+        margin-top: auto;
+        align-self: flex-end;
+    }
+
+    #vnReplyPanel {
+        align-items: flex-end;
+    }
+
+    .vrp-split { flex-direction: column; }
+    .vrp-format-hints { display: none; }
+
+    #vnReplyText {
+        min-height: 100px;
+        max-height: 180px;
+        font-size: 1rem;
+    }
+}
+
+/* ── Sincronización con color del personaje activo ──────────────────────── */
+.vrp-modal {
+    --vrp-accent: var(--char-color, rgba(201, 168, 108, 0.9));
+}
+
 
 /* css/mobile-perf.css */
 /* ================================================================
@@ -11446,10 +12409,12 @@ body.low-spec .shadow-silhouette {
         <button onclick="closeSettings()" class="btn-primary" style="width: 100%; margin-top: 1rem;">Cerrar</button>
     </div>
 
+    <!-- Botón de tema — fuera de userSelectScreen para que position:fixed funcione correctamente -->
+    <button class="profile-theme-btn" id="profileThemeBtn" onclick="toggleTheme();" type="button" title="Cambiar tema">🌙</button>
+
     <!-- User Select -->
     <div id="userSelectScreen" class="user-select-screen">
         <div class="profile-particles" id="profileParticles"></div>
-        <button class="profile-theme-btn" id="profileThemeBtn" onclick="toggleTheme();" type="button" title="Cambiar tema">🌙</button>
         <h1 class="game-title">ETHERIA</h1>
         <div class="save-screen-rule"></div>
         <p class="game-subtitle">Seleccionar Archivo de Guardado</p>
@@ -11464,11 +12429,33 @@ body.low-spec .shadow-silhouette {
     <!-- Main Menu -->
     <div id="mainMenu" class="main-menu hidden">
         <div class="menu-parallax" id="menuParallax">
-            <div class="parallax-layer layer-sky" data-depth="0.08"></div>
+            <!-- ── Capa 0: cielo profundo (stars/clouds) — velocidad 0.08 ── -->
+            <div class="parallax-layer layer-sky" data-depth="0.08">
+                <!-- Estrellas CSS puras — solo visibles en dark mode -->
+                <div class="menu-stars" aria-hidden="true">
+                    <div class="star-field star-field--far"></div>
+                    <div class="star-field star-field--mid"></div>
+                    <div class="star-field star-field--near"></div>
+                </div>
+                <!-- Luna/Sol — cambia por tema -->
+                <div class="menu-celestial" aria-hidden="true"></div>
+            </div>
+
+            <!-- ── Capa 1: imagen del bosque lejano — velocidad 0.22 ── -->
             <div class="parallax-layer layer-midforest" data-depth="0.22"></div>
+
+            <!-- ── Capa 2: imagen primer plano — velocidad 0.38 ── -->
             <div class="parallax-layer layer-foreground" data-depth="0.38"></div>
+
+            <!-- ── Capa 3: niebla volumétrica CSS — velocidad 0.15 ── -->
+            <div class="parallax-layer layer-fog" data-depth="0.15" aria-hidden="true">
+                <div class="fog-ribbon fog-ribbon--1"></div>
+                <div class="fog-ribbon fog-ribbon--2"></div>
+                <div class="fog-ribbon fog-ribbon--3"></div>
+            </div>
         </div>
-        <!-- Luciérnagas fuera del parallax para evitar filtros de color -->
+
+        <!-- Luciérnagas / hojas — capa de partículas fuera del parallax -->
         <div class="menu-fireflies" id="particlesContainer"></div>
 
         <div class="menu-sidebar">
@@ -11844,6 +12831,7 @@ body.low-spec .shadow-silhouette {
                 <!-- Oráculo directo (solo en pinned + modo RPG) -->
                 <div class="ihp-oracle-hint" id="ihpOracleHint" style="display:none;">
                     <button class="ihp-oracle-btn" onclick="toggleOracleMiniPanel()" title="Consultar el oráculo">🎲 Consultar oráculo</button>
+                    <button class="ihp-oracle-btn ihp-stats-edit-btn" onclick="openSelectedCharacterStats()" title="Editar stats del personaje">⚔️ Editar Stats</button>
                 </div>
             </div>
         
@@ -12046,6 +13034,23 @@ body.low-spec .shadow-silhouette {
                         <button id="vnNarrateDialogBtn" class="vn-dialogue-action-btn narrate-action-btn" type="button" onclick="handleActionButtonClick(event); prepareChapter()" style="display:none;" title="Nueva escena" aria-label="Nueva escena">
                             <span class="action-icon">✒</span><span class="action-label">Escena</span>
                         </button>
+                        <!-- Botón Emotes en la caja de diálogo — estilo chat videojuego -->
+                        <button id="vnEmoteDialogBtn" class="vn-dialogue-action-btn emote-action-btn" type="button" onclick="handleActionButtonClick(event); toggleVnDialogEmotePicker(event)" title="Emotes" aria-label="Emotes">
+                            <span class="action-icon">🎭</span><span class="action-label">Emotes</span>
+                        </button>
+                        <!-- Popover de emotes para la caja de diálogo -->
+                        <div id="vnDialogEmotePopover" class="vn-dialog-emote-popover" style="display:none;" aria-hidden="true">
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')" title="/angry"><span class="re-icon">💢</span><span class="re-label">Ira</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')" title="/happy"><span class="re-icon">✨</span><span class="re-label">Alegría</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('shock')" title="/shock"><span class="re-icon">💦</span><span class="re-label">Sorpresa</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sad')" title="/sad"><span class="re-icon">💧</span><span class="re-label">Tristeza</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('think')" title="/think"><span class="re-icon">💭</span><span class="re-label">Pensando</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('love')" title="/love"><span class="re-icon">💕</span><span class="re-label">Amor</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('annoyed')" title="/annoyed"><span class="re-icon">💢</span><span class="re-label">Frustración</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" title="/embarrassed"><span class="re-icon">😳</span><span class="re-label">Vergüenza</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')" title="/idea"><span class="re-icon">💡</span><span class="re-label">Idea</span></button>
+                            <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')" title="/sleep"><span class="re-icon">💤</span><span class="re-label">Sueño</span></button>
+                        </div>
                     </div>
                     <!-- Derecha: acciones comunes -->
                     <div class="vn-dialogue-actions-right">
@@ -12095,114 +13100,165 @@ body.low-spec .shadow-silhouette {
         </div>
 
         <!-- Panel Responder -->
-        <div id="vnReplyPanel" class="vn-reply-panel">
-            <div class="drawer-handle" id="replyDrawerHandle" aria-hidden="true"></div>
-            <div class="vn-reply-header">
-                <div class="vn-reply-title">
-                    <span>💬</span>
-                    <span id="replyPanelTitle">Responder</span>
-                </div>
-                <button onclick="closeReplyPanel()" class="btn-secondary" aria-label="Cerrar panel de respuesta">✕ Cerrar</button>
-            </div>
+        <!-- ══════════════════════════════════════════════════════════════
+             MODAL RESPONDER — overlay centrado, split-view en landscape
+             ══════════════════════════════════════════════════════════════ -->
+        <div id="vnReplyPanel" class="vn-reply-panel" role="dialog" aria-modal="true" aria-label="Responder">
+            <!-- Backdrop semitransparente con blur -->
+            <div class="vrp-backdrop" onclick="closeReplyPanel()"></div>
+            <!-- Legacy drawer handle (needed by bindReplyDrawerGestures) -->
+            <div id="replyDrawerHandle" aria-hidden="true" style="display:none;"></div>
 
-            <div class="vn-reply-body">
-                <div class="char-selector-container" id="charSelectorContainer">
-                    <div class="char-selector-main">
-                        <div class="char-selected-display" id="charSelectedDisplay" onclick="toggleCharGrid()">
-                            <div class="placeholder">👤</div>
-                        </div>
-                        <div class="char-selected-info">
-                            <div class="char-selected-name" id="charSelectedName">Selecciona personaje</div>
-                            <div class="char-selected-hint">Click en el círculo para cambiar</div>
-                        </div>
+            <!-- Contenedor del modal -->
+            <div class="vrp-modal">
+
+                <!-- ── HEADER ─────────────────────────────────────────── -->
+                <div class="vrp-header">
+                    <div class="vrp-header-left">
+                        <span class="vrp-icon">💬</span>
+                        <span class="vrp-title" id="replyPanelTitle">Responder</span>
+                        <span class="vrp-char-badge" id="vrpCharBadge"></span>
                     </div>
-
-                    <div class="char-grid-dropdown" id="charGridDropdown"></div>
-                    <button type="button" id="charStatsQuickBtn" class="char-stats-quick-btn" onclick="openSelectedCharacterStats()" title="Abrir stats RPG">⚔️ Stats</button>
-                </div>
-
-                <div class="narrator-toggle" id="narratorToggle" onclick="toggleNarratorMode()">
-                    <input type="checkbox" id="narratorMode" onchange="event.stopPropagation()">
-                    <label for="narratorMode">Modo Narrador</label>
-                </div>
-
-
-                <!-- Barra de herramientas del panel de respuesta -->
-                <div class="vn-reply-toolbar">
-                    <button id="replyEmoteToggle" class="reply-emote-toggle" type="button"
-                            aria-label="Emotes del personaje" title="Expresiones del personaje"
-                            onclick="toggleReplyEmotePopover(event)">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M8 13s1.5 2 4 2 4-2 4-2"/>
-                            <circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/>
-                            <circle cx="15" cy="9" r="1" fill="currentColor" stroke="none"/>
-                        </svg>
-                        <span>Emotes</span>
-                    </button>
-                </div>
-                <div class="vn-reply-textarea-wrap">
-                    <textarea id="vnReplyText" class="vn-reply-textarea" placeholder="Escribe tu mensaje... Puedes usar **negrita** y *cursiva*, y comandos como /angry, /happy, etc."></textarea>
-                    <div id="replyEmotePopover" class="reply-emote-popover" aria-hidden="true">
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')" title="/angry — Ira" aria-label="Ira"><span class="re-icon">💢</span><span class="re-label">Ira</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')" title="/happy — Alegría" aria-label="Alegría"><span class="re-icon">✨</span><span class="re-label">Alegría</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('shock')" title="/shock — Sorpresa" aria-label="Sorpresa"><span class="re-icon">💦</span><span class="re-label">Sorpresa</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sad')" title="/sad — Tristeza" aria-label="Tristeza"><span class="re-icon">💧</span><span class="re-label">Tristeza</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('think')" title="/think — Pensando" aria-label="Pensando"><span class="re-icon">💭</span><span class="re-label">Pensando</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('love')" title="/love — Amor" aria-label="Amor"><span class="re-icon">💕</span><span class="re-label">Amor</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('annoyed')" title="/annoyed — Frustración" aria-label="Frustración"><span class="re-icon">💢</span><span class="re-label">Frustración</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" title="/embarrassed — Vergüenza" aria-label="Vergüenza"><span class="re-icon">😳</span><span class="re-label">Vergüenza</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')" title="/idea — Idea" aria-label="Idea"><span class="re-icon">💡</span><span class="re-label">Idea</span></button>
-                        <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')" title="/sleep — Sueño" aria-label="Sueño"><span class="re-icon">💤</span><span class="re-label">Sueño</span></button>
-                    </div>
-                </div>
-
-                <div class="options-toggle-container" id="optionsToggleContainer">
-                    <div class="options-toggle" onclick="toggleOptionsFields()">
-                        <input type="checkbox" id="enableOptions" onchange="event.stopPropagation()">
-                        <label for="enableOptions">🎭 Crear opciones de elección</label>
-                    </div>
-
-                    <div id="optionsFields" class="options-fields">
-                        <div class="option-field-group">
-                            <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
-                            <input type="text" id="option1Text" class="option-input" placeholder="Texto de la opción">
-                            <textarea id="option1Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                    <div class="vrp-header-right">
+                        <!-- Narrator toggle como switch bonito -->
+                        <div id="narratorToggle" class="vrp-narrator-switch" onclick="toggleNarratorMode()" title="Modo Narrador: escribe como voz narradora">
+                            <input type="checkbox" id="narratorMode" onchange="event.stopPropagation()" tabindex="-1">
+                            <span class="vrp-switch-track">
+                                <span class="vrp-switch-thumb"></span>
+                            </span>
+                            <span class="vrp-switch-label">Narrador</span>
                         </div>
-                        <div class="option-field-group">
-                            <div class="option-field-header"><span>②</span><span>Opción 2</span></div>
-                            <input type="text" id="option2Text" class="option-input" placeholder="Texto de la opción">
-                            <textarea id="option2Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
-                        </div>
-                        <div class="option-field-group">
-                            <div class="option-field-header"><span>③</span><span>Opción 3</span></div>
-                            <input type="text" id="option3Text" class="option-input" placeholder="Texto de la opción">
-                            <textarea id="option3Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
-                        </div>
-
-                        <button class="branch-editor-btn" onclick="openBranchEditor()">
-                            <span>🌿</span>
-                            <span>Editor Avanzado de Ramas</span>
+                        <button class="vrp-close-btn" onclick="closeReplyPanel()" aria-label="Cerrar">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
                         </button>
                     </div>
                 </div>
 
-                <!-- Selector de clima (solo en modo rpg o al responder) -->
-                <div id="weatherSelectorContainer" style="display: none; margin-top: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">🌦️ Cambiar clima</label>
-                    <div class="weather-selector">
-                        <button class="weather-btn active" onclick="setWeather('none')">☀️ Normal</button>
-                        <button class="weather-btn" onclick="setWeather('rain')">🌧️ Lluvia</button>
-                        <button class="weather-btn" onclick="setWeather('fog')">🌫️ Niebla</button>
+                <!-- ── CUERPO: textarea + preview (split en landscape) ── -->
+                <div class="vrp-body">
+
+                    <!-- Selector de personaje compacto -->
+                    <div class="char-selector-container" id="charSelectorContainer">
+                        <div class="char-selector-main">
+                            <div class="char-selected-info">
+                                <div class="char-selected-name" id="charSelectedName">Selecciona personaje</div>
+                            </div>
+                        </div>
+                        <div class="char-grid-dropdown" id="charGridDropdown"></div>
                     </div>
+
+                    <!-- Split pane: izquierda = escritura, derecha = preview -->
+                    <div class="vrp-split">
+
+                        <!-- Panel de escritura -->
+                        <div class="vrp-write-pane">
+                            <div class="vrp-pane-label">
+                                <span>✍️ Escribe</span>
+                                <div class="vrp-format-hints">
+                                    <code>**negrita**</code>
+                                    <code>*cursiva*</code>
+                                    <code>/happy</code>
+                                </div>
+                            </div>
+                            <div class="vn-reply-textarea-wrap">
+                                <textarea
+                                    id="vnReplyText"
+                                    class="vn-reply-textarea"
+                                    placeholder="Escribe tu respuesta... Usa **negrita**, *cursiva* para formato. Comandos de emoción: /angry, /happy, /shock, /sad, /think, /love, /idea, /sleep. ¡Haz que el personaje reaccione!"
+                                    oninput="vrpUpdatePreview(); vrpAutoResize(this)"
+                                    rows="4"
+                                ></textarea>
+                                <!-- Emote popover anclado a la esquina -->
+                                <div id="replyEmotePopover" class="reply-emote-popover" aria-hidden="true">
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')"   title="/angry"  ><span class="re-icon">💢</span><span class="re-label">Ira</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')"   title="/happy"  ><span class="re-icon">✨</span><span class="re-label">Alegría</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('shock')"   title="/shock"  ><span class="re-icon">💦</span><span class="re-label">Sorpresa</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sad')"     title="/sad"    ><span class="re-icon">💧</span><span class="re-label">Tristeza</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('think')"   title="/think"  ><span class="re-icon">💭</span><span class="re-label">Pensando</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('love')"    title="/love"   ><span class="re-icon">💕</span><span class="re-label">Amor</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('annoyed')" title="/annoyed"><span class="re-icon">💢</span><span class="re-label">Frustración</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('embarrassed')" title="/embarrassed"><span class="re-icon">😳</span><span class="re-label">Vergüenza</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('idea')"    title="/idea"   ><span class="re-icon">💡</span><span class="re-label">Idea</span></button>
+                                    <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')"   title="/sleep"  ><span class="re-icon">💤</span><span class="re-label">Sueño</span></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel de preview (oculto en portrait, visible en landscape) -->
+                        <div class="vrp-preview-pane" id="vrpPreviewPane">
+                            <div class="vrp-pane-label">
+                                <span>👁 Vista previa</span>
+                                <span class="vrp-preview-hint" id="vrpPreviewHint">Empieza a escribir…</span>
+                            </div>
+                            <div class="vrp-preview-content" id="vrpPreviewContent"></div>
+                        </div>
+
+                    </div>
+
+                    <!-- Toggle para mostrar preview en portrait -->
+                    <button class="vrp-preview-toggle" id="vrpPreviewToggle" onclick="vrpTogglePreview()" type="button">
+                        <span>👁</span> Ver vista previa
+                    </button>
+
+                    <!-- Opciones de elección (solo modo clásico) -->
+                    <div class="options-toggle-container" id="optionsToggleContainer">
+                        <div class="options-toggle" onclick="toggleOptionsFields()">
+                            <input type="checkbox" id="enableOptions" onchange="event.stopPropagation()">
+                            <label for="enableOptions">🎭 Crear opciones de elección</label>
+                        </div>
+                        <div id="optionsFields" class="options-fields">
+                            <div class="option-field-group">
+                                <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
+                                <input type="text" id="option1Text" class="option-input" placeholder="Texto de la opción">
+                                <textarea id="option1Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                            </div>
+                            <div class="option-field-group">
+                                <div class="option-field-header"><span>②</span><span>Opción 2</span></div>
+                                <input type="text" id="option2Text" class="option-input" placeholder="Texto de la opción">
+                                <textarea id="option2Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                            </div>
+                            <div class="option-field-group">
+                                <div class="option-field-header"><span>③</span><span>Opción 3</span></div>
+                                <input type="text" id="option3Text" class="option-input" placeholder="Texto de la opción">
+                                <textarea id="option3Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                            </div>
+                            <button class="branch-editor-btn" onclick="openBranchEditor()">
+                                <span>🌿</span><span>Editor Avanzado de Ramas</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Selector de clima mejorado -->
+                    <div id="weatherSelectorContainer" style="display:none;">
+                        <div class="vrp-section-label">🌦️ Clima de la escena</div>
+                        <div class="vrp-weather-row">
+                            <button class="vrp-weather-btn active" data-weather="none"  onclick="setWeather('none');  vrpSetWeatherBtn(this)">
+                                <span class="vrp-weather-icon">☀️</span>
+                                <span class="vrp-weather-name">Normal</span>
+                            </button>
+                            <button class="vrp-weather-btn" data-weather="rain"  onclick="setWeather('rain');  vrpSetWeatherBtn(this)">
+                                <span class="vrp-weather-icon">🌧️</span>
+                                <span class="vrp-weather-name">Lluvia</span>
+                            </button>
+                            <button class="vrp-weather-btn" data-weather="fog"   onclick="setWeather('fog');   vrpSetWeatherBtn(this)">
+                                <span class="vrp-weather-icon">🌫️</span>
+                                <span class="vrp-weather-name">Niebla</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div><!-- /vrp-body -->
+
+                <!-- ── FOOTER fijo ────────────────────────────────────── -->
+                <div class="vrp-footer">
+                    <button class="vrp-btn-cancel" onclick="closeReplyPanel()">Cancelar</button>
+                    <button class="vrp-btn-send"   onclick="postVNReply()" id="submitReplyBtn">
+                        <span>Enviar Mensaje</span>
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="8" x2="14" y2="8"/><polyline points="10,4 14,8 10,12"/></svg>
+                    </button>
                 </div>
 
-            </div>
-
-            <div class="vn-reply-footer">
-                <button class="btn-secondary" onclick="closeReplyPanel()">Cancelar</button>
-                <button class="btn-primary" onclick="postVNReply()" id="submitReplyBtn">Enviar Mensaje</button>
-            </div>
+            </div><!-- /vrp-modal -->
         </div>
     </div>
 
@@ -14085,10 +15141,20 @@ function setWeather(weather) {
     if (typeof eventBus !== 'undefined') eventBus.emit('weather:changed', { weather: currentWeather });
 
     // Actualizar botones
-    document.querySelectorAll('#weatherSelectorContainer .weather-btn').forEach(btn => {
+    // Actualizar botones de clima — tanto los legacy como los nuevos vrp
+    document.querySelectorAll('#weatherSelectorContainer .weather-btn, .vrp-weather-btn').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.textContent.toLowerCase().includes(weather === 'rain' ? 'lluvia' : weather === 'fog' ? 'niebla' : 'normal')) {
-            btn.classList.add('active');
+        const dw = btn.dataset.weather;
+        if (dw) {
+            // Nuevo sistema: data-weather attribute
+            if (dw === weather || (dw === 'none' && (weather === 'none' || !weather))) {
+                btn.classList.add('active');
+            }
+        } else {
+            // Legacy: comparar textContent
+            if (btn.textContent.toLowerCase().includes(weather === 'rain' ? 'lluvia' : weather === 'fog' ? 'niebla' : 'normal')) {
+                btn.classList.add('active');
+            }
         }
     });
 
@@ -14150,6 +15216,7 @@ function selectEmote(emoteType) {
     currentEmote = emoteType;
     toggleEmotePicker();
     insertEmoteInReplyText(emoteType);
+    _fireEmoteOnActiveSprite(emoteType, true);
 }
 
 function toggleReplyEmotePopover(event) {
@@ -14179,6 +15246,41 @@ function selectReplyEmote(emoteType) {
     currentEmote = emoteType;
     insertEmoteInReplyText(emoteType);
     closeReplyEmotePopover();
+    // Disparar emote en sprite inmediatamente (preview visual)
+    _fireEmoteOnActiveSprite(emoteType, true);
+}
+
+// ── Dispara el emote visualmente en el sprite activo ─────────────────────
+// isPreview=true → solo visual local, sin sync; isPreview=false → viene de msg recibido
+function _fireEmoteOnActiveSprite(emoteType, isPreview = false) {
+    if (!emoteType) return;
+    const config = emoteConfig[emoteType];
+    if (!config) return;
+
+    // Buscar el sprite activo
+    const activeSprite = document.querySelector('.vn-sprite.active');
+    if (!activeSprite) {
+        console.warn('[Etheria emote] No hay sprite activo para mostrar el emote:', emoteType);
+        return;
+    }
+    console.log(`[Etheria emote] ${emoteType} → sprite .active`, activeSprite.dataset?.charId);
+
+    // Limpiar emotes anteriores en TODOS los sprites
+    document.querySelectorAll('.manga-emote').forEach(e => e.remove());
+
+    const emoteNode = document.createElement('div');
+    emoteNode.className = `manga-emote ${config.class}`;
+    emoteNode.textContent = config.symbol;
+    emoteNode.title = config.name;
+    activeSprite.appendChild(emoteNode);
+
+    // Auto-remover con fade-out a los 2.5s (0.5s de fade)
+    setTimeout(() => {
+        if (emoteNode.parentElement) {
+            emoteNode.style.animation = 'emote-disappear 0.5s ease-out forwards';
+            setTimeout(() => emoteNode.remove(), 500);
+        }
+    }, 2500);
 }
 
 function setupReplyEmotePopover() {
@@ -15532,6 +16634,9 @@ async function selectUser(idx, options = {}) {
         userSelectScreen.style.opacity = '';
         userSelectScreen.style.transition = '';
     }
+    // Ocultar botón de tema al salir de la pantalla de selección
+    const profileThemeBtn = document.getElementById('profileThemeBtn');
+    if (profileThemeBtn) profileThemeBtn.style.display = 'none';
     if (mainMenu) {
         mainMenu.classList.remove('hidden');
         mainMenu.style.opacity = '0';
@@ -15654,8 +16759,8 @@ function renderUserCards() {
         addCard.id = 'addProfileCard';
         addCard.onclick = addNewProfile;
         addCard.innerHTML = `
-            <div class="add-profile-icon">+</div>
-            <div class="add-profile-text">Nuevo Archivo</div>
+            <div class="add-profile-icon" style="font-size:2.4rem;line-height:1;">+</div>
+            <div class="add-profile-text" style="font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.15em;text-transform:uppercase;">Nuevo Archivo</div>
         `;
         container.appendChild(addCard);
     }
@@ -15740,58 +16845,114 @@ let fireflyEntities = [];
 
 function initMenuParallax() {
     if (menuParallaxBound) return;
-    const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
-    const parallax = document.getElementById('menuParallax');
-    if (coarsePointer) {
-        if (parallax) {
-            parallax.querySelectorAll('.parallax-layer').forEach((layer) => {
-                layer.style.setProperty('--parallax-x', '0px');
-                layer.style.setProperty('--parallax-y', '0px');
-            });
-        }
+
+    // ── Reduced-motion: sin parallax, sin animaciones ──────────────────
+    const prefersReduced = typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+        menuParallaxBound = true;
         return;
     }
+
+    // ── Coarse pointer (móvil táctil): usamos gyroscope si disponible,
+    //    si no, dejamos las capas estáticas (no hay cursor).
+    const coarsePointer = typeof window.matchMedia === 'function'
+        && window.matchMedia('(pointer: coarse)').matches;
+
+    const parallax = document.getElementById('menuParallax');
     if (!parallax) return;
 
-    // Cada capa define --layer-speed en CSS; aquí solo gestionamos --parallax-x/y
-    // que la capa multiplica por su propia velocidad.
-    // Amplitud máxima: movimiento visible pero no mareante.
-    const MAX_X = 10;
-    const MAX_Y = 6;
+    // Amplitud máxima de desplazamiento (en px) para la capa con depth=1.0
+    // Cada capa se multiplica por su propio data-depth → movimiento suave y diferenciado
+    const MAX_PX = 22;   // horizontal
+    const MAX_PY = 14;   // vertical (menos para no marear)
 
-    const updateParallax = () => {
+    // ── Actualizar custom properties en cada capa según su profundidad ──
+    const applyParallax = () => {
         const layers = parallax.querySelectorAll('.parallax-layer');
-        layers.forEach((layer) => {
-            layer.style.setProperty('--parallax-x', `${menuMouseState.x}px`);
-            layer.style.setProperty('--parallax-y', `${menuMouseState.y}px`);
+        layers.forEach(layer => {
+            const depth = parseFloat(layer.dataset.depth || '0.2');
+            // --px y --py son los desplazamientos BASE (depth=1.0)
+            // La capa lo multiplica por su propio --depth en el transform CSS
+            layer.style.setProperty('--px', `${menuMouseState.x}px`);
+            layer.style.setProperty('--py', `${menuMouseState.y}px`);
         });
+
+        // Partículas: se mueven en dirección opuesta muy levemente → sensación de volumen
+        const particles = document.getElementById('particlesContainer');
+        if (particles) {
+            const pDepth = 0.06; // muy sutil para no marear
+            const px = -menuMouseState.x * pDepth;
+            const py = -menuMouseState.y * pDepth;
+            particles.style.transform = `translate3d(${px}px, ${py}px, 0)`;
+        }
     };
 
-    // Factor de suavizado 0.055: más suave que antes (era 0.07), sin inercia brusca
-    const animateParallax = () => {
-        menuMouseState.x += (menuMouseState.targetX - menuMouseState.x) * 0.03;
-        menuMouseState.y += (menuMouseState.targetY - menuMouseState.y) * 0.03;
-        updateParallax();
-        menuParallaxAnimationId = window.requestAnimationFrame(animateParallax);
+    // ── Loop RAF con interpolación suave (lerp) ──────────────────────────
+    const LERP = 0.028; // 0.028 = muy suave, 0.07 = más reactivo
+    const tick = () => {
+        menuMouseState.x += (menuMouseState.targetX - menuMouseState.x) * LERP;
+        menuMouseState.y += (menuMouseState.targetY - menuMouseState.y) * LERP;
+
+        // Solo redibuja si hay movimiento perceptible (> 0.05px)
+        if (Math.abs(menuMouseState.x - menuMouseState.targetX) > 0.05
+         || Math.abs(menuMouseState.y - menuMouseState.targetY) > 0.05
+         || Math.abs(menuMouseState.x) > 0.05
+         || Math.abs(menuMouseState.y) > 0.05) {
+            applyParallax();
+        }
+
+        menuParallaxAnimationId = window.requestAnimationFrame(tick);
     };
 
-    window.addEventListener('mousemove', (event) => {
-        const nx = (event.clientX / window.innerWidth) - 0.5;
-        const ny = (event.clientY / window.innerHeight) - 0.5;
-        menuMouseState.px = event.clientX;
-        menuMouseState.py = event.clientY;
-        menuMouseState.targetX = nx * MAX_X;
-        menuMouseState.targetY = ny * MAX_Y;
-    });
+    // ── Mouse / pointer (desktop) ────────────────────────────────────────
+    if (!coarsePointer) {
+        window.addEventListener('mousemove', e => {
+            const nx = (e.clientX / window.innerWidth)  - 0.5; // -0.5 … +0.5
+            const ny = (e.clientY / window.innerHeight) - 0.5;
+            menuMouseState.px = e.clientX;
+            menuMouseState.py = e.clientY;
+            menuMouseState.targetX = nx * MAX_PX;
+            menuMouseState.targetY = ny * MAX_PY;
+        }, { passive: true });
 
-    window.addEventListener('mouseleave', () => {
-        menuMouseState.targetX = 0;
-        menuMouseState.targetY = 0;
-    });
+        window.addEventListener('mouseleave', () => {
+            menuMouseState.targetX = 0;
+            menuMouseState.targetY = 0;
+        });
+    }
+
+    // ── Gyroscope (móvil) — amplitud muy baja para no marear ────────────
+    if (coarsePointer && typeof DeviceOrientationEvent !== 'undefined') {
+        const requestGyro = () => {
+            const handler = e => {
+                if (e.gamma == null || e.beta == null) return;
+                // gamma: inclinación lateral (-90…+90), beta: adelante/atrás (-180…+180)
+                const gx = Math.max(-30, Math.min(30, e.gamma)) / 30; // -1…+1
+                const gy = Math.max(-20, Math.min(20, (e.beta - 20))) / 20;
+                menuMouseState.targetX = gx * (MAX_PX * 0.55);
+                menuMouseState.targetY = gy * (MAX_PY * 0.45);
+            };
+
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                // iOS 13+: requiere gesto de usuario
+                document.addEventListener('touchend', async function _req() {
+                    document.removeEventListener('touchend', _req);
+                    try {
+                        const perm = await DeviceOrientationEvent.requestPermission();
+                        if (perm === 'granted') window.addEventListener('deviceorientation', handler, { passive: true });
+                    } catch (_) {}
+                }, { once: true });
+            } else {
+                window.addEventListener('deviceorientation', handler, { passive: true });
+            }
+        };
+        requestGyro();
+    }
 
     menuParallaxBound = true;
     if (!menuParallaxAnimationId) {
-        menuParallaxAnimationId = window.requestAnimationFrame(animateParallax);
+        menuParallaxAnimationId = window.requestAnimationFrame(tick);
     }
 }
 
@@ -16207,6 +17368,9 @@ function backToMenu() {
             mainMenu.classList.remove('hidden');
             generateParticles();
             if (typeof startMenuMusic === 'function') startMenuMusic();
+            // Reset parallax particle offset
+            const particles = document.getElementById('particlesContainer');
+            if (particles) particles.style.transform = '';
         }
     });
 }
@@ -16406,15 +17570,15 @@ function renderGallery() {
         grid.innerHTML = isEmpty
             ? `<div class="gallery-empty">
                 <div class="gallery-empty-icon">
-                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                        <ellipse cx="40" cy="68" rx="22" ry="6" fill="rgba(201,168,108,0.1)"/>
-                        <rect x="14" y="18" width="52" height="42" rx="4" fill="rgba(201,168,108,0.06)" stroke="rgba(201,168,108,0.3)" stroke-width="1.5"/>
-                        <path d="M28 34 Q40 20 52 34" stroke="rgba(201,168,108,0.5)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-                        <path d="M35 42 Q37 38 40 42 Q43 38 45 42" stroke="rgba(201,168,108,0.4)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-                        <circle cx="33" cy="38" r="1.5" fill="rgba(201,168,108,0.5)"/>
-                        <circle cx="47" cy="38" r="1.5" fill="rgba(201,168,108,0.5)"/>
-                        <path d="M58 10 C58 10 62 22 55 24" stroke="rgba(201,168,108,0.35)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-                        <path d="M56 10 L60 8 L58 12" fill="rgba(201,168,108,0.35)"/>
+                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" class="etheria-mascot">
+                        <ellipse cx="40" cy="68" rx="22" ry="6" class="mascot-shadow"/>
+                        <rect x="14" y="18" width="52" height="42" rx="4" class="mascot-body"/>
+                        <path d="M28 34 Q40 20 52 34" class="mascot-arc" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                        <path d="M35 42 Q37 38 40 42 Q43 38 45 42" class="mascot-mouth" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                        <circle cx="33" cy="38" r="1.5" class="mascot-eye"/>
+                        <circle cx="47" cy="38" r="1.5" class="mascot-eye"/>
+                        <path d="M58 10 C58 10 62 22 55 24" class="mascot-antenna" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                        <path d="M56 10 L60 8 L58 12" class="mascot-antenna-tip"/>
                     </svg>
                 </div>
                 <p class="gallery-empty-text">Ningún alma ha sido plasmada todavía…</p>
@@ -17689,6 +18853,30 @@ function triggerOracleReply() {
     toggleOracleMiniPanel();
 }
 
+function toggleVnDialogEmotePicker(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    const popover = document.getElementById('vnDialogEmotePopover');
+    if (!popover) return;
+    const isOpen = popover.style.display !== 'none';
+    popover.style.display = isOpen ? 'none' : 'flex';
+    popover.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
+    if (!isOpen) {
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function _closeDialogEmote(e) {
+                const btn = document.getElementById('vnEmoteDialogBtn');
+                if (!popover.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+                    popover.style.display = 'none';
+                    popover.setAttribute('aria-hidden', 'true');
+                    document.removeEventListener('click', _closeDialogEmote, true);
+                }
+            }, { once: false, capture: true });
+        }, 50);
+    }
+}
+
+
+
 // ---- Mini-panel del Oráculo ----
 let oracleMiniStat = 'STR';
 
@@ -18363,6 +19551,28 @@ function enterTopic(id) {
     continuousReadEnabled = localStorage.getItem('etheria_continuous_read') === '1';
     continuousReadDelaySec = Math.max(3, Math.min(5, Number(localStorage.getItem('etheria_continuous_delay') || 4)));
 
+    // ── Auto-open RPG stats modal si el personaje aún no ha gastado puntos ──
+    // Solo la primera vez que se entra al topic (puntos libres == pool completo)
+    if (currentTopicMode === 'rpg' && selectedCharId) {
+        const _statsAutoKey = `etheria_stats_prompted_${id}_${selectedCharId}`;
+        if (!localStorage.getItem(_statsAutoKey)) {
+            const _char = appData.characters.find(c => String(c.id) === String(selectedCharId));
+            if (_char && typeof ensureCharacterRpgProfile === 'function' && typeof getRpgSpentPoints === 'function') {
+                const _profile = ensureCharacterRpgProfile(_char, id);
+                const _spent = getRpgSpentPoints(_profile);
+                if (_spent === 0 && typeof openRpgStatsModal === 'function') {
+                    localStorage.setItem(_statsAutoKey, '1');
+                    setTimeout(() => {
+                        if (typeof showAutosave === 'function') {
+                            showAutosave('⚔️ ¡Distribuye tus 14 puntos de stats para empezar!', 'info');
+                        }
+                        openRpgStatsModal(selectedCharId);
+                    }, 900);
+                }
+            }
+        }
+    }
+
     // Carga desde Supabase y suscripción realtime (no bloquea el flujo principal)
     _sbEnterTopic(id);
 }
@@ -18971,10 +20181,40 @@ const SHADOW_SVG_NEUTRAL = `<svg viewBox="0 0 210 520" xmlns="http://www.w3.org/
   </g>
 </svg>`;
 
-// ── URLs de siluetas por defecto ────────────────────────────────────────────
-const DEFAULT_SPRITE_FEM    = 'https://e7.pngegg.com/pngimages/108/857/png-clipart-silhouette-human-siluet-child-woman.png';
-const DEFAULT_SPRITE_MASC   = 'https://e7.pngegg.com/pngimages/732/1021/png-clipart-silhouette-silhouette-animals-photography.png';
-const DEFAULT_SPRITE_NEUTRAL = DEFAULT_SPRITE_FEM; // fallback neutro = femenino
+// ── URLs de siluetas por defecto — SVG inline como data URI (sin fondo blanco) ──
+const _svgToDataUri = (svg) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+
+const _SILO_FEM_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 520">
+  <g fill="rgba(20,14,8,0.85)">
+    <ellipse cx="100" cy="38" rx="28" ry="32"/>
+    <rect x="88" y="66" width="24" height="20" rx="5"/>
+    <path d="M68,84 C52,92 46,108 48,126 L52,160 C54,172 62,180 72,184 L78,200 C82,212 80,224 74,234 L64,264 C60,278 62,292 70,300 L74,328 L126,328 L130,300 C138,292 140,278 136,264 L126,234 C120,224 118,212 122,200 L128,184 C138,180 146,172 148,160 L152,126 C154,108 148,92 132,84 C122,78 112,76 100,76 C88,76 78,78 68,84 Z"/>
+    <path d="M66,322 C54,326 46,336 44,348 L40,374 C38,388 44,402 54,408 L58,440 L90,440 L92,406 L100,400 L108,406 L110,440 L142,440 L146,408 C156,402 162,388 160,374 L156,348 C154,336 146,326 134,322 Z"/>
+    <path d="M56,436 L58,486 C58,500 56,514 54,524 L50,516 C52,504 52,490 50,476 L48,436 Z M60,436 L88,436 L88,476 C88,492 86,506 84,516 L80,524 L76,516 C78,506 78,492 78,476 L76,436 Z"/>
+    <path d="M112,436 L114,476 C114,492 114,506 116,516 L112,524 L108,516 C106,506 106,492 106,476 L104,436 Z M116,436 L144,436 L144,476 C142,490 142,504 144,516 L140,524 L136,516 C134,506 134,492 134,476 L134,436 Z"/>
+    <path d="M66,84 L42,90 C30,96 22,112 24,126 L32,178 C34,190 44,196 56,192 L68,188 L60,130 C58,110 60,94 66,84 Z"/>
+    <path d="M134,84 L158,90 C170,96 178,112 176,126 L168,178 C166,190 156,196 144,192 L132,188 L140,130 C142,110 140,94 134,84 Z"/>
+  </g>
+</svg>`;
+
+const _SILO_MASC_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 520">
+  <g fill="rgba(20,14,8,0.85)">
+    <ellipse cx="110" cy="36" rx="30" ry="32"/>
+    <rect x="98" y="64" width="24" height="22" rx="4"/>
+    <path d="M56,80 C38,88 28,106 30,124 L34,166 C36,180 46,190 58,194 L64,214 C66,226 64,238 58,250 L50,280 C46,294 48,308 58,316 L64,344 L156,344 L162,316 C172,308 174,294 170,280 L162,250 C156,238 154,226 156,214 L162,194 C174,190 184,180 186,166 L190,124 C192,106 182,88 164,80 C150,74 132,72 110,72 C88,72 70,74 56,80 Z"/>
+    <path d="M60,338 C48,342 38,354 36,368 L32,396 C30,412 36,428 48,434 L52,466 L88,466 L90,430 L110,424 L130,430 L132,466 L168,466 L172,434 C184,428 190,412 188,396 L184,368 C182,354 172,342 160,338 Z"/>
+    <path d="M50,462 L52,510 C54,516 58,520 64,520 L84,520 C90,520 94,516 94,510 L92,462 Z"/>
+    <path d="M126,462 L128,510 C128,516 132,520 138,520 L158,520 C164,520 168,516 168,510 L166,462 Z"/>
+    <path d="M54,80 L24,90 C10,96 2,114 4,130 L14,184 C16,198 28,206 42,200 L58,194 L50,130 C48,108 50,90 54,80 Z"/>
+    <ellipse cx="20" cy="208" rx="12" ry="16"/>
+    <path d="M166,80 L196,90 C210,96 218,114 216,130 L206,184 C204,198 192,206 178,200 L162,194 L170,130 C172,108 170,90 166,80 Z"/>
+    <ellipse cx="200" cy="208" rx="12" ry="16"/>
+  </g>
+</svg>`;
+
+const DEFAULT_SPRITE_FEM     = _svgToDataUri(_SILO_FEM_SVG);
+const DEFAULT_SPRITE_MASC    = _svgToDataUri(_SILO_MASC_SVG);
+const DEFAULT_SPRITE_NEUTRAL = DEFAULT_SPRITE_FEM;
 
 // ── Construye la estructura DOM completa de una silueta-sombra ───────────────
 // Usa imágenes PNG externas por género, con glow y hitbox idénticos al sistema anterior
@@ -19004,14 +20244,13 @@ function _buildSpriteShadow(characterId) {
     img.alt = '';
     img.className = 'shadow-silhouette-img';
     img.draggable = false;
-    // Fallback si la URL externa falla — usar SVG neutro inline
+    // Fallback de seguridad — usar SVG del mismo inline set
     img.onerror = function () {
         this.onerror = null;
-        const g = genderClass === 'shadow-masc' ? SHADOW_SVG_MASC
-                : genderClass === 'shadow-fem'  ? SHADOW_SVG_FEM
-                : SHADOW_SVG_NEUTRAL;
-        const blob = new Blob([g], { type: 'image/svg+xml' });
-        this.src = URL.createObjectURL(blob);
+        const g = genderClass === 'shadow-masc' ? _SILO_MASC_SVG
+                : genderClass === 'shadow-fem'  ? _SILO_FEM_SVG
+                : _SILO_FEM_SVG;
+        this.src = _svgToDataUri(g);
     };
     wrapper.appendChild(img);
 
@@ -19116,10 +20355,16 @@ function updateSprites(currentMsg, activeEmote = null) {
         }
 
         if (isCurrent && activeEmote) {
-            const emoteNode = document.createElement('div');
-            emoteNode.className = `manga-emote emote-${activeEmote}`;
-            emoteNode.textContent = emoteConfig[activeEmote]?.symbol || '';
-            spriteNode.appendChild(emoteNode);
+            // showEmoteOnSprite handles animation + fade-out (defined in effects.js)
+            if (typeof showEmoteOnSprite === 'function') {
+                showEmoteOnSprite(activeEmote, spriteNode);
+            } else {
+                // Fallback
+                const emoteNode = document.createElement('div');
+                emoteNode.className = `manga-emote emote-${activeEmote}`;
+                emoteNode.textContent = emoteConfig[activeEmote]?.symbol || '';
+                spriteNode.appendChild(emoteNode);
+            }
         }
 
         container.appendChild(spriteNode);
@@ -20110,6 +21355,8 @@ function updateNarrateButton() {
     const narrateDialogBtn = document.getElementById('vnNarrateDialogBtn');
     if (narrateDialogBtn) narrateDialogBtn.style.display = (!isRpg && isOwner) ? 'inline-flex' : 'none';
 
+    // ⚔️ Stats fijo: eliminado de la caja de diálogo — ahora solo en IHP panel (fijado)
+
     // ✒ Narrar en barra de controles: ya no necesario, quitar si existe
     const narrateCtrl = document.getElementById('vnNarrateBtn');
     if (narrateCtrl) narrateCtrl.style.display = 'none';
@@ -20248,25 +21495,31 @@ function openReplyPanel() {
 
     panel.style.display = 'flex';
     cancelContinuousRead('reply-open');
+    // Drawer gestures no aplican al nuevo modal, pero mantenemos la llamada por compatibilidad
     bindReplyDrawerGestures();
-    if (shouldUseMobileDrawer()) {
-        setReplyDrawerExpanded(false);
-    } else {
-        panel.classList.remove('drawer-expanded', 'drawer-collapsed');
-    }
+    panel.classList.remove('drawer-expanded', 'drawer-collapsed');
     updateVnMobileFabVisibility();
     updateOracleFloatButton();
 
-    const replyPanelTitle = document.getElementById('replyPanelTitle');
-    const submitBtn = document.getElementById('submitReplyBtn');
-    const optionsToggleContainer = document.getElementById('optionsToggleContainer');
+    const replyPanelTitle  = document.getElementById('replyPanelTitle');
+    const submitBtn        = document.getElementById('submitReplyBtn');
+    const optionsToggleContainer  = document.getElementById('optionsToggleContainer');
     const weatherSelectorContainer = document.getElementById('weatherSelectorContainer');
-    const narratorToggle = document.getElementById('narratorToggle');
+    const narratorToggle   = document.getElementById('narratorToggle');
+    const vrpCharBadge     = document.getElementById('vrpCharBadge');
 
-    if (replyPanelTitle) replyPanelTitle.textContent = editingMessageId ? '✏️ Editar Mensaje' : '💬 Responder';
+    // Título según contexto (editar vs responder)
+    if (replyPanelTitle) replyPanelTitle.textContent = editingMessageId ? 'Editar Mensaje' : 'Responder';
     if (submitBtn) {
-        submitBtn.textContent = editingMessageId ? '💾 Guardar Cambios' : 'Enviar Mensaje';
+        const sendSpan = submitBtn.querySelector('span');
+        if (sendSpan) sendSpan.textContent = editingMessageId ? 'Guardar Cambios' : 'Enviar Mensaje';
         submitBtn.onclick = editingMessageId ? saveEditedMessage : postVNReply;
+    }
+
+    // Badge con nombre del personaje activo
+    if (vrpCharBadge && selectedCharId) {
+        const activeChar = appData.characters.find(c => String(c.id) === String(selectedCharId));
+        if (activeChar) vrpCharBadge.textContent = activeChar.name;
     }
 
     // Mostrar/ocultar opciones según modo
@@ -20279,28 +21532,33 @@ function openReplyPanel() {
         weatherSelectorContainer.style.display = 'block';
     }
 
-    // (escena y capítulo se gestionan desde el botón flotante vnNarrateBtn)
     const topic = getCurrentTopic();
     setupOraclePanelForMode();
     const narratorAllowed = canUseNarratorMode(topic);
-    if (narratorToggle) narratorToggle.style.display = narratorAllowed ? 'flex' : 'none';
+    if (narratorToggle) {
+        narratorToggle.style.display = narratorAllowed ? 'flex' : 'none';
+    }
     if (!narratorAllowed) {
         isNarratorMode = false;
         const narratorMode = document.getElementById('narratorMode');
         if (narratorMode) narratorMode.checked = false;
+        if (narratorToggle) narratorToggle.classList.remove('active');
     }
 
     if (!editingMessageId) {
         const replyText = document.getElementById('vnReplyText');
-        if (replyText) replyText.value = '';
+        if (replyText) {
+            replyText.value = '';
+            vrpUpdatePreview();
+            vrpAutoResize(replyText);
+        }
 
         const enableOptions = document.getElementById('enableOptions');
         const optionsFields = document.getElementById('optionsFields');
-
         if (enableOptions) enableOptions.checked = false;
         if (optionsFields) optionsFields.classList.remove('active');
 
-        for(let i=1; i<=3; i++) {
+        for (let i = 1; i <= 3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
             if (textInput) textInput.value = '';
@@ -20312,13 +21570,14 @@ function openReplyPanel() {
     updateCharSelector();
     updateSceneChangePreview();
 
-    // Actualizar botones de clima
-    document.querySelectorAll('#weatherSelectorContainer .weather-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.textContent.toLowerCase().includes(currentWeather === 'rain' ? 'lluvia' : currentWeather === 'fog' ? 'niebla' : 'normal')) {
-            btn.classList.add('active');
-        }
-    });
+    // Actualizar botones de clima (nuevos vrp-weather-btn)
+    vrpSyncWeatherButtons();
+
+    // Foco al textarea después de la animación de entrada
+    setTimeout(() => {
+        const replyText = document.getElementById('vnReplyText');
+        if (replyText) replyText.focus();
+    }, 240);
 }
 
 function closeReplyPanel() {
@@ -20361,15 +21620,12 @@ function updateCharSelector() {
     const display = document.getElementById('charSelectedDisplay');
     const nameEl = document.getElementById('charSelectedName');
     const grid = document.getElementById('charGridDropdown');
-    const statsBtn = document.getElementById('charStatsQuickBtn');
 
-    if(!display || !nameEl) return;
+    if(!nameEl) return;
 
     if(mine.length === 0) {
-        display.innerHTML = '<div class="placeholder">👤</div>';
         nameEl.textContent = 'Crea un personaje primero';
         if (grid) grid.innerHTML = '';
-        if (statsBtn) statsBtn.style.display = 'none';
         return;
     }
 
@@ -20392,35 +21648,7 @@ function updateCharSelector() {
 
     selectedCharId = currentChar.id;
 
-    if (currentChar.avatar) {
-        // XSS fix: DOM construction for avatar display
-        const _imgDisp = document.createElement('img');
-        _imgDisp.src = currentChar.avatar;
-        _imgDisp.alt = 'Avatar de ' + currentChar.name;
-        _imgDisp.onerror = function () {
-            this.style.display = 'none';
-            const _ph = document.createElement('div');
-            _ph.className = 'placeholder';
-            _ph.textContent = (currentChar.name || '?')[0];
-            this.parentElement.appendChild(_ph);
-        };
-        display.innerHTML = '';
-        display.appendChild(_imgDisp);
-    } else {
-        display.innerHTML = `<div class="placeholder">${currentChar.name[0]}</div>`;
-    }
     nameEl.textContent = currentChar.name;
-
-    const hintEl = document.querySelector('.char-selected-hint');
-    if (hintEl) {
-        hintEl.textContent = isCharLocked
-            ? 'Personaje bloqueado para esta historia'
-            : 'Click en el círculo para cambiar';
-    }
-
-    if (statsBtn) {
-        statsBtn.style.display = (topic?.mode === 'rpg' && selectedCharId) ? 'inline-flex' : 'none';
-    }
 
     if (grid && !isCharLocked) {
         grid.innerHTML = mine.map(c => `
@@ -20497,12 +21725,15 @@ function toggleNarratorMode() {
     if (!canUseNarratorMode(topic)) return;
 
     const narratorMode = document.getElementById('narratorMode');
-    isNarratorMode = narratorMode ? narratorMode.checked : false;
+    const toggle       = document.getElementById('narratorToggle');
+
+    // Toggle state: si el switch está activo se desactiva y viceversa
+    isNarratorMode = toggle ? !toggle.classList.contains('active') : false;
+    if (narratorMode) narratorMode.checked = isNarratorMode;
 
     const container = document.getElementById('charSelectorContainer');
-    const toggle = document.getElementById('narratorToggle');
 
-    if(isNarratorMode) {
+    if (isNarratorMode) {
         if (container) container.style.display = 'none';
         if (toggle) toggle.classList.add('active');
         selectedCharId = null;
@@ -20859,6 +22090,112 @@ function triggerInnkeeperScene() {
     showAutosave(`🍺 Garrick ha hablado — HP restaurado. Ahora usa el Narrador para continuar.`, 'saved');
     if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
     if (typeof updateNarrateButton === 'function') updateNarrateButton();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VRP (Modal Responder v2) — helpers: Markdown preview, auto-resize, clima
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Mapa de emotes para el preview */
+const _VRP_EMOTE_MAP = {
+    angry: '💢', happy: '✨', shock: '💦', sad: '💧', think: '💭',
+    love: '💕', annoyed: '💢', embarrassed: '😳', idea: '💡', sleep: '💤'
+};
+
+/**
+ * Convierte texto con Markdown básico y comandos /emote a HTML para el preview.
+ * No usa dependencias externas — regex ligero.
+ */
+function vrpRenderMarkdown(text) {
+    if (!text) return '';
+
+    let html = text
+        // Escapar HTML básico para evitar XSS
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // Negrita: **texto** o __texto__
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.+?)__/g, '<strong>$1</strong>')
+        // Cursiva: *texto* o _texto_ (no seguido de otro *)
+        .replace(/\*(?!\*)(.+?)(?<!\*)\*/g, '<em>$1</em>')
+        .replace(/_(?!_)(.+?)(?<!_)_/g, '<em>$1</em>')
+        // Comandos de emote: /angry → 💢 con clase animada
+        .replace(/\/(angry|happy|shock|sad|think|love|annoyed|embarrassed|idea|sleep)\b/gi,
+            (_, cmd) => {
+                const sym = _VRP_EMOTE_MAP[cmd.toLowerCase()] || '';
+                return `<span class="emote-tag" title="/${cmd}">${sym}</span>`;
+            })
+        // Saltos de línea
+        .replace(/\n/g, '<br>');
+
+    return html;
+}
+
+/** Actualiza el panel de preview con el contenido actual del textarea */
+function vrpUpdatePreview() {
+    const textarea = document.getElementById('vnReplyText');
+    const preview  = document.getElementById('vrpPreviewContent');
+    const hint     = document.getElementById('vrpPreviewHint');
+    if (!textarea || !preview) return;
+
+    const raw = textarea.value;
+    const rendered = vrpRenderMarkdown(raw);
+    preview.innerHTML = rendered || '';
+
+    if (hint) {
+        hint.textContent = raw.length > 0
+            ? `${raw.length} car.`
+            : 'Empieza a escribir…';
+    }
+}
+
+/** Auto-resize del textarea: crece con el contenido hasta max-height CSS */
+function vrpAutoResize(el) {
+    if (!el) return;
+    // Reset para calcular correctamente scrollHeight
+    el.style.height = 'auto';
+    // Aplicar la altura real del contenido (respeta max-height del CSS)
+    const maxH = parseInt(getComputedStyle(el).maxHeight || '260', 10);
+    const newH = Math.min(el.scrollHeight, maxH);
+    el.style.height = newH + 'px';
+    // Si el contenido supera el max, activar scroll interno
+    el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
+}
+
+/** Toggle de preview en portrait: muestra/oculta el preview pane */
+function vrpTogglePreview() {
+    const previewPane   = document.getElementById('vrpPreviewPane');
+    const toggleBtn     = document.getElementById('vrpPreviewToggle');
+    if (!previewPane || !toggleBtn) return;
+
+    const isVisible = previewPane.classList.contains('vrp-preview-visible');
+    previewPane.classList.toggle('vrp-preview-visible', !isVisible);
+    toggleBtn.classList.toggle('active', !isVisible);
+
+    if (!isVisible) {
+        // Al abrir el preview, actualizar contenido
+        vrpUpdatePreview();
+        toggleBtn.textContent = '✕ Cerrar vista previa';
+    } else {
+        toggleBtn.innerHTML = '<span>👁</span> Ver vista previa';
+    }
+}
+
+/** Sincroniza los botones de clima del nuevo modal con el estado actual */
+function vrpSyncWeatherButtons() {
+    document.querySelectorAll('.vrp-weather-btn').forEach(btn => {
+        const w = btn.dataset.weather;
+        const isActive = (w === 'none' && (currentWeather === 'none' || !currentWeather))
+                      || (w === currentWeather);
+        btn.classList.toggle('active', isActive);
+    });
+}
+
+/** Marca el botón de clima clicado como activo (llamado desde onclick del HTML) */
+function vrpSetWeatherBtn(clickedBtn) {
+    document.querySelectorAll('.vrp-weather-btn').forEach(b => b.classList.remove('active'));
+    if (clickedBtn) clickedBtn.classList.add('active');
 }
 
 </script>
@@ -24031,7 +25368,148 @@ document.addEventListener('DOMContentLoaded', async () => {
     })();
     // ─────────────────────────────────────────────────────────────────────────
 
-    const loginBtn = document.getElementById('authLoginBtn');
+    // ── Forzar orientación landscape en móviles (PWA) ─────────────────────
+    // Etheria está diseñado para horizontal. Intentamos bloquear landscape en
+    // móviles reales. En tablets grandes y desktop no hacemos nada (ya son
+    // landscape por naturaleza, y Android 12L+ prohíbe el lock en pantallas
+    // ≥ 600 dp de ancho menor).
+    //
+    // Compatibilidad 2025-2026:
+    //   • screen.orientation.lock() es parte del W3C Screen Orientation API.
+    //   • Chrome Android ≥ 93 lo soporta en modo standalone/fullscreen PWA.
+    //   • Safari iOS ≥ 16.4 lo soporta parcialmente (requiere interacción previa).
+    //   • Firefox Android lo soporta desde v112.
+    //   • En navegador normal (no PWA instalada) puede rechazarlo — se captura.
+    //   • En tablets/Chromebooks con ventana redimensionable Chrome lanza
+    //     NotSupportedError; lo capturamos y no hacemos nada.
+    (function initOrientationLock() {
+        const ua = navigator.userAgent || '';
+
+        // Solo actuar en móviles / handhelds reales.
+        // Usamos pointer:coarse + viewport estrecho como doble guardia para
+        // evitar lockear accidentalmente tablets en modo split-window.
+        const isMobileUA   = /Mobi|Android.*Mobile|iPhone|iPod|IEMobile|Opera Mini/i.test(ua);
+        const isCoarse     = typeof window.matchMedia === 'function'
+                             && window.matchMedia('(pointer: coarse)').matches;
+        const isNarrowPort = window.innerWidth < window.innerHeight  // arrancó en portrait
+                             && Math.min(window.innerWidth, window.innerHeight) < 600;
+
+        // Tablets grandes (≥ 600px lado corto): dejamos que el SO gestione
+        const isLargeTablet = Math.min(window.innerWidth, window.innerHeight) >= 600;
+
+        const shouldLock = (isMobileUA || isCoarse) && !isLargeTablet;
+        if (!shouldLock) return; // desktop / tablet grande → sin lock
+
+        // Clave localStorage para mostrar el toast SOLO la primera vez
+        const TOAST_KEY = 'etheria_landscape_hint_shown';
+
+        // ── Función principal de lock ───────────────────────────────────────
+        async function lockLandscape() {
+            // screen.orientation no disponible (navegador antiguo o iOS < 16.4)
+            if (!screen?.orientation?.lock) {
+                _showLandscapeHint();
+                return;
+            }
+
+            try {
+                await screen.orientation.lock('landscape');
+                // Lock exitoso → quitar hint si estaba visible, marcar como hecho
+                localStorage.setItem(TOAST_KEY, '1');
+                _hideLandscapeHint();
+            } catch (err) {
+                // Razones habituales de fallo:
+                //   SecurityError  → no estamos en standalone / fullscreen
+                //   NotSupportedError → tablet en modo ventana, Chromebook, etc.
+                //   AbortError     → pantalla ya en landscape cuando se intentó
+                console.warn('[Etheria] Orientation lock falló:', err.name, err.message);
+
+                // Si ya estamos en landscape no hace falta el hint
+                const alreadyLandscape = window.innerWidth >= window.innerHeight;
+                if (!alreadyLandscape) {
+                    _showLandscapeHint();
+                }
+            }
+        }
+
+        // ── Toast / hint sutil ──────────────────────────────────────────────
+        // Se muestra UNA sola vez (hasta que el usuario instale la PWA y el
+        // lock empiece a funcionar).
+        function _showLandscapeHint() {
+            if (localStorage.getItem(TOAST_KEY)) return; // ya lo vio
+            if (window.innerWidth >= window.innerHeight)  return; // ya landscape
+
+            // Usar el sistema de toasts nativo de Etheria si está disponible,
+            // de lo contrario crear un elemento temporal propio.
+            if (typeof showAutosave === 'function') {
+                showAutosave('Gira el móvil horizontal para mejor experiencia 🔄', 'info');
+            } else {
+                _injectHintElement();
+            }
+            localStorage.setItem(TOAST_KEY, '1');
+        }
+
+        function _hideLandscapeHint() {
+            const el = document.getElementById('_etheriaLandscapeHint');
+            if (el) el.remove();
+        }
+
+        // Fallback mínimo si showAutosave aún no está disponible (raro)
+        function _injectHintElement() {
+            if (document.getElementById('_etheriaLandscapeHint')) return;
+            const hint = document.createElement('div');
+            hint.id = '_etheriaLandscapeHint';
+            hint.setAttribute('aria-live', 'polite');
+            hint.style.cssText = [
+                'position:fixed', 'bottom:1.2rem', 'left:50%',
+                'transform:translateX(-50%)',
+                'background:rgba(20,15,8,0.92)',
+                'color:rgba(220,190,120,0.95)',
+                'font-family:"Cinzel",serif',
+                'font-size:0.8rem', 'letter-spacing:0.05em',
+                'padding:0.55rem 1.1rem', 'border-radius:8px',
+                'border:1px solid rgba(201,168,108,0.4)',
+                'box-shadow:0 4px 20px rgba(0,0,0,0.6)',
+                'z-index:9999', 'white-space:nowrap',
+                'pointer-events:none',
+                'animation:etheriaHintFade 4s ease forwards'
+            ].join(';');
+            hint.textContent = 'Gira el móvil horizontal para mejor experiencia 🔄';
+
+            // Inyectar keyframe si no existe
+            if (!document.getElementById('_etheriaHintStyle')) {
+                const style = document.createElement('style');
+                style.id = '_etheriaHintStyle';
+                style.textContent = '@keyframes etheriaHintFade{0%{opacity:0;transform:translateX(-50%) translateY(6px)}15%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}';
+                document.head.appendChild(style);
+            }
+            document.body.appendChild(hint);
+            setTimeout(() => hint.remove(), 4200);
+        }
+
+        // ── Escuchar cambios de orientación ─────────────────────────────────
+        // Si el usuario rota manualmente a portrait después de que el lock
+        // haya fallado, recordamos intentarlo de nuevo (por si la PWA ya está
+        // instalada y ahora el lock sí funciona).
+        if (screen?.orientation) {
+            screen.orientation.addEventListener('change', () => {
+                const type = screen.orientation.type || '';
+                if (type.startsWith('portrait')) {
+                    // Reintentar lock silencioso
+                    lockLandscape();
+                }
+            });
+        }
+
+        // Intentar lock inicial — en standalone ya tenemos contexto de pantalla.
+        // Usamos un pequeño delay para asegurarnos de que el DOM está listo y
+        // la PWA ha completado su transición de startup.
+        if (document.readyState === 'complete') {
+            lockLandscape();
+        } else {
+            window.addEventListener('load', lockLandscape, { once: true });
+        }
+    })();
+    // ── Fin orientación landscape ─────────────────────────────────────────
     const registerBtn = document.getElementById('authRegisterBtn');
     if (loginBtn) loginBtn.addEventListener('click', login);
     if (registerBtn) registerBtn.addEventListener('click', register);
@@ -24998,6 +26476,28 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         obs.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    })();
+    </script>
+    <!-- Guardia de arranque: garantiza que las tarjetas de perfil aparecen aunque falle otro script -->
+    <script>
+    (function() {
+        function _ensureProfileCards() {
+            var container = document.getElementById('userCardsContainer');
+            if (!container) return;
+            if (container.children.length > 0) return; // ya hay tarjetas
+            if (typeof renderUserCards === 'function') {
+                try { renderUserCards(); } catch(e) { console.error('[Etheria] renderUserCards error:', e); }
+            }
+        }
+        // Intentar inmediatamente, luego con retardos por si los scripts cargan tarde
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(_ensureProfileCards, 100);
+            setTimeout(_ensureProfileCards, 500);
+            setTimeout(_ensureProfileCards, 1500);
+        });
+        window.addEventListener('load', function() {
+            setTimeout(_ensureProfileCards, 200);
+        });
     })();
     </script>
 </body>

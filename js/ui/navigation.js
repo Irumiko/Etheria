@@ -140,6 +140,9 @@ function backToMenu() {
             mainMenu.classList.remove('hidden');
             generateParticles();
             if (typeof startMenuMusic === 'function') startMenuMusic();
+            // Reset parallax particle offset
+            const particles = document.getElementById('particlesContainer');
+            if (particles) particles.style.transform = '';
         }
     });
 }
@@ -339,15 +342,15 @@ function renderGallery() {
         grid.innerHTML = isEmpty
             ? `<div class="gallery-empty">
                 <div class="gallery-empty-icon">
-                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-                        <ellipse cx="40" cy="68" rx="22" ry="6" fill="rgba(201,168,108,0.1)"/>
-                        <rect x="14" y="18" width="52" height="42" rx="4" fill="rgba(201,168,108,0.06)" stroke="rgba(201,168,108,0.3)" stroke-width="1.5"/>
-                        <path d="M28 34 Q40 20 52 34" stroke="rgba(201,168,108,0.5)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-                        <path d="M35 42 Q37 38 40 42 Q43 38 45 42" stroke="rgba(201,168,108,0.4)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-                        <circle cx="33" cy="38" r="1.5" fill="rgba(201,168,108,0.5)"/>
-                        <circle cx="47" cy="38" r="1.5" fill="rgba(201,168,108,0.5)"/>
-                        <path d="M58 10 C58 10 62 22 55 24" stroke="rgba(201,168,108,0.35)" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-                        <path d="M56 10 L60 8 L58 12" fill="rgba(201,168,108,0.35)"/>
+                    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" class="etheria-mascot">
+                        <ellipse cx="40" cy="68" rx="22" ry="6" class="mascot-shadow"/>
+                        <rect x="14" y="18" width="52" height="42" rx="4" class="mascot-body"/>
+                        <path d="M28 34 Q40 20 52 34" class="mascot-arc" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                        <path d="M35 42 Q37 38 40 42 Q43 38 45 42" class="mascot-mouth" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                        <circle cx="33" cy="38" r="1.5" class="mascot-eye"/>
+                        <circle cx="47" cy="38" r="1.5" class="mascot-eye"/>
+                        <path d="M58 10 C58 10 62 22 55 24" class="mascot-antenna" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                        <path d="M56 10 L60 8 L58 12" class="mascot-antenna-tip"/>
                     </svg>
                 </div>
                 <p class="gallery-empty-text">Ningún alma ha sido plasmada todavía…</p>

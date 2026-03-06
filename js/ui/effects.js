@@ -50,10 +50,20 @@ function setWeather(weather) {
     if (typeof eventBus !== 'undefined') eventBus.emit('weather:changed', { weather: currentWeather });
 
     // Actualizar botones
-    document.querySelectorAll('#weatherSelectorContainer .weather-btn').forEach(btn => {
+    // Actualizar botones de clima — tanto los legacy como los nuevos vrp
+    document.querySelectorAll('#weatherSelectorContainer .weather-btn, .vrp-weather-btn').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.textContent.toLowerCase().includes(weather === 'rain' ? 'lluvia' : weather === 'fog' ? 'niebla' : 'normal')) {
-            btn.classList.add('active');
+        const dw = btn.dataset.weather;
+        if (dw) {
+            // Nuevo sistema: data-weather attribute
+            if (dw === weather || (dw === 'none' && (weather === 'none' || !weather))) {
+                btn.classList.add('active');
+            }
+        } else {
+            // Legacy: comparar textContent
+            if (btn.textContent.toLowerCase().includes(weather === 'rain' ? 'lluvia' : weather === 'fog' ? 'niebla' : 'normal')) {
+                btn.classList.add('active');
+            }
         }
     });
 
@@ -115,6 +125,7 @@ function selectEmote(emoteType) {
     currentEmote = emoteType;
     toggleEmotePicker();
     insertEmoteInReplyText(emoteType);
+    _fireEmoteOnActiveSprite(emoteType, true);
 }
 
 function toggleReplyEmotePopover(event) {
@@ -144,6 +155,41 @@ function selectReplyEmote(emoteType) {
     currentEmote = emoteType;
     insertEmoteInReplyText(emoteType);
     closeReplyEmotePopover();
+    // Disparar emote en sprite inmediatamente (preview visual)
+    _fireEmoteOnActiveSprite(emoteType, true);
+}
+
+// ── Dispara el emote visualmente en el sprite activo ─────────────────────
+// isPreview=true → solo visual local, sin sync; isPreview=false → viene de msg recibido
+function _fireEmoteOnActiveSprite(emoteType, isPreview = false) {
+    if (!emoteType) return;
+    const config = emoteConfig[emoteType];
+    if (!config) return;
+
+    // Buscar el sprite activo
+    const activeSprite = document.querySelector('.vn-sprite.active');
+    if (!activeSprite) {
+        console.warn('[Etheria emote] No hay sprite activo para mostrar el emote:', emoteType);
+        return;
+    }
+    console.log(`[Etheria emote] ${emoteType} → sprite .active`, activeSprite.dataset?.charId);
+
+    // Limpiar emotes anteriores en TODOS los sprites
+    document.querySelectorAll('.manga-emote').forEach(e => e.remove());
+
+    const emoteNode = document.createElement('div');
+    emoteNode.className = `manga-emote ${config.class}`;
+    emoteNode.textContent = config.symbol;
+    emoteNode.title = config.name;
+    activeSprite.appendChild(emoteNode);
+
+    // Auto-remover con fade-out a los 2.5s (0.5s de fade)
+    setTimeout(() => {
+        if (emoteNode.parentElement) {
+            emoteNode.style.animation = 'emote-disappear 0.5s ease-out forwards';
+            setTimeout(() => emoteNode.remove(), 500);
+        }
+    }, 2500);
 }
 
 function setupReplyEmotePopover() {

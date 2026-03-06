@@ -138,6 +138,9 @@ async function selectUser(idx, options = {}) {
         userSelectScreen.style.opacity = '';
         userSelectScreen.style.transition = '';
     }
+    // Ocultar botón de tema al salir de la pantalla de selección
+    const profileThemeBtn = document.getElementById('profileThemeBtn');
+    if (profileThemeBtn) profileThemeBtn.style.display = 'none';
     if (mainMenu) {
         mainMenu.classList.remove('hidden');
         mainMenu.style.opacity = '0';
@@ -260,8 +263,8 @@ function renderUserCards() {
         addCard.id = 'addProfileCard';
         addCard.onclick = addNewProfile;
         addCard.innerHTML = `
-            <div class="add-profile-icon">+</div>
-            <div class="add-profile-text">Nuevo Archivo</div>
+            <div class="add-profile-icon" style="font-size:2.4rem;line-height:1;">+</div>
+            <div class="add-profile-text" style="font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.15em;text-transform:uppercase;">Nuevo Archivo</div>
         `;
         container.appendChild(addCard);
     }
@@ -346,58 +349,114 @@ let fireflyEntities = [];
 
 function initMenuParallax() {
     if (menuParallaxBound) return;
-    const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
-    const parallax = document.getElementById('menuParallax');
-    if (coarsePointer) {
-        if (parallax) {
-            parallax.querySelectorAll('.parallax-layer').forEach((layer) => {
-                layer.style.setProperty('--parallax-x', '0px');
-                layer.style.setProperty('--parallax-y', '0px');
-            });
-        }
+
+    // ── Reduced-motion: sin parallax, sin animaciones ──────────────────
+    const prefersReduced = typeof window.matchMedia === 'function'
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) {
+        menuParallaxBound = true;
         return;
     }
+
+    // ── Coarse pointer (móvil táctil): usamos gyroscope si disponible,
+    //    si no, dejamos las capas estáticas (no hay cursor).
+    const coarsePointer = typeof window.matchMedia === 'function'
+        && window.matchMedia('(pointer: coarse)').matches;
+
+    const parallax = document.getElementById('menuParallax');
     if (!parallax) return;
 
-    // Cada capa define --layer-speed en CSS; aquí solo gestionamos --parallax-x/y
-    // que la capa multiplica por su propia velocidad.
-    // Amplitud máxima: movimiento visible pero no mareante.
-    const MAX_X = 10;
-    const MAX_Y = 6;
+    // Amplitud máxima de desplazamiento (en px) para la capa con depth=1.0
+    // Cada capa se multiplica por su propio data-depth → movimiento suave y diferenciado
+    const MAX_PX = 22;   // horizontal
+    const MAX_PY = 14;   // vertical (menos para no marear)
 
-    const updateParallax = () => {
+    // ── Actualizar custom properties en cada capa según su profundidad ──
+    const applyParallax = () => {
         const layers = parallax.querySelectorAll('.parallax-layer');
-        layers.forEach((layer) => {
-            layer.style.setProperty('--parallax-x', `${menuMouseState.x}px`);
-            layer.style.setProperty('--parallax-y', `${menuMouseState.y}px`);
+        layers.forEach(layer => {
+            const depth = parseFloat(layer.dataset.depth || '0.2');
+            // --px y --py son los desplazamientos BASE (depth=1.0)
+            // La capa lo multiplica por su propio --depth en el transform CSS
+            layer.style.setProperty('--px', `${menuMouseState.x}px`);
+            layer.style.setProperty('--py', `${menuMouseState.y}px`);
         });
+
+        // Partículas: se mueven en dirección opuesta muy levemente → sensación de volumen
+        const particles = document.getElementById('particlesContainer');
+        if (particles) {
+            const pDepth = 0.06; // muy sutil para no marear
+            const px = -menuMouseState.x * pDepth;
+            const py = -menuMouseState.y * pDepth;
+            particles.style.transform = `translate3d(${px}px, ${py}px, 0)`;
+        }
     };
 
-    // Factor de suavizado 0.055: más suave que antes (era 0.07), sin inercia brusca
-    const animateParallax = () => {
-        menuMouseState.x += (menuMouseState.targetX - menuMouseState.x) * 0.03;
-        menuMouseState.y += (menuMouseState.targetY - menuMouseState.y) * 0.03;
-        updateParallax();
-        menuParallaxAnimationId = window.requestAnimationFrame(animateParallax);
+    // ── Loop RAF con interpolación suave (lerp) ──────────────────────────
+    const LERP = 0.028; // 0.028 = muy suave, 0.07 = más reactivo
+    const tick = () => {
+        menuMouseState.x += (menuMouseState.targetX - menuMouseState.x) * LERP;
+        menuMouseState.y += (menuMouseState.targetY - menuMouseState.y) * LERP;
+
+        // Solo redibuja si hay movimiento perceptible (> 0.05px)
+        if (Math.abs(menuMouseState.x - menuMouseState.targetX) > 0.05
+         || Math.abs(menuMouseState.y - menuMouseState.targetY) > 0.05
+         || Math.abs(menuMouseState.x) > 0.05
+         || Math.abs(menuMouseState.y) > 0.05) {
+            applyParallax();
+        }
+
+        menuParallaxAnimationId = window.requestAnimationFrame(tick);
     };
 
-    window.addEventListener('mousemove', (event) => {
-        const nx = (event.clientX / window.innerWidth) - 0.5;
-        const ny = (event.clientY / window.innerHeight) - 0.5;
-        menuMouseState.px = event.clientX;
-        menuMouseState.py = event.clientY;
-        menuMouseState.targetX = nx * MAX_X;
-        menuMouseState.targetY = ny * MAX_Y;
-    });
+    // ── Mouse / pointer (desktop) ────────────────────────────────────────
+    if (!coarsePointer) {
+        window.addEventListener('mousemove', e => {
+            const nx = (e.clientX / window.innerWidth)  - 0.5; // -0.5 … +0.5
+            const ny = (e.clientY / window.innerHeight) - 0.5;
+            menuMouseState.px = e.clientX;
+            menuMouseState.py = e.clientY;
+            menuMouseState.targetX = nx * MAX_PX;
+            menuMouseState.targetY = ny * MAX_PY;
+        }, { passive: true });
 
-    window.addEventListener('mouseleave', () => {
-        menuMouseState.targetX = 0;
-        menuMouseState.targetY = 0;
-    });
+        window.addEventListener('mouseleave', () => {
+            menuMouseState.targetX = 0;
+            menuMouseState.targetY = 0;
+        });
+    }
+
+    // ── Gyroscope (móvil) — amplitud muy baja para no marear ────────────
+    if (coarsePointer && typeof DeviceOrientationEvent !== 'undefined') {
+        const requestGyro = () => {
+            const handler = e => {
+                if (e.gamma == null || e.beta == null) return;
+                // gamma: inclinación lateral (-90…+90), beta: adelante/atrás (-180…+180)
+                const gx = Math.max(-30, Math.min(30, e.gamma)) / 30; // -1…+1
+                const gy = Math.max(-20, Math.min(20, (e.beta - 20))) / 20;
+                menuMouseState.targetX = gx * (MAX_PX * 0.55);
+                menuMouseState.targetY = gy * (MAX_PY * 0.45);
+            };
+
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                // iOS 13+: requiere gesto de usuario
+                document.addEventListener('touchend', async function _req() {
+                    document.removeEventListener('touchend', _req);
+                    try {
+                        const perm = await DeviceOrientationEvent.requestPermission();
+                        if (perm === 'granted') window.addEventListener('deviceorientation', handler, { passive: true });
+                    } catch (_) {}
+                }, { once: true });
+            } else {
+                window.addEventListener('deviceorientation', handler, { passive: true });
+            }
+        };
+        requestGyro();
+    }
 
     menuParallaxBound = true;
     if (!menuParallaxAnimationId) {
-        menuParallaxAnimationId = window.requestAnimationFrame(animateParallax);
+        menuParallaxAnimationId = window.requestAnimationFrame(tick);
     }
 }
 

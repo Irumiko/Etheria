@@ -187,6 +187,30 @@ function triggerOracleReply() {
     toggleOracleMiniPanel();
 }
 
+function toggleVnDialogEmotePicker(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    const popover = document.getElementById('vnDialogEmotePopover');
+    if (!popover) return;
+    const isOpen = popover.style.display !== 'none';
+    popover.style.display = isOpen ? 'none' : 'flex';
+    popover.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
+    if (!isOpen) {
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function _closeDialogEmote(e) {
+                const btn = document.getElementById('vnEmoteDialogBtn');
+                if (!popover.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+                    popover.style.display = 'none';
+                    popover.setAttribute('aria-hidden', 'true');
+                    document.removeEventListener('click', _closeDialogEmote, true);
+                }
+            }, { once: false, capture: true });
+        }, 50);
+    }
+}
+
+
+
 // ---- Mini-panel del Oráculo ----
 let oracleMiniStat = 'STR';
 
@@ -861,6 +885,28 @@ function enterTopic(id) {
     continuousReadEnabled = localStorage.getItem('etheria_continuous_read') === '1';
     continuousReadDelaySec = Math.max(3, Math.min(5, Number(localStorage.getItem('etheria_continuous_delay') || 4)));
 
+    // ── Auto-open RPG stats modal si el personaje aún no ha gastado puntos ──
+    // Solo la primera vez que se entra al topic (puntos libres == pool completo)
+    if (currentTopicMode === 'rpg' && selectedCharId) {
+        const _statsAutoKey = `etheria_stats_prompted_${id}_${selectedCharId}`;
+        if (!localStorage.getItem(_statsAutoKey)) {
+            const _char = appData.characters.find(c => String(c.id) === String(selectedCharId));
+            if (_char && typeof ensureCharacterRpgProfile === 'function' && typeof getRpgSpentPoints === 'function') {
+                const _profile = ensureCharacterRpgProfile(_char, id);
+                const _spent = getRpgSpentPoints(_profile);
+                if (_spent === 0 && typeof openRpgStatsModal === 'function') {
+                    localStorage.setItem(_statsAutoKey, '1');
+                    setTimeout(() => {
+                        if (typeof showAutosave === 'function') {
+                            showAutosave('⚔️ ¡Distribuye tus 14 puntos de stats para empezar!', 'info');
+                        }
+                        openRpgStatsModal(selectedCharId);
+                    }, 900);
+                }
+            }
+        }
+    }
+
     // Carga desde Supabase y suscripción realtime (no bloquea el flujo principal)
     _sbEnterTopic(id);
 }
@@ -1469,10 +1515,40 @@ const SHADOW_SVG_NEUTRAL = `<svg viewBox="0 0 210 520" xmlns="http://www.w3.org/
   </g>
 </svg>`;
 
-// ── URLs de siluetas por defecto ────────────────────────────────────────────
-const DEFAULT_SPRITE_FEM    = 'https://e7.pngegg.com/pngimages/108/857/png-clipart-silhouette-human-siluet-child-woman.png';
-const DEFAULT_SPRITE_MASC   = 'https://e7.pngegg.com/pngimages/732/1021/png-clipart-silhouette-silhouette-animals-photography.png';
-const DEFAULT_SPRITE_NEUTRAL = DEFAULT_SPRITE_FEM; // fallback neutro = femenino
+// ── URLs de siluetas por defecto — SVG inline como data URI (sin fondo blanco) ──
+const _svgToDataUri = (svg) => `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+
+const _SILO_FEM_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 520">
+  <g fill="rgba(20,14,8,0.85)">
+    <ellipse cx="100" cy="38" rx="28" ry="32"/>
+    <rect x="88" y="66" width="24" height="20" rx="5"/>
+    <path d="M68,84 C52,92 46,108 48,126 L52,160 C54,172 62,180 72,184 L78,200 C82,212 80,224 74,234 L64,264 C60,278 62,292 70,300 L74,328 L126,328 L130,300 C138,292 140,278 136,264 L126,234 C120,224 118,212 122,200 L128,184 C138,180 146,172 148,160 L152,126 C154,108 148,92 132,84 C122,78 112,76 100,76 C88,76 78,78 68,84 Z"/>
+    <path d="M66,322 C54,326 46,336 44,348 L40,374 C38,388 44,402 54,408 L58,440 L90,440 L92,406 L100,400 L108,406 L110,440 L142,440 L146,408 C156,402 162,388 160,374 L156,348 C154,336 146,326 134,322 Z"/>
+    <path d="M56,436 L58,486 C58,500 56,514 54,524 L50,516 C52,504 52,490 50,476 L48,436 Z M60,436 L88,436 L88,476 C88,492 86,506 84,516 L80,524 L76,516 C78,506 78,492 78,476 L76,436 Z"/>
+    <path d="M112,436 L114,476 C114,492 114,506 116,516 L112,524 L108,516 C106,506 106,492 106,476 L104,436 Z M116,436 L144,436 L144,476 C142,490 142,504 144,516 L140,524 L136,516 C134,506 134,492 134,476 L134,436 Z"/>
+    <path d="M66,84 L42,90 C30,96 22,112 24,126 L32,178 C34,190 44,196 56,192 L68,188 L60,130 C58,110 60,94 66,84 Z"/>
+    <path d="M134,84 L158,90 C170,96 178,112 176,126 L168,178 C166,190 156,196 144,192 L132,188 L140,130 C142,110 140,94 134,84 Z"/>
+  </g>
+</svg>`;
+
+const _SILO_MASC_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 520">
+  <g fill="rgba(20,14,8,0.85)">
+    <ellipse cx="110" cy="36" rx="30" ry="32"/>
+    <rect x="98" y="64" width="24" height="22" rx="4"/>
+    <path d="M56,80 C38,88 28,106 30,124 L34,166 C36,180 46,190 58,194 L64,214 C66,226 64,238 58,250 L50,280 C46,294 48,308 58,316 L64,344 L156,344 L162,316 C172,308 174,294 170,280 L162,250 C156,238 154,226 156,214 L162,194 C174,190 184,180 186,166 L190,124 C192,106 182,88 164,80 C150,74 132,72 110,72 C88,72 70,74 56,80 Z"/>
+    <path d="M60,338 C48,342 38,354 36,368 L32,396 C30,412 36,428 48,434 L52,466 L88,466 L90,430 L110,424 L130,430 L132,466 L168,466 L172,434 C184,428 190,412 188,396 L184,368 C182,354 172,342 160,338 Z"/>
+    <path d="M50,462 L52,510 C54,516 58,520 64,520 L84,520 C90,520 94,516 94,510 L92,462 Z"/>
+    <path d="M126,462 L128,510 C128,516 132,520 138,520 L158,520 C164,520 168,516 168,510 L166,462 Z"/>
+    <path d="M54,80 L24,90 C10,96 2,114 4,130 L14,184 C16,198 28,206 42,200 L58,194 L50,130 C48,108 50,90 54,80 Z"/>
+    <ellipse cx="20" cy="208" rx="12" ry="16"/>
+    <path d="M166,80 L196,90 C210,96 218,114 216,130 L206,184 C204,198 192,206 178,200 L162,194 L170,130 C172,108 170,90 166,80 Z"/>
+    <ellipse cx="200" cy="208" rx="12" ry="16"/>
+  </g>
+</svg>`;
+
+const DEFAULT_SPRITE_FEM     = _svgToDataUri(_SILO_FEM_SVG);
+const DEFAULT_SPRITE_MASC    = _svgToDataUri(_SILO_MASC_SVG);
+const DEFAULT_SPRITE_NEUTRAL = DEFAULT_SPRITE_FEM;
 
 // ── Construye la estructura DOM completa de una silueta-sombra ───────────────
 // Usa imágenes PNG externas por género, con glow y hitbox idénticos al sistema anterior
@@ -1502,14 +1578,13 @@ function _buildSpriteShadow(characterId) {
     img.alt = '';
     img.className = 'shadow-silhouette-img';
     img.draggable = false;
-    // Fallback si la URL externa falla — usar SVG neutro inline
+    // Fallback de seguridad — usar SVG del mismo inline set
     img.onerror = function () {
         this.onerror = null;
-        const g = genderClass === 'shadow-masc' ? SHADOW_SVG_MASC
-                : genderClass === 'shadow-fem'  ? SHADOW_SVG_FEM
-                : SHADOW_SVG_NEUTRAL;
-        const blob = new Blob([g], { type: 'image/svg+xml' });
-        this.src = URL.createObjectURL(blob);
+        const g = genderClass === 'shadow-masc' ? _SILO_MASC_SVG
+                : genderClass === 'shadow-fem'  ? _SILO_FEM_SVG
+                : _SILO_FEM_SVG;
+        this.src = _svgToDataUri(g);
     };
     wrapper.appendChild(img);
 
@@ -1614,10 +1689,16 @@ function updateSprites(currentMsg, activeEmote = null) {
         }
 
         if (isCurrent && activeEmote) {
-            const emoteNode = document.createElement('div');
-            emoteNode.className = `manga-emote emote-${activeEmote}`;
-            emoteNode.textContent = emoteConfig[activeEmote]?.symbol || '';
-            spriteNode.appendChild(emoteNode);
+            // showEmoteOnSprite handles animation + fade-out (defined in effects.js)
+            if (typeof showEmoteOnSprite === 'function') {
+                showEmoteOnSprite(activeEmote, spriteNode);
+            } else {
+                // Fallback
+                const emoteNode = document.createElement('div');
+                emoteNode.className = `manga-emote emote-${activeEmote}`;
+                emoteNode.textContent = emoteConfig[activeEmote]?.symbol || '';
+                spriteNode.appendChild(emoteNode);
+            }
         }
 
         container.appendChild(spriteNode);
@@ -2608,6 +2689,8 @@ function updateNarrateButton() {
     const narrateDialogBtn = document.getElementById('vnNarrateDialogBtn');
     if (narrateDialogBtn) narrateDialogBtn.style.display = (!isRpg && isOwner) ? 'inline-flex' : 'none';
 
+    // ⚔️ Stats fijo: eliminado de la caja de diálogo — ahora solo en IHP panel (fijado)
+
     // ✒ Narrar en barra de controles: ya no necesario, quitar si existe
     const narrateCtrl = document.getElementById('vnNarrateBtn');
     if (narrateCtrl) narrateCtrl.style.display = 'none';
@@ -2746,25 +2829,31 @@ function openReplyPanel() {
 
     panel.style.display = 'flex';
     cancelContinuousRead('reply-open');
+    // Drawer gestures no aplican al nuevo modal, pero mantenemos la llamada por compatibilidad
     bindReplyDrawerGestures();
-    if (shouldUseMobileDrawer()) {
-        setReplyDrawerExpanded(false);
-    } else {
-        panel.classList.remove('drawer-expanded', 'drawer-collapsed');
-    }
+    panel.classList.remove('drawer-expanded', 'drawer-collapsed');
     updateVnMobileFabVisibility();
     updateOracleFloatButton();
 
-    const replyPanelTitle = document.getElementById('replyPanelTitle');
-    const submitBtn = document.getElementById('submitReplyBtn');
-    const optionsToggleContainer = document.getElementById('optionsToggleContainer');
+    const replyPanelTitle  = document.getElementById('replyPanelTitle');
+    const submitBtn        = document.getElementById('submitReplyBtn');
+    const optionsToggleContainer  = document.getElementById('optionsToggleContainer');
     const weatherSelectorContainer = document.getElementById('weatherSelectorContainer');
-    const narratorToggle = document.getElementById('narratorToggle');
+    const narratorToggle   = document.getElementById('narratorToggle');
+    const vrpCharBadge     = document.getElementById('vrpCharBadge');
 
-    if (replyPanelTitle) replyPanelTitle.textContent = editingMessageId ? '✏️ Editar Mensaje' : '💬 Responder';
+    // Título según contexto (editar vs responder)
+    if (replyPanelTitle) replyPanelTitle.textContent = editingMessageId ? 'Editar Mensaje' : 'Responder';
     if (submitBtn) {
-        submitBtn.textContent = editingMessageId ? '💾 Guardar Cambios' : 'Enviar Mensaje';
+        const sendSpan = submitBtn.querySelector('span');
+        if (sendSpan) sendSpan.textContent = editingMessageId ? 'Guardar Cambios' : 'Enviar Mensaje';
         submitBtn.onclick = editingMessageId ? saveEditedMessage : postVNReply;
+    }
+
+    // Badge con nombre del personaje activo
+    if (vrpCharBadge && selectedCharId) {
+        const activeChar = appData.characters.find(c => String(c.id) === String(selectedCharId));
+        if (activeChar) vrpCharBadge.textContent = activeChar.name;
     }
 
     // Mostrar/ocultar opciones según modo
@@ -2777,28 +2866,33 @@ function openReplyPanel() {
         weatherSelectorContainer.style.display = 'block';
     }
 
-    // (escena y capítulo se gestionan desde el botón flotante vnNarrateBtn)
     const topic = getCurrentTopic();
     setupOraclePanelForMode();
     const narratorAllowed = canUseNarratorMode(topic);
-    if (narratorToggle) narratorToggle.style.display = narratorAllowed ? 'flex' : 'none';
+    if (narratorToggle) {
+        narratorToggle.style.display = narratorAllowed ? 'flex' : 'none';
+    }
     if (!narratorAllowed) {
         isNarratorMode = false;
         const narratorMode = document.getElementById('narratorMode');
         if (narratorMode) narratorMode.checked = false;
+        if (narratorToggle) narratorToggle.classList.remove('active');
     }
 
     if (!editingMessageId) {
         const replyText = document.getElementById('vnReplyText');
-        if (replyText) replyText.value = '';
+        if (replyText) {
+            replyText.value = '';
+            vrpUpdatePreview();
+            vrpAutoResize(replyText);
+        }
 
         const enableOptions = document.getElementById('enableOptions');
         const optionsFields = document.getElementById('optionsFields');
-
         if (enableOptions) enableOptions.checked = false;
         if (optionsFields) optionsFields.classList.remove('active');
 
-        for(let i=1; i<=3; i++) {
+        for (let i = 1; i <= 3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
             if (textInput) textInput.value = '';
@@ -2810,13 +2904,14 @@ function openReplyPanel() {
     updateCharSelector();
     updateSceneChangePreview();
 
-    // Actualizar botones de clima
-    document.querySelectorAll('#weatherSelectorContainer .weather-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.textContent.toLowerCase().includes(currentWeather === 'rain' ? 'lluvia' : currentWeather === 'fog' ? 'niebla' : 'normal')) {
-            btn.classList.add('active');
-        }
-    });
+    // Actualizar botones de clima (nuevos vrp-weather-btn)
+    vrpSyncWeatherButtons();
+
+    // Foco al textarea después de la animación de entrada
+    setTimeout(() => {
+        const replyText = document.getElementById('vnReplyText');
+        if (replyText) replyText.focus();
+    }, 240);
 }
 
 function closeReplyPanel() {
@@ -2859,15 +2954,12 @@ function updateCharSelector() {
     const display = document.getElementById('charSelectedDisplay');
     const nameEl = document.getElementById('charSelectedName');
     const grid = document.getElementById('charGridDropdown');
-    const statsBtn = document.getElementById('charStatsQuickBtn');
 
-    if(!display || !nameEl) return;
+    if(!nameEl) return;
 
     if(mine.length === 0) {
-        display.innerHTML = '<div class="placeholder">👤</div>';
         nameEl.textContent = 'Crea un personaje primero';
         if (grid) grid.innerHTML = '';
-        if (statsBtn) statsBtn.style.display = 'none';
         return;
     }
 
@@ -2890,35 +2982,7 @@ function updateCharSelector() {
 
     selectedCharId = currentChar.id;
 
-    if (currentChar.avatar) {
-        // XSS fix: DOM construction for avatar display
-        const _imgDisp = document.createElement('img');
-        _imgDisp.src = currentChar.avatar;
-        _imgDisp.alt = 'Avatar de ' + currentChar.name;
-        _imgDisp.onerror = function () {
-            this.style.display = 'none';
-            const _ph = document.createElement('div');
-            _ph.className = 'placeholder';
-            _ph.textContent = (currentChar.name || '?')[0];
-            this.parentElement.appendChild(_ph);
-        };
-        display.innerHTML = '';
-        display.appendChild(_imgDisp);
-    } else {
-        display.innerHTML = `<div class="placeholder">${currentChar.name[0]}</div>`;
-    }
     nameEl.textContent = currentChar.name;
-
-    const hintEl = document.querySelector('.char-selected-hint');
-    if (hintEl) {
-        hintEl.textContent = isCharLocked
-            ? 'Personaje bloqueado para esta historia'
-            : 'Click en el círculo para cambiar';
-    }
-
-    if (statsBtn) {
-        statsBtn.style.display = (topic?.mode === 'rpg' && selectedCharId) ? 'inline-flex' : 'none';
-    }
 
     if (grid && !isCharLocked) {
         grid.innerHTML = mine.map(c => `
@@ -2995,12 +3059,15 @@ function toggleNarratorMode() {
     if (!canUseNarratorMode(topic)) return;
 
     const narratorMode = document.getElementById('narratorMode');
-    isNarratorMode = narratorMode ? narratorMode.checked : false;
+    const toggle       = document.getElementById('narratorToggle');
+
+    // Toggle state: si el switch está activo se desactiva y viceversa
+    isNarratorMode = toggle ? !toggle.classList.contains('active') : false;
+    if (narratorMode) narratorMode.checked = isNarratorMode;
 
     const container = document.getElementById('charSelectorContainer');
-    const toggle = document.getElementById('narratorToggle');
 
-    if(isNarratorMode) {
+    if (isNarratorMode) {
         if (container) container.style.display = 'none';
         if (toggle) toggle.classList.add('active');
         selectedCharId = null;
@@ -3357,4 +3424,110 @@ function triggerInnkeeperScene() {
     showAutosave(`🍺 Garrick ha hablado — HP restaurado. Ahora usa el Narrador para continuar.`, 'saved');
     if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
     if (typeof updateNarrateButton === 'function') updateNarrateButton();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VRP (Modal Responder v2) — helpers: Markdown preview, auto-resize, clima
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Mapa de emotes para el preview */
+const _VRP_EMOTE_MAP = {
+    angry: '💢', happy: '✨', shock: '💦', sad: '💧', think: '💭',
+    love: '💕', annoyed: '💢', embarrassed: '😳', idea: '💡', sleep: '💤'
+};
+
+/**
+ * Convierte texto con Markdown básico y comandos /emote a HTML para el preview.
+ * No usa dependencias externas — regex ligero.
+ */
+function vrpRenderMarkdown(text) {
+    if (!text) return '';
+
+    let html = text
+        // Escapar HTML básico para evitar XSS
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // Negrita: **texto** o __texto__
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.+?)__/g, '<strong>$1</strong>')
+        // Cursiva: *texto* o _texto_ (no seguido de otro *)
+        .replace(/\*(?!\*)(.+?)(?<!\*)\*/g, '<em>$1</em>')
+        .replace(/_(?!_)(.+?)(?<!_)_/g, '<em>$1</em>')
+        // Comandos de emote: /angry → 💢 con clase animada
+        .replace(/\/(angry|happy|shock|sad|think|love|annoyed|embarrassed|idea|sleep)\b/gi,
+            (_, cmd) => {
+                const sym = _VRP_EMOTE_MAP[cmd.toLowerCase()] || '';
+                return `<span class="emote-tag" title="/${cmd}">${sym}</span>`;
+            })
+        // Saltos de línea
+        .replace(/\n/g, '<br>');
+
+    return html;
+}
+
+/** Actualiza el panel de preview con el contenido actual del textarea */
+function vrpUpdatePreview() {
+    const textarea = document.getElementById('vnReplyText');
+    const preview  = document.getElementById('vrpPreviewContent');
+    const hint     = document.getElementById('vrpPreviewHint');
+    if (!textarea || !preview) return;
+
+    const raw = textarea.value;
+    const rendered = vrpRenderMarkdown(raw);
+    preview.innerHTML = rendered || '';
+
+    if (hint) {
+        hint.textContent = raw.length > 0
+            ? `${raw.length} car.`
+            : 'Empieza a escribir…';
+    }
+}
+
+/** Auto-resize del textarea: crece con el contenido hasta max-height CSS */
+function vrpAutoResize(el) {
+    if (!el) return;
+    // Reset para calcular correctamente scrollHeight
+    el.style.height = 'auto';
+    // Aplicar la altura real del contenido (respeta max-height del CSS)
+    const maxH = parseInt(getComputedStyle(el).maxHeight || '260', 10);
+    const newH = Math.min(el.scrollHeight, maxH);
+    el.style.height = newH + 'px';
+    // Si el contenido supera el max, activar scroll interno
+    el.style.overflowY = el.scrollHeight > maxH ? 'auto' : 'hidden';
+}
+
+/** Toggle de preview en portrait: muestra/oculta el preview pane */
+function vrpTogglePreview() {
+    const previewPane   = document.getElementById('vrpPreviewPane');
+    const toggleBtn     = document.getElementById('vrpPreviewToggle');
+    if (!previewPane || !toggleBtn) return;
+
+    const isVisible = previewPane.classList.contains('vrp-preview-visible');
+    previewPane.classList.toggle('vrp-preview-visible', !isVisible);
+    toggleBtn.classList.toggle('active', !isVisible);
+
+    if (!isVisible) {
+        // Al abrir el preview, actualizar contenido
+        vrpUpdatePreview();
+        toggleBtn.textContent = '✕ Cerrar vista previa';
+    } else {
+        toggleBtn.innerHTML = '<span>👁</span> Ver vista previa';
+    }
+}
+
+/** Sincroniza los botones de clima del nuevo modal con el estado actual */
+function vrpSyncWeatherButtons() {
+    document.querySelectorAll('.vrp-weather-btn').forEach(btn => {
+        const w = btn.dataset.weather;
+        const isActive = (w === 'none' && (currentWeather === 'none' || !currentWeather))
+                      || (w === currentWeather);
+        btn.classList.toggle('active', isActive);
+    });
+}
+
+/** Marca el botón de clima clicado como activo (llamado desde onclick del HTML) */
+function vrpSetWeatherBtn(clickedBtn) {
+    document.querySelectorAll('.vrp-weather-btn').forEach(b => b.classList.remove('active'));
+    if (clickedBtn) clickedBtn.classList.add('active');
 }

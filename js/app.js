@@ -246,7 +246,148 @@ document.addEventListener('DOMContentLoaded', async () => {
     })();
     // ─────────────────────────────────────────────────────────────────────────
 
-    const loginBtn = document.getElementById('authLoginBtn');
+    // ── Forzar orientación landscape en móviles (PWA) ─────────────────────
+    // Etheria está diseñado para horizontal. Intentamos bloquear landscape en
+    // móviles reales. En tablets grandes y desktop no hacemos nada (ya son
+    // landscape por naturaleza, y Android 12L+ prohíbe el lock en pantallas
+    // ≥ 600 dp de ancho menor).
+    //
+    // Compatibilidad 2025-2026:
+    //   • screen.orientation.lock() es parte del W3C Screen Orientation API.
+    //   • Chrome Android ≥ 93 lo soporta en modo standalone/fullscreen PWA.
+    //   • Safari iOS ≥ 16.4 lo soporta parcialmente (requiere interacción previa).
+    //   • Firefox Android lo soporta desde v112.
+    //   • En navegador normal (no PWA instalada) puede rechazarlo — se captura.
+    //   • En tablets/Chromebooks con ventana redimensionable Chrome lanza
+    //     NotSupportedError; lo capturamos y no hacemos nada.
+    (function initOrientationLock() {
+        const ua = navigator.userAgent || '';
+
+        // Solo actuar en móviles / handhelds reales.
+        // Usamos pointer:coarse + viewport estrecho como doble guardia para
+        // evitar lockear accidentalmente tablets en modo split-window.
+        const isMobileUA   = /Mobi|Android.*Mobile|iPhone|iPod|IEMobile|Opera Mini/i.test(ua);
+        const isCoarse     = typeof window.matchMedia === 'function'
+                             && window.matchMedia('(pointer: coarse)').matches;
+        const isNarrowPort = window.innerWidth < window.innerHeight  // arrancó en portrait
+                             && Math.min(window.innerWidth, window.innerHeight) < 600;
+
+        // Tablets grandes (≥ 600px lado corto): dejamos que el SO gestione
+        const isLargeTablet = Math.min(window.innerWidth, window.innerHeight) >= 600;
+
+        const shouldLock = (isMobileUA || isCoarse) && !isLargeTablet;
+        if (!shouldLock) return; // desktop / tablet grande → sin lock
+
+        // Clave localStorage para mostrar el toast SOLO la primera vez
+        const TOAST_KEY = 'etheria_landscape_hint_shown';
+
+        // ── Función principal de lock ───────────────────────────────────────
+        async function lockLandscape() {
+            // screen.orientation no disponible (navegador antiguo o iOS < 16.4)
+            if (!screen?.orientation?.lock) {
+                _showLandscapeHint();
+                return;
+            }
+
+            try {
+                await screen.orientation.lock('landscape');
+                // Lock exitoso → quitar hint si estaba visible, marcar como hecho
+                localStorage.setItem(TOAST_KEY, '1');
+                _hideLandscapeHint();
+            } catch (err) {
+                // Razones habituales de fallo:
+                //   SecurityError  → no estamos en standalone / fullscreen
+                //   NotSupportedError → tablet en modo ventana, Chromebook, etc.
+                //   AbortError     → pantalla ya en landscape cuando se intentó
+                console.warn('[Etheria] Orientation lock falló:', err.name, err.message);
+
+                // Si ya estamos en landscape no hace falta el hint
+                const alreadyLandscape = window.innerWidth >= window.innerHeight;
+                if (!alreadyLandscape) {
+                    _showLandscapeHint();
+                }
+            }
+        }
+
+        // ── Toast / hint sutil ──────────────────────────────────────────────
+        // Se muestra UNA sola vez (hasta que el usuario instale la PWA y el
+        // lock empiece a funcionar).
+        function _showLandscapeHint() {
+            if (localStorage.getItem(TOAST_KEY)) return; // ya lo vio
+            if (window.innerWidth >= window.innerHeight)  return; // ya landscape
+
+            // Usar el sistema de toasts nativo de Etheria si está disponible,
+            // de lo contrario crear un elemento temporal propio.
+            if (typeof showAutosave === 'function') {
+                showAutosave('Gira el móvil horizontal para mejor experiencia 🔄', 'info');
+            } else {
+                _injectHintElement();
+            }
+            localStorage.setItem(TOAST_KEY, '1');
+        }
+
+        function _hideLandscapeHint() {
+            const el = document.getElementById('_etheriaLandscapeHint');
+            if (el) el.remove();
+        }
+
+        // Fallback mínimo si showAutosave aún no está disponible (raro)
+        function _injectHintElement() {
+            if (document.getElementById('_etheriaLandscapeHint')) return;
+            const hint = document.createElement('div');
+            hint.id = '_etheriaLandscapeHint';
+            hint.setAttribute('aria-live', 'polite');
+            hint.style.cssText = [
+                'position:fixed', 'bottom:1.2rem', 'left:50%',
+                'transform:translateX(-50%)',
+                'background:rgba(20,15,8,0.92)',
+                'color:rgba(220,190,120,0.95)',
+                'font-family:"Cinzel",serif',
+                'font-size:0.8rem', 'letter-spacing:0.05em',
+                'padding:0.55rem 1.1rem', 'border-radius:8px',
+                'border:1px solid rgba(201,168,108,0.4)',
+                'box-shadow:0 4px 20px rgba(0,0,0,0.6)',
+                'z-index:9999', 'white-space:nowrap',
+                'pointer-events:none',
+                'animation:etheriaHintFade 4s ease forwards'
+            ].join(';');
+            hint.textContent = 'Gira el móvil horizontal para mejor experiencia 🔄';
+
+            // Inyectar keyframe si no existe
+            if (!document.getElementById('_etheriaHintStyle')) {
+                const style = document.createElement('style');
+                style.id = '_etheriaHintStyle';
+                style.textContent = '@keyframes etheriaHintFade{0%{opacity:0;transform:translateX(-50%) translateY(6px)}15%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}';
+                document.head.appendChild(style);
+            }
+            document.body.appendChild(hint);
+            setTimeout(() => hint.remove(), 4200);
+        }
+
+        // ── Escuchar cambios de orientación ─────────────────────────────────
+        // Si el usuario rota manualmente a portrait después de que el lock
+        // haya fallado, recordamos intentarlo de nuevo (por si la PWA ya está
+        // instalada y ahora el lock sí funciona).
+        if (screen?.orientation) {
+            screen.orientation.addEventListener('change', () => {
+                const type = screen.orientation.type || '';
+                if (type.startsWith('portrait')) {
+                    // Reintentar lock silencioso
+                    lockLandscape();
+                }
+            });
+        }
+
+        // Intentar lock inicial — en standalone ya tenemos contexto de pantalla.
+        // Usamos un pequeño delay para asegurarnos de que el DOM está listo y
+        // la PWA ha completado su transición de startup.
+        if (document.readyState === 'complete') {
+            lockLandscape();
+        } else {
+            window.addEventListener('load', lockLandscape, { once: true });
+        }
+    })();
+    // ── Fin orientación landscape ─────────────────────────────────────────
     const registerBtn = document.getElementById('authRegisterBtn');
     if (loginBtn) loginBtn.addEventListener('click', login);
     if (registerBtn) registerBtn.addEventListener('click', register);
