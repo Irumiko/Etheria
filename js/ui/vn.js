@@ -2849,6 +2849,13 @@ function openReplyPanel() {
     const panel = document.getElementById('vnReplyPanel');
     if (!panel) return;
 
+    // ── Mover el panel al <body> si sigue dentro de vnSection ────────────
+    // position:fixed se rompe cuando un ancestro tiene filter: o transform:.
+    // Al moverlo a body se garantiza que el overlay cubre el viewport real.
+    if (panel.parentElement !== document.body) {
+        document.body.appendChild(panel);
+    }
+
     panel.style.display = 'flex';
     cancelContinuousRead('reply-open');
     // Drawer gestures no aplican al nuevo modal, pero mantenemos la llamada por compatibilidad

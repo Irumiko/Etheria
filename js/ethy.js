@@ -28,6 +28,8 @@ const Ethy = (function() {
     let _seenTutorials = new Set();
     let _isVisible = false;
     let _isMinimized = false;
+    let _tutorialPanel = null;
+    let _tutorialPanelVisible = false;
     let _isDragging = false;
     let _wasDragging = false;   // true if mousedown moved enough to be a real drag
     let _dragStartX = 0;
@@ -412,10 +414,11 @@ const Ethy = (function() {
     }
 
     function _setupEventListeners() {
-        // Cerrar burbuja al hacer clic fuera
+        // Cerrar burbuja y panel de tutoriales al hacer clic fuera
         document.addEventListener('click', (e) => {
-            if (!_container.contains(e.target) && _bubble.classList.contains('visible')) {
-                hideBubble();
+            if (!_container.contains(e.target)) {
+                if (_bubble.classList.contains('visible')) hideBubble();
+                if (_tutorialPanelVisible) endTutorial();
             }
         });
 
@@ -493,14 +496,12 @@ const Ethy = (function() {
      */
     function _setSectionExpression(section) {
         const pool = SECTION_EXPRESSIONS[section] || SECTION_EXPRESSIONS.default;
-        // Elegir una expresión distinta a la actual para que siempre haya cambio
         let candidates = pool.filter(e => e !== _currentExpression);
         if (candidates.length === 0) candidates = pool;
         const chosen = _pickRandom(candidates);
-
         _idleBaseExpression = chosen;
-
-        // Animar la transición con un breve "salto"
+        // No animar ni cambiar expresión si está minimizado
+        if (_isMinimized) return;
         if (_body) {
             _body.classList.add('ethy-hello');
             setTimeout(() => _body.classList.remove('ethy-hello'), 500);
@@ -513,8 +514,10 @@ const Ethy = (function() {
      * y a los 1.5 s vuelve a la expresión base.
      */
     function _idleTick() {
-        // No interrumpir si hay burbuja activa o tutorial en curso
+        // No interrumpir si minimizado, burbuja activa o tutorial en curso
+        if (_isMinimized) return;
         if (_bubble && _bubble.classList.contains('visible')) return;
+        if (_tutorialPanelVisible) return;
 
         const flicker = _pickRandom(IDLE_FLICKER.filter(e => e !== _idleBaseExpression));
         setExpression(flicker);
@@ -636,6 +639,10 @@ const Ethy = (function() {
         if (btn) btn.innerHTML = _isMinimized ? '+' : '−';
         if (_isMinimized) {
             hideBubble();
+            // Cerrar también el panel de tutoriales si estaba abierto
+            if (_tutorialPanel) _tutorialPanel.classList.remove('visible');
+            _tutorialPanelVisible = false;
+            removeHighlight();
             // Si estaba durmiendo, despertar para evitar ZZZ invisible
             if (_isSleeping) _wakeUp(true);
         }
@@ -857,7 +864,99 @@ const Ethy = (function() {
         _isTyping = false;
     }
 
-    // ── Sistema de tutoriales ────────────────────────────────────────────────
+    // ── Sistema de tutoriales — panel independiente ──────────────────────────
+    //
+    // Los tutoriales viven en su propio panel DOM, completamente separado
+    // de say() / _bubble. Sin animación de tipeo, sin timers, sin conflictos
+    // de estado con los mensajes normales de Ethy.
+
+    function _createTutorialPanel() {
+        if (_tutorialPanel) return;
+        _tutorialPanel = document.createElement('div');
+        _tutorialPanel.className = 'ethy-tutorial-panel';
+        _tutorialPanel.setAttribute('aria-live', 'polite');
+        _tutorialPanel.innerHTML = `
+            <div class="ethy-tp-header">
+                <span class="ethy-tp-icon">✦</span>
+                <span class="ethy-tp-title"></span>
+                <button class="ethy-tp-close" title="Cerrar tutorial" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="ethy-tp-content"></div>
+            <div class="ethy-tp-footer">
+                <div class="ethy-tp-dots"></div>
+                <div class="ethy-tp-nav">
+                    <button class="ethy-tp-btn ethy-tp-prev" aria-label="Paso anterior">←</button>
+                    <button class="ethy-tp-btn ethy-tp-next ethy-tp-primary" aria-label="Siguiente paso">Siguiente →</button>
+                </div>
+            </div>
+            <button class="ethy-tp-skip">Saltar tutorial</button>
+        `;
+        _container.appendChild(_tutorialPanel);
+
+        _tutorialPanel.querySelector('.ethy-tp-close').addEventListener('click', endTutorial);
+        _tutorialPanel.querySelector('.ethy-tp-skip').addEventListener('click', endTutorial);
+        _tutorialPanel.querySelector('.ethy-tp-prev').addEventListener('click', () => {
+            if (_tutorialStep > 0) { _tutorialStep--; _renderTutorialStep(); }
+        });
+        _tutorialPanel.querySelector('.ethy-tp-next').addEventListener('click', () => {
+            if (_currentTutorial && _tutorialStep < _currentTutorial.steps.length - 1) {
+                _tutorialStep++;
+                _renderTutorialStep();
+            } else {
+                endTutorial();
+            }
+        });
+    }
+
+    function _renderTutorialStep() {
+        if (!_currentTutorial || !_tutorialPanel) return;
+        const step = _currentTutorial.steps[_tutorialStep];
+        const total = _currentTutorial.steps.length;
+
+        // Título
+        _tutorialPanel.querySelector('.ethy-tp-title').textContent = _currentTutorial.title;
+
+        // Contenido — sin tipeo, texto completo inmediato
+        _tutorialPanel.querySelector('.ethy-tp-content').textContent = step.text;
+
+        // Dots navegables
+        const dotsEl = _tutorialPanel.querySelector('.ethy-tp-dots');
+        dotsEl.innerHTML = '';
+        for (let i = 0; i < total; i++) {
+            const dot = document.createElement('button');
+            dot.className = 'ethy-tp-dot' +
+                (i === _tutorialStep ? ' active' : '') +
+                (i < _tutorialStep ? ' done' : '');
+            dot.setAttribute('aria-label', 'Ir al paso ' + (i + 1));
+            const stepI = i;
+            dot.addEventListener('click', () => { _tutorialStep = stepI; _renderTutorialStep(); });
+            dotsEl.appendChild(dot);
+        }
+
+        // Botones de navegación
+        const prev = _tutorialPanel.querySelector('.ethy-tp-prev');
+        const next = _tutorialPanel.querySelector('.ethy-tp-next');
+        prev.style.visibility = _tutorialStep > 0 ? 'visible' : 'hidden';
+
+        if (_tutorialStep === total - 1) {
+            next.textContent = '¡Entendido! ✓';
+            next.classList.add('ethy-tp-finish');
+        } else {
+            next.textContent = 'Siguiente →';
+            next.classList.remove('ethy-tp-finish');
+        }
+
+        // Expresión de Ethy para este paso
+        if (!_isMinimized && step.expression) {
+            setExpression(step.expression);
+            _body.classList.add('ethy-hello');
+            setTimeout(() => _body.classList.remove('ethy-hello'), 400);
+        }
+
+        // Highlight de elemento si lo hay
+        if (step.action) step.action();
+        else removeHighlight();
+    }
 
     function startTutorial(tutorialKey) {
         const tutorial = TUTORIALS[tutorialKey];
@@ -865,128 +964,54 @@ const Ethy = (function() {
             console.warn(`[Ethy] Tutorial "${tutorialKey}" no existe`);
             return;
         }
-
-        // Verificar si ya se vio este tutorial
-        if (_seenTutorials.has(tutorialKey) && !tutorial.force) {
-            return;
-        }
+        if (_seenTutorials.has(tutorialKey) && !tutorial.force) return;
 
         _currentTutorial = tutorial;
         _tutorialStep = 0;
         _seenTutorials.add(tutorialKey);
         _saveSeenTutorials();
 
-        // Mostrar título
-        const titleEl = _bubble.querySelector('.ethy-title');
-        titleEl.textContent = tutorial.title;
+        // Asegurar panel creado
+        _createTutorialPanel();
 
-        // Mostrar primer paso
-        _showTutorialStep();
-    }
+        // Ocultar burbuja normal si estaba abierta
+        hideBubble();
 
-    function _showTutorialStep() {
-        if (!_currentTutorial || _tutorialStep >= _currentTutorial.steps.length) {
-            endTutorial();
-            return;
-        }
+        // Mostrar panel
+        _tutorialPanel.classList.add('visible');
+        _tutorialPanelVisible = true;
 
-        const step = _currentTutorial.steps[_tutorialStep];
-        
-        // Actualizar indicadores de paso
-        _updateStepIndicators();
-        
-        // Ejecutar acción del paso si existe
-        if (step.action) {
-            step.action();
-        }
-
-        // Mostrar texto con botones de navegación
-        // Fix: close:false en todos los botones de navegación para que
-        // _showTutorialStep() no sea anulado por hideBubble() después del onclick
-        const buttons = [];
-
-        if (_tutorialStep > 0) {
-            buttons.push({
-                text: '← Anterior',
-                close: false,  // Fix: no cerrar, _showTutorialStep() ya actualiza
-                action: () => {
-                    _tutorialStep--;
-                    _showTutorialStep();
-                }
-            });
-        }
-
-        if (_tutorialStep < _currentTutorial.steps.length - 1) {
-            buttons.push({
-                text: 'Siguiente →',
-                primary: true,
-                close: false,  // Fix: no cerrar, _showTutorialStep() ya actualiza
-                action: () => {
-                    _tutorialStep++;
-                    _showTutorialStep();
-                }
-            });
-        } else {
-            buttons.push({
-                text: '¡Entendido!',
-                primary: true,
-                close: false,  // Fix: endTutorial() llama a hideBubble() él mismo
-                action: () => endTutorial()
-            });
-        }
-
-        // Botón para saltar tutorial completo
-        buttons.push({
-            text: 'Saltar',
-            close: false,  // Fix: endTutorial() llama a hideBubble() él mismo
-            action: () => endTutorial()
-        });
-
-        say(step.text, {
-            expression: step.expression || 'neutral',
-            buttons: buttons
-        });
-    }
-
-    function _updateStepIndicators() {
-        const stepsContainer = _bubble.querySelector('.ethy-steps');
-        stepsContainer.innerHTML = '';
-        
-        if (!_currentTutorial) return;
-        
-        for (let i = 0; i < _currentTutorial.steps.length; i++) {
-            const dot = document.createElement('div');
-            dot.className = 'ethy-step';
-            if (i === _tutorialStep) dot.classList.add('active');
-            if (i < _tutorialStep) dot.classList.add('completed');
-            stepsContainer.appendChild(dot);
-        }
+        _renderTutorialStep();
     }
 
     function endTutorial() {
+        if (!_currentTutorial) return;
         _currentTutorial = null;
         _tutorialStep = 0;
-        hideBubble();
+
+        // Ocultar panel
+        if (_tutorialPanel) {
+            _tutorialPanel.classList.remove('visible');
+        }
+        _tutorialPanelVisible = false;
         removeHighlight();
 
-        // Resetear título por si el tutorial cambió el texto
-        const titleEl = _bubble.querySelector('.ethy-title');
-        if (titleEl) titleEl.textContent = 'Ethy';
-
-        // Mensaje de despedida breve, luego volver a la expresión base de la sección
-        setTimeout(() => {
-            say('¡Estoy aquí si me necesitas! Solo haz clic en mí. 😊', {
-                expression: 'wink',
-                duration: 3500
-            });
-            // Restaurar expresión base de sección tras el mensaje
+        // Mensaje breve de despedida (solo si no está minimizado)
+        if (!_isMinimized) {
             setTimeout(() => {
-                if (!_bubble.classList.contains('visible')) {
-                    setExpression(_idleBaseExpression);
-                }
-            }, 4000);
-        }, 300);
+                say('¡Estoy aquí si me necesitas! Solo haz clic en mí. 😊', {
+                    expression: 'wink',
+                    duration: 3000
+                });
+            }, 200);
+        }
     }
+
+    // Compatibilidad: _showTutorialStep y _updateStepIndicators
+    // ya no se usan externamente pero los dejamos vacíos por si
+    // algún código externo los llama.
+    function _showTutorialStep() { _renderTutorialStep(); }
+    function _updateStepIndicators() {}
 
     // ── Funciones de sección ─────────────────────────────────────────────────
 
@@ -1064,6 +1089,10 @@ const Ethy = (function() {
             return;
         }
 
+        if (_tutorialPanelVisible) {
+            endTutorial();
+            return;
+        }
         if (_isTyping) {
             _completeTyping();
         } else if (_bubble.classList.contains('visible')) {

@@ -500,3 +500,111 @@ body.low-spec .shadow-silhouette {
         animation: none !important;
     }
 }
+
+
+/* ================================================================
+   L. PWA STANDALONE — body.is-pwa
+   Solo se aplica cuando la app está instalada y corre sin chrome
+   del navegador. No afecta en absoluto a la versión de escritorio
+   o navegador normal.
+   ================================================================ */
+
+/* ── L1. Eliminar rubber-band / overscroll ──────────────────────
+   El rebote elástico al hacer scroll más allá del límite es la
+   señal más clara de "esto es una web". Con none desaparece en
+   Android. En iOS afecta al body pero no al scroll interno. */
+body.is-pwa {
+    overscroll-behavior: none;
+}
+
+/* ── L2. Evitar selección de texto accidental ───────────────────
+   En la pantalla principal, menú y VN un tap largo no debería
+   seleccionar texto. Sí la dejamos activa en inputs, textareas
+   y zonas de contenido de usuario (mensajes). */
+body.is-pwa .main-menu,
+body.is-pwa .user-select-screen,
+body.is-pwa .menu-sidebar,
+body.is-pwa .vn-section .vn-dialogue-box,
+body.is-pwa .vn-section .vn-controls,
+body.is-pwa .vn-section .vn-weather-controls,
+body.is-pwa .section-header-bar,
+body.is-pwa .topics-list .topic-header-row,
+body.is-pwa .auth-screen .auth-card {
+    user-select: none;
+    -webkit-user-select: none;
+}
+/* Restablecer en zonas donde sí queremos selección */
+body.is-pwa input,
+body.is-pwa textarea,
+body.is-pwa [contenteditable],
+body.is-pwa .vn-message-text,
+body.is-pwa .vn-dialogue-text {
+    user-select: text;
+    -webkit-user-select: text;
+}
+
+/* ── L3. Safe areas completas ───────────────────────────────────
+   Cubre notch (iPhone), cámara perforada (Android) y barra de
+   inicio de iOS. Solo activo cuando es PWA para no añadir
+   padding innecesario en el navegador. */
+body.is-pwa {
+    /* Top: notch / cámara */
+    padding-top: env(safe-area-inset-top, 0px);
+    /* Bottom: barra de inicio de iOS */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    /* Lados: iPhones con esquinas curvas */
+    padding-left:  env(safe-area-inset-left,  0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    box-sizing: border-box;
+}
+
+/* Los elementos fixed necesitan safe area propia — heredarla del
+   body no funciona porque están fuera del flujo normal. */
+body.is-pwa .autosave-indicator {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 0.7rem);
+}
+body.is-pwa #cloudSyncIndicator {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+}
+body.is-pwa .ethy-container {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    right:  calc(env(safe-area-inset-right,  0px) + 20px);
+}
+body.is-pwa .settings-panel {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+}
+/* Reply modal: el footer con "Publicar" no debe quedar bajo la home bar */
+body.is-pwa .vrp-footer {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.55rem);
+}
+/* Menu sidebar */
+body.is-pwa .menu-sidebar {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem);
+}
+
+/* ── L4. Ajustes de layout exclusivos de standalone ────────────
+   Pequeños retoques que solo tienen sentido cuando no hay barra
+   del navegador y la app ocupa toda la pantalla. */
+body.is-pwa .auth-screen {
+    /* En standalone la pantalla de auth puede quedar cortada en
+       algunos Android por la barra de sistema. Compensamos. */
+    min-height: 100dvh;
+}
+/* Ocultar el banner de "instala la app" si algún día se añade,
+   ya que en standalone no tiene sentido mostrarlo. */
+body.is-pwa .pwa-install-banner {
+    display: none !important;
+}
+
+/* ── L5. Tap highlight — eliminar el flash gris en Android ─────
+   El highlight azul/gris que aparece al tocar elementos en
+   Android Chrome es un indicador visual de "web". */
+body.is-pwa * {
+    -webkit-tap-highlight-color: transparent;
+}
+/* Restablecer para inputs para que tengan feedback visual */
+body.is-pwa input,
+body.is-pwa textarea,
+body.is-pwa select {
+    -webkit-tap-highlight-color: rgba(201, 168, 108, 0.15);
+}

@@ -10545,28 +10545,31 @@ select {
 
 /* ── Contenedor raíz: overlay de pantalla completa ─────────────────────── */
 #vnReplyPanel {
-    /* El panel es ahora un overlay que centra el modal */
+    /* Overlay de pantalla completa — SIEMPRE en el viewport real.
+       El JS lo mueve a <body> en openReplyPanel() para que
+       position:fixed no quede atrapado por filter/transform del padre. */
     position: fixed;
-    inset: 0;
+    top: 0; left: 0; right: 0; bottom: 0; /* inset explícito */
+    width: 100%; height: 100%;             /* seguro en Safari */
     display: none;            /* JS lo cambia a flex */
     align-items: center;
     justify-content: center;
-    z-index: 400;
+    z-index: 1200;            /* por encima de todo */
     /* Sin fondo propio — el backdrop hijo lo maneja */
     background: none;
     border: none;
     box-shadow: none;
-    padding: 0;
-    /* Anular el drawer de mobile */
-    height: auto;
+    padding: 1.5vh 0;         /* pequeño margen vertical de seguridad */
+    /* Anular cualquier herencia de drawer */
     max-height: none;
     overflow: visible;
     flex-direction: row;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    /* Anular bordes del tema */
     border-top: none;
     border-radius: 0;
+    /* Evitar que el propio panel sea afectado por transforms */
+    transform: none;
 }
 #vnReplyPanel.active {
     display: flex;
@@ -10588,7 +10591,10 @@ select {
     position: relative;
     z-index: 1;
     width: min(92vw, 780px);
-    max-height: min(88vh, 700px);
+    /* Limitar altura para que quepa siempre en la pantalla con margen */
+    max-height: min(82vh, 680px);
+    /* Evitar que supere el viewport en pantallas pequeñas */
+    height: auto;
     display: flex;
     flex-direction: column;
     border-radius: 20px;
@@ -11075,15 +11081,13 @@ select {
 
 /* ── PORTRAIT MÓVIL ─────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
-    /* Fix: usar height fijo en vez de max-height para que el footer
-       nunca quede fuera de pantalla aunque el contenido sea largo.
-       dvh no es fiable en todos los móviles con teclado virtual. */
+    /* Móvil portrait: bottom sheet anclado al fondo */
     .vrp-modal {
         width: 100vw;
-        height: 85vh;           /* fallback fiable */
-        height: 85dvh;          /* dynamic viewport si está soportado */
-        max-height: 85vh;
-        max-height: 85dvh;
+        /* 78dvh: deja espacio para la barra del navegador y no satura */
+        max-height: 78dvh;
+        max-height: 78vh; /* fallback */
+        height: auto;     /* crecer según contenido hasta el máximo */
         border-radius: 20px 20px 0 0;
         margin-top: auto;
         align-self: flex-end;
@@ -11091,6 +11095,7 @@ select {
 
     #vnReplyPanel {
         align-items: flex-end;
+        padding: 0; /* sin padding vertical en móvil, el sheet va al fondo */
     }
 
     .vrp-split { flex-direction: column; }
