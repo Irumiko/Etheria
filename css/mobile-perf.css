@@ -608,3 +608,167 @@ body.is-pwa textarea,
 body.is-pwa select {
     -webkit-tap-highlight-color: rgba(201, 168, 108, 0.15);
 }
+
+
+/* ================================================================
+   M. PWA LANDSCAPE — Layout horizontal tipo videojuego
+   Solo activo en: body.is-pwa + orientation:landscape + min-width
+   ================================================================
+   
+   Objetivo: cuando la app está instalada y se usa en apaisado,
+   cada pantalla aprovecha el ancho extra de forma inteligente
+   en vez de simplemente mostrar el layout vertical estirado.
+   ================================================================ */
+
+@media (orientation: landscape) and (min-width: 600px) {
+
+    /* ── M1. Selector de perfiles ─────────────────────────────────
+       En portrait: tarjetas en grid centrado verticalmente.
+       En landscape: mismo grid pero con más columnas y altura
+       reducida para que quepan sin scroll. */
+    body.is-pwa .user-select-screen {
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 0;
+        padding: 0;
+    }
+
+    /* Cabecera lateral izquierda */
+    body.is-pwa .user-select-screen > *:not(.profile-particles):not(.user-cards):not(.profile-theme-btn) {
+        /* El título ETHERIA y subtítulo van en un panel lateral */
+        writing-mode: initial;
+    }
+
+    /* Zona central: reducir max-height para no hacer scroll */
+    body.is-pwa .user-cards {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        max-height: 88dvh;
+        max-height: 88vh;
+        width: min(96vw, 900px);
+        gap: 0.75rem;
+    }
+
+    /* Tarjetas más compactas en landscape */
+    body.is-pwa .user-card {
+        min-height: 200px;
+    }
+    body.is-pwa .user-card:hover {
+        transform: translateY(-4px) scale(1.01);
+    }
+
+    /* ── M2. Menú principal ───────────────────────────────────────
+       El sidebar ya es lateral — solo ajustamos proporciones
+       para que no ocupe demasiado ancho del viewport. */
+    body.is-pwa .menu-sidebar {
+        width: clamp(240px, 30vw, 340px);
+        padding: 1.75rem 1.5rem;
+        overflow-y: auto;
+    }
+    body.is-pwa .menu-brand {
+        margin-bottom: 1.5rem;
+    }
+    body.is-pwa .menu-title {
+        font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+    }
+    body.is-pwa .menu-subtitle {
+        font-size: 0.85rem;
+    }
+    body.is-pwa .menu-container {
+        gap: 0.55rem;
+    }
+    body.is-pwa .menu-button {
+        padding: 0.7rem 1.1rem;
+        font-size: 0.9rem;
+    }
+
+    /* Info del usuario en el menú: más compacta */
+    body.is-pwa .menu-user-info {
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+    }
+
+    /* ── M3. Secciones internas (Galería, Topics, Options) ────────
+       La barra de encabezado y el contenido se pueden permitir
+       más ancho, así que limitamos el max-width. */
+    body.is-pwa .game-section:not(#vnSection) .section-content {
+        max-width: 100%;
+    }
+
+    /* ── M4. VN section — landscape ──────────────────────────────
+       El VN ya funciona bien en landscape, solo ajustamos el
+       diálogo para que sea más compacto y deje más espacio al fondo. */
+    body.is-pwa .vn-dialogue-box {
+        max-width: min(75vw, 820px);
+        margin: 0 auto;
+    }
+
+    /* Info card del personaje: sidebar vertical compacto */
+    body.is-pwa .vn-info-card {
+        max-width: 200px;
+        font-size: 0.78rem;
+    }
+
+    /* Controles VN: barra horizontal compacta arriba */
+    body.is-pwa .vn-controls {
+        gap: 0.3rem;
+    }
+
+    /* ── M5. Secciones con header-bar ─────────────────────────────
+       En landscape el header puede ser más bajo ya que no hay
+       barra de navegador ocupando espacio vertical. */
+    body.is-pwa .section-header-bar {
+        padding: 0.75rem 1.5rem;
+    }
+
+    /* ── M6. Topics list — dos columnas en landscape ──────────────*/
+    body.is-pwa .topics-list-container,
+    body.is-pwa #topicsList {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        align-items: start;
+    }
+    /* Revertir para el header que está dentro */
+    body.is-pwa .topics-list-container > .topic-header-row,
+    body.is-pwa #topicsList > .topic-group-header,
+    body.is-pwa #topicsList > .topics-empty {
+        grid-column: 1 / -1;
+    }
+
+    /* ── M7. Galería — más columnas en landscape ──────────────────*/
+    body.is-pwa .characters-grid,
+    body.is-pwa .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
+
+/* ── Landscape en pantallas pequeñas (móvil apaisado) ─────────────
+   Ajustes más agresivos para teléfonos girados donde la altura
+   es muy reducida (max-height: 500px). */
+@media (orientation: landscape) and (min-width: 600px) and (max-height: 500px) {
+
+    body.is-pwa .user-cards {
+        max-height: 90dvh;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+    body.is-pwa .user-card {
+        min-height: 170px;
+    }
+    body.is-pwa .user-card-footer { padding: 0.4rem 0.6rem; }
+
+    body.is-pwa .menu-sidebar {
+        padding: 1rem 1.1rem;
+        width: clamp(200px, 28vw, 280px);
+    }
+    body.is-pwa .menu-brand { margin-bottom: 0.75rem; }
+    body.is-pwa .menu-button { padding: 0.55rem 0.9rem; font-size: 0.82rem; }
+
+    body.is-pwa .section-header-bar { padding: 0.5rem 1rem; }
+
+    /* VN: barra de diálogo más pequeña para no tapar el fondo */
+    body.is-pwa .vn-dialogue-box {
+        max-width: 68vw;
+        font-size: 0.9em;
+    }
+}

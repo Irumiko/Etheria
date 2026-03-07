@@ -207,9 +207,46 @@ function renderUserCards() {
         // Última historia activa
         const lastTopic = ownTopics[ownTopics.length - 1] || null;
 
+        // Avatar guardado
+        let avatars = [];
+        try { avatars = JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]'); } catch {}
+        const avatarSrc = avatars[idx] || '';
+        const avatarHtml = avatarSrc
+            ? `<div class="user-avatar-wrap"><img src="${avatarSrc}" alt="Avatar" loading="lazy"></div>`
+            : `<div class="user-avatar-wrap"><span class="user-avatar-initials">${(name||'?')[0].toUpperCase()}</span></div>`;
+
+        // Género
+        let genders = [];
+        try { genders = JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch {}
+        const gender = genders[idx] || '';
+        const genderMap = { masculino:'Masculino', femenino:'Femenino', 'no-binario':'No binario', otro:'Otro' };
+        const genderBadge = gender ? `<div class="user-gender-badge">${genderMap[gender] || gender}</div>` : '';
+
+        // Cumpleaños
+        let birthdays = [];
+        try { birthdays = JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch {}
+        const bday = birthdays[idx] || '';
+        let bdayHtml = '';
+        if (bday) {
+            try {
+                const [, m, d] = bday.split('-').map(Number);
+                const today = new Date();
+                const next = new Date(today.getFullYear(), m - 1, d);
+                if (next < today) next.setFullYear(today.getFullYear() + 1);
+                const diff = Math.round((next - today) / 86400000);
+                bdayHtml = diff === 0
+                    ? `<div class="user-birthday-row">🎂 ¡Hoy es tu cumpleaños!</div>`
+                    : diff <= 7
+                        ? `<div class="user-birthday-row">🎂 Cumpleaños en ${diff} día${diff>1?'s':''}</div>`
+                        : '';
+            } catch {}
+        }
+
         card.innerHTML = `
             <div class="save-slot-number">Archivo ${String(idx + 1).padStart(2, '0')}</div>
-            <div class="user-avatar">👤</div>
+            ${avatarHtml}
+            ${genderBadge}
+            ${bdayHtml}
             <div class="user-name">${escapeHtml(name)}</div>
             <div class="user-card-divider"></div>
             <div class="user-card-stats">

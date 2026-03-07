@@ -231,6 +231,153 @@ function saveProfileNameFromOptions() {
     const display = document.getElementById('currentUserDisplay');
     if (display) display.textContent = name;
     showAutosave('Nombre actualizado', 'saved');
+    // Actualizar initial del avatar si no hay foto
+    _syncAvatarInitials();
+}
+
+// ── Tab switcher del menú de opciones ────────────────────────────────────
+function switchOptTab(tabId, btn) {
+    // Desactivar todos
+    document.querySelectorAll('.opt-tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.opt-panel').forEach(p => p.classList.remove('active'));
+    // Activar el elegido
+    if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected', 'true'); }
+    const panel = document.getElementById('optPanel-' + tabId);
+    if (panel) panel.classList.add('active');
+    // Sincronizar perfil al entrar en esa pestaña
+    if (tabId === 'profile') _syncProfileTab();
+}
+
+// ── Avatar helpers ────────────────────────────────────────────────────────
+
+function _getAvatars() {
+    try { return JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]'); } catch { return []; }
+}
+function _saveAvatars(arr) {
+    try { localStorage.setItem('etheria_user_avatars', JSON.stringify(arr)); } catch {}
+}
+function _getGenders() {
+    try { return JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch { return []; }
+}
+function _saveGenders(arr) {
+    try { localStorage.setItem('etheria_user_genders', JSON.stringify(arr)); } catch {}
+}
+function _getBirthdays() {
+    try { return JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch { return []; }
+}
+function _saveBirthdays(arr) {
+    try { localStorage.setItem('etheria_user_birthdays', JSON.stringify(arr)); } catch {}
+}
+
+function _syncAvatarInitials() {
+    const initEl = document.getElementById('optAvatarInitials');
+    if (initEl) initEl.textContent = (userNames[currentUserIndex] || '?')[0].toUpperCase();
+}
+
+function _syncProfileTab() {
+    // Nombre
+    const nameInput = document.getElementById('optProfileName');
+    if (nameInput) nameInput.value = userNames[currentUserIndex] || '';
+    _syncAvatarInitials();
+
+    // Avatar
+    const avatars = _getAvatars();
+    const avatar  = avatars[currentUserIndex] || '';
+    const imgEl   = document.getElementById('optAvatarImg');
+    const removeBtn = document.getElementById('optAvatarRemoveBtn');
+    if (imgEl) {
+        if (avatar) {
+            imgEl.src = avatar;
+            imgEl.style.display = 'block';
+            if (removeBtn) removeBtn.style.display = 'inline-block';
+        } else {
+            imgEl.src = '';
+            imgEl.style.display = 'none';
+            if (removeBtn) removeBtn.style.display = 'none';
+        }
+    }
+
+    // Género
+    const genders = _getGenders();
+    const genderSel = document.getElementById('optProfileGender');
+    if (genderSel) genderSel.value = genders[currentUserIndex] || '';
+
+    // Cumpleaños
+    const birthdays = _getBirthdays();
+    const bday = birthdays[currentUserIndex] || '';
+    const bdayInput = document.getElementById('optProfileBirthday');
+    if (bdayInput) bdayInput.value = bday;
+    _updateBirthdayHint(bday);
+}
+
+function _updateBirthdayHint(bday) {
+    const hint = document.getElementById('optBirthdayHint');
+    if (!hint) return;
+    if (!bday) { hint.textContent = ''; return; }
+    try {
+        const [y, m, d] = bday.split('-').map(Number);
+        const today = new Date();
+        const thisYear = today.getFullYear();
+        const next = new Date(thisYear, m - 1, d);
+        if (next < today) next.setFullYear(thisYear + 1);
+        const diff = Math.round((next - today) / 86400000);
+        const age = thisYear - y;
+        if (diff === 0) hint.textContent = `🎂 ¡Hoy cumples ${age} años!`;
+        else if (diff <= 7) hint.textContent = `🎂 En ${diff} día${diff > 1 ? 's' : ''}`;
+        else hint.textContent = `${age} años`;
+    } catch { hint.textContent = ''; }
+}
+
+function handleAvatarUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 1.2 * 1024 * 1024) {
+        showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = e.target.result;
+        const avatars = _getAvatars();
+        while (avatars.length <= currentUserIndex) avatars.push('');
+        avatars[currentUserIndex] = data;
+        _saveAvatars(avatars);
+        _syncProfileTab();
+        showAutosave('Avatar guardado', 'saved');
+        // Refrescar tarjetas de perfil
+        if (typeof renderUserCards === 'function') renderUserCards();
+    };
+    reader.readAsDataURL(file);
+    input.value = ''; // limpiar para poder subir la misma imagen otra vez
+}
+
+function removeProfileAvatar() {
+    const avatars = _getAvatars();
+    if (avatars[currentUserIndex]) avatars[currentUserIndex] = '';
+    _saveAvatars(avatars);
+    _syncProfileTab();
+    showAutosave('Avatar eliminado', 'saved');
+    if (typeof renderUserCards === 'function') renderUserCards();
+}
+
+function saveProfileGender(value) {
+    const genders = _getGenders();
+    while (genders.length <= currentUserIndex) genders.push('');
+    genders[currentUserIndex] = value;
+    _saveGenders(genders);
+    if (typeof renderUserCards === 'function') renderUserCards();
+}
+
+function saveProfileBirthday(value) {
+    const birthdays = _getBirthdays();
+    while (birthdays.length <= currentUserIndex) birthdays.push('');
+    birthdays[currentUserIndex] = value;
+    _saveBirthdays(birthdays);
+    _updateBirthdayHint(value);
+    if (typeof renderUserCards === 'function') renderUserCards();
 }
 
 function syncOptionsSection() {
@@ -281,6 +428,8 @@ function syncOptionsSection() {
         const myChars  = appData.characters.filter(c => c.userIndex === currentUserIndex).length;
         statsEl.textContent = `${myTopics} historias · ${myChars} personajes`;
     }
+    // Sincronizar pestaña de perfil siempre que se abra opciones
+    _syncProfileTab();
 }
 
 function deleteCurrentTopic() {

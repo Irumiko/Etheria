@@ -362,132 +362,195 @@
     <!-- Options Section -->
     <div id="optionsSection" class="game-section">
         <div class="section-header-bar">
-            <h2 class="section-title">⚙️ Opciones</h2>
+            <div class="section-header-left">
+                <span class="section-header-breadcrumb">›</span>
+                <h2 class="section-title">⚙ Opciones</h2>
+            </div>
             <button class="back-button" onclick="backToMenu()">← Volver</button>
         </div>
-        <div class="section-content">
-            <div class="options-grid">
 
-                <!-- Apariencia -->
-                <div class="options-card">
-                    <div class="options-card-icon">🎨</div>
-                    <h3 class="options-card-title">Apariencia</h3>
-                    <div class="options-card-body">
-                        <div class="option-row">
-                            <span class="option-label">Tema visual</span>
-                            <button onclick="toggleTheme()" class="opt-toggle-btn" id="themeToggleBtn">🌙 Oscuro</button>
-                        </div>
-                        <div class="option-row">
-                            <label class="option-label" for="optFontSize">Tamaño de fuente</label>
-                            <div class="option-slider-wrap">
-                                <input type="range" id="optFontSize" class="setting-slider" min="14" max="24" value="19" oninput="updateFontSize(this.value); document.getElementById('optFontSizeVal').textContent = this.value + 'px'">
-                                <span class="option-slider-val" id="optFontSizeVal">19px</span>
-                            </div>
-                        </div>
-                        <div class="option-row">
-                            <label class="option-label">Filtro de escena</label>
-                            <div class="filter-buttons">
-                                <button class="filter-btn active" onclick="setAtmosphere('none', this)">Normal</button>
-                                <button class="filter-btn" onclick="setAtmosphere('sepia', this)">Sépia</button>
-                                <button class="filter-btn" onclick="setAtmosphere('bw', this)">B/N</button>
-                                <button class="filter-btn" onclick="setAtmosphere('cinematic', this)">Cine</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Lectura -->
-                <div class="options-card">
-                    <div class="options-card-icon">📖</div>
-                    <h3 class="options-card-title">Lectura</h3>
-                    <div class="options-card-body">
-                        <div class="option-row">
-                            <label class="option-label" for="optTextSpeed">Velocidad del texto</label>
-                            <div class="option-slider-wrap">
-                                <input type="range" id="optTextSpeed" class="setting-slider" min="10" max="100" value="75" oninput="updateTextSpeed(this.value); syncSpeedLabel(this.value)">
-                                <span class="option-slider-val" id="optSpeedVal">Normal</span>
-                            </div>
-                        </div>
-                        <div class="option-row">
-                            <span class="option-label">Texto instantáneo</span>
-                            <label class="opt-switch">
-                                <input type="checkbox" id="optInstantText" onchange="updateTextSpeed(this.checked ? 10 : parseInt(document.getElementById('optTextSpeed').value))">
-                                <span class="opt-slider"></span>
-                            </label>
-                        </div>
-                        <div class="option-row">
-                            <span class="option-label">Modo inmersivo VN</span>
-                            <label class="opt-switch">
-                                <input type="checkbox" id="optImmersiveMode" onchange="toggleImmersiveModeSetting(this.checked)">
-                                <span class="opt-slider"></span>
-                            </label>
-                        </div>
-                        <div class="option-row">
-                            <span class="option-label">Lectura continua</span>
-                            <label class="opt-switch">
-                                <input type="checkbox" id="optContinuousRead" onchange="toggleContinuousReading(this.checked)">
-                                <span class="opt-slider"></span>
-                            </label>
-                        </div>
-                        <div class="option-row">
-                            <label class="option-label" for="optContinuousDelay">Espera autoavance</label>
-                            <div class="option-slider-wrap">
-                                <input type="range" id="optContinuousDelay" class="setting-slider" min="3" max="5" value="4" oninput="updateContinuousReadDelay(this.value)">
-                                <span class="option-slider-val" id="optContinuousDelayVal">4s</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sonido -->
-                <div class="options-card">
-                    <div class="options-card-icon">🔊</div>
-                    <h3 class="options-card-title">Sonido</h3>
-                    <div class="options-card-body">
-                        <div class="option-row">
-                            <label class="option-label" for="optMasterVol">Volumen general</label>
-                            <div class="option-slider-wrap">
-                                <input type="range" id="optMasterVol" class="setting-slider" min="0" max="100" value="50" oninput="updateMasterVolume(this.value)">
-                                <span class="option-slider-val" id="optMasterVolVal">50%</span>
-                            </div>
-                        </div>
-                        <div class="option-row">
-                            <label class="option-label" for="optRainVol">Volumen lluvia</label>
-                            <div class="option-slider-wrap">
-                                <input type="range" id="optRainVol" class="setting-slider" min="0" max="100" value="30" oninput="updateRainVolume(this.value)">
-                                <span class="option-slider-val" id="optRainVolVal">30%</span>
-                            </div>
-                        </div>
-                        <div class="option-row">
-                            <span class="option-label">Efectos de UI</span>
-                            <label class="opt-switch">
-                                <input type="checkbox" id="optUiSounds" checked onchange="updateUiSounds(this.checked)">
-                                <span class="opt-switch-slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Perfil -->
-                <div class="options-card">
-                    <div class="options-card-icon">👤</div>
-                    <h3 class="options-card-title">Perfil actual</h3>
-                    <div class="options-card-body">
-                        <div class="option-row" style="flex-direction: column; align-items: flex-start; gap: 0.5rem;">
-                            <label class="option-label" for="optProfileName">Nombre del perfil</label>
-                            <div style="display: flex; gap: 0.5rem; width: 100%;">
-                                <input type="text" id="optProfileName" class="opt-text-input" placeholder="Nombre..." style="flex: 1;">
-                                <button onclick="saveProfileNameFromOptions()" class="opt-small-btn">Guardar</button>
-                            </div>
-                        </div>
-                        <div class="option-row" style="margin-top: 0.5rem;">
-                            <span class="option-label" style="color: var(--text-muted); font-size: 0.8rem;" id="optProfileStats"></span>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+        <!-- ── Tab bar ─────────────────────────────────────────── -->
+        <div class="opt-tab-bar" role="tablist">
+            <button class="opt-tab active" role="tab" aria-selected="true"  data-tab="appearance" onclick="switchOptTab('appearance',this)">
+                <span class="opt-tab-icon">🎨</span>
+                <span class="opt-tab-label">Apariencia</span>
+            </button>
+            <button class="opt-tab" role="tab" aria-selected="false" data-tab="reading"    onclick="switchOptTab('reading',this)">
+                <span class="opt-tab-icon">📖</span>
+                <span class="opt-tab-label">Lectura</span>
+            </button>
+            <button class="opt-tab" role="tab" aria-selected="false" data-tab="sound"      onclick="switchOptTab('sound',this)">
+                <span class="opt-tab-icon">🔊</span>
+                <span class="opt-tab-label">Sonido</span>
+            </button>
+            <button class="opt-tab" role="tab" aria-selected="false" data-tab="profile"    onclick="switchOptTab('profile',this)">
+                <span class="opt-tab-icon">👤</span>
+                <span class="opt-tab-label">Perfil</span>
+            </button>
         </div>
+
+        <!-- ── Paneles ─────────────────────────────────────────── -->
+        <div class="opt-panels">
+
+            <!-- APARIENCIA -->
+            <div class="opt-panel active" id="optPanel-appearance" role="tabpanel">
+                <div class="opt-section-title">Apariencia</div>
+                <div class="opt-rows">
+                    <div class="option-row">
+                        <span class="option-label">Tema visual</span>
+                        <button onclick="toggleTheme()" class="opt-toggle-btn" id="themeToggleBtn">☀️ Claro</button>
+                    </div>
+                    <div class="option-row">
+                        <label class="option-label" for="optFontSize">Tamaño de fuente</label>
+                        <div class="option-slider-wrap">
+                            <input type="range" id="optFontSize" class="setting-slider" min="14" max="24" value="19"
+                                oninput="updateFontSize(this.value); document.getElementById('optFontSizeVal').textContent = this.value + 'px'">
+                            <span class="option-slider-val" id="optFontSizeVal">19px</span>
+                        </div>
+                    </div>
+                    <div class="option-row opt-row-filters">
+                        <label class="option-label">Filtro de escena</label>
+                        <div class="filter-buttons">
+                            <button class="filter-btn active" onclick="setAtmosphere('none', this)">Normal</button>
+                            <button class="filter-btn" onclick="setAtmosphere('sepia', this)">Sépia</button>
+                            <button class="filter-btn" onclick="setAtmosphere('bw', this)">B/N</button>
+                            <button class="filter-btn" onclick="setAtmosphere('cinematic', this)">Cine</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LECTURA -->
+            <div class="opt-panel" id="optPanel-reading" role="tabpanel">
+                <div class="opt-section-title">Lectura</div>
+                <div class="opt-rows">
+                    <div class="option-row">
+                        <label class="option-label" for="optTextSpeed">Velocidad del texto</label>
+                        <div class="option-slider-wrap">
+                            <input type="range" id="optTextSpeed" class="setting-slider" min="10" max="100" value="75"
+                                oninput="updateTextSpeed(this.value); syncSpeedLabel(this.value)">
+                            <span class="option-slider-val" id="optSpeedVal">Normal</span>
+                        </div>
+                    </div>
+                    <div class="option-row">
+                        <span class="option-label">Texto instantáneo</span>
+                        <label class="opt-switch">
+                            <input type="checkbox" id="optInstantText"
+                                onchange="updateTextSpeed(this.checked ? 10 : parseInt(document.getElementById('optTextSpeed').value))">
+                            <span class="opt-slider"></span>
+                        </label>
+                    </div>
+                    <div class="option-row">
+                        <span class="option-label">Modo inmersivo VN</span>
+                        <label class="opt-switch">
+                            <input type="checkbox" id="optImmersiveMode" onchange="toggleImmersiveModeSetting(this.checked)">
+                            <span class="opt-slider"></span>
+                        </label>
+                    </div>
+                    <div class="option-row">
+                        <span class="option-label">Lectura continua</span>
+                        <label class="opt-switch">
+                            <input type="checkbox" id="optContinuousRead" onchange="toggleContinuousReading(this.checked)">
+                            <span class="opt-slider"></span>
+                        </label>
+                    </div>
+                    <div class="option-row">
+                        <label class="option-label" for="optContinuousDelay">Espera autoavance</label>
+                        <div class="option-slider-wrap">
+                            <input type="range" id="optContinuousDelay" class="setting-slider" min="3" max="5" value="4"
+                                oninput="updateContinuousReadDelay(this.value)">
+                            <span class="option-slider-val" id="optContinuousDelayVal">4s</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SONIDO -->
+            <div class="opt-panel" id="optPanel-sound" role="tabpanel">
+                <div class="opt-section-title">Sonido</div>
+                <div class="opt-rows">
+                    <div class="option-row">
+                        <label class="option-label" for="optMasterVol">Volumen general</label>
+                        <div class="option-slider-wrap">
+                            <input type="range" id="optMasterVol" class="setting-slider" min="0" max="100" value="50"
+                                oninput="updateMasterVolume(this.value)">
+                            <span class="option-slider-val" id="optMasterVolVal">50%</span>
+                        </div>
+                    </div>
+                    <div class="option-row">
+                        <label class="option-label" for="optRainVol">Volumen lluvia</label>
+                        <div class="option-slider-wrap">
+                            <input type="range" id="optRainVol" class="setting-slider" min="0" max="100" value="30"
+                                oninput="updateRainVolume(this.value)">
+                            <span class="option-slider-val" id="optRainVolVal">30%</span>
+                        </div>
+                    </div>
+                    <div class="option-row">
+                        <span class="option-label">Efectos de UI</span>
+                        <label class="opt-switch">
+                            <input type="checkbox" id="optUiSounds" checked onchange="updateUiSounds(this.checked)">
+                            <span class="opt-switch-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PERFIL -->
+            <div class="opt-panel" id="optPanel-profile" role="tabpanel">
+                <div class="opt-section-title">Tu Perfil</div>
+
+                <!-- Avatar -->
+                <div class="opt-profile-avatar-zone">
+                    <div class="opt-avatar-preview" id="optAvatarPreview" onclick="document.getElementById('optAvatarInput').click()" title="Cambiar avatar">
+                        <span class="opt-avatar-initials" id="optAvatarInitials">?</span>
+                        <img class="opt-avatar-img" id="optAvatarImg" src="" alt="Avatar" style="display:none">
+                        <div class="opt-avatar-overlay">📷</div>
+                    </div>
+                    <div class="opt-avatar-actions">
+                        <p class="opt-avatar-hint">Toca para cambiar tu avatar.<br>PNG, JPG o GIF · Máx. 1 MB</p>
+                        <button class="opt-avatar-remove-btn" id="optAvatarRemoveBtn" onclick="removeProfileAvatar()" style="display:none">✕ Quitar foto</button>
+                    </div>
+                    <input type="file" id="optAvatarInput" accept="image/png,image/jpeg,image/gif,image/webp"
+                        style="display:none" onchange="handleAvatarUpload(this)">
+                </div>
+
+                <div class="opt-rows">
+                    <!-- Nombre -->
+                    <div class="option-row opt-row-stacked">
+                        <label class="option-label" for="optProfileName">Nombre visible</label>
+                        <div class="opt-input-row">
+                            <input type="text" id="optProfileName" class="opt-text-input" placeholder="Tu nombre..." autocomplete="off">
+                            <button onclick="saveProfileNameFromOptions()" class="opt-save-btn">Guardar</button>
+                        </div>
+                    </div>
+                    <!-- Género -->
+                    <div class="option-row">
+                        <label class="option-label" for="optProfileGender">Género</label>
+                        <select id="optProfileGender" class="opt-select" onchange="saveProfileGender(this.value)">
+                            <option value="">Sin especificar</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="femenino">Femenino</option>
+                            <option value="no-binario">No binario</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <!-- Cumpleaños -->
+                    <div class="option-row">
+                        <label class="option-label" for="optProfileBirthday">Cumpleaños</label>
+                        <div class="opt-birthday-wrap">
+                            <input type="date" id="optProfileBirthday" class="opt-date-input"
+                                onchange="saveProfileBirthday(this.value)">
+                            <span class="opt-birthday-hint" id="optBirthdayHint"></span>
+                        </div>
+                    </div>
+                    <!-- Stats -->
+                    <div class="option-row" style="border-top: 1px solid rgba(201,168,108,0.08); margin-top: 0.5rem; padding-top: 1rem;">
+                        <span class="option-label" style="color: var(--text-muted); font-size: 0.82rem;" id="optProfileStats"></span>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /opt-panels -->
     </div>
 
     <!-- VN Section -->

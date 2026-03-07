@@ -9,7 +9,7 @@
 // ================================================================
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
-const CACHE_VERSION = 'mmgnyvil';
+const CACHE_VERSION = 'mmgop2ms';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 
 // Archivos que se precargan al instalar el SW.
@@ -42,7 +42,7 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) =>
         Promise.all(
           cacheNames
-            .filter((name) => name !== CACHE_NAME)
+            .filter((name) => name !== CACHE_NAME && name !== IMAGE_CACHE)
             .map((name) => {
               console.log('[SW] Eliminando caché antigua:', name);
               return caches.delete(name);
@@ -77,11 +77,18 @@ self.addEventListener('fetch', (event) => {
   const isHTML = req.mode === 'navigate' ||
                  (req.headers.get('accept') || '').includes('text/html');
 
+  const isImage = /\.(jpe?g|png|gif|webp|svg|avif)(\?.*)?$/i.test(url.pathname) ||
+                  (req.headers.get('accept') || '').includes('image/');
+
   if (isHTML) {
     // HTML: Network First → si falla, caché → si no hay caché, offline page
     event.respondWith(networkFirstHTML(req));
+  } else if (isImage) {
+    // Imágenes: Cache First — sirve inmediatamente desde caché si existe,
+    // actualiza en background. Evita parpadeo/blank en fondos y avatares.
+    event.respondWith(cacheFirstImage(req));
   } else {
-    // Estáticos: Stale While Revalidate
+    // JS/CSS/fonts: Stale While Revalidate
     event.respondWith(staleWhileRevalidate(req));
   }
 });
@@ -110,6 +117,28 @@ async function networkFirstHTML(req) {
       </head><body><div><h1>✦ Etheria ✦</h1><p>Sin conexión. Conecta a internet para continuar.</p></div></body></html>`,
       { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
     );
+  }
+}
+
+// ── Estrategia Cache First (imágenes) ───────────────────────────────────
+// Sirve desde caché de inmediato. Si no está en caché, descarga y guarda.
+// Las imágenes rara vez cambian, por eso preferimos velocidad a frescura.
+const IMAGE_CACHE = 'etheria-images-v1';
+
+async function cacheFirstImage(req) {
+  const imageCache = await caches.open(IMAGE_CACHE);
+  const cached = await imageCache.match(req);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(req);
+    if (res && res.status === 200) {
+      imageCache.put(req, res.clone());
+    }
+    return res;
+  } catch {
+    // Sin red y sin caché: 204 transparente para no bloquear el layout
+    return new Response('', { status: 204 });
   }
 }
 
