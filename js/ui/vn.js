@@ -907,8 +907,30 @@ function enterTopic(id) {
         }
     }
 
+    // ── Auto-activar historia en la nube si el topic tiene storyId ──
+    // Cuando el topic ya fue creado con cloud sync, el storyId se guardó
+    // en el objeto topic. Lo restauramos para que los mensajes usen el
+    // story_id correcto en Supabase desde el primer mensaje de esta sesión.
+    const _tForStory = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
+    if (_tForStory && _tForStory.storyId) {
+        global.currentStoryId = _tForStory.storyId;
+        // Suscribir al canal realtime de la historia si está disponible
+        if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.enterStory === 'function') {
+            SupabaseStories.enterStory(_tForStory.storyId).catch(function() {});
+        }
+    } else {
+        // Topic sin storyId (creado antes de la integración cloud) — limpiar
+        global.currentStoryId = null;
+    }
+    // ────────────────────────────────────────────────────────────────
+
     // Carga desde Supabase y suscripción realtime (no bloquea el flujo principal)
     _sbEnterTopic(id);
+    
+    // Notificar a Ethy que se ha entrado en modo VN
+    window.dispatchEvent(new CustomEvent('etheria:section-changed', { 
+        detail: { section: 'vn', mode: currentTopicMode } 
+    }));
 }
 
 // Memory leak fix: store handler reference so it can be removed before re-adding
@@ -3190,6 +3212,11 @@ function postVNReply() {
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
     }
+
+    // Notificar a Ethy del mensaje enviado
+    window.dispatchEvent(new CustomEvent('etheria:message-sent', {
+        detail: { text: newMsg.text || '' }
+    }));
 
     hasUnsavedChanges = true;
     save({ silent: true });

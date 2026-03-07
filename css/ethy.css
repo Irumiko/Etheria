@@ -1,0 +1,774 @@
+/* ============================================
+   ETHY - La mascota guía de Etheria
+   ============================================ */
+
+/* Contenedor principal de Ethy */
+.ethy-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9998;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    pointer-events: none;
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.ethy-container.active {
+    pointer-events: auto;
+}
+
+/* Posición alternativa: cerca del perfil en el menú */
+.ethy-container.near-profile {
+    bottom: 80px;
+    right: auto;
+    left: 400px;
+}
+
+/* En pantallas pequeñas, mantener posición original */
+@media (max-width: 1024px) {
+    .ethy-container.near-profile {
+        bottom: 20px;
+        right: 20px;
+        left: auto;
+    }
+}
+
+/* El cuerpo de Ethy */
+.ethy-body {
+    pointer-events: auto; /* override parent pointer-events:none */
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(145deg, #c9a86c 0%, #a88b52 50%, #8b7347 100%);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    position: relative;
+    cursor: grab;
+    box-shadow: 
+        0 8px 25px rgba(0, 0, 0, 0.3),
+        inset 0 -5px 15px rgba(0, 0, 0, 0.2),
+        inset 0 5px 15px rgba(255, 255, 255, 0.2);
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    animation: ethyFloat 3s ease-in-out infinite;
+}
+
+.ethy-body:hover {
+    transform: scale(1.1);
+    box-shadow: 
+        0 12px 35px rgba(201, 168, 108, 0.4),
+        inset 0 -5px 15px rgba(0, 0, 0, 0.2),
+        inset 0 5px 15px rgba(255, 255, 255, 0.3);
+}
+
+.ethy-body:active {
+    transform: scale(0.95);
+}
+
+/* Animación de flotación */
+@keyframes ethyFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-8px) rotate(-2deg); }
+    50% { transform: translateY(-4px) rotate(0deg); }
+    75% { transform: translateY(-10px) rotate(2deg); }
+}
+
+/* Antenas de Ethy */
+.ethy-antenna {
+    position: absolute;
+    width: 4px;
+    height: 20px;
+    background: linear-gradient(to bottom, #c9a86c, #8b7347);
+    border-radius: 2px;
+    top: -15px;
+}
+
+.ethy-antenna.left {
+    left: 25px;
+    transform: rotate(-15deg);
+}
+
+.ethy-antenna.right {
+    right: 25px;
+    transform: rotate(15deg);
+}
+
+.ethy-antenna::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #e8d5a3;
+    border-radius: 50%;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 10px rgba(232, 213, 163, 0.5);
+    animation: ethyAntennaGlow 2s ease-in-out infinite;
+}
+
+@keyframes ethyAntennaGlow {
+    0%, 100% { box-shadow: 0 0 5px rgba(232, 213, 163, 0.5); }
+    50% { box-shadow: 0 0 15px rgba(232, 213, 163, 0.8); }
+}
+
+/* Ojos de Ethy - Base */
+.ethy-eyes {
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+}
+
+.ethy-eye {
+    width: 18px;
+    height: 22px;
+    background: #1a1815;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+}
+
+.ethy-eye::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+    top: 4px;
+    right: 3px;
+}
+
+/* Expresiones de Ethy */
+
+/* 1. Neutral/Curioso (ㆆ_ㆆ) */
+.ethy-expression-neutral .ethy-eye {
+    height: 8px;
+    border-radius: 4px;
+    margin-top: 7px;
+}
+
+/* 2. Triste (˘︹˘) */
+.ethy-expression-sad .ethy-eye {
+    height: 12px;
+    border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+    transform: rotate(-10deg);
+}
+
+.ethy-expression-sad .ethy-eye:last-child {
+    transform: rotate(10deg);
+}
+
+/* 3. Feliz (─‿‿─) */
+.ethy-expression-happy .ethy-eye {
+    height: 10px;
+    border-radius: 50%;
+    border-bottom: 3px solid #1a1815;
+    background: transparent;
+}
+
+.ethy-expression-happy .ethy-eye::after {
+    display: none;
+}
+
+/* 4. Emocionado (≧◉◡◉≦) */
+.ethy-expression-excited .ethy-eye {
+    width: 20px;
+    height: 24px;
+    animation: ethyExcitedBlink 0.5s ease-in-out infinite;
+}
+
+@keyframes ethyExcitedBlink {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.3); }
+}
+
+/* 5. Sorprendido (◉_◉) */
+.ethy-expression-surprised .ethy-eye {
+    width: 22px;
+    height: 26px;
+}
+
+/* 6. Pensativo (¬‿¬) */
+.ethy-expression-thoughtful .ethy-eye {
+    height: 6px;
+    border-radius: 3px;
+    margin-top: 8px;
+}
+
+.ethy-expression-thoughtful .ethy-eye:first-child {
+    transform: rotate(-5deg);
+}
+
+.ethy-expression-thoughtful .ethy-eye:last-child {
+    transform: rotate(5deg);
+}
+
+/* 7. Guiño (◠‿◠) */
+.ethy-expression-wink .ethy-eye:first-child {
+    height: 4px;
+    border-radius: 2px;
+    margin-top: 9px;
+}
+
+/* 8. Amor (♥‿♥) */
+.ethy-expression-love .ethy-eye {
+    width: 16px;
+    height: 16px;
+    background: #e74c3c;
+    transform: rotate(-45deg);
+    border-radius: 0;
+}
+
+.ethy-expression-love .ethy-eye::before,
+.ethy-expression-love .ethy-eye::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #e74c3c;
+    border-radius: 50%;
+}
+
+.ethy-expression-love .ethy-eye::before {
+    top: -8px;
+    left: 0;
+}
+
+.ethy-expression-love .ethy-eye::after {
+    left: 8px;
+    top: 0;
+}
+
+.ethy-expression-love .ethy-eye > * {
+    display: none;
+}
+
+/* Boca de Ethy */
+.ethy-mouth {
+    position: absolute;
+    bottom: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 10px;
+    border-bottom: 3px solid #1a1815;
+    border-radius: 0 0 50% 50%;
+    transition: all 0.3s ease;
+}
+
+/* Variaciones de boca */
+.ethy-expression-neutral .ethy-mouth {
+    width: 15px;
+    height: 3px;
+    border: none;
+    background: #1a1815;
+    border-radius: 2px;
+}
+
+.ethy-expression-sad .ethy-mouth {
+    border-bottom: none;
+    border-top: 3px solid #1a1815;
+    border-radius: 50% 50% 0 0;
+    bottom: 20%;
+}
+
+.ethy-expression-happy .ethy-mouth,
+.ethy-expression-excited .ethy-mouth {
+    width: 25px;
+    height: 15px;
+    background: #1a1815;
+    border-radius: 0 0 50% 50%;
+}
+
+.ethy-expression-surprised .ethy-mouth {
+    width: 15px;
+    height: 18px;
+    background: #1a1815;
+    border-radius: 50%;
+}
+
+.ethy-expression-thoughtful .ethy-mouth {
+    width: 8px;
+    height: 8px;
+    border: 2px solid #1a1815;
+    border-radius: 50%;
+    background: transparent;
+}
+
+/* Mejillas sonrojadas */
+.ethy-cheeks {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 5px;
+    pointer-events: none;
+}
+
+.ethy-cheek {
+    width: 15px;
+    height: 10px;
+    background: rgba(231, 76, 60, 0.3);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ethy-expression-happy .ethy-cheek,
+.ethy-expression-excited .ethy-cheek,
+.ethy-expression-love .ethy-cheek {
+    opacity: 1;
+}
+
+/* Burbuja de diálogo */
+.ethy-speech-bubble {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 15px;
+    background: linear-gradient(145deg, #2a2520 0%, #1a1815 100%);
+    border: 2px solid #c9a86c;
+    border-radius: 20px;
+    padding: 15px 20px;
+    min-width: 250px;
+    max-width: 350px;
+    color: #e8d5a3;
+    font-family: 'Cinzel', serif;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(201, 168, 108, 0.1);
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: auto;
+}
+
+.ethy-speech-bubble.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* Flecha de la burbuja */
+.ethy-speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    right: 30px;
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-top: 12px solid #c9a86c;
+}
+
+.ethy-speech-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    right: 32px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #2a2520;
+    z-index: 1;
+}
+
+/* Título en la burbuja */
+.ethy-speech-bubble .ethy-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #c9a86c;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Botones de acción en la burbuja */
+.ethy-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.ethy-btn {
+    padding: 8px 16px;
+    border: 1px solid #c9a86c;
+    background: transparent;
+    color: #c9a86c;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.ethy-btn:hover {
+    background: #c9a86c;
+    color: #1a1815;
+}
+
+.ethy-btn.primary {
+    background: #c9a86c;
+    color: #1a1815;
+}
+
+.ethy-btn.primary:hover {
+    background: #e8d5a3;
+}
+
+/* Indicador de pasos */
+.ethy-steps {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+    justify-content: center;
+}
+
+.ethy-step {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(201, 168, 108, 0.3);
+    transition: all 0.3s ease;
+}
+
+.ethy-step.active {
+    background: #c9a86c;
+    transform: scale(1.2);
+}
+
+.ethy-step.completed {
+    background: #27ae60;
+}
+
+/* Modo minimalista (solo el icono) */
+.ethy-container.minimal .ethy-speech-bubble {
+    display: none;
+}
+
+.ethy-container.minimal .ethy-body {
+    width: 50px;
+    height: 50px;
+}
+
+/* Animaciones especiales */
+
+/* Saludo inicial */
+.ethy-hello {
+    animation: ethyHello 0.6s ease;
+}
+
+@keyframes ethyHello {
+    0% { transform: scale(0) rotate(-180deg); }
+    50% { transform: scale(1.2) rotate(10deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Despedida */
+.ethy-bye {
+    animation: ethyBye 0.5s ease forwards;
+}
+
+@keyframes ethyBye {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0) rotate(180deg); opacity: 0; }
+}
+
+/* Señalar elemento */
+.ethy-pointing::before {
+    content: '☞';
+    position: absolute;
+    font-size: 2rem;
+    color: #c9a86c;
+    animation: ethyPoint 1s ease-in-out infinite;
+}
+
+@keyframes ethyPoint {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+}
+
+/* Efecto de ondas al aparecer */
+.ethy-ripple {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    border: 2px solid #c9a86c;
+    animation: ethyRipple 1s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes ethyRipple {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .ethy-container {
+        bottom: 10px;
+        right: 10px;
+    }
+
+    .ethy-body {
+        width: 60px;
+        height: 60px;
+    }
+
+    .ethy-speech-bubble {
+        min-width: 220px;
+        max-width: min(280px, calc(100vw - 30px));
+        padding: 12px 15px;
+        font-size: 0.85rem;
+        /* Fix: anclar a la derecha del viewport sin salirse */
+        right: 0;
+        left: auto;
+    }
+
+    /* Fix: botones en columna en móvil para evitar overflow horizontal */
+    .ethy-actions {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .ethy-btn {
+        width: 100%;
+        padding: 7px 10px;
+        font-size: 0.78rem;
+        text-align: center;
+    }
+
+    .ethy-antenna {
+        height: 15px;
+        top: -12px;
+    }
+}
+
+/* Modo oscuro ajustes */
+[data-theme="dark"] .ethy-body {
+    background: linear-gradient(145deg, #d4b87a 0%, #b89b5e 50%, #9a8252 100%);
+}
+
+[data-theme="dark"] .ethy-speech-bubble {
+    background: linear-gradient(145deg, #1a1815 0%, #0d0c0a 100%);
+    border-color: #d4b87a;
+    color: #f0e6cc;
+}
+
+[data-theme="dark"] .ethy-speech-bubble::before {
+    border-top-color: #1a1815;
+}
+
+[data-theme="dark"] .ethy-speech-bubble::after {
+    border-top-color: #d4b87a;
+}
+
+/* Tooltip de ayuda contextual */
+.ethy-tooltip {
+    position: absolute;
+    background: rgba(26, 24, 21, 0.95);
+    border: 1px solid #c9a86c;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    color: #e8d5a3;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 9999;
+}
+
+.ethy-tooltip.visible {
+    opacity: 1;
+}
+
+/* Barra de progreso del tutorial */
+.ethy-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #c9a86c, #e8d5a3);
+    transition: width 0.3s ease;
+    z-index: 10000;
+}
+
+/* Overlay de enfoque */
+.ethy-focus-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9990;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.ethy-focus-overlay.active {
+    opacity: 1;
+}
+
+.ethy-focus-overlay .ethy-highlight {
+    position: absolute;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    transition: all 0.4s ease;
+}
+
+/* Animación de escritura */
+.ethy-typing {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 5px;
+}
+
+.ethy-typing span {
+    width: 6px;
+    height: 6px;
+    background: #c9a86c;
+    border-radius: 50%;
+    animation: ethyTyping 1.4s ease-in-out infinite;
+}
+
+.ethy-typing span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.ethy-typing span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes ethyTyping {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-8px); }
+}
+
+/* ── Botón de minimizar ─────────────────────────────────────────────────── */
+.ethy-minimize-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(26, 24, 21, 0.85);
+    border: 1px solid rgba(201, 168, 108, 0.5);
+    color: rgba(201, 168, 108, 0.9);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s;
+    z-index: 10;
+    pointer-events: auto;
+    padding: 0;
+    font-family: monospace;
+}
+.ethy-container:hover .ethy-minimize-btn {
+    opacity: 1;
+}
+.ethy-minimize-btn:hover {
+    background: rgba(201, 168, 108, 0.25);
+}
+
+/* ── Estado minimizado ──────────────────────────────────────────────────── */
+.ethy-container.ethy-minimized .ethy-body {
+    width: 40px;
+    height: 40px;
+    opacity: 0.6;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ethy-container.ethy-minimized:hover .ethy-body {
+    opacity: 1;
+    transform: scale(1.15);
+}
+.ethy-container.ethy-minimized .ethy-speech-bubble {
+    display: none;
+}
+.ethy-container.ethy-minimized .ethy-minimize-btn {
+    opacity: 1;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    font-size: 11px;
+}
+
+/* ── Arrastrable ────────────────────────────────────────────────────────── */
+.ethy-container.ethy-dragging {
+    cursor: grabbing;
+    z-index: 99999;
+}
+.ethy-container.ethy-dragging .ethy-body {
+    transform: scale(1.1) rotate(-5deg);
+}
+/* cursor: grab ya aplicado en el bloque principal de .ethy-body */
+
+/* ── Estado dormido — ZZZ flotantes ─────────────────────────────────────── */
+.ethy-container.ethy-sleeping .ethy-body {
+    animation: ethy-doze 3s ease-in-out infinite;
+}
+
+@keyframes ethy-doze {
+    0%, 100% { transform: rotate(0deg);    }
+    25%       { transform: rotate(-4deg);   }
+    75%       { transform: rotate(4deg);    }
+}
+
+/* ZZZ pseudo-animación via ::before/::after y shadow extra */
+.ethy-body.ethy-zzz::before {
+    content: 'z';
+    position: absolute;
+    top: -10px;
+    right: -5px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: rgba(201, 168, 108, 0.8);
+    animation: ethy-zzz1 2s ease-in-out infinite;
+    font-family: 'Cinzel', serif;
+}
+.ethy-body.ethy-zzz::after {
+    content: 'z';
+    position: absolute;
+    top: -22px;
+    right: -14px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: rgba(201, 168, 108, 0.6);
+    animation: ethy-zzz1 2s ease-in-out infinite 0.7s;
+    font-family: 'Cinzel', serif;
+}
+
+@keyframes ethy-zzz1 {
+    0%   { opacity: 0;   transform: translateY(0)    scale(0.7); }
+    30%  { opacity: 1;   transform: translateY(-6px)  scale(1);   }
+    70%  { opacity: 0.6; transform: translateY(-14px) scale(1.1); }
+    100% { opacity: 0;   transform: translateY(-22px) scale(0.8); }
+}
+
+/* ── Mobile: minimizar más pequeño ─────────────────────────────────────── */
+@media (max-width: 768px) {
+    .ethy-minimize-btn {
+        opacity: 1; /* Siempre visible en mobile */
+        width: 18px;
+        height: 18px;
+        font-size: 12px;
+    }
+}

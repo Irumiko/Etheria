@@ -48,6 +48,8 @@ function setWeather(weather) {
     currentWeather = weather;
     if (typeof syncVnStore === 'function') syncVnStore({ weather: currentWeather });
     if (typeof eventBus !== 'undefined') eventBus.emit('weather:changed', { weather: currentWeather });
+    // Notificar a Ethy del cambio de clima
+    window.dispatchEvent(new CustomEvent('etheria:weather-changed', { detail: { weather } }));
 
     // Actualizar botones
     // Actualizar botones de clima — tanto los legacy como los nuevos vrp

@@ -401,13 +401,33 @@ function createTopic() {
     save({ silent: true });
     closeModal('topicModal');
     renderTopics();
+
+    // ── Sincronización automática con la nube ─────────────────────
+    // Si Supabase está disponible, crear la historia en la nube en
+    // background y guardar el storyId en el topic para que todos los
+    // mensajes queden vinculados a ella desde el primer momento.
+    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.createStory === 'function') {
+        SupabaseStories.createStory(title).then(function(story) {
+            if (story && story.id) {
+                const t = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
+                if (t) {
+                    t.storyId = story.id;
+                    hasUnsavedChanges = true;
+                    save({ silent: true });
+                    // Activar la historia en el contexto global
+                    global.currentStoryId = story.id;
+                }
+            }
+        }).catch(function() { /* Sin conexión — continúa en local */ });
+    }
+    // ─────────────────────────────────────────────────────────────
+
     if (currentTopicMode === 'roleplay') {
         pendingRoleTopicId = id;
         openRoleCharacterModal(id, { mode: 'roleplay', preservePendingTopicId: true, enterOnSelect: true });
     } else {
         enterTopic(id);
     }
-  
 }
 
 // ============================================

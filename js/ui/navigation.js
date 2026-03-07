@@ -119,14 +119,20 @@ function showSection(section) {
         const topicsSection = document.getElementById('topicsSection');
         if (topicsSection) topicsSection.classList.add('active');
         renderTopics();
+        // Notificar a Ethy
+        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'topics' } }));
     } else if(section === 'gallery') {
         const gallerySection = document.getElementById('gallerySection');
         if (gallerySection) gallerySection.classList.add('active');
         renderGallery();
+        // Notificar a Ethy
+        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'gallery' } }));
     } else if(section === 'options') {
         const optionsSection = document.getElementById('optionsSection');
         if (optionsSection) optionsSection.classList.add('active');
         if (typeof syncOptionsSection === 'function') syncOptionsSection();
+        // Notificar a Ethy
+        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'options' } }));
     }
 }
 
@@ -144,6 +150,8 @@ function backToMenu() {
             const particles = document.getElementById('particlesContainer');
             if (particles) particles.style.transform = '';
         }
+        // Notificar a Ethy
+        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'mainMenu' } }));
     });
 }
 

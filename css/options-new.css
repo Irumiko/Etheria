@@ -1,0 +1,345 @@
+/* ============================================
+   OPTIONS MENU - Menú de opciones mejorado
+   ============================================ */
+
+#optionsSection {
+    background: linear-gradient(135deg, #0d0c0a 0%, #1a1815 50%, #0d0c0a 100%);
+    min-height: 100vh;
+}
+
+#optionsSection .section-header-bar {
+    background: linear-gradient(90deg, rgba(201, 168, 108, 0.15) 0%, transparent 100%);
+    border-bottom: 1px solid rgba(201, 168, 108, 0.2);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#optionsSection .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.75rem;
+    color: #c9a86c;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-shadow: 0 2px 10px rgba(201, 168, 108, 0.2);
+}
+
+/* Grid de opciones */
+.options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Tarjetas de opciones */
+.options-card {
+    background: linear-gradient(145deg, rgba(42, 37, 32, 0.9) 0%, rgba(26, 24, 21, 0.95) 100%);
+    border: 1px solid rgba(201, 168, 108, 0.15);
+    border-radius: 20px;
+    padding: 1.75rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.options-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #c9a86c, #e8d5a3, #c9a86c);
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.options-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(201, 168, 108, 0.4);
+    box-shadow: 
+        0 20px 60px rgba(0, 0, 0, 0.4),
+        0 0 30px rgba(201, 168, 108, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.options-card:hover::before {
+    opacity: 1;
+}
+
+/* Icono de tarjeta */
+.options-card-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 10px rgba(201, 168, 108, 0.3));
+    animation: cardIconFloat 3s ease-in-out infinite;
+}
+
+@keyframes cardIconFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+/* Título de tarjeta */
+.options-card-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.25rem;
+    color: #c9a86c;
+    margin: 0 0 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(201, 168, 108, 0.15);
+}
+
+/* Cuerpo de tarjeta */
+.options-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Filas de opciones */
+.option-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.option-row:last-child {
+    border-bottom: none;
+}
+
+.option-label {
+    font-size: 0.95rem;
+    color: rgba(232, 213, 163, 0.85);
+    font-weight: 500;
+}
+
+/* Botón toggle de tema */
+.opt-toggle-btn {
+    padding: 0.625rem 1.25rem;
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    border-radius: 10px;
+    background: rgba(201, 168, 108, 0.1);
+    color: #c9a86c;
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.opt-toggle-btn:hover {
+    background: rgba(201, 168, 108, 0.2);
+    border-color: #c9a86c;
+    transform: scale(1.05);
+}
+
+/* Sliders */
+.option-slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.setting-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 150px;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    cursor: pointer;
+}
+
+.setting-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #c9a86c, #a88b52);
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(201, 168, 108, 0.4);
+    transition: all 0.2s ease;
+}
+
+.setting-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 15px rgba(201, 168, 108, 0.6);
+}
+
+.setting-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #c9a86c, #a88b52);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 10px rgba(201, 168, 108, 0.4);
+}
+
+.option-slider-val {
+    font-size: 0.9rem;
+    color: #c9a86c;
+    min-width: 50px;
+    text-align: right;
+    font-weight: 600;
+}
+
+/* Botones de filtro */
+.filter-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(201, 168, 108, 0.2);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    color: rgba(232, 213, 163, 0.7);
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    border-color: rgba(201, 168, 108, 0.4);
+    color: #e8d5a3;
+    background: rgba(201, 168, 108, 0.1);
+}
+
+.filter-btn.active {
+    background: linear-gradient(145deg, #c9a86c, #a88b52);
+    color: #1a1815;
+    border-color: #c9a86c;
+    font-weight: 600;
+}
+
+/* Switches */
+.opt-switch {
+    position: relative;
+    display: inline-block;
+    width: 56px;
+    height: 30px;
+}
+
+.opt-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.opt-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    transition: all 0.3s ease;
+}
+
+.opt-slider::before {
+    content: '';
+    position: absolute;
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background: linear-gradient(145deg, #e8d5a3, #c9a86c);
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.opt-switch input:checked + .opt-slider {
+    background: rgba(201, 168, 108, 0.3);
+}
+
+.opt-switch input:checked + .opt-slider::before {
+    transform: translateX(26px);
+    background: linear-gradient(145deg, #c9a86c, #a88b52);
+}
+
+.opt-slider:hover {
+    box-shadow: 0 0 15px rgba(201, 168, 108, 0.2);
+}
+
+/* Botón de volver mejorado */
+.back-button {
+    padding: 0.75rem 1.5rem;
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    border-radius: 10px;
+    background: rgba(201, 168, 108, 0.1);
+    color: #c9a86c;
+    font-family: 'Cinzel', serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.back-button:hover {
+    background: rgba(201, 168, 108, 0.2);
+    border-color: #c9a86c;
+    transform: translateX(-5px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .options-grid {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+        gap: 1rem;
+    }
+    
+    .options-card {
+        padding: 1.25rem;
+    }
+    
+    .option-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .setting-slider {
+        width: 100%;
+    }
+}
+
+/* Decoración de fondo sutil */
+#optionsSection::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+        radial-gradient(ellipse at 10% 20%, rgba(201, 168, 108, 0.03) 0%, transparent 40%),
+        radial-gradient(ellipse at 90% 80%, rgba(201, 168, 108, 0.03) 0%, transparent 40%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+#optionsSection .section-content {
+    position: relative;
+    z-index: 1;
+}

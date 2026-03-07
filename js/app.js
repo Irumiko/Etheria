@@ -9,21 +9,64 @@
 // AUTH + INICIALIZACIÓN
 // ============================================
 
-function setAuthStatus(message, isError) {
-    const statusEl = document.getElementById('authStatus');
+// Verificar si hay una sesión existente
+async function checkExistingSession() {
+    if (!window.supabaseClient) return false;
+    
+    try {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        return !!session;
+    } catch (e) {
+        return false;
+    }
+}
+
+function setAuthStatus(message, isError, targetId = 'authStatus') {
+    const statusEl = document.getElementById(targetId);
     if (!statusEl) return;
     statusEl.textContent = message || '';
-    statusEl.style.color = isError ? '#ff7b7b' : 'var(--text-secondary)';
+    statusEl.className = 'auth-status' + (isError ? ' error' : isError === false ? ' success' : '');
 }
 
 function showLoginScreen() {
     const loginScreen = document.getElementById('authScreen');
-    if (loginScreen) loginScreen.style.display = 'flex';
+    if (loginScreen) {
+        loginScreen.style.display = 'flex';
+        loginScreen.classList.remove('hidden');
+    }
 }
 
 function hideLoginScreen() {
     const loginScreen = document.getElementById('authScreen');
-    if (loginScreen) loginScreen.style.display = 'none';
+    if (loginScreen) {
+        loginScreen.classList.add('hidden');
+        setTimeout(() => {
+            loginScreen.style.display = 'none';
+        }, 500);
+    }
+}
+
+// Navegación entre vistas de autenticación
+function showAuthForm(view) {
+    document.querySelectorAll('.auth-view').forEach(v => v.classList.remove('active'));
+    if (view === 'login') {
+        document.getElementById('authLoginView').classList.add('active');
+    } else if (view === 'register') {
+        document.getElementById('authRegisterView').classList.add('active');
+    }
+}
+
+function showAuthMain() {
+    document.querySelectorAll('.auth-view').forEach(v => v.classList.remove('active'));
+    document.getElementById('authMainView').classList.add('active');
+    setAuthStatus('', null, 'authStatus');
+    setAuthStatus('', null, 'authRegStatus');
+}
+
+function continueAsGuest() {
+    hideLoginScreen();
+    initializeApp();
+    isOfflineMode = true;
 }
 
 async function login() {
@@ -54,31 +97,42 @@ async function login() {
 }
 
 async function register() {
-    const email = (document.getElementById('authEmail')?.value || '').trim();
-    const password = document.getElementById('authPassword')?.value || '';
+    const email = (document.getElementById('authRegEmail')?.value || '').trim();
+    const password = document.getElementById('authRegPassword')?.value || '';
+    const passwordConfirm = document.getElementById('authRegPasswordConfirm')?.value || '';
 
     if (!email || !password) {
-        setAuthStatus('Completa email y contraseña.', true);
+        setAuthStatus('Completa email y contraseña.', true, 'authRegStatus');
+        return;
+    }
+    
+    if (password !== passwordConfirm) {
+        setAuthStatus('Las contraseñas no coinciden.', true, 'authRegStatus');
+        return;
+    }
+    
+    if (password.length < 6) {
+        setAuthStatus('La contraseña debe tener al menos 6 caracteres.', true, 'authRegStatus');
         return;
     }
 
     if (!window.supabaseClient) {
-        setAuthStatus('Sin conexión. Usa el modo local.', true);
+        setAuthStatus('Sin conexión. Usa el modo local.', true, 'authRegStatus');
         return;
     }
 
-    setAuthStatus('Creando cuenta...');
+    setAuthStatus('Creando cuenta...', null, 'authRegStatus');
     const { data, error } = await window.supabaseClient.auth.signUp({ email, password });
 
     if (error) {
-        setAuthStatus(error.message || 'No se pudo registrar.', true);
+        setAuthStatus(error.message || 'No se pudo registrar.', true, 'authRegStatus');
         return;
     }
 
     const needsConfirmation = !data?.session;
     setAuthStatus(needsConfirmation
         ? 'Cuenta creada. Revisa tu email para confirmar.'
-        : 'Cuenta creada correctamente.');
+        : 'Cuenta creada correctamente.', false, 'authRegStatus');
 
     if (!needsConfirmation) {
         hideLoginScreen();
@@ -184,6 +238,11 @@ function initializeApp() {
     initMenuParallax();
     updateCloudSyncIndicator('online', 'Conectado');
     updateSyncButtonState('synced', 'Sincronizar');
+    
+    // Inicializar sincronización con Supabase
+    if (typeof SupabaseSync !== 'undefined') {
+        SupabaseSync.init();
+    }
     startCloudSync();
 
     // renderUserCards() ya gestiona el welcomeOverlay internamente.
@@ -388,27 +447,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     })();
     // ── Fin orientación landscape ─────────────────────────────────────────
-    const registerBtn = document.getElementById('authRegisterBtn');
-    if (loginBtn) loginBtn.addEventListener('click', login);
-    if (registerBtn) registerBtn.addEventListener('click', register);
+    
+    // Verificar si hay sesión activa
+    const hasExistingSession = await checkExistingSession();
+    
+    if (hasExistingSession) {
+        // Sesión existente, inicializar directamente
+        hideLoginScreen();
+        initializeApp();
+    } else {
+        // Mostrar pantalla de autenticación
+        showLoginScreen();
+    }
 
-    // La app siempre arranca en modo local inmediatamente.
-    // La autenticación con Supabase es opcional (para sincronización en la nube).
-    hideLoginScreen();
-    initializeApp();
-
-    // En background, intentar recuperar sesión de Supabase si está disponible.
-    // Si hay sesión activa, se puede usar para sincronización cloud sin interrumpir al usuario.
+    // Configurar listeners de autenticación
     if (window.supabaseClient) {
-        Promise.race([
-            window.supabaseClient.auth.getSession(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-        ]).then(result => {
-            if (result?.data?.session) {
+        window.supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session) {
                 ensureProfile().catch(() => {});
             }
-        }).catch(() => {
-            isOfflineMode = true;
         });
     } else {
         isOfflineMode = true;
@@ -421,11 +478,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js', { scope: './' })
                 .then((reg) => {
+                    // Manejar actualizaciones del Service Worker
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                // Nueva versión disponible
+                                console.log('[PWA] Nueva versión disponible');
+                                if (typeof showAutosave === 'function') {
+                                    showAutosave('Nueva versión disponible. Recarga para actualizar.', 'info');
+                                }
+                                // Forzar activación de la nueva versión
+                                newWorker.postMessage('skipWaiting');
+                            }
+                        });
+                    });
+
+                    // Escuchar mensajes del SW
+                    navigator.serviceWorker.addEventListener('message', (event) => {
+                        if (event.data?.type === 'SYNC_REQUIRED') {
+                            if (typeof SupabaseSync !== 'undefined') {
+                                SupabaseSync.sync({ silent: true });
+                            }
+                        }
+                    });
+
                     // SW registrado; el scope es el directorio actual
                     if (reg.installing) {
                         console.log('[PWA] Service Worker instalando…');
                     } else if (reg.waiting) {
                         console.log('[PWA] Service Worker en espera.');
+                        // Forzar activación si hay una versión esperando
+                        reg.waiting.postMessage('skipWaiting');
                     } else if (reg.active) {
                         console.log('[PWA] Service Worker activo.');
                     }

@@ -311,6 +311,8 @@ function quickSave() {
 
 function openSaveHubModal() {
     openModal('saveHubModal');
+    // Notificar a Ethy
+    window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'saveHub' } }));
 }
 
 function saveGameFromMenu() {

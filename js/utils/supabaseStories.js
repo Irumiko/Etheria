@@ -31,27 +31,27 @@
     const SB_URL = cfg.url;
     const SB_KEY = cfg.key;
 
-    const REST_HEADERS = {
-        'apikey'        : SB_KEY,
-        'Authorization' : 'Bearer ' + SB_KEY,
-        'Content-Type'  : 'application/json',
-        'Prefer'        : 'return=representation'
-    };
-
-    const READ_HEADERS = {
-        'apikey'        : SB_KEY,
-        'Authorization' : 'Bearer ' + SB_KEY,
-        'Accept'        : 'application/json'
-    };
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Auth helpers ──────────────────────────────────────────────────────────
 
     function _getClient() {
         return global.supabaseClient || null;
     }
 
+    /**
+     * Devuelve el JWT del usuario autenticado, o null si no hay sesión.
+     * Las peticiones de escritura DEBEN usar este token (no el anon key)
+     * para que Supabase RLS identifique al usuario y permita el INSERT/UPDATE.
+     */
+    async function _getAccessToken() {
+        const client = _getClient();
+        if (!client || typeof client.auth?.getSession !== 'function') return null;
+        try {
+            const { data: { session } } = await client.auth.getSession();
+            return session?.access_token || null;
+        } catch { return null; }
+    }
+
     async function _getUser() {
-        // Fix 6: use global auth cache to avoid network round-trip on each operation
         const cached = global._cachedUserId || null;
         if (cached) return { id: cached };
         try {
@@ -62,6 +62,28 @@
             return user || null;
         } catch { return null; }
     }
+
+    /**
+     * Construye cabeceras con el JWT del usuario para peticiones de escritura.
+     * Supabase RLS necesita el access_token del usuario (no el anon key) para
+     * evaluar auth.uid() en las políticas INSERT/UPDATE/DELETE.
+     */
+    async function _writeHeaders() {
+        const token = await _getAccessToken();
+        return {
+            'apikey'       : SB_KEY,
+            'Authorization': 'Bearer ' + (token || SB_KEY),
+            'Content-Type' : 'application/json',
+            'Prefer'       : 'return=representation'
+        };
+    }
+
+    /** Cabeceras de solo lectura — anon key es suficiente para SELECT público */
+    const READ_HEADERS = {
+        'apikey'        : SB_KEY,
+        'Authorization' : 'Bearer ' + SB_KEY,
+        'Accept'        : 'application/json'
+    };
 
     // ── createStory ───────────────────────────────────────────────────────────
     /**
@@ -77,14 +99,23 @@
 
         try {
             const user = await _getUser();
+            if (!user) {
+                console.warn('[Stories] createStory: usuario no autenticado — inicia sesión primero');
+                if (typeof showAutosave === 'function') showAutosave('Inicia sesión para crear historias en la nube', 'error');
+                return null;
+            }
+
             const row = {
                 title      : title.trim(),
-                created_by : user ? user.id : null
+                created_by : user.id
             };
 
+            // _writeHeaders() usa el JWT del usuario (no el anon key),
+            // necesario para que RLS permita el INSERT en la tabla stories.
+            const headers = await _writeHeaders();
             const res = await fetch(SB_URL + '/rest/v1/stories', {
                 method  : 'POST',
-                headers : REST_HEADERS,
+                headers : headers,
                 body    : JSON.stringify(row),
                 signal  : AbortSignal.timeout(6000)
             });
@@ -92,6 +123,12 @@
             if (!res.ok) {
                 const detail = await res.text().catch(() => String(res.status));
                 console.warn('[Stories] createStory failed (' + res.status + '):', detail);
+                // Mostrar mensaje específico para 401/403 (auth/RLS)
+                if (res.status === 401 || res.status === 403) {
+                    if (typeof showAutosave === 'function') showAutosave('Sin permisos — ¿has iniciado sesión?', 'error');
+                } else if (res.status === 404) {
+                    if (typeof showAutosave === 'function') showAutosave('Tabla "stories" no encontrada en Supabase — revisa el schema', 'error');
+                }
                 return null;
             }
 
@@ -282,18 +319,12 @@
     // ── _loadStoryMessages ────────────────────────────────────────────────────
 
     async function _loadStoryMessages(storyId) {
-        const loadHeaders = {
-            'apikey'        : SB_KEY,
-            'Authorization' : 'Bearer ' + SB_KEY,
-            'Accept'        : 'application/json'
-        };
-
         const res = await fetch(
             SB_URL + '/rest/v1/messages'
                 + '?story_id=eq.' + encodeURIComponent(storyId)
                 + '&order=created_at.asc'
                 + '&select=*,characters(name)',
-            { headers: loadHeaders, signal: AbortSignal.timeout(8000) }
+            { headers: READ_HEADERS, signal: AbortSignal.timeout(8000) }
         );
 
         if (!res.ok) return [];

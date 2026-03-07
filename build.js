@@ -12,7 +12,10 @@ const cssOrder = [
   'css/variables.css',
   'css/animations.css',
   'css/components.css',
-  'css/mobile-perf.css'
+  'css/mobile-perf.css',
+  'css/auth.css',
+  'css/ethy.css',
+  'css/options-new.css'
 ];
 
 function read(file) {
@@ -103,3 +106,14 @@ pwaCopies.forEach(([src, dest]) => {
   const copied = copyIfExists(path.join(root, src), path.join(distDir, dest));
   if (copied) console.log(`PWA: copiado ${dest}`);
 });
+
+// ── Inyectar versión de build en sw.js del dist ───────────────────────────────
+// Cada build genera un ID único → los clientes descartan la caché vieja sola.
+const buildVersion = Date.now().toString(36);
+const swDistPath = path.join(distDir, 'sw.js');
+if (fs.existsSync(swDistPath)) {
+  let swContent = fs.readFileSync(swDistPath, 'utf8');
+  swContent = swContent.replace('__ETHERIA_SW_VERSION__', buildVersion);
+  fs.writeFileSync(swDistPath, swContent);
+  console.log("PWA: cache versión → etheria-" + buildVersion);
+}

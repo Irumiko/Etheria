@@ -1,16 +1,18 @@
 // ================================================================
-// ETHERIA — Service Worker (sw.js)
-// Estrategia: Cache First para estáticos, Network First para el shell.
-//
-// VERSIÓN: incrementar CACHE_NAME al desplegar cambios para forzar
-// que los clientes descarten la caché vieja y descarguen la nueva.
+// ETHERIA — Service Worker
+// Versión auto-generada por build.js (no editar manualmente)
+// ================================================================
+// Estrategia por tipo de recurso:
+//   HTML  → Network First + fallback caché
+//   JS/CSS/assets → Stale While Revalidate
+//   Externo (Supabase, Fonts) → nunca cacheado
 // ================================================================
 
-const CACHE_NAME = 'etheria-v1';
+// La versión se inyecta automáticamente por build.js en cada deploy.
+const CACHE_VERSION = 'mmfluef9';
+const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 
 // Archivos que se precargan al instalar el SW.
-// Al estar todo en dist/index.html, la lista es corta:
-// el HTML ya incluye CSS + JS inlineados.
 const PRECACHE_URLS = [
   './',
   './index.html',
@@ -20,19 +22,20 @@ const PRECACHE_URLS = [
   './assets/backgrounds/default_background.jpg',
 ];
 
-// ── INSTALL ──────────────────────────────────────────────────────
-// Descarga y guarda en caché todos los recursos esenciales.
-// El SW no toma control hasta que todos estén guardados.
+// ── INSTALL ─────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())  // Activa inmediatamente sin esperar
+      .then(() => self.skipWaiting())
+      .catch((err) => {
+        console.warn('[SW] Precache parcial fallido:', err);
+        return self.skipWaiting();
+      })
   );
 });
 
-// ── ACTIVATE ─────────────────────────────────────────────────────
-// Limpia versiones antiguas de la caché al activar una nueva versión.
+// ── ACTIVATE ────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
@@ -40,60 +43,102 @@ self.addEventListener('activate', (event) => {
         Promise.all(
           cacheNames
             .filter((name) => name !== CACHE_NAME)
-            .map((name) => caches.delete(name))
+            .map((name) => {
+              console.log('[SW] Eliminando caché antigua:', name);
+              return caches.delete(name);
+            })
         )
       )
-      .then(() => self.clients.claim())  // Toma control de todas las pestañas
+      .then(() => self.clients.claim())
   );
 });
 
-// ── FETCH ─────────────────────────────────────────────────────────
-// Cache First para peticiones de navegación y estáticos locales.
-// Network Only para peticiones externas (Supabase, Google Fonts, etc.)
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+// ── MESSAGE ─────────────────────────────────────────────────────
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') {
+    self.skipWaiting();
+  }
+});
 
-  // Ignorar: WebSockets, extensiones de Chrome, peticiones no-GET
-  if (event.request.method !== 'GET') return;
+// ── FETCH ────────────────────────────────────────────────────────
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // Solo interceptar GET
+  if (req.method !== 'GET') return;
+  // Ignorar extensiones Chrome y WebSockets
   if (url.protocol === 'chrome-extension:') return;
   if (url.protocol === 'ws:' || url.protocol === 'wss:') return;
 
-  // Ignorar peticiones externas (Supabase, Google Fonts, APIs)
-  // Solo gestionamos recursos del mismo origen
+  // Nunca cachear peticiones externas (Supabase, Google Fonts, CDNs)
   if (url.origin !== self.location.origin) return;
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        // Cache hit → devolver inmediatamente
-        if (cachedResponse) return cachedResponse;
+  const isHTML = req.mode === 'navigate' ||
+                 (req.headers.get('accept') || '').includes('text/html');
 
-        // Cache miss → ir a red y guardar en caché para próximas veces
-        return fetch(event.request)
-          .then((networkResponse) => {
-            // Solo cachear respuestas válidas (200 OK, tipo básico)
-            if (
-              !networkResponse ||
-              networkResponse.status !== 200 ||
-              networkResponse.type === 'error'
-            ) {
-              return networkResponse;
-            }
+  if (isHTML) {
+    // HTML: Network First → si falla, caché → si no hay caché, offline page
+    event.respondWith(networkFirstHTML(req));
+  } else {
+    // Estáticos: Stale While Revalidate
+    event.respondWith(staleWhileRevalidate(req));
+  }
+});
 
-            // Guardar copia en caché
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, responseToCache));
+// ── Estrategia Network First (HTML) ─────────────────────────────
+async function networkFirstHTML(req) {
+  try {
+    const networkRes = await fetch(req);
+    if (networkRes && networkRes.status === 200) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(req, networkRes.clone());
+    }
+    return networkRes;
+  } catch {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    // Fallback: index.html como shell offline
+    const shell = await caches.match('./index.html');
+    if (shell) return shell;
+    // Sin nada en caché: respuesta offline mínima
+    return new Response(
+      `<!doctype html><html lang="es"><head><meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Etheria — Sin conexión</title>
+      <style>body{background:#1a1815;color:#c9a86c;font-family:serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center}h1{font-size:1.5rem;margin-bottom:.5rem}p{opacity:.7;font-size:.9rem}</style>
+      </head><body><div><h1>✦ Etheria ✦</h1><p>Sin conexión. Conecta a internet para continuar.</p></div></body></html>`,
+      { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    );
+  }
+}
 
-            return networkResponse;
-          })
-          .catch(() => {
-            // Sin red y sin caché: para peticiones de navegación, devolver el shell
-            if (event.request.mode === 'navigate') {
-              return caches.match('./index.html');
-            }
-            // Para otros recursos, simplemente falla silenciosamente
-          });
+// ── Estrategia Stale While Revalidate (assets) ───────────────────
+async function staleWhileRevalidate(req) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(req);
+
+  // Revalidar en background independientemente de si hay caché
+  const networkPromise = fetch(req).then((res) => {
+    if (res && res.status === 200) {
+      cache.put(req, res.clone());
+    }
+    return res;
+  }).catch(() => null);
+
+  // Devolver caché inmediatamente si existe, sino esperar red
+  return cached || networkPromise;
+}
+
+// ── BACKGROUND SYNC ─────────────────────────────────────────────
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'etheria-sync') {
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'SYNC_REQUIRED' });
+        });
       })
-  );
+    );
+  }
 });
