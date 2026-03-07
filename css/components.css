@@ -951,7 +951,7 @@ body::before {
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('https://png.pngtree.com/background/20250103/original/pngtree-forest-trees-anime-visual-novel-game-nature-plant-and-in-a-picture-image_15870655.jpg');
+            background-image: url('./assets/backgrounds/menu_background.jpg');
             background-size: cover;
             background-position: center;
             display: flex;
@@ -1008,7 +1008,7 @@ body::before {
             pointer-events: none;
             z-index: 1;
             /* URL de imagen del bosque — una sola fuente para todas las capas */
-            --menu-base-bg: url('https://png.pngtree.com/background/20250103/original/pngtree-forest-trees-anime-visual-novel-game-nature-plant-and-in-a-picture-image_15870655.jpg');
+            --menu-base-bg: url('./assets/backgrounds/menu_background.jpg');
         }
 
         /* ── Capas de parallax ─────────────────────────────────────── */

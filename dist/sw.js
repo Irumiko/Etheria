@@ -9,7 +9,7 @@
 // ================================================================
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
-const CACHE_VERSION = 'mmgop2ms';
+const CACHE_VERSION = 'mmgp0b4i';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 
 // Archivos que se precargan al instalar el SW.
@@ -20,6 +20,7 @@ const PRECACHE_URLS = [
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/backgrounds/default_background.jpg',
+  './assets/backgrounds/menu_background.jpg',
 ];
 
 // ── INSTALL ─────────────────────────────────────────────────────

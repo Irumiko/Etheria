@@ -5,11 +5,15 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "landscape",
   "background_color": "#1a1815",
   "theme_color": "#1a1815",
   "lang": "es",
-  "categories": ["games", "entertainment", "social"],
+  "categories": [
+    "games",
+    "entertainment",
+    "social"
+  ],
   "icons": [
     {
       "src": "assets/icons/icon-192.png",
@@ -50,7 +54,12 @@
       "short_name": "Nueva",
       "description": "Crear un nuevo tema de roleplay",
       "url": "./#topics",
-      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ],
   "prefer_related_applications": false

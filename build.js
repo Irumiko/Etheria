@@ -99,7 +99,8 @@ const pwaCopies = [
   ['sw.js',                        'sw.js'],
   ['assets/icons/icon-192.png',    'assets/icons/icon-192.png'],
   ['assets/icons/icon-512.png',    'assets/icons/icon-512.png'],
-  ['assets/backgrounds/default_background.jpg', 'assets/backgrounds/default_background.jpg'],
+  ['assets/backgrounds/default_background.jpg',
+        'assets/backgrounds/menu_background.jpg', 'assets/backgrounds/default_background.jpg'],
 ];
 
 pwaCopies.forEach(([src, dest]) => {

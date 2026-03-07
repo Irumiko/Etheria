@@ -281,8 +281,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Añadimos clases al <body> que mobile-perf.css usa para reducir
     // partículas, animaciones y efectos GPU en dispositivos de gama media/baja.
     // ── Detección de modo PWA (standalone) ──────────────────────────────────
-    // Añade body.is-pwa cuando la app corre instalada (sin chrome del navegador).
-    // Esto permite ajustar el layout solo en modo app sin afectar al navegador.
     (function detectPWAMode() {
         const isStandalone =
             window.matchMedia('(display-mode: standalone)').matches ||
@@ -291,8 +289,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (isStandalone) {
             document.body.classList.add('is-pwa');
-            // Escuchar cambios en tiempo real (el usuario puede instalar/desinstalar
-            // mientras la pestaña está abierta)
+
+            // ── Forzar orientación landscape ──────────────────────────
+            // El manifest ya pide landscape, pero algunos Android ignoran
+            // el manifest hasta que el usuario rota. La API Screen Orientation
+            // lo forza activamente en navegadores que la soportan.
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(() => {
+                        // Silenciar: algunos dispositivos no permiten lock
+                        // (ej. tablets que ya están en landscape)
+                    });
+                }
+            } catch (e) { /* API no disponible */ }
+
             window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
                 document.body.classList.toggle('is-pwa', e.matches);
             });

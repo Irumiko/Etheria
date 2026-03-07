@@ -20,6 +20,7 @@ const PRECACHE_URLS = [
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/backgrounds/default_background.jpg',
+  './assets/backgrounds/menu_background.jpg',
 ];
 
 // ── INSTALL ─────────────────────────────────────────────────────
