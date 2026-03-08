@@ -248,12 +248,8 @@ const SupabaseSync = (function () {
             _pendingChanges = false;
             
             // Actualizar UI
-            if (typeof updateCloudSyncIndicator === 'function') {
-                updateCloudSyncIndicator('online', 'Sincronizado');
-            }
-            if (typeof updateSyncButtonState === 'function') {
-                updateSyncButtonState('synced', 'Sincronizar');
-            }
+            eventBus.emit('sync:status-changed', { status: 'online',  message: 'Sincronizado', target: 'indicator' });
+            eventBus.emit('sync:status-changed', { status: 'synced',  message: 'Sincronizar',  target: 'button' });
 
             return { ok: true };
         } catch (err) {
@@ -292,12 +288,8 @@ const SupabaseSync = (function () {
                 _lastSyncTime = Date.now();
                 
                 // Actualizar UI
-                if (typeof updateCloudSyncIndicator === 'function') {
-                    updateCloudSyncIndicator('online', 'Sincronizado');
-                }
-                if (typeof updateSyncButtonState === 'function') {
-                    updateSyncButtonState('synced', 'Sincronizar');
-                }
+                eventBus.emit('sync:status-changed', { status: 'online', message: 'Sincronizado', target: 'indicator' });
+                eventBus.emit('sync:status-changed', { status: 'synced', message: 'Sincronizar',  target: 'button' });
 
                 return { ok: true, data: data.data };
             }
@@ -319,16 +311,16 @@ const SupabaseSync = (function () {
         
         const userId = _getUserId();
         if (!userId) {
-            if (!silent && typeof showAutosave === 'function') {
-                showAutosave('Inicia sesión para sincronizar', 'info');
+            if (!silent) {
+                eventBus.emit('ui:show-autosave', { text: 'Inicia sesión para sincronizar', state: 'info' });
             }
             return { status: 'no-auth' };
         }
 
         _syncInProgress = true;
         
-        if (!silent && typeof updateSyncButtonState === 'function') {
-            updateSyncButtonState('syncing', 'Sincronizando...');
+        if (!silent) {
+            eventBus.emit('sync:status-changed', { status: 'syncing', message: 'Sincronizando...', target: 'button' });
         }
 
         try {
@@ -337,8 +329,8 @@ const SupabaseSync = (function () {
             
             if (!downloadResult.ok) {
                 _isOffline = true;
-                if (!silent && typeof showAutosave === 'function') {
-                    showAutosave('Error de sincronización', 'error');
+                if (!silent) {
+                    eventBus.emit('ui:show-autosave', { text: 'Error de sincronización', state: 'error' });
                 }
                 return { status: 'error', error: downloadResult.error };
             }
@@ -346,8 +338,8 @@ const SupabaseSync = (function () {
             // 2. Si es nuevo usuario, subir datos locales
             if (downloadResult.isNew && _hasLocalData()) {
                 const uploadResult = await uploadProfileData();
-                if (!silent && uploadResult.ok && typeof showAutosave === 'function') {
-                    showAutosave('Datos subidos a la nube', 'saved');
+                if (!silent && uploadResult.ok) {
+                    eventBus.emit('ui:show-autosave', { text: 'Datos subidos a la nube', state: 'saved' });
                 }
                 return { status: uploadResult.ok ? 'uploaded' : 'error' };
             }
@@ -355,8 +347,8 @@ const SupabaseSync = (function () {
             // 3. Si hay cambios locales pendientes, subirlos
             if (_pendingChanges || force) {
                 const uploadResult = await uploadProfileData();
-                if (!silent && uploadResult.ok && typeof showAutosave === 'function') {
-                    showAutosave('Sincronización completada', 'saved');
+                if (!silent && uploadResult.ok) {
+                    eventBus.emit('ui:show-autosave', { text: 'Sincronización completada', state: 'saved' });
                 }
                 return { status: uploadResult.ok ? 'synced' : 'error' };
             }

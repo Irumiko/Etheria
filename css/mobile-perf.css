@@ -772,3 +772,82 @@ body.is-pwa select {
         font-size: 0.9em;
     }
 }
+
+
+/* ================================================================
+   N. FORZAR LANDSCAPE — rotación CSS cuando PWA está en portrait
+   ================================================================
+   Cuando body.is-pwa está en portrait, rotamos toda la app 90°
+   y ajustamos las dimensiones para que llene la pantalla tumbada.
+   Esto funciona sin permisos de orientación y sin reinstalar.
+   ================================================================ */
+
+@media (orientation: portrait) {
+    body.is-pwa {
+        /* Rotar el body completo 90° en el sentido horario */
+        transform: rotate(90deg);
+        transform-origin: center center;
+
+        /* Las dimensiones se intercambian: ancho pasa a ser el alto
+           del viewport portrait y viceversa */
+        width: 100vh;
+        height: 100vw;
+
+        /* Centrar el bloque rotado en la pantalla */
+        position: fixed;
+        top: calc((100vh - 100vw) / 2);
+        left: calc((100vw - 100vh) / 2);
+
+        /* Desactivar el padding de safe-area en portrait rotado
+           para que no sume espacios incorrectos */
+        padding: 0;
+
+        /* Evitar que el overflow cree scroll inesperado */
+        overflow: hidden;
+    }
+
+    /* El overlay raíz de la app debe llenar el espacio rotado */
+    body.is-pwa #app,
+    body.is-pwa .game-wrapper {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+
+/* ── Botón Salir del menú principal ──────────────────────────────────────
+   Visible solo en PWA (body.is-pwa). En navegador se oculta porque
+   window.close() no funciona en pestañas abiertas por el usuario. */
+
+.menu-exit-btn {
+    display: none; /* oculto por defecto */
+}
+
+body.is-pwa .menu-exit-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.55rem 1rem;
+    background: rgba(180, 60, 40, 0.07);
+    border: 1px solid rgba(180, 60, 40, 0.2);
+    border-radius: 8px;
+    color: rgba(220, 120, 100, 0.65);
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+body.is-pwa .menu-exit-btn:hover,
+body.is-pwa .menu-exit-btn:active {
+    background: rgba(180, 60, 40, 0.15);
+    border-color: rgba(200, 80, 60, 0.45);
+    color: rgba(230, 140, 110, 0.9);
+}
+.menu-exit-icon {
+    font-size: 1rem;
+    line-height: 1;
+}

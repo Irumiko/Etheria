@@ -460,6 +460,82 @@ const Ethy = (function() {
                 }, 800);
             }
         });
+
+        // ── EventBus — reacciones a eventos del sistema ───────────────────
+        // Cooldown: Ethy no reacciona más de una vez cada 3 segundos
+        // para evitar spam de expresiones o frases en escenas rápidas.
+        if (typeof eventBus === 'undefined') return;
+
+        let _lastEventReaction = 0;
+        function _canReact() {
+            const now = Date.now();
+            if (now - _lastEventReaction < 3000) return false;
+            _lastEventReaction = now;
+            return true;
+        }
+
+        // El jugador ve una elección → Ethy reflexiona
+        eventBus.on('scene:choice-shown', () => {
+            if (!_canReact()) return;
+            setExpression('thoughtful');
+            // Frase ocasional — solo 30% de las veces para no saturar
+            if (Math.random() < 0.3) {
+                const msgs = ['Hmm...', 'Interesante...', '¿Qué harás?', 'Elige con cuidado.'];
+                say(msgs[Math.floor(Math.random() * msgs.length)], {
+                    expression: 'thoughtful', duration: 2500
+                });
+            }
+        });
+
+        // Escena terminada → satisfacción
+        eventBus.on('scene:ended', () => {
+            if (!_canReact()) return;
+            const msgs = [
+                'La historia continúa...',
+                'Cada final es un nuevo comienzo.',
+                'Bien hecho.'
+            ];
+            say(msgs[Math.floor(Math.random() * msgs.length)], {
+                expression: 'happy', duration: 3000
+            });
+        });
+
+        // Error en escena → preocupación
+        eventBus.on('scene:error', () => {
+            if (!_canReact()) return;
+            const msgs = [
+                'Algo no salió como esperaba...',
+                'Eso fue extraño.',
+                'A veces el destino también duda.'
+            ];
+            say(msgs[Math.floor(Math.random() * msgs.length)], {
+                expression: 'sad', duration: 3500
+            });
+        });
+
+        // Guardado → confirmación tranquila
+        eventBus.on('ui:show-autosave', (data) => {
+            if (!_canReact()) return;
+            if (data?.state === 'error') {
+                say('No pude guardar tu historia...', { expression: 'sad', duration: 3000 });
+                return;
+            }
+            setExpression('happy');
+        });
+
+        // Sincronización completada → frase breve
+        eventBus.on('sync:status-changed', (data) => {
+            if (data?.target !== 'button') return;
+            if (data?.status !== 'synced') return;
+            if (!_canReact()) return;
+            say('Tu historia está a salvo.', { expression: 'happy', duration: 3000 });
+        });
+
+        // Navegación → expresión neutra curiosa
+        eventBus.on('ui:navigate', () => {
+            if (!_canReact()) return;
+            setExpression('wink');
+        });
     }
 
     // ── Sistema de expresiones idle dinámicas ────────────────────────────────

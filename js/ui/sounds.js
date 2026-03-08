@@ -348,3 +348,68 @@ function stopMenuMusic(fadeOut) {
         _menuMusicGain = null;
     }, (fadeDur + 0.1) * 1000);
 }
+
+
+// ============================================
+// GESTIÓN DE CICLO DE VIDA — PWA / fondo
+// ============================================
+// Cuando la PWA pasa a segundo plano (swipe para cerrar, botón home,
+// pantalla bloqueada) el audio sigue sonando en Web Audio API
+// a menos que lo paremos explícitamente.
+
+(function _registerAudioLifecycle() {
+
+    // ── Page Visibility API ──────────────────────────────────────
+    // Se dispara cuando el usuario cambia de pestaña/app o cierra.
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // App en fondo: pausar todo el audio
+            _suspendAllAudio();
+        } else {
+            // App de vuelta al frente: reanudar si hacía falta
+            _resumeAllAudio();
+        }
+    });
+
+    // ── pagehide — iOS Safari / PWA swipe-close ──────────────────
+    // Complementa visibilitychange en iOS donde puede no dispararse.
+    window.addEventListener('pagehide', () => {
+        _suspendAllAudio(true); // parada rápida, sin fade
+    });
+
+    // ── freeze (Page Lifecycle API) — Android Chrome background ──
+    // Cuando Chrome "congela" la pestaña para ahorrar batería.
+    window.addEventListener('freeze', () => {
+        _suspendAllAudio(true);
+    });
+
+    // ── resume — volver de congelado ──────────────────────────────
+    window.addEventListener('resume', () => {
+        if (!document.hidden) _resumeAllAudio();
+    });
+
+    function _suspendAllAudio(fast) {
+        // Parar música del menú
+        if (_menuMusicPlaying) {
+            stopMenuMusic(fast ? false : true); // false = fade rápido
+        }
+        // Parar lluvia
+        if (rainSourceNode) {
+            stopRainSound();
+        }
+        // Suspender el AudioContext completo — libera recursos del SO
+        if (audioCtx && audioCtx.state === 'running') {
+            audioCtx.suspend().catch(() => {});
+        }
+    }
+
+    function _resumeAllAudio() {
+        // Solo reanudar el contexto — la música no se reinicia sola
+        // para no sorprender al usuario. Si quiere música tiene que
+        // volver a la pantalla del menú.
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+        }
+    }
+
+})();

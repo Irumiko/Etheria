@@ -15,7 +15,8 @@ const cssOrder = [
   'css/mobile-perf.css',
   'css/auth.css',
   'css/ethy.css',
-  'css/options-new.css'
+  'css/options-new.css',
+  'css/rpg-scene.css'
 ];
 
 function read(file) {
@@ -117,4 +118,18 @@ if (fs.existsSync(swDistPath)) {
   swContent = swContent.replace('__ETHERIA_SW_VERSION__', buildVersion);
   fs.writeFileSync(swDistPath, swContent);
   console.log("PWA: cache versión → etheria-" + buildVersion);
+}
+
+// ── Copiar scripts de escenas RPG a dist/ ─────────────────────────────────────
+// Los archivos JSON de escenas se sirven via fetch() desde el motor RPG.
+// Necesitan estar disponibles en dist/js/scenes/ para funcionar en producción.
+const scenesDir = path.join(root, 'js/scenes');
+const scenesDistDir = path.join(distDir, 'js/scenes');
+if (fs.existsSync(scenesDir)) {
+  fs.mkdirSync(scenesDistDir, { recursive: true });
+  const sceneFiles = fs.readdirSync(scenesDir).filter(f => f.endsWith('.json'));
+  sceneFiles.forEach(f => {
+    fs.copyFileSync(path.join(scenesDir, f), path.join(scenesDistDir, f));
+  });
+  console.log(`RPG: copiadas ${sceneFiles.length} escena(s) → dist/js/scenes/`);
 }

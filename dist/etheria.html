@@ -12489,6 +12489,85 @@ body.is-pwa select {
 }
 
 
+/* ================================================================
+   N. FORZAR LANDSCAPE — rotación CSS cuando PWA está en portrait
+   ================================================================
+   Cuando body.is-pwa está en portrait, rotamos toda la app 90°
+   y ajustamos las dimensiones para que llene la pantalla tumbada.
+   Esto funciona sin permisos de orientación y sin reinstalar.
+   ================================================================ */
+
+@media (orientation: portrait) {
+    body.is-pwa {
+        /* Rotar el body completo 90° en el sentido horario */
+        transform: rotate(90deg);
+        transform-origin: center center;
+
+        /* Las dimensiones se intercambian: ancho pasa a ser el alto
+           del viewport portrait y viceversa */
+        width: 100vh;
+        height: 100vw;
+
+        /* Centrar el bloque rotado en la pantalla */
+        position: fixed;
+        top: calc((100vh - 100vw) / 2);
+        left: calc((100vw - 100vh) / 2);
+
+        /* Desactivar el padding de safe-area en portrait rotado
+           para que no sume espacios incorrectos */
+        padding: 0;
+
+        /* Evitar que el overflow cree scroll inesperado */
+        overflow: hidden;
+    }
+
+    /* El overlay raíz de la app debe llenar el espacio rotado */
+    body.is-pwa #app,
+    body.is-pwa .game-wrapper {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+
+/* ── Botón Salir del menú principal ──────────────────────────────────────
+   Visible solo en PWA (body.is-pwa). En navegador se oculta porque
+   window.close() no funciona en pestañas abiertas por el usuario. */
+
+.menu-exit-btn {
+    display: none; /* oculto por defecto */
+}
+
+body.is-pwa .menu-exit-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.55rem 1rem;
+    background: rgba(180, 60, 40, 0.07);
+    border: 1px solid rgba(180, 60, 40, 0.2);
+    border-radius: 8px;
+    color: rgba(220, 120, 100, 0.65);
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+body.is-pwa .menu-exit-btn:hover,
+body.is-pwa .menu-exit-btn:active {
+    background: rgba(180, 60, 40, 0.15);
+    border-color: rgba(200, 80, 60, 0.45);
+    color: rgba(230, 140, 110, 0.9);
+}
+.menu-exit-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+
 /* css/auth.css */
 /* ============================================
    AUTH SCREEN - Pantalla de autenticación
@@ -14322,6 +14401,12 @@ body.is-pwa select {
                 <span id="currentUserDisplay">Jugador</span>
                 <button onclick="changeUser()" aria-label="Editar perfil actual">✏️ Editar</button>
             </div>
+
+            <!-- Botón Salir — solo visible en PWA -->
+            <button class="menu-exit-btn" id="menuExitBtn" onclick="exitApp()" aria-label="Cerrar aplicación">
+                <span class="menu-exit-icon">⏻</span>
+                <span class="menu-exit-label">Salir</span>
+            </button>
         </div>
     </div>
 
@@ -16655,6 +16740,71 @@ function stopMenuMusic(fadeOut) {
         _menuMusicGain = null;
     }, (fadeDur + 0.1) * 1000);
 }
+
+
+// ============================================
+// GESTIÓN DE CICLO DE VIDA — PWA / fondo
+// ============================================
+// Cuando la PWA pasa a segundo plano (swipe para cerrar, botón home,
+// pantalla bloqueada) el audio sigue sonando en Web Audio API
+// a menos que lo paremos explícitamente.
+
+(function _registerAudioLifecycle() {
+
+    // ── Page Visibility API ──────────────────────────────────────
+    // Se dispara cuando el usuario cambia de pestaña/app o cierra.
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            // App en fondo: pausar todo el audio
+            _suspendAllAudio();
+        } else {
+            // App de vuelta al frente: reanudar si hacía falta
+            _resumeAllAudio();
+        }
+    });
+
+    // ── pagehide — iOS Safari / PWA swipe-close ──────────────────
+    // Complementa visibilitychange en iOS donde puede no dispararse.
+    window.addEventListener('pagehide', () => {
+        _suspendAllAudio(true); // parada rápida, sin fade
+    });
+
+    // ── freeze (Page Lifecycle API) — Android Chrome background ──
+    // Cuando Chrome "congela" la pestaña para ahorrar batería.
+    window.addEventListener('freeze', () => {
+        _suspendAllAudio(true);
+    });
+
+    // ── resume — volver de congelado ──────────────────────────────
+    window.addEventListener('resume', () => {
+        if (!document.hidden) _resumeAllAudio();
+    });
+
+    function _suspendAllAudio(fast) {
+        // Parar música del menú
+        if (_menuMusicPlaying) {
+            stopMenuMusic(fast ? false : true); // false = fade rápido
+        }
+        // Parar lluvia
+        if (rainSourceNode) {
+            stopRainSound();
+        }
+        // Suspender el AudioContext completo — libera recursos del SO
+        if (audioCtx && audioCtx.state === 'running') {
+            audioCtx.suspend().catch(() => {});
+        }
+    }
+
+    function _resumeAllAudio() {
+        // Solo reanudar el contexto — la música no se reinicia sola
+        // para no sorprender al usuario. Si quiere música tiene que
+        // volver a la pantalla del menú.
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+        }
+    }
+
+})();
 
 </script>
 <script>
@@ -25547,6 +25697,45 @@ function createTopic() {
 // Utilidades generales de app: guardado, modales, tema visual y ajustes de lectura.
 // UTILIDADES
 // ============================================
+
+// ── Salir de la PWA ──────────────────────────────────────────────────────────
+// Para el audio, limpia recursos y cierra la ventana (PWA).
+// En navegador normal solo para el audio (no puede cerrar la pestaña).
+function exitApp() {
+    // 1. Parar todo el audio inmediatamente
+    if (typeof stopMenuMusic === 'function') stopMenuMusic(false);
+    if (typeof stopRainSound  === 'function') stopRainSound();
+    // Suspender AudioContext para liberar recursos del SO
+    if (typeof audioCtx !== 'undefined' && audioCtx) {
+        try { audioCtx.close(); } catch(e) {}
+    }
+
+    // 2. En PWA (standalone) intentar cerrar la ventana
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                  window.matchMedia('(display-mode: fullscreen)').matches  ||
+                  navigator.standalone === true;
+
+    if (isPWA) {
+        // Pequeña demora para que el fade del audio arranque
+        setTimeout(() => {
+            try { window.close(); } catch(e) {}
+            // Fallback si window.close() no funciona (Android Chrome):
+            // llevar al usuario a una pantalla en blanco de "cerrado"
+            setTimeout(() => {
+                document.body.innerHTML =
+                    '<div style="display:flex;align-items:center;justify-content:center;' +
+                    'height:100vh;background:#1a1815;color:#c9a86c;font-family:serif;' +
+                    'flex-direction:column;gap:1rem;text-align:center;">' +
+                    '<div style="font-size:2rem;">✦</div>' +
+                    '<div style="font-family:Cinzel,serif;letter-spacing:.2em;font-size:.9rem;">ETHERIA</div>' +
+                    '<div style="opacity:.5;font-size:.8rem;">Puedes cerrar esta ventana</div>' +
+                    '</div>';
+            }, 300);
+        }, 150);
+    }
+    // En navegador: solo para el audio, no intentamos cerrar la pestaña
+}
+
 function save(opts = {}) {
     const wasUnsaved = hasUnsavedChanges;
     const { silent = false } = opts;
@@ -27961,14 +28150,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             // El manifest ya pide landscape, pero algunos Android ignoran
             // el manifest hasta que el usuario rota. La API Screen Orientation
             // lo forza activamente en navegadores que la soportan.
-            try {
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(() => {
-                        // Silenciar: algunos dispositivos no permiten lock
-                        // (ej. tablets que ya están en landscape)
-                    });
-                }
-            } catch (e) { /* API no disponible */ }
+            // Intentar lock inmediato
+            function _tryOrientationLock() {
+                try {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(() => {});
+                    }
+                } catch (e) {}
+            }
+            _tryOrientationLock();
+
+            // Re-intentar en el primer gesto del usuario (algunos Android
+            // requieren interacción previa para permitir el lock)
+            const _onFirstInteraction = () => {
+                _tryOrientationLock();
+                document.removeEventListener('touchstart', _onFirstInteraction);
+                document.removeEventListener('click', _onFirstInteraction);
+            };
+            document.addEventListener('touchstart', _onFirstInteraction, { once: true });
+            document.addEventListener('click', _onFirstInteraction, { once: true });
 
             window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
                 document.body.classList.toggle('is-pwa', e.matches);

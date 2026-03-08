@@ -1,6 +1,45 @@
 // Utilidades generales de app: guardado, modales, tema visual y ajustes de lectura.
 // UTILIDADES
 // ============================================
+
+// ── Salir de la PWA ──────────────────────────────────────────────────────────
+// Para el audio, limpia recursos y cierra la ventana (PWA).
+// En navegador normal solo para el audio (no puede cerrar la pestaña).
+function exitApp() {
+    // 1. Parar todo el audio inmediatamente (sin fade)
+    eventBus.emit('audio:stop-menu-music', { fadeOut: false });
+    eventBus.emit('audio:stop-rain');
+    // Suspender AudioContext para liberar recursos del SO
+    if (typeof audioCtx !== 'undefined' && audioCtx) {
+        try { audioCtx.close(); } catch(e) {}
+    }
+
+    // 2. En PWA (standalone) intentar cerrar la ventana
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                  window.matchMedia('(display-mode: fullscreen)').matches  ||
+                  navigator.standalone === true;
+
+    if (isPWA) {
+        // Pequeña demora para que el fade del audio arranque
+        setTimeout(() => {
+            try { window.close(); } catch(e) {}
+            // Fallback si window.close() no funciona (Android Chrome):
+            // llevar al usuario a una pantalla en blanco de "cerrado"
+            setTimeout(() => {
+                document.body.innerHTML =
+                    '<div style="display:flex;align-items:center;justify-content:center;' +
+                    'height:100vh;background:#1a1815;color:#c9a86c;font-family:serif;' +
+                    'flex-direction:column;gap:1rem;text-align:center;">' +
+                    '<div style="font-size:2rem;">✦</div>' +
+                    '<div style="font-family:Cinzel,serif;letter-spacing:.2em;font-size:.9rem;">ETHERIA</div>' +
+                    '<div style="opacity:.5;font-size:.8rem;">Puedes cerrar esta ventana</div>' +
+                    '</div>';
+            }, 300);
+        }, 150);
+    }
+    // En navegador: solo para el audio, no intentamos cerrar la pestaña
+}
+
 function save(opts = {}) {
     const wasUnsaved = hasUnsavedChanges;
     const { silent = false } = opts;
@@ -15,11 +54,11 @@ function save(opts = {}) {
         setLocalProfileUpdatedAt(currentUserIndex);
         hasUnsavedChanges = false;
         cloudUnsyncedChanges = true;
-        updateSyncButtonState('pending-upload', 'Subir cambios');
-        updateCloudSyncIndicator('degraded', 'Pendiente de subida');
+        eventBus.emit('sync:status-changed', { status: 'pending-upload', message: 'Subir cambios',       target: 'button' });
+        eventBus.emit('sync:status-changed', { status: 'degraded',       message: 'Pendiente de subida', target: 'indicator' });
         showAutosave('Guardado', 'saved');
         // Solo reproducir sonido en guardados manuales explícitos, no en autoguardado
-        if (!silent && typeof playSoundSave === 'function') playSoundSave();
+        if (!silent) eventBus.emit('audio:play-sfx', { sfx: 'save' });
         return true;
     } catch (e) {
         hasUnsavedChanges = wasUnsaved;
@@ -56,6 +95,112 @@ function showAutosave(text, state) {
     setTimeout(() => {
         indicator.classList.remove('visible');
     }, state === 'error' ? 4000 : 2000);
+}
+
+// ── Listeners EventBus para UI pequeña ──────────────────────────────────────
+// Los listeners se registran UNA SOLA VEZ al cargar el archivo.
+// La guarda _uiListenersReady impide duplicados si el archivo se ejecutara
+// más de una vez por algún motivo futuro (hot-reload, tests, etc.).
+//
+// Payload canónico (ver js/core/events.js para la lista completa):
+//   ui:show-autosave    →  { text: string, state: 'saved'|'error'|'info' }
+//   ui:show-toast       →  { text: string, action?: string, onAction?: fn }
+//   sync:status-changed →  { status, message, target: 'indicator'|'button' }
+//
+(function _initUIListeners() {
+    if (window._uiListenersReady) return;
+    window._uiListenersReady = true;
+
+    eventBus.on('ui:show-autosave', function(data) {
+        if (data) showAutosave(data.text, data.state);
+    });
+
+    eventBus.on('ui:show-toast', function(data) {
+        if (data) showSyncToast(data.text, data.action, data.onAction);
+    });
+
+    eventBus.on('sync:status-changed', function(data) {
+        if (!data) return;
+        if (data.target === 'indicator') {
+            _updateCloudSyncIndicatorDOM(data.status, data.message);
+            // Mostrar el indicador brevemente cuando vuelve a online (absorbido de mejoras.js)
+            if (data.status === 'online') _showCloudIndicatorTemporarily();
+        }
+        if (data.target === 'button') _updateSyncButtonStateDOM(data.status, data.message);
+    });
+
+    // Mostrar indicador al arrancar si ya está online
+    setTimeout(_showCloudIndicatorTemporarily, 1500);
+})();
+
+// Muestra el indicador cloud brevemente cuando el estado es online,
+// luego lo oculta. No actúa si el estado es degraded u offline.
+var _cloudHideTimer = null;
+function _showCloudIndicatorTemporarily() {
+    var indicator = document.getElementById('cloudSyncIndicator');
+    if (!indicator) return;
+    if (indicator.classList.contains('degraded') || indicator.classList.contains('offline')) return;
+    indicator.classList.add('visible');
+    clearTimeout(_cloudHideTimer);
+    _cloudHideTimer = setTimeout(function() {
+        indicator.classList.remove('visible');
+    }, 3000);
+}
+
+// ── Renderizadores de UI de sincronización ───────────────────────────────────
+// Solo se llaman desde el listener sync:status-changed.
+// Nadie fuera de app-ui.js debe llamarlas directamente.
+
+function _updateCloudSyncIndicatorDOM(status, message) {
+    const indicator = document.getElementById('cloudSyncIndicator');
+    if (!indicator) return;
+    const iconEl = indicator.querySelector('.cloud-sync-icon');
+    const textEl = indicator.querySelector('.cloud-sync-text');
+    indicator.className = `cloud-sync-indicator ${status}`;
+    if (iconEl) {
+        if (status === 'online')        iconEl.textContent = '🟢';
+        else if (status === 'degraded') iconEl.textContent = '🟠';
+        else                            iconEl.textContent = '🔺';
+    }
+    if (textEl) {
+        const fallback = status === 'online' ? 'Conectado' : status === 'degraded' ? 'Cambios pendientes' : 'Offline';
+        textEl.textContent = message || fallback;
+    }
+}
+
+function _updateSyncButtonStateDOM(status, message) {
+    const btn = document.getElementById('syncNowBtn');
+    if (!btn) return;
+    btn.classList.remove('is-synced', 'is-syncing', 'is-upload-pending', 'is-download-pending', 'is-error');
+    const icon  = btn.querySelector('.vn-control-icon');
+    const label = btn.querySelector('.vn-control-label');
+
+    const SVG_SYNC = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 a5 5 0 0 1 9-3"/><path d="M13 8 a5 5 0 0 1-9 3"/><polyline points="12,2 12,5 15,5"/><polyline points="4,11 4,14 1,14"/></svg>';
+    const SVG_UP   = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,3 8,13"/><polyline points="4,7 8,3 12,7"/><line x1="3" y1="13" x2="13" y2="13"/></svg>';
+    const SVG_DOWN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,13 8,3"/><polyline points="4,9 8,13 12,9"/><line x1="3" y1="3" x2="13" y2="3"/></svg>';
+    const SVG_WARN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 L14.5 13 H1.5 Z"/><line x1="8" y1="6.5" x2="8" y2="10"/><circle cx="8" cy="11.8" r="0.6" fill="currentColor" stroke="none"/></svg>';
+
+    if (status === 'syncing') {
+        btn.classList.add('is-syncing');
+        if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = 'syncSpin 1.2s linear infinite'; }
+    } else if (status === 'pending-upload') {
+        btn.classList.add('is-upload-pending');
+        if (icon) icon.innerHTML = SVG_UP;
+        btn.style.animation = '';
+    } else if (status === 'pending-download') {
+        btn.classList.add('is-download-pending');
+        if (icon) icon.innerHTML = SVG_DOWN;
+        btn.style.animation = '';
+    } else if (status === 'error') {
+        btn.classList.add('is-error');
+        if (icon) icon.innerHTML = SVG_WARN;
+        btn.style.animation = '';
+    } else {
+        btn.classList.add('is-synced');
+        if (icon) icon.innerHTML = SVG_SYNC;
+        btn.style.animation = '';
+    }
+    if (label) label.textContent = message || 'Sincronizar';
 }
 
 // Modal de confirmación genérico — reemplaza confirm() nativo
@@ -490,7 +635,7 @@ function saveGameFromMenu() {
     URL.revokeObjectURL(a.href);
 
     showAutosave('Archivo de guardado descargado', 'saved');
-    if (typeof playSoundSave === 'function') playSoundSave();
+    eventBus.emit('audio:play-sfx', { sfx: 'save' });
 }
 
 function loadGameFromMenu() {

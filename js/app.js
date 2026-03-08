@@ -245,6 +245,10 @@ function initializeApp() {
     }
     startCloudSync();
 
+    // Inicializar motor RPG de escenas narrativas
+    if (typeof RPGState !== 'undefined')    RPGState.init(currentUserIndex);
+    if (typeof RPGRenderer !== 'undefined') RPGRenderer.init();
+
     // renderUserCards() ya gestiona el welcomeOverlay internamente.
 
     // Setup keyboard listeners
@@ -294,14 +298,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             // El manifest ya pide landscape, pero algunos Android ignoran
             // el manifest hasta que el usuario rota. La API Screen Orientation
             // lo forza activamente en navegadores que la soportan.
-            try {
-                if (screen.orientation && screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch(() => {
-                        // Silenciar: algunos dispositivos no permiten lock
-                        // (ej. tablets que ya están en landscape)
-                    });
-                }
-            } catch (e) { /* API no disponible */ }
+            // Intentar lock inmediato
+            function _tryOrientationLock() {
+                try {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(() => {});
+                    }
+                } catch (e) {}
+            }
+            _tryOrientationLock();
+
+            // Re-intentar en el primer gesto del usuario (algunos Android
+            // requieren interacción previa para permitir el lock)
+            const _onFirstInteraction = () => {
+                _tryOrientationLock();
+                document.removeEventListener('touchstart', _onFirstInteraction);
+                document.removeEventListener('click', _onFirstInteraction);
+            };
+            document.addEventListener('touchstart', _onFirstInteraction, { once: true });
+            document.addEventListener('click', _onFirstInteraction, { once: true });
 
             window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
                 document.body.classList.toggle('is-pwa', e.matches);
@@ -407,9 +422,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Usar el sistema de toasts nativo de Etheria si está disponible,
             // de lo contrario crear un elemento temporal propio.
-            if (typeof showAutosave === 'function') {
-                showAutosave('Gira el móvil horizontal para mejor experiencia 🔄', 'info');
-            } else {
+            eventBus.emit('ui:show-autosave', { text: 'Gira el móvil horizontal para mejor experiencia 🔄', state: 'info' });
+            if (typeof showAutosave !== 'function') {
                 _injectHintElement();
             }
             localStorage.setItem(TOAST_KEY, '1');
@@ -515,9 +529,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                 // Nueva versión disponible
                                 console.log('[PWA] Nueva versión disponible');
-                                if (typeof showAutosave === 'function') {
-                                    showAutosave('Nueva versión disponible. Recarga para actualizar.', 'info');
-                                }
+                                eventBus.emit('ui:show-autosave', { text: 'Nueva versión disponible. Recarga para actualizar.', state: 'info' });
                                 // Forzar activación de la nueva versión
                                 newWorker.postMessage('skipWaiting');
                             }
@@ -550,5 +562,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
         });
     }
+    // ── Frase aleatoria en el subtítulo del menú principal ───────────────────
+    // (absorbido de mejoras.js — Mejora 1)
+    (function _initMenuSubtitle() {
+        var phrases = [
+            'Un mundo al borde del olvido',
+            'Cada elección deja una cicatriz',
+            'El destino se escribe con tinta y dados',
+            'Las historias no terminan, se transforman',
+            'Cada personaje guarda un secreto',
+            'El pasado elige quiénes somos',
+            'Algunos hilos no deberían cortarse',
+            'La magia no perdona a los imprudentes',
+            'Hasta los héroes sangran en silencio',
+            'El azar es la firma de los dioses',
+            'Ningún mapa llega hasta el final del camino',
+            'Lo que se escribe, permanece'
+        ];
+        var el = document.querySelector('.menu-subtitle');
+        if (el) el.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+    })();
     // ─────────────────────────────────────────────────────────────
 });

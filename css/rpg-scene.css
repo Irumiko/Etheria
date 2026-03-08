@@ -1,0 +1,202 @@
+/* ============================================================
+   RPG SCENE STYLES
+   Estilos para los elementos que RPGRenderer genera al DOM.
+   No sobreescribe nada del VN existente — solo añade clases
+   nuevas prefijadas con rpg- o vn- específicas del motor RPG.
+   ============================================================ */
+
+
+/* ── Área de elecciones ──────────────────────────────────── */
+
+#vnChoiceArea {
+    display: none;
+    flex-direction: column;
+    gap: 0.55rem;
+    position: absolute;
+    bottom: 6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(520px, 92vw);
+    z-index: 30;
+    padding: 0.5rem;
+}
+
+.rpg-choice-prompt {
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgba(220, 210, 185, 0.7);
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.rpg-choice-btn {
+    position: relative;
+    width: 100%;
+    padding: 0.75rem 1.1rem;
+    background: rgba(10, 8, 20, 0.82);
+    border: 1px solid rgba(180, 150, 90, 0.35);
+    border-radius: 6px;
+    color: #e8dcc8;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.rpg-choice-btn:hover,
+.rpg-choice-btn:focus-visible {
+    background: rgba(180, 150, 90, 0.18);
+    border-color: rgba(180, 150, 90, 0.65);
+    transform: translateX(3px);
+    outline: none;
+}
+
+.rpg-choice-btn:active {
+    transform: translateX(1px);
+    background: rgba(180, 150, 90, 0.28);
+}
+
+/* Coste visible en el botón (e.g. "-5 HP") */
+.rpg-choice-cost {
+    position: absolute;
+    right: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.78rem;
+    color: #e87a7a;
+    opacity: 0.85;
+    font-weight: 600;
+}
+
+/* Opción disponible por condición especial: tono diferente */
+.rpg-choice-btn[data-condition]::before {
+    content: attr(data-condition-icon);
+    margin-right: 0.4rem;
+    opacity: 0.8;
+}
+
+
+/* ── Barra de stats (HP / XP) ────────────────────────────── */
+
+#vnRpgStatBar {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.8rem;
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.rpg-stat-hp {
+    font-size: 0.82rem;
+    color: #e87a7a;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+
+.rpg-stat-xp {
+    font-size: 0.82rem;
+    color: #e8c97a;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+
+
+/* ── Overlay de tirada stat_check ────────────────────────── */
+
+.rpg-stat-check-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    pointer-events: none;
+    animation: rpg-overlay-in 0.2s ease;
+}
+
+@keyframes rpg-overlay-in {
+    from { opacity: 0; transform: scale(0.88); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+
+/* ── Efectos de cámara ───────────────────────────────────── */
+
+@keyframes vn-shake-kf {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    20%  { transform: translate(-4px, 2px) rotate(-0.5deg); }
+    40%  { transform: translate(4px, -2px) rotate(0.5deg); }
+    60%  { transform: translate(-3px, 1px) rotate(-0.3deg); }
+    80%  { transform: translate(3px, -1px) rotate(0.3deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+#vnSection.vn-shake {
+    animation: vn-shake-kf 0.35s ease;
+}
+
+@keyframes vn-flash-kf {
+    0%   { filter: brightness(1); }
+    30%  { filter: brightness(2.2); }
+    100% { filter: brightness(1); }
+}
+
+#vnSection.vn-flash {
+    animation: vn-flash-kf 0.3s ease;
+}
+
+
+/* ── Clase activa de escena ──────────────────────────────── */
+
+/* Mientras hay una escena RPG activa, el cursor por defecto en el
+   área de diálogo indica que hay que hacer clic para avanzar */
+#vnSection.rpg-scene-active #vnDialogBox {
+    cursor: pointer;
+}
+
+#vnSection.rpg-scene-active #vnDialogBox::after {
+    content: '▼';
+    position: absolute;
+    bottom: 0.6rem;
+    right: 0.9rem;
+    font-size: 0.65rem;
+    color: rgba(220, 210, 185, 0.45);
+    animation: rpg-bounce 1.4s ease-in-out infinite;
+}
+
+@keyframes rpg-bounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(3px); }
+}
+
+
+/* ── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+    #vnChoiceArea {
+        bottom: 4.5rem;
+        width: 96vw;
+    }
+
+    .rpg-choice-btn {
+        font-size: 0.88rem;
+        padding: 0.65rem 0.9rem;
+    }
+
+    #vnRpgStatBar {
+        top: 0.5rem;
+        right: 0.5rem;
+        gap: 0.5rem;
+    }
+
+    .rpg-stat-hp,
+    .rpg-stat-xp {
+        font-size: 0.75rem;
+    }
+}

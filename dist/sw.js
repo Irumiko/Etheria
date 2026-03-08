@@ -9,7 +9,7 @@
 // ================================================================
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
-const CACHE_VERSION = 'mmgp0b4i';
+const CACHE_VERSION = 'mmhomaem';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 
 // Archivos que se precargan al instalar el SW.

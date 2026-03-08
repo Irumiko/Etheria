@@ -1,89 +1,39 @@
-# Cambios Realizados - Etheria Fix
+# Etheria V1 — Changelog
 
-## Resumen de Problemas Solucionados
+## V1 (2026-03-08)
 
-### 1. Sincronización con Supabase - CRÍTICO ✅
+Integración de dos módulos principales sobre la base de `Etheria_final`.
 
-**Problema**: La sincronización de datos entre navegadores no funcionaba porque el código usaba JSONBin (deshabilitado) en lugar de Supabase.
+### Motor RPG de Escenas (RPGEngine v4) ✅
 
-**Solución**: 
-- Creado nuevo módulo `js/utils/supabaseSync.js` con sincronización completa
-- Actualizado `js/utils/storage.js` para usar SupabaseSync
-- Modificado `js/app.js` para inicializar SupabaseSync
-- Agregado script al `index.html`
+**Nuevos archivos:**
+- `js/rpg/RPGEngine.js` — Motor principal que interpreta scripts JSON paso a paso
+- `js/rpg/RPGRenderer.js` — Renderiza la UI de escenas narrativas (sin manipular DOM desde el motor)
+- `js/rpg/RPGState.js` — Estado persistente del modo RPG por perfil de usuario
+- `js/rpg/SceneLoader.js` — Carga y cachea escenas desde `js/scenes/`
+- `js/rpg/SceneValidator.js` — Valida estructura de escenas JSON
+- `js/scenes/_index.json` — Índice de escenas disponibles
+- `js/scenes/forest_intro.json` — Escena de introducción al bosque
+- `js/scenes/village_hub.json` — Escena del hub de aldea
+- `css/rpg-scene.css` — Estilos propios del modo RPG
 
-**Archivos modificados**:
-- `js/utils/supabaseSync.js` (nuevo)
-- `js/utils/storage.js`
-- `js/app.js`
-- `index.html`
+**Cambios en archivos existentes:**
+- `js/app.js` — Añadida inicialización de `RPGState` y `RPGRenderer` en `initializeApp()`
+- `build.js` — Añadido `rpg-scene.css` al bundle CSS y copia de JSONs de escenas a `dist/js/scenes/`
+- `index.html` — Añadidos `<script>` de los 5 módulos RPG y `<link>` del CSS
 
-### 2. Service Worker Mejorado ✅
+### EventBus Audio (EventBus Audio v2) ✅
 
-**Problema**: El Service Worker no manejaba correctamente las actualizaciones y mostraba versiones viejas.
+**Cambios en archivos existentes:**
+- `js/core/events.js` — Añadido método `eventBus.once()` para suscripción de un solo disparo
+- `js/ui/app-ui.js` — Audio migrado a `eventBus.emit('audio:*')` en lugar de llamadas directas
+- `js/ui/navigation.js` — `stopRainSound`, `stopMenuMusic`, `startMenuMusic` → EventBus
+- `js/ui/roleplay.js` — Affinities y música de menú → EventBus
+- `js/ui/characters.js` — Música de menú en navegación de personajes → EventBus
+- `js/rpg/RPGRenderer.js` — Sonidos de escena RPG delegados a EventBus (`audio:start-rain`, `audio:stop-rain`)
 
-**Solución**:
-- Estrategia `Network First` para HTML
-- Estrategia `Cache First` con actualización en background para assets
-- Notificación al usuario cuando hay nueva versión
-- Manejo de `skipWaiting` para activación inmediata
-- Soporte para Background Sync
+---
 
-**Archivos modificados**:
-- `sw.js`
+## Versiones anteriores
 
-### 3. PWA Optimizado para Móviles ✅
-
-**Problema**: Orientación forzada a landscape causaba problemas en algunos dispositivos.
-
-**Solución**:
-- Cambiada orientación de `landscape-primary` a `any`
-- Agregadas categorías y screenshots al manifest
-- Mejorado el registro del Service Worker
-
-**Archivos modificados**:
-- `manifest.json`
-
-## Configuración Requerida en Supabase
-
-Para que la sincronización funcione completamente, necesitas crear la tabla `user_data` en Supabase:
-
-```sql
-CREATE TABLE user_data (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-    data JSONB NOT NULL DEFAULT '{}',
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(user_id)
-);
-
-CREATE INDEX idx_user_data_user_id ON user_data(user_id);
-
-ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own data" ON user_data
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own data" ON user_data
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own data" ON user_data
-    FOR UPDATE USING (auth.uid() = user_id);
-```
-
-Ver `SUPABASE_SETUP.md` para la configuración completa.
-
-## Cómo Probar
-
-1. Inicia sesión en la app
-2. Crea una historia y personajes
-3. Abre la app en otro navegador/dispositivo
-4. Inicia sesión con la misma cuenta
-5. Verifica que los datos se sincronizan automáticamente
-
-## Notas Importantes
-
-- La sincronización requiere que el usuario esté autenticado
-- Los datos se sincronizan cada 30 segundos (o al hacer cambios)
-- Si no hay conexión, la app funciona en modo offline y sincroniza cuando vuelve la conexión
-- El Service Worker notifica cuando hay una nueva versión disponible
+Ver `Etheria_final` → base del proyecto con sincronización Supabase, PWA optimizado y Service Worker mejorado.

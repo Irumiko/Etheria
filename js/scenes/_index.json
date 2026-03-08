@@ -1,0 +1,20 @@
+{
+    "forest_intro": {
+        "id": "forest_intro",
+        "file": "forest_intro.json",
+        "title": "El bosque prohibido",
+        "tags": ["introducción", "kazuma", "bosque"]
+    },
+    "forest_depth": {
+        "id": "forest_depth",
+        "file": "forest_depth.json",
+        "title": "Las profundidades",
+        "tags": ["bosque", "combate", "misterio"]
+    },
+    "village_hub": {
+        "id": "village_hub",
+        "file": "village_hub.json",
+        "title": "El pueblo de Mirael",
+        "tags": ["hub", "tienda", "descanso"]
+    }
+}

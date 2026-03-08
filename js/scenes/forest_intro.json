@@ -1,0 +1,200 @@
+{
+    "id": "forest_intro",
+    "version": 1,
+    "title": "El bosque prohibido",
+    "requires": [],
+    "variables": {
+        "met_kazuma": false,
+        "times_visited": 0
+    },
+    "steps": [
+        {
+            "type": "background",
+            "asset": "forest_night",
+            "transition": "fade",
+            "duration": 800
+        },
+        {
+            "type": "sound",
+            "action": "start",
+            "track": "ambient_forest"
+        },
+        {
+            "type": "set_variable",
+            "key": "times_visited",
+            "value": 1
+        },
+        {
+            "type": "dialogue",
+            "character": "Narrador",
+            "text": "El bosque de Vel'thar nunca duerme. Sus sombras se mueven aunque no haya viento."
+        },
+        {
+            "type": "dialogue",
+            "character": "Kazuma",
+            "expression": "suspicious",
+            "text": "No deberías estar aquí. Este lugar no es seguro después del anochecer."
+        },
+        {
+            "type": "choice",
+            "prompt": "¿Qué haces?",
+            "options": [
+                {
+                    "text": "Preguntar qué ocurre en el bosque",
+                    "goto": "branch_pregunta"
+                },
+                {
+                    "text": "Marcharse en silencio",
+                    "goto": "branch_salida"
+                },
+                {
+                    "text": "[Espada] Amenazarle para que hable",
+                    "goto": "branch_amenaza",
+                    "condition": { "has_item": "sword" }
+                }
+            ]
+        }
+    ],
+
+    "branches": {
+
+        "branch_pregunta": [
+            {
+                "type": "set_variable",
+                "key": "met_kazuma",
+                "value": true
+            },
+            {
+                "type": "set_flag",
+                "key": "kazuma_met",
+                "value": true
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "serious",
+                "text": "Hay algo antiguo en estas raíces. Algo que despertó hace tres noches."
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "text": "Si quieres saber más... necesito saber que puedo confiar en ti."
+            },
+            {
+                "type": "stat_check",
+                "stat": "CHA",
+                "difficulty": 12,
+                "on_success": "branch_confianza",
+                "on_fail":    "branch_desconfianza",
+                "delay": 2000
+            }
+        ],
+
+        "branch_confianza": [
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "relieved",
+                "text": "Bien. Hay una criatura atrapada en el claro norte. No es hostil... pero algo la controla."
+            },
+            {
+                "type": "give_item",
+                "item": {
+                    "id": "forest_map",
+                    "name": "Mapa del bosque",
+                    "description": "Un mapa dibujado a mano con marcas de runas antiguas."
+                }
+            },
+            {
+                "type": "add_xp",
+                "amount": 25
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "text": "Toma este mapa. El claro está al noreste. Ten cuidado con las raíces iluminadas: no las toques."
+            },
+            {
+                "type": "end",
+                "outcome": "got_map"
+            }
+        ],
+
+        "branch_desconfianza": [
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "cold",
+                "text": "Hmm. No me convences. Vuelve cuando hayas demostrado algo."
+            },
+            {
+                "type": "end",
+                "outcome": "rejected"
+            }
+        ],
+
+        "branch_salida": [
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "Decides no meterte donde no te llaman. Quizás fue lo más sensato."
+            },
+            {
+                "type": "end",
+                "outcome": "left"
+            }
+        ],
+
+        "branch_amenaza": [
+            {
+                "type": "camera",
+                "effect": "shake",
+                "duration": 300
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "angry",
+                "text": "¿Me amenazas? Aquí no me impresionan las espadas."
+            },
+            {
+                "type": "stat_check",
+                "stat": "STR",
+                "difficulty": 15,
+                "on_success": "branch_amenaza_exito",
+                "on_fail":    "branch_amenaza_fallo"
+            }
+        ],
+
+        "branch_amenaza_exito": [
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "resigned",
+                "text": "...Está bien. Pero esto no se olvida fácilmente."
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_confianza"
+            }
+        ],
+
+        "branch_amenaza_fallo": [
+            {
+                "type": "modify_stat",
+                "stat": "HP",
+                "amount": -5
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "cold",
+                "text": "Un consejo: no amenaces a quien lleva diez años sobreviviendo en este bosque."
+            },
+            {
+                "type": "end",
+                "outcome": "defeated"
+            }
+        ]
+    }
+}

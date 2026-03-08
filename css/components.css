@@ -1,5 +1,13 @@
 
 /* ============================================================
+   ASSETS — rutas centralizadas
+   Cambiar la ruta aquí afecta a todos los usos.
+============================================================ */
+:root {
+    --asset-bg-menu: url('../assets/backgrounds/menu_background.jpg');
+}
+
+/* ============================================================
    SCROLLBARS ESTILO VIDEOJUEGO
    Finos, dorados, sin fondo — como menús de JRPG
 ============================================================ */
@@ -951,7 +959,7 @@ body::before {
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('./assets/backgrounds/menu_background.jpg');
+            background-image: var(--asset-bg-menu);
             background-size: cover;
             background-position: center;
             display: flex;
@@ -1007,8 +1015,7 @@ body::before {
             overflow: hidden;
             pointer-events: none;
             z-index: 1;
-            /* URL de imagen del bosque — una sola fuente para todas las capas */
-            --menu-base-bg: url('./assets/backgrounds/menu_background.jpg');
+            /* URL del fondo — definida en :root al inicio del archivo */
         }
 
         /* ── Capas de parallax ─────────────────────────────────────── */
@@ -1028,7 +1035,7 @@ body::before {
         /* ── Capa cielo: muy lenta, fondo azul-noche + máscara superior ── */
         .layer-sky {
             --depth: 0.08;
-            background-image: var(--menu-base-bg);
+            background-image: var(--asset-bg-menu);
             background-size: cover;
             background-position: center 5%;
             opacity: 0.75;
@@ -1045,7 +1052,7 @@ body::before {
         /* ── Capa bosque medio: velocidad media, zona central ── */
         .layer-midforest {
             --depth: 0.22;
-            background-image: var(--menu-base-bg);
+            background-image: var(--asset-bg-menu);
             background-size: cover;
             background-position: center 46%;
             opacity: 0.88;
@@ -1062,7 +1069,7 @@ body::before {
         /* ── Capa primer plano: más rápida, satura el suelo ── */
         .layer-foreground {
             --depth: 0.38;
-            background-image: var(--menu-base-bg);
+            background-image: var(--asset-bg-menu);
             background-size: cover;
             background-position: center 88%;
             opacity: 0.92;

@@ -1,0 +1,265 @@
+{
+    "id": "village_hub",
+    "version": 1,
+    "title": "El pueblo de Mirael",
+    "requires": [],
+    "variables": {},
+    "steps": [
+        {
+            "type": "background",
+            "asset": "village_day",
+            "transition": "fade"
+        },
+        {
+            "type": "sound",
+            "action": "start",
+            "track": "ambient_village"
+        },
+        {
+            "type": "dialogue",
+            "character": "Narrador",
+            "text": "El pueblo de Mirael huele a pan recién hecho y a miedo viejo. La gente evita mirarse a los ojos."
+        },
+        {
+            "type": "choice",
+            "prompt": "¿A dónde vas?",
+            "options": [
+                {
+                    "text": "Visitar la taberna",
+                    "goto": "branch_taberna"
+                },
+                {
+                    "text": "Ir a la herrería",
+                    "goto": "branch_herreria",
+                    "condition": { "flag": "kazuma_met" }
+                },
+                {
+                    "text": "Hablar con el alcalde",
+                    "goto": "branch_alcalde"
+                },
+                {
+                    "text": "Descansar y recuperar fuerzas",
+                    "goto": "branch_descanso",
+                    "condition": { "stat_lte": { "stat": "HP", "value": 15 } }
+                }
+            ]
+        }
+    ],
+
+    "branches": {
+
+        "branch_taberna": [
+            {
+                "type": "dialogue",
+                "character": "Tabernero",
+                "text": "No tenemos cuartos libres. Y si los tuviéramos, tampoco te los daría. Mira que cara de problemas..."
+            },
+            {
+                "type": "choice",
+                "prompt": "",
+                "options": [
+                    {
+                        "text": "Insistir",
+                        "goto": "branch_taberna_insistir"
+                    },
+                    {
+                        "text": "Pedir información sobre el bosque",
+                        "goto": "branch_taberna_info"
+                    },
+                    {
+                        "text": "Marcharse",
+                        "goto": "branch_salida_pueblo"
+                    }
+                ]
+            }
+        ],
+
+        "branch_taberna_insistir": [
+            {
+                "type": "stat_check",
+                "stat": "CHA",
+                "difficulty": 10,
+                "on_success": "branch_taberna_ok",
+                "on_fail":    "branch_taberna_no"
+            }
+        ],
+
+        "branch_taberna_ok": [
+            {
+                "type": "dialogue",
+                "character": "Tabernero",
+                "text": "...Hay un jergón en el almacén. Tres monedas. No te quejes del olor."
+            },
+            {
+                "type": "modify_stat",
+                "stat": "HP",
+                "amount": 5
+            },
+            {
+                "type": "add_xp",
+                "amount": 10
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_salida_pueblo"
+            }
+        ],
+
+        "branch_taberna_no": [
+            {
+                "type": "dialogue",
+                "character": "Tabernero",
+                "text": "He dicho que no. ¿Necesitas que te lo deletree?"
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_salida_pueblo"
+            }
+        ],
+
+        "branch_taberna_info": [
+            {
+                "type": "dialogue",
+                "character": "Tabernero",
+                "expression": "nervous",
+                "text": "El bosque... Mira, yo no sé nada. Y lo que sé, me lo guardo."
+            },
+            {
+                "type": "dialogue",
+                "character": "Tabernero",
+                "text": "Pero si hablas con la anciana del molino, quizás ella sí te cuente algo. Mencionó unas runas."
+            },
+            {
+                "type": "set_flag",
+                "key": "knows_mill_woman",
+                "value": true
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_salida_pueblo"
+            }
+        ],
+
+        "branch_herreria": [
+            {
+                "type": "dialogue",
+                "character": "Herrera",
+                "text": "Así que eres tú quien anda con Kazuma. Te hacía más alto."
+            },
+            {
+                "type": "give_item",
+                "item": {
+                    "id": "rune_charm",
+                    "name": "Amuleto de runa",
+                    "description": "Protege contra ilusiones menores. Huele a pino quemado."
+                }
+            },
+            {
+                "type": "dialogue",
+                "character": "Herrera",
+                "text": "Tómalo. Lo fundí yo misma. Las runas de este bosque no hacen bien a quienes van sin protección."
+            },
+            {
+                "type": "add_xp",
+                "amount": 15
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_salida_pueblo"
+            }
+        ],
+
+        "branch_alcalde": [
+            {
+                "type": "dialogue",
+                "character": "Alcalde",
+                "expression": "nervous",
+                "text": "No podemos ayudarte. Este pueblo tiene sus propios problemas."
+            },
+            {
+                "type": "check_variable",
+                "key": "met_kazuma",
+                "equals": true,
+                "goto_true":  "branch_alcalde_kazuma",
+                "goto_false": "branch_alcalde_normal"
+            }
+        ],
+
+        "branch_alcalde_kazuma": [
+            {
+                "type": "dialogue",
+                "character": "Alcalde",
+                "expression": "surprised",
+                "text": "Espera... ¿has hablado con Kazuma? Entonces sabes más de lo que aparentas."
+            },
+            {
+                "type": "dialogue",
+                "character": "Alcalde",
+                "text": "Si logras contener lo que está en el bosque, el pueblo te lo pagará. Con creces."
+            },
+            {
+                "type": "set_flag",
+                "key": "main_quest_active",
+                "value": true
+            },
+            {
+                "type": "add_xp",
+                "amount": 20
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_salida_pueblo"
+            }
+        ],
+
+        "branch_alcalde_normal": [
+            {
+                "type": "dialogue",
+                "character": "Alcalde",
+                "text": "Vuelve cuando hayas hablado con alguien que sepa lo que pasa."
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_salida_pueblo"
+            }
+        ],
+
+        "branch_descanso": [
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "Encuentras un rincón tranquilo junto a la fuente. El sonido del agua calma los nervios."
+            },
+            {
+                "type": "wait",
+                "duration": 1200
+            },
+            {
+                "type": "modify_stat",
+                "stat": "HP",
+                "amount": 10
+            },
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "Te sientes algo mejor. Las heridas superficiales han cerrado."
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_salida_pueblo"
+            }
+        ],
+
+        "branch_salida_pueblo": [
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "El pueblo queda atrás. El bosque sigue esperando."
+            },
+            {
+                "type": "end",
+                "outcome": "left_village"
+            }
+        ]
+    }
+}

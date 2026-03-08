@@ -24,6 +24,47 @@ const _sectionAnimControl = {
     }
 };
 
+// ── Transición suave entre secciones (absorbido de mejoras.js) ───────────────
+// _skipNextFadeTransition: characters.js lo activa al volver de selección de perfil
+// para evitar el overlay negro innecesario.
+var _skipNextFadeTransition = false;
+var _fadeTransitionInProgress = false;
+
+function _clearFadeOverlay(overlay, delay) {
+    setTimeout(function() {
+        if (overlay) {
+            overlay.classList.remove('fade-out');
+            overlay.style.transition = '';
+        }
+        _fadeTransitionInProgress = false;
+    }, delay);
+}
+
+function fadeTransition(callback, duration) {
+    duration = duration || 280;
+    if (_skipNextFadeTransition) {
+        _skipNextFadeTransition = false;
+        try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        return;
+    }
+    if (_fadeTransitionInProgress) {
+        try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        return;
+    }
+    var overlay = document.getElementById('sectionTransitionOverlay');
+    if (!overlay) {
+        try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        return;
+    }
+    _fadeTransitionInProgress = true;
+    overlay.style.transition = 'opacity ' + duration + 'ms ease';
+    overlay.classList.add('fade-out');
+    setTimeout(function() {
+        try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        finally { _clearFadeOverlay(overlay, Math.round(duration * 0.6)); }
+    }, duration);
+}
+
 // Navegación entre secciones y galería de personajes.
 // NAVEGACIÓN
 // ============================================
@@ -69,7 +110,7 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     if (weatherContainer) weatherContainer.innerHTML = '';
 
     // Detener sonido ambiental de lluvia si estaba activo
-    if (typeof stopRainSound === 'function') stopRainSound();
+    eventBus.emit('audio:stop-rain');
 
     editingMessageId = null;
     pendingContinuation = null;
@@ -94,6 +135,20 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     }
 }
 
+// ── Listener EventBus: ui:reset-vn-state ─────────────────────────────────────
+// vn.js emite este evento al entrar a un tema para limpiar el estado transitorio.
+// navigation.js es el dueño de resetVNTransientState — este listener es el
+// único punto de entrada desde módulos externos.
+(function _initNavigationListeners() {
+    if (window._navigationListenersReady) return;
+    window._navigationListenersReady = true;
+    if (typeof eventBus !== 'undefined') {
+        eventBus.on('ui:reset-vn-state', function() {
+            resetVNTransientState();
+        });
+    }
+})();
+
 function closeActiveModals() {
     document.querySelectorAll('.modal-overlay.active').forEach((modal) => {
         modal.classList.remove('active');
@@ -103,81 +158,76 @@ function closeActiveModals() {
 
 function showSection(section) {
     if (isLoading) return;
+    // transición visual absorbida de mejoras.js (Mejora 9)
+    fadeTransition(function() {
+        const mainMenu = document.getElementById('mainMenu');
+        if (mainMenu) mainMenu.classList.add('hidden');
+        eventBus.emit('audio:stop-menu-music');
 
-    const mainMenu = document.getElementById('mainMenu');
-    if (mainMenu) mainMenu.classList.add('hidden');
-    if (typeof stopMenuMusic === 'function') stopMenuMusic();
+        resetVNTransientState({ clearTopic: true });
+        closeActiveModals();
 
-    resetVNTransientState({ clearTopic: true });
-    closeActiveModals();
+        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+        requestAnimationFrame(() => _sectionAnimControl.sync());
 
-    document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
-    // Sincronizar estado de animaciones con visibilidad real
-    requestAnimationFrame(() => _sectionAnimControl.sync());
-
-    if(section === 'topics') {
-        const topicsSection = document.getElementById('topicsSection');
-        if (topicsSection) topicsSection.classList.add('active');
-        renderTopics();
-        // Notificar a Ethy
-        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'topics' } }));
-    } else if(section === 'gallery') {
-        const gallerySection = document.getElementById('gallerySection');
-        if (gallerySection) gallerySection.classList.add('active');
-        renderGallery();
-        // Notificar a Ethy
-        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'gallery' } }));
-    } else if(section === 'options') {
-        const optionsSection = document.getElementById('optionsSection');
-        if (optionsSection) optionsSection.classList.add('active');
-        if (typeof syncOptionsSection === 'function') syncOptionsSection();
-        // Notificar a Ethy
-        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'options' } }));
-    }
+        if(section === 'topics') {
+            const topicsSection = document.getElementById('topicsSection');
+            if (topicsSection) topicsSection.classList.add('active');
+            renderTopics();
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'topics' } }));
+        } else if(section === 'gallery') {
+            const gallerySection = document.getElementById('gallerySection');
+            if (gallerySection) gallerySection.classList.add('active');
+            renderGallery();
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'gallery' } }));
+        } else if(section === 'options') {
+            const optionsSection = document.getElementById('optionsSection');
+            if (optionsSection) optionsSection.classList.add('active');
+            if (typeof syncOptionsSection === 'function') syncOptionsSection();
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'options' } }));
+        }
+    }, 150);
 }
 
 function backToMenu() {
     confirmUnsavedChanges(() => {
-        resetVNTransientState({ clearTopic: true });
-        closeActiveModals();
-        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
-        const mainMenu = document.getElementById('mainMenu');
-        if (mainMenu) {
-            mainMenu.classList.remove('hidden');
-            generateParticles();
-            if (typeof startMenuMusic === 'function') startMenuMusic();
-            // Reset parallax particle offset
-            const particles = document.getElementById('particlesContainer');
-            if (particles) particles.style.transform = '';
-        }
-        // Notificar a Ethy
-        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'mainMenu' } }));
+        // transición visual absorbida de mejoras.js (Mejora 9)
+        fadeTransition(function() {
+            resetVNTransientState({ clearTopic: true });
+            closeActiveModals();
+            document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+            const mainMenu = document.getElementById('mainMenu');
+            if (mainMenu) {
+                mainMenu.classList.remove('hidden');
+                generateParticles();
+                eventBus.emit('audio:start-menu-music');
+                const particles = document.getElementById('particlesContainer');
+                if (particles) particles.style.transform = '';
+            }
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'mainMenu' } }));
+        }, 150);
     });
 }
 
 function backToTopics() {
     confirmUnsavedChanges(() => {
-        // Detener guard colaborativo al salir del topic
-        if (typeof CollaborativeGuard !== 'undefined') {
-            CollaborativeGuard.stop();
-        }
-        // Desuscribir canal global realtime
-        if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribeGlobal === 'function') {
-            SupabaseMessages.unsubscribeGlobal();
-        }
-        // Memory leak fix: remove the global realtime handler on topic exit
-        if (typeof _globalRealtimeHandlerRef !== 'undefined' && _globalRealtimeHandlerRef) {
-            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
-            _globalRealtimeHandlerRef = null;
-        }
-        resetVNTransientState({ clearTopic: true });
-
-        const vnSection = document.getElementById('vnSection');
-        const topicsSection = document.getElementById('topicsSection');
-
-        if (vnSection) vnSection.classList.remove('active');
-        if (topicsSection) topicsSection.classList.add('active');
-        renderTopics();
+        // transición visual absorbida de mejoras.js (Mejora 9)
+        fadeTransition(function() {
+            if (typeof CollaborativeGuard !== 'undefined') CollaborativeGuard.stop();
+            if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribeGlobal === 'function') {
+                SupabaseMessages.unsubscribeGlobal();
+            }
+            if (typeof _globalRealtimeHandlerRef !== 'undefined' && _globalRealtimeHandlerRef) {
+                window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+                _globalRealtimeHandlerRef = null;
+            }
+            resetVNTransientState({ clearTopic: true });
+            const vnSection = document.getElementById('vnSection');
+            const topicsSection = document.getElementById('topicsSection');
+            if (vnSection) vnSection.classList.remove('active');
+            if (topicsSection) topicsSection.classList.add('active');
+            renderTopics();
+        }, 150);
     });
 }
 

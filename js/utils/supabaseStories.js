@@ -288,9 +288,10 @@
                     global.currentMessageIndex = localMsgs.length - 1;
                     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                     if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                    if (typeof showSyncToast === 'function') {
-                        showSyncToast(newRemote.length + ' mensaje(s) cargado(s) desde la historia', 'OK');
-                    }
+                    eventBus.emit('ui:show-toast', {
+                        text: newRemote.length + ' mensaje(s) cargado(s) desde la historia',
+                        action: 'OK'
+                    });
                 }
             }
         }
@@ -467,17 +468,20 @@
                 global.currentMessageIndex = msgs.length - 1;
                 if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                 if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                if (typeof showSyncToast === 'function') {
-                    showSyncToast('Nuevo mensaje en la historia', 'OK');
-                }
+                eventBus.emit('ui:show-toast', {
+                    text: 'Nuevo mensaje en la historia',
+                    action: 'OK'
+                });
             } else {
-                if (typeof showSyncToast === 'function') {
-                    showSyncToast('Nuevo mensaje recibido', 'Ver ahora', function () {
+                eventBus.emit('ui:show-toast', {
+                    text: 'Nuevo mensaje recibido',
+                    action: 'Ver ahora',
+                    onAction: function () {
                         global.currentMessageIndex = msgs.length - 1;
                         if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                         if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                    });
-                }
+                    }
+                });
             }
         } catch (e) {
             console.warn('[Stories] _injectRealtimeMessage error:', e.message);

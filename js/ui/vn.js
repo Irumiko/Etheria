@@ -735,6 +735,23 @@ function applyTopicBackground(vnSection, backgroundPath) {
     });
 }
 
+// ── Listener EventBus: vn:background-changed ─────────────────────────────────
+// RPGRenderer emite este evento cuando una escena RPG necesita cambiar el fondo.
+// vn.js es el único módulo que puede llamar applyTopicBackground — este listener
+// es el punto de entrada desde el exterior sin cruzar capas.
+(function _initVnBackgroundListener() {
+    if (window._vnBackgroundListenerReady) return;
+    window._vnBackgroundListenerReady = true;
+    if (typeof eventBus !== 'undefined') {
+        eventBus.on('vn:background-changed', function(data) {
+            if (!data || !data.asset) return;
+            const vnSection = document.getElementById('vnSection');
+            if (!vnSection) return;
+            applyTopicBackground(vnSection, data.asset);
+        });
+    }
+})();
+
 function preloadTopicBackgrounds() {
     const topicBackgrounds = (appData?.topics || []).map(topic => resolveTopicBackgroundPath(topic.background));
     const uniqueBackgrounds = new Set([...topicBackgrounds, ...DEFAULT_TOPIC_BACKGROUND_VARIANTS].filter(Boolean));
@@ -761,99 +778,132 @@ function playVnSceneTransition(vnSection) {
     }
 }
 
+// ── Helpers de entrada a tema ─────────────────────────────────────────────────
+// Extraídos de enterTopic() para separar responsabilidades por modo.
+// Solo se usan desde enterTopic — prefijo _ indica uso interno.
+//
+// Candidatos a moverse a js/ui/vn-mode.js cuando vn.js vuelva a crecer:
+//   _resolveCharacterForMode   → selección de personaje según modo
+//   _applyModeClasses          → CSS classes rpg/classic en vnSection y body
+//   _maybeOpenRpgStatsModal    → RPG-only: auto-open stats la primera vez
+
+// Selecciona el personaje según el modo del topic.
+// Devuelve false si se abre un modal y enterTopic debe abortar.
+function _resolveCharacterForMode(t, id, topicMode) {
+    if (topicMode === 'roleplay' && t.roleCharacterId) {
+        const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
+        if (lockedChar) {
+            selectedCharId = lockedChar.id;
+            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
+        }
+        return true;
+    }
+
+    if (topicMode === 'rpg') {
+        const lockedCharId = getTopicLockedCharacterId(t);
+        if (lockedCharId) {
+            selectedCharId = lockedCharId;
+            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
+            return true;
+        }
+        // Fallback: no debería llegar aquí por el check de arriba, pero por seguridad
+        openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
+        return false;
+    }
+
+    return true;
+}
+
+// Aplica las CSS classes de modo en vnSection y body.
+function _applyModeClasses(vnSection, topicMode) {
+    if (topicMode === 'rpg') {
+        vnSection.classList.remove('classic-mode', 'mode-classic');
+        vnSection.classList.add('mode-rpg');
+        document.body.classList.add('mode-rpg');
+    } else {
+        // Modo clásico: sprites desaparecen al avanzar
+        vnSection.classList.add('classic-mode', 'mode-classic');
+        vnSection.classList.remove('mode-rpg');
+        document.body.classList.remove('mode-rpg');
+        document.body.classList.add('mode-classic');
+    }
+}
+
+// Abre automáticamente el modal de stats RPG la primera vez que el jugador
+// entra a un topic sin haber gastado ningún punto.
+function _maybeOpenRpgStatsModal(topicId) {
+    if (currentTopicMode !== 'rpg' || !selectedCharId) return;
+    const key = `etheria_stats_prompted_${topicId}_${selectedCharId}`;
+    if (localStorage.getItem(key)) return;
+    const char = appData.characters.find(c => String(c.id) === String(selectedCharId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function' || typeof getRpgSpentPoints !== 'function') return;
+    const profile = ensureCharacterRpgProfile(char, topicId);
+    const spent   = getRpgSpentPoints(profile);
+    if (spent === 0 && typeof openRpgStatsModal === 'function') {
+        localStorage.setItem(key, '1');
+        setTimeout(() => {
+            eventBus.emit('ui:show-autosave', { text: '⚔️ ¡Distribuye tus 14 puntos de stats para empezar!', state: 'info' });
+            openRpgStatsModal(selectedCharId);
+        }, 900);
+    }
+}
+
 function enterTopic(id) {
     if (typeof stopMenuMusic === 'function') stopMenuMusic();
 
     const t = appData.topics.find(topic => topic.id === id);
     if (!t) return;
 
-    // Si es modo RPG y no tiene personaje asignado, mostrar el modal SIN
-    // haber limpiado estado (evita el flash de pantalla negra). Igual que en modo clásico.
+    // Guard: RPG sin personaje asignado → modal de selección, sin limpiar estado
+    // (evita el flash de pantalla negra antes de que el usuario elija personaje)
     const topicMode = t.mode || 'roleplay';
     if (topicMode === 'rpg' && !getTopicLockedCharacterId(t)) {
         openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
         return;
     }
 
-    // Onboarding paso 2: primera vez en una historia
+    // transición visual absorbida de mejoras.js (Mejora 9)
+    fadeTransition(function() { _doEnterTopic(id, t, topicMode); }, 220);
+}
+
+function _doEnterTopic(id, t, topicMode) {
+
+    // ── 1. Inicializar estado global del topic ────────────────────────────────
     const _ob = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
     if (_ob === 2 && typeof maybeShowOnboarding === 'function') {
         setTimeout(maybeShowOnboarding, 800);
     }
-    resetVNTransientState();
+    eventBus.emit('ui:reset-vn-state');
     currentTopicId = id;
     if (typeof syncVnStore === 'function') syncVnStore({ topicId: currentTopicId });
 
-    // Iniciar guard colaborativo (detección de cambios remotos + merge)
     if (typeof CollaborativeGuard !== 'undefined') {
         CollaborativeGuard.init(id, typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0);
     }
-
-    // Activar canal global realtime para este topic
     if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
-        SupabaseMessages.subscribeGlobal(null, null, id); // Fix 7: pass sessionId for filter
+        SupabaseMessages.subscribeGlobal(null, null, id);
     }
     getTopicMessages(id);
     currentMessageIndex = 0;
     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     pendingContinuation = null;
     editingMessageId = null;
-
     if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(id);
 
-    // Establecer modo
+    // ── 2. Establecer modo y resolver personaje ───────────────────────────────
     currentTopicMode = topicMode;
+    if (!_resolveCharacterForMode(t, id, topicMode)) return;
 
-    if (currentTopicMode === 'roleplay' && t.roleCharacterId) {
-        const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
-        if (lockedChar) {
-            selectedCharId = lockedChar.id;
-            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
-        }
-    }
-
-    if (currentTopicMode === 'rpg') {
-        const lockedCharId = getTopicLockedCharacterId(t);
-        if (lockedCharId) {
-            selectedCharId = lockedCharId;
-            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
-        } else {
-            // Fallback: no debería llegar aquí por el check de arriba, pero por seguridad
-            openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
-            return;
-        }
-    }
-
-    // Aplicar clima si existe
-    if (t.weather) {
-        setWeather(t.weather);
-    } else {
-        setWeather('none');
-    }
-
+    // ── 3. Aplicar entorno visual (clima, fondo, CSS de modo) ─────────────────
+    setWeather(t.weather || 'none');
     const vnSection = document.getElementById('vnSection');
     if (vnSection) {
         applyTopicBackground(vnSection, t.background);
-
-        // Aplicar modo de sprites (rpg = persistente por defecto)
-        if (currentTopicMode === 'rpg') {
-            vnSection.classList.remove('classic-mode');
-            vnSection.classList.remove('mode-classic');
-            vnSection.classList.add('mode-rpg');
-            document.body.classList.add('mode-rpg');
-        } else {
-            // En modo rol, usar modo clásico (sprites desaparecen)
-            vnSection.classList.add('classic-mode');
-            vnSection.classList.add('mode-classic');
-            vnSection.classList.remove('mode-rpg');
-            document.body.classList.remove('mode-rpg');
-            document.body.classList.add('mode-classic');
-        }
+        _applyModeClasses(vnSection, topicMode);
     }
 
-    // Resetear estado de capítulo al entrar a una historia
+    // ── 4. Activar sección VN en el DOM ──────────────────────────────────────
     pendingChapter = null;
-
     const topicsSection = document.getElementById('topicsSection');
     if (topicsSection) topicsSection.classList.remove('active');
     if (vnSection) {
@@ -863,9 +913,7 @@ function enterTopic(id) {
 
     const deleteBtn = document.getElementById('deleteTopicBtn');
     if (deleteBtn) {
-        // Mostrar si el usuario actual es el creador, o si createdByIndex no está definido (topics legados)
         const isOwner = t.createdByIndex === currentUserIndex || t.createdByIndex === undefined || t.createdByIndex === null;
-        // Usamos el slot padre para mostrar/ocultar, evitando conflicto con el CSS :has(.hidden)
         const deleteSlot = deleteBtn.closest('.vn-control-slot');
         if (isOwner) {
             deleteBtn.classList.remove('hidden');
@@ -876,6 +924,7 @@ function enterTopic(id) {
         }
     }
 
+    // ── 5. Inicializar UI y controles de lectura ──────────────────────────────
     showCurrentMessage('forward');
     updateVnMobileFabVisibility();
     bindReplyTypingEmitter();
@@ -885,27 +934,8 @@ function enterTopic(id) {
     continuousReadEnabled = localStorage.getItem('etheria_continuous_read') === '1';
     continuousReadDelaySec = Math.max(3, Math.min(5, Number(localStorage.getItem('etheria_continuous_delay') || 4)));
 
-    // ── Auto-open RPG stats modal si el personaje aún no ha gastado puntos ──
-    // Solo la primera vez que se entra al topic (puntos libres == pool completo)
-    if (currentTopicMode === 'rpg' && selectedCharId) {
-        const _statsAutoKey = `etheria_stats_prompted_${id}_${selectedCharId}`;
-        if (!localStorage.getItem(_statsAutoKey)) {
-            const _char = appData.characters.find(c => String(c.id) === String(selectedCharId));
-            if (_char && typeof ensureCharacterRpgProfile === 'function' && typeof getRpgSpentPoints === 'function') {
-                const _profile = ensureCharacterRpgProfile(_char, id);
-                const _spent = getRpgSpentPoints(_profile);
-                if (_spent === 0 && typeof openRpgStatsModal === 'function') {
-                    localStorage.setItem(_statsAutoKey, '1');
-                    setTimeout(() => {
-                        if (typeof showAutosave === 'function') {
-                            showAutosave('⚔️ ¡Distribuye tus 14 puntos de stats para empezar!', 'info');
-                        }
-                        openRpgStatsModal(selectedCharId);
-                    }, 900);
-                }
-            }
-        }
-    }
+    // ── 6. Extras RPG (stats modal, cloud story) ──────────────────────────────
+    _maybeOpenRpgStatsModal(id);
 
     // ── Auto-activar historia en la nube si el topic tiene storyId ──
     // Cuando el topic ya fue creado con cloud sync, el storyId se guardó
@@ -2117,9 +2147,15 @@ function showOptions(options) {
     }).join('');
 
     container.classList.add('active');
+    // Efecto suspense al mostrar opciones (absorbido de mejoras.js)
+    const vnSection = document.getElementById('vnSection');
+    if (vnSection) vnSection.classList.add('suspense-mode');
 }
 
 function selectOption(idx) {
+    // Quitar efecto suspense al seleccionar (absorbido de mejoras.js)
+    const vnSectionEl = document.getElementById('vnSection');
+    if (vnSectionEl) vnSectionEl.classList.remove('suspense-mode');
     const msgs = getTopicMessages(currentTopicId);
     const msg = msgs[currentMessageIndex];
 

@@ -177,23 +177,17 @@ const CollaborativeGuard = (function () {
                 // Tiene borrador — notificar sin aplicar, para no interrumpir
                 const n = newRemote.length;
                 const label = n === 1 ? '1 mensaje nuevo' : `${n} mensajes nuevos`;
-                if (typeof showSyncToast === 'function') {
-                    showSyncToast(
-                        label + ' de otro jugador',
-                        'Ver ahora',
-                        () => {
-                            _doMerge(localMsgs, remoteTopicMsgs);
-                        }
-                    );
-                }
+                eventBus.emit('ui:show-toast', {
+                    text: label + ' de otro jugador',
+                    action: 'Ver ahora',
+                    onAction: () => { _doMerge(localMsgs, remoteTopicMsgs); }
+                });
             } else {
                 // Sin borrador — merge silencioso y refresco automático
                 _doMerge(localMsgs, remoteTopicMsgs);
                 const n = newRemote.length;
                 const label = n === 1 ? '1 mensaje nuevo recibido' : `${n} mensajes nuevos recibidos`;
-                if (typeof showAutosave === 'function') {
-                    showAutosave(label, 'info');
-                }
+                eventBus.emit('ui:show-autosave', { text: label, state: 'info' });
             }
 
         } catch (err) {
@@ -322,9 +316,9 @@ const CollaborativeGuard = (function () {
             const cloud = await fetchCloudBin();
             const remote = _remoteTopicMessages(cloud);
             _doMerge(_localMessages(), remote);
-            if (typeof showAutosave === 'function') showAutosave('Sincronizado', 'saved');
+            eventBus.emit('ui:show-autosave', { text: 'Sincronizado', state: 'saved' });
         } catch (err) {
-            if (typeof showAutosave === 'function') showAutosave('Error al sincronizar', 'error');
+            eventBus.emit('ui:show-autosave', { text: 'Error al sincronizar', state: 'error' });
         }
     }
 

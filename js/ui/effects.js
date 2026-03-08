@@ -290,3 +290,16 @@ function showEmoteOnAvatar(emoteType) {
     }, 3000);
 }
 
+// ── Listeners EventBus ───────────────────────────────────────────────────────
+// weather:changed → delega en setWeather(), que ya gestiona DOM, audio y store.
+// Permite que módulos externos cambien el clima sin llamar setWeather() directo.
+(function _initEffectsListeners() {
+    if (window._effectsListenersReady) return;
+    window._effectsListenersReady = true;
+    if (typeof eventBus !== 'undefined') {
+        eventBus.on('weather:changed', function(data) {
+            if (data && data.weather) setWeather(data.weather);
+        });
+    }
+})();
+

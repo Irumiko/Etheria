@@ -148,7 +148,7 @@ async function selectUser(idx, options = {}) {
         void mainMenu.offsetWidth;
         mainMenu.style.opacity = '1';
         setTimeout(() => { mainMenu.style.transition = ''; mainMenu.style.opacity = ''; }, 320);
-        if (typeof startMenuMusic === 'function') startMenuMusic();
+        eventBus.emit('audio:start-menu-music');
         // Onboarding paso 1: menú principal
         const _ob = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
         if (_ob === 1 && typeof maybeShowOnboarding === 'function') {
@@ -279,7 +279,7 @@ function renderUserCards() {
                 e.stopPropagation();
                 selectUser(idx).then(() => {
                     if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
-                    if (typeof stopMenuMusic === 'function') stopMenuMusic();
+                    eventBus.emit('audio:stop-menu-music');
                     enterTopic(lastTopic.id);
                 });
             });

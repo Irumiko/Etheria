@@ -696,8 +696,8 @@ function modifyAffinity(direction) {
         });
     } else {
         updateAffinityDisplay();
-        if (direction > 0 && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
-        if (direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+        if (direction > 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-up' });
+        if (direction < 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-down' });
     }
 
     const rankInfo = getAffinityRankInfo(newValue);
@@ -728,8 +728,8 @@ function modifyAffinity(direction) {
 if (typeof eventBus !== 'undefined') {
     eventBus.on('affinity:changed', function onAffinityChanged(payload) {
         updateAffinityDisplay();
-        if (payload && payload.direction > 0 && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
-        if (payload && payload.direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+        if (payload && payload.direction > 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-up' });
+        if (payload && payload.direction < 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-down' });
     });
 }
 

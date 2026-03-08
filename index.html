@@ -8,9 +8,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Etheria">
+    <meta name="apple-mobile-web-app-title" content="Etheria V5">
     <meta name="description" content="Etheria — Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.">
-    <title>Etheria - Roleplay Visual Novel</title>
+    <title>Etheria V5 - Roleplay Visual Novel</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
     <!-- PWA: manifest + iconos -->
     <link rel="manifest" href="manifest.json">
@@ -18,11 +18,11 @@
     <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/icon-512.png">
     <!-- Open Graph / Twitter Card -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Etheria — Roleplay Visual Novel">
+    <meta property="og:title" content="Etheria V5 — Roleplay Visual Novel">
     <meta property="og:description" content="Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.">
     <meta property="og:image" content="assets/backgrounds/default_background.jpg">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Etheria — Roleplay Visual Novel">
+    <meta name="twitter:title" content="Etheria V5 — Roleplay Visual Novel">
     <meta name="twitter:description" content="Narrativa colaborativa, modo RPG y oráculo.">
     <!-- robots y canonical -->
     <meta name="robots" content="index, follow">
@@ -34,6 +34,7 @@
     <link rel="preload" href="https://raw.githubusercontent.com/Irumiko/Etheria/main/assets/backgrounds/default_background.jpg" as="image" fetchpriority="low">
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/ethy.css">
+    <link rel="stylesheet" href="css/rpg-scene.css">
 
 </head>
 <body>
@@ -251,6 +252,12 @@
                 <span id="currentUserDisplay">Jugador</span>
                 <button onclick="changeUser()" aria-label="Editar perfil actual">✏️ Editar</button>
             </div>
+
+            <!-- Botón Salir — solo visible en PWA -->
+            <button class="menu-exit-btn" id="menuExitBtn" onclick="exitApp()" aria-label="Cerrar aplicación">
+                <span class="menu-exit-icon">⏻</span>
+                <span class="menu-exit-label">Salir</span>
+            </button>
         </div>
     </div>
 
@@ -1471,9 +1478,9 @@
 
 
 <!-- Orden de carga recomendado: utilidades -> UI -> arranque -->
+<script src="js/core/events.js"></script>
 <script src="js/utils/state.js"></script>
 <script src="js/core/store.js"></script>
-<script src="js/core/events.js"></script>
 <script src="js/utils/storage.js"></script>
 <script src="js/ui/sounds.js"></script>
 <script src="js/ui/ui.js"></script>
@@ -1496,8 +1503,12 @@
 <script src="js/utils/supabaseSettings.js"></script>
 <script src="js/utils/supabaseAvatars.js"></script>
 <script src="js/collab-guard.js"></script>
+<script src="js/rpg/SceneLoader.js"></script>
+<script src="js/rpg/SceneValidator.js"></script>
+<script src="js/rpg/RPGState.js"></script>
+<script src="js/rpg/RPGEngine.js"></script>
+<script src="js/rpg/RPGRenderer.js"></script>
 <script src="js/app.js"></script>
-<script src="js/ui/mejoras.js"></script>
 <script src="js/ethy.js"></script>
 
     <div id="relationshipGraphModal" class="modal-overlay" onclick="if(event.target===this) closeModal('relationshipGraphModal')">
