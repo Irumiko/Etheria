@@ -1,0 +1,269 @@
+{
+    "id": "forest_depth",
+    "version": 1,
+    "title": "Las profundidades",
+    "requires": ["forest_intro"],
+    "variables": {
+        "found_relic": false
+    },
+    "steps": [
+        {
+            "type": "background",
+            "asset": "forest_night",
+            "transition": "fade",
+            "duration": 1000
+        },
+        {
+            "type": "sound",
+            "action": "start",
+            "track": "ambient_forest"
+        },
+        {
+            "type": "dialogue",
+            "character": "Narrador",
+            "text": "Las profundidades del bosque de Vel'thar son un lugar diferente. Aquí la luz de la luna no llega, y los sonidos del exterior se apagan como si el bosque mismo los absorbiera."
+        },
+        {
+            "type": "dialogue",
+            "character": "Kazuma",
+            "expression": "serious",
+            "text": "Aquí es donde encontramos los primeros rastros. Mira el suelo."
+        },
+        {
+            "type": "choice",
+            "prompt": "¿Qué examinas primero?",
+            "options": [
+                {
+                    "text": "Examinar las marcas en el suelo",
+                    "goto": "branch_suelo"
+                },
+                {
+                    "text": "Escuchar con atención los sonidos del bosque",
+                    "goto": "branch_sonidos"
+                },
+                {
+                    "text": "[INT 14+] Intentar identificar la magia que impregna el aire",
+                    "goto": "branch_magia",
+                    "condition": { "stat_gte": { "stat": "INT", "value": 14 } }
+                }
+            ]
+        }
+    ],
+
+    "branches": {
+
+        "branch_suelo": [
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "Las marcas son profundas, como si algo muy pesado hubiera arrastrado algo entre los árboles. Hay restos de corteza chamuscada."
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "worried",
+                "text": "Estas marcas llevan tres noches aquí. Cada noche son más largas."
+            },
+            {
+                "type": "set_flag",
+                "key": "examined_tracks",
+                "value": true
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_descubrimiento"
+            }
+        ],
+
+        "branch_sonidos": [
+            {
+                "type": "camera",
+                "effect": "flash",
+                "duration": 200
+            },
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "Un silencio antinatural. No hay insectos, no hay aves. Solo un zumbido grave y constante que parece venir de todas partes a la vez."
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "tense",
+                "text": "¿Lo escuchas? Empezó la primera noche. No para nunca."
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_descubrimiento"
+            }
+        ],
+
+        "branch_magia": [
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "Hay una resonancia antigua aquí. No es magia de conjuro, sino algo más primigenio. El tejido del bosque mismo parece... tenso, como una cuerda a punto de romperse."
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "surprised",
+                "text": "¿Puedes sentirlo? No esperaba que alguien más pudiera hacerlo."
+            },
+            {
+                "type": "set_flag",
+                "key": "detected_magic",
+                "value": true
+            },
+            {
+                "type": "add_xp",
+                "amount": 15
+            },
+            {
+                "type": "goto_branch",
+                "branch": "branch_descubrimiento"
+            }
+        ],
+
+        "branch_descubrimiento": [
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "serious",
+                "text": "Hay algo más que debes ver. Sígueme."
+            },
+            {
+                "type": "background",
+                "asset": "forest_night",
+                "transition": "fade",
+                "duration": 600
+            },
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "En un claro apenas visible entre los árboles yace una piedra cubierta de símbolos que brillan con una luz tenue y pulsante."
+            },
+            {
+                "type": "choice",
+                "prompt": "¿Qué haces con la reliquia?",
+                "options": [
+                    {
+                        "text": "Tocarla",
+                        "goto": "branch_tocar"
+                    },
+                    {
+                        "text": "Observarla sin acercarte",
+                        "goto": "branch_observar"
+                    },
+                    {
+                        "text": "Preguntar a Kazuma qué sabe de ella",
+                        "goto": "branch_preguntar_relic",
+                        "condition": { "flag": "kazuma_met" }
+                    }
+                ]
+            }
+        ],
+
+        "branch_tocar": [
+            {
+                "type": "camera",
+                "effect": "shake",
+                "duration": 500
+            },
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "Un pulso de energía recorre tu brazo. Imágenes fragmentadas: raíces que se tuercen, un árbol que arde sin consumirse, una voz que pronuncia un nombre que no puedes retener."
+            },
+            {
+                "type": "modify_stat",
+                "stat": "HP",
+                "amount": -3
+            },
+            {
+                "type": "set_variable",
+                "key": "found_relic",
+                "value": true
+            },
+            {
+                "type": "set_flag",
+                "key": "touched_relic",
+                "value": true
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "alarmed",
+                "text": "¡No debías hacer eso! ¿Estás bien? La primera vez que la toqué estuve dos días sin poder dormir."
+            },
+            {
+                "type": "add_xp",
+                "amount": 20
+            },
+            {
+                "type": "end",
+                "outcome": "relic_touched"
+            }
+        ],
+
+        "branch_observar": [
+            {
+                "type": "dialogue",
+                "character": "Narrador",
+                "text": "Los símbolos no son de ningún alfabeto conocido. Pulsany se reorganizan lentamente, como si estuvieran vivos."
+            },
+            {
+                "type": "set_variable",
+                "key": "found_relic",
+                "value": true
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "thoughtful",
+                "text": "Inteligente. Yo tardé tres noches en atreverme a acercarme. Ahora necesitamos decidir qué hacemos con ella."
+            },
+            {
+                "type": "add_xp",
+                "amount": 10
+            },
+            {
+                "type": "end",
+                "outcome": "relic_observed"
+            }
+        ],
+
+        "branch_preguntar_relic": [
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "serious",
+                "text": "Apareció la primera noche. Antes no estaba aquí; lo sé porque patrullé este claro durante meses. Lo que sea que despertó... dejó esto como señal, o como trampa."
+            },
+            {
+                "type": "dialogue",
+                "character": "Kazuma",
+                "expression": "worried",
+                "text": "He mandado mensajes al Gremio de Magos de Mirael. Nadie ha respondido todavía."
+            },
+            {
+                "type": "set_variable",
+                "key": "found_relic",
+                "value": true
+            },
+            {
+                "type": "set_flag",
+                "key": "knows_relic_origin",
+                "value": true
+            },
+            {
+                "type": "add_xp",
+                "amount": 15
+            },
+            {
+                "type": "end",
+                "outcome": "relic_investigated"
+            }
+        ]
+    }
+}

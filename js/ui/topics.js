@@ -348,6 +348,7 @@ async function tryJoinRoomFromUrl() {
     if (typeof showSection === 'function') {
         showSection('topics');
     } else {
+        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
         const topicsSection = document.getElementById('topicsSection');
         if (topicsSection) topicsSection.classList.add('active');
     }

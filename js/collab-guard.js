@@ -141,9 +141,12 @@ const CollaborativeGuard = (function () {
     async function _poll() {
         if (!_topicId || _merging) return;
 
-        // Sólo si JSONbin está configurado
-        if (typeof fetchCloudBin !== 'function') return;
-        if (typeof JSONBIN_CONFIG === 'undefined' || !JSONBIN_CONFIG.apiKey) return;
+        // collab-guard aún no está migrado a Supabase.
+        // fetchCloudBin existe como stub deprecado que devuelve null,
+        // por lo que la guarda anterior no era suficiente.
+        // Desactivar el poll hasta que se migre a Supabase Realtime.
+        // TODO: reemplazar por suscripción a Supabase Realtime cuando esté disponible.
+        return;
 
         try {
             const cloud = await fetchCloudBin();
@@ -311,15 +314,9 @@ const CollaborativeGuard = (function () {
      * Forzar merge manual (útil para botón de "refrescar" si se quiere exponer).
      */
     async function forceMerge() {
-        if (!_topicId || typeof fetchCloudBin !== 'function') return;
-        try {
-            const cloud = await fetchCloudBin();
-            const remote = _remoteTopicMessages(cloud);
-            _doMerge(_localMessages(), remote);
-            eventBus.emit('ui:show-autosave', { text: 'Sincronizado', state: 'saved' });
-        } catch (err) {
-            eventBus.emit('ui:show-autosave', { text: 'Error al sincronizar', state: 'error' });
-        }
+        // collab-guard pendiente de migración a Supabase — operación desactivada temporalmente.
+        if (!_topicId) return;
+        eventBus.emit('ui:show-autosave', { text: 'Colaboración en tiempo real próximamente', state: 'info' });
     }
 
     function getStatus() {

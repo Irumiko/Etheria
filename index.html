@@ -830,7 +830,7 @@
             <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
             <div class="vn-speaker-avatar-wrap" aria-hidden="true"></div>
-            <div id="messageHasOptions" class="message-has-options hidden">🎭 Opciones disponibles</div>
+            <div id="messageHasOptions" class="message-has-options hidden" onclick="event.stopPropagation(); showCurrentMessage('forward')" style="cursor:pointer;" title="Ver opciones">🎭 Opciones disponibles</div>
             <div id="vnOracleConsequenceBadge" class="vn-oracle-consequence-badge" style="display:none;">🪙 Consecuencia del destino</div>
             <div id="vnDialogueText" class="vn-dialogue-text"></div>
             <div id="vnReactionDisplay" class="vn-reaction-display"></div>

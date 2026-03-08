@@ -6,8 +6,14 @@
 #optionsSection {
     background: linear-gradient(160deg, #0d0c0a 0%, #1a1815 55%, #0d0c0a 100%);
     min-height: 100vh;
-    display: flex;
+    /* display gestionado por .game-section { display:none } y .game-section.active { display:flex }
+       NO sobreescribir aquí — un ID selector tiene mayor especificidad que .game-section
+       y causaría que la sección fuera siempre visible. */
     flex-direction: column;
+}
+/* Solo visible cuando el sistema de navegación añade .active */
+#optionsSection.active {
+    display: flex;
 }
 
 #optionsSection .section-header-bar {

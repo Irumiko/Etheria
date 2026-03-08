@@ -96,8 +96,10 @@ const SceneValidator = (function () {
                         if (!opt.text) {
                             errors.push(`${loc}.options[${j}]: falta "text"`);
                         }
+                        // "goto" es opcional: sin él el engine avanza al siguiente paso linealmente.
+                        // Solo advertir, no bloquear.
                         if (!opt.goto) {
-                            errors.push(`${loc}.options[${j}]: falta "goto"`);
+                            console.warn(`[SceneValidator] ${loc}.options[${j}]: sin "goto" — avanzará al paso siguiente`);
                         }
                     });
                 }

@@ -8,9 +8,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Etheria">
+    <meta name="apple-mobile-web-app-title" content="Etheria V5">
     <meta name="description" content="Etheria — Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.">
-    <title>Etheria - Roleplay Visual Novel</title>
+    <title>Etheria V5 - Roleplay Visual Novel</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%E2%9C%A8%3C/text%3E%3C/svg%3E">
     <!-- PWA: manifest + iconos -->
     <link rel="manifest" href="manifest.json">
@@ -18,11 +18,11 @@
     <link rel="apple-touch-icon" sizes="512x512" href="assets/icons/icon-512.png">
     <!-- Open Graph / Twitter Card -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Etheria — Roleplay Visual Novel">
+    <meta property="og:title" content="Etheria V5 — Roleplay Visual Novel">
     <meta property="og:description" content="Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.">
     <meta property="og:image" content="assets/backgrounds/default_background.jpg">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Etheria — Roleplay Visual Novel">
+    <meta name="twitter:title" content="Etheria V5 — Roleplay Visual Novel">
     <meta name="twitter:description" content="Narrativa colaborativa, modo RPG y oráculo.">
     <!-- robots y canonical -->
     <meta name="robots" content="index, follow">
@@ -569,6 +569,14 @@
 
 
 /* css/components.css */
+
+/* ============================================================
+   ASSETS — rutas centralizadas
+   Cambiar la ruta aquí afecta a todos los usos.
+============================================================ */
+:root {
+    --asset-bg-menu: url('../assets/backgrounds/menu_background.jpg');
+}
 
 /* ============================================================
    SCROLLBARS ESTILO VIDEOJUEGO
@@ -1522,7 +1530,7 @@ body::before {
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('./assets/backgrounds/menu_background.jpg');
+            background-image: var(--asset-bg-menu);
             background-size: cover;
             background-position: center;
             display: flex;
@@ -1578,8 +1586,7 @@ body::before {
             overflow: hidden;
             pointer-events: none;
             z-index: 1;
-            /* URL de imagen del bosque — una sola fuente para todas las capas */
-            --menu-base-bg: url('./assets/backgrounds/menu_background.jpg');
+            /* URL del fondo — definida en :root al inicio del archivo */
         }
 
         /* ── Capas de parallax ─────────────────────────────────────── */
@@ -1599,7 +1606,7 @@ body::before {
         /* ── Capa cielo: muy lenta, fondo azul-noche + máscara superior ── */
         .layer-sky {
             --depth: 0.08;
-            background-image: var(--menu-base-bg);
+            background-image: var(--asset-bg-menu);
             background-size: cover;
             background-position: center 5%;
             opacity: 0.75;
@@ -1616,7 +1623,7 @@ body::before {
         /* ── Capa bosque medio: velocidad media, zona central ── */
         .layer-midforest {
             --depth: 0.22;
-            background-image: var(--menu-base-bg);
+            background-image: var(--asset-bg-menu);
             background-size: cover;
             background-position: center 46%;
             opacity: 0.88;
@@ -1633,7 +1640,7 @@ body::before {
         /* ── Capa primer plano: más rápida, satura el suelo ── */
         .layer-foreground {
             --depth: 0.38;
-            background-image: var(--menu-base-bg);
+            background-image: var(--asset-bg-menu);
             background-size: cover;
             background-position: center 88%;
             opacity: 0.92;
@@ -12973,294 +12980,82 @@ body.is-pwa .menu-exit-btn:active {
     }
 }
 
-/* El cuerpo de Ethy */
+/* ── Cuerpo de Ethy — SVG ────────────────────────────────────────────────── */
+/* .ethy-float-wrapper tiene la animación de flotación.                      */
+/* .ethy-body es hijo y solo lleva expresiones (transform libre de animación)*/
+
+.ethy-float-wrapper {
+    animation: ethyFloat 3s ease-in-out infinite;
+    display: inline-block;
+    line-height: 0;
+}
+
 .ethy-body {
-    pointer-events: auto; /* override parent pointer-events:none */
+    pointer-events: auto;
     width: 80px;
     height: 80px;
-    background: linear-gradient(145deg, #c9a86c 0%, #a88b52 50%, #8b7347 100%);
-    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
     position: relative;
     cursor: grab;
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.3),
-        inset 0 -5px 15px rgba(0, 0, 0, 0.2),
-        inset 0 5px 15px rgba(255, 255, 255, 0.2);
-    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    animation: ethyFloat 3s ease-in-out infinite;
+    /* SIN animation aquí — ethyFloat vive en .ethy-float-wrapper */
+    /* Así los transform de expresión no son sobreescritos por la animación */
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease,
+                filter 0.3s ease;
+    background-image: url('../assets/ui/ethy.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
-.ethy-body:hover {
-    transform: scale(1.1);
-    box-shadow: 
-        0 12px 35px rgba(201, 168, 108, 0.4),
-        inset 0 -5px 15px rgba(0, 0, 0, 0.2),
-        inset 0 5px 15px rgba(255, 255, 255, 0.3);
-}
-
-.ethy-body:active {
-    transform: scale(0.95);
-}
+.ethy-body:hover  { transform: scale(1.1); }
+.ethy-body:active { transform: scale(0.95); }
 
 /* Animación de flotación */
 @keyframes ethyFloat {
     0%, 100% { transform: translateY(0) rotate(0deg); }
-    25% { transform: translateY(-8px) rotate(-2deg); }
-    50% { transform: translateY(-4px) rotate(0deg); }
-    75% { transform: translateY(-10px) rotate(2deg); }
+    25%       { transform: translateY(-8px) rotate(-2deg); }
+    50%       { transform: translateY(-4px) rotate(0deg); }
+    75%       { transform: translateY(-10px) rotate(2deg); }
 }
 
-/* Antenas de Ethy */
-.ethy-antenna {
-    position: absolute;
-    width: 4px;
-    height: 20px;
-    background: linear-gradient(to bottom, #c9a86c, #8b7347);
-    border-radius: 2px;
-    top: -15px;
+/* Expresiones — variaciones sobre el SVG.
+   Combinamos filter + transform para que sean perceptibles
+   incluso en un icono monocromo pequeño.                    */
+.ethy-expression-neutral   { /* sin cambio — estado base */ }
+
+.ethy-expression-happy     {
+    filter: brightness(1.2) sepia(0.3) saturate(1.4);
+    transform: scale(1.05) rotate(3deg);
+}
+.ethy-expression-excited   {
+    filter: brightness(1.25) sepia(0.4) saturate(1.6);
+    /* ethyFloat viene del wrapper; añadimos solo el bounce adicional en el body */
+    animation: ethyExcitedBounce 0.35s ease-in-out infinite;
+}
+.ethy-expression-sad       {
+    filter: brightness(0.7) saturate(0.3) grayscale(0.4);
+    transform: scale(0.95) rotate(-3deg);
+    opacity: 0.8;
+}
+.ethy-expression-surprised {
+    filter: brightness(1.1);
+    transform: scale(1.15) translateY(-4px);
+}
+.ethy-expression-thoughtful {
+    filter: brightness(0.9) sepia(0.2);
+    transform: rotate(-6deg);
+}
+.ethy-expression-wink      {
+    filter: brightness(1.1) saturate(1.2);
+    transform: scale(1.02) rotate(5deg);
+}
+.ethy-expression-love      {
+    filter: brightness(1.2) sepia(0.5) saturate(2) hue-rotate(-15deg);
+    transform: scale(1.08);
 }
 
-.ethy-antenna.left {
-    left: 25px;
-    transform: rotate(-15deg);
-}
-
-.ethy-antenna.right {
-    right: 25px;
-    transform: rotate(15deg);
-}
-
-.ethy-antenna::after {
-    content: '';
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: #e8d5a3;
-    border-radius: 50%;
-    top: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    box-shadow: 0 0 10px rgba(232, 213, 163, 0.5);
-    animation: ethyAntennaGlow 2s ease-in-out infinite;
-}
-
-@keyframes ethyAntennaGlow {
-    0%, 100% { box-shadow: 0 0 5px rgba(232, 213, 163, 0.5); }
-    50% { box-shadow: 0 0 15px rgba(232, 213, 163, 0.8); }
-}
-
-/* Ojos de Ethy - Base */
-.ethy-eyes {
-    position: absolute;
-    top: 35%;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 12px;
-}
-
-.ethy-eye {
-    width: 18px;
-    height: 22px;
-    background: #1a1815;
-    border-radius: 50%;
-    position: relative;
-    overflow: hidden;
-}
-
-.ethy-eye::after {
-    content: '';
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    background: white;
-    border-radius: 50%;
-    top: 4px;
-    right: 3px;
-}
-
-/* Expresiones de Ethy */
-
-/* 1. Neutral/Curioso (ㆆ_ㆆ) */
-.ethy-expression-neutral .ethy-eye {
-    height: 8px;
-    border-radius: 4px;
-    margin-top: 7px;
-}
-
-/* 2. Triste (˘︹˘) */
-.ethy-expression-sad .ethy-eye {
-    height: 12px;
-    border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
-    transform: rotate(-10deg);
-}
-
-.ethy-expression-sad .ethy-eye:last-child {
-    transform: rotate(10deg);
-}
-
-/* 3. Feliz (─‿‿─) */
-.ethy-expression-happy .ethy-eye {
-    height: 10px;
-    border-radius: 50%;
-    border-bottom: 3px solid #1a1815;
-    background: transparent;
-}
-
-.ethy-expression-happy .ethy-eye::after {
-    display: none;
-}
-
-/* 4. Emocionado (≧◉◡◉≦) */
-.ethy-expression-excited .ethy-eye {
-    width: 20px;
-    height: 24px;
-    animation: ethyExcitedBlink 0.5s ease-in-out infinite;
-}
-
-@keyframes ethyExcitedBlink {
-    0%, 100% { transform: scaleY(1); }
-    50% { transform: scaleY(0.3); }
-}
-
-/* 5. Sorprendido (◉_◉) */
-.ethy-expression-surprised .ethy-eye {
-    width: 22px;
-    height: 26px;
-}
-
-/* 6. Pensativo (¬‿¬) */
-.ethy-expression-thoughtful .ethy-eye {
-    height: 6px;
-    border-radius: 3px;
-    margin-top: 8px;
-}
-
-.ethy-expression-thoughtful .ethy-eye:first-child {
-    transform: rotate(-5deg);
-}
-
-.ethy-expression-thoughtful .ethy-eye:last-child {
-    transform: rotate(5deg);
-}
-
-/* 7. Guiño (◠‿◠) */
-.ethy-expression-wink .ethy-eye:first-child {
-    height: 4px;
-    border-radius: 2px;
-    margin-top: 9px;
-}
-
-/* 8. Amor (♥‿♥) */
-.ethy-expression-love .ethy-eye {
-    width: 16px;
-    height: 16px;
-    background: #e74c3c;
-    transform: rotate(-45deg);
-    border-radius: 0;
-}
-
-.ethy-expression-love .ethy-eye::before,
-.ethy-expression-love .ethy-eye::after {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    background: #e74c3c;
-    border-radius: 50%;
-}
-
-.ethy-expression-love .ethy-eye::before {
-    top: -8px;
-    left: 0;
-}
-
-.ethy-expression-love .ethy-eye::after {
-    left: 8px;
-    top: 0;
-}
-
-.ethy-expression-love .ethy-eye > * {
-    display: none;
-}
-
-/* Boca de Ethy */
-.ethy-mouth {
-    position: absolute;
-    bottom: 25%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 10px;
-    border-bottom: 3px solid #1a1815;
-    border-radius: 0 0 50% 50%;
-    transition: all 0.3s ease;
-}
-
-/* Variaciones de boca */
-.ethy-expression-neutral .ethy-mouth {
-    width: 15px;
-    height: 3px;
-    border: none;
-    background: #1a1815;
-    border-radius: 2px;
-}
-
-.ethy-expression-sad .ethy-mouth {
-    border-bottom: none;
-    border-top: 3px solid #1a1815;
-    border-radius: 50% 50% 0 0;
-    bottom: 20%;
-}
-
-.ethy-expression-happy .ethy-mouth,
-.ethy-expression-excited .ethy-mouth {
-    width: 25px;
-    height: 15px;
-    background: #1a1815;
-    border-radius: 0 0 50% 50%;
-}
-
-.ethy-expression-surprised .ethy-mouth {
-    width: 15px;
-    height: 18px;
-    background: #1a1815;
-    border-radius: 50%;
-}
-
-.ethy-expression-thoughtful .ethy-mouth {
-    width: 8px;
-    height: 8px;
-    border: 2px solid #1a1815;
-    border-radius: 50%;
-    background: transparent;
-}
-
-/* Mejillas sonrojadas */
-.ethy-cheeks {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 5px;
-    pointer-events: none;
-}
-
-.ethy-cheek {
-    width: 15px;
-    height: 10px;
-    background: rgba(231, 76, 60, 0.3);
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.ethy-expression-happy .ethy-cheek,
-.ethy-expression-excited .ethy-cheek,
-.ethy-expression-love .ethy-cheek {
-    opacity: 1;
+@keyframes ethyExcitedBounce {
+    0%, 100% { transform: scale(1.05) translateY(0); }
+    50%       { transform: scale(1.1)  translateY(-5px); }
 }
 
 /* Burbuja de diálogo */
@@ -13486,16 +13281,11 @@ body.is-pwa .menu-exit-btn:active {
         font-size: 0.78rem;
         text-align: center;
     }
-
-    .ethy-antenna {
-        height: 15px;
-        top: -12px;
-    }
 }
 
 /* Modo oscuro ajustes */
 [data-theme="dark"] .ethy-body {
-    background: linear-gradient(145deg, #d4b87a 0%, #b89b5e 50%, #9a8252 100%);
+    filter: brightness(1.15);
 }
 
 [data-theme="dark"] .ethy-speech-bubble {
@@ -13928,8 +13718,14 @@ body.is-pwa .menu-exit-btn:active {
 #optionsSection {
     background: linear-gradient(160deg, #0d0c0a 0%, #1a1815 55%, #0d0c0a 100%);
     min-height: 100vh;
-    display: flex;
+    /* display gestionado por .game-section { display:none } y .game-section.active { display:flex }
+       NO sobreescribir aquí — un ID selector tiene mayor especificidad que .game-section
+       y causaría que la sección fuera siempre visible. */
     flex-direction: column;
+}
+/* Solo visible cuando el sistema de navegación añade .active */
+#optionsSection.active {
+    display: flex;
 }
 
 #optionsSection .section-header-bar {
@@ -14182,8 +13978,214 @@ body.is-pwa .menu-exit-btn:active {
 #optionsSection::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at 10% 20%, rgba(201,168,108,0.025) 0%, transparent 40%), radial-gradient(ellipse at 90% 80%, rgba(201,168,108,0.025) 0%, transparent 40%); pointer-events: none; z-index: 0; }
 #optionsSection > * { position: relative; z-index: 1; }
 
+
+/* css/rpg-scene.css */
+/* ============================================================
+   RPG SCENE STYLES
+   Estilos para los elementos que RPGRenderer genera al DOM.
+   No sobreescribe nada del VN existente — solo añade clases
+   nuevas prefijadas con rpg- o vn- específicas del motor RPG.
+   ============================================================ */
+
+
+/* ── Área de elecciones ──────────────────────────────────── */
+
+#vnChoiceArea {
+    display: none;
+    flex-direction: column;
+    gap: 0.55rem;
+    position: absolute;
+    bottom: 6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(520px, 92vw);
+    z-index: 30;
+    padding: 0.5rem;
+}
+
+.rpg-choice-prompt {
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgba(220, 210, 185, 0.7);
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.rpg-choice-btn {
+    position: relative;
+    width: 100%;
+    padding: 0.75rem 1.1rem;
+    background: rgba(10, 8, 20, 0.82);
+    border: 1px solid rgba(180, 150, 90, 0.35);
+    border-radius: 6px;
+    color: #e8dcc8;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.rpg-choice-btn:hover,
+.rpg-choice-btn:focus-visible {
+    background: rgba(180, 150, 90, 0.18);
+    border-color: rgba(180, 150, 90, 0.65);
+    transform: translateX(3px);
+    outline: none;
+}
+
+.rpg-choice-btn:active {
+    transform: translateX(1px);
+    background: rgba(180, 150, 90, 0.28);
+}
+
+/* Coste visible en el botón (e.g. "-5 HP") */
+.rpg-choice-cost {
+    position: absolute;
+    right: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.78rem;
+    color: #e87a7a;
+    opacity: 0.85;
+    font-weight: 600;
+}
+
+/* Opción disponible por condición especial: tono diferente */
+.rpg-choice-btn[data-condition]::before {
+    content: attr(data-condition-icon);
+    margin-right: 0.4rem;
+    opacity: 0.8;
+}
+
+
+/* ── Barra de stats (HP / XP) ────────────────────────────── */
+
+#vnRpgStatBar {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.8rem;
+    display: flex;
+    gap: 0.8rem;
+    align-items: center;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.rpg-stat-hp {
+    font-size: 0.82rem;
+    color: #e87a7a;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+
+.rpg-stat-xp {
+    font-size: 0.82rem;
+    color: #e8c97a;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+
+
+/* ── Overlay de tirada stat_check ────────────────────────── */
+
+.rpg-stat-check-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    pointer-events: none;
+    animation: rpg-overlay-in 0.2s ease;
+}
+
+@keyframes rpg-overlay-in {
+    from { opacity: 0; transform: scale(0.88); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+
+/* ── Efectos de cámara ───────────────────────────────────── */
+
+@keyframes vn-shake-kf {
+    0%   { transform: translate(0, 0) rotate(0deg); }
+    20%  { transform: translate(-4px, 2px) rotate(-0.5deg); }
+    40%  { transform: translate(4px, -2px) rotate(0.5deg); }
+    60%  { transform: translate(-3px, 1px) rotate(-0.3deg); }
+    80%  { transform: translate(3px, -1px) rotate(0.3deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+#vnSection.vn-shake {
+    animation: vn-shake-kf 0.35s ease;
+}
+
+@keyframes vn-flash-kf {
+    0%   { filter: brightness(1); }
+    30%  { filter: brightness(2.2); }
+    100% { filter: brightness(1); }
+}
+
+#vnSection.vn-flash {
+    animation: vn-flash-kf 0.3s ease;
+}
+
+
+/* ── Clase activa de escena ──────────────────────────────── */
+
+/* Mientras hay una escena RPG activa, el cursor por defecto en el
+   área de diálogo indica que hay que hacer clic para avanzar */
+#vnSection.rpg-scene-active #vnDialogBox {
+    cursor: pointer;
+}
+
+#vnSection.rpg-scene-active #vnDialogBox::after {
+    content: '▼';
+    position: absolute;
+    bottom: 0.6rem;
+    right: 0.9rem;
+    font-size: 0.65rem;
+    color: rgba(220, 210, 185, 0.45);
+    animation: rpg-bounce 1.4s ease-in-out infinite;
+}
+
+@keyframes rpg-bounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(3px); }
+}
+
+
+/* ── Responsive ──────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+    #vnChoiceArea {
+        bottom: 4.5rem;
+        width: 96vw;
+    }
+
+    .rpg-choice-btn {
+        font-size: 0.88rem;
+        padding: 0.65rem 0.9rem;
+    }
+
+    #vnRpgStatBar {
+        top: 0.5rem;
+        right: 0.5rem;
+        gap: 0.5rem;
+    }
+
+    .rpg-stat-hp,
+    .rpg-stat-xp {
+        font-size: 0.75rem;
+    }
+}
+
 </style>
     <link rel="stylesheet" href="css/ethy.css">
+    <link rel="stylesheet" href="css/rpg-scene.css">
 
 </head>
 <body>
@@ -14979,7 +14981,7 @@ body.is-pwa .menu-exit-btn:active {
             <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
             <div class="vn-speaker-avatar-wrap" aria-hidden="true"></div>
-            <div id="messageHasOptions" class="message-has-options hidden">🎭 Opciones disponibles</div>
+            <div id="messageHasOptions" class="message-has-options hidden" onclick="event.stopPropagation(); showCurrentMessage('forward')" style="cursor:pointer;" title="Ver opciones">🎭 Opciones disponibles</div>
             <div id="vnOracleConsequenceBadge" class="vn-oracle-consequence-badge" style="display:none;">🪙 Consecuencia del destino</div>
             <div id="vnDialogueText" class="vn-dialogue-text"></div>
             <div id="vnReactionDisplay" class="vn-reaction-display"></div>
@@ -15628,6 +15630,175 @@ body.is-pwa .menu-exit-btn:active {
 
 <!-- Orden de carga recomendado: utilidades -> UI -> arranque -->
 <script>
+/* js/core/events.js */
+// Bus de eventos desacoplado para módulos UI.
+(function initEtheriaEvents(global) {
+    const EVENT_PREFIX = 'etheria:';
+
+    // ── Debug logging ────────────────────────────────────────────
+    // Activar desde la consola del navegador (persiste entre recargas):
+    //   localStorage.setItem('etheria_debug_events', '1')      → todos los eventos
+    //   localStorage.setItem('etheria_debug_events', 'scene')  → solo eventos 'scene:*'
+    //   localStorage.setItem('etheria_debug_events', 'ui,rpg') → múltiples namespaces
+    //   localStorage.removeItem('etheria_debug_events')        → desactivar
+    //
+    // Formato del log:
+    //   [etheria] 14:32:12.453  scene:step  {sceneId, stepIndex, step}
+    //   [scene forest_intro] 14:32:14.210  scene:choice-shown  {...}
+    //
+    // Cuando hay una escena RPG activa, el prefijo muestra su id.
+    // window.__etheriaScene se actualiza automáticamente con scene:started/ended.
+    //
+    // Eventos de alta frecuencia excluidos por defecto del log sin filtro:
+    //   rpg:state-updated  (cada cambio de HP/XP)
+    //   audio:play-sfx     (cada efecto de sonido)
+
+    const HIGH_FREQ = { 'rpg:state-updated': true, 'audio:play-sfx': true };
+
+    function _timestamp() {
+        // HH:MM:SS.mmm  — suficiente para correlacionar timers y waits de escena
+        return new Date().toISOString().slice(11, 23);
+    }
+
+    function _prefix() {
+        var scene = global.__etheriaScene;
+        return scene ? '[scene ' + scene + ']' : '[etheria]';
+    }
+
+    function _trackSceneContext(type, payload) {
+        if (type === 'scene:started' && payload && payload.sceneId) {
+            global.__etheriaScene     = payload.sceneId;
+            global.__etheriaSceneStep = 0;
+        } else if (type === 'scene:step' && payload) {
+            global.__etheriaSceneStep = payload.stepIndex;
+        } else if (type === 'scene:ended' || type === 'scene:stopped') {
+            global.__etheriaScene     = null;
+            global.__etheriaSceneStep = null;
+        }
+    }
+
+    function _shouldLog(type, setting) {
+        if (setting === '1' || setting === 'true') {
+            return !HIGH_FREQ[type];
+        }
+        var filters = setting.split(',');
+        for (var i = 0; i < filters.length; i++) {
+            var ns = filters[i].trim();
+            if (ns && type.indexOf(ns) === 0) return true;
+        }
+        return false;
+    }
+
+    function _debugLog(type, payload) {
+        // Actualizar contexto de escena siempre, independientemente del filtro
+        _trackSceneContext(type, payload);
+
+        var setting = localStorage.getItem('etheria_debug_events');
+        if (!setting) return;
+        if (!_shouldLog(type, setting)) return;
+
+        console.log(_prefix(), _timestamp(), ' ', type, payload);
+    }
+
+    const eventBus = {
+        emit: function emit(type, payload) {
+            _debugLog(type, payload);
+            document.dispatchEvent(new CustomEvent(EVENT_PREFIX + type, { detail: payload }));
+        },
+        on: function on(type, handler) {
+            const wrapped = function wrapped(e) {
+                handler(e.detail);
+            };
+            document.addEventListener(EVENT_PREFIX + type, wrapped);
+            return function off() {
+                document.removeEventListener(EVENT_PREFIX + type, wrapped);
+            };
+        },
+        once: function once(type, handler) {
+            const off = this.on(type, function(payload) {
+                handler(payload);
+                off();
+            });
+            return off;
+        }
+    };
+
+    // ── Contrato canónico de payloads ────────────────────────────
+    // Fuente de verdad para todos los emisores y listeners.
+    // Cualquier cambio de schema debe hacerse aquí primero.
+    //
+    // ui:show-autosave  →  { text: string, state: 'saved'|'error'|'info' }
+    // ui:show-toast     →  { text: string, action?: string, onAction?: fn }
+    // ui:reset-vn-state →  {}
+    //
+    // sync:status-changed → { status: string, message: string, target: 'indicator'|'button' }
+    //   status valores:
+    //     indicator → 'online' | 'degraded' | 'offline'
+    //     button    → 'synced' | 'syncing'  | 'pending-upload' | 'pending-download' | 'error'
+    //
+    // audio:start-menu-music  →  {}
+    // audio:stop-menu-music   →  { fadeOut?: boolean }
+    // audio:start-rain        →  {}
+    // audio:stop-rain         →  {}
+    // audio:play-sfx          →  { sfx: string }
+    //
+    // scene:started           →  { sceneId: string }
+    // scene:step              →  { sceneId, stepIndex, step }
+    // scene:choice-shown      →  { sceneId, stepIndex, step, options[] }
+    // scene:choice-made       →  { sceneId, optionIndex }
+    // scene:background        →  { asset, transition?, duration? }
+    // scene:sound             →  { action: 'start'|'stop', track }
+    // scene:camera            →  { effect, duration? }
+    // scene:stat-check-result →  { stat, roll, modifier, total, difficulty, result }
+    // scene:ended             →  { sceneId, outcome? }
+    // scene:error             →  { sceneId?, error }
+    // scene:input:advance     →  {}
+    // scene:input:choice      →  { index: number }
+    //
+    // rpg:state-changed       →  { type }
+    // rpg:state-updated       →  { hp: {current, max}, xp, level }
+    //
+    // weather:changed         →  { weather: 'none'|'rain'|'fog' }
+    // vn:background-changed   →  { asset: string, transition?: string, duration?: number, scene?: string }
+    //
+    // ── Pendiente (no implementado) ──────────────────────────────
+    // Wildcards:  eventBus.on('scene:*', handler)
+    //   Útil para debug overlay, analytics y logging global.
+    //   Requiere cambiar el mecanismo interno de addEventListener
+    //   por un mapa de handlers propio. Sin dependencias externas.
+    //   Prioritario cuando haya un sistema de analytics o replay.
+
+    global.eventBus = eventBus;
+})(window);
+
+// ── Helper de debug global ───────────────────────────────────────────────────
+// Solo para uso en consola del navegador durante desarrollo.
+// No debe usarse en lógica de la aplicación.
+//
+//   etheriaDebug.scene()   → { scene: 'forest_intro', step: 3 }
+//   etheriaDebug.enable()  → activa todos los logs
+//   etheriaDebug.enable('scene')  → filtra por namespace
+//   etheriaDebug.disable() → desactiva los logs
+//
+window.etheriaDebug = {
+    scene: function() {
+        return {
+            scene: window.__etheriaScene     ?? null,
+            step:  window.__etheriaSceneStep ?? null
+        };
+    },
+    enable: function(filter) {
+        localStorage.setItem('etheria_debug_events', filter || '1');
+        console.log('[etheriaDebug] logging activo' + (filter ? ' (filtro: ' + filter + ')' : ''));
+    },
+    disable: function() {
+        localStorage.removeItem('etheria_debug_events');
+        console.log('[etheriaDebug] logging desactivado');
+    }
+};
+
+</script>
+<script>
 /* js/utils/state.js */
 // Archivo de estado global (variables y configuración base).
 // ============================================
@@ -15795,31 +15966,6 @@ const cloudMigrationPendingProfiles = new Set();
     global.createStore = createStore;
     global.vnStore = vnStore;
     global.syncVnStore = syncVnStore;
-})(window);
-
-</script>
-<script>
-/* js/core/events.js */
-// Bus de eventos desacoplado para módulos UI.
-(function initEtheriaEvents(global) {
-    const EVENT_PREFIX = 'etheria:';
-
-    const eventBus = {
-        emit: function emit(type, payload) {
-            document.dispatchEvent(new CustomEvent(EVENT_PREFIX + type, { detail: payload }));
-        },
-        on: function on(type, handler) {
-            const wrapped = function wrapped(e) {
-                handler(e.detail);
-            };
-            document.addEventListener(EVENT_PREFIX + type, wrapped);
-            return function off() {
-                document.removeEventListener(EVENT_PREFIX + type, wrapped);
-            };
-        }
-    };
-
-    global.eventBus = eventBus;
 })(window);
 
 </script>
@@ -16052,59 +16198,15 @@ function persistPartitionedData(forceAll = false) {
 
 function updateCloudSyncIndicator(status, message = '') {
     cloudSyncStatus = status;
-    const indicator = document.getElementById('cloudSyncIndicator');
-    if (!indicator) return;
-
-    const iconEl = indicator.querySelector('.cloud-sync-icon');
-    const textEl = indicator.querySelector('.cloud-sync-text');
-
-    indicator.className = `cloud-sync-indicator ${status}`;
-    if (iconEl) {
-        if (status === 'online') iconEl.textContent = '🟢';
-        else if (status === 'degraded') iconEl.textContent = '🟠';
-        else iconEl.textContent = '🔺';
-    }
-    if (textEl) {
-        const fallbackText = status === 'online' ? 'Conectado' : status === 'degraded' ? 'Cambios pendientes' : 'Offline';
-        textEl.textContent = message || fallbackText;
+    if (typeof eventBus !== 'undefined') {
+        eventBus.emit('sync:status-changed', { status, message, target: 'indicator' });
     }
 }
 
 function updateSyncButtonState(status, message = '') {
-    const btn = document.getElementById('syncNowBtn');
-    if (!btn) return;
-
-    btn.classList.remove('is-synced', 'is-syncing', 'is-upload-pending', 'is-download-pending', 'is-error');
-    const icon = btn.querySelector('.vn-control-icon');
-    const label = btn.querySelector('.vn-control-label');
-
-    const SVG_SYNC  = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 a5 5 0 0 1 9-3"/><path d="M13 8 a5 5 0 0 1-9 3"/><polyline points="12,2 12,5 15,5"/><polyline points="4,11 4,14 1,14"/></svg>';
-    const SVG_UP    = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,3 8,13"/><polyline points="4,7 8,3 12,7"/><line x1="3" y1="13" x2="13" y2="13"/></svg>';
-    const SVG_DOWN  = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,13 8,3"/><polyline points="4,9 8,13 12,9"/><line x1="3" y1="3" x2="13" y2="3"/></svg>';
-    const SVG_WARN  = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 L14.5 13 H1.5 Z"/><line x1="8" y1="6.5" x2="8" y2="10"/><circle cx="8" cy="11.8" r="0.6" fill="currentColor" stroke="none"/></svg>';
-
-    if (status === 'syncing') {
-        btn.classList.add('is-syncing');
-        if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = 'syncSpin 1.2s linear infinite'; }
-    } else if (status === 'pending-upload') {
-        btn.classList.add('is-upload-pending');
-        if (icon) icon.innerHTML = SVG_UP;
-        btn.style.animation = '';
-    } else if (status === 'pending-download') {
-        btn.classList.add('is-download-pending');
-        if (icon) icon.innerHTML = SVG_DOWN;
-        btn.style.animation = '';
-    } else if (status === 'error') {
-        btn.classList.add('is-error');
-        if (icon) icon.innerHTML = SVG_WARN;
-        btn.style.animation = '';
-    } else {
-        btn.classList.add('is-synced');
-        if (icon) icon.innerHTML = SVG_SYNC;
-        btn.style.animation = '';
+    if (typeof eventBus !== 'undefined') {
+        eventBus.emit('sync:status-changed', { status, message, target: 'button' });
     }
-
-    if (label) label.textContent = message || 'Sincronizar';
 }
 
 function hideSyncToast() {
@@ -16345,7 +16447,7 @@ async function syncBidirectional(options = {}) {
     }
 
     // Fallback: modo offline
-    if (!silent) showAutosave('Modo offline - datos solo locales', 'info');
+    if (!silent) eventBus.emit('ui:show-autosave', { text: 'Modo offline - datos solo locales', state: 'info' });
     return { status: 'error', error: 'SupabaseSync no disponible' };
 }
 
@@ -17365,6 +17467,19 @@ function showEmoteOnAvatar(emoteType) {
     }, 3000);
 }
 
+// ── Listeners EventBus ───────────────────────────────────────────────────────
+// weather:changed → delega en setWeather(), que ya gestiona DOM, audio y store.
+// Permite que módulos externos cambien el clima sin llamar setWeather() directo.
+(function _initEffectsListeners() {
+    if (window._effectsListenersReady) return;
+    window._effectsListenersReady = true;
+    if (typeof eventBus !== 'undefined') {
+        eventBus.on('weather:changed', function(data) {
+            if (data && data.weather) setWeather(data.weather);
+        });
+    }
+})();
+
 
 </script>
 <script>
@@ -18149,8 +18264,8 @@ function modifyAffinity(direction) {
         });
     } else {
         updateAffinityDisplay();
-        if (direction > 0 && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
-        if (direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+        if (direction > 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-up' });
+        if (direction < 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-down' });
     }
 
     const rankInfo = getAffinityRankInfo(newValue);
@@ -18181,8 +18296,8 @@ function modifyAffinity(direction) {
 if (typeof eventBus !== 'undefined') {
     eventBus.on('affinity:changed', function onAffinityChanged(payload) {
         updateAffinityDisplay();
-        if (payload && payload.direction > 0 && typeof playSoundAffinityUp === 'function') playSoundAffinityUp();
-        if (payload && payload.direction < 0 && typeof playSoundAffinityDown === 'function') playSoundAffinityDown();
+        if (payload && payload.direction > 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-up' });
+        if (payload && payload.direction < 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-down' });
     });
 }
 
@@ -18630,7 +18745,7 @@ async function selectUser(idx, options = {}) {
         void mainMenu.offsetWidth;
         mainMenu.style.opacity = '1';
         setTimeout(() => { mainMenu.style.transition = ''; mainMenu.style.opacity = ''; }, 320);
-        if (typeof startMenuMusic === 'function') startMenuMusic();
+        eventBus.emit('audio:start-menu-music');
         // Onboarding paso 1: menú principal
         const _ob = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
         if (_ob === 1 && typeof maybeShowOnboarding === 'function') {
@@ -18761,7 +18876,7 @@ function renderUserCards() {
                 e.stopPropagation();
                 selectUser(idx).then(() => {
                     if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
-                    if (typeof stopMenuMusic === 'function') stopMenuMusic();
+                    eventBus.emit('audio:stop-menu-music');
                     enterTopic(lastTopic.id);
                 });
             });
@@ -19275,6 +19390,47 @@ const _sectionAnimControl = {
     }
 };
 
+// ── Transición suave entre secciones (absorbido de mejoras.js) ───────────────
+// _skipNextFadeTransition: characters.js lo activa al volver de selección de perfil
+// para evitar el overlay negro innecesario.
+var _skipNextFadeTransition = false;
+var _fadeTransitionInProgress = false;
+
+function _clearFadeOverlay(overlay, delay) {
+    setTimeout(function() {
+        if (overlay) {
+            overlay.classList.remove('fade-out');
+            overlay.style.transition = '';
+        }
+        _fadeTransitionInProgress = false;
+    }, delay);
+}
+
+function fadeTransition(callback, duration) {
+    duration = duration || 280;
+    if (_skipNextFadeTransition) {
+        _skipNextFadeTransition = false;
+        try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        return;
+    }
+    if (_fadeTransitionInProgress) {
+        try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        return;
+    }
+    var overlay = document.getElementById('sectionTransitionOverlay');
+    if (!overlay) {
+        try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        return;
+    }
+    _fadeTransitionInProgress = true;
+    overlay.style.transition = 'opacity ' + duration + 'ms ease';
+    overlay.classList.add('fade-out');
+    setTimeout(function() {
+        try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        finally { _clearFadeOverlay(overlay, Math.round(duration * 0.6)); }
+    }, duration);
+}
+
 // Navegación entre secciones y galería de personajes.
 // NAVEGACIÓN
 // ============================================
@@ -19320,7 +19476,7 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     if (weatherContainer) weatherContainer.innerHTML = '';
 
     // Detener sonido ambiental de lluvia si estaba activo
-    if (typeof stopRainSound === 'function') stopRainSound();
+    eventBus.emit('audio:stop-rain');
 
     editingMessageId = null;
     pendingContinuation = null;
@@ -19345,6 +19501,20 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     }
 }
 
+// ── Listener EventBus: ui:reset-vn-state ─────────────────────────────────────
+// vn.js emite este evento al entrar a un tema para limpiar el estado transitorio.
+// navigation.js es el dueño de resetVNTransientState — este listener es el
+// único punto de entrada desde módulos externos.
+(function _initNavigationListeners() {
+    if (window._navigationListenersReady) return;
+    window._navigationListenersReady = true;
+    if (typeof eventBus !== 'undefined') {
+        eventBus.on('ui:reset-vn-state', function() {
+            resetVNTransientState();
+        });
+    }
+})();
+
 function closeActiveModals() {
     document.querySelectorAll('.modal-overlay.active').forEach((modal) => {
         modal.classList.remove('active');
@@ -19354,81 +19524,77 @@ function closeActiveModals() {
 
 function showSection(section) {
     if (isLoading) return;
+    // transición visual absorbida de mejoras.js (Mejora 9)
+    fadeTransition(function() {
+        const mainMenu = document.getElementById('mainMenu');
+        if (mainMenu) mainMenu.classList.add('hidden');
+        eventBus.emit('audio:stop-menu-music');
 
-    const mainMenu = document.getElementById('mainMenu');
-    if (mainMenu) mainMenu.classList.add('hidden');
-    if (typeof stopMenuMusic === 'function') stopMenuMusic();
+        resetVNTransientState({ clearTopic: true });
+        closeActiveModals();
 
-    resetVNTransientState({ clearTopic: true });
-    closeActiveModals();
+        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+        requestAnimationFrame(() => _sectionAnimControl.sync());
 
-    document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
-    // Sincronizar estado de animaciones con visibilidad real
-    requestAnimationFrame(() => _sectionAnimControl.sync());
-
-    if(section === 'topics') {
-        const topicsSection = document.getElementById('topicsSection');
-        if (topicsSection) topicsSection.classList.add('active');
-        renderTopics();
-        // Notificar a Ethy
-        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'topics' } }));
-    } else if(section === 'gallery') {
-        const gallerySection = document.getElementById('gallerySection');
-        if (gallerySection) gallerySection.classList.add('active');
-        renderGallery();
-        // Notificar a Ethy
-        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'gallery' } }));
-    } else if(section === 'options') {
-        const optionsSection = document.getElementById('optionsSection');
-        if (optionsSection) optionsSection.classList.add('active');
-        if (typeof syncOptionsSection === 'function') syncOptionsSection();
-        // Notificar a Ethy
-        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'options' } }));
-    }
+        if(section === 'topics') {
+            const topicsSection = document.getElementById('topicsSection');
+            if (topicsSection) topicsSection.classList.add('active');
+            renderTopics();
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'topics' } }));
+        } else if(section === 'gallery') {
+            const gallerySection = document.getElementById('gallerySection');
+            if (gallerySection) gallerySection.classList.add('active');
+            renderGallery();
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'gallery' } }));
+        } else if(section === 'options') {
+            const optionsSection = document.getElementById('optionsSection');
+            if (optionsSection) optionsSection.classList.add('active');
+            if (typeof syncOptionsSection === 'function') syncOptionsSection();
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'options' } }));
+        }
+    }, 150);
 }
 
 function backToMenu() {
     confirmUnsavedChanges(() => {
-        resetVNTransientState({ clearTopic: true });
-        closeActiveModals();
-        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
-        const mainMenu = document.getElementById('mainMenu');
-        if (mainMenu) {
-            mainMenu.classList.remove('hidden');
-            generateParticles();
-            if (typeof startMenuMusic === 'function') startMenuMusic();
-            // Reset parallax particle offset
-            const particles = document.getElementById('particlesContainer');
-            if (particles) particles.style.transform = '';
-        }
-        // Notificar a Ethy
-        window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'mainMenu' } }));
+        // transición visual absorbida de mejoras.js (Mejora 9)
+        fadeTransition(function() {
+            resetVNTransientState({ clearTopic: true });
+            closeActiveModals();
+            document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+            const mainMenu = document.getElementById('mainMenu');
+            if (mainMenu) {
+                mainMenu.classList.remove('hidden');
+                generateParticles();
+                eventBus.emit('audio:start-menu-music');
+                const particles = document.getElementById('particlesContainer');
+                if (particles) particles.style.transform = '';
+            }
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'mainMenu' } }));
+        }, 150);
     });
 }
 
 function backToTopics() {
     confirmUnsavedChanges(() => {
-        // Detener guard colaborativo al salir del topic
-        if (typeof CollaborativeGuard !== 'undefined') {
-            CollaborativeGuard.stop();
-        }
-        // Desuscribir canal global realtime
-        if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribeGlobal === 'function') {
-            SupabaseMessages.unsubscribeGlobal();
-        }
-        // Memory leak fix: remove the global realtime handler on topic exit
-        if (typeof _globalRealtimeHandlerRef !== 'undefined' && _globalRealtimeHandlerRef) {
-            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
-            _globalRealtimeHandlerRef = null;
-        }
-        resetVNTransientState({ clearTopic: true });
-
-        const vnSection = document.getElementById('vnSection');
-        const topicsSection = document.getElementById('topicsSection');
-
-        if (vnSection) vnSection.classList.remove('active');
-        if (topicsSection) topicsSection.classList.add('active');
-        renderTopics();
+        // transición visual absorbida de mejoras.js (Mejora 9)
+        fadeTransition(function() {
+            if (typeof CollaborativeGuard !== 'undefined') CollaborativeGuard.stop();
+            if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribeGlobal === 'function') {
+                SupabaseMessages.unsubscribeGlobal();
+            }
+            if (typeof _globalRealtimeHandlerRef !== 'undefined' && _globalRealtimeHandlerRef) {
+                window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+                _globalRealtimeHandlerRef = null;
+            }
+            resetVNTransientState({ clearTopic: true });
+            // Limpiar TODAS las secciones activas (no solo vnSection)
+            // para evitar que options/gallery queden visibles encima de topics
+            document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
+            const topicsSection = document.getElementById('topicsSection');
+            if (topicsSection) topicsSection.classList.add('active');
+            renderTopics();
+        }, 150);
     });
 }
 
@@ -20403,12 +20569,8 @@ const SupabaseSync = (function () {
             _pendingChanges = false;
             
             // Actualizar UI
-            if (typeof updateCloudSyncIndicator === 'function') {
-                updateCloudSyncIndicator('online', 'Sincronizado');
-            }
-            if (typeof updateSyncButtonState === 'function') {
-                updateSyncButtonState('synced', 'Sincronizar');
-            }
+            eventBus.emit('sync:status-changed', { status: 'online',  message: 'Sincronizado', target: 'indicator' });
+            eventBus.emit('sync:status-changed', { status: 'synced',  message: 'Sincronizar',  target: 'button' });
 
             return { ok: true };
         } catch (err) {
@@ -20447,12 +20609,8 @@ const SupabaseSync = (function () {
                 _lastSyncTime = Date.now();
                 
                 // Actualizar UI
-                if (typeof updateCloudSyncIndicator === 'function') {
-                    updateCloudSyncIndicator('online', 'Sincronizado');
-                }
-                if (typeof updateSyncButtonState === 'function') {
-                    updateSyncButtonState('synced', 'Sincronizar');
-                }
+                eventBus.emit('sync:status-changed', { status: 'online', message: 'Sincronizado', target: 'indicator' });
+                eventBus.emit('sync:status-changed', { status: 'synced', message: 'Sincronizar',  target: 'button' });
 
                 return { ok: true, data: data.data };
             }
@@ -20474,16 +20632,16 @@ const SupabaseSync = (function () {
         
         const userId = _getUserId();
         if (!userId) {
-            if (!silent && typeof showAutosave === 'function') {
-                showAutosave('Inicia sesión para sincronizar', 'info');
+            if (!silent) {
+                eventBus.emit('ui:show-autosave', { text: 'Inicia sesión para sincronizar', state: 'info' });
             }
             return { status: 'no-auth' };
         }
 
         _syncInProgress = true;
         
-        if (!silent && typeof updateSyncButtonState === 'function') {
-            updateSyncButtonState('syncing', 'Sincronizando...');
+        if (!silent) {
+            eventBus.emit('sync:status-changed', { status: 'syncing', message: 'Sincronizando...', target: 'button' });
         }
 
         try {
@@ -20492,8 +20650,8 @@ const SupabaseSync = (function () {
             
             if (!downloadResult.ok) {
                 _isOffline = true;
-                if (!silent && typeof showAutosave === 'function') {
-                    showAutosave('Error de sincronización', 'error');
+                if (!silent) {
+                    eventBus.emit('ui:show-autosave', { text: 'Error de sincronización', state: 'error' });
                 }
                 return { status: 'error', error: downloadResult.error };
             }
@@ -20501,8 +20659,8 @@ const SupabaseSync = (function () {
             // 2. Si es nuevo usuario, subir datos locales
             if (downloadResult.isNew && _hasLocalData()) {
                 const uploadResult = await uploadProfileData();
-                if (!silent && uploadResult.ok && typeof showAutosave === 'function') {
-                    showAutosave('Datos subidos a la nube', 'saved');
+                if (!silent && uploadResult.ok) {
+                    eventBus.emit('ui:show-autosave', { text: 'Datos subidos a la nube', state: 'saved' });
                 }
                 return { status: uploadResult.ok ? 'uploaded' : 'error' };
             }
@@ -20510,8 +20668,8 @@ const SupabaseSync = (function () {
             // 3. Si hay cambios locales pendientes, subirlos
             if (_pendingChanges || force) {
                 const uploadResult = await uploadProfileData();
-                if (!silent && uploadResult.ok && typeof showAutosave === 'function') {
-                    showAutosave('Sincronización completada', 'saved');
+                if (!silent && uploadResult.ok) {
+                    eventBus.emit('ui:show-autosave', { text: 'Sincronización completada', state: 'saved' });
                 }
                 return { status: uploadResult.ok ? 'synced' : 'error' };
             }
@@ -21891,6 +22049,23 @@ function applyTopicBackground(vnSection, backgroundPath) {
     });
 }
 
+// ── Listener EventBus: vn:background-changed ─────────────────────────────────
+// RPGRenderer emite este evento cuando una escena RPG necesita cambiar el fondo.
+// vn.js es el único módulo que puede llamar applyTopicBackground — este listener
+// es el punto de entrada desde el exterior sin cruzar capas.
+(function _initVnBackgroundListener() {
+    if (window._vnBackgroundListenerReady) return;
+    window._vnBackgroundListenerReady = true;
+    if (typeof eventBus !== 'undefined') {
+        eventBus.on('vn:background-changed', function(data) {
+            if (!data || !data.asset) return;
+            const vnSection = document.getElementById('vnSection');
+            if (!vnSection) return;
+            applyTopicBackground(vnSection, data.asset);
+        });
+    }
+})();
+
 function preloadTopicBackgrounds() {
     const topicBackgrounds = (appData?.topics || []).map(topic => resolveTopicBackgroundPath(topic.background));
     const uniqueBackgrounds = new Set([...topicBackgrounds, ...DEFAULT_TOPIC_BACKGROUND_VARIANTS].filter(Boolean));
@@ -21917,101 +22092,136 @@ function playVnSceneTransition(vnSection) {
     }
 }
 
+// ── Helpers de entrada a tema ─────────────────────────────────────────────────
+// Extraídos de enterTopic() para separar responsabilidades por modo.
+// Solo se usan desde enterTopic — prefijo _ indica uso interno.
+//
+// Candidatos a moverse a js/ui/vn-mode.js cuando vn.js vuelva a crecer:
+//   _resolveCharacterForMode   → selección de personaje según modo
+//   _applyModeClasses          → CSS classes rpg/classic en vnSection y body
+//   _maybeOpenRpgStatsModal    → RPG-only: auto-open stats la primera vez
+
+// Selecciona el personaje según el modo del topic.
+// Devuelve false si se abre un modal y enterTopic debe abortar.
+function _resolveCharacterForMode(t, id, topicMode) {
+    if (topicMode === 'roleplay' && t.roleCharacterId) {
+        const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
+        if (lockedChar) {
+            selectedCharId = lockedChar.id;
+            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
+        }
+        return true;
+    }
+
+    if (topicMode === 'rpg') {
+        const lockedCharId = getTopicLockedCharacterId(t);
+        if (lockedCharId) {
+            selectedCharId = lockedCharId;
+            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
+            return true;
+        }
+        // Fallback: no debería llegar aquí por el check de arriba, pero por seguridad
+        openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
+        return false;
+    }
+
+    return true;
+}
+
+// Aplica las CSS classes de modo en vnSection y body.
+function _applyModeClasses(vnSection, topicMode) {
+    if (topicMode === 'rpg') {
+        vnSection.classList.remove('classic-mode', 'mode-classic');
+        vnSection.classList.add('mode-rpg');
+        document.body.classList.add('mode-rpg');
+    } else {
+        // Modo clásico: sprites desaparecen al avanzar
+        vnSection.classList.add('classic-mode', 'mode-classic');
+        vnSection.classList.remove('mode-rpg');
+        document.body.classList.remove('mode-rpg');
+        document.body.classList.add('mode-classic');
+    }
+}
+
+// Abre automáticamente el modal de stats RPG la primera vez que el jugador
+// entra a un topic sin haber gastado ningún punto.
+function _maybeOpenRpgStatsModal(topicId) {
+    if (currentTopicMode !== 'rpg' || !selectedCharId) return;
+    const key = `etheria_stats_prompted_${topicId}_${selectedCharId}`;
+    if (localStorage.getItem(key)) return;
+    const char = appData.characters.find(c => String(c.id) === String(selectedCharId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function' || typeof getRpgSpentPoints !== 'function') return;
+    const profile = ensureCharacterRpgProfile(char, topicId);
+    const spent   = getRpgSpentPoints(profile);
+    if (spent === 0 && typeof openRpgStatsModal === 'function') {
+        localStorage.setItem(key, '1');
+        setTimeout(() => {
+            eventBus.emit('ui:show-autosave', { text: '⚔️ ¡Distribuye tus 14 puntos de stats para empezar!', state: 'info' });
+            openRpgStatsModal(selectedCharId);
+        }, 900);
+    }
+}
+
 function enterTopic(id) {
     if (typeof stopMenuMusic === 'function') stopMenuMusic();
 
     const t = appData.topics.find(topic => topic.id === id);
     if (!t) return;
 
-    // Si es modo RPG y no tiene personaje asignado, mostrar el modal SIN
-    // haber limpiado estado (evita el flash de pantalla negra). Igual que en modo clásico.
+    // Guard: RPG sin personaje asignado → modal de selección, sin limpiar estado
+    // (evita el flash de pantalla negra antes de que el usuario elija personaje)
     const topicMode = t.mode || 'roleplay';
     if (topicMode === 'rpg' && !getTopicLockedCharacterId(t)) {
         openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
         return;
     }
 
-    // Onboarding paso 2: primera vez en una historia
+    // transición visual absorbida de mejoras.js (Mejora 9)
+    fadeTransition(function() { _doEnterTopic(id, t, topicMode); }, 220);
+}
+
+function _doEnterTopic(id, t, topicMode) {
+
+    // ── 1. Inicializar estado global del topic ────────────────────────────────
     const _ob = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
     if (_ob === 2 && typeof maybeShowOnboarding === 'function') {
         setTimeout(maybeShowOnboarding, 800);
     }
-    resetVNTransientState();
+    eventBus.emit('ui:reset-vn-state');
     currentTopicId = id;
     if (typeof syncVnStore === 'function') syncVnStore({ topicId: currentTopicId });
 
-    // Iniciar guard colaborativo (detección de cambios remotos + merge)
     if (typeof CollaborativeGuard !== 'undefined') {
         CollaborativeGuard.init(id, typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0);
     }
-
-    // Activar canal global realtime para este topic
     if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
-        SupabaseMessages.subscribeGlobal(null, null, id); // Fix 7: pass sessionId for filter
+        SupabaseMessages.subscribeGlobal(null, null, id);
     }
-    getTopicMessages(id);
-    currentMessageIndex = 0;
+    const _existingMsgs = getTopicMessages(id);
+    // Si el tema tiene mensajes, posicionar en el último — no en el primero
+    currentMessageIndex = _existingMsgs.length > 0 ? _existingMsgs.length - 1 : 0;
     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     pendingContinuation = null;
     editingMessageId = null;
-
     if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(id);
 
-    // Establecer modo
+    // ── 2. Establecer modo y resolver personaje ───────────────────────────────
     currentTopicMode = topicMode;
+    if (!_resolveCharacterForMode(t, id, topicMode)) return;
 
-    if (currentTopicMode === 'roleplay' && t.roleCharacterId) {
-        const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
-        if (lockedChar) {
-            selectedCharId = lockedChar.id;
-            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
-        }
-    }
-
-    if (currentTopicMode === 'rpg') {
-        const lockedCharId = getTopicLockedCharacterId(t);
-        if (lockedCharId) {
-            selectedCharId = lockedCharId;
-            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
-        } else {
-            // Fallback: no debería llegar aquí por el check de arriba, pero por seguridad
-            openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
-            return;
-        }
-    }
-
-    // Aplicar clima si existe
-    if (t.weather) {
-        setWeather(t.weather);
-    } else {
-        setWeather('none');
-    }
-
+    // ── 3. Aplicar entorno visual (clima, fondo, CSS de modo) ─────────────────
+    setWeather(t.weather || 'none');
     const vnSection = document.getElementById('vnSection');
     if (vnSection) {
         applyTopicBackground(vnSection, t.background);
-
-        // Aplicar modo de sprites (rpg = persistente por defecto)
-        if (currentTopicMode === 'rpg') {
-            vnSection.classList.remove('classic-mode');
-            vnSection.classList.remove('mode-classic');
-            vnSection.classList.add('mode-rpg');
-            document.body.classList.add('mode-rpg');
-        } else {
-            // En modo rol, usar modo clásico (sprites desaparecen)
-            vnSection.classList.add('classic-mode');
-            vnSection.classList.add('mode-classic');
-            vnSection.classList.remove('mode-rpg');
-            document.body.classList.remove('mode-rpg');
-            document.body.classList.add('mode-classic');
-        }
+        _applyModeClasses(vnSection, topicMode);
     }
 
-    // Resetear estado de capítulo al entrar a una historia
+    // ── 4. Activar sección VN en el DOM ──────────────────────────────────────
+    // Limpiamos TODAS las secciones activas (no solo topicsSection) para evitar
+    // que opciones, galería u otras secciones queden visibles sobre la VN.
     pendingChapter = null;
-
-    const topicsSection = document.getElementById('topicsSection');
-    if (topicsSection) topicsSection.classList.remove('active');
+    document.querySelectorAll('.game-section').forEach(function(s) { s.classList.remove('active'); });
     if (vnSection) {
         vnSection.classList.add('active');
         playVnSceneTransition(vnSection);
@@ -22019,9 +22229,7 @@ function enterTopic(id) {
 
     const deleteBtn = document.getElementById('deleteTopicBtn');
     if (deleteBtn) {
-        // Mostrar si el usuario actual es el creador, o si createdByIndex no está definido (topics legados)
         const isOwner = t.createdByIndex === currentUserIndex || t.createdByIndex === undefined || t.createdByIndex === null;
-        // Usamos el slot padre para mostrar/ocultar, evitando conflicto con el CSS :has(.hidden)
         const deleteSlot = deleteBtn.closest('.vn-control-slot');
         if (isOwner) {
             deleteBtn.classList.remove('hidden');
@@ -22032,7 +22240,10 @@ function enterTopic(id) {
         }
     }
 
-    showCurrentMessage('forward');
+    // ── 5. Inicializar UI y controles de lectura ──────────────────────────────
+    // Usamos 'init' en vez de 'forward' para que showCurrentMessage aplique
+    // el estado visual correcto (fondo, clima) sin auto-abrir el overlay de opciones.
+    showCurrentMessage('init');
     updateVnMobileFabVisibility();
     bindReplyTypingEmitter();
     bindSpriteMicroInteractions();
@@ -22041,27 +22252,8 @@ function enterTopic(id) {
     continuousReadEnabled = localStorage.getItem('etheria_continuous_read') === '1';
     continuousReadDelaySec = Math.max(3, Math.min(5, Number(localStorage.getItem('etheria_continuous_delay') || 4)));
 
-    // ── Auto-open RPG stats modal si el personaje aún no ha gastado puntos ──
-    // Solo la primera vez que se entra al topic (puntos libres == pool completo)
-    if (currentTopicMode === 'rpg' && selectedCharId) {
-        const _statsAutoKey = `etheria_stats_prompted_${id}_${selectedCharId}`;
-        if (!localStorage.getItem(_statsAutoKey)) {
-            const _char = appData.characters.find(c => String(c.id) === String(selectedCharId));
-            if (_char && typeof ensureCharacterRpgProfile === 'function' && typeof getRpgSpentPoints === 'function') {
-                const _profile = ensureCharacterRpgProfile(_char, id);
-                const _spent = getRpgSpentPoints(_profile);
-                if (_spent === 0 && typeof openRpgStatsModal === 'function') {
-                    localStorage.setItem(_statsAutoKey, '1');
-                    setTimeout(() => {
-                        if (typeof showAutosave === 'function') {
-                            showAutosave('⚔️ ¡Distribuye tus 14 puntos de stats para empezar!', 'info');
-                        }
-                        openRpgStatsModal(selectedCharId);
-                    }, 900);
-                }
-            }
-        }
-    }
+    // ── 6. Extras RPG (stats modal, cloud story) ──────────────────────────────
+    _maybeOpenRpgStatsModal(id);
 
     // ── Auto-activar historia en la nube si el topic tiene storyId ──
     // Cuando el topic ya fue creado con cloud sync, el storyId se guardó
@@ -22518,7 +22710,10 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     const optionsContainer = document.getElementById('vnOptionsContainer');
-    if (currentMessageIndex === msgs.length - 1 && hasOpt && !isRpgModeMode()) {
+    // 'init' = primera carga al entrar al topic. No auto-abrimos el overlay de opciones
+    // para que el usuario no se encuentre con el menú de elección sin pedirlo.
+    // El indicador #messageHasOptions ya avisa de que hay opciones pendientes.
+    if (currentMessageIndex === msgs.length - 1 && hasOpt && !isRpgModeMode() && direction !== 'init') {
         showOptions(msg.options);
     } else {
         if (optionsContainer) optionsContainer.classList.remove('active');
@@ -22977,6 +23172,11 @@ function typeWriter(text, element) {
 }
 
 function handleDialogueClick() {
+    // BUG-02: Si hay una escena RPG activa, el motor gestiona el avance
+    // a través de _bindAdvanceOnce (scene:input:advance). No ejecutar la
+    // lógica de navegación clásica para evitar efectos secundarios.
+    if (typeof RPGEngine !== 'undefined' && RPGEngine.isRunning()) return;
+
     markContinuousInteraction();
     cancelContinuousRead('touch');
     const replyPanel = document.getElementById('vnReplyPanel');
@@ -23273,9 +23473,15 @@ function showOptions(options) {
     }).join('');
 
     container.classList.add('active');
+    // Efecto suspense al mostrar opciones (absorbido de mejoras.js)
+    const vnSection = document.getElementById('vnSection');
+    if (vnSection) vnSection.classList.add('suspense-mode');
 }
 
 function selectOption(idx) {
+    // Quitar efecto suspense al seleccionar (absorbido de mejoras.js)
+    const vnSectionEl = document.getElementById('vnSection');
+    if (vnSectionEl) vnSectionEl.classList.remove('suspense-mode');
     const msgs = getTopicMessages(currentTopicId);
     const msg = msgs[currentMessageIndex];
 
@@ -25607,6 +25813,7 @@ async function tryJoinRoomFromUrl() {
     if (typeof showSection === 'function') {
         showSection('topics');
     } else {
+        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
         const topicsSection = document.getElementById('topicsSection');
         if (topicsSection) topicsSection.classList.add('active');
     }
@@ -25702,9 +25909,9 @@ function createTopic() {
 // Para el audio, limpia recursos y cierra la ventana (PWA).
 // En navegador normal solo para el audio (no puede cerrar la pestaña).
 function exitApp() {
-    // 1. Parar todo el audio inmediatamente
-    if (typeof stopMenuMusic === 'function') stopMenuMusic(false);
-    if (typeof stopRainSound  === 'function') stopRainSound();
+    // 1. Parar todo el audio inmediatamente (sin fade)
+    eventBus.emit('audio:stop-menu-music', { fadeOut: false });
+    eventBus.emit('audio:stop-rain');
     // Suspender AudioContext para liberar recursos del SO
     if (typeof audioCtx !== 'undefined' && audioCtx) {
         try { audioCtx.close(); } catch(e) {}
@@ -25750,11 +25957,11 @@ function save(opts = {}) {
         setLocalProfileUpdatedAt(currentUserIndex);
         hasUnsavedChanges = false;
         cloudUnsyncedChanges = true;
-        updateSyncButtonState('pending-upload', 'Subir cambios');
-        updateCloudSyncIndicator('degraded', 'Pendiente de subida');
+        eventBus.emit('sync:status-changed', { status: 'pending-upload', message: 'Subir cambios',       target: 'button' });
+        eventBus.emit('sync:status-changed', { status: 'degraded',       message: 'Pendiente de subida', target: 'indicator' });
         showAutosave('Guardado', 'saved');
         // Solo reproducir sonido en guardados manuales explícitos, no en autoguardado
-        if (!silent && typeof playSoundSave === 'function') playSoundSave();
+        if (!silent) eventBus.emit('audio:play-sfx', { sfx: 'save' });
         return true;
     } catch (e) {
         hasUnsavedChanges = wasUnsaved;
@@ -25791,6 +25998,112 @@ function showAutosave(text, state) {
     setTimeout(() => {
         indicator.classList.remove('visible');
     }, state === 'error' ? 4000 : 2000);
+}
+
+// ── Listeners EventBus para UI pequeña ──────────────────────────────────────
+// Los listeners se registran UNA SOLA VEZ al cargar el archivo.
+// La guarda _uiListenersReady impide duplicados si el archivo se ejecutara
+// más de una vez por algún motivo futuro (hot-reload, tests, etc.).
+//
+// Payload canónico (ver js/core/events.js para la lista completa):
+//   ui:show-autosave    →  { text: string, state: 'saved'|'error'|'info' }
+//   ui:show-toast       →  { text: string, action?: string, onAction?: fn }
+//   sync:status-changed →  { status, message, target: 'indicator'|'button' }
+//
+(function _initUIListeners() {
+    if (window._uiListenersReady) return;
+    window._uiListenersReady = true;
+
+    eventBus.on('ui:show-autosave', function(data) {
+        if (data) showAutosave(data.text, data.state);
+    });
+
+    eventBus.on('ui:show-toast', function(data) {
+        if (data) showSyncToast(data.text, data.action, data.onAction);
+    });
+
+    eventBus.on('sync:status-changed', function(data) {
+        if (!data) return;
+        if (data.target === 'indicator') {
+            _updateCloudSyncIndicatorDOM(data.status, data.message);
+            // Mostrar el indicador brevemente cuando vuelve a online (absorbido de mejoras.js)
+            if (data.status === 'online') _showCloudIndicatorTemporarily();
+        }
+        if (data.target === 'button') _updateSyncButtonStateDOM(data.status, data.message);
+    });
+
+    // Mostrar indicador al arrancar si ya está online
+    setTimeout(_showCloudIndicatorTemporarily, 1500);
+})();
+
+// Muestra el indicador cloud brevemente cuando el estado es online,
+// luego lo oculta. No actúa si el estado es degraded u offline.
+var _cloudHideTimer = null;
+function _showCloudIndicatorTemporarily() {
+    var indicator = document.getElementById('cloudSyncIndicator');
+    if (!indicator) return;
+    if (indicator.classList.contains('degraded') || indicator.classList.contains('offline')) return;
+    indicator.classList.add('visible');
+    clearTimeout(_cloudHideTimer);
+    _cloudHideTimer = setTimeout(function() {
+        indicator.classList.remove('visible');
+    }, 3000);
+}
+
+// ── Renderizadores de UI de sincronización ───────────────────────────────────
+// Solo se llaman desde el listener sync:status-changed.
+// Nadie fuera de app-ui.js debe llamarlas directamente.
+
+function _updateCloudSyncIndicatorDOM(status, message) {
+    const indicator = document.getElementById('cloudSyncIndicator');
+    if (!indicator) return;
+    const iconEl = indicator.querySelector('.cloud-sync-icon');
+    const textEl = indicator.querySelector('.cloud-sync-text');
+    indicator.className = `cloud-sync-indicator ${status}`;
+    if (iconEl) {
+        if (status === 'online')        iconEl.textContent = '🟢';
+        else if (status === 'degraded') iconEl.textContent = '🟠';
+        else                            iconEl.textContent = '🔺';
+    }
+    if (textEl) {
+        const fallback = status === 'online' ? 'Conectado' : status === 'degraded' ? 'Cambios pendientes' : 'Offline';
+        textEl.textContent = message || fallback;
+    }
+}
+
+function _updateSyncButtonStateDOM(status, message) {
+    const btn = document.getElementById('syncNowBtn');
+    if (!btn) return;
+    btn.classList.remove('is-synced', 'is-syncing', 'is-upload-pending', 'is-download-pending', 'is-error');
+    const icon  = btn.querySelector('.vn-control-icon');
+    const label = btn.querySelector('.vn-control-label');
+
+    const SVG_SYNC = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 a5 5 0 0 1 9-3"/><path d="M13 8 a5 5 0 0 1-9 3"/><polyline points="12,2 12,5 15,5"/><polyline points="4,11 4,14 1,14"/></svg>';
+    const SVG_UP   = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,3 8,13"/><polyline points="4,7 8,3 12,7"/><line x1="3" y1="13" x2="13" y2="13"/></svg>';
+    const SVG_DOWN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,13 8,3"/><polyline points="4,9 8,13 12,9"/><line x1="3" y1="3" x2="13" y2="3"/></svg>';
+    const SVG_WARN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 L14.5 13 H1.5 Z"/><line x1="8" y1="6.5" x2="8" y2="10"/><circle cx="8" cy="11.8" r="0.6" fill="currentColor" stroke="none"/></svg>';
+
+    if (status === 'syncing') {
+        btn.classList.add('is-syncing');
+        if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = 'syncSpin 1.2s linear infinite'; }
+    } else if (status === 'pending-upload') {
+        btn.classList.add('is-upload-pending');
+        if (icon) icon.innerHTML = SVG_UP;
+        btn.style.animation = '';
+    } else if (status === 'pending-download') {
+        btn.classList.add('is-download-pending');
+        if (icon) icon.innerHTML = SVG_DOWN;
+        btn.style.animation = '';
+    } else if (status === 'error') {
+        btn.classList.add('is-error');
+        if (icon) icon.innerHTML = SVG_WARN;
+        btn.style.animation = '';
+    } else {
+        btn.classList.add('is-synced');
+        if (icon) icon.innerHTML = SVG_SYNC;
+        btn.style.animation = '';
+    }
+    if (label) label.textContent = message || 'Sincronizar';
 }
 
 // Modal de confirmación genérico — reemplaza confirm() nativo
@@ -26225,7 +26538,7 @@ function saveGameFromMenu() {
     URL.revokeObjectURL(a.href);
 
     showAutosave('Archivo de guardado descargado', 'saved');
-    if (typeof playSoundSave === 'function') playSoundSave();
+    eventBus.emit('audio:play-sfx', { sfx: 'save' });
 }
 
 function loadGameFromMenu() {
@@ -27648,9 +27961,12 @@ const CollaborativeGuard = (function () {
     async function _poll() {
         if (!_topicId || _merging) return;
 
-        // Sólo si JSONbin está configurado
-        if (typeof fetchCloudBin !== 'function') return;
-        if (typeof JSONBIN_CONFIG === 'undefined' || !JSONBIN_CONFIG.apiKey) return;
+        // collab-guard aún no está migrado a Supabase.
+        // fetchCloudBin existe como stub deprecado que devuelve null,
+        // por lo que la guarda anterior no era suficiente.
+        // Desactivar el poll hasta que se migre a Supabase Realtime.
+        // TODO: reemplazar por suscripción a Supabase Realtime cuando esté disponible.
+        return;
 
         try {
             const cloud = await fetchCloudBin();
@@ -27684,23 +28000,17 @@ const CollaborativeGuard = (function () {
                 // Tiene borrador — notificar sin aplicar, para no interrumpir
                 const n = newRemote.length;
                 const label = n === 1 ? '1 mensaje nuevo' : `${n} mensajes nuevos`;
-                if (typeof showSyncToast === 'function') {
-                    showSyncToast(
-                        label + ' de otro jugador',
-                        'Ver ahora',
-                        () => {
-                            _doMerge(localMsgs, remoteTopicMsgs);
-                        }
-                    );
-                }
+                eventBus.emit('ui:show-toast', {
+                    text: label + ' de otro jugador',
+                    action: 'Ver ahora',
+                    onAction: () => { _doMerge(localMsgs, remoteTopicMsgs); }
+                });
             } else {
                 // Sin borrador — merge silencioso y refresco automático
                 _doMerge(localMsgs, remoteTopicMsgs);
                 const n = newRemote.length;
                 const label = n === 1 ? '1 mensaje nuevo recibido' : `${n} mensajes nuevos recibidos`;
-                if (typeof showAutosave === 'function') {
-                    showAutosave(label, 'info');
-                }
+                eventBus.emit('ui:show-autosave', { text: label, state: 'info' });
             }
 
         } catch (err) {
@@ -27824,15 +28134,9 @@ const CollaborativeGuard = (function () {
      * Forzar merge manual (útil para botón de "refrescar" si se quiere exponer).
      */
     async function forceMerge() {
-        if (!_topicId || typeof fetchCloudBin !== 'function') return;
-        try {
-            const cloud = await fetchCloudBin();
-            const remote = _remoteTopicMessages(cloud);
-            _doMerge(_localMessages(), remote);
-            if (typeof showAutosave === 'function') showAutosave('Sincronizado', 'saved');
-        } catch (err) {
-            if (typeof showAutosave === 'function') showAutosave('Error al sincronizar', 'error');
-        }
+        // collab-guard pendiente de migración a Supabase — operación desactivada temporalmente.
+        if (!_topicId) return;
+        eventBus.emit('ui:show-autosave', { text: 'Colaboración en tiempo real próximamente', state: 'info' });
     }
 
     function getStatus() {
@@ -27850,6 +28154,1378 @@ const CollaborativeGuard = (function () {
 })();
 
 window.CollaborativeGuard = CollaborativeGuard;
+
+</script>
+<script>
+/* js/rpg/SceneLoader.js */
+// ============================================================
+// SCENE LOADER
+// Carga scripts JSON de forma lazy (solo cuando se necesitan),
+// los cachea en memoria y hace prefetch de las escenas enlazadas
+// en segundo plano para que las transiciones sean instantáneas.
+// ============================================================
+
+const SceneLoader = (function () {
+
+    const _cache   = new Map();   // sceneId → objeto parseado
+    let   _index   = null;        // contenido de _index.json
+    const _pending = new Map();   // sceneId → Promise en vuelo
+
+    const INDEX_PATH = 'js/scenes/_index.json';
+    const SCENES_PATH = 'js/scenes/';
+
+    // ── API pública ─────────────────────────────────────────────
+
+    /**
+     * Carga una escena por ID.
+     * Primero comprueba caché, luego el índice, luego hace fetch.
+     * Lanza Error si la escena no existe o el JSON es inválido.
+     */
+    async function load(sceneId) {
+        if (_cache.has(sceneId)) {
+            return _cache.get(sceneId);
+        }
+
+        if (_pending.has(sceneId)) {
+            return _pending.get(sceneId);
+        }
+
+        const promise = _fetchScene(sceneId);
+        _pending.set(sceneId, promise);
+
+        try {
+            const scene = await promise;
+            _cache.set(sceneId, scene);
+            _pending.delete(sceneId);
+            _prefetchLinked(scene);
+            return scene;
+        } catch (err) {
+            _pending.delete(sceneId);
+            // No relanzar — emitir evento y devolver null para que el engine se detenga limpiamente
+            console.error('[SceneLoader]', err.message);
+            eventBus.emit('scene:error', { sceneId: sceneId, message: err.message });
+            return null;
+        }
+    }
+
+    /**
+     * Precarga una escena sin necesitarla aún.
+     * Útil para precargar antes de que el usuario llegue.
+     * No lanza errores — falla silenciosamente.
+     */
+    function prefetch(sceneId) {
+        if (!_cache.has(sceneId) && !_pending.has(sceneId)) {
+            load(sceneId).catch(() => {});
+        }
+    }
+
+    /**
+     * Comprueba si una escena ya está en caché.
+     */
+    function isCached(sceneId) {
+        return _cache.has(sceneId);
+    }
+
+    /**
+     * Limpia la caché — toda o solo una escena.
+     */
+    function clearCache(sceneId) {
+        if (sceneId) {
+            _cache.delete(sceneId);
+        } else {
+            _cache.clear();
+            _index = null;
+        }
+    }
+
+    /**
+     * Devuelve el índice completo (metadatos de todas las escenas).
+     */
+    async function getIndex() {
+        if (_index) return _index;
+        return _loadIndex();
+    }
+
+    // ── Lógica interna ──────────────────────────────────────────
+
+    async function _fetchScene(sceneId) {
+        // Obtener la ruta del archivo desde el índice
+        const index = await _loadIndex();
+        const entry = index[sceneId];
+
+        let filePath;
+        if (entry && entry.file) {
+            filePath = SCENES_PATH + entry.file;
+        } else {
+            // Fallback: asumir nombre de archivo igual al ID
+            filePath = SCENES_PATH + sceneId + '.json';
+        }
+
+        const response = await fetch(filePath);
+
+        if (!response.ok) {
+            throw new Error(
+                `[SceneLoader] No se pudo cargar "${sceneId}" desde "${filePath}" (HTTP ${response.status})`
+            );
+        }
+
+        let scene;
+        try {
+            scene = await response.json();
+        } catch (e) {
+            throw new Error(`[SceneLoader] JSON inválido en "${filePath}": ${e.message}`);
+        }
+
+        return scene;
+    }
+
+    async function _loadIndex() {
+        if (_index) return _index;
+
+        try {
+            const res = await fetch(INDEX_PATH);
+            if (!res.ok) {
+                // Si no hay índice, trabajar sin él (modo degradado)
+                console.warn('[SceneLoader] No se encontró _index.json — usando nombres de archivo directamente');
+                _index = {};
+                return _index;
+            }
+            _index = await res.json();
+        } catch (e) {
+            console.warn('[SceneLoader] Error cargando índice:', e.message);
+            _index = {};
+        }
+
+        return _index;
+    }
+
+    // Máximo de escenas a precargar en background desde una sola escena
+    const MAX_PREFETCH = 3;
+
+    // Analiza una escena ya cargada y precarga las escenas a las que
+    // puede saltar, sin bloquear la ejecución actual.
+    function _prefetchLinked(scene) {
+        const linked = new Set();
+
+        function scan(steps) {
+            if (!Array.isArray(steps)) return;
+            steps.forEach(step => {
+                if (step.type === 'goto_scene' && step.scene) {
+                    linked.add(step.scene);
+                }
+                if (step.type === 'choice' && Array.isArray(step.options)) {
+                    step.options.forEach(opt => {
+                        if (opt.goto && !scene.branches?.[opt.goto]) {
+                            linked.add(opt.goto);
+                        }
+                    });
+                }
+                if (step.type === 'stat_check') {
+                    [step.on_success, step.on_fail].forEach(target => {
+                        if (target && !scene.branches?.[target]) linked.add(target);
+                    });
+                }
+            });
+        }
+
+        scan(scene.steps);
+        Object.values(scene.branches || {}).forEach(scan);
+
+        // Limitar a MAX_PREFETCH escenas para no saturar la red
+        const candidates = Array.from(linked)
+            .filter(id => id !== scene.id)
+            .filter(id => !_cache.has(id))
+            .slice(0, MAX_PREFETCH);
+
+        candidates.forEach(id => {
+            setTimeout(() => prefetch(id), 300);
+        });
+    }
+
+    return { load, prefetch, isCached, clearCache, getIndex };
+})();
+
+</script>
+<script>
+/* js/rpg/SceneValidator.js */
+// ============================================================
+// SCENE VALIDATOR
+// Valida la estructura de un script JSON antes de ejecutarlo.
+// Detecta errores de formato, campos obligatorios y referencias
+// rotas — sin lanzar excepciones: devuelve { ok, errors }.
+// ============================================================
+
+const SceneValidator = (function () {
+
+    // Campos obligatorios por tipo de paso
+    const REQUIRED = {
+        background:   ['asset'],
+        dialogue:     ['character', 'text'],
+        choice:       ['options'],
+        set_variable: ['key', 'value'],
+        check_variable: ['key', 'equals', 'goto_true'],
+        goto_scene:   ['scene'],
+        goto_branch:  ['branch'],
+        modify_stat:  ['stat', 'amount'],
+        give_item:    ['item'],
+        remove_item:  ['item'],
+        stat_check:   ['stat', 'difficulty', 'on_success', 'on_fail'],
+        sound:        ['action'],
+        camera:       ['effect'],
+        wait:         ['duration'],
+        end:          []
+    };
+
+    // ── API pública ─────────────────────────────────────────────
+    function validate(scene) {
+        const errors = [];
+
+        if (!scene || typeof scene !== 'object') {
+            return { ok: false, errors: ['El script no es un objeto válido'] };
+        }
+
+        // Campos raíz obligatorios
+        if (!scene.id)    errors.push('Falta campo "id"');
+        if (!scene.steps) errors.push('Falta campo "steps"');
+        if (scene.steps && !Array.isArray(scene.steps)) {
+            errors.push('"steps" debe ser un array');
+        }
+
+        // Validar steps principales
+        if (Array.isArray(scene.steps)) {
+            _validateStepArray(scene.steps, 'steps', scene.branches || {}, errors);
+        }
+
+        // Validar branches
+        if (scene.branches && typeof scene.branches === 'object') {
+            Object.entries(scene.branches).forEach(([branchId, steps]) => {
+                if (!Array.isArray(steps)) {
+                    errors.push(`Branch "${branchId}" debe ser un array`);
+                } else {
+                    _validateStepArray(steps, `branches.${branchId}`, scene.branches, errors);
+                }
+            });
+        }
+
+        if (errors.length > 0) {
+            console.error(`[SceneValidator] "${scene.id || '?'}" tiene ${errors.length} error(es):`, errors);
+        }
+
+        return { ok: errors.length === 0, errors };
+    }
+
+    // ── Helpers internos ────────────────────────────────────────
+    function _validateStepArray(steps, path, branches, errors) {
+        steps.forEach((step, i) => {
+            const loc = `${path}[${i}]`;
+
+            if (!step.type) {
+                errors.push(`${loc}: falta "type"`);
+                return;
+            }
+
+            const requiredFields = REQUIRED[step.type];
+            if (requiredFields === undefined) {
+                // Tipo desconocido — advertencia, no error bloqueante
+                console.warn(`[SceneValidator] ${loc}: tipo desconocido "${step.type}"`);
+                return;
+            }
+
+            requiredFields.forEach(field => {
+                if (step[field] === undefined || step[field] === null) {
+                    errors.push(`${loc} (${step.type}): falta campo "${field}"`);
+                }
+            });
+
+            // Validaciones específicas por tipo
+            if (step.type === 'choice') {
+                if (!Array.isArray(step.options) || step.options.length === 0) {
+                    errors.push(`${loc}: "options" debe ser un array no vacío`);
+                } else {
+                    step.options.forEach((opt, j) => {
+                        if (!opt.text) {
+                            errors.push(`${loc}.options[${j}]: falta "text"`);
+                        }
+                        // "goto" es opcional: sin él el engine avanza al siguiente paso linealmente.
+                        // Solo advertir, no bloquear.
+                        if (!opt.goto) {
+                            console.warn(`[SceneValidator] ${loc}.options[${j}]: sin "goto" — avanzará al paso siguiente`);
+                        }
+                    });
+                }
+            }
+
+            if (step.type === 'stat_check') {
+                if (typeof step.difficulty !== 'number') {
+                    errors.push(`${loc}: "difficulty" debe ser un número`);
+                }
+            }
+
+            if (step.type === 'modify_stat') {
+                if (typeof step.amount !== 'number') {
+                    errors.push(`${loc}: "amount" debe ser un número`);
+                }
+            }
+        });
+    }
+
+    return { validate };
+})();
+
+</script>
+<script>
+/* js/rpg/RPGState.js */
+// ============================================================
+// RPG STATE
+// Estado local de una sesión RPG: stats, inventario y flags
+// persistentes entre escenas.
+// Completamente independiente del estado global de Etheria
+// (appData, currentUserIndex, etc.) — solo lee el profileIndex
+// para saber dónde guardar en localStorage.
+// ============================================================
+
+const RPGState = (function () {
+
+    const STORAGE_PREFIX = 'etheria_rpg_state_';
+
+    // Estado en memoria durante la sesión
+    let _profileIndex = 0;
+    let _stats        = {};  // { STR: 10, DEX: 8, ... }
+    let _inventory    = [];  // [{ id: 'sword', name: 'Espada', qty: 1, data: {} }]
+    let _flags        = {};  // variables persistentes entre escenas: { met_kazuma: true, ... }
+    let _xp           = 0;
+    let _level        = 1;
+    let _hp           = { current: 20, max: 20 };
+
+    // Stats base por defecto (sistema D&D simplificado)
+    const DEFAULT_STATS = {
+        STR: 10,  // Fuerza
+        DEX: 10,  // Destreza
+        CON: 10,  // Constitución
+        INT: 10,  // Inteligencia
+        WIS: 10,  // Sabiduría
+        CHA: 10   // Carisma
+    };
+
+    // ── Ciclo de vida ───────────────────────────────────────────
+
+    function init(profileIndex) {
+        _profileIndex = profileIndex || 0;
+        _load();
+    }
+
+    function reset() {
+        _stats     = { ...DEFAULT_STATS };
+        _inventory = [];
+        _flags     = {};
+        _xp        = 0;
+        _level     = 1;
+        _hp        = { current: 20, max: 20 };
+        _save();
+    }
+
+    // ── Stats ───────────────────────────────────────────────────
+
+    function getStat(key) {
+        return _stats[key] !== undefined ? _stats[key] : DEFAULT_STATS[key] ?? 10;
+    }
+
+    function setStat(key, value) {
+        _stats[key] = Math.max(1, Math.min(30, Number(value) || 10));
+        _save();
+        _emitChange('stats');
+    }
+
+    function modifyStat(key, delta) {
+        setStat(key, getStat(key) + delta);
+    }
+
+    function getStats() {
+        return { ...DEFAULT_STATS, ..._stats };
+    }
+
+    // Modificador D&D: (stat - 10) / 2 redondeado hacia abajo
+    function getModifier(key) {
+        return Math.floor((getStat(key) - 10) / 2);
+    }
+
+    // ── HP ──────────────────────────────────────────────────────
+
+    function getHp()    { return { ..._hp }; }
+    function getMaxHp() { return _hp.max; }
+
+    function setMaxHp(max) {
+        _hp.max = Math.max(1, max);
+        _hp.current = Math.min(_hp.current, _hp.max);
+        _save();
+        _emitChange('hp');
+    }
+
+    function modifyHp(delta) {
+        _hp.current = Math.max(0, Math.min(_hp.max, _hp.current + delta));
+        _save();
+        _emitChange('hp');
+    }
+
+    function isDead() { return _hp.current <= 0; }
+
+    // ── XP y nivel ─────────────────────────────────────────────
+
+    function getXp()    { return _xp; }
+    function getLevel() { return _level; }
+
+    function addXp(amount) {
+        _xp += amount;
+        const newLevel = _calculateLevel(_xp);
+        if (newLevel > _level) {
+            _level = newLevel;
+            _emitChange('level-up', { level: _level, xp: _xp });
+        }
+        _save();
+        _emitChange('xp');
+    }
+
+    function _calculateLevel(xp) {
+        // Curva simple: nivel = 1 + floor(xp / 100)
+        return Math.max(1, 1 + Math.floor(xp / 100));
+    }
+
+    // ── Inventario ──────────────────────────────────────────────
+
+    function hasItem(itemId) {
+        return _inventory.some(i => i.id === itemId && i.qty > 0);
+    }
+
+    function getItem(itemId) {
+        return _inventory.find(i => i.id === itemId) || null;
+    }
+
+    function getInventory() {
+        return _inventory.map(i => ({ ...i }));
+    }
+
+    function addItem(item) {
+        // item: { id, name, qty?, description?, data? }
+        if (!item || !item.id) return;
+
+        const existing = _inventory.find(i => i.id === item.id);
+        if (existing) {
+            existing.qty = (existing.qty || 1) + (item.qty || 1);
+        } else {
+            _inventory.push({
+                id:          item.id,
+                name:        item.name || item.id,
+                qty:         item.qty || 1,
+                description: item.description || '',
+                data:        item.data || {}
+            });
+        }
+        _save();
+        _emitChange('inventory');
+    }
+
+    function removeItem(itemId, qty = 1) {
+        const idx = _inventory.findIndex(i => i.id === itemId);
+        if (idx === -1) return false;
+
+        _inventory[idx].qty -= qty;
+        if (_inventory[idx].qty <= 0) {
+            _inventory.splice(idx, 1);
+        }
+        _save();
+        _emitChange('inventory');
+        return true;
+    }
+
+    // ── Flags (variables persistentes entre escenas) ─────────────
+
+    function getFlag(key)         { return _flags[key]; }
+    function setFlag(key, value)  { _flags[key] = value; _save(); }
+    function hasFlag(key)         { return _flags[key] !== undefined && _flags[key] !== false && _flags[key] !== null; }
+
+    // ── Condiciones (para evaluar en scripts) ───────────────────
+
+    /**
+     * Evalúa una condición del script.
+     * Ejemplos de condición:
+     *   { has_item: 'sword' }
+     *   { flag: 'met_kazuma' }
+     *   { flag_equals: { key: 'times_visited', value: 3 } }
+     *   { stat_gte: { stat: 'STR', value: 14 } }
+     *   { stat_lte: { stat: 'HP_current', value: 5 } }
+     *   { level_gte: 3 }
+     */
+    function evalCondition(condition) {
+        if (!condition) return true;
+
+        if (condition.has_item)    return hasItem(condition.has_item);
+        if (condition.not_item)    return !hasItem(condition.not_item);
+        if (condition.flag)        return hasFlag(condition.flag);
+        if (condition.not_flag)    return !hasFlag(condition.not_flag);
+
+        if (condition.flag_equals) {
+            return getFlag(condition.flag_equals.key) === condition.flag_equals.value;
+        }
+        if (condition.stat_gte) {
+            const val = condition.stat_gte.stat === 'HP'
+                ? _hp.current
+                : getStat(condition.stat_gte.stat);
+            return val >= condition.stat_gte.value;
+        }
+        if (condition.stat_lte) {
+            const val = condition.stat_lte.stat === 'HP'
+                ? _hp.current
+                : getStat(condition.stat_lte.stat);
+            return val <= condition.stat_lte.value;
+        }
+        if (condition.level_gte)  return _level >= condition.level_gte;
+        if (condition.xp_gte)     return _xp >= condition.xp_gte;
+
+        console.warn('[RPGState] Condición desconocida:', condition);
+        return true;
+    }
+
+    // ── Snapshot (para guardar/cargar con el topic) ─────────────
+
+    function getSnapshot() {
+        return {
+            stats:     { ..._stats },
+            inventory: _inventory.map(i => ({ ...i })),
+            flags:     { ..._flags },
+            xp:        _xp,
+            level:     _level,
+            hp:        { ..._hp }
+        };
+    }
+
+    function loadSnapshot(snapshot) {
+        if (!snapshot || typeof snapshot !== 'object') return;
+        _stats     = snapshot.stats     || {};
+        _inventory = snapshot.inventory || [];
+        _flags     = snapshot.flags     || {};
+        _xp        = snapshot.xp        || 0;
+        _level     = snapshot.level     || 1;
+        _hp        = snapshot.hp        || { current: 20, max: 20 };
+        _save();
+    }
+
+    // ── Persistencia ────────────────────────────────────────────
+
+    function _save() {
+        try {
+            localStorage.setItem(
+                STORAGE_PREFIX + _profileIndex,
+                JSON.stringify(getSnapshot())
+            );
+        } catch (e) {
+            console.warn('[RPGState] No se pudo guardar estado:', e);
+        }
+    }
+
+    function _load() {
+        try {
+            const raw = localStorage.getItem(STORAGE_PREFIX + _profileIndex);
+            if (raw) {
+                loadSnapshot(JSON.parse(raw));
+            } else {
+                reset();
+            }
+        } catch (e) {
+            console.warn('[RPGState] No se pudo cargar estado:', e);
+            reset();
+        }
+    }
+
+    // ── Emisión de eventos ───────────────────────────────────────
+    // Usa el eventBus si está disponible; si no, silencioso.
+
+    function _emitChange(type, extra) {
+        if (!window.eventBus) return;
+        eventBus.emit('rpg:state-changed', { type, ...extra });
+
+        // Para cambios que afectan la barra de stats, emitir también
+        // rpg:state-updated con los valores ya calculados.
+        // Así el renderer no necesita consultar RPGState manualmente.
+        if (type === 'hp' || type === 'xp' || type === 'level-up') {
+            eventBus.emit('rpg:state-updated', {
+                hp:    { ..._hp },
+                xp:    _xp,
+                level: _level
+            });
+        }
+    }
+
+    return {
+        // Ciclo de vida
+        init, reset,
+        // Stats
+        getStat, setStat, modifyStat, getStats, getModifier,
+        // HP
+        getHp, getMaxHp, setMaxHp, modifyHp, isDead,
+        // XP / Level
+        getXp, getLevel, addXp,
+        // Inventario
+        hasItem, getItem, getInventory, addItem, removeItem,
+        // Flags
+        getFlag, setFlag, hasFlag,
+        // Condiciones
+        evalCondition,
+        // Snapshot
+        getSnapshot, loadSnapshot
+    };
+})();
+
+</script>
+<script>
+/* js/rpg/RPGEngine.js */
+// ============================================================
+// RPG ENGINE
+// Intérprete de scripts narrativos JSON.
+//
+// Responsabilidades:
+//   - Cargar y validar escenas via SceneLoader + SceneValidator
+//   - Ejecutar pasos automáticos (background, sound, variables...)
+//   - Pausar en pasos con input (dialogue, choice, stat_check)
+//   - Comunicar todo al exterior SOLO via eventBus
+//   - NO toca el DOM (eso es trabajo de RPGRenderer)
+//
+// Límites de arquitectura:
+//   ✅ Puede usar: SceneLoader, SceneValidator, RPGState, eventBus
+//   ❌ No puede usar: nada de ui/, nada de classic/
+// ============================================================
+
+const RPGEngine = (function () {
+
+    // ── Estado privado ──────────────────────────────────────────
+    let _scene     = null;
+    let _stepIndex = 0;
+    let _branch    = null;   // null → _scene.steps  |  string → rama activa
+    let _variables = {};     // variables locales a esta sesión de escena
+    let _running   = false;
+    let _paused    = false;
+    let _waitTimer = null;
+
+    // Tipos de paso que el engine ejecuta solo, sin input del usuario
+    const AUTO_TYPES = new Set([
+        'background', 'sound', 'camera',
+        'set_variable', 'set_flag', 'check_variable',
+        'modify_stat', 'give_item', 'remove_item', 'add_xp',
+        'wait', 'goto_scene', 'goto_branch',
+        'stat_check', 'end'
+    ]);
+
+    // ── API pública ─────────────────────────────────────────────
+
+    async function loadScene(sceneId) {
+        if (_running) {
+            console.warn('[RPGEngine] Escena en curso. Llama stop() antes de cargar otra.');
+            return;
+        }
+        _reset();
+
+        // SceneLoader emite scene:error y devuelve null si falla —
+        // no lanza, así que no necesitamos try/catch aquí.
+        const scene = await SceneLoader.load(sceneId);
+        if (!scene) { _reset(); return; }   // el error ya fue emitido por el loader
+
+        const { ok, errors } = SceneValidator.validate(scene);
+        if (!ok) {
+            console.error('[RPGEngine] Script inválido:', errors[0]);
+            eventBus.emit('scene:error', { sceneId: sceneId, message: errors[0] });
+            _reset();
+            return;
+        }
+
+        _scene     = scene;
+        _variables = Object.assign({}, scene.variables || {});
+        _running   = true;
+
+        eventBus.emit('scene:started', {
+            sceneId:  scene.id,
+            version:  scene.version || null,
+            title:    scene.title   || scene.id,
+            requires: scene.requires || []
+        });
+
+        _tick();
+    }
+
+    function advance() {
+        if (!_running || _paused) return;
+        _stepIndex++;
+        _tick();
+    }
+
+    function choiceMade(optionIndex) {
+        if (!_running || _paused) return;
+        var step = _currentStep();
+        if (!step || step.type !== 'choice') return;
+
+        var visible = getVisibleOptions(step.options);
+        var option  = visible[optionIndex];
+        if (!option) return;
+
+        if (option.set_flag)     RPGState.setFlag(option.set_flag.key, option.set_flag.value);
+        if (option.set_variable) _variables[option.set_variable.key] = option.set_variable.value;
+        if (option.give_item)    RPGState.addItem(option.give_item);
+        if (option.add_xp)       RPGState.addXp(option.add_xp);
+
+        eventBus.emit('scene:choice-made', {
+            sceneId: _scene.id, stepIndex: _stepIndex,
+            optionIndex: optionIndex, optionText: option.text, goto: option.goto
+        });
+
+        if (option.goto) {
+            _jumpTo(option.goto);
+        } else {
+            _next();
+        }
+    }
+
+    function pause() {
+        if (!_running) return;
+        _paused = true;
+        if (_waitTimer) { clearTimeout(_waitTimer); _waitTimer = null; }
+        eventBus.emit('scene:paused', { sceneId: _scene && _scene.id });
+    }
+
+    function resume() {
+        if (!_running || !_paused) return;
+        _paused = false;
+        eventBus.emit('scene:resumed', { sceneId: _scene && _scene.id });
+        _tick();
+    }
+
+    function stop() {
+        var sceneId = _scene && _scene.id;
+        _reset();
+        eventBus.emit('scene:stopped', { sceneId: sceneId });
+    }
+
+    function getVariable(key)        { return _variables[key]; }
+    function setVariable(key, value) {
+        _variables[key] = value;
+        eventBus.emit('scene:variable-changed', { key: key, value: value });
+    }
+
+    function getVisibleOptions(options) {
+        if (!Array.isArray(options)) return [];
+        return options.filter(function(opt) {
+            return !opt.condition || RPGState.evalCondition(opt.condition);
+        });
+    }
+
+    function isRunning()      { return _running; }
+    function isPaused()       { return _paused; }
+    function currentSceneId() { return _scene ? _scene.id : null; }
+
+    // ── Motor interno ───────────────────────────────────────────
+
+    function _tick() {
+        if (!_running || _paused) return;
+
+        var steps = _activeSteps();
+        if (_stepIndex >= steps.length) { _finish(); return; }
+
+        var step = steps[_stepIndex];
+
+        eventBus.emit('scene:step', {
+            step: step, index: _stepIndex,
+            sceneId: _scene.id, branch: _branch,
+            total: steps.length
+        });
+
+        if (AUTO_TYPES.has(step.type)) {
+            _executeStep(step);
+        } else if (step.type === 'choice') {
+            // Se detiene aquí — el renderer escucha scene:input:choice para responder.
+            eventBus.emit('scene:choice-shown', {
+                sceneId:   _scene.id,
+                stepIndex: _stepIndex,
+                step:      step,
+                options:   getVisibleOptions(step.options)
+            });
+        } else if (step.type !== 'dialogue') {
+            // Tipo desconocido: advertir y avanzar para no bloquear el motor
+            console.warn('[RPGEngine] Paso no reconocido, avanzando:', step.type);
+            _next();
+        }
+        // 'dialogue' → se detiene; RPGRenderer llama advance() al hacer clic.
+    }
+
+    function _executeStep(step) {
+        switch (step.type) {
+
+            case 'background':
+                eventBus.emit('scene:background', {
+                    asset: step.asset,
+                    transition: step.transition || 'fade',
+                    duration:   step.duration   || 600
+                });
+                _next();
+                break;
+
+            case 'sound':
+                eventBus.emit('scene:sound', {
+                    action: step.action, track: step.track, volume: step.volume
+                });
+                _next();
+                break;
+
+            case 'camera':
+                eventBus.emit('scene:camera', { effect: step.effect, duration: step.duration || 400 });
+                _next();
+                break;
+
+            case 'set_variable':
+                setVariable(step.key, step.value);
+                _next();
+                break;
+
+            case 'set_flag':
+                RPGState.setFlag(step.key, step.value);
+                _next();
+                break;
+
+            case 'check_variable': {
+                var val   = _variables[step.key];
+                var match = Array.isArray(step.equals)
+                    ? step.equals.indexOf(val) !== -1
+                    : val === step.equals;
+                _jumpTo(match ? step.goto_true : (step.goto_false || null));
+                break;
+            }
+
+            case 'modify_stat':
+                RPGState.modifyStat(step.stat, step.amount);
+                _next();
+                break;
+
+            case 'give_item':
+                RPGState.addItem(
+                    typeof step.item === 'string'
+                        ? { id: step.item, name: step.item }
+                        : step.item
+                );
+                _next();
+                break;
+
+            case 'remove_item':
+                RPGState.removeItem(step.item, step.qty || 1);
+                _next();
+                break;
+
+            case 'add_xp':
+                RPGState.addXp(step.amount || 0);
+                _next();
+                break;
+
+            case 'wait':
+                eventBus.emit('scene:wait-start', { duration: step.duration || 1000 });
+                _waitTimer = setTimeout(function() {
+                    _waitTimer = null;
+                    _next();
+                }, step.duration || 1000);
+                break;
+
+            case 'goto_branch':
+                _jumpTo(step.branch);
+                break;
+
+            case 'goto_scene':
+                stop();
+                loadScene(step.scene);
+                break;
+
+            case 'stat_check':
+                _resolveStatCheck(step);
+                break;
+
+            case 'end':
+                _finish(step.outcome);
+                break;
+
+            default:
+                console.warn('[RPGEngine] Tipo de paso desconocido:', step.type);
+                _next();
+        }
+    }
+
+    function _resolveStatCheck(step) {
+        var roll     = Math.ceil(Math.random() * 20);
+        var modifier = RPGState.getModifier(step.stat);
+        var total    = roll + modifier;
+        var success  = roll === 20 || (roll !== 1 && total >= step.difficulty);
+        var result   = roll === 1  ? 'fumble'
+                     : roll === 20 ? 'critical'
+                     : success     ? 'success'
+                                   : 'fail';
+
+        eventBus.emit('scene:stat-check-result', {
+            sceneId: _scene.id, stat: step.stat,
+            statValue: RPGState.getStat(step.stat),
+            roll: roll, modifier: modifier, total: total,
+            difficulty: step.difficulty, result: result, success: success
+        });
+
+        var delay = step.delay || 1800;
+        _waitTimer = setTimeout(function() {
+            _waitTimer = null;
+            if (!_running) return;
+            _jumpTo(success ? step.on_success : step.on_fail);
+        }, delay);
+    }
+
+    // ── Navegación ───────────────────────────────────────────────
+
+    function _next() {
+        _stepIndex++;
+        _tick();
+    }
+
+    function _jumpTo(target) {
+        if (!_running) return;   // ignorar si el motor ya se detuvo
+        if (!target) { _finish(); return; }
+        var branches = _scene.branches || {};
+        if (branches[target]) {
+            _branch    = target;
+            _stepIndex = 0;
+            _tick();
+        } else {
+            stop();
+            loadScene(target);
+        }
+    }
+
+    function _finish(outcome) {
+        var sceneId   = _scene.id;
+        var variables = Object.assign({}, _variables);
+        _running = false;
+
+        eventBus.emit('scene:ended', {
+            sceneId:   sceneId,
+            outcome:   outcome || 'end',
+            variables: variables
+        });
+
+        _reset();   // limpiar estado residual después de emitir
+    }
+
+    function _activeSteps() {
+        var branches = _scene.branches || {};
+        return (_branch && branches[_branch]) ? branches[_branch] : (_scene.steps || []);
+    }
+
+    function _currentStep() {
+        return _activeSteps()[_stepIndex] || null;
+    }
+
+    function _reset() {
+        if (_waitTimer) { clearTimeout(_waitTimer); _waitTimer = null; }
+        _scene = null; _stepIndex = 0; _branch = null;
+        _variables = {}; _running = false; _paused = false;
+    }
+
+    // ── Listeners de input desde el renderer ─────────────────────
+    // El renderer emite estos eventos; el engine los escucha.
+    // Así el renderer nunca llama al engine directamente.
+    eventBus.on('scene:input:advance', function() {
+        if (_running && !_paused) advance();
+    });
+    eventBus.on('scene:input:choice', function(data) {
+        if (_running && !_paused) choiceMade(data.index);
+    });
+
+    // ── Exports ──────────────────────────────────────────────────
+    return {
+        loadScene:         loadScene,
+        advance:           advance,
+        choiceMade:        choiceMade,
+        pause:             pause,
+        resume:            resume,
+        stop:              stop,
+        reset:             _reset,          // limpia el estado sin emitir eventos
+        isRunning:         isRunning,
+        isPaused:          isPaused,
+        currentSceneId:    currentSceneId,
+        getVariable:       getVariable,
+        setVariable:       setVariable,
+        getVisibleOptions: getVisibleOptions
+    };
+})();
+
+</script>
+<script>
+/* js/rpg/RPGRenderer.js */
+// ============================================================
+// RPG RENDERER
+// Escucha eventos del RPGEngine y actualiza el DOM del VN.
+//
+// Es el ÚNICO módulo RPG que toca el DOM.
+// Nunca llama lógica directamente: solo emite eventos de vuelta
+// (advance, choiceMade) como respuesta al input del usuario.
+//
+// Depende de:
+//   - eventBus          (escucha scene:* y emite respuestas)
+//   - El DOM del VN     (vnSection, vnDialogue, vnBackground, etc.)
+// ============================================================
+
+const RPGRenderer = (function () {
+
+    // IDs de los elementos DOM del VN que este renderer usa
+    // Los primeros 4 son IDs existentes en index.html — no cambiar.
+    // vnChoiceArea y vnRpgStatBar son elementos nuevos inyectados por este módulo.
+    const DOM = {
+        vnSection:    'vnSection',
+        background:   'vnBackground',
+        dialogueBox:  'vnDialogBox',       // clase .vn-dialogue-box, sin ID → se busca por clase
+        charName:     'vnSpeakerPlate',    // ID real en index.html
+        dialogueText: 'vnDialogueText',    // ID real en index.html
+        choiceArea:   'vnChoiceArea',      // elemento nuevo — inyectado en init()
+        statBar:      'vnRpgStatBar'       // elemento nuevo — inyectado en init()
+    };
+
+    let _unsubs     = [];    // funciones de unsuscripción del eventBus
+    let _active     = false;
+    let _charCache  = {};    // nombre → color
+
+    // ── Inicialización ──────────────────────────────────────────
+
+    function init() {
+        if (_active) return;
+        _active = true;
+
+        // Inyectar elementos DOM nuevos si no existen aún
+        _ensureChoiceArea();
+        _ensureStatBar();
+
+        _unsubs = [
+            eventBus.on('scene:started',          _onSceneStarted),
+            eventBus.on('scene:step',              _onStep),
+            eventBus.on('scene:choice-shown',      _onChoiceShown),
+            eventBus.on('scene:background',        _onBackground),
+            eventBus.on('scene:sound',             _onSound),
+            eventBus.on('scene:camera',            _onCamera),
+            eventBus.on('scene:stat-check-result', _onStatCheckResult),
+            eventBus.on('scene:choice-made',       _onChoiceMade),
+            eventBus.on('scene:ended',             _onSceneEnded),
+            eventBus.on('scene:error',             _onError),
+            eventBus.on('rpg:state-updated',       _onStateUpdated)
+        ];
+    }
+
+    function _ensureChoiceArea() {
+        if (document.getElementById(DOM.choiceArea)) return;
+        var vnSection = document.getElementById(DOM.vnSection);
+        if (!vnSection) return;
+        var el = document.createElement('div');
+        el.id = DOM.choiceArea;
+        el.style.display = 'none';
+        vnSection.appendChild(el);
+    }
+
+    function _ensureStatBar() {
+        if (document.getElementById(DOM.statBar)) return;
+        var vnSection = document.getElementById(DOM.vnSection);
+        if (!vnSection) return;
+        var el = document.createElement('div');
+        el.id = DOM.statBar;
+        vnSection.appendChild(el);
+    }
+
+    // Obtener la caja de diálogo — tiene clase pero no ID
+    function _dialogueBox() {
+        return document.querySelector('.vn-dialogue-box') || null;
+    }
+
+    function destroy() {
+        _unsubs.forEach(function(unsub) { unsub(); });
+        _unsubs  = [];
+        _active  = false;
+        _charCache = {};
+    }
+
+    // ── Manejadores de eventos del engine ───────────────────────
+
+    function _onSceneStarted(data) {
+        _clearChoices();
+        _hideStatCheck();
+        var vnSection = document.getElementById(DOM.vnSection);
+        if (vnSection) vnSection.classList.add('rpg-scene-active');
+    }
+
+    function _onStep(data) {
+        var step = data.step;
+        if (!step) return;
+
+        // Solo renderizar diálogos aquí.
+        // Las elecciones llegan por scene:choice-shown con opciones ya filtradas.
+        if (step.type === 'dialogue') {
+            _renderDialogue(step);
+        }
+    }
+
+    function _onChoiceShown(data) {
+        // data.options ya vienen filtradas por RPGEngine.getVisibleOptions()
+        _renderChoice(data.step || {}, data.options);
+    }
+
+    function _onBackground(data) {
+        // Emitir evento — vn.js escucha vn:background-changed y aplica el fondo.
+        // RPGRenderer nunca llama funciones de vn.js directamente.
+        eventBus.emit('vn:background-changed', {
+            asset:      data.asset,
+            transition: data.transition,
+            duration:   data.duration,
+            scene:      window.__etheriaScene || null
+        });
+    }
+
+    function _onSound(data) {
+        if (!data || !data.action) return;
+        if (data.track === 'rain') {
+            eventBus.emit(data.action === 'start' ? 'audio:start-rain' : 'audio:stop-rain');
+        }
+        // Otros tracks de escena se pueden ampliar aquí
+    }
+
+    function _onCamera(data) {
+        var vnSection = document.getElementById(DOM.vnSection);
+        if (!vnSection) return;
+
+        if (data.effect === 'shake') {
+            vnSection.classList.add('vn-shake');
+            setTimeout(function() { vnSection.classList.remove('vn-shake'); }, data.duration || 400);
+        } else if (data.effect === 'flash') {
+            vnSection.classList.add('vn-flash');
+            setTimeout(function() { vnSection.classList.remove('vn-flash'); }, data.duration || 300);
+        }
+    }
+
+    function _onStatCheckResult(data) {
+        _showStatCheck(data);
+    }
+
+    function _onChoiceMade(data) {
+        _clearChoices();
+    }
+
+    function _onSceneEnded(data) {
+        _clearChoices();
+        _hideStatCheck();
+        var vnSection = document.getElementById(DOM.vnSection);
+        if (vnSection) vnSection.classList.remove('rpg-scene-active');
+
+        // Si hay un callback registrado externamente, llamarlo
+        if (typeof window._rpgSceneEndCallback === 'function') {
+            window._rpgSceneEndCallback(data);
+        }
+    }
+
+    function _onError(data) {
+        console.error('[RPGRenderer] Error de escena:', data.error);
+        var box = _dialogueBox();
+        if (box) {
+            _setText(DOM.charName, 'Error');
+            _setText(DOM.dialogueText, 'No se pudo cargar la escena: ' + data.error);
+            box.style.display = 'flex';
+        }
+    }
+
+    function _onStateUpdated(data) {
+        _updateStatBar(data);
+    }
+
+    // ── Renderizado de diálogo ───────────────────────────────────
+
+    function _renderDialogue(step) {
+        var box = _dialogueBox();
+        if (!box) return;
+
+        _clearChoices();
+        _hideStatCheck();
+
+        // Nombre del personaje
+        var nameEl = document.getElementById(DOM.charName);
+        if (nameEl) {
+            nameEl.textContent = step.character || '';
+            nameEl.style.color = _charColor(step.character);
+        }
+
+        // Texto con typewriter si existe la función global, sino directo
+        var textEl = document.getElementById(DOM.dialogueText);
+        if (textEl) {
+            if (typeof typewriterWrite === 'function') {
+                typewriterWrite(textEl, step.text || '', { speed: window.textSpeed || 25 });
+            } else {
+                textEl.textContent = step.text || '';
+            }
+        }
+
+        // Expresión del sprite si hay personaje seleccionado
+        if (step.expression && typeof showEmoteOnSprite === 'function') {
+            showEmoteOnSprite(step.expression);
+        }
+
+        box.style.display = 'flex';
+
+        // El click en la caja avanza al siguiente paso
+        _bindAdvanceOnce(box);
+    }
+
+    // ── Renderizado de elecciones ────────────────────────────────
+
+    // step: objeto del paso (para leer .prompt)
+    // options: array ya filtrado por RPGEngine (llega desde scene:choice-shown)
+    function _renderChoice(step, options) {
+        var area = document.getElementById(DOM.choiceArea);
+        if (!area) return;
+
+        // Usar _dialogueBox() porque el elemento solo tiene clase CSS, no ID
+        var box = _dialogueBox();
+        if (box) box.style.display = 'none';
+
+        area.innerHTML = '';
+        area.style.display = 'flex';
+
+        if (step.prompt) {
+            var prompt = document.createElement('div');
+            prompt.className = 'rpg-choice-prompt';
+            prompt.textContent = step.prompt;
+            area.appendChild(prompt);
+        }
+
+        (options || []).forEach(function(opt, i) {
+            var btn = document.createElement('button');
+            btn.className = 'rpg-choice-btn';
+            btn.textContent = opt.text;
+
+            // Indicador de coste si existe
+            if (opt.cost_hp) {
+                var badge = document.createElement('span');
+                badge.className = 'rpg-choice-cost';
+                badge.textContent = '-' + opt.cost_hp + ' HP';
+                btn.appendChild(badge);
+            }
+
+            btn.addEventListener('click', function() {
+                eventBus.emit('scene:input:choice', { index: i });
+            });
+            area.appendChild(btn);
+        });
+    }
+
+    // ── Tirada de dados ──────────────────────────────────────────
+
+    function _showStatCheck(data) {
+        // Reutilizar showDiceResultOverlay si existe (ya implementado en vn.js)
+        if (typeof showDiceResultOverlay === 'function') {
+            showDiceResultOverlay(data);
+            return;
+        }
+
+        // Fallback mínimo
+        var existing = document.getElementById('rpgStatCheckOverlay');
+        if (existing) existing.remove();
+
+        var overlay = document.createElement('div');
+        overlay.id = 'rpgStatCheckOverlay';
+        overlay.className = 'rpg-stat-check-overlay';
+
+        var cssClass = { critical: 'dice-result-critical', success: 'dice-result-success',
+                         fail: 'dice-result-fail', fumble: 'dice-result-fumble' }[data.result]
+                       || 'dice-result-success';
+
+        var label = { critical: 'ÉXITO CRÍTICO', success: 'ACIERTO',
+                      fail: 'FALLO', fumble: 'FALLO CRÍTICO' }[data.result] || data.result;
+
+        var sign = data.modifier >= 0 ? '+' : '';
+        overlay.innerHTML =
+            '<div class="dice-result-box">' +
+                '<div class="dice-number ' + cssClass + '">' + data.roll + '</div>' +
+                '<div class="dice-result-label ' + cssClass + '">' + label + '</div>' +
+                '<div style="font-size:0.85rem;margin-top:0.4rem;opacity:0.75;">' +
+                    'D20 (' + data.roll + ') ' + sign + data.modifier + ' = ' + data.total +
+                    ' vs CD ' + data.difficulty +
+                '</div>' +
+            '</div>';
+
+        document.body.appendChild(overlay);
+        setTimeout(function() { if (overlay.parentNode) overlay.remove(); }, 2000);
+    }
+
+    function _hideStatCheck() {
+        var el = document.getElementById('rpgStatCheckOverlay');
+        if (el) el.remove();
+    }
+
+    // ── Barra de stats ───────────────────────────────────────────
+
+    // data: payload de rpg:state-updated  { hp: {current, max}, xp, level }
+    // Si no llega payload (p.ej. llamada directa al init) lee de RPGState como fallback.
+    function _updateStatBar(data) {
+        var bar = document.getElementById(DOM.statBar);
+        if (!bar) return;
+
+        var hp  = (data && data.hp)    || RPGState.getHp();
+        var xp  = (data && data.xp  != null) ? data.xp  : RPGState.getXp();
+        var lvl = (data && data.level != null) ? data.level : RPGState.getLevel();
+
+        bar.innerHTML =
+            '<span class="rpg-stat-hp">❤ ' + hp.current + '/' + hp.max + '</span>' +
+            '<span class="rpg-stat-xp">✦ Nv.' + lvl + ' (' + xp + ' XP)</span>';
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────
+
+    function _bindAdvanceOnce(element) {
+        // Quitar listeners anteriores clonando el nodo
+        var fresh = element.cloneNode(true);
+        element.parentNode.replaceChild(fresh, element);
+
+        function handler(e) {
+            // No disparar si se ha hecho clic en un botón interno
+            if (e.target.closest && e.target.closest('button')) return;
+            fresh.removeEventListener('click', handler);
+            eventBus.emit('scene:input:advance');
+        }
+        fresh.addEventListener('click', handler);
+    }
+
+    function _clearChoices() {
+        var area = document.getElementById(DOM.choiceArea);
+        if (area) { area.innerHTML = ''; area.style.display = 'none'; }
+    }
+
+    function _setText(domId, text) {
+        var el = document.getElementById(domId);
+        if (el) el.textContent = text;
+    }
+
+    function _resolveAsset(asset) {
+        if (!asset) return '';
+        if (asset.startsWith('http') || asset.startsWith('/') || asset.startsWith('./')) return asset;
+        return 'assets/backgrounds/' + asset + '.jpg';
+    }
+
+    // Asignar un color consistente por nombre de personaje
+    var CHAR_COLORS = [
+        '#e8c97a', '#7ab8e8', '#e87a7a', '#7ae8b8',
+        '#c87ae8', '#e8a87a', '#7ae8e8', '#e87ab8'
+    ];
+
+    function _charColor(name) {
+        if (!name) return '#e8dcc8';
+        if (!_charCache[name]) {
+            var hash = 0;
+            for (var i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+            _charCache[name] = CHAR_COLORS[Math.abs(hash) % CHAR_COLORS.length];
+        }
+        return _charCache[name];
+    }
+
+    return { init: init, destroy: destroy, updateStatBar: _updateStatBar };
+})();
 
 </script>
 <script>
@@ -28101,6 +29777,10 @@ function initializeApp() {
     }
     startCloudSync();
 
+    // Inicializar motor RPG de escenas narrativas
+    if (typeof RPGState !== 'undefined')    RPGState.init(currentUserIndex);
+    if (typeof RPGRenderer !== 'undefined') RPGRenderer.init();
+
     // renderUserCards() ya gestiona el welcomeOverlay internamente.
 
     // Setup keyboard listeners
@@ -28274,9 +29954,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Usar el sistema de toasts nativo de Etheria si está disponible,
             // de lo contrario crear un elemento temporal propio.
-            if (typeof showAutosave === 'function') {
-                showAutosave('Gira el móvil horizontal para mejor experiencia 🔄', 'info');
-            } else {
+            eventBus.emit('ui:show-autosave', { text: 'Gira el móvil horizontal para mejor experiencia 🔄', state: 'info' });
+            if (typeof showAutosave !== 'function') {
                 _injectHintElement();
             }
             localStorage.setItem(TOAST_KEY, '1');
@@ -28382,9 +30061,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                                 // Nueva versión disponible
                                 console.log('[PWA] Nueva versión disponible');
-                                if (typeof showAutosave === 'function') {
-                                    showAutosave('Nueva versión disponible. Recarga para actualizar.', 'info');
-                                }
+                                eventBus.emit('ui:show-autosave', { text: 'Nueva versión disponible. Recarga para actualizar.', state: 'info' });
                                 // Forzar activación de la nueva versión
                                 newWorker.postMessage('skipWaiting');
                             }
@@ -28417,198 +30094,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
         });
     }
+    // ── Frase aleatoria en el subtítulo del menú principal ───────────────────
+    // (absorbido de mejoras.js — Mejora 1)
+    (function _initMenuSubtitle() {
+        var phrases = [
+            'Un mundo al borde del olvido',
+            'Cada elección deja una cicatriz',
+            'El destino se escribe con tinta y dados',
+            'Las historias no terminan, se transforman',
+            'Cada personaje guarda un secreto',
+            'El pasado elige quiénes somos',
+            'Algunos hilos no deberían cortarse',
+            'La magia no perdona a los imprudentes',
+            'Hasta los héroes sangran en silencio',
+            'El azar es la firma de los dioses',
+            'Ningún mapa llega hasta el final del camino',
+            'Lo que se escribe, permanece'
+        ];
+        var el = document.querySelector('.menu-subtitle');
+        if (el) el.textContent = phrases[Math.floor(Math.random() * phrases.length)];
+    })();
     // ─────────────────────────────────────────────────────────────
-});
-
-</script>
-<script>
-/* js/ui/mejoras.js */
-// ============================================
-// MEJORAS v10
-// ============================================
-
-// ============================================
-// MEJORA 9: TRANSICIONES SUAVES ENTRE SECCIONES
-// ============================================
-// Flag: cuando venimos de la pantalla de perfiles, saltamos el overlay negro
-var _skipNextFadeTransition = false;
-
-var _fadeTransitionInProgress = false;
-
-function _clearFadeOverlay(overlay, delay) {
-    setTimeout(function() {
-        if (overlay) {
-            overlay.classList.remove('fade-out');
-            overlay.style.transition = '';
-        }
-        _fadeTransitionInProgress = false;
-    }, delay);
-}
-
-function fadeTransition(callback, duration) {
-    duration = duration || 280;
-
-    // Si viene de seleccionar perfil, ejecutar directamente sin overlay
-    if (_skipNextFadeTransition) {
-        _skipNextFadeTransition = false;
-        try { callback(); } catch(e) { console.error('[fadeTransition] callback error:', e); }
-        return;
-    }
-
-    // Evitar transiciones simultáneas que dejen el overlay atascado
-    if (_fadeTransitionInProgress) {
-        try { callback(); } catch(e) { console.error('[fadeTransition] callback error:', e); }
-        return;
-    }
-
-    var overlay = document.getElementById('sectionTransitionOverlay');
-    if (!overlay) {
-        try { callback(); } catch(e) { console.error('[fadeTransition] callback error:', e); }
-        return;
-    }
-
-    _fadeTransitionInProgress = true;
-    overlay.style.transition = 'opacity ' + duration + 'ms ease';
-    overlay.classList.add('fade-out');
-
-    setTimeout(function() {
-        try {
-            callback();
-        } catch(e) {
-            console.error('[fadeTransition] callback error:', e);
-        } finally {
-            // Siempre quitar el overlay, aunque el callback haya fallado
-            _clearFadeOverlay(overlay, Math.round(duration * 0.6));
-        }
-    }, duration);
-}
-
-// ============================================
-// MEJORA 12: SUSPENSE EN OPCIONES
-// ============================================
-function applySuspenseEffect() {
-    var vn = document.getElementById('vnSection');
-    if (vn) vn.classList.add('suspense-mode');
-}
-
-function removeSuspenseEffect() {
-    var vn = document.getElementById('vnSection');
-    if (vn) vn.classList.remove('suspense-mode');
-}
-
-// ============================================
-// Compatibilidad legacy de tiradas (desactivado)
-// ============================================
-function toggleDiceMode() { return; }
-function clearDiceRoll() { return; }
-function updateDiceBadgeForMessage() { return; }
-function consumePendingDiceRoll() { return undefined; }
-function resetDiceOnCloseReply() { return; }
-
-// ============================================
-// MEJORA 5: Indicador cloud — temporal en estado online
-// ============================================
-var _cloudHideTimer = null;
-
-function showCloudIndicatorTemporarily() {
-    var indicator = document.getElementById('cloudSyncIndicator');
-    if (!indicator) return;
-    if (indicator.classList.contains('degraded') || indicator.classList.contains('offline')) return;
-    indicator.classList.add('visible');
-    clearTimeout(_cloudHideTimer);
-    _cloudHideTimer = setTimeout(function() {
-        indicator.classList.remove('visible');
-    }, 3000);
-}
-
-// ============================================
-// INICIALIZACIÓN — parchear funciones globales
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
-
-    // MEJORA 1: Frase aleatoria en el subtítulo del menú principal
-    var _menuPhrases = [
-        'Un mundo al borde del olvido',
-        'Cada elección deja una cicatriz',
-        'El destino se escribe con tinta y dados',
-        'Las historias no terminan, se transforman',
-        'Cada personaje guarda un secreto',
-        'El pasado elige quiénes somos',
-        'Algunos hilos no deberían cortarse',
-        'La magia no perdona a los imprudentes',
-        'Hasta los héroes sangran en silencio',
-        'El azar es la firma de los dioses',
-        'Ningún mapa llega hasta el final del camino',
-        'Lo que se escribe, permanece'
-    ];
-    var _subtitle = document.querySelector('.menu-subtitle');
-    if (_subtitle) {
-        _subtitle.textContent = _menuPhrases[Math.floor(Math.random() * _menuPhrases.length)];
-    }
-
-    // Mejora 5: parchar updateCloudSyncIndicator
-    var _origCloud = window.updateCloudSyncIndicator;
-    if (typeof _origCloud === 'function') {
-        window.updateCloudSyncIndicator = function(state, text) {
-            _origCloud.call(this, state, text);
-            if (state === 'online') showCloudIndicatorTemporarily();
-        };
-    }
-    setTimeout(showCloudIndicatorTemporarily, 1500);
-
-    // Mejora 12: parchar showOptions para suspense
-    var _origShowOptions = window.showOptions;
-    if (typeof _origShowOptions === 'function') {
-        window.showOptions = function(options) {
-            _origShowOptions.call(this, options);
-            var container = document.getElementById('vnOptionsContainer');
-            if (container && container.classList.contains('active')) {
-                applySuspenseEffect();
-            }
-        };
-    }
-
-    // Mejora 12: parchar selectOption para quitar suspense
-    var _origSelectOption = window.selectOption;
-    if (typeof _origSelectOption === 'function') {
-        window.selectOption = function(idx) {
-            removeSuspenseEffect();
-            _origSelectOption.call(this, idx);
-        };
-    }
-
-    // Mejora 9: parchar showSection
-    var _origShowSection = window.showSection;
-    if (typeof _origShowSection === 'function') {
-        window.showSection = function(section) {
-            fadeTransition(function() { _origShowSection.call(window, section); }, 150);
-        };
-    }
-
-    // Mejora 9: parchar backToMenu
-    var _origBackToMenu = window.backToMenu;
-    if (typeof _origBackToMenu === 'function') {
-        window.backToMenu = function() {
-            fadeTransition(function() { _origBackToMenu.call(window); }, 150);
-        };
-    }
-
-    // Mejora 9: parchar backToTopics
-    var _origBackToTopics = window.backToTopics;
-    if (typeof _origBackToTopics === 'function') {
-        window.backToTopics = function() {
-            fadeTransition(function() { _origBackToTopics.call(window); }, 150);
-        };
-    }
-
-    // Mejora 9: parchar enterTopic
-    var _origEnterTopic = window.enterTopic;
-    if (typeof _origEnterTopic === 'function') {
-        window.enterTopic = function(id) {
-            fadeTransition(function() { _origEnterTopic.call(window, id); }, 220);
-        };
-    }
-
 });
 
 </script>
@@ -28635,6 +30141,7 @@ const Ethy = (function() {
     // ── Estado interno ───────────────────────────────────────────────────────
     let _container = null;
     let _body = null;
+    let _floatWrapper = null;
     let _bubble = null;
     let _currentExpression = 'neutral';
     let _isTyping = false;
@@ -28958,6 +30465,7 @@ const Ethy = (function() {
         // Verificar si ya existe
         if (document.getElementById('ethyContainer')) {
             _container = document.getElementById('ethyContainer');
+            _floatWrapper = _container.querySelector('.ethy-float-wrapper');
             _body = _container.querySelector('.ethy-body');
             _bubble = _container.querySelector('.ethy-speech-bubble');
             return;
@@ -28970,22 +30478,16 @@ const Ethy = (function() {
         _container.style.opacity = '1';
         _container.style.transform = 'scale(1)';
 
+        // Crear wrapper de flotación (separa animation:ethyFloat del body
+        // para que los transform de expresión no sean anulados por la animación)
+        _floatWrapper = document.createElement('div');
+        _floatWrapper.className = 'ethy-float-wrapper';
+
         // Crear cuerpo de Ethy
         _body = document.createElement('div');
         _body.className = 'ethy-body ethy-expression-neutral';
-        _body.innerHTML = `
-            <div class="ethy-antenna left"></div>
-            <div class="ethy-antenna right"></div>
-            <div class="ethy-eyes">
-                <div class="ethy-eye"></div>
-                <div class="ethy-eye"></div>
-            </div>
-            <div class="ethy-mouth"></div>
-            <div class="ethy-cheeks">
-                <div class="ethy-cheek"></div>
-                <div class="ethy-cheek"></div>
-            </div>
-        `;
+        // El personaje se renderiza como SVG via background-image en ethy.css
+        // No se inyectan divs internos de antenas/ojos/boca
 
         // Crear burbuja de diálogo
         _bubble = document.createElement('div');
@@ -29007,8 +30509,9 @@ const Ethy = (function() {
             toggleMinimize();
         });
 
+        _floatWrapper.appendChild(_body);
         _container.appendChild(_bubble);
-        _container.appendChild(_body);
+        _container.appendChild(_floatWrapper);
         _container.appendChild(_minimizeBtn);
         document.body.appendChild(_container);
 
@@ -29075,6 +30578,82 @@ const Ethy = (function() {
                     });
                 }, 800);
             }
+        });
+
+        // ── EventBus — reacciones a eventos del sistema ───────────────────
+        // Cooldown: Ethy no reacciona más de una vez cada 3 segundos
+        // para evitar spam de expresiones o frases en escenas rápidas.
+        if (typeof eventBus === 'undefined') return;
+
+        let _lastEventReaction = 0;
+        function _canReact() {
+            const now = Date.now();
+            if (now - _lastEventReaction < 3000) return false;
+            _lastEventReaction = now;
+            return true;
+        }
+
+        // El jugador ve una elección → Ethy reflexiona
+        eventBus.on('scene:choice-shown', () => {
+            if (!_canReact()) return;
+            setExpression('thoughtful');
+            // Frase ocasional — solo 30% de las veces para no saturar
+            if (Math.random() < 0.3) {
+                const msgs = ['Hmm...', 'Interesante...', '¿Qué harás?', 'Elige con cuidado.'];
+                say(msgs[Math.floor(Math.random() * msgs.length)], {
+                    expression: 'thoughtful', duration: 2500
+                });
+            }
+        });
+
+        // Escena terminada → satisfacción
+        eventBus.on('scene:ended', () => {
+            if (!_canReact()) return;
+            const msgs = [
+                'La historia continúa...',
+                'Cada final es un nuevo comienzo.',
+                'Bien hecho.'
+            ];
+            say(msgs[Math.floor(Math.random() * msgs.length)], {
+                expression: 'happy', duration: 3000
+            });
+        });
+
+        // Error en escena → preocupación
+        eventBus.on('scene:error', () => {
+            if (!_canReact()) return;
+            const msgs = [
+                'Algo no salió como esperaba...',
+                'Eso fue extraño.',
+                'A veces el destino también duda.'
+            ];
+            say(msgs[Math.floor(Math.random() * msgs.length)], {
+                expression: 'sad', duration: 3500
+            });
+        });
+
+        // Guardado → confirmación tranquila
+        eventBus.on('ui:show-autosave', (data) => {
+            if (!_canReact()) return;
+            if (data?.state === 'error') {
+                say('No pude guardar tu historia...', { expression: 'sad', duration: 3000 });
+                return;
+            }
+            setExpression('happy');
+        });
+
+        // Sincronización completada → frase breve
+        eventBus.on('sync:status-changed', (data) => {
+            if (data?.target !== 'button') return;
+            if (data?.status !== 'synced') return;
+            if (!_canReact()) return;
+            say('Tu historia está a salvo.', { expression: 'happy', duration: 3000 });
+        });
+
+        // Navegación → expresión neutra curiosa
+        eventBus.on('ui:navigate', () => {
+            if (!_canReact()) return;
+            setExpression('wink');
         });
     }
 
@@ -30284,9 +31863,10 @@ window.Ethy = Ethy;
                     global.currentMessageIndex = localMsgs.length - 1;
                     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                     if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                    if (typeof showSyncToast === 'function') {
-                        showSyncToast(newRemote.length + ' mensaje(s) cargado(s) desde la historia', 'OK');
-                    }
+                    eventBus.emit('ui:show-toast', {
+                        text: newRemote.length + ' mensaje(s) cargado(s) desde la historia',
+                        action: 'OK'
+                    });
                 }
             }
         }
@@ -30463,17 +32043,20 @@ window.Ethy = Ethy;
                 global.currentMessageIndex = msgs.length - 1;
                 if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                 if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                if (typeof showSyncToast === 'function') {
-                    showSyncToast('Nuevo mensaje en la historia', 'OK');
-                }
+                eventBus.emit('ui:show-toast', {
+                    text: 'Nuevo mensaje en la historia',
+                    action: 'OK'
+                });
             } else {
-                if (typeof showSyncToast === 'function') {
-                    showSyncToast('Nuevo mensaje recibido', 'Ver ahora', function () {
+                eventBus.emit('ui:show-toast', {
+                    text: 'Nuevo mensaje recibido',
+                    action: 'Ver ahora',
+                    onAction: function () {
                         global.currentMessageIndex = msgs.length - 1;
                         if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                         if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                    });
-                }
+                    }
+                });
             }
         } catch (e) {
             console.warn('[Stories] _injectRealtimeMessage error:', e.message);

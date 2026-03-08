@@ -222,9 +222,10 @@ function backToTopics() {
                 _globalRealtimeHandlerRef = null;
             }
             resetVNTransientState({ clearTopic: true });
-            const vnSection = document.getElementById('vnSection');
+            // Limpiar TODAS las secciones activas (no solo vnSection)
+            // para evitar que options/gallery queden visibles encima de topics
+            document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
             const topicsSection = document.getElementById('topicsSection');
-            if (vnSection) vnSection.classList.remove('active');
             if (topicsSection) topicsSection.classList.add('active');
             renderTopics();
         }, 150);

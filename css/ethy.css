@@ -37,294 +37,82 @@
     }
 }
 
-/* El cuerpo de Ethy */
+/* ── Cuerpo de Ethy — SVG ────────────────────────────────────────────────── */
+/* .ethy-float-wrapper tiene la animación de flotación.                      */
+/* .ethy-body es hijo y solo lleva expresiones (transform libre de animación)*/
+
+.ethy-float-wrapper {
+    animation: ethyFloat 3s ease-in-out infinite;
+    display: inline-block;
+    line-height: 0;
+}
+
 .ethy-body {
-    pointer-events: auto; /* override parent pointer-events:none */
+    pointer-events: auto;
     width: 80px;
     height: 80px;
-    background: linear-gradient(145deg, #c9a86c 0%, #a88b52 50%, #8b7347 100%);
-    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
     position: relative;
     cursor: grab;
-    box-shadow: 
-        0 8px 25px rgba(0, 0, 0, 0.3),
-        inset 0 -5px 15px rgba(0, 0, 0, 0.2),
-        inset 0 5px 15px rgba(255, 255, 255, 0.2);
-    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    animation: ethyFloat 3s ease-in-out infinite;
+    /* SIN animation aquí — ethyFloat vive en .ethy-float-wrapper */
+    /* Así los transform de expresión no son sobreescritos por la animación */
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease,
+                filter 0.3s ease;
+    background-image: url('../assets/ui/ethy.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
-.ethy-body:hover {
-    transform: scale(1.1);
-    box-shadow: 
-        0 12px 35px rgba(201, 168, 108, 0.4),
-        inset 0 -5px 15px rgba(0, 0, 0, 0.2),
-        inset 0 5px 15px rgba(255, 255, 255, 0.3);
-}
-
-.ethy-body:active {
-    transform: scale(0.95);
-}
+.ethy-body:hover  { transform: scale(1.1); }
+.ethy-body:active { transform: scale(0.95); }
 
 /* Animación de flotación */
 @keyframes ethyFloat {
     0%, 100% { transform: translateY(0) rotate(0deg); }
-    25% { transform: translateY(-8px) rotate(-2deg); }
-    50% { transform: translateY(-4px) rotate(0deg); }
-    75% { transform: translateY(-10px) rotate(2deg); }
+    25%       { transform: translateY(-8px) rotate(-2deg); }
+    50%       { transform: translateY(-4px) rotate(0deg); }
+    75%       { transform: translateY(-10px) rotate(2deg); }
 }
 
-/* Antenas de Ethy */
-.ethy-antenna {
-    position: absolute;
-    width: 4px;
-    height: 20px;
-    background: linear-gradient(to bottom, #c9a86c, #8b7347);
-    border-radius: 2px;
-    top: -15px;
+/* Expresiones — variaciones sobre el SVG.
+   Combinamos filter + transform para que sean perceptibles
+   incluso en un icono monocromo pequeño.                    */
+.ethy-expression-neutral   { /* sin cambio — estado base */ }
+
+.ethy-expression-happy     {
+    filter: brightness(1.2) sepia(0.3) saturate(1.4);
+    transform: scale(1.05) rotate(3deg);
+}
+.ethy-expression-excited   {
+    filter: brightness(1.25) sepia(0.4) saturate(1.6);
+    /* ethyFloat viene del wrapper; añadimos solo el bounce adicional en el body */
+    animation: ethyExcitedBounce 0.35s ease-in-out infinite;
+}
+.ethy-expression-sad       {
+    filter: brightness(0.7) saturate(0.3) grayscale(0.4);
+    transform: scale(0.95) rotate(-3deg);
+    opacity: 0.8;
+}
+.ethy-expression-surprised {
+    filter: brightness(1.1);
+    transform: scale(1.15) translateY(-4px);
+}
+.ethy-expression-thoughtful {
+    filter: brightness(0.9) sepia(0.2);
+    transform: rotate(-6deg);
+}
+.ethy-expression-wink      {
+    filter: brightness(1.1) saturate(1.2);
+    transform: scale(1.02) rotate(5deg);
+}
+.ethy-expression-love      {
+    filter: brightness(1.2) sepia(0.5) saturate(2) hue-rotate(-15deg);
+    transform: scale(1.08);
 }
 
-.ethy-antenna.left {
-    left: 25px;
-    transform: rotate(-15deg);
-}
-
-.ethy-antenna.right {
-    right: 25px;
-    transform: rotate(15deg);
-}
-
-.ethy-antenna::after {
-    content: '';
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    background: #e8d5a3;
-    border-radius: 50%;
-    top: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    box-shadow: 0 0 10px rgba(232, 213, 163, 0.5);
-    animation: ethyAntennaGlow 2s ease-in-out infinite;
-}
-
-@keyframes ethyAntennaGlow {
-    0%, 100% { box-shadow: 0 0 5px rgba(232, 213, 163, 0.5); }
-    50% { box-shadow: 0 0 15px rgba(232, 213, 163, 0.8); }
-}
-
-/* Ojos de Ethy - Base */
-.ethy-eyes {
-    position: absolute;
-    top: 35%;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 12px;
-}
-
-.ethy-eye {
-    width: 18px;
-    height: 22px;
-    background: #1a1815;
-    border-radius: 50%;
-    position: relative;
-    overflow: hidden;
-}
-
-.ethy-eye::after {
-    content: '';
-    position: absolute;
-    width: 6px;
-    height: 6px;
-    background: white;
-    border-radius: 50%;
-    top: 4px;
-    right: 3px;
-}
-
-/* Expresiones de Ethy */
-
-/* 1. Neutral/Curioso (ㆆ_ㆆ) */
-.ethy-expression-neutral .ethy-eye {
-    height: 8px;
-    border-radius: 4px;
-    margin-top: 7px;
-}
-
-/* 2. Triste (˘︹˘) */
-.ethy-expression-sad .ethy-eye {
-    height: 12px;
-    border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
-    transform: rotate(-10deg);
-}
-
-.ethy-expression-sad .ethy-eye:last-child {
-    transform: rotate(10deg);
-}
-
-/* 3. Feliz (─‿‿─) */
-.ethy-expression-happy .ethy-eye {
-    height: 10px;
-    border-radius: 50%;
-    border-bottom: 3px solid #1a1815;
-    background: transparent;
-}
-
-.ethy-expression-happy .ethy-eye::after {
-    display: none;
-}
-
-/* 4. Emocionado (≧◉◡◉≦) */
-.ethy-expression-excited .ethy-eye {
-    width: 20px;
-    height: 24px;
-    animation: ethyExcitedBlink 0.5s ease-in-out infinite;
-}
-
-@keyframes ethyExcitedBlink {
-    0%, 100% { transform: scaleY(1); }
-    50% { transform: scaleY(0.3); }
-}
-
-/* 5. Sorprendido (◉_◉) */
-.ethy-expression-surprised .ethy-eye {
-    width: 22px;
-    height: 26px;
-}
-
-/* 6. Pensativo (¬‿¬) */
-.ethy-expression-thoughtful .ethy-eye {
-    height: 6px;
-    border-radius: 3px;
-    margin-top: 8px;
-}
-
-.ethy-expression-thoughtful .ethy-eye:first-child {
-    transform: rotate(-5deg);
-}
-
-.ethy-expression-thoughtful .ethy-eye:last-child {
-    transform: rotate(5deg);
-}
-
-/* 7. Guiño (◠‿◠) */
-.ethy-expression-wink .ethy-eye:first-child {
-    height: 4px;
-    border-radius: 2px;
-    margin-top: 9px;
-}
-
-/* 8. Amor (♥‿♥) */
-.ethy-expression-love .ethy-eye {
-    width: 16px;
-    height: 16px;
-    background: #e74c3c;
-    transform: rotate(-45deg);
-    border-radius: 0;
-}
-
-.ethy-expression-love .ethy-eye::before,
-.ethy-expression-love .ethy-eye::after {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    background: #e74c3c;
-    border-radius: 50%;
-}
-
-.ethy-expression-love .ethy-eye::before {
-    top: -8px;
-    left: 0;
-}
-
-.ethy-expression-love .ethy-eye::after {
-    left: 8px;
-    top: 0;
-}
-
-.ethy-expression-love .ethy-eye > * {
-    display: none;
-}
-
-/* Boca de Ethy */
-.ethy-mouth {
-    position: absolute;
-    bottom: 25%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 20px;
-    height: 10px;
-    border-bottom: 3px solid #1a1815;
-    border-radius: 0 0 50% 50%;
-    transition: all 0.3s ease;
-}
-
-/* Variaciones de boca */
-.ethy-expression-neutral .ethy-mouth {
-    width: 15px;
-    height: 3px;
-    border: none;
-    background: #1a1815;
-    border-radius: 2px;
-}
-
-.ethy-expression-sad .ethy-mouth {
-    border-bottom: none;
-    border-top: 3px solid #1a1815;
-    border-radius: 50% 50% 0 0;
-    bottom: 20%;
-}
-
-.ethy-expression-happy .ethy-mouth,
-.ethy-expression-excited .ethy-mouth {
-    width: 25px;
-    height: 15px;
-    background: #1a1815;
-    border-radius: 0 0 50% 50%;
-}
-
-.ethy-expression-surprised .ethy-mouth {
-    width: 15px;
-    height: 18px;
-    background: #1a1815;
-    border-radius: 50%;
-}
-
-.ethy-expression-thoughtful .ethy-mouth {
-    width: 8px;
-    height: 8px;
-    border: 2px solid #1a1815;
-    border-radius: 50%;
-    background: transparent;
-}
-
-/* Mejillas sonrojadas */
-.ethy-cheeks {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: space-between;
-    padding: 0 5px;
-    pointer-events: none;
-}
-
-.ethy-cheek {
-    width: 15px;
-    height: 10px;
-    background: rgba(231, 76, 60, 0.3);
-    border-radius: 50%;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.ethy-expression-happy .ethy-cheek,
-.ethy-expression-excited .ethy-cheek,
-.ethy-expression-love .ethy-cheek {
-    opacity: 1;
+@keyframes ethyExcitedBounce {
+    0%, 100% { transform: scale(1.05) translateY(0); }
+    50%       { transform: scale(1.1)  translateY(-5px); }
 }
 
 /* Burbuja de diálogo */
@@ -550,16 +338,11 @@
         font-size: 0.78rem;
         text-align: center;
     }
-
-    .ethy-antenna {
-        height: 15px;
-        top: -12px;
-    }
 }
 
 /* Modo oscuro ajustes */
 [data-theme="dark"] .ethy-body {
-    background: linear-gradient(145deg, #d4b87a 0%, #b89b5e 50%, #9a8252 100%);
+    filter: brightness(1.15);
 }
 
 [data-theme="dark"] .ethy-speech-bubble {

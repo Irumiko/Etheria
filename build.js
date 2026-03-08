@@ -6,7 +6,8 @@ const root = __dirname;
 const distDir = path.join(root, 'dist');
 const indexPath = path.join(root, 'index.html');
 
-const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY || '';
+
+
 
 const cssOrder = [
   'css/variables.css',
@@ -71,12 +72,6 @@ const bundledCss = cssOrder.map(f => `/* ${f} */\n${read(f)}`).join('\n\n');
 html = html.replace(/<link rel="stylesheet" href="css\/main\.css">/, `<style>\n${bundledCss}\n</style>`);
 html = inlineLocalScripts(html, indexPath);
 
-if (JSONBIN_API_KEY) {
-  html = html.replace('</head>', `  <script>window.__ETHERIA_JSONBIN_API_KEY = "${JSONBIN_API_KEY}";</script>\n</head>`);
-  console.log('Clave de JSONBin inyectada correctamente.');
-} else {
-  console.warn('AVISO: JSONBIN_API_KEY no esta definida. La app funcionara solo en modo local.');
-}
 
 fs.mkdirSync(distDir, { recursive: true });
 fs.writeFileSync(path.join(distDir, 'etheria.html'), html);

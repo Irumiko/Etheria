@@ -883,8 +883,9 @@ function _doEnterTopic(id, t, topicMode) {
     if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
         SupabaseMessages.subscribeGlobal(null, null, id);
     }
-    getTopicMessages(id);
-    currentMessageIndex = 0;
+    const _existingMsgs = getTopicMessages(id);
+    // Si el tema tiene mensajes, posicionar en el último — no en el primero
+    currentMessageIndex = _existingMsgs.length > 0 ? _existingMsgs.length - 1 : 0;
     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: currentMessageIndex });
     pendingContinuation = null;
     editingMessageId = null;
@@ -903,9 +904,10 @@ function _doEnterTopic(id, t, topicMode) {
     }
 
     // ── 4. Activar sección VN en el DOM ──────────────────────────────────────
+    // Limpiamos TODAS las secciones activas (no solo topicsSection) para evitar
+    // que opciones, galería u otras secciones queden visibles sobre la VN.
     pendingChapter = null;
-    const topicsSection = document.getElementById('topicsSection');
-    if (topicsSection) topicsSection.classList.remove('active');
+    document.querySelectorAll('.game-section').forEach(function(s) { s.classList.remove('active'); });
     if (vnSection) {
         vnSection.classList.add('active');
         playVnSceneTransition(vnSection);
@@ -925,7 +927,9 @@ function _doEnterTopic(id, t, topicMode) {
     }
 
     // ── 5. Inicializar UI y controles de lectura ──────────────────────────────
-    showCurrentMessage('forward');
+    // Usamos 'init' en vez de 'forward' para que showCurrentMessage aplique
+    // el estado visual correcto (fondo, clima) sin auto-abrir el overlay de opciones.
+    showCurrentMessage('init');
     updateVnMobileFabVisibility();
     bindReplyTypingEmitter();
     bindSpriteMicroInteractions();
@@ -1392,7 +1396,10 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     const optionsContainer = document.getElementById('vnOptionsContainer');
-    if (currentMessageIndex === msgs.length - 1 && hasOpt && !isRpgModeMode()) {
+    // 'init' = primera carga al entrar al topic. No auto-abrimos el overlay de opciones
+    // para que el usuario no se encuentre con el menú de elección sin pedirlo.
+    // El indicador #messageHasOptions ya avisa de que hay opciones pendientes.
+    if (currentMessageIndex === msgs.length - 1 && hasOpt && !isRpgModeMode() && direction !== 'init') {
         showOptions(msg.options);
     } else {
         if (optionsContainer) optionsContainer.classList.remove('active');
@@ -1851,6 +1858,11 @@ function typeWriter(text, element) {
 }
 
 function handleDialogueClick() {
+    // BUG-02: Si hay una escena RPG activa, el motor gestiona el avance
+    // a través de _bindAdvanceOnce (scene:input:advance). No ejecutar la
+    // lógica de navegación clásica para evitar efectos secundarios.
+    if (typeof RPGEngine !== 'undefined' && RPGEngine.isRunning()) return;
+
     markContinuousInteraction();
     cancelContinuousRead('touch');
     const replyPanel = document.getElementById('vnReplyPanel');

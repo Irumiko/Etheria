@@ -19,6 +19,7 @@ const Ethy = (function() {
     // ── Estado interno ───────────────────────────────────────────────────────
     let _container = null;
     let _body = null;
+    let _floatWrapper = null;
     let _bubble = null;
     let _currentExpression = 'neutral';
     let _isTyping = false;
@@ -342,6 +343,7 @@ const Ethy = (function() {
         // Verificar si ya existe
         if (document.getElementById('ethyContainer')) {
             _container = document.getElementById('ethyContainer');
+            _floatWrapper = _container.querySelector('.ethy-float-wrapper');
             _body = _container.querySelector('.ethy-body');
             _bubble = _container.querySelector('.ethy-speech-bubble');
             return;
@@ -354,22 +356,16 @@ const Ethy = (function() {
         _container.style.opacity = '1';
         _container.style.transform = 'scale(1)';
 
+        // Crear wrapper de flotación (separa animation:ethyFloat del body
+        // para que los transform de expresión no sean anulados por la animación)
+        _floatWrapper = document.createElement('div');
+        _floatWrapper.className = 'ethy-float-wrapper';
+
         // Crear cuerpo de Ethy
         _body = document.createElement('div');
         _body.className = 'ethy-body ethy-expression-neutral';
-        _body.innerHTML = `
-            <div class="ethy-antenna left"></div>
-            <div class="ethy-antenna right"></div>
-            <div class="ethy-eyes">
-                <div class="ethy-eye"></div>
-                <div class="ethy-eye"></div>
-            </div>
-            <div class="ethy-mouth"></div>
-            <div class="ethy-cheeks">
-                <div class="ethy-cheek"></div>
-                <div class="ethy-cheek"></div>
-            </div>
-        `;
+        // El personaje se renderiza como SVG via background-image en ethy.css
+        // No se inyectan divs internos de antenas/ojos/boca
 
         // Crear burbuja de diálogo
         _bubble = document.createElement('div');
@@ -391,8 +387,9 @@ const Ethy = (function() {
             toggleMinimize();
         });
 
+        _floatWrapper.appendChild(_body);
         _container.appendChild(_bubble);
-        _container.appendChild(_body);
+        _container.appendChild(_floatWrapper);
         _container.appendChild(_minimizeBtn);
         document.body.appendChild(_container);
 

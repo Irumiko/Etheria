@@ -222,7 +222,8 @@ const RPGRenderer = (function () {
         var area = document.getElementById(DOM.choiceArea);
         if (!area) return;
 
-        var box = document.getElementById(DOM.dialogueBox);
+        // Usar _dialogueBox() porque el elemento solo tiene clase CSS, no ID
+        var box = _dialogueBox();
         if (box) box.style.display = 'none';
 
         area.innerHTML = '';
