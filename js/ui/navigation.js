@@ -160,8 +160,24 @@ function closeActiveModals() {
     document.body.classList.remove('modal-open');
 }
 
+function getCurrentVisibleSection() {
+    const mainMenu = document.getElementById('mainMenu');
+    if (mainMenu && !mainMenu.classList.contains('hidden')) return 'mainMenu';
+
+    if (document.getElementById('topicsSection')?.classList.contains('active')) return 'topics';
+    if (document.getElementById('gallerySection')?.classList.contains('active')) return 'gallery';
+    if (document.getElementById('optionsSection')?.classList.contains('active')) return 'options';
+
+    return null;
+}
+
 function showSection(section) {
     if (isLoading) return;
+    if (_fadeTransitionInProgress) return;
+
+    const currentSection = getCurrentVisibleSection();
+    if (currentSection === section) return;
+
     // transición visual absorbida de mejoras.js (Mejora 9)
     fadeTransition(function() {
         const mainMenu = document.getElementById('mainMenu');
