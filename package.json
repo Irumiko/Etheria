@@ -3,6 +3,10 @@
   "private": true,
   "scripts": {
     "build": "node build.js",
-    "preview": "python3 -m http.server 8000"
+    "validate:build": "node scripts/validate-build.js",
+    "validate:critical-size": "node scripts/extract-critical.js",
+    "validate:pwa-e2e": "node scripts/validate-pwa-e2e.js",
+    "preview": "python3 -m http.server 8000",
+    "test": "node --test tests/*.test.js"
   }
 }

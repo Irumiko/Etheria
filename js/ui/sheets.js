@@ -156,7 +156,7 @@ function openSheet(id) {
     if (profilePhysical) {
         profilePhysical.innerHTML = c.basic
             ? `<div class="profile-physical-label">Descripción física</div><div class="profile-physical-text">${escapeHtml(c.basic)}</div>`
-            : `<div class="profile-physical-empty">Sin descripción física.</div>`;
+            : `<div class="profile-physical-empty">Sin descripción física. Describe su rasgo más memorable.</div>`;
     }
 
     // Tabs de texto
@@ -164,7 +164,7 @@ function openSheet(id) {
     const profileHistory     = document.getElementById('profileHistory');
     const profileNotes       = document.getElementById('profileNotes');
     if (profilePersonality) profilePersonality.textContent = c.personality || 'Sin datos de personalidad.';
-    if (profileHistory)     profileHistory.textContent     = c.history     || 'Sin historia registrada.';
+    if (profileHistory)     profileHistory.textContent     = c.history     || 'Sin trasfondo registrado todavía.';
     if (profileNotes)       profileNotes.textContent       = c.notes       || 'Sin notas del jugador.';
 
     // Botón editar

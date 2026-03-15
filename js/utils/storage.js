@@ -48,7 +48,7 @@ function _migrateTopicModes(topics) {
         return t;
     });
     if (changed) {
-        try { localStorage.setItem(STORAGE_KEYS.topics, JSON.stringify(migrated)); } catch {}
+        try { localStorage.setItem(STORAGE_KEYS.topics, JSON.stringify(migrated)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         console.info('[Etheria] Migración: mode fanfic→rpg aplicada a', migrated.filter(t=>t.mode==='rpg').length, 'topics');
     }
     return migrated;

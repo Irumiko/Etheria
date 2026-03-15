@@ -168,7 +168,7 @@ function stopRainSound() {
     rainGainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.5);
     const srcToStop = rainSourceNode;
     setTimeout(() => {
-        try { srcToStop.stop(); } catch (e) {}
+        try { srcToStop.stop(); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
     }, 1600);
 
     rainSourceNode = null;
@@ -343,7 +343,7 @@ function stopMenuMusic(fadeOut) {
     }
 
     setTimeout(() => {
-        _menuMusicNodes.forEach(n => { try { n.disconnect(); } catch(e){} });
+        _menuMusicNodes.forEach(n => { try { n.disconnect(); } catch (error) { window.EtheriaLogger?.warn('ui:sounds', 'disconnect failed:', error?.message || error); } });
         _menuMusicNodes = [];
         _menuMusicGain = null;
     }, (fadeDur + 0.1) * 1000);

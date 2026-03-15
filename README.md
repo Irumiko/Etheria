@@ -11,10 +11,17 @@ etheria/
 ├── vercel.json
 ├── index.html
 ├── css/
-│   ├── variables.css
-│   ├── animations.css
-│   ├── components.css
-│   └── main.css
+│   ├── critical.css
+│   ├── non-critical.css
+│   ├── modules/
+│   │   ├── 01-tokens.css
+│   │   ├── 02-motion.css
+│   │   ├── 03-foundation.css
+│   │   ├── 04-components.css
+│   │   ├── 05-navigation.css
+│   │   ├── 06-experience.css
+│   │   └── 07-overrides.css
+│   └── ...
 ├── js/
 │   ├── utils/
 │   │   ├── state.js
@@ -40,6 +47,13 @@ Luego abre: `http://localhost:8000`
 
 ```bash
 npm run build
+```
+
+Validación automática post-build:
+
+```bash
+npm run validate:build
+npm run validate:critical-size
 ```
 
 Esto genera:
@@ -126,6 +140,24 @@ Para que las salas colaborativas funcionen de forma segura (sin cambiar el flujo
 
 
 ## Troubleshooting rápido
+
+## PWA Mode (iOS/Android)
+
+- Etheria añade helpers para modo instalado:
+  - viewport dinámico (`js/pwa-viewport.js`)
+  - protección de gestos de borde (`js/pwa-gestures.js`)
+  - ciclo de vida y backup periódico (`js/pwa-lifecycle.js`)
+  - capacidades (`js/pwa-capabilities.js`)
+- iOS específico:
+  - si ves saltos de altura, cierra/reabre la app instalada para re-hidratar `visualViewport`.
+  - asegúrate de usar “Añadir a pantalla de inicio” (Safari) para activar `display-mode: standalone`.
+  - en modo ahorro extremo, `wakeLock` puede no estar disponible (degrada sin romper).
+
+### Decisión de CSS crítico
+
+- **Crítico**: shell funcional (tokens, tipografía base, layout inicial, safe-area, accesibilidad).
+- **No crítico**: animaciones, componentes ricos, auth, menú, opciones, mascot y estilos de experiencia.
+- Objetivo: reducir LCP bloqueante y mantener funcionalidad mínima visible en primer paint.
 
 ### ¿`dist/etheria.html` parece truncado?
 

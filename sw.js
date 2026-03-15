@@ -11,6 +11,8 @@
 // La versión se inyecta automáticamente por build.js en cada deploy.
 const CACHE_VERSION = '__ETHERIA_SW_VERSION__';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
+const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
+const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];
 
 // Archivos que se precargan al instalar el SW.
 const PRECACHE_URLS = [
@@ -43,7 +45,10 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) =>
         Promise.all(
           cacheNames
-            .filter((name) => name !== CACHE_NAME && name !== IMAGE_CACHE)
+            .filter((name) => {
+              const isManaged = CACHE_PREFIXES_TO_CLEAN.some((prefix) => name.startsWith(prefix));
+              return isManaged && name !== CACHE_NAME && name !== IMAGE_CACHE;
+            })
             .map((name) => {
               console.log('[SW] Eliminando caché antigua:', name);
               return caches.delete(name);
@@ -51,6 +56,10 @@ self.addEventListener('activate', (event) => {
         )
       )
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ includeUncontrolled: true }))
+      .then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION }));
+      })
   );
 });
 
@@ -124,7 +133,6 @@ async function networkFirstHTML(req) {
 // ── Estrategia Cache First (imágenes) ───────────────────────────────────
 // Sirve desde caché de inmediato. Si no está en caché, descarga y guarda.
 // Las imágenes rara vez cambian, por eso preferimos velocidad a frescura.
-const IMAGE_CACHE = 'etheria-images-v1';
 
 async function cacheFirstImage(req) {
   const imageCache = await caches.open(IMAGE_CACHE);

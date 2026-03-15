@@ -9,6 +9,8 @@
 // AUTH + INICIALIZACIÓN
 // ============================================
 
+const logger = window.EtheriaLogger;
+
 // Verificar si hay una sesión existente
 async function checkExistingSession() {
     if (!window.supabaseClient) return false;
@@ -17,6 +19,7 @@ async function checkExistingSession() {
         const { data: { session } } = await window.supabaseClient.auth.getSession();
         return !!session;
     } catch (e) {
+        logger?.warn('app:auth', 'checkExistingSession failed:', e?.message || e);
         return false;
     }
 }
@@ -293,6 +296,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (isStandalone) {
             document.body.classList.add('is-pwa');
+            document.body.classList.add('pwa-standalone');
+            document.documentElement.classList.add('pwa-standalone');
 
             // ── Forzar orientación landscape ──────────────────────────
             // El manifest ya pide landscape, pero algunos Android ignoran
@@ -302,9 +307,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             function _tryOrientationLock() {
                 try {
                     if (screen.orientation && screen.orientation.lock) {
-                        screen.orientation.lock('landscape').catch(() => {});
+                        screen.orientation.lock('landscape').catch((error) => {
+                            logger?.debug('app:pwa', 'orientation lock rejected:', error?.message || error);
+                        });
                     }
-                } catch (e) {}
+                } catch (e) {
+                    logger?.debug('app:pwa', 'orientation lock unavailable:', e?.message || e);
+                }
             }
             _tryOrientationLock();
 
@@ -320,6 +329,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
                 document.body.classList.toggle('is-pwa', e.matches);
+                document.body.classList.toggle('pwa-standalone', e.matches);
+                document.documentElement.classList.toggle('pwa-standalone', e.matches);
             });
         }
     })();
@@ -542,6 +553,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (typeof SupabaseSync !== 'undefined') {
                                 SupabaseSync.sync({ silent: true });
                             }
+                        } else if (event.data?.type === 'SW_UPDATED') {
+                            eventBus.emit('ui:show-autosave', {
+                                text: '✨ Actualización lista. Recarga para aplicar mejoras.',
+                                state: 'success',
+                            });
                         }
                     });
 
