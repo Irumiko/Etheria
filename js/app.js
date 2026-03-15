@@ -193,6 +193,11 @@ async function ensureProfile() {
             SupabaseSettings.loadUserSettings().catch(() => {});
         }
 
+        // Suscribirse a notificaciones de turno en tiempo real
+        if (typeof SupabaseTurnNotifications !== 'undefined' && typeof SupabaseTurnNotifications.subscribe === 'function') {
+            SupabaseTurnNotifications.subscribe().catch(() => {});
+        }
+
         // Fix 6: cache user globally so Supabase modules avoid repeated getUser() calls
         window._cachedUserId = userData.user.id;
         // Disparar evento para que otros módulos sepan que hay usuario autenticado

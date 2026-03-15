@@ -334,6 +334,8 @@ function rollOracleMini() {
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
     }
+
+    notifyNextTurnIfNeeded(newMsg, topic, null).catch(() => {});
     hasUnsavedChanges = true;
     save({ silent: true });
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
@@ -3261,6 +3263,47 @@ function toggleNarratorMode() {
     }
 }
 
+
+async function notifyNextTurnIfNeeded(newMsg, topic, char) {
+    if (!currentStoryId) return;
+    if (typeof SupabaseTurnNotifications === 'undefined' || typeof SupabaseTurnNotifications.notifyTurn !== 'function') return;
+
+    const participants = Array.isArray(currentStoryParticipants) ? currentStoryParticipants : [];
+    const userIds = participants
+        .map(p => p?.user_id)
+        .filter(Boolean)
+        .filter((uid, idx, arr) => arr.indexOf(uid) === idx);
+
+    if (userIds.length < 2) return;
+
+    const me = window._cachedUserId || null;
+    if (!me) return;
+
+    const myIndex = userIds.indexOf(me);
+    if (myIndex === -1) return;
+
+    const recipientUserId = userIds[(myIndex + 1) % userIds.length];
+    if (!recipientUserId || recipientUserId === me) return;
+
+    const topicTitle = topic?.title || 'historia colaborativa';
+    const speaker = newMsg?.isNarrator ? 'Narrador' : (char?.name || newMsg?.charName || 'Jugador');
+    const preview = String(newMsg?.text || '').replace(/\s+/g, ' ').slice(0, 110);
+
+    await SupabaseTurnNotifications.notifyTurn({
+        storyId: currentStoryId,
+        topicId: currentTopicId,
+        messageId: newMsg?.id || null,
+        recipientUserId,
+        title: '🎯 Te toca responder',
+        body: `${speaker} respondió en ${topicTitle}: ${preview}${preview.length >= 110 ? '…' : ''}`,
+        meta: {
+            speaker,
+            topicTitle,
+            weather: currentWeather || null
+        }
+    });
+}
+
 function postVNReply() {
     const replyText = document.getElementById('vnReplyText');
     const text = replyText?.value.trim();
@@ -3373,6 +3416,8 @@ function postVNReply() {
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
     }
+
+    notifyNextTurnIfNeeded(newMsg, topic, char).catch(() => {});
 
     // Notificar a Ethy del mensaje enviado
     window.dispatchEvent(new CustomEvent('etheria:message-sent', {

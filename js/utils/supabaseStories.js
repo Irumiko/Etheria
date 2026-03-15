@@ -269,6 +269,10 @@
         // 1. Establecer historia activa
         global.currentStoryId = storyId;
 
+        if (typeof SupabasePresence !== 'undefined' && typeof SupabasePresence.joinStory === 'function') {
+            SupabasePresence.joinStory(storyId).catch(() => {});
+        }
+
         const story = (appData?.stories || []).find(s => s.id === storyId) || { id: storyId, title: '...' };
 
         // Notificar que se está entrando
@@ -541,17 +545,28 @@
             return;
         }
 
+        const isOnline = function (userId) {
+            if (!userId) return false;
+            return typeof SupabasePresence !== 'undefined'
+                && typeof SupabasePresence.isUserOnline === 'function'
+                && SupabasePresence.isUserOnline(userId);
+        };
+
         // XSS fix: build participant elements via DOM to avoid name/avatar injection
         container.innerHTML = '';
         participants.forEach(function (p) {
             const name = p.profile?.name || (p.user_id ? String(p.user_id).slice(0, 8) : '?');
             const avatar = p.profile?.avatar_url || '';
+
+            const wrap = document.createElement('span');
+            wrap.className = 'story-participant-wrap' + (isOnline(p.user_id) ? ' online' : '');
+            wrap.title = isOnline(p.user_id) ? `${name} · En línea` : `${name} · Desconectado`;
+
             let el;
             if (avatar) {
                 el = document.createElement('img');
                 el.src = avatar;
                 el.className = 'story-participant-avatar';
-                el.title = name;
                 el.alt = name;
                 el.onerror = function () { this.style.display = 'none'; };
             } else {
@@ -559,7 +574,14 @@
                 el.className = 'story-participant-chip';
                 el.textContent = name;
             }
-            container.appendChild(el);
+
+            const dot = document.createElement('span');
+            dot.className = 'story-participant-dot';
+            dot.setAttribute('aria-hidden', 'true');
+
+            wrap.appendChild(el);
+            wrap.appendChild(dot);
+            container.appendChild(wrap);
         });
     }
 
@@ -575,6 +597,9 @@
             }
             global._storyRealtimeChannel = null;
         }
+        if (typeof SupabasePresence !== 'undefined' && typeof SupabasePresence.leaveStory === 'function') {
+            SupabasePresence.leaveStory().catch(() => {});
+        }
         global.currentStoryId = null;
         global.currentStoryParticipants = [];
 
@@ -585,6 +610,14 @@
             card.classList.remove('story-card--active');
         });
     }
+
+
+    // Re-render de participantes cuando cambia la presencia realtime
+    global.addEventListener('etheria:story-presence-changed', function (e) {
+        const sid = e?.detail?.storyId;
+        if (!sid || String(sid) !== String(global.currentStoryId)) return;
+        _renderStoryParticipants(global.currentStoryParticipants || []);
+    });
 
     // ── API pública ───────────────────────────────────────────────────────────
 
