@@ -1,0 +1,8 @@
+/* Critical CSS modules (LCP + functional shell only) */
+@import url('./critical/01-tokens.css');
+@import url('./critical/02-fonts-base.css');
+@import url('./critical/03-layout-shell.css');
+@import url('./critical/04-safe-area.css');
+@import url('./critical/05-theme.css');
+@import url('./critical/06-loading.css');
+@import url('./critical/07-accessibility.css');

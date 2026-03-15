@@ -263,5 +263,5 @@
 }
 
 /* Decoración fondo */
-#optionsSection::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at 10% 20%, rgba(201,168,108,0.025) 0%, transparent 40%), radial-gradient(ellipse at 90% 80%, rgba(201,168,108,0.025) 0%, transparent 40%); pointer-events: none; z-index: 0; }
-#optionsSection > * { position: relative; z-index: 1; }
+#optionsSection::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at 10% 20%, rgba(201,168,108,0.025) 0%, transparent 40%), radial-gradient(ellipse at 90% 80%, rgba(201,168,108,0.025) 0%, transparent 40%); pointer-events: none; z-index: var(--z-i-0); }
+#optionsSection > * { position: relative; z-index: var(--z-i-1); }

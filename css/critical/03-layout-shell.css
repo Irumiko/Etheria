@@ -1,0 +1,7 @@
+.auth-screen,
+.user-select-screen,
+.main-menu,
+#vnSection,
+#topicsSection,
+#gallerySection,
+#optionsSection { min-height: 100vh; }

@@ -11,7 +11,7 @@ function exitApp() {
     eventBus.emit('audio:stop-rain');
     // Suspender AudioContext para liberar recursos del SO
     if (typeof audioCtx !== 'undefined' && audioCtx) {
-        try { audioCtx.close(); } catch(e) {}
+        try { audioCtx.close(); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
     }
 
     // 2. En PWA (standalone) intentar cerrar la ventana
@@ -22,7 +22,7 @@ function exitApp() {
     if (isPWA) {
         // Pequeña demora para que el fade del audio arranque
         setTimeout(() => {
-            try { window.close(); } catch(e) {}
+            try { window.close(); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
             // Fallback si window.close() no funciona (Android Chrome):
             // llevar al usuario a una pantalla en blanco de "cerrado"
             setTimeout(() => {
@@ -296,18 +296,53 @@ function changeUser() {
 
 // Propaga el color del personaje activo como variable CSS global
 // para que la caja de diálogo y el avatar ring lo reflejen
+function normalizeCssColor(input) {
+    if (!input || typeof input !== 'string') return null;
+    const value = input.trim();
+    const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+    const RGB = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(0|1|0?\.\d+))?\s*\)$/i;
+
+    if (HEX.test(value)) {
+        const raw = value.slice(1);
+        const full = raw.length === 3 ? raw.split('').map(ch => ch + ch).join('') : raw;
+        return {
+            fullHex: `#${full}`.toLowerCase(),
+            rgb: [
+                parseInt(full.slice(0, 2), 16),
+                parseInt(full.slice(2, 4), 16),
+                parseInt(full.slice(4, 6), 16),
+            ],
+        };
+    }
+
+    const rgbMatch = value.match(RGB);
+    if (rgbMatch) {
+        const rgb = [rgbMatch[1], rgbMatch[2], rgbMatch[3]].map((n) => Math.max(0, Math.min(255, parseInt(n, 10))));
+        const fullHex = `#${rgb.map((n) => n.toString(16).padStart(2, '0')).join('')}`;
+        return { fullHex, rgb };
+    }
+
+    return null;
+}
+
+function setThemeMetaColor(theme) {
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (!metaTheme) return;
+    metaTheme.setAttribute('content', theme === 'dark' ? '#1a1815' : '#f5f1e8');
+}
+
 function applyCharColor(hexColor) {
-    if (!hexColor) {
+    const normalized = normalizeCssColor(hexColor || '');
+    if (!normalized) {
         document.documentElement.style.setProperty('--char-color', 'rgba(139, 115, 85, 0.6)');
         document.documentElement.style.setProperty('--char-color-full', '#8b7355');
+        document.documentElement.style.setProperty('--char-color-rgb', '139, 115, 85');
         return;
     }
-    // Convertir hex a rgba con opacidad para el borde
-    const r = parseInt(hexColor.slice(1,3), 16);
-    const g = parseInt(hexColor.slice(3,5), 16);
-    const b = parseInt(hexColor.slice(5,7), 16);
+    const [r, g, b] = normalized.rgb;
     document.documentElement.style.setProperty('--char-color', `rgba(${r}, ${g}, ${b}, 0.55)`);
-    document.documentElement.style.setProperty('--char-color-full', hexColor);
+    document.documentElement.style.setProperty('--char-color-full', normalized.fullHex);
+    document.documentElement.style.setProperty('--char-color-rgb', `${r}, ${g}, ${b}`);
 }
 
 function toggleTheme() {
@@ -315,6 +350,7 @@ function toggleTheme() {
     const currentTheme = html.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     html.setAttribute('data-theme', newTheme);
+    setThemeMetaColor(newTheme);
     localStorage.setItem('etheria_theme', newTheme);
     if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
     // Botón menú ajustes: texto descriptivo
@@ -328,12 +364,17 @@ function toggleTheme() {
 
 function updateProfileThemeBtn() {
     const theme = document.documentElement.getAttribute('data-theme') || 'light';
+    setThemeMetaColor(theme);
     // Botón menú ajustes
     const themeBtn = document.getElementById('themeToggleBtn');
     if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
     // Botón circular perfil: muestra el icono del modo en que SE ESTÁ actualmente
     const profileBtn = document.getElementById('profileThemeBtn');
     if (profileBtn) profileBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
+}
+
+function toggleHaptics(enabled) {
+    try { localStorage.setItem('etheria_haptics_enabled', enabled ? '1' : '0'); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
 }
 
 function updateMasterVolume(val) {
@@ -347,7 +388,7 @@ function updateMasterVolume(val) {
 function updateRainVolume(val) {
     const gain = (parseInt(val) / 100) * 0.08;
     if (typeof rainGainNode !== 'undefined' && rainGainNode && typeof audioCtx !== 'undefined' && audioCtx) {
-        try { rainGainNode.gain.linearRampToValueAtTime(gain, audioCtx.currentTime + 0.4); } catch(e) {}
+        try { rainGainNode.gain.linearRampToValueAtTime(gain, audioCtx.currentTime + 0.4); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
     }
     localStorage.setItem('etheria_rain_volume', val);
     if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
@@ -402,19 +443,19 @@ function _getAvatars() {
     try { return JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]'); } catch { return []; }
 }
 function _saveAvatars(arr) {
-    try { localStorage.setItem('etheria_user_avatars', JSON.stringify(arr)); } catch {}
+    try { localStorage.setItem('etheria_user_avatars', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
 }
 function _getGenders() {
     try { return JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch { return []; }
 }
 function _saveGenders(arr) {
-    try { localStorage.setItem('etheria_user_genders', JSON.stringify(arr)); } catch {}
+    try { localStorage.setItem('etheria_user_genders', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
 }
 function _getBirthdays() {
     try { return JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch { return []; }
 }
 function _saveBirthdays(arr) {
-    try { localStorage.setItem('etheria_user_birthdays', JSON.stringify(arr)); } catch {}
+    try { localStorage.setItem('etheria_user_birthdays', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
 }
 
 function _syncAvatarInitials() {
@@ -541,6 +582,7 @@ function syncOptionsSection() {
     const themeBtn = document.getElementById('themeToggleBtn');
     const nameInput = document.getElementById('optProfileName');
     const immersiveCheck = document.getElementById('optImmersiveMode');
+    const hapticCheck = document.getElementById('hapticToggle');
     const continuousCheck = document.getElementById('optContinuousRead');
     const continuousDelay = document.getElementById('optContinuousDelay');
 
@@ -560,6 +602,7 @@ function syncOptionsSection() {
     if (themeBtn) themeBtn.textContent = theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro';
     if (nameInput) nameInput.value = userNames[currentUserIndex] || '';
     if (immersiveCheck) immersiveCheck.checked = localStorage.getItem('etheria_immersive_mode') === '1';
+    if (hapticCheck) hapticCheck.checked = localStorage.getItem('etheria_haptics_enabled') !== '0';
     const savedContinuous = localStorage.getItem('etheria_continuous_read') === '1';
     const savedContinuousDelay = Math.max(3, Math.min(5, Number(localStorage.getItem('etheria_continuous_delay') || 4)));
     if (continuousCheck) continuousCheck.checked = savedContinuous;
@@ -858,7 +901,7 @@ const IMMERSIVE_HIDE_AFTER_MS = 3000;
 
 function toggleImmersiveModeSetting(enabled) {
     const active = !!enabled;
-    try { localStorage.setItem('etheria_immersive_mode', active ? '1' : '0'); } catch {}
+    try { localStorage.setItem('etheria_immersive_mode', active ? '1' : '0'); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
     document.body.classList.toggle('immersive-mode', active);
     if (active) revealImmersiveUiTemporarily();
 }
@@ -958,6 +1001,14 @@ function closeOnboarding() {
     }
 }
 
+
+function syncMenuProfileHint() {
+    const hint = document.getElementById('menuProfileHint');
+    if (!hint) return;
+    const isDesktop = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer:fine)').matches;
+    hint.textContent = isDesktop ? 'Haz clic para editar perfil' : 'Toca para editar perfil';
+}
+
 function applyPersistedImmersiveMode() {
     const enabled = localStorage.getItem('etheria_immersive_mode') === '1';
     document.body.classList.toggle('immersive-mode', enabled);
@@ -966,7 +1017,9 @@ function applyPersistedImmersiveMode() {
 if (typeof window !== 'undefined') {
     window.addEventListener('DOMContentLoaded', () => {
         applyPersistedImmersiveMode();
+        syncMenuProfileHint();
     });
+    window.addEventListener('resize', syncMenuProfileHint, { passive: true });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -1089,6 +1142,7 @@ function syncMenuFooterAvatar() {
     // Nombre en el footer
     const nameEl = document.getElementById('currentUserDisplay');
     if (nameEl) nameEl.textContent = name;
+    syncMenuProfileHint();
 
     // Initial en el footer
     const initEl = document.getElementById('menuProfileInitial');

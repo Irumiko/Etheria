@@ -1,0 +1,48 @@
+/* PWA safe-area + viewport guards
+ * --vh  = fallback (window.innerHeight)
+ * --vvh = visual viewport height unit (kept name intentionally: vvh = visual viewport height)
+ * Nota: evitamos --dvh/--svh/--lvh por compatibilidad iOS legacy.
+ */
+:root {
+    --vh: 1vh;
+    --vvh: 1vh;
+}
+
+/* Fallback estándar (sin clase): mantiene desktop/web igual que antes */
+body,
+.auth-screen,
+.user-select-screen,
+.main-menu,
+#vnSection,
+#topicsSection,
+#optionsSection,
+#gallerySection {
+    min-height: 100vh;
+}
+
+/* Ajustes PWA scopeados */
+@supports (padding: max(0px)) {
+    .pwa-standalone,
+    .pwa-standalone .auth-screen,
+    .pwa-standalone .user-select-screen,
+    .pwa-standalone .main-menu,
+    .pwa-standalone #vnSection,
+    .pwa-standalone #topicsSection,
+    .pwa-standalone #optionsSection,
+    .pwa-standalone #gallerySection {
+        min-height: calc(var(--vvh, 1vh) * 100);
+        padding-top: max(env(safe-area-inset-top), 0px);
+        padding-right: max(env(safe-area-inset-right), 0px);
+        padding-bottom: max(env(safe-area-inset-bottom), 0px);
+        padding-left: max(env(safe-area-inset-left), 0px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

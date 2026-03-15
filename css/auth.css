@@ -5,7 +5,7 @@
 .auth-screen {
     position: fixed;
     inset: 0;
-    z-index: 5000;
+    z-index: var(--z-loading);
     display: flex;
     align-items: center;
     justify-content: center;

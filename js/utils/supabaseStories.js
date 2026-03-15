@@ -23,10 +23,8 @@
 
 (function (global) {
 
-    const cfg = global.SUPABASE_CONFIG || {
-        url: 'https://timtqdrfeuzwwixfnudj.supabase.co',
-        key: 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3'
-    };
+    const cfg = global.SUPABASE_CONFIG || {};
+    const logger = global.EtheriaLogger;
 
     const SB_URL = cfg.url;
     const SB_KEY = cfg.key;
@@ -43,12 +41,9 @@
      * para que Supabase RLS identifique al usuario y permita el INSERT/UPDATE.
      */
     async function _getAccessToken() {
-        const client = _getClient();
-        if (!client || typeof client.auth?.getSession !== 'function') return null;
-        try {
-            const { data: { session } } = await client.auth.getSession();
-            return session?.access_token || null;
-        } catch { return null; }
+        return global.SupabaseAuthHeaders?.getAccessToken
+            ? global.SupabaseAuthHeaders.getAccessToken(_getClient())
+            : null;
     }
 
     async function _getUser() {
@@ -60,7 +55,10 @@
             const { data: { user } } = await client.auth.getUser();
             if (user?.id) global._cachedUserId = user.id;
             return user || null;
-        } catch { return null; }
+        } catch (error) {
+            logger?.warn('supabase:stories', 'getUser failed:', error?.message || error);
+            return null;
+        }
     }
 
     /**
@@ -69,6 +67,13 @@
      * evaluar auth.uid() en las políticas INSERT/UPDATE/DELETE.
      */
     async function _writeHeaders() {
+        if (global.SupabaseAuthHeaders?.buildAuthHeaders) {
+            return global.SupabaseAuthHeaders.buildAuthHeaders({
+                apikey: SB_KEY,
+                client: _getClient(),
+                baseHeaders: { 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+            });
+        }
         const token = await _getAccessToken();
         return {
             'apikey'       : SB_KEY,
@@ -78,12 +83,27 @@
         };
     }
 
-    /** Cabeceras de solo lectura — anon key es suficiente para SELECT público */
-    const READ_HEADERS = {
-        'apikey'        : SB_KEY,
-        'Authorization' : 'Bearer ' + SB_KEY,
-        'Accept'        : 'application/json'
-    };
+    /**
+     * Cabeceras de lectura.
+     * Si hay sesión, enviar JWT para que RLS auth.uid() funcione también en SELECT.
+     * Si no hay sesión, caer a anon key (solo tablas/policies públicas).
+     */
+    async function _readHeaders() {
+        if (global.SupabaseAuthHeaders?.buildAuthHeaders) {
+            return global.SupabaseAuthHeaders.buildAuthHeaders({
+                apikey: SB_KEY,
+                client: _getClient(),
+                baseHeaders: {},
+                acceptJson: true,
+            });
+        }
+        const token = await _getAccessToken();
+        return {
+            'apikey'       : SB_KEY,
+            'Authorization': 'Bearer ' + (token || SB_KEY),
+            'Accept'       : 'application/json'
+        };
+    }
 
     // ── createStory ───────────────────────────────────────────────────────────
     /**
@@ -93,14 +113,14 @@
      */
     async function createStory(title) {
         if (!title || !title.trim()) {
-            console.warn('[Stories] createStory: título vacío');
+            logger?.warn('supabase:stories', 'createStory: título vacío');
             return null;
         }
 
         try {
             const user = await _getUser();
             if (!user) {
-                console.warn('[Stories] createStory: usuario no autenticado — inicia sesión primero');
+                logger?.warn('supabase:stories', 'createStory: usuario no autenticado — inicia sesión primero');
                 if (typeof showAutosave === 'function') showAutosave('Inicia sesión para crear historias en la nube', 'error');
                 return null;
             }
@@ -122,7 +142,7 @@
 
             if (!res.ok) {
                 const detail = await res.text().catch(() => String(res.status));
-                console.warn('[Stories] createStory failed (' + res.status + '):', detail);
+                logger?.warn('supabase:stories', 'createStory failed (' + res.status + '):', detail);
                 // Mostrar mensaje específico para 401/403 (auth/RLS)
                 if (res.status === 401 || res.status === 403) {
                     if (typeof showAutosave === 'function') showAutosave('Sin permisos — ¿has iniciado sesión?', 'error');
@@ -145,7 +165,7 @@
             return story;
 
         } catch (e) {
-            console.warn('[Stories] createStory error:', e.message);
+            logger?.warn('supabase:stories', 'createStory error:', e.message);
             return null;
         }
     }
@@ -160,11 +180,11 @@
         try {
             const res = await fetch(
                 SB_URL + '/rest/v1/stories?order=created_at.desc&select=*',
-                { headers: READ_HEADERS, signal: AbortSignal.timeout(6000) }
+                { headers: await _readHeaders(), signal: AbortSignal.timeout(6000) }
             );
 
             if (!res.ok) {
-                console.warn('[Stories] loadStories failed (' + res.status + ')');
+                logger?.warn('supabase:stories', 'loadStories failed (' + res.status + ')');
                 return [];
             }
 
@@ -181,7 +201,7 @@
             return Array.isArray(stories) ? stories : [];
 
         } catch (e) {
-            console.warn('[Stories] loadStories error:', e.message);
+            logger?.warn('supabase:stories', 'loadStories error:', e.message);
             return [];
         }
     }
@@ -201,7 +221,7 @@
                     + '?story_id=eq.' + encodeURIComponent(storyId)
                     + '&select=user_id'
                     + '&order=created_at.asc',
-                { headers: READ_HEADERS, signal: AbortSignal.timeout(5000) }
+                { headers: await _readHeaders(), signal: AbortSignal.timeout(5000) }
             );
 
             if (!res.ok) return [];
@@ -224,7 +244,7 @@
             return participants;
 
         } catch (e) {
-            console.warn('[Stories] loadStoryParticipants error:', e.message);
+            logger?.warn('supabase:stories', 'loadStoryParticipants error:', e.message);
             return [];
         }
     }
@@ -242,7 +262,7 @@
      */
     async function enterStory(storyId) {
         if (!storyId) {
-            console.warn('[Stories] enterStory: storyId requerido');
+            logger?.warn('supabase:stories', 'enterStory: storyId requerido');
             return;
         }
 
@@ -264,7 +284,7 @@
         try {
             storyMessages = await _loadStoryMessages(storyId);
         } catch (e) {
-            console.warn('[Stories] enterStory: error cargando mensajes:', e.message);
+            logger?.warn('supabase:stories', 'enterStory: error cargando mensajes:', e.message);
         }
 
         // 4. Fusionar con mensajes locales del topic activo (si existe)
@@ -325,7 +345,7 @@
                 + '?story_id=eq.' + encodeURIComponent(storyId)
                 + '&order=created_at.asc'
                 + '&select=*,characters(name)',
-            { headers: READ_HEADERS, signal: AbortSignal.timeout(8000) }
+            { headers: await _readHeaders(), signal: AbortSignal.timeout(8000) }
         );
 
         if (!res.ok) return [];
@@ -344,7 +364,9 @@
                 // Tag the message with its story
                 msg.storyId = storyId;
                 acc.push(msg);
-            } catch { /* fila inválida */ }
+            } catch (error) {
+                logger?.warn('supabase:stories', 'invalid message row in _loadStoryMessages:', error?.message || error);
+            }
             return acc;
         }, []);
     }
@@ -357,16 +379,21 @@
             client = global.supabase?.createClient
                 ? (global.supabaseClient || global.supabase.createClient(SB_URL, SB_KEY))
                 : null;
-        } catch { client = null; }
+        } catch (error) {
+            logger?.warn('supabase:stories', '_subscribeToStory client init failed:', error?.message || error);
+            client = null;
+        }
 
         if (!client) {
-            console.warn('[Stories] _subscribeToStory: cliente supabase-js no disponible');
+            logger?.warn('supabase:stories', '_subscribeToStory: cliente supabase-js no disponible');
             return;
         }
 
         // Limpiar canal anterior de historia
         if (global._storyRealtimeChannel && client) {
-            try { client.removeChannel(global._storyRealtimeChannel); } catch { /* ignorar */ }
+            try { client.removeChannel(global._storyRealtimeChannel); } catch (error) {
+                logger?.warn('supabase:stories', 'remove previous story channel failed:', error?.message || error);
+            }
             global._storyRealtimeChannel = null;
         }
 
@@ -409,7 +436,9 @@
                                             if (found?.name) { msg.charName = found.name; break; }
                                         }
                                     }
-                                } catch { /* caché no disponible */ }
+                                } catch (error) {
+                                    logger?.debug('supabase:stories', 'cloud character cache lookup failed:', error?.message || error);
+                                }
                             }
 
                             // Despachar como mensaje realtime estándar
@@ -421,21 +450,21 @@
                             _injectRealtimeMessage(msg, row);
 
                         } catch (e) {
-                            console.warn('[Stories] realtime payload error:', e.message);
+                            logger?.warn('supabase:stories', 'realtime payload error:', e.message);
                         }
                     }
                 )
                 .subscribe(function (status) {
                     if (status === 'SUBSCRIBED') {
-                        console.info('[Stories] Suscrito a historia:', storyId);
+                        logger?.info('supabase:stories', 'Suscrito a historia:', storyId);
                     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                        console.warn('[Stories] canal realtime estado:', status);
+                        logger?.warn('supabase:stories', 'canal realtime estado:', status);
                         global._storyRealtimeChannel = null;
                     }
                 });
 
         } catch (e) {
-            console.warn('[Stories] _subscribeToStory error:', e.message);
+            logger?.warn('supabase:stories', '_subscribeToStory error:', e.message);
         }
     }
 
@@ -484,7 +513,7 @@
                 });
             }
         } catch (e) {
-            console.warn('[Stories] _injectRealtimeMessage error:', e.message);
+            logger?.warn('supabase:stories', '_injectRealtimeMessage error:', e.message);
         }
     }
 
@@ -541,7 +570,9 @@
     function leaveStory() {
         const client = global.supabaseClient || null;
         if (global._storyRealtimeChannel && client) {
-            try { client.removeChannel(global._storyRealtimeChannel); } catch { /* ignorar */ }
+            try { client.removeChannel(global._storyRealtimeChannel); } catch (error) {
+                logger?.warn('supabase:stories', 'leaveStory removeChannel failed:', error?.message || error);
+            }
             global._storyRealtimeChannel = null;
         }
         global.currentStoryId = null;

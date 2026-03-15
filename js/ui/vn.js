@@ -342,6 +342,7 @@ function rollOracleMini() {
 }
 
 let spriteIntersectionObserver = null;
+const trackedSpriteObjectUrls = new Set();
 let replyDrawerExpanded = false;
 let replyDrawerBound = false;
 let vnMobileFabBound = false;
@@ -364,13 +365,30 @@ function ensureSpriteLazyObserver() {
         entries.forEach((entry) => {
             if (!entry.isIntersecting) return;
             const img = entry.target;
-            const src = img?.dataset?.src;
-            if (src) {
+            const fullSrc = img?.dataset?.src;
+            const thumbSrc = img?.dataset?.thumb;
+            if (thumbSrc || fullSrc) {
                 img.classList.add('is-loading');
-                img.onload = () => img.classList.remove('is-loading');
+                img.onload = () => {
+                    img.classList.remove('is-loading');
+                    const finalSrc = img?.dataset?.src;
+                    if (finalSrc && img.src !== finalSrc) {
+                        const fullImage = new Image();
+                        fullImage.decoding = 'async';
+                        fullImage.loading = 'eager';
+                        fullImage.fetchPriority = 'high';
+                        fullImage.onload = () => {
+                            img.src = finalSrc;
+                            delete img.dataset.src;
+                        };
+                        fullImage.src = finalSrc;
+                    } else if (finalSrc && img.src === finalSrc) {
+                        delete img.dataset.src;
+                    }
+                    delete img.dataset.thumb;
+                };
                 img.onerror = () => img.classList.remove('is-loading');
-                img.src = src;
-                delete img.dataset.src;
+                img.src = thumbSrc || fullSrc;
             }
             observer.unobserve(img);
         });
@@ -378,15 +396,89 @@ function ensureSpriteLazyObserver() {
     return spriteIntersectionObserver;
 }
 
-function queueSpriteImageLoad(img, src) {
+
+
+function trackSpriteObjectUrl(url) {
+    if (!url || typeof url !== 'string') return;
+    if (!url.startsWith('blob:')) return;
+    trackedSpriteObjectUrls.add(url);
+}
+
+function revokeTrackedSpriteObjectUrl(url) {
+    if (!url || !trackedSpriteObjectUrls.has(url)) return;
+    try {
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        window.EtheriaLogger?.debug('vn:resources', 'revokeObjectURL failed:', error?.message || error);
+    }
+    trackedSpriteObjectUrls.delete(url);
+}
+
+function cleanupVnRuntimeResources(options = {}) {
+    const { disconnectObserver = false, clearSpritePool = false, stopSpriteBlink = false } = options;
+    const container = document.getElementById('vnSpriteContainer');
+    if (container) {
+        container.querySelectorAll('img').forEach((img) => {
+            if (spriteIntersectionObserver) spriteIntersectionObserver.unobserve(img);
+            revokeTrackedSpriteObjectUrl(img.currentSrc || img.src);
+            if (img.dataset?.src) revokeTrackedSpriteObjectUrl(img.dataset.src);
+            if (img.dataset?.thumb) revokeTrackedSpriteObjectUrl(img.dataset.thumb);
+            img.onload = null;
+            img.onerror = null;
+            delete img.dataset.src;
+            delete img.dataset.thumb;
+        });
+    }
+
+    if (disconnectObserver && spriteIntersectionObserver) {
+        spriteIntersectionObserver.disconnect();
+        spriteIntersectionObserver = null;
+    }
+
+    if (stopSpriteBlink && spriteBlinkTimer) {
+        clearTimeout(spriteBlinkTimer);
+        spriteBlinkTimer = null;
+    }
+
+    if (clearSpritePool) {
+        spritePool.length = 0;
+    }
+
+    if (disconnectObserver || clearSpritePool) {
+        Array.from(trackedSpriteObjectUrls).forEach((url) => revokeTrackedSpriteObjectUrl(url));
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.cleanupVnRuntimeResources = cleanupVnRuntimeResources;
+}
+
+function queueSpriteImageLoad(img, sourceSet) {
     if (!img) return;
+    const fullSrc = typeof sourceSet === 'string' ? sourceSet : sourceSet?.full;
+    const thumbSrc = typeof sourceSet === 'object' ? sourceSet?.thumb : null;
+    const placeholderSrc = typeof sourceSet === 'object' ? sourceSet?.placeholder : null;
+    trackSpriteObjectUrl(fullSrc);
+    trackSpriteObjectUrl(thumbSrc);
+    trackSpriteObjectUrl(placeholderSrc);
+    if (placeholderSrc) img.src = placeholderSrc;
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.fetchPriority = 'low';
     const observer = ensureSpriteLazyObserver();
     if (!observer) {
-        img.src = src;
+        img.src = thumbSrc || fullSrc;
+        if (thumbSrc && fullSrc && thumbSrc !== fullSrc) {
+            const fullImage = new Image();
+            fullImage.decoding = 'async';
+            fullImage.onload = () => { img.src = fullSrc; };
+            fullImage.src = fullSrc;
+        }
         return;
     }
-    img.removeAttribute('src');
-    img.dataset.src = src;
+    if (!placeholderSrc) img.removeAttribute('src');
+    if (thumbSrc && thumbSrc !== fullSrc) img.dataset.thumb = thumbSrc;
+    if (fullSrc) img.dataset.src = fullSrc;
     observer.observe(img);
 }
 
@@ -633,6 +725,7 @@ function scheduleRandomSpriteBlink() {
 
 function triggerSubtleHaptic() {
     if (typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+    if (localStorage.getItem('etheria_haptics_enabled') === '0') return;
     if (typeof prefersReducedMotion === 'function' && prefersReducedMotion()) return;
     if (!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) return;
     navigator.vibrate(10);
@@ -950,7 +1043,7 @@ function _doEnterTopic(id, t, topicMode) {
         global.currentStoryId = _tForStory.storyId;
         // Suscribir al canal realtime de la historia si está disponible
         if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.enterStory === 'function') {
-            SupabaseStories.enterStory(_tForStory.storyId).catch(function() {});
+            SupabaseStories.enterStory(_tForStory.storyId).catch(function(error) { window.EtheriaLogger?.warn('ui:vn', 'enterStory failed:', error?.message || error); });
         }
     } else {
         // Topic sin storyId (creado antes de la integración cloud) — limpiar
@@ -1428,6 +1521,7 @@ function showCurrentMessage(direction = 'forward') {
         if (msg.sceneChange) {
             const vnSection = document.getElementById('vnSection');
             const sceneBackground = resolveTopicBackgroundPath(msg.sceneChange.background || '');
+            cleanupVnRuntimeResources({ disconnectObserver: false, clearSpritePool: false, stopSpriteBlink: true });
             applyTopicBackground(vnSection, sceneBackground);
             playVnSceneTransition(vnSection);
         }
@@ -1488,9 +1582,14 @@ function recycleActiveSprites(container) {
         const img = child.querySelector('img');
         if (img) {
             if (spriteIntersectionObserver) spriteIntersectionObserver.unobserve(img);
+            revokeTrackedSpriteObjectUrl(img.currentSrc || img.src);
+            if (img.dataset?.src) revokeTrackedSpriteObjectUrl(img.dataset.src);
+            if (img.dataset?.thumb) revokeTrackedSpriteObjectUrl(img.dataset.thumb);
             img.removeAttribute('src');
             img.removeAttribute('alt');
             delete img.dataset.src;
+            delete img.dataset.thumb;
+            img.onload = null;
             img.onerror = null;
         }
         child.querySelectorAll('.vn-sprite-hitbox, .manga-emote, .sprite-shadow').forEach((el) => el.remove());
@@ -1722,7 +1821,14 @@ function updateSprites(currentMsg, activeEmote = null) {
                 img = document.createElement('img');
                 spriteNode.appendChild(img);
             }
-            queueSpriteImageLoad(img, escapeHtml(char.charSprite));
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.fetchPriority = isCurrent ? 'high' : 'low';
+            queueSpriteImageLoad(img, {
+                placeholder: char.charAvatar ? escapeHtml(char.charAvatar) : null,
+                thumb: char.charAvatar ? escapeHtml(char.charAvatar) : null,
+                full: escapeHtml(char.charSprite),
+            });
             img.alt = escapeHtml(char.charName || 'Sprite');
             img.onerror = function () {
                 this.style.display = 'none';

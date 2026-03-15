@@ -113,7 +113,7 @@ const SupabaseSync = (function () {
             }
             try {
                 localStorage.setItem('etheria_user_names', JSON.stringify(syncedData.userNames));
-            } catch {}
+            } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         }
 
         // Merge topics (evitar duplicados por ID)

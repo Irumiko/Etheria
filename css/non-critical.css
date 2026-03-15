@@ -1,0 +1,13 @@
+/* Deferred CSS modules (rich UI/animations/features) */
+@import url('./animations.css');
+@import url('./mobile-perf.css');
+@import url('./auth.css');
+@import url('./components.css');
+@import url('./menu.css');
+@import url('./options.css');
+@import url('./mascot.css');
+@import url('./rpg-scene.css');
+@import url('./features/vn/index.css');
+@import url('./features/gallery/index.css');
+@import url('./features/menu/index.css');
+@import url('./modules/07-overrides.css');

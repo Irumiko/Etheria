@@ -1,11 +1,3 @@
-/*
- * Punto de entrada de estilos (desarrollo)
- * Importa variables, animaciones y componentes en orden.
- */
-@import url('./variables.css');
-@import url('./animations.css');
-@import url('./components.css');
-@import url('./mobile-perf.css');
-@import url('./auth.css');
-@import url('./ethy.css');
-@import url('./options-new.css');
+/* Backward-compatible entrypoint: imports critical + deferred modules */
+@import url('./critical.css');
+@import url('./non-critical.css');

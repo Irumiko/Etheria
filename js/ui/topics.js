@@ -93,6 +93,31 @@ function saveBranches() {
 let _topicsFilter = 'all';
 let _topicsSearch = '';
 
+
+function formatRelativeDayLabel(dateValue) {
+    if (!dateValue) return 'Sin actividad reciente';
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return 'Sin actividad reciente';
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / 86400000);
+    if (diffDays <= 0) return 'Última actividad: hoy';
+    if (diffDays === 1) return 'Última actividad: ayer';
+    if (diffDays < 7) return `Última actividad: hace ${diffDays} días`;
+    return `Última actividad: ${date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}`;
+}
+
+function getStoryModeLabel(mode) {
+    const isRol = mode === 'rpg' || mode === 'fanfic';
+    return isRol ? '🎲 Modo RPG' : '🪶 Modo Clásico';
+}
+
+function normalizeCreatorName(name) {
+    const trimmed = String(name || '').trim();
+    if (!trimmed || /^jugador\s*\d*$/i.test(trimmed)) return 'Cronista local';
+    return trimmed;
+}
+
+
 function setTopicFilter(filter, btn) {
     _topicsFilter = filter;
     document.querySelectorAll('.topic-filter-btn').forEach(b => b.classList.remove('active'));
@@ -144,7 +169,7 @@ function renderTopics() {
             const last = msgs[msgs.length - 1];
             const lastText = last ? stripHtml(formatText(last.text)).substring(0, 80) : '';
             const isRol    = t.mode === 'rpg' || t.mode === 'fanfic';
-            const modeLabel = isRol ? 'Modo RPG' : 'Modo Clásico';
+            const modeLabel = getStoryModeLabel(t.mode);
             const weatherBadge = t.weather === 'rain'
                 ? '<span class="topic-badge weather">🌧 Lluvia</span>'
                 : t.weather === 'fog'
@@ -191,6 +216,11 @@ function renderTopics() {
             }
 
             const msgWord = msgs.length === 1 ? 'mensaje' : 'mensajes';
+            const creatorName = normalizeCreatorName(t.createdBy);
+            const lastActivityDate = last?.timestamp || t.createdAt || t.date || null;
+            const lastActivityLabel = formatRelativeDayLabel(lastActivityDate);
+            const progressCurrent = Math.min(msgs.length, 10);
+            const progressPct = Math.min(100, Math.round((progressCurrent / 10) * 100));
 
             return `
                 <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}" onclick="enterTopic('${t.id}')">
@@ -208,14 +238,19 @@ function renderTopics() {
                             </div>
                         </div>
                         <h3 class="topic-card-title">${escapeHtml(t.title)}</h3>
-                        <p class="topic-card-author">por ${escapeHtml(t.createdBy)}</p>
-                        ${lastText ? `<p class="topic-card-excerpt">"${escapeHtml(lastText)}${lastText.length >= 80 ? '…' : ''}"</p>` : '<p class="topic-card-excerpt topic-card-excerpt--empty">Sin mensajes aún.</p>'}
+                        <p class="topic-card-author">por ${escapeHtml(creatorName)}</p>
+                        <p class="topic-card-excerpt topic-card-excerpt--meta">${escapeHtml(lastActivityLabel)}</p>
+                        ${lastText ? `<p class="topic-card-excerpt">"${escapeHtml(lastText)}${lastText.length >= 80 ? '…' : ''}"</p>` : '<p class="topic-card-excerpt topic-card-excerpt--empty">Sin mensajes aún. <strong>Escribe el primer capítulo</strong>.</p>'}
                     </div>
                     <div class="topic-card-footer">
                         <span class="topic-card-footer-msgs">
                             <span class="topic-card-footer-msgs-icon">${isRol ? '⚔' : '✦'}</span>
-                            ${msgs.length} ${msgWord}
+                            ${msgs.length > 0 ? `${msgs.length} ${msgWord}` : '—'}
                         </span>
+                        <div class="topic-card-progress" title="Progreso de introducción">
+                            <div class="topic-card-progress-bar" style="width:${progressPct}%"></div>
+                            <span class="topic-card-progress-text">${progressCurrent}/10</span>
+                        </div>
                         ${charAvatarHtml}
                     </div>
                 </div>
@@ -368,6 +403,12 @@ function createTopic() {
     const topicBackground = DEFAULT_TOPIC_BACKGROUND;
 
     if(!title || !text) { showAutosave('Completa todos los campos obligatorios', 'error'); return; }
+
+    const genericTitles = ['prueba', 'test', 'historia', 'nueva historia'];
+    if (genericTitles.includes((title || '').toLowerCase())) {
+        showAutosave('Elige un título más descriptivo para la historia', 'error');
+        return;
+    }
 
     const id = generateTopicId();
     appData.topics.push({

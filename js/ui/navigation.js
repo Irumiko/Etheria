@@ -103,6 +103,10 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     const emotePicker = document.getElementById('emotePicker');
     if (emotePicker) emotePicker.classList.remove('active');
 
+    if (typeof cleanupVnRuntimeResources === 'function') {
+        cleanupVnRuntimeResources({ disconnectObserver: true, clearSpritePool: clearTopic, stopSpriteBlink: true });
+    }
+
     const vnSpriteContainer = document.getElementById('vnSpriteContainer');
     if (vnSpriteContainer) vnSpriteContainer.innerHTML = '';
 
@@ -374,6 +378,16 @@ function renderRaceTagPills() {
     `).join('');
 }
 
+
+function updateGalleryControlsState(totalChars) {
+    const disableSort = Number(totalChars || 0) <= 1;
+    document.querySelectorAll('.gallery-sort-pill').forEach((pill) => {
+        pill.disabled = disableSort;
+        pill.classList.toggle('is-disabled', disableSort);
+        pill.title = disableSort ? 'Disponible al tener más personajes' : '';
+    });
+}
+
 function renderGallery() {
     const grid = document.getElementById('galleryGrid');
     if (!grid) return;
@@ -394,6 +408,7 @@ function renderGallery() {
     const galleryCount = document.getElementById('galleryCount');
     if (galleryCount) galleryCount.textContent = `${chars.length} personaje${chars.length !== 1 ? 's' : ''}`;
 
+    updateGalleryControlsState(appData.characters.length);
     renderRaceTagPills();
 
     if (chars.length === 0) {
@@ -455,6 +470,15 @@ function renderGallery() {
             </div>
         </div>`;
     }).join('');
+
+    if (appData.characters.length > 0 && appData.characters.length < 6) {
+        grid.insertAdjacentHTML('beforeend', `
+            <button class="char-card-v2 char-card-v2--new" onclick="openCharacterEditor()" type="button" aria-label="Crear personaje">
+                <span class="char-card-new-plus">+</span>
+                <span class="char-card-new-text">Crear nuevo personaje</span>
+            </button>
+        `);
+    }
 
     initGalleryLazyImages();
 }

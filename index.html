@@ -32,10 +32,9 @@
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <!-- Preload de imagen de fondo del menú (recurso más pesado del first paint) -->
     <link rel="preload" href="https://raw.githubusercontent.com/Irumiko/Etheria/main/assets/backgrounds/default_background.jpg" as="image" fetchpriority="low">
-    <link rel="stylesheet" href="css/main.css">
-    <link rel="stylesheet" href="css/ethy.css">
-    <link rel="stylesheet" href="css/rpg-scene.css">
-    <link rel="stylesheet" href="css/menu-enhanced.css">
+    <link rel="stylesheet" href="css/critical.css">
+    <link rel="preload" href="css/non-critical.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="css/non-critical.css"></noscript>
 
 </head>
 <body>
@@ -185,6 +184,11 @@
         </div>
 
         <div class="setting-item">
+            <label class="setting-label" for="hapticToggle">Haptics</label>
+            <input type="checkbox" id="hapticToggle" onchange="toggleHaptics(this.checked)">
+        </div>
+
+        <div class="setting-item">
             <label class="setting-label">Filtro de atmósfera</label>
             <div class="filter-buttons">
                 <button class="filter-btn active" onclick="setAtmosphere('none', this)">Normal</button>
@@ -259,7 +263,7 @@
                 </div>
                 <div class="menu-profile-info">
                     <span class="menu-profile-name" id="currentUserDisplay">Jugador</span>
-                    <span class="menu-profile-hint">Toca para editar perfil</span>
+                    <span class="menu-profile-hint" id="menuProfileHint">Toca para editar perfil</span>
                 </div>
                 <svg class="menu-profile-chevron" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -271,7 +275,7 @@
         <!-- Botón Salir — solo visible en PWA -->
         <button class="menu-exit-btn" id="menuExitBtn" onclick="exitApp()" aria-label="Cerrar aplicación">
             <span class="menu-exit-icon">⏻</span>
-            <span class="menu-exit-label">Salir</span>
+            <span class="menu-exit-label">Salir app</span>
         </button>
     </div>
 
@@ -367,10 +371,10 @@
                     <div id="gallerySuggestions" class="gallery-suggestions"></div>
                 </div>
                 <div class="gallery-sort-pills">
-                    <button class="gallery-sort-pill active" data-sort="default" onclick="setGallerySort('default', this)">Reciente</button>
-                    <button class="gallery-sort-pill" data-sort="name" onclick="setGallerySort('name', this)">A–Z</button>
-                    <button class="gallery-sort-pill" data-sort="owner" onclick="setGallerySort('owner', this)">Jugador</button>
-                    <button class="gallery-sort-pill" data-sort="race" onclick="setGallerySort('race', this)">Raza</button>
+                    <button id="gallerySortDefault" class="gallery-sort-pill active" data-sort="default" onclick="setGallerySort('default', this)">Reciente</button>
+                    <button id="gallerySortName" class="gallery-sort-pill" data-sort="name" onclick="setGallerySort('name', this)">A–Z</button>
+                    <button id="gallerySortOwner" class="gallery-sort-pill" data-sort="owner" onclick="setGallerySort('owner', this)">Jugador</button>
+                    <button id="gallerySortRace" class="gallery-sort-pill" data-sort="race" onclick="setGallerySort('race', this)">Raza</button>
                 </div>
             </div>
             <!-- Pills de raza activas -->
@@ -1376,7 +1380,7 @@
                                 <textarea id="charPersonality" placeholder="¿Cómo es su comportamiento? ¿Qué le motiva?"></textarea>
                             </div>
                             <div class="form-group">
-                                <label>Historia / Trasfondo</label>
+                                <label>Trasfondo</label>
                                 <textarea id="charHistory" rows="6" placeholder="Su pasado, orígenes, eventes importantes..."></textarea>
                             </div>
                         </div>
@@ -1429,7 +1433,7 @@
                 </button>
                 <button class="sheet-tab-v2" onclick="switchTab('history', this)" data-tab="history">
                     <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 1h9v11H2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4 4.5h5M4 6.5h5M4 8.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-                    Historia
+                    Trasfondo
                 </button>
                 <button class="sheet-tab-v2" onclick="switchTab('notes', this)" data-tab="notes">
                     <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 2h9v7H8l-2 2V9H2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
@@ -1491,6 +1495,14 @@
 <!-- Orden de carga recomendado: utilidades -> UI -> arranque -->
 <script src="js/core/events.js"></script>
 <script src="js/utils/state.js"></script>
+<script src="js/pwa-viewport.js"></script>
+<script src="js/pwa-gestures.js"></script>
+<script src="js/pwa-lifecycle.js"></script>
+<script src="js/pwa-capabilities.js"></script>
+<script src="js/utils/webVitals.js"></script>
+<script src="js/utils/logger.js"></script>
+<script src="js/config/supabase.js"></script>
+<script src="js/utils/supabaseAuthHeaders.js"></script>
 <script src="js/core/store.js"></script>
 <script src="js/utils/storage.js"></script>
 <script src="js/ui/sounds.js"></script>

@@ -8,6 +8,8 @@
 const Ethy = (function() {
     'use strict';
 
+    const logger = window.EtheriaLogger;
+
     // ── Configuración ────────────────────────────────────────────────────────
     const CONFIG = {
         STORAGE_KEY: 'etheria_ethy_seen',
@@ -740,7 +742,7 @@ const Ethy = (function() {
                 right:  _container.style.right,
                 bottom: _container.style.bottom
             }));
-        } catch {}
+        } catch (error) { logger?.warn('ethy', 'position save failed:', error?.message || error); }
     }
 
     function _loadPosition() {
@@ -752,7 +754,7 @@ const Ethy = (function() {
                 _container.style.left   = 'auto';
                 _container.style.top    = 'auto';
             }
-        } catch {}
+        } catch (error) { logger?.warn('ethy', 'position load failed:', error?.message || error); }
     }
 
     // ── Minimizar ─────────────────────────────────────────────────────────────
@@ -771,7 +773,7 @@ const Ethy = (function() {
             // Si estaba durmiendo, despertar para evitar ZZZ invisible
             if (_isSleeping) _wakeUp(true);
         }
-        try { localStorage.setItem(MINIMIZED_KEY, _isMinimized ? '1' : '0'); } catch {}
+        try { localStorage.setItem(MINIMIZED_KEY, _isMinimized ? '1' : '0'); } catch (error) { logger?.warn('ethy', 'minimize state save failed:', error?.message || error); }
     }
 
     // ── Sistema de duermevela ─────────────────────────────────────────────────
@@ -1013,7 +1015,7 @@ const Ethy = (function() {
         _isTyping = false;
         const content = _bubble.querySelector('.ethy-content');
         const actions = _bubble.querySelector('.ethy-actions');
-        content.innerHTML = _currentSayText;
+        content.textContent = _currentSayText;
         _renderButtons(actions, _currentSayButtons);
         if (_currentSayDuration > 0) {
             if (_autocloseTimeout) clearTimeout(_autocloseTimeout);
@@ -1054,13 +1056,17 @@ const Ethy = (function() {
         const typeChar = () => {
             if (!_isTyping) return; // cancelado externamente
             if (charIndex < text.length) {
-                content.innerHTML = text.substring(0, charIndex + 1) + '<span class="ethy-cursor">|</span>';
+                content.textContent = text.substring(0, charIndex + 1);
+                const cursor = document.createElement('span');
+                cursor.className = 'ethy-cursor';
+                cursor.textContent = '|';
+                content.appendChild(cursor);
                 charIndex++;
                 _typingTimeout = setTimeout(typeChar, CONFIG.TYPING_SPEED);
             } else {
                 _typingTimeout = null;
                 _isTyping = false;
-                content.innerHTML = text;
+                content.textContent = text;
                 _renderButtons(actions, buttons);
                 if (duration > 0) {
                     _autocloseTimeout = setTimeout(hideBubble, duration);

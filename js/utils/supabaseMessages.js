@@ -11,17 +11,14 @@
 
 (function (global) {
 
-    const cfg = global.SUPABASE_CONFIG || {
-        url: 'https://timtqdrfeuzwwixfnudj.supabase.co',
-        key: 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3'
-    };
+    const cfg = global.SUPABASE_CONFIG || {};
+    const logger = global.EtheriaLogger;
 
     const SB_URL = cfg.url;
     const SB_KEY = cfg.key;
 
-    const REST_HEADERS = {
+    const BASE_REST_HEADERS = {
         'apikey'        : SB_KEY,
-        'Authorization' : 'Bearer ' + SB_KEY,
         'Content-Type'  : 'application/json',
         'Prefer'        : 'return=minimal'
     };
@@ -44,10 +41,28 @@
             _client = global.supabaseClient || lib.createClient(SB_URL, SB_KEY);
             return true;
         } catch (e) {
-            console.warn('[Supabase] init error:', e.message);
+            logger?.warn('supabase:messages', 'init error:', e.message);
             _available = false;
             return false;
         }
+    }
+
+    async function _getAccessToken() {
+        return global.SupabaseAuthHeaders?.getAccessToken
+            ? global.SupabaseAuthHeaders.getAccessToken(global.supabaseClient)
+            : null;
+    }
+
+    async function _restHeaders() {
+        if (global.SupabaseAuthHeaders?.buildAuthHeaders) {
+            return global.SupabaseAuthHeaders.buildAuthHeaders({
+                apikey: SB_KEY,
+                client: global.supabaseClient,
+                baseHeaders: BASE_REST_HEADERS,
+            });
+        }
+        const token = await _getAccessToken();
+        return { ...BASE_REST_HEADERS, Authorization: 'Bearer ' + (token || SB_KEY) };
     }
 
     // ── Helpers para character_id ─────────────────────────────────────────────
@@ -75,7 +90,7 @@
                 });
                 if (match) return match.id;
             }
-        } catch { /* silencioso */ }
+        } catch (error) { logger?.warn('supabase:messages', 'resolve character id failed:', error?.message || error); }
         return null;
     }
 
@@ -181,14 +196,14 @@
 
             const res = await fetch(SB_URL + '/rest/v1/messages', {
                 method  : 'POST',
-                headers : REST_HEADERS,
+                headers : await _restHeaders(),
                 body    : JSON.stringify(row),
                 signal  : AbortSignal.timeout(5000)
             });
 
             if (!res.ok) {
                 const detail = await res.text().catch(() => String(res.status));
-                console.warn('[Supabase] send failed (' + res.status + '):', detail);
+                logger?.warn('supabase:messages', 'send failed (' + res.status + '):', detail);
                 _available = false;
                 return false;
             }
@@ -197,7 +212,7 @@
             return true;
 
         } catch (e) {
-            console.warn('[Supabase] send error:', e.message);
+            logger?.error('supabase:messages', 'send error:', e.message);
             _available = false;
             return false;
         }
@@ -213,9 +228,8 @@
             // GET no necesita 'Prefer: return=minimal' (eso es para POST/PATCH).
             // Usamos headers limpios para que PostgREST devuelva el join correctamente.
             const loadHeaders = {
-                'apikey'        : SB_KEY,
-                'Authorization' : 'Bearer ' + SB_KEY,
-                'Accept'        : 'application/json'
+                ...(await _restHeaders()),
+                'Accept': 'application/json'
             };
 
             // Si hay story_id activo, filtrar por él; si no, usar session_id (retrocompatible)
@@ -271,14 +285,14 @@
                     }
 
                     acc.push(msg);
-                } catch {
-                    // Fila con content inválido — ignorar silenciosamente
+                } catch (error) {
+                    logger?.warn('supabase:messages', 'invalid row while loading messages:', error?.message || error);
                 }
                 return acc;
             }, []);
 
         } catch (e) {
-            console.warn('[Supabase] load error:', e.message);
+            logger?.warn('supabase:messages', 'load error:', e.message);
             _available = false;
             return null;
         }
@@ -297,7 +311,7 @@
 
     function subscribe(sessionId, onMessage, onTyping, onReconnect) {
         if (!_init()) {
-            console.warn('[Supabase] subscribe: cliente no disponible');
+            logger?.warn('supabase:messages', 'subscribe: cliente no disponible');
             return;
         }
 
@@ -350,13 +364,13 @@
                                             }
                                         }
                                     }
-                                } catch { /* caché no disponible — charName del content ya es suficiente */ }
+                                } catch (error) { logger?.debug('supabase:messages', 'cloud character cache unavailable:', error?.message || error); }
                             }
                             // Fix 4: attach server-assigned user_id for identity checks
                             if (row.user_id) msg._supabaseUserId = row.user_id;
                             if (typeof onMessage === 'function') onMessage(msg);
-                        } catch {
-                            // payload inesperado — ignorar
+                        } catch (error) {
+                            logger?.warn('supabase:messages', 'unexpected realtime payload:', error?.message || error);
                         }
                     }
                 )
@@ -366,12 +380,12 @@
                         if (typeof onReconnect === 'function') onReconnect();
                     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                         _available = false;
-                        console.warn('[Supabase] channel status:', status);
+                        logger?.warn('supabase:messages', 'channel status:', status);
                     }
                 });
 
         } catch (e) {
-            console.warn('[Supabase] subscribe error:', e.message);
+            logger?.warn('supabase:messages', 'subscribe error:', e.message);
             _available = false;
         }
     }
@@ -380,7 +394,7 @@
 
     function unsubscribe() {
         if (_channel && _client) {
-            try { _client.removeChannel(_channel); } catch { /* ignorar */ }
+            try { _client.removeChannel(_channel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribe removeChannel failed:', error?.message || error); }
             _channel = null;
         }
     }
@@ -437,14 +451,14 @@
                             if (found && found.name) { msg.charName = found.name; break; }
                         }
                     }
-                } catch { /* silencioso */ }
+                } catch (error) { logger?.warn('supabase:messages', 'resolve character id failed:', error?.message || error); }
             }
 
             global.dispatchEvent(new CustomEvent('etheria:realtime-message', {
                 detail: { msg: msg, row: row }
             }));
         } catch (e) {
-            console.warn('[Supabase] handleIncomingMessage:', e.message);
+            logger?.warn('supabase:messages', 'handleIncomingMessage:', e.message);
         }
     }
 
@@ -497,7 +511,7 @@
                             }
                             handleIncomingMessage(row);
                             if (typeof onMessage === 'function') onMessage(msg, row);
-                        } catch { /* ignorar */ }
+                        } catch (error) { logger?.warn('supabase:messages', 'global realtime payload parse failed:', error?.message || error); }
                     }
                 )
                 .subscribe(function (status) {
@@ -508,14 +522,14 @@
                 });
             if (_globalChannel) _globalChannel.__activeId = _newActiveId;
         } catch (e) {
-            console.warn('[Supabase] subscribeGlobal error:', e.message);
+            logger?.warn('supabase:messages', 'subscribeGlobal error:', e.message);
             _globalChannel = null;
         }
     }
 
     function unsubscribeGlobal() {
         if (_globalChannel && _client) {
-            try { _client.removeChannel(_globalChannel); } catch { /* ignorar */ }
+            try { _client.removeChannel(_globalChannel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribeGlobal removeChannel failed:', error?.message || error); }
             _globalChannel = null;
         }
     }

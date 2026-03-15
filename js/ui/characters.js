@@ -210,7 +210,7 @@ function renderUserCards() {
 
         // Avatar guardado
         let avatars = [];
-        try { avatars = JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]'); } catch {}
+        try { avatars = JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]'); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         const avatarSrc = avatars[idx] || '';
         const avatarHtml = avatarSrc
             ? `<div class="user-avatar-wrap"><img src="${avatarSrc}" alt="Avatar" loading="lazy"></div>`
@@ -218,14 +218,14 @@ function renderUserCards() {
 
         // Género
         let genders = [];
-        try { genders = JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch {}
+        try { genders = JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         const gender = genders[idx] || '';
         const genderMap = { masculino:'Masculino', femenino:'Femenino', 'no-binario':'No binario', otro:'Otro' };
         const genderBadge = gender ? `<div class="user-gender-badge">${genderMap[gender] || gender}</div>` : '';
 
         // Cumpleaños
         let birthdays = [];
-        try { birthdays = JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch {}
+        try { birthdays = JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         const bday = birthdays[idx] || '';
         let bdayHtml = '';
         if (bday) {
@@ -240,7 +240,7 @@ function renderUserCards() {
                     : diff <= 7
                         ? `<div class="user-birthday-row">🎂 Cumpleaños en ${diff} día${diff>1?'s':''}</div>`
                         : '';
-            } catch {}
+            } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         }
 
         card.innerHTML = `
@@ -627,7 +627,7 @@ function initMenuParallax() {
                     try {
                         const perm = await DeviceOrientationEvent.requestPermission();
                         if (perm === 'granted') window.addEventListener('deviceorientation', handler, { passive: true });
-                    } catch (_) {}
+                    } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
                 }, { once: true });
             } else {
                 window.addEventListener('deviceorientation', handler, { passive: true });
