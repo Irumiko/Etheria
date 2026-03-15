@@ -164,29 +164,19 @@ const SupabaseSync = (function () {
             const data = _getProfileDataForSync();
             const now = new Date().toISOString();
 
-            // Intentar UPDATE primero, luego INSERT si no existe
-            const { error: updateError } = await _client()
+            // Upsert directo para cubrir creación de cuenta nueva y actualizaciones.
+            // UPDATE+INSERT puede fallar silenciosamente cuando UPDATE afecta 0 filas.
+            const { error: upsertError } = await _client()
                 .from('user_data')
-                .update({ 
-                    data, 
-                    updated_at: now 
-                })
-                .eq('user_id', userId);
+                .upsert({
+                    user_id: userId,
+                    data,
+                    updated_at: now
+                }, { onConflict: 'user_id' });
 
-            if (updateError) {
-                // Si no existe, hacer INSERT
-                const { error: insertError } = await _client()
-                    .from('user_data')
-                    .insert({ 
-                        user_id: userId, 
-                        data, 
-                        updated_at: now 
-                    });
-
-                if (insertError) {
-                    console.error('[SupabaseSync] upload error:', insertError);
-                    return { ok: false, error: insertError.message };
-                }
+            if (upsertError) {
+                console.error('[SupabaseSync] upload error:', upsertError);
+                return { ok: false, error: upsertError.message };
             }
 
             _lastSyncTime = Date.now();
