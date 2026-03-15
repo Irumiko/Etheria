@@ -273,6 +273,14 @@ function initializeApp() {
             .catch((err) => {
                 console.warn('No se pudo abrir la sala compartida:', err);
             });
+    } else {
+        const lastProfileId = getStoredLastProfileId();
+        if (lastProfileId !== null && Number.isInteger(lastProfileId) && userNames[lastProfileId]) {
+            selectUser(lastProfileId, { autoLoad: true, instant: true })
+                .catch((err) => {
+                    console.warn('No se pudo cargar el último perfil activo:', err);
+                });
+        }
     }
 
     window.addEventListener('beforeunload', (e) => {
