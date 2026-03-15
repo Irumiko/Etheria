@@ -396,7 +396,11 @@
 
         <!-- ── Tab bar ─────────────────────────────────────────── -->
         <div class="opt-tab-bar" role="tablist">
-            <button class="opt-tab active" role="tab" aria-selected="true"  data-tab="appearance" onclick="switchOptTab('appearance',this)">
+            <button class="opt-tab active opt-tab-account" role="tab" aria-selected="true"  data-tab="account" onclick="switchOptTab('account',this)">
+                <span class="opt-tab-icon">👤</span>
+                <span class="opt-tab-label">Cuenta</span>
+            </button>
+            <button class="opt-tab" role="tab" aria-selected="false"  data-tab="appearance" onclick="switchOptTab('appearance',this)">
                 <span class="opt-tab-icon">🎨</span>
                 <span class="opt-tab-label">Apariencia</span>
             </button>
@@ -414,8 +418,62 @@
         <!-- ── Paneles ─────────────────────────────────────────── -->
         <div class="opt-panels">
 
+            <!-- CUENTA / PERFIL -->
+            <div class="opt-panel active" id="optPanel-account" role="tabpanel">
+                <div class="opt-section-title">Cuenta y Perfil</div>
+                <div class="opt-account-logout-wrap">
+                    <button class="opt-save-btn opt-logout-btn" onclick="logout()">Cerrar sesión</button>
+                </div>
+
+                <!-- Avatar -->
+                <div class="opt-profile-avatar-zone">
+                    <div class="opt-avatar-preview" id="optAvatarPreview" onclick="document.getElementById('optAvatarInput').click()" title="Cambiar avatar">
+                        <span class="opt-avatar-initials" id="optAvatarInitials">?</span>
+                        <img class="opt-avatar-img" id="optAvatarImg" src="" alt="Avatar" style="display:none">
+                        <div class="opt-avatar-overlay">📷</div>
+                    </div>
+                    <div class="opt-avatar-actions">
+                        <p class="opt-avatar-hint">Toca para cambiar tu avatar.<br>PNG, JPG o GIF · Máx. 1 MB</p>
+                        <button class="opt-avatar-remove-btn" id="optAvatarRemoveBtn" onclick="removeProfileAvatar()" style="display:none">✕ Quitar foto</button>
+                    </div>
+                    <input type="file" id="optAvatarInput" accept="image/png,image/jpeg,image/gif,image/webp"
+                        style="display:none" onchange="handleAvatarUpload(this)">
+                </div>
+
+                <div class="opt-rows">
+                    <div class="option-row opt-row-stacked">
+                        <label class="option-label" for="optProfileName">Nombre visible</label>
+                        <div class="opt-input-row">
+                            <input type="text" id="optProfileName" class="opt-text-input" placeholder="Tu nombre..." autocomplete="off">
+                            <button onclick="saveProfileNameFromOptions()" class="opt-save-btn">Guardar</button>
+                        </div>
+                    </div>
+                    <div class="option-row">
+                        <label class="option-label" for="optProfileGender">Género</label>
+                        <select id="optProfileGender" class="opt-select" onchange="saveProfileGender(this.value)">
+                            <option value="">Sin especificar</option>
+                            <option value="masculino">Masculino</option>
+                            <option value="femenino">Femenino</option>
+                            <option value="no-binario">No binario</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="option-row">
+                        <label class="option-label" for="optProfileBirthday">Cumpleaños</label>
+                        <div class="opt-birthday-wrap">
+                            <input type="date" id="optProfileBirthday" class="opt-date-input"
+                                onchange="saveProfileBirthday(this.value)">
+                            <span class="opt-birthday-hint" id="optBirthdayHint"></span>
+                        </div>
+                    </div>
+                    <div class="option-row" style="border-top: 1px solid rgba(201,168,108,0.08); margin-top: 0.5rem; padding-top: 1rem;">
+                        <span class="option-label" style="color: var(--text-muted); font-size: 0.82rem;" id="optProfileStats"></span>
+                    </div>
+                </div>
+            </div>
+
             <!-- APARIENCIA -->
-            <div class="opt-panel active" id="optPanel-appearance" role="tabpanel">
+            <div class="opt-panel" id="optPanel-appearance" role="tabpanel">
                 <div class="opt-section-title">Apariencia</div>
                 <div class="opt-rows">
                     <div class="option-row">
@@ -513,65 +571,6 @@
                             <input type="checkbox" id="optUiSounds" checked onchange="updateUiSounds(this.checked)">
                             <span class="opt-switch-slider"></span>
                         </label>
-                    </div>
-                    <div class="option-row">
-                        <span class="option-label">Cuenta</span>
-                        <button class="opt-save-btn" onclick="logout()">Cerrar sesión</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PERFIL -->
-            <div class="opt-panel" id="optPanel-profile" role="tabpanel">
-                <div class="opt-section-title">Tu Perfil</div>
-
-                <!-- Avatar -->
-                <div class="opt-profile-avatar-zone">
-                    <div class="opt-avatar-preview" id="optAvatarPreview" onclick="document.getElementById('optAvatarInput').click()" title="Cambiar avatar">
-                        <span class="opt-avatar-initials" id="optAvatarInitials">?</span>
-                        <img class="opt-avatar-img" id="optAvatarImg" src="" alt="Avatar" style="display:none">
-                        <div class="opt-avatar-overlay">📷</div>
-                    </div>
-                    <div class="opt-avatar-actions">
-                        <p class="opt-avatar-hint">Toca para cambiar tu avatar.<br>PNG, JPG o GIF · Máx. 1 MB</p>
-                        <button class="opt-avatar-remove-btn" id="optAvatarRemoveBtn" onclick="removeProfileAvatar()" style="display:none">✕ Quitar foto</button>
-                    </div>
-                    <input type="file" id="optAvatarInput" accept="image/png,image/jpeg,image/gif,image/webp"
-                        style="display:none" onchange="handleAvatarUpload(this)">
-                </div>
-
-                <div class="opt-rows">
-                    <!-- Nombre -->
-                    <div class="option-row opt-row-stacked">
-                        <label class="option-label" for="optProfileName">Nombre visible</label>
-                        <div class="opt-input-row">
-                            <input type="text" id="optProfileName" class="opt-text-input" placeholder="Tu nombre..." autocomplete="off">
-                            <button onclick="saveProfileNameFromOptions()" class="opt-save-btn">Guardar</button>
-                        </div>
-                    </div>
-                    <!-- Género -->
-                    <div class="option-row">
-                        <label class="option-label" for="optProfileGender">Género</label>
-                        <select id="optProfileGender" class="opt-select" onchange="saveProfileGender(this.value)">
-                            <option value="">Sin especificar</option>
-                            <option value="masculino">Masculino</option>
-                            <option value="femenino">Femenino</option>
-                            <option value="no-binario">No binario</option>
-                            <option value="otro">Otro</option>
-                        </select>
-                    </div>
-                    <!-- Cumpleaños -->
-                    <div class="option-row">
-                        <label class="option-label" for="optProfileBirthday">Cumpleaños</label>
-                        <div class="opt-birthday-wrap">
-                            <input type="date" id="optProfileBirthday" class="opt-date-input"
-                                onchange="saveProfileBirthday(this.value)">
-                            <span class="opt-birthday-hint" id="optBirthdayHint"></span>
-                        </div>
-                    </div>
-                    <!-- Stats -->
-                    <div class="option-row" style="border-top: 1px solid rgba(201,168,108,0.08); margin-top: 0.5rem; padding-top: 1rem;">
-                        <span class="option-label" style="color: var(--text-muted); font-size: 0.82rem;" id="optProfileStats"></span>
                     </div>
                 </div>
             </div>
