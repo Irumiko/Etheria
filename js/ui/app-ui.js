@@ -54,6 +54,10 @@ function save(opts = {}) {
         setLocalProfileUpdatedAt(currentUserIndex);
         hasUnsavedChanges = false;
         cloudUnsyncedChanges = true;
+        // Informar al motor de sync cloud: hay cambios locales listos para subir.
+        if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') {
+            SupabaseSync.markPending();
+        }
         eventBus.emit('sync:status-changed', { status: 'pending-upload', message: 'Subir cambios',       target: 'button' });
         eventBus.emit('sync:status-changed', { status: 'degraded',       message: 'Pendiente de subida', target: 'indicator' });
         showAutosave('Guardado', 'saved');

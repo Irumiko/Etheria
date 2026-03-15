@@ -8,12 +8,13 @@
 //   owner_user_id  uuid  → auth.users.id (null = perfil libre)
 //   created_at     timestamp
 //
-// RLS: SELECT public / INSERT+UPDATE solo owner
+// RLS esperado: SELECT de perfiles libres o propios / INSERT+UPDATE solo owner
 // ============================================
 
 const SupabaseProfiles = (function () {
 
     let _initDone = false;   // guard contra init() múltiple
+    const ACTIVE_PROFILE_STORAGE_KEY = 'etheria_active_cloud_profile_id';
 
     // ── Helpers internos ─────────────────────────────────────────────────────
 
@@ -24,6 +25,7 @@ const SupabaseProfiles = (function () {
     // supabase-js v2: userId solo disponible async via getUser().
     // Guardamos el último userId conocido en caché local para comparaciones síncronas.
     let _cachedUserId = null;
+    let _activeProfileId = null;
 
     async function _getCurrentUser() {
         const sb = _client();
@@ -50,16 +52,51 @@ const SupabaseProfiles = (function () {
         }
     }
 
+    function _readStoredActiveProfileId() {
+        try {
+            return localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY) || null;
+        } catch {
+            return null;
+        }
+    }
+
+    function _storeActiveProfileId(profileId) {
+        try {
+            if (profileId) localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, profileId);
+            else localStorage.removeItem(ACTIVE_PROFILE_STORAGE_KEY);
+        } catch {
+            // ignore storage failures
+        }
+    }
+
+    function _emitActiveProfileChanged(profileId, reason = 'manual') {
+        window.dispatchEvent(new CustomEvent('etheria:active-profile-changed', {
+            detail: { profileId: profileId || null, reason }
+        }));
+    }
+
     // ── Perfiles ─────────────────────────────────────────────────────────────
 
     async function loadCloudProfiles() {
         if (!_isAvailable()) return [];
         _ensureCloudProfilesKey();
         try {
-            const { data, error } = await _client()
+            const user = await _getCurrentUser();
+            const userId = user?.id || null;
+
+            let query = _client()
                 .from('profiles')
                 .select('*')
                 .order('name', { ascending: true });
+
+            // Evitar exponer perfiles ocupados por terceros en la UI.
+            // - Usuario autenticado: ver libres + propios.
+            // - Usuario no autenticado: ver solo libres.
+            query = userId
+                ? query.or(`owner_user_id.is.null,owner_user_id.eq.${userId}`)
+                : query.is('owner_user_id', null);
+
+            const { data, error } = await query;
 
             if (error) {
                 console.error('[SupabaseProfiles] loadCloudProfiles:', error.message);
@@ -132,6 +169,35 @@ const SupabaseProfiles = (function () {
         }
     }
 
+    async function claimCloudProfile(profileId) {
+        if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
+        const user = await _getCurrentUser();
+        if (!user) return { ok: false, error: 'No autenticado.' };
+        try {
+            // Claim atómico: solo funciona si sigue libre en servidor.
+            const { data, error } = await _client()
+                .from('profiles')
+                .update({ owner_user_id: user.id })
+                .eq('id', profileId)
+                .is('owner_user_id', null)
+                .select()
+                .single();
+
+            if (error) return { ok: false, error: error.message || 'No se pudo reclamar el perfil.' };
+
+            _ensureCloudProfilesKey();
+            const idx = appData.cloudProfiles.findIndex(p => p.id === profileId);
+            if (idx !== -1) {
+                appData.cloudProfiles[idx] = data;
+            } else {
+                appData.cloudProfiles.push(data);
+            }
+            return { ok: true, profile: data };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
     async function releaseCloudProfile(profileId) {
         if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
         const user = await _getCurrentUser();
@@ -191,6 +257,49 @@ const SupabaseProfiles = (function () {
         return appData.cloudProfiles.filter(p => !isProfileTaken(p));
     }
 
+    function getActiveProfileId() {
+        return _activeProfileId;
+    }
+
+    function getActiveProfile() {
+        if (!_activeProfileId || !Array.isArray(appData?.cloudProfiles)) return null;
+        return appData.cloudProfiles.find(p => p.id === _activeProfileId) || null;
+    }
+
+    async function activateProfile(profileId, options = {}) {
+        const { claimIfFree = true } = options;
+        if (!profileId) {
+            _activeProfileId = null;
+            _storeActiveProfileId(null);
+            _emitActiveProfileChanged(null, 'cleared');
+            return { ok: true, profile: null };
+        }
+
+        const profile = (appData.cloudProfiles || []).find(p => p.id === profileId);
+        if (!profile) return { ok: false, error: 'Perfil no encontrado.' };
+
+        let resolved = profile;
+        const status = getProfileStatus(profile);
+
+        if (status === 'taken') {
+            return { ok: false, error: 'Este perfil ya está ocupado por otro usuario.' };
+        }
+
+        if (status === 'free' && claimIfFree) {
+            const claim = await claimCloudProfile(profileId);
+            if (!claim.ok) {
+                await loadCloudProfiles();
+                return { ok: false, error: claim.error || 'No se pudo reclamar el perfil.' };
+            }
+            resolved = claim.profile || profile;
+        }
+
+        _activeProfileId = resolved.id;
+        _storeActiveProfileId(_activeProfileId);
+        _emitActiveProfileChanged(_activeProfileId, 'activated');
+        return { ok: true, profile: resolved };
+    }
+
     // ── Render ───────────────────────────────────────────────────────────────
 
     function renderCloudProfileList(container, { onSelect, showStats = false } = {}) {
@@ -238,11 +347,22 @@ const SupabaseProfiles = (function () {
         if (onSelect) SupabaseProfiles._onSelectCallback = onSelect;
     }
 
-    function _handleSelect(btn) {
+    async function _handleSelect(btn) {
         const profileId = btn?.dataset?.profileId;
         if (!profileId || !SupabaseProfiles._onSelectCallback) return;
-        const profile = (appData.cloudProfiles || []).find(p => p.id === profileId);
-        if (profile) SupabaseProfiles._onSelectCallback(profile);
+
+        const result = await activateProfile(profileId, { claimIfFree: true });
+        if (!result.ok) {
+            if (typeof eventBus !== 'undefined') {
+                eventBus.emit('ui:show-autosave', {
+                    text: result.error || 'No se pudo activar el perfil.',
+                    state: 'error'
+                });
+            }
+            return;
+        }
+
+        if (result.profile) SupabaseProfiles._onSelectCallback(result.profile);
     }
 
     // ── Init ─────────────────────────────────────────────────────────────────
@@ -253,9 +373,20 @@ const SupabaseProfiles = (function () {
         // Cargar userId en caché para comparaciones síncronas
         _getCurrentUser().catch(() => {});
 
-        // Cargar perfiles
+        // Cargar perfiles y restaurar perfil activo previo si sigue accesible
         if (_isAvailable()) {
-            loadCloudProfiles().catch(() => {});
+            loadCloudProfiles().then(() => {
+                const storedProfileId = _readStoredActiveProfileId();
+                if (!storedProfileId) return;
+                const profile = (appData.cloudProfiles || []).find(p => p.id === storedProfileId);
+                if (profile) {
+                    _activeProfileId = storedProfileId;
+                    _emitActiveProfileChanged(_activeProfileId, 'restored');
+                } else {
+                    _activeProfileId = null;
+                    _storeActiveProfileId(null);
+                }
+            }).catch(() => {});
         }
 
         // Registrar listeners solo una vez
@@ -263,7 +394,14 @@ const SupabaseProfiles = (function () {
         _initDone = true;
 
         // Re-cargar cuando el usuario cambia de sesión
-        window.addEventListener('etheria:auth-changed', () => {
+        window.addEventListener('etheria:auth-changed', (e) => {
+            const userId = e.detail?.user?.id || null;
+            if (!userId) {
+                _cachedUserId = null;
+                _activeProfileId = null;
+                _storeActiveProfileId(null);
+                _emitActiveProfileChanged(null, 'signed-out');
+            }
             _getCurrentUser().then(() => loadCloudProfiles()).catch(() => {});
         });
 
@@ -283,6 +421,7 @@ const SupabaseProfiles = (function () {
         loadCloudProfiles,
         createCloudProfile,
         updateCloudProfileStats,
+        claimCloudProfile,
         releaseCloudProfile,
         isProfileTaken,
         getProfileStatus,
@@ -290,6 +429,9 @@ const SupabaseProfiles = (function () {
         getProfileStatusClass,
         getMyProfiles,
         getFreeProfiles,
+        getActiveProfileId,
+        getActiveProfile,
+        activateProfile,
         renderCloudProfileList,
         _handleSelect,
         _onSelectCallback: null
