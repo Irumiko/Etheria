@@ -70,11 +70,107 @@ CREATE TABLE characters (
     profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     stats JSONB DEFAULT '{}',
+    avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Índice para búsquedas por profile
 CREATE INDEX idx_characters_profile ON characters(profile_id);
+```
+
+### 5. Storage Bucket `avatars`
+
+Necesario para subir imágenes de personajes a la nube.
+
+```sql
+-- Crear bucket público para avatares
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+-- create policy no soporta IF NOT EXISTS en algunos entornos: usar drop+create
+DROP POLICY IF EXISTS "Public can view avatars" ON storage.objects;
+create policy "Public can view avatars"
+on storage.objects for select
+to public
+using (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Authenticated users can upload avatars" ON storage.objects;
+create policy "Authenticated users can upload avatars"
+on storage.objects for insert
+to authenticated
+with check (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Authenticated users can update avatars" ON storage.objects;
+create policy "Authenticated users can update avatars"
+on storage.objects for update
+to authenticated
+using (bucket_id = 'avatars')
+with check (bucket_id = 'avatars');
+
+DROP POLICY IF EXISTS "Authenticated users can delete avatars" ON storage.objects;
+create policy "Authenticated users can delete avatars"
+on storage.objects for delete
+to authenticated
+using (bucket_id = 'avatars');
+```
+
+Si la tabla `characters` ya existe sin `avatar_url`, aplica esta migración:
+
+```sql
+alter table characters add column if not exists avatar_url text;
+```
+
+
+### 6. Avatar de perfil de usuario (opcional, recomendado)
+
+Si quieres sincronizar también el avatar del perfil del usuario (no solo personajes),
+usa bucket `user-avatars` + columna `avatar_url` en `user_settings`.
+
+```sql
+ALTER TABLE user_settings
+ADD COLUMN IF NOT EXISTS avatar_url text;
+
+insert into storage.buckets (id, name, public)
+values ('user-avatars', 'user-avatars', true)
+on conflict (id) do nothing;
+
+DROP POLICY IF EXISTS "Public can view user avatars" ON storage.objects;
+create policy "Public can view user avatars"
+on storage.objects for select
+to public
+using (bucket_id = 'user-avatars');
+
+DROP POLICY IF EXISTS "Authenticated users can upload own user avatars" ON storage.objects;
+create policy "Authenticated users can upload own user avatars"
+on storage.objects for insert
+to authenticated
+with check (
+  bucket_id = 'user-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+DROP POLICY IF EXISTS "Authenticated users can update own user avatars" ON storage.objects;
+create policy "Authenticated users can update own user avatars"
+on storage.objects for update
+to authenticated
+using (
+  bucket_id = 'user-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+)
+with check (
+  bucket_id = 'user-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
+
+DROP POLICY IF EXISTS "Authenticated users can delete own user avatars" ON storage.objects;
+create policy "Authenticated users can delete own user avatars"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'user-avatars'
+  and auth.uid()::text = (storage.foldername(name))[1]
+);
 ```
 
 ## Políticas RLS (Row Level Security)
