@@ -54,6 +54,10 @@ function save(opts = {}) {
         setLocalProfileUpdatedAt(currentUserIndex);
         hasUnsavedChanges = false;
         cloudUnsyncedChanges = true;
+        // Informar al motor de sync cloud: hay cambios locales listos para subir.
+        if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') {
+            SupabaseSync.markPending();
+        }
         eventBus.emit('sync:status-changed', { status: 'pending-upload', message: 'Subir cambios',       target: 'button' });
         eventBus.emit('sync:status-changed', { status: 'degraded',       message: 'Pendiente de subida', target: 'indicator' });
         showAutosave('Guardado', 'saved');
@@ -458,6 +462,75 @@ function _saveBirthdays(arr) {
     try { localStorage.setItem('etheria_user_birthdays', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
 }
 
+function _getCurrentProfileAvatar() {
+    const avatars = _getAvatars();
+    return avatars[currentUserIndex] || localStorage.getItem('etheria_cloud_avatar_url') || '';
+}
+
+async function _getAuthenticatedUserIdForAvatar() {
+    if (window._cachedUserId) return window._cachedUserId;
+    if (!window.supabaseClient || typeof window.supabaseClient.auth?.getUser !== 'function') return null;
+    try {
+        const { data, error } = await window.supabaseClient.auth.getUser();
+        if (error || !data?.user?.id) return null;
+        window._cachedUserId = data.user.id;
+        return data.user.id;
+    } catch {
+        return null;
+    }
+}
+
+function _saveAvatarInLocalProfile(url) {
+    const avatars = _getAvatars();
+    while (avatars.length <= currentUserIndex) avatars.push('');
+    avatars[currentUserIndex] = url || '';
+    _saveAvatars(avatars);
+}
+
+async function _uploadProfileAvatarToCloud(file) {
+    const userId = await _getAuthenticatedUserIdForAvatar();
+    if (!userId) return { ok: false, error: 'Inicia sesión para sincronizar el avatar en la nube.' };
+    if (!window.supabaseClient) return { ok: false, error: 'Supabase no disponible.' };
+
+    const extMatch = (file?.name || '').match(/\.(png|jpg|jpeg|gif|webp)$/i);
+    const ext = extMatch ? extMatch[1].toLowerCase() : 'png';
+    const contentType = file?.type || (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`);
+    const path = `${userId}/profile.${ext}`;
+
+    const { error: uploadError } = await window.supabaseClient.storage
+        .from('user-avatars')
+        .upload(path, file, { upsert: true, contentType });
+
+    if (uploadError) {
+        return { ok: false, error: uploadError.message || 'No se pudo subir el avatar a la nube.' };
+    }
+
+    const { data: urlData } = window.supabaseClient.storage
+        .from('user-avatars')
+        .getPublicUrl(path);
+
+    const publicUrl = urlData?.publicUrl || '';
+    if (!publicUrl) return { ok: false, error: 'No se pudo obtener la URL pública del avatar.' };
+
+    if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
+        await SupabaseSettings.saveUserSettings({ avatar_url: publicUrl });
+    }
+    localStorage.setItem('etheria_cloud_avatar_url', publicUrl);
+    return { ok: true, url: publicUrl };
+}
+
+async function _removeProfileAvatarFromCloud() {
+    const userId = await _getAuthenticatedUserIdForAvatar();
+    if (!userId || !window.supabaseClient) return;
+
+    const paths = ['png', 'jpg', 'jpeg', 'gif', 'webp'].map(ext => `${userId}/profile.${ext}`);
+    try { await window.supabaseClient.storage.from('user-avatars').remove(paths); } catch {}
+    if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
+        await SupabaseSettings.saveUserSettings({ avatar_url: '' });
+    }
+    localStorage.setItem('etheria_cloud_avatar_url', '');
+}
+
 function _syncAvatarInitials() {
     const initEl = document.getElementById('optAvatarInitials');
     if (initEl) initEl.textContent = (userNames[currentUserIndex] || '?')[0].toUpperCase();
@@ -470,8 +543,7 @@ function _syncProfileTab() {
     _syncAvatarInitials();
 
     // Avatar
-    const avatars = _getAvatars();
-    const avatar  = avatars[currentUserIndex] || '';
+    const avatar  = _getCurrentProfileAvatar();
     const imgEl   = document.getElementById('optAvatarImg');
     const removeBtn = document.getElementById('optAvatarRemoveBtn');
     if (imgEl) {
@@ -517,33 +589,48 @@ function _updateBirthdayHint(bday) {
     } catch { hint.textContent = ''; }
 }
 
-function handleAvatarUpload(input) {
+async function handleAvatarUpload(input) {
     const file = input.files[0];
     if (!file) return;
     if (file.size > 1.2 * 1024 * 1024) {
         showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
         return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const data = e.target.result;
-        const avatars = _getAvatars();
-        while (avatars.length <= currentUserIndex) avatars.push('');
-        avatars[currentUserIndex] = data;
-        _saveAvatars(avatars);
+
+    showAutosave('Guardando avatar...', 'info');
+    const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (userId) {
+        const cloud = await _uploadProfileAvatarToCloud(file);
+        if (!cloud.ok) {
+            showAutosave(cloud.error || 'Error al subir avatar a la nube', 'error');
+            input.value = '';
+            return;
+        }
+        _saveAvatarInLocalProfile(cloud.url);
         _syncProfileTab();
-        showAutosave('Avatar guardado', 'saved');
-        // Refrescar tarjetas de perfil
-        if (typeof renderUserCards === 'function') renderUserCards();
-    };
-    reader.readAsDataURL(file);
-    input.value = ''; // limpiar para poder subir la misma imagen otra vez
+        showAutosave('Avatar guardado en la nube', 'saved');
+    } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = e.target.result;
+            _saveAvatarInLocalProfile(data);
+            _syncProfileTab();
+            showAutosave('Avatar guardado localmente', 'saved');
+            if (typeof renderUserCards === 'function') renderUserCards();
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+        return;
+    }
+
+    if (typeof renderUserCards === 'function') renderUserCards();
+    input.value = '';
 }
 
-function removeProfileAvatar() {
-    const avatars = _getAvatars();
-    if (avatars[currentUserIndex]) avatars[currentUserIndex] = '';
-    _saveAvatars(avatars);
+async function removeProfileAvatar() {
+    _saveAvatarInLocalProfile('');
+    await _removeProfileAvatarFromCloud();
     _syncProfileTab();
     showAutosave('Avatar eliminado', 'saved');
     if (typeof renderUserCards === 'function') renderUserCards();
@@ -1039,10 +1126,9 @@ function closeProfileModal() {
 
 function _syncProfileModal() {
     const name     = userNames[currentUserIndex] || '';
-    const avatars  = _getAvatars();
     const genders  = _getGenders();
     const birthdays = _getBirthdays();
-    const avatar   = avatars[currentUserIndex] || '';
+    const avatar   = _getCurrentProfileAvatar();
 
     // Nombre
     const nameInput = document.getElementById('pmName');
@@ -1100,33 +1186,50 @@ function saveProfileModalName() {
     _syncAvatarInitials();
 }
 
-function handleProfileModalAvatar(input) {
+async function handleProfileModalAvatar(input) {
     const file = input.files[0];
     if (!file) return;
     if (file.size > 1.2 * 1024 * 1024) {
         showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
         return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const data = e.target.result;
-        const avatars = _getAvatars();
-        while (avatars.length <= currentUserIndex) avatars.push('');
-        avatars[currentUserIndex] = data;
-        _saveAvatars(avatars);
-        _syncProfileModal();
-        _syncProfileTab();
-        showAutosave('Avatar guardado', 'saved');
-        if (typeof renderUserCards === 'function') renderUserCards();
-    };
-    reader.readAsDataURL(file);
+
+    showAutosave('Guardando avatar...', 'info');
+    const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (userId) {
+        const cloud = await _uploadProfileAvatarToCloud(file);
+        if (!cloud.ok) {
+            showAutosave(cloud.error || 'Error al subir avatar a la nube', 'error');
+            input.value = '';
+            return;
+        }
+        _saveAvatarInLocalProfile(cloud.url);
+    } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = e.target.result;
+            _saveAvatarInLocalProfile(data);
+            _syncProfileModal();
+            _syncProfileTab();
+            showAutosave('Avatar guardado localmente', 'saved');
+            if (typeof renderUserCards === 'function') renderUserCards();
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+        return;
+    }
+
+    _syncProfileModal();
+    _syncProfileTab();
+    showAutosave('Avatar guardado en la nube', 'saved');
+    if (typeof renderUserCards === 'function') renderUserCards();
     input.value = '';
 }
 
-function removeProfileModalAvatar() {
-    const avatars = _getAvatars();
-    if (avatars[currentUserIndex]) avatars[currentUserIndex] = '';
-    _saveAvatars(avatars);
+async function removeProfileModalAvatar() {
+    _saveAvatarInLocalProfile('');
+    await _removeProfileAvatarFromCloud();
     _syncProfileModal();
     _syncProfileTab();
     showAutosave('Avatar eliminado', 'saved');
@@ -1136,8 +1239,7 @@ function removeProfileModalAvatar() {
 // Sincroniza el mini-avatar del footer con los datos actuales del perfil
 function syncMenuFooterAvatar() {
     const name    = userNames[currentUserIndex] || '?';
-    const avatars = _getAvatars();
-    const avatar  = avatars[currentUserIndex] || '';
+    const avatar  = _getCurrentProfileAvatar();
 
     // Nombre en el footer
     const nameEl = document.getElementById('currentUserDisplay');

@@ -474,7 +474,7 @@
 
 .menu-footer {
     position: fixed !important;
-    bottom: 1.2rem !important;
+    bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px)) !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
     display: flex !important;
@@ -803,8 +803,8 @@
 
 .menu-exit-btn {
     position: fixed !important;
-    bottom: 1.2rem !important;
-    right: 1.5rem !important;
+    bottom: calc(1.2rem + env(safe-area-inset-bottom, 0px)) !important;
+    right: calc(1.5rem + env(safe-area-inset-right, 0px)) !important;
     display: flex !important;
     align-items: center !important;
     gap: 0.4rem !important;
@@ -859,7 +859,14 @@
         letter-spacing: 0.25em !important;
     }
     .menu-footer {
-        bottom: 0.8rem !important;
+        bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .menu-exit-btn {
+        bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px)) !important;
+        right: calc(0.9rem + env(safe-area-inset-right, 0px)) !important;
+        padding: 0.36rem 0.72rem !important;
+        font-size: 0.68rem !important;
     }
 }
 

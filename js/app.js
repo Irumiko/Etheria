@@ -72,6 +72,37 @@ function continueAsGuest() {
     isOfflineMode = true;
 }
 
+async function logout() {
+    if (!window.supabaseClient) {
+        setAuthStatus('Sin conexión. No se pudo cerrar sesión.', true);
+        return;
+    }
+
+    try {
+        await window.supabaseClient.auth.signOut();
+    } catch (error) {
+        logger?.warn('app:auth', 'logout failed:', error?.message || error);
+    }
+
+    // Limpiar cache de usuario para evitar que módulos de sync crean que hay sesión activa.
+    window._cachedUserId = null;
+    window.dispatchEvent(new CustomEvent('etheria:auth-changed', {
+        detail: { user: null }
+    }));
+
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.stopAutoSync === 'function') {
+        SupabaseSync.stopAutoSync();
+    }
+
+    showLoginScreen();
+    showAuthMain();
+    setAuthStatus('Sesión cerrada. Introduce email y contraseña para entrar.', false);
+    setTimeout(() => {
+        const emailInput = document.getElementById('authEmail');
+        if (emailInput) emailInput.focus();
+    }, 30);
+}
+
 async function login() {
     const email = (document.getElementById('authEmail')?.value || '').trim();
     const password = document.getElementById('authPassword')?.value || '';
@@ -528,6 +559,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
                 ensureProfile().catch(() => {});
+                return;
+            }
+
+            if (event === 'SIGNED_OUT') {
+                window._cachedUserId = null;
+                window.dispatchEvent(new CustomEvent('etheria:auth-changed', { detail: { user: null } }));
+                showLoginScreen();
+                showAuthMain();
             }
         });
     } else {

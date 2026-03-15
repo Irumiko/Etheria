@@ -8,6 +8,7 @@
 //   theme       text  ('light' | 'dark')
 //   ui_volume   int   (0-100) → etheria_master_volume
 //   rain_volume int   (0-100) → etheria_rain_volume
+//   avatar_url  text  (URL pública del avatar de perfil)
 //
 // Flujo: login → loadUserSettings() → aplicar a UI + localStorage
 // Cuando un slider cambia → saveUserSettings() persiste en Supabase
@@ -20,7 +21,8 @@ const SupabaseSettings = (function () {
         text_speed : 25,    // valor textSpeed real (no el slider invertido)
         theme      : 'light',
         ui_volume  : 50,
-        rain_volume: 30
+        rain_volume: 30,
+        avatar_url : ''
     };
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -51,7 +53,8 @@ const SupabaseSettings = (function () {
             text_speed : rawSpeed ? parseInt(rawSpeed, 10) : DEFAULTS.text_speed,
             theme      : localStorage.getItem('etheria_theme') || DEFAULTS.theme,
             ui_volume  : parseInt(localStorage.getItem('etheria_master_volume') || DEFAULTS.ui_volume,  10),
-            rain_volume: parseInt(localStorage.getItem('etheria_rain_volume')   || DEFAULTS.rain_volume, 10)
+            rain_volume: parseInt(localStorage.getItem('etheria_rain_volume')   || DEFAULTS.rain_volume, 10),
+            avatar_url : localStorage.getItem('etheria_cloud_avatar_url') || ''
         };
     }
 
@@ -104,6 +107,9 @@ const SupabaseSettings = (function () {
         if (rvSlider) rvSlider.value = s.rain_volume;
         const rvVal = document.getElementById('optRainVolVal');
         if (rvVal) rvVal.textContent = s.rain_volume + '%';
+
+        // 6. avatar_url de perfil (fallback cloud si no hay avatar local del perfil actual)
+        localStorage.setItem('etheria_cloud_avatar_url', String(s.avatar_url || ''));
 
         // Notificar para que otros módulos puedan reaccionar
         window.dispatchEvent(new CustomEvent('etheria:settings-applied', { detail: s }));
@@ -163,7 +169,8 @@ const SupabaseSettings = (function () {
             text_speed : Number(merged.text_speed)  || DEFAULTS.text_speed,
             theme      : String(merged.theme        || DEFAULTS.theme),
             ui_volume  : Number(merged.ui_volume)   || DEFAULTS.ui_volume,
-            rain_volume: Number(merged.rain_volume) || DEFAULTS.rain_volume
+            rain_volume: Number(merged.rain_volume) || DEFAULTS.rain_volume,
+            avatar_url : String(merged.avatar_url || '')
         };
 
         try {

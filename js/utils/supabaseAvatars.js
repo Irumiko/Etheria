@@ -91,8 +91,18 @@ const SupabaseAvatars = (function () {
                 .eq('id', characterId);
 
             if (updateError) {
-                // No es crítico — la URL ya está disponible aunque no se haya guardado en BD
-                console.warn('[SupabaseAvatars] No se pudo guardar avatar_url en BD:', updateError.message);
+                const msg = updateError.message || 'No se pudo guardar avatar_url en BD.';
+                console.warn('[SupabaseAvatars] No se pudo guardar avatar_url en BD:', msg);
+
+                const missingColumn = msg.toLowerCase().includes('avatar_url')
+                    && msg.toLowerCase().includes('column');
+
+                return {
+                    ok: false,
+                    error: missingColumn
+                        ? 'La imagen se subió, pero falta la columna avatar_url en la tabla characters. Ejecuta la migración de SUPABASE_SETUP.'
+                        : `La imagen se subió, pero no se pudo vincular al personaje: ${msg}`
+                };
             }
 
             // 4. Actualizar caché local de cloudCharacters
