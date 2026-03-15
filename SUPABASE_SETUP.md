@@ -272,6 +272,31 @@ Habilitar Realtime para la tabla `messages`:
 ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 ```
 
+
+## Presence en tiempo real (jugadores activos)
+
+Etheria usa **Supabase Realtime Presence** por canal de historia (`presence:story:<story_id>`).
+No requiere tablas nuevas: funciona a nivel de canal websocket.
+
+Requisitos:
+1. Tener `supabase-js` cargado (ya está en el frontend).
+2. Usuario autenticado (se usa `auth.uid()` como clave de presencia).
+
+## Notificaciones de turno (te toca responder)
+
+Para activar notificaciones persistentes + realtime, ejecuta este SQL en el editor:
+
+```sql
+-- Recomendado: copia y pega el archivo completo del repo
+-- SUPABASE_PRESENCE_NOTIFICATIONS.sql
+```
+
+Ese script crea:
+- `public.turn_notifications`
+- índices
+- policies RLS
+- publicación realtime de `turn_notifications`
+
 ## Configuración en el Dashboard de Supabase
 
 1. Ve a tu proyecto de Supabase
