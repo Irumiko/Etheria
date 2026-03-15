@@ -968,3 +968,141 @@ if (typeof window !== 'undefined') {
         applyPersistedImmersiveMode();
     });
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// MODAL DE PERFIL RÁPIDO — acceso directo desde el menú principal
+// ══════════════════════════════════════════════════════════════════════════
+
+function openProfileModal() {
+    _syncProfileModal();
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.classList.add('active');
+}
+
+function closeProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function _syncProfileModal() {
+    const name     = userNames[currentUserIndex] || '';
+    const avatars  = _getAvatars();
+    const genders  = _getGenders();
+    const birthdays = _getBirthdays();
+    const avatar   = avatars[currentUserIndex] || '';
+
+    // Nombre
+    const nameInput = document.getElementById('pmName');
+    if (nameInput) nameInput.value = name;
+
+    // Initial
+    const initEl = document.getElementById('pmInitial');
+    if (initEl) initEl.textContent = (name || '?')[0].toUpperCase();
+
+    // Avatar
+    const imgEl     = document.getElementById('pmAvatarImg');
+    const removeBtn = document.getElementById('pmRemoveAvatar');
+    if (imgEl) {
+        if (avatar) {
+            imgEl.src = avatar;
+            imgEl.style.display = 'block';
+            if (removeBtn) removeBtn.style.display = 'inline-block';
+        } else {
+            imgEl.src = '';
+            imgEl.style.display = 'none';
+            if (removeBtn) removeBtn.style.display = 'none';
+        }
+    }
+
+    // Género
+    const genderSel = document.getElementById('pmGender');
+    if (genderSel) genderSel.value = genders[currentUserIndex] || '';
+
+    // Cumpleaños
+    const bdayInput = document.getElementById('pmBirthday');
+    if (bdayInput) bdayInput.value = birthdays[currentUserIndex] || '';
+
+    // Sincronizar también el avatar del footer
+    syncMenuFooterAvatar();
+}
+
+function saveProfileModalName() {
+    const input = document.getElementById('pmName');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) { showAutosave('Escribe un nombre', 'error'); return; }
+    userNames[currentUserIndex] = name;
+    localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    const display = document.getElementById('currentUserDisplay');
+    if (display) display.textContent = name;
+    showAutosave('Nombre actualizado', 'saved');
+    // Actualizar initial en el modal y en el footer
+    const initEl = document.getElementById('pmInitial');
+    if (initEl) initEl.textContent = name[0].toUpperCase();
+    syncMenuFooterAvatar();
+    if (typeof renderUserCards === 'function') renderUserCards();
+    // Sync opt panel also if open
+    const optName = document.getElementById('optProfileName');
+    if (optName) optName.value = name;
+    _syncAvatarInitials();
+}
+
+function handleProfileModalAvatar(input) {
+    const file = input.files[0];
+    if (!file) return;
+    if (file.size > 1.2 * 1024 * 1024) {
+        showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const data = e.target.result;
+        const avatars = _getAvatars();
+        while (avatars.length <= currentUserIndex) avatars.push('');
+        avatars[currentUserIndex] = data;
+        _saveAvatars(avatars);
+        _syncProfileModal();
+        _syncProfileTab();
+        showAutosave('Avatar guardado', 'saved');
+        if (typeof renderUserCards === 'function') renderUserCards();
+    };
+    reader.readAsDataURL(file);
+    input.value = '';
+}
+
+function removeProfileModalAvatar() {
+    const avatars = _getAvatars();
+    if (avatars[currentUserIndex]) avatars[currentUserIndex] = '';
+    _saveAvatars(avatars);
+    _syncProfileModal();
+    _syncProfileTab();
+    showAutosave('Avatar eliminado', 'saved');
+    if (typeof renderUserCards === 'function') renderUserCards();
+}
+
+// Sincroniza el mini-avatar del footer con los datos actuales del perfil
+function syncMenuFooterAvatar() {
+    const name    = userNames[currentUserIndex] || '?';
+    const avatars = _getAvatars();
+    const avatar  = avatars[currentUserIndex] || '';
+
+    // Nombre en el footer
+    const nameEl = document.getElementById('currentUserDisplay');
+    if (nameEl) nameEl.textContent = name;
+
+    // Initial en el footer
+    const initEl = document.getElementById('menuProfileInitial');
+    if (initEl) initEl.textContent = name[0].toUpperCase();
+
+    // Imagen en el footer
+    const imgEl = document.getElementById('menuProfileImg');
+    if (imgEl) {
+        if (avatar) {
+            imgEl.src = avatar;
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.src = '';
+            imgEl.style.display = 'none';
+        }
+    }
+}

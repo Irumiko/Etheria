@@ -162,6 +162,7 @@ async function selectUser(idx, options = {}) {
     if (loadingOverlay) loadingOverlay.classList.remove('active');
     isLoading = false;
     generateParticles();
+    if (typeof syncMenuFooterAvatar === 'function') syncMenuFooterAvatar();
     if (!safeOptions.autoLoad) showAutosave('Sesión iniciada', 'info');
 
     // Sincronización en background — no bloquea la UI
@@ -382,10 +383,163 @@ const menuMouseState = {
 let menuParallaxBound = false;
 let menuParallaxAnimationId = null;
 let fireflyAnimationId = null;
-let fireflyEntities = [];
+let fireflyEntities = []; // kept for compat
+
+// ── Canvas particle system ────────────────────────────────────────────────
+let _pCanvas = null, _pCtx = null;
+let _pAnimId = null;
+let _pFireflies = [], _pPetals = [];
+let _pAlpha = 1, _pTarget = 1; // 1=night(fireflies), 0=day(petals)
+
+class _Firefly {
+    constructor() { this.reset(true); }
+    reset(init) {
+        const W = _pCanvas ? _pCanvas.width : window.innerWidth;
+        const H = _pCanvas ? _pCanvas.height : window.innerHeight;
+        this.x  = Math.random() * W;
+        this.y  = init ? Math.random() * H : H + 10;
+        this.r  = Math.random() * 2.2 + 1;
+        this.vx = (Math.random() - 0.5) * 0.5;
+        this.vy = -(Math.random() * 0.55 + 0.18);
+        this.phase = Math.random() * Math.PI * 2;
+        this.spd   = Math.random() * 0.022 + 0.01;
+        this.maxA  = Math.random() * 0.7 + 0.25;
+        this.alpha = 0;
+        this.fadeIn = true;
+        this.h = Math.random() * 50 + 85; // verde-lima a ámbar
+    }
+    update() {
+        const W = _pCanvas.width, H = _pCanvas.height;
+        this.phase += this.spd;
+        this.x += this.vx + Math.sin(this.phase * 0.7) * 0.9;
+        this.y += this.vy + Math.cos(this.phase * 0.5) * 0.3;
+
+        // Huida suave del cursor
+        if (typeof menuMouseState !== 'undefined') {
+            const mdx = this.x - menuMouseState.px;
+            const mdy = this.y - menuMouseState.py;
+            const mdist = Math.hypot(mdx, mdy);
+            const fleeR = 90;
+            if (mdist < fleeR && mdist > 0.1) {
+                const push = (1 - mdist / fleeR) * 0.28;
+                this.vx += (mdx / mdist) * push;
+                this.vy += (mdy / mdist) * push;
+            }
+        }
+        this.vx *= 0.94;
+        this.vy *= 0.94;
+
+        if (this.fadeIn) {
+            this.alpha = Math.min(this.alpha + 0.01, this.maxA * (0.5 + 0.5 * Math.sin(this.phase)));
+            if (this.alpha >= this.maxA * 0.85) this.fadeIn = false;
+        } else {
+            this.alpha = this.maxA * (0.25 + 0.75 * Math.abs(Math.sin(this.phase)));
+        }
+        if (this.y < -20 || this.x < -30 || this.x > W + 30) this.reset(false);
+    }
+    draw(ctx) {
+        const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r * 7);
+        g.addColorStop(0,   `hsla(${this.h},88%,70%,${this.alpha.toFixed(3)})`);
+        g.addColorStop(0.3, `hsla(${this.h},88%,65%,${(this.alpha*0.45).toFixed(3)})`);
+        g.addColorStop(0.7, `hsla(${this.h+15},80%,55%,${(this.alpha*0.14).toFixed(3)})`);
+        g.addColorStop(1,   'transparent');
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.r * 7, 0, Math.PI * 2);
+        ctx.fillStyle = g; ctx.fill();
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,220,${Math.min(this.alpha*1.4,1).toFixed(3)})`; ctx.fill();
+    }
+}
+
+class _Petal {
+    constructor() { this.reset(true); }
+    reset(init) {
+        const W = _pCanvas ? _pCanvas.width : window.innerWidth;
+        const H = _pCanvas ? _pCanvas.height : window.innerHeight;
+        this.x    = Math.random() * W;
+        this.y    = init ? Math.random() * H : -20;
+        this.sz   = Math.random() * 5 + 2.5;
+        this.rot  = Math.random() * Math.PI * 2;
+        this.rotV = (Math.random() - 0.5) * 0.04;
+        this.vx   = (Math.random() - 0.4) * 0.9;
+        this.vy   = Math.random() * 0.55 + 0.22;
+        this.phase = Math.random() * Math.PI * 2;
+        this.spd   = Math.random() * 0.018 + 0.008;
+        this.alpha = Math.random() * 0.5 + 0.28;
+        this.isSeed = Math.random() < 0.3;
+        const hue = this.isSeed ? 50 : (Math.random() < 0.5 ? 340 + Math.random() * 30 : 30 + Math.random() * 20);
+        this.color = `hsl(${hue},${this.isSeed?'80%':'65%'},${this.isSeed?'90%':'82%'})`;
+    }
+    update() {
+        const W = _pCanvas.width, H = _pCanvas.height;
+        this.phase += this.spd;
+        this.x += this.vx + Math.sin(this.phase) * 0.65;
+        this.y += this.vy + Math.cos(this.phase * 0.6) * 0.2;
+        this.rot += this.rotV;
+        if (this.y > H + 20 || this.x < -30 || this.x > W + 30) this.reset(false);
+    }
+    draw(ctx) {
+        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot); ctx.globalAlpha = this.alpha;
+        if (this.isSeed) {
+            ctx.strokeStyle = this.color; ctx.lineWidth = 0.9;
+            ctx.beginPath(); ctx.moveTo(0, this.sz*1.4); ctx.lineTo(0, -this.sz*0.5); ctx.stroke();
+            for (let i = 0; i < 6; i++) {
+                const a = (i/6)*Math.PI*2;
+                ctx.beginPath(); ctx.moveTo(0, -this.sz*0.5);
+                ctx.lineTo(Math.cos(a)*this.sz, (-this.sz*0.5)+Math.sin(a)*this.sz*1.1-this.sz*0.4); ctx.stroke();
+            }
+            ctx.beginPath(); ctx.arc(0, this.sz*1.4, this.sz*0.32, 0, Math.PI*2);
+            ctx.fillStyle = this.color; ctx.fill();
+        } else {
+            ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.ellipse(0, 0, this.sz*0.45, this.sz, 0, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.restore(); ctx.globalAlpha = 1;
+    }
+}
+
+function _initParticleCanvas() {
+    _pCanvas = document.getElementById('particlesContainer');
+    if (!_pCanvas || !(_pCanvas instanceof HTMLCanvasElement)) return false;
+    _pCtx = _pCanvas.getContext('2d');
+    _pCanvas.width  = window.innerWidth;
+    _pCanvas.height = window.innerHeight;
+    window.addEventListener('resize', () => {
+        if (!_pCanvas) return;
+        _pCanvas.width  = window.innerWidth;
+        _pCanvas.height = window.innerHeight;
+    }, { passive: true });
+    return true;
+}
+
+function _runParticleLoop() {
+    if (_pAnimId) cancelAnimationFrame(_pAnimId);
+    const loop = () => {
+        if (!_pCtx || !_pCanvas) return;
+        _pCtx.clearRect(0, 0, _pCanvas.width, _pCanvas.height);
+        _pAlpha += (_pTarget - _pAlpha) * 0.028;
+        const nA = _pAlpha, dA = 1 - _pAlpha;
+        if (nA > 0.01) {
+            _pFireflies.forEach(f => f.update());
+            _pCtx.globalAlpha = nA;
+            _pFireflies.forEach(f => f.draw(_pCtx));
+            _pCtx.globalAlpha = 1;
+        }
+        if (dA > 0.01) {
+            _pPetals.forEach(p => p.update());
+            _pCtx.globalAlpha = dA;
+            _pPetals.forEach(p => p.draw(_pCtx));
+            _pCtx.globalAlpha = 1;
+        }
+        _pAnimId = requestAnimationFrame(loop);
+    };
+    _pAnimId = requestAnimationFrame(loop);
+}
 
 function initMenuParallax() {
     if (menuParallaxBound) return;
+
+    // ── Init Canvas particle system early ──────────────────────────────
+    if (!_pCanvas) _initParticleCanvas();
 
     // ── Reduced-motion: sin parallax, sin animaciones ──────────────────
     const prefersReduced = typeof window.matchMedia === 'function'
@@ -418,15 +572,6 @@ function initMenuParallax() {
             layer.style.setProperty('--px', `${menuMouseState.x}px`);
             layer.style.setProperty('--py', `${menuMouseState.y}px`);
         });
-
-        // Partículas: se mueven en dirección opuesta muy levemente → sensación de volumen
-        const particles = document.getElementById('particlesContainer');
-        if (particles) {
-            const pDepth = 0.06; // muy sutil para no marear
-            const px = -menuMouseState.x * pDepth;
-            const py = -menuMouseState.y * pDepth;
-            particles.style.transform = `translate3d(${px}px, ${py}px, 0)`;
-        }
     };
 
     // ── Loop RAF con interpolación suave (lerp) ──────────────────────────
@@ -497,131 +642,9 @@ function initMenuParallax() {
     }
 }
 
-function animateFireflies() {
-    if (fireflyAnimationId) window.cancelAnimationFrame(fireflyAnimationId);
-
-    let lastTime = performance.now();
-
-    const loop = (timeNow) => {
-        const dt = Math.min((timeNow - lastTime) / 16.67, 2);
-        lastTime = timeNow;
-
-        fireflyEntities.forEach((entity) => {
-            // --- Comportamiento de luciérnaga real ---
-            // Cada luciérnaga tiene fases: volar, pausar, subir, girar
-            entity.stateTimer -= dt;
-            if (entity.stateTimer <= 0) {
-                // Transición aleatoria de estado
-                const r = Math.random();
-                if (r < 0.35) {
-                    entity.state = 'float';      // deriva lenta
-                    entity.stateTimer = 40 + Math.random() * 80;
-                    entity.targetDx = (Math.random() - 0.5) * 60;
-                    entity.targetDy = -10 - Math.random() * 30; // tienden a subir
-                } else if (r < 0.6) {
-                    entity.state = 'pause';      // pausa quieta, solo parpadeo
-                    entity.stateTimer = 20 + Math.random() * 50;
-                    entity.targetDx = 0;
-                    entity.targetDy = 0;
-                } else if (r < 0.80) {
-                    entity.state = 'drift';      // deriva lateral suave
-                    entity.stateTimer = 30 + Math.random() * 60;
-                    entity.targetDx = (Math.random() - 0.5) * 80;
-                    entity.targetDy = (Math.random() - 0.5) * 25;
-                } else {
-                    entity.state = 'rise';       // ascenso curvo más vivo
-                    entity.stateTimer = 15 + Math.random() * 30;
-                    entity.targetDx = (Math.random() - 0.5) * 40;
-                    entity.targetDy = -30 - Math.random() * 50;
-                }
-            }
-
-            // Velocidad base según estado
-            const speed = entity.state === 'pause' ? 0.003
-                        : entity.state === 'float' ? 0.008
-                        : entity.state === 'rise'  ? 0.014
-                        :                            0.006;
-
-            const tx = entity.originX + entity.targetDx;
-            const ty = entity.originY + entity.targetDy;
-            entity.vx += (tx - entity.x) * speed * entity.speedFactor * dt;
-            entity.vy += (ty - entity.y) * speed * entity.speedFactor * dt;
-
-            // Micro-oscilación orgánica (aleteos leves)
-            entity.wobble += entity.wobbleSpeed * dt;
-            entity.vx += Math.sin(entity.wobble * 2.3) * 0.012 * dt;
-            entity.vy += Math.cos(entity.wobble * 1.7) * 0.008 * dt;
-
-            // Huida del ratón
-            const mdx = entity.x - menuMouseState.px;
-            const mdy = entity.y - menuMouseState.py;
-            const mdist = Math.hypot(mdx, mdy);
-            if (mdist < entity.fleeRadius && mdist > 0) {
-                const push = (1 - mdist / entity.fleeRadius) * entity.fleeForce * dt;
-                entity.vx += (mdx / mdist) * push;
-                entity.vy += (mdy / mdist) * push;
-            }
-
-            // Amortiguación — más alta en pausa, baja al volar
-            const damp = entity.state === 'pause' ? 0.88 : 0.94;
-            entity.vx *= damp;
-            entity.vy *= damp;
-
-            entity.x += entity.vx * dt;
-            entity.y += entity.vy * dt;
-
-            // Rebote en bordes — relocalizan el origen para que no queden atrapadas
-            if (entity.x < 4) {
-                entity.x = 4; entity.vx = Math.abs(entity.vx) * 0.5;
-                entity.originX = 20 + Math.random() * (entity.maxX * 0.3);
-            } else if (entity.x > entity.maxX - 4) {
-                entity.x = entity.maxX - 4; entity.vx = -Math.abs(entity.vx) * 0.5;
-                entity.originX = entity.maxX * 0.7 + Math.random() * (entity.maxX * 0.25);
-            }
-            if (entity.y < 4) {
-                entity.y = 4; entity.vy = Math.abs(entity.vy) * 0.5;
-                entity.originY = entity.maxY * 0.3 + Math.random() * (entity.maxY * 0.3);
-            } else if (entity.y > entity.maxY - 4) {
-                entity.y = entity.maxY - 4; entity.vy = -Math.abs(entity.vy) * 0.5;
-                entity.originY = entity.maxY * 0.4 + Math.random() * (entity.maxY * 0.3);
-            }
-
-            // Deriva suave del origen para que exploren el espacio
-            entity.originX += (Math.random() - 0.5) * entity.originDrift * dt;
-            entity.originY += (Math.random() - 0.5) * entity.originDrift * 0.6 * dt;
-            entity.originX = Math.max(10, Math.min(entity.maxX - 10, entity.originX));
-            entity.originY = Math.max(entity.maxY * 0.1, Math.min(entity.maxY * 0.92, entity.originY));
-
-            // Parpadeo: brillo pulsante lento, más intenso al subir
-            entity.twinkle += entity.twinkleSpeed * dt;
-            // Ciclo de encendido/apagado: luciérnagas reales parpadean ~0.5–2 Hz
-            entity.blinkTimer -= dt;
-            if (entity.blinkTimer < 0) {
-                entity.blinkOn = !entity.blinkOn;
-                entity.blinkTimer = entity.blinkOn
-                    ? (8 + Math.random() * 20)   // encendida: 0.5–2s a 60fps
-                    : (4 + Math.random() * 12);  // apagada: más corto
-            }
-
-            const glowBase = entity.blinkOn ? entity.baseGlow : entity.baseGlow * 0.08;
-            const glowPulse = 0.85 + Math.sin(entity.twinkle) * 0.15;
-            const glow = glowBase * glowPulse;
-            const opacity = entity.blinkOn
-                ? Math.max(0.25, entity.baseOpacity * glowPulse)
-                : entity.baseOpacity * 0.06;
-
-            entity.el.style.opacity = opacity.toFixed(3);
-            entity.el.style.filter = entity.blinkOn
-                ? `drop-shadow(0 0 ${3 + glow * 5}px rgba(255, 255, 200, ${0.9 + glow * 0.1})) drop-shadow(0 0 ${8 + glow * 12}px rgba(255, 200, 40, ${0.6 + glow * 0.3}))`
-                : `blur(1px)`;
-            entity.el.style.transform = `translate(${entity.x.toFixed(1)}px, ${entity.y.toFixed(1)}px)`;
-        });
-
-        fireflyAnimationId = window.requestAnimationFrame(loop);
-    };
-
-    fireflyAnimationId = window.requestAnimationFrame(loop);
-}
+// animateFireflies — replaced by Canvas system (_runParticleLoop)
+// Kept as no-op stub so legacy call sites don't throw
+function animateFireflies() { /* no-op: Canvas system active */ }
 
 function addNewProfile() {
     if (userNames.length >= 10) {
@@ -636,130 +659,35 @@ function addNewProfile() {
     }
 }
 
-// Generar partículas según el tema actual
+// Generar partículas — sistema Canvas (luciérnagas noche / pétalos día)
 function generateParticles() {
-    const container = document.getElementById('particlesContainer');
-    if (!container) return;
+    const isLowSpec = document.body.classList.contains('low-spec');
+    if (isLowSpec) return;
 
-    container.innerHTML = '';
-    fireflyEntities = [];
+    // Init canvas once
+    if (!_pCanvas) {
+        if (!_initParticleCanvas()) return;
+    }
+
+    const isMobile = document.body.classList.contains('is-mobile')
+        || (typeof window.matchMedia === 'function' && window.matchMedia('(pointer:coarse)').matches);
+
+    // Pool sizes
+    const ffCount  = isMobile ? 20 : 55;
+    const petCount = isMobile ? 20 : 48;
+
+    _pFireflies = Array.from({ length: ffCount },  () => new _Firefly());
+    _pPetals    = Array.from({ length: petCount }, () => new _Petal());
 
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
-    if (isDark) {
-        // Límite de luciérnagas según capacidad del dispositivo
-        const isLowSpec     = document.body.classList.contains('low-spec');
-        const isMobileClass = document.body.classList.contains('is-mobile');
-        const coarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    // Transición suave: noche=luciérnagas, día=pétalos
+    _pTarget = isDark ? 1 : 0;
+    // Snap inmediato en la primera carga (sin fade)
+    _pAlpha  = _pTarget;
 
-        // low-spec: 0 (CSS también las oculta, pero no generamos el DOM)
-        // is-mobile o coarse: máximo 6
-        // desktop: 18–24
-        let totalFireflies;
-        if (isLowSpec) {
-            totalFireflies = 0;
-        } else if (isMobileClass || coarsePointer) {
-            totalFireflies = 6;
-        } else {
-            totalFireflies = 18 + Math.floor(Math.random() * 6);
-        }
-
-        // getBoundingClientRect puede devolver 0 si el contenedor acaba de mostrarse.
-        // Usamos window como fallback y actualizamos los bounds en el primer frame.
-        const rawBounds = container.getBoundingClientRect();
-        const W = rawBounds.width  > 10 ? rawBounds.width  : window.innerWidth;
-        const H = rawBounds.height > 10 ? rawBounds.height : window.innerHeight;
-
-        for (let i = 0; i < totalFireflies; i++) {
-            const firefly = document.createElement('div');
-            firefly.className = 'firefly';
-            firefly.style.left = '0px';
-            firefly.style.top = '0px';
-            firefly.style.animationDelay = Math.random() * 3 + 's';
-            firefly.style.animationDuration = (1.6 + Math.random() * 2.1) + 's';
-
-            const depth = 0.72 + Math.random() * 0.46;
-            const size = 4 + (depth * 4);
-            firefly.style.setProperty('--firefly-size-w', `${size.toFixed(2)}px`);
-            firefly.style.setProperty('--firefly-size-h', `${size.toFixed(2)}px`);
-            // Longitud de los rayos proporcional al tamaño
-            const rayLen = (16 + depth * 18).toFixed(1);
-            firefly.style.setProperty('--firefly-ray', `${rayLen}px`);
-
-            const entity = {
-                el: firefly,
-                x: Math.random() * W,
-                y: (H * 0.18) + (Math.random() * H * 0.74),
-                originX: Math.random() * W,
-                originY: (H * 0.25) + (Math.random() * H * 0.60),
-                maxX: Math.max(1, W - 2),
-                maxY: Math.max(1, H - 2),
-                vx: (Math.random() - 0.5) * 0.15,
-                vy: (Math.random() - 0.5) * 0.1,
-                // Estado de comportamiento
-                state: 'float',
-                stateTimer: Math.random() * 60,
-                targetDx: (Math.random() - 0.5) * 40,
-                targetDy: -5 - Math.random() * 20,
-                // Parámetros de movimiento
-                wobble: Math.random() * Math.PI * 2,
-                wobbleSpeed: 0.008 + Math.random() * 0.018,
-                speedFactor: 0.35 + Math.random() * 0.65,
-                fleeRadius: 70 + Math.random() * 50,
-                fleeForce: 0.15 + Math.random() * 0.35,
-                originDrift: 0.08 + Math.random() * 0.22,
-                // Parpadeo tipo luciérnaga
-                blinkOn: Math.random() > 0.4,
-                blinkTimer: 5 + Math.random() * 25,
-                baseGlow: 0.7 + (depth * 0.4),
-                baseOpacity: 0.82 + (depth * 0.18),
-                twinkle: Math.random() * Math.PI * 2,
-                twinkleSpeed: 0.015 + Math.random() * 0.025
-            };
-
-            firefly.style.setProperty('--firefly-opacity', entity.baseOpacity.toFixed(2));
-            fireflyEntities.push(entity);
-            container.appendChild(firefly);
-        }
-
-        // Si los bounds iniciales eran 0, recalcular en el primer frame real
-        if (rawBounds.width <= 10) {
-            requestAnimationFrame(() => {
-                const b = container.getBoundingClientRect();
-                if (b.width > 10) {
-                    fireflyEntities.forEach(e => {
-                        e.maxX = b.width - 2;
-                        e.maxY = b.height - 2;
-                        e.originX = Math.min(e.originX, e.maxX);
-                        e.originY = Math.min(e.originY, e.maxY);
-                    });
-                }
-            });
-        }
-
-        animateFireflies();
-    } else {
-        if (fireflyAnimationId) {
-            window.cancelAnimationFrame(fireflyAnimationId);
-            fireflyAnimationId = null;
-        }
-
-        // Límite de hojas: 0 en low-spec, 5 en mobile, 12 en desktop
-        const leafIsLowSpec = document.body.classList.contains('low-spec');
-        const leafIsMobile  = document.body.classList.contains('is-mobile');
-        const leafCount = leafIsLowSpec ? 0 : leafIsMobile ? 5 : 12;
-        const leafDurationBase  = leafIsMobile ? 10 : 6;
-        const leafDurationRange = leafIsMobile ? 5  : 4;
-
-        for (let i = 0; i < leafCount; i++) {
-            const leaf = document.createElement('div');
-            leaf.className = 'leaf';
-            leaf.style.left = Math.random() * 100 + '%';
-            leaf.style.animationDelay = Math.random() * 8 + 's';
-            leaf.style.animationDuration = (leafDurationBase + Math.random() * leafDurationRange) + 's';
-            container.appendChild(leaf);
-        }
-    }
+    // Arrancar loop si no está activo
+    if (!_pAnimId) _runParticleLoop();
 }
 
 // ============================================

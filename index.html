@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/ethy.css">
     <link rel="stylesheet" href="css/rpg-scene.css">
+    <link rel="stylesheet" href="css/menu-enhanced.css">
 
 </head>
 <body>
@@ -220,45 +221,58 @@
             <div class="parallax-layer layer-midforest" data-depth="0.22"></div>
             <div class="parallax-layer layer-foreground" data-depth="0.38"></div>
         </div>
-        <!-- Luciérnagas fuera del parallax para evitar filtros de color -->
-        <div class="menu-fireflies" id="particlesContainer"></div>
+        <!-- Canvas de partículas: luciérnagas (noche) + pétalos (día) -->
+        <canvas class="menu-fireflies" id="particlesContainer"></canvas>
 
-        <div class="menu-sidebar">
+        <!-- Sidebar oculta — mantenida por compatibilidad con JS -->
+        <div class="menu-sidebar" style="display:none!important"></div>
+
+        <!-- Contenido central sobre el fondo -->
+        <div class="menu-center-content">
             <div class="menu-brand">
-                <h1 class="menu-title">📖 <span class="menu-title-animated"><span class="title-letter">E</span><span class="title-letter">T</span><span class="title-letter">H</span><span class="title-letter">E</span><span class="title-letter">R</span><span class="title-letter">I</span><span class="title-letter">A</span></span></h1>
-                <p class="menu-subtitle">¿Qué deseas hacer hoy?</p>
+                <h1 class="menu-title"><span class="menu-title-animated"><span class="title-letter">E</span><span class="title-letter">T</span><span class="title-letter">H</span><span class="title-letter">E</span><span class="title-letter">R</span><span class="title-letter">I</span><span class="title-letter">A</span></span></h1>
+                <p class="menu-subtitle">Una Historia Interactiva</p>
             </div>
 
             <div class="menu-container">
                 <button class="menu-button menu-button-console primary" onclick="showSection('topics')">
-                    <span class="menu-icon">✨</span>
+                    <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.5 7.5H18L13.5 11L15.5 17L10 13.5L4.5 17L6.5 11L2 7.5H7.5L10 2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
                     <span class="menu-label">Nueva Partida</span>
                 </button>
                 <button class="menu-button menu-button-console" onclick="showSection('gallery')">
-                    <span class="menu-icon">🎭</span>
-                    <span class="menu-label">Galería de Personajes</span>
-                </button>
-                <button class="menu-button menu-button-console" onclick="openSaveHubModal()">
-                    <span class="menu-icon">💾</span>
-                    <span class="menu-label">Guardar y Cargar</span>
+                    <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 17c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    <span class="menu-label">Personajes</span>
                 </button>
                 <button class="menu-button menu-button-console" onclick="showSection('options')">
-                    <span class="menu-icon">⚙️</span>
+                    <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
                     <span class="menu-label">Opciones</span>
                 </button>
             </div>
+        </div>
 
-            <div class="menu-footer">
-                <span id="currentUserDisplay">Jugador</span>
-                <button onclick="changeUser()" aria-label="Editar perfil actual">✏️ Editar</button>
-            </div>
-
-            <!-- Botón Salir — solo visible en PWA -->
-            <button class="menu-exit-btn" id="menuExitBtn" onclick="exitApp()" aria-label="Cerrar aplicación">
-                <span class="menu-exit-icon">⏻</span>
-                <span class="menu-exit-label">Salir</span>
+        <!-- Footer: perfil + botón sutil de guardado -->
+        <div class="menu-footer">
+            <button class="menu-profile-btn" onclick="openProfileModal()" aria-label="Personalizar perfil">
+                <div class="menu-profile-avatar" id="menuProfileAvatar">
+                    <span class="menu-profile-initial" id="menuProfileInitial">?</span>
+                    <img class="menu-profile-img" id="menuProfileImg" src="" alt="" style="display:none">
+                </div>
+                <div class="menu-profile-info">
+                    <span class="menu-profile-name" id="currentUserDisplay">Jugador</span>
+                    <span class="menu-profile-hint">Toca para editar perfil</span>
+                </div>
+                <svg class="menu-profile-chevron" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="menu-save-btn" onclick="openSaveHubModal()" title="Importar / Exportar partida" aria-label="Importar o exportar">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </button>
         </div>
+
+        <!-- Botón Salir — solo visible en PWA -->
+        <button class="menu-exit-btn" id="menuExitBtn" onclick="exitApp()" aria-label="Cerrar aplicación">
+            <span class="menu-exit-icon">⏻</span>
+            <span class="menu-exit-label">Salir</span>
+        </button>
     </div>
 
     <!-- Topics Section -->
@@ -390,10 +404,7 @@
                 <span class="opt-tab-icon">🔊</span>
                 <span class="opt-tab-label">Sonido</span>
             </button>
-            <button class="opt-tab" role="tab" aria-selected="false" data-tab="profile"    onclick="switchOptTab('profile',this)">
-                <span class="opt-tab-icon">👤</span>
-                <span class="opt-tab-label">Perfil</span>
-            </button>
+
         </div>
 
         <!-- ── Paneles ─────────────────────────────────────────── -->
@@ -1572,7 +1583,61 @@
             <button class="onboarding-btn" onclick="closeOnboarding()">Entendido</button>
         </div>
     </div>
-    <div id="storyCodeModal" class="modal-overlay" onclick="if(event.target===this) closeModal('storyCodeModal')">
+    <!-- Modal de Perfil — acceso rápido desde el menú principal -->
+    <div id="profileModal" class="modal-overlay" onclick="if(event.target===this) closeProfileModal()" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+        <div class="profile-modal">
+            <div class="profile-modal-header">
+                <h3 id="profileModalTitle">Mi Perfil</h3>
+                <button class="profile-modal-close" onclick="closeProfileModal()" aria-label="Cerrar">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+
+            <!-- Avatar grande clicable -->
+            <div class="profile-modal-avatar-zone">
+                <div class="profile-modal-avatar-wrap" id="pmAvatarWrap" onclick="document.getElementById('pmAvatarInput').click()" title="Cambiar avatar">
+                    <span class="profile-modal-initial" id="pmInitial">?</span>
+                    <img class="profile-modal-avatar-img" id="pmAvatarImg" src="" alt="" style="display:none">
+                    <div class="profile-modal-avatar-overlay">
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M14.5 3.5a2.121 2.121 0 013 3L6 18H3v-3L14.5 3.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+                    </div>
+                </div>
+                <input type="file" id="pmAvatarInput" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none" onchange="handleProfileModalAvatar(this)">
+                <button class="profile-modal-remove-avatar" id="pmRemoveAvatar" onclick="removeProfileModalAvatar()" style="display:none">Quitar foto</button>
+            </div>
+
+            <div class="profile-modal-fields">
+                <!-- Nombre -->
+                <div class="pm-field">
+                    <label for="pmName">Nombre visible</label>
+                    <div class="pm-input-row">
+                        <input type="text" id="pmName" class="pm-input" placeholder="Tu nombre..." autocomplete="off">
+                        <button onclick="saveProfileModalName()" class="pm-save-btn">Guardar</button>
+                    </div>
+                </div>
+                <!-- Género -->
+                <div class="pm-field">
+                    <label for="pmGender">Género</label>
+                    <select id="pmGender" class="pm-select" onchange="saveProfileGender(this.value)">
+                        <option value="">Sin especificar</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="femenino">Femenino</option>
+                        <option value="no-binario">No binario</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+                <!-- Cumpleaños -->
+                <div class="pm-field">
+                    <label for="pmBirthday">Cumpleaños</label>
+                    <input type="date" id="pmBirthday" class="pm-date" onchange="saveProfileBirthday(this.value)">
+                </div>
+            </div>
+
+            <button class="pm-close-btn" onclick="closeProfileModal()">Listo</button>
+        </div>
+    </div>
+
+ class="modal-overlay" onclick="if(event.target===this) closeModal('storyCodeModal')">
         <div class="modal" style="max-width:420px;">
             <h3 style="margin-top:0; font-family:Cinzel,serif;">🔐 Código de historia</h3>
             <div id="storyCodeValue" style="font-size:1.5rem; letter-spacing:0.2em; color:var(--accent-gold); margin-bottom:0.6rem;"></div>

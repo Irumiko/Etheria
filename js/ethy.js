@@ -57,7 +57,8 @@ const Ethy = (function() {
 
     // ── Tutoriales por sección ───────────────────────────────────────────────
     const TUTORIALS = {
-        // Menú Principal
+
+        // ── Menú Principal ───────────────────────────────────────────────────
         mainMenu: {
             title: '¡Bienvenido a Etheria!',
             expression: 'excited',
@@ -68,254 +69,240 @@ const Ethy = (function() {
                     action: null
                 },
                 {
-                    text: 'Desde aquí puedes comenzar una nueva partida, ver tus personajes, o ajustar las opciones.',
+                    text: 'En "Nueva Partida" empieza todo. Puedes crear una historia en modo Clásico —roleplay libre— o en modo RPG con dados y stats. ¡Tú eliges!',
                     expression: 'happy',
-                    highlight: '.menu-button-console.primary',
                     action: () => highlightElement('.menu-button-console.primary')
                 },
                 {
-                    text: 'En "Nueva Partida" podrás crear historias épicas. ¿Sabías que puedes elegir entre modo RPG o Clásico?',
+                    text: 'En "Personajes" gestionas las fichas de todos tus personajes: avatar, trasfondo, stats y mucho más.',
                     expression: 'thoughtful',
-                    highlight: '.menu-button-console.primary',
-                    action: () => highlightElement('.menu-button-console.primary')
-                },
-                {
-                    text: 'La Galería de Personajes es donde viven tus creaciones. ¡Puedes crear fichas super detalladas!',
-                    expression: 'happy',
-                    highlight: '.menu-button-console:nth-child(2)',
                     action: () => highlightElement('.menu-button-console:nth-child(2)')
                 },
                 {
-                    text: 'No olvides guardar tu progreso regularmente. ¡No querrás perder tus historias! 💾',
-                    expression: 'wink',
-                    highlight: '.menu-button-console:nth-child(3)',
+                    text: 'En "Opciones" ajustas el tema visual, tamaño de fuente, velocidad de texto... todo para que la experiencia sea tuya.',
+                    expression: 'neutral',
                     action: () => highlightElement('.menu-button-console:nth-child(3)')
                 },
                 {
-                    text: '¡Estoy listo cuando lo necesites! Solo haz clic en mí si quieres que te explique algo.',
-                    expression: 'excited',
+                    text: 'Abajo tienes tu perfil. Tócalo para cambiar tu nombre, avatar y demás datos en cualquier momento.',
+                    expression: 'wink',
+                    action: () => highlightElement('.menu-profile-btn')
+                },
+                {
+                    text: 'El pequeño icono junto al perfil sirve para importar o exportar tu partida. ¡Así nunca pierdes tus historias!',
+                    expression: 'surprised',
+                    action: () => highlightElement('.menu-save-btn')
+                },
+                {
+                    text: '¡Todo listo! Haz clic en mí siempre que quieras orientación. ¡Buena suerte, aventurera! 🌿',
+                    expression: 'love',
                     action: null
                 }
             ]
         },
 
-        // Galería de Personajes
+        // ── Galería de Personajes ────────────────────────────────────────────
         gallery: {
-            title: 'Galería de Personajes',
+            title: 'Personajes',
             expression: 'happy',
             steps: [
                 {
-                    text: '¡Bienvenido a la Galería! Aquí puedes ver y gestionar todos tus personajes.',
+                    text: '¡Aquí viven todos tus personajes! Puedes buscarlos, filtrarlos por raza o jugador, y ver sus fichas completas.',
                     expression: 'happy',
                     action: null
                 },
                 {
-                    text: 'Haz clic en "Nuevo personaje" para crear una ficha desde cero. ¡Puedes añadir avatar, stats, historia y más!',
+                    text: 'Pulsa "Nuevo personaje" para crear una ficha desde cero: nombre, raza, edad, descripción física, personalidad, historia y notas libres.',
                     expression: 'excited',
-                    highlight: '.gallery-new-btn',
                     action: () => highlightElement('.gallery-new-btn')
                 },
                 {
-                    text: 'Cada personaje tiene una ficha completa con nombre, raza, edad, género y una descripción detallada.',
+                    text: 'En modo RPG cada personaje tendrá también stats (STR, INT, VIT, AGI) y un nivel que crece con la experiencia.',
                     expression: 'thoughtful',
                     action: null
                 },
                 {
-                    text: 'En modo RPG, los personajes también tienen stats como Fuerza, Inteligencia, Vitalidad y Agilidad.',
-                    expression: 'neutral',
+                    text: 'Puedes subir un avatar propio o usar una URL. Cada personaje tiene su color de acento para la caja de diálogo. 🎨',
+                    expression: 'wink',
                     action: null
                 },
                 {
-                    text: '¡Los personajes son el alma de tus historias! Cuéntame, ¿quién será tu próximo héroe? 🎭',
+                    text: '¿Quién será tu próximo personaje? Las mejores historias nacen de personajes bien construidos. 🎭',
                     expression: 'love',
                     action: null
                 }
             ]
         },
 
-        // Crear Historia/Tema
+        // ── Crear Historia ───────────────────────────────────────────────────
         createTopic: {
-            title: 'Creando una Nueva Historia',
+            title: 'Nueva Historia',
             expression: 'excited',
             steps: [
                 {
-                    text: '¡Vamos a crear algo mágico! Primero, elige el modo de tu historia.',
+                    text: '¡Vamos a crear algo especial! Lo primero es elegir el modo de juego.',
                     expression: 'excited',
                     action: null
                 },
                 {
-                    text: '**Modo Clásico**: Roleplay puro sin mecánicas. Perfecto para historias narrativas centradas en el diálogo.',
+                    text: 'El modo Clásico es roleplay puro: narración libre sin mecánicas. Perfecto cuando el foco es el diálogo y la escritura.',
                     expression: 'happy',
-                    highlight: '[data-filter="roleplay"]',
-                    action: () => highlightElement('[data-filter="roleplay"]')
+                    action: () => highlightElement('#modeRoleplay')
                 },
                 {
-                    text: '**Modo RPG**: Incluye stats, dados y el Oráculo del Destino. ¡Las acciones tienen consecuencias! 🎲',
+                    text: 'El modo RPG añade stats, tiradas de dados y el Oráculo del Destino. Las acciones tienen consecuencias reales. ¡El azar da forma a la historia! 🎲',
                     expression: 'surprised',
-                    highlight: '[data-filter="rpg"]',
-                    action: () => highlightElement('[data-filter="rpg"]')
+                    action: () => highlightElement('#modeRpg')
                 },
                 {
-                    text: '¡Todas las historias se sincronizan automáticamente en la nube! Cada historia que crees estará disponible en todos tus dispositivos y podrás jugar con amigos en tiempo real.',
-                    expression: 'excited',
-                    action: null
+                    text: 'Ponle un título y escribe el primer mensaje: ese es el arranque de tu historia. Puedes usar **negrita** y *cursiva* para darle estilo.',
+                    expression: 'thoughtful',
+                    action: () => highlightElement('#topicTitleInput')
                 },
                 {
-                    text: '¿Listo para dar el primer paso? ¡Tu aventura comienza ahora! ✨',
+                    text: '¡Todo listo! Una vez creada podrás compartirla con otros jugadores en tiempo real. ✨',
                     expression: 'love',
                     action: null
                 }
             ]
         },
 
-        // Modo VN - Clásico
+        // ── Modo VN Clásico ──────────────────────────────────────────────────
         vnClassic: {
-            title: 'Modo Novela Visual - Clásico',
+            title: 'Historia — Modo Clásico',
             expression: 'happy',
             steps: [
                 {
-                    text: '¡Bienvenido a tu historia! En modo Clásico, todo se trata del diálogo y las decisiones.',
+                    text: '¡Tu historia está en marcha! En modo Clásico el protagonismo es del texto y las decisiones.',
                     expression: 'happy',
                     action: null
                 },
                 {
-                    text: 'Haz clic en la caja de diálogo o presiona ESPACIO para avanzar el texto.',
+                    text: 'Haz clic en la caja de diálogo o pulsa ESPACIO para avanzar. Las flechas ← → navegan entre mensajes.',
                     expression: 'neutral',
-                    highlight: '.vn-dialogue-box',
                     action: () => highlightElement('.vn-dialogue-box')
                 },
                 {
-                    text: 'Usa los botones de navegación para ir al mensaje anterior o siguiente. También puedes usar las flechas ← →',
-                    expression: 'thoughtful',
-                    highlight: '.vn-controls',
-                    action: () => highlightElement('.vn-controls')
-                },
-                {
-                    text: '¡Los **emotes** dan vida a tus personajes! Escribe /happy, /sad, /angry, etc. para mostrar emociones. 🎭',
+                    text: 'El botón "Responder" abre el panel de escritura. Elige tu personaje y escribe tu próxima intervención.',
                     expression: 'excited',
-                    action: null
-                },
-                {
-                    text: 'Puedes crear **opciones de elección** para que los lectores decidan el rumbo de la historia.',
-                    expression: 'surprised',
-                    action: null
-                },
-                {
-                    text: 'El botón 💬 "Responder" abre el panel para escribir. ¡Sé creativo!',
-                    expression: 'wink',
-                    highlight: '.reply-btn',
                     action: () => highlightElement('.reply-btn')
+                },
+                {
+                    text: 'Añade emociones con emotes: escribe /happy, /sad, /angry, /love... y el personaje reaccionará visualmente. 🎭',
+                    expression: 'wink',
+                    action: null
+                },
+                {
+                    text: 'También puedes crear opciones de elección para bifurcar la historia y dejar que los lectores decidan su rumbo.',
+                    expression: 'thoughtful',
+                    action: null
+                },
+                {
+                    text: 'La barra de controles te permite navegar por el historial, marcar favoritos y exportar la historia completa. 📜',
+                    expression: 'surprised',
+                    action: () => highlightElement('.vn-controls')
                 }
             ]
         },
 
-        // Modo VN - RPG
+        // ── Modo VN RPG ──────────────────────────────────────────────────────
         vnRPG: {
-            title: 'Modo Novela Visual - RPG',
+            title: 'Historia — Modo RPG',
             expression: 'excited',
             steps: [
                 {
-                    text: '¡Modo RPG activado! Aquí tus decisiones tienen consecuencias regradas por los dados. 🎲',
+                    text: '¡Modo RPG activo! Cada decisión puede tener consecuencias marcadas por los dados. 🎲',
                     expression: 'excited',
                     action: null
                 },
                 {
-                    text: 'Cada personaje tiene **stats**: Fuerza (STR), Inteligencia (INT), Vitalidad (VIT) y Agilidad (AGI).',
+                    text: 'La ficha de tu personaje aparece arriba a la izquierda. Muestra HP, stats y rango de afinidad con otros personajes.',
                     expression: 'thoughtful',
-                    highlight: '.ihp-stats',
-                    action: () => highlightElement('.ihp-stats')
+                    action: () => highlightElement('.vn-info-card')
                 },
                 {
-                    text: 'El **Oráculo del Destino** responde cuando tus personajes intentan acciones difíciles.',
+                    text: 'El Oráculo del Destino aparece cuando un personaje intenta algo difícil. Tiras un D20 sumando tu stat relevante contra una dificultad.',
                     expression: 'surprised',
-                    highlight: '#vnOracleFloatBtn',
                     action: () => highlightElement('#vnOracleFloatBtn')
                 },
                 {
-                    text: 'Tira un D20 + tu stat vs una dificultad. ¡El resultado determina el éxito o fracaso!',
+                    text: '¡El resultado del dado determina si la acción tiene éxito o falla! El narrador describe las consecuencias en el siguiente mensaje.',
                     expression: 'happy',
                     action: null
                 },
                 {
-                    text: 'Las **consecuencias** del Oráculo aparecen en el siguiente mensaje. ¡El destino es impredecible!',
-                    expression: 'neutral',
-                    action: null
-                },
-                {
-                    text: 'El HP de tus personajes se muestra en la barra de vida. ¡No dejes que llegue a cero! 💀',
+                    text: 'El HP puede bajar por combate o consecuencias del Oráculo. Si llega a cero... algo malo pasará. 💀',
                     expression: 'sad',
-                    highlight: '.vn-info-hp-bar',
                     action: () => highlightElement('.vn-info-hp-bar')
                 },
                 {
-                    text: '¡Que los dados te sean favorables, aventurero! 🎲✨',
+                    text: '¡Que los dados te sean favorables, aventurera! 🎲✨',
                     expression: 'love',
                     action: null
                 }
             ]
         },
 
-        // Opciones/Settings
+        // ── Opciones ─────────────────────────────────────────────────────────
         options: {
-            title: 'Opciones y Ajustes',
+            title: 'Opciones',
             expression: 'neutral',
             steps: [
                 {
-                    text: 'Aquí puedes personalizar tu experiencia en Etheria.',
+                    text: 'Aquí ajustas Etheria a tu gusto. Hay tres pestañas: Apariencia, Lectura y Sonido.',
                     expression: 'neutral',
-                    action: null
+                    action: () => highlightElement('.opt-tab-bar')
                 },
                 {
-                    text: 'Cambia entre modo **Claro** y **Oscuro** según tu preferencia. 🌙',
+                    text: 'En Apariencia puedes cambiar entre modo Claro y Oscuro, ajustar el tamaño de fuente y aplicar filtros de atmósfera a las escenas. 🌙',
                     expression: 'thoughtful',
-                    highlight: '#themeToggleBtn',
                     action: () => highlightElement('#themeToggleBtn')
                 },
                 {
-                    text: 'Ajusta la **velocidad del texto** y el tamaño de fuente para leer cómodamente.',
+                    text: 'En Lectura controlas la velocidad del texto, el texto instantáneo y el modo inmersivo para leer sin distracciones.',
                     expression: 'happy',
-                    action: null
+                    action: () => highlightElement('[data-tab="reading"]')
                 },
                 {
-                    text: 'Los **filtros de atmósfera** (Sepia, B/N, Cine) cambian el mood visual de las escenas.',
-                    expression: 'excited',
-                    action: null
-                },
-                {
-                    text: '¡Experimenta hasta encontrar tu configuración perfecta!',
+                    text: 'Desde Sonido ajustas el volumen general y el de los efectos de lluvia y ambiente. 🔊',
                     expression: 'wink',
+                    action: () => highlightElement('[data-tab="sound"]')
+                },
+                {
+                    text: '¡Experimenta hasta encontrar la combinación que más te guste!',
+                    expression: 'excited',
                     action: null
                 }
             ]
         },
 
-        // Guardar y Cargar
+        // ── Importar / Exportar ──────────────────────────────────────────────
         saveHub: {
-            title: 'Centro de Guardado',
-            expression: 'happy',
+            title: 'Importar y Exportar',
+            expression: 'thoughtful',
             steps: [
                 {
-                    text: '¡Nunca está de más tener un backup! Aquí puedes guardar y cargar tus partidas.',
-                    expression: 'happy',
-                    action: null
-                },
-                {
-                    text: '**Descargar partida** exporta todo a un archivo JSON que puedes guardar en tu computadora.',
+                    text: 'Este panel sirve para mover tus datos hacia fuera o hacia dentro de Etheria.',
                     expression: 'thoughtful',
                     action: null
                 },
                 {
-                    text: '**Generar código** crea un código único para compartir tu historia con otros jugadores.',
+                    text: '"Descargar partida" exporta toda tu información a un archivo JSON. Es tu copia de seguridad local.',
+                    expression: 'neutral',
+                    action: () => highlightElement('.save-hub-primary')
+                },
+                {
+                    text: '"Cargar partida" importa ese archivo JSON. Úsalo para restaurar datos o llevarlos de un dispositivo a otro.',
+                    expression: 'happy',
+                    action: null
+                },
+                {
+                    text: 'Con "Generar código" creas un código de 6 caracteres para compartir una historia concreta con otro jugador.',
                     expression: 'excited',
                     action: null
                 },
                 {
-                    text: 'Con **Importar código** puedes recibir historias que otros hayan compartido contigo.',
-                    expression: 'surprised',
-                    action: null
-                },
-                {
-                    text: '¡Compartir historias es una de las mejores partes de Etheria! 📖✨',
+                    text: 'Y con "Importar código" recibes la historia que alguien te compartió. ¡Así de fácil es colaborar! 🌿',
                     expression: 'love',
                     action: null
                 }
@@ -361,11 +348,47 @@ const Ethy = (function() {
         _floatWrapper = document.createElement('div');
         _floatWrapper.className = 'ethy-float-wrapper';
 
-        // Crear cuerpo de Ethy
+        // Crear cuerpo de Ethy — HTML inline con partes de cara animables
         _body = document.createElement('div');
         _body.className = 'ethy-body ethy-expression-neutral';
-        // El personaje se renderiza como SVG via background-image en ethy.css
-        // No se inyectan divs internos de antenas/ojos/boca
+        _body.innerHTML = `
+            <svg class="ethy-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Sombra en el suelo -->
+                <ellipse cx="40" cy="68" rx="22" ry="6" fill="#c4b49a" opacity="0.35"/>
+                <!-- Cuerpo / carcasa -->
+                <rect x="14" y="18" width="52" height="42" rx="4" fill="none" stroke="#9c8870" stroke-width="1.5"/>
+                <!-- Antena -->
+                <g class="ethy-part-antenna">
+                    <path d="M58 10 C58 10 62 22 55 24" stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                    <path d="M56 10 L60 8 L58 12" fill="#9c8870"/>
+                </g>
+                <!-- Ojos -->
+                <g class="ethy-part-eyes">
+                    <circle class="ethy-eye-left"  cx="33" cy="38" r="4" fill="none" stroke="#9c8870" stroke-width="1.3"/>
+                    <circle class="ethy-eye-right" cx="47" cy="38" r="4" fill="none" stroke="#9c8870" stroke-width="1.3"/>
+                    <circle class="ethy-pupil-left"  cx="33" cy="38" r="1.5" fill="#9c8870"/>
+                    <circle class="ethy-pupil-right" cx="47" cy="38" r="1.5" fill="#9c8870"/>
+                </g>
+                <!-- Boca — cada expresión tiene su propio path, solo uno visible -->
+                <g class="ethy-part-mouth">
+                    <path class="ethy-mouth-neutral"   d="M35 44 Q40 46 45 44"            stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+                    <path class="ethy-mouth-happy"     d="M33 43 Q40 50 47 43"            stroke="#9c8870" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0"/>
+                    <path class="ethy-mouth-sad"       d="M33 47 Q40 42 47 47"            stroke="#9c8870" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0"/>
+                    <path class="ethy-mouth-excited"   d="M32 43 Q40 52 48 43"            stroke="#9c8870" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0"/>
+                    <path class="ethy-mouth-surprised" d="M37 43 Q40 49 43 43 Q40 51 37 43" stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0"/>
+                    <path class="ethy-mouth-thoughtful" d="M35 44 Q37 43 40 44 Q43 45 45 44" stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0"/>
+                    <path class="ethy-mouth-wink"      d="M34 43 Q40 49 46 44"            stroke="#9c8870" stroke-width="1.3" stroke-linecap="round" fill="none" opacity="0"/>
+                    <path class="ethy-mouth-love"      d="M33 42 Q36 50 40 51 Q44 50 47 42" stroke="#9c8870" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0"/>
+                    <!-- Lengua del amor — solo visible en love -->
+                    <ellipse class="ethy-mouth-love-tongue" cx="40" cy="51" rx="3" ry="2" fill="#c9a86c" opacity="0"/>
+                </g>
+                <!-- Mejillas — solo visibles en happy/love/excited -->
+                <g class="ethy-part-cheeks" opacity="0">
+                    <ellipse cx="24" cy="43" rx="4" ry="2.5" fill="#d4899a" opacity="0.45"/>
+                    <ellipse cx="56" cy="43" rx="4" ry="2.5" fill="#d4899a" opacity="0.45"/>
+                </g>
+            </svg>
+        `;
 
         // Crear burbuja de diálogo
         _bubble = document.createElement('div');
@@ -410,9 +433,12 @@ const Ethy = (function() {
         console.log('[Ethy] Elementos creados correctamente');
     }
 
+    let _bubbleJustOpened = false;
+
     function _setupEventListeners() {
         // Cerrar burbuja y panel de tutoriales al hacer clic fuera
         document.addEventListener('click', (e) => {
+            if (_bubbleJustOpened) return; // ignorar el click que abrió la burbuja
             if (!_container.contains(e.target)) {
                 if (_bubble.classList.contains('visible')) hideBubble();
                 if (_tutorialPanelVisible) endTutorial();
@@ -605,16 +631,42 @@ const Ethy = (function() {
 
     function _startIdleSystem() {
         if (_idleInterval) clearInterval(_idleInterval);
-        // Intervalo aleatorio entre 8 y 14 segundos
+        // Intervalo aleatorio entre 8 y 14 segundos para cambio de expresión
         const randomInterval = () => Math.floor(Math.random() * 6000) + 8000;
 
         function scheduleNext() {
             _idleInterval = setTimeout(() => {
                 _idleTick();
-                scheduleNext(); // re-agendar con nuevo intervalo aleatorio
+                scheduleNext();
             }, randomInterval());
         }
         scheduleNext();
+
+        // ── Parpadeo automático ────────────────────────────────────────────
+        // Parpadea cada 3-7 segundos de forma aleatoria y natural
+        function scheduleBlink() {
+            const delay = Math.floor(Math.random() * 4000) + 3000;
+            setTimeout(() => {
+                _doBlink();
+                scheduleBlink();
+            }, delay);
+        }
+        scheduleBlink();
+    }
+
+    function _doBlink() {
+        if (!_body || _isMinimized) return;
+        // Doble parpadeo ocasional (30% de las veces)
+        _body.classList.add('ethy-blinking');
+        setTimeout(() => {
+            _body.classList.remove('ethy-blinking');
+            if (Math.random() < 0.3) {
+                setTimeout(() => {
+                    _body.classList.add('ethy-blinking');
+                    setTimeout(() => _body.classList.remove('ethy-blinking'), 180);
+                }, 220);
+            }
+        }, 180);
     }
 
     // ── Sistema de arrastre ───────────────────────────────────────────────────
@@ -831,15 +883,105 @@ const Ethy = (function() {
             console.warn(`[Ethy] Expresión "${expression}" no existe`);
             return;
         }
+        if (!_body) return;
 
-        // Remover expresión anterior
+        // ── Quitar clases de expresión anteriores ──────────────────────────
         Object.values(EXPRESSIONS).forEach(exp => {
             _body.classList.remove(exp.class);
         });
-
-        // Aplicar nueva expresión
         _body.classList.add(EXPRESSIONS[expression].class);
         _currentExpression = expression;
+
+        // ── Actualizar cara inline ─────────────────────────────────────────
+        _updateFace(expression);
+    }
+
+    // Mapeo de expresión → estado de cada parte de la cara
+    const FACE_STATES = {
+        neutral:    { mouth: 'neutral',    eyeScale: 1,    pupilY: 0,  cheeks: false, blink: false, squint: false, winkLeft: false },
+        happy:      { mouth: 'happy',      eyeScale: 0.85, pupilY: 1,  cheeks: true,  blink: false, squint: true,  winkLeft: false },
+        excited:    { mouth: 'excited',    eyeScale: 1.1,  pupilY: -1, cheeks: true,  blink: false, squint: false, winkLeft: false },
+        sad:        { mouth: 'sad',        eyeScale: 0.8,  pupilY: 2,  cheeks: false, blink: false, squint: false, winkLeft: false },
+        surprised:  { mouth: 'surprised',  eyeScale: 1.3,  pupilY: -2, cheeks: false, blink: false, squint: false, winkLeft: false },
+        thoughtful: { mouth: 'thoughtful', eyeScale: 0.9,  pupilY: -1, cheeks: false, blink: false, squint: false, winkLeft: false },
+        wink:       { mouth: 'wink',       eyeScale: 1,    pupilY: 1,  cheeks: false, blink: false, squint: false, winkLeft: true  },
+        love:       { mouth: 'love',       eyeScale: 0.75, pupilY: 2,  cheeks: true,  blink: false, squint: true,  winkLeft: false },
+    };
+
+    function _updateFace(expression) {
+        const state = FACE_STATES[expression] || FACE_STATES.neutral;
+        const svg = _body.querySelector('.ethy-svg');
+        if (!svg) return;
+
+        // ── Ocultar todas las bocas, mostrar solo la activa ────────────────
+        svg.querySelectorAll('[class^="ethy-mouth-"]').forEach(el => {
+            el.setAttribute('opacity', '0');
+            el.style.transition = 'opacity 0.25s ease';
+        });
+        const activeMouth = svg.querySelector(`.ethy-mouth-${expression}`);
+        if (activeMouth) {
+            activeMouth.setAttribute('opacity', '1');
+        }
+        // Lengua en love
+        const tongue = svg.querySelector('.ethy-mouth-love-tongue');
+        if (tongue) tongue.setAttribute('opacity', expression === 'love' ? '1' : '0');
+
+        // ── Mejillas ───────────────────────────────────────────────────────
+        const cheeks = svg.querySelector('.ethy-part-cheeks');
+        if (cheeks) {
+            cheeks.setAttribute('opacity', state.cheeks ? '1' : '0');
+            cheeks.style.transition = 'opacity 0.3s ease';
+        }
+
+        // ── Ojos: escala y squint ──────────────────────────────────────────
+        const eyeLeft  = svg.querySelector('.ethy-eye-left');
+        const eyeRight = svg.querySelector('.ethy-eye-right');
+        const pupilLeft  = svg.querySelector('.ethy-pupil-left');
+        const pupilRight = svg.querySelector('.ethy-pupil-right');
+
+        if (eyeLeft && eyeRight) {
+            const baseR = 4;
+            const rx = (baseR * state.eyeScale).toFixed(2);
+            const rySquint = state.squint ? (baseR * 0.4).toFixed(2) : rx;
+
+            // Eye circles → use rx/ry for ellipse-like squint via transform scaleY
+            [eyeLeft, eyeRight].forEach(el => {
+                el.style.transition = 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)';
+                el.style.transformOrigin = 'center';
+                const scaleX = state.eyeScale;
+                const scaleY = state.squint ? 0.45 : state.eyeScale;
+                el.style.transform = `scale(${scaleX}, ${scaleY})`;
+            });
+
+            // Wink: left eye closed
+            if (eyeLeft && state.winkLeft) {
+                eyeLeft.style.transform = 'scale(1, 0.1)';
+            }
+        }
+
+        // ── Pupila: desplazamiento vertical según estado ───────────────────
+        if (pupilLeft && pupilRight) {
+            [pupilLeft, pupilRight].forEach(el => {
+                el.style.transition = 'transform 0.2s ease';
+                el.style.transform = `translateY(${state.pupilY}px)`;
+            });
+        }
+
+        // ── Antena: vibra en excited ───────────────────────────────────────
+        const antenna = svg.querySelector('.ethy-part-antenna');
+        if (antenna) {
+            antenna.style.transition = 'transform 0.25s ease';
+            antenna.style.transformOrigin = '55px 22px';
+            if (expression === 'excited') {
+                antenna.classList.add('ethy-antenna-excited');
+            } else {
+                antenna.classList.remove('ethy-antenna-excited');
+                antenna.style.transform = expression === 'happy'   ? 'rotate(8deg)'  :
+                                           expression === 'sad'     ? 'rotate(-15deg)' :
+                                           expression === 'surprised' ? 'rotate(-8deg) translateY(-3px)' :
+                                           '';
+            }
+        }
     }
 
     // ── Funciones de diálogo ─────────────────────────────────────────────────
@@ -856,9 +998,8 @@ const Ethy = (function() {
             const button = document.createElement('button');
             button.className = 'ethy-btn' + (btn.primary ? ' primary' : '');
             button.textContent = btn.text;
-            button.onclick = () => {
-                // Fix: los botones de navegación usan close:false para que
-                // _showTutorialStep() no sea cancelado por hideBubble() después
+            button.onclick = (e) => {
+                e.stopPropagation(); // evitar que el click llegue al document y cierre la burbuja
                 if (btn.action) btn.action();
                 if (btn.close !== false) hideBubble();
             };
@@ -900,8 +1041,10 @@ const Ethy = (function() {
 
         actions.innerHTML = '';
 
-        // Mostrar burbuja
+        // Mostrar burbuja — marcar flag para evitar cierre inmediato
+        _bubbleJustOpened = true;
         _bubble.classList.add('visible');
+        setTimeout(() => { _bubbleJustOpened = false; }, 50);
 
         // Efecto de escritura
         _isTyping = true;
@@ -1224,14 +1367,20 @@ const Ethy = (function() {
     // ── Consejos aleatorios ──────────────────────────────────────────────────
 
     const TIPS = [
-        { text: '¿Sabías que puedes usar **negrita** y *cursiva* en los mensajes? ¡Pruébalo!', expression: 'excited' },
-        { text: 'Los emotes como /happy, /sad y /angry dan mucha vida a los personajes. 🎭', expression: 'happy' },
-        { text: 'Guarda tu partida regularmente. ¡Nunca se sabe qué puede pasar!', expression: 'thoughtful' },
-        { text: 'En modo RPG, el Oráculo decide el destino basado en tus stats. ¡Elige sabiamente!', expression: 'surprised' },
-        { text: 'Puedes compartir tus historias con un código único. ¡Haz que otros las disfruten!', expression: 'love' },
-        { text: 'Las flechas ← → te permiten navegar rápidamente por los mensajes.', expression: 'neutral' },
-        { text: 'Presiona ESPACIO para avanzar el texto más rápido.', expression: 'wink' },
-        { text: 'En la Galería puedes crear personajes con stats detallados para modo RPG.', expression: 'happy' }
+        { text: 'Puedes usar **negrita** y *cursiva* al escribir tus mensajes. ¡Dale estilo a la narrativa!', expression: 'excited' },
+        { text: 'Los emotes /happy, /sad, /angry, /love y más dan vida a tus personajes. ¡Pruébalos!', expression: 'happy' },
+        { text: 'En modo RPG, el Oráculo del Destino resuelve las acciones difíciles con un D20 + tu stat. ¡El azar manda!', expression: 'surprised' },
+        { text: 'Puedes compartir una historia con un código de 6 caracteres. Búscalo en el botón de exportar del menú. 🔑', expression: 'love' },
+        { text: 'Las flechas ← → o los botones de navegación permiten saltar entre mensajes rápidamente.', expression: 'neutral' },
+        { text: 'Pulsa ESPACIO o haz clic en el diálogo para completar la animación de texto al instante.', expression: 'wink' },
+        { text: 'Toca tu perfil en la parte inferior del menú para cambiar tu nombre, avatar y datos personales.', expression: 'happy' },
+        { text: 'El diario de sesión guarda tus notas y resúmenes de partida. ¡Úsalo para no perder el hilo!', expression: 'thoughtful' },
+        { text: 'En el panel de respuesta puedes crear opciones de elección para que la historia se ramifique. 🌿', expression: 'excited' },
+        { text: 'El historial guarda todos los mensajes de la historia. Puedes marcarlos como favoritos con la estrella. ⭐', expression: 'thoughtful' },
+        { text: 'Para hacer una copia de seguridad, usa el pequeño botón de exportar junto a tu perfil en el menú.', expression: 'neutral' },
+        { text: 'En la ficha de personaje puedes añadir descripción física, personalidad, trasfondo y notas libres.', expression: 'happy' },
+        { text: 'Puedes cambiar el clima de una escena desde el panel de respuesta: lluvia, niebla o despejado. 🌧️', expression: 'thoughtful' },
+        { text: 'El modo inmersivo oculta los controles para leer la historia sin distracciones. ¡Búscalo en Opciones!', expression: 'wink' }
     ];
 
     function showRandomTip() {

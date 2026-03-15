@@ -47,34 +47,11 @@
     .fog-layer:nth-child(3) { animation-duration: 56s; }  /* 35s → 56s */
 }
 
-/* --- A4. Fireflies: sin rayos ::before/::after en mobile (los más caros) --- */
-@media (max-width: 767px) {
-    .firefly::before,
-    .firefly::after {
-        display: none; /* Elimina los pseudo-elementos con filter:blur — efecto se mantiene con el core */
-    }
-    /* El body del firefly sigue siendo visible, solo sin los rayos GPU-intensivos */
-}
+/* --- A4. Fireflies / Petals: Canvas system — pool size controlled in JS --- */
+/* .firefly y .leaf ya no existen en el DOM, el canvas se gestiona en generateParticles() */
 
-/* --- A5. Hojas: animación más lenta --- */
-@media (max-width: 767px) {
-    .leaf {
-        animation-duration: calc(var(--leaf-duration, 8s) * 1.5) !important;
-    }
-}
+/* --- A5. Canvas partículas: ocultar en low-spec vía JS (isLowSpec check) --- */
 
-/* --- A6. Low-spec: ocultar partículas de perfil completamente --- */
-body.low-spec .profile-particle,
-body.low-spec .leaf {
-    display: none;
-}
-body.low-spec .firefly {
-    display: none;
-}
-body.low-spec .fog-layer {
-    filter: none;
-    opacity: 0.15;
-}
 
 
 /* ================================================================
