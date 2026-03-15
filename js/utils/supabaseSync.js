@@ -54,30 +54,35 @@ const SupabaseSync = (function () {
      */
     function _getProfileDataForSync() {
         const profileIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
-        
-        // Filtrar datos por perfil
-        const topics = (appData?.topics || []).filter(t => t.createdByIndex === profileIndex);
+        const topics = Array.isArray(appData?.topics) ? appData.topics : [];
         const topicIds = new Set(topics.map(t => String(t.id)));
-        
+
         const messages = {};
         Object.keys(appData?.messages || {}).forEach(topicId => {
-            if (topicIds.has(String(topicId))) {
-                messages[topicId] = appData.messages[topicId];
-            }
+            if (topicIds.has(String(topicId))) messages[topicId] = appData.messages[topicId];
         });
 
-        const characters = (appData?.characters || []).filter(c => c.userIndex === profileIndex);
-        
         const affinities = {};
         Object.keys(appData?.affinities || {}).forEach(topicId => {
-            if (topicIds.has(String(topicId))) {
-                affinities[topicId] = appData.affinities[topicId];
-            }
+            if (topicIds.has(String(topicId))) affinities[topicId] = appData.affinities[topicId];
         });
 
+        const characters = Array.isArray(appData?.characters) ? appData.characters : [];
         const favorites = appData?.favorites || {};
         const journals = appData?.journals || {};
         const reactions = appData?.reactions || {};
+
+        const profileMeta = {
+            genders: (() => {
+                try { return JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch { return []; }
+            })(),
+            birthdays: (() => {
+                try { return JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch { return []; }
+            })(),
+            avatars: (() => {
+                try { return JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]'); } catch { return []; }
+            })()
+        };
 
         return {
             profileIndex,
@@ -89,6 +94,7 @@ const SupabaseSync = (function () {
             favorites,
             journals,
             reactions,
+            profileMeta,
             lastMessageIndex: typeof currentMessageIndex !== 'undefined' ? currentMessageIndex : 0,
             settings: {
                 textSpeed: typeof textSpeed !== 'undefined' ? textSpeed : 25,
@@ -104,8 +110,6 @@ const SupabaseSync = (function () {
     function _applySyncedData(syncedData) {
         if (!syncedData || typeof syncedData !== 'object') return false;
 
-        const profileIndex = syncedData.profileIndex || 0;
-
         // Actualizar nombres de usuario si existen
         if (Array.isArray(syncedData.userNames) && syncedData.userNames.length > 0) {
             if (typeof userNames !== 'undefined') {
@@ -116,85 +120,26 @@ const SupabaseSync = (function () {
             } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         }
 
-        // Merge topics (evitar duplicados por ID)
-        if (Array.isArray(syncedData.topics)) {
-            const existingIds = new Set((appData?.topics || []).map(t => String(t.id)));
-            syncedData.topics.forEach(topic => {
-                if (!existingIds.has(String(topic.id))) {
-                    appData.topics.push(topic);
-                } else {
-                    // Actualizar topic existente si es más reciente
-                    const idx = appData.topics.findIndex(t => String(t.id) === String(topic.id));
-                    if (idx !== -1) {
-                        const localUpdated = appData.topics[idx].updatedAt || 0;
-                        const remoteUpdated = topic.updatedAt || 0;
-                        if (remoteUpdated > localUpdated) {
-                            appData.topics[idx] = topic;
-                        }
-                    }
-                }
-            });
+        const remoteTopics = Array.isArray(syncedData.topics) ? syncedData.topics : [];
+        const remoteCharacters = Array.isArray(syncedData.characters) ? syncedData.characters : [];
+        const remoteMessages = (syncedData.messages && typeof syncedData.messages === 'object') ? syncedData.messages : {};
+        const remoteAffinities = (syncedData.affinities && typeof syncedData.affinities === 'object') ? syncedData.affinities : {};
+
+        appData.topics = remoteTopics;
+        appData.characters = remoteCharacters;
+        appData.messages = remoteMessages;
+        appData.affinities = remoteAffinities;
+        appData.favorites = (syncedData.favorites && typeof syncedData.favorites === 'object') ? syncedData.favorites : {};
+        appData.journals = (syncedData.journals && typeof syncedData.journals === 'object') ? syncedData.journals : {};
+        appData.reactions = (syncedData.reactions && typeof syncedData.reactions === 'object') ? syncedData.reactions : {};
+
+        if (syncedData.profileMeta && typeof syncedData.profileMeta === 'object') {
+            try {
+                localStorage.setItem('etheria_user_genders', JSON.stringify(Array.isArray(syncedData.profileMeta.genders) ? syncedData.profileMeta.genders : []));
+                localStorage.setItem('etheria_user_birthdays', JSON.stringify(Array.isArray(syncedData.profileMeta.birthdays) ? syncedData.profileMeta.birthdays : []));
+                localStorage.setItem('etheria_user_avatars', JSON.stringify(Array.isArray(syncedData.profileMeta.avatars) ? syncedData.profileMeta.avatars : []));
+            } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         }
-
-        // Merge characters
-        if (Array.isArray(syncedData.characters)) {
-            const existingIds = new Set((appData?.characters || []).map(c => String(c.id)));
-            syncedData.characters.forEach(char => {
-                if (!existingIds.has(String(char.id))) {
-                    appData.characters.push(char);
-                } else {
-                    const idx = appData.characters.findIndex(c => String(c.id) === String(char.id));
-                    if (idx !== -1) {
-                        const localUpdated = appData.characters[idx].updatedAt || 0;
-                        const remoteUpdated = char.updatedAt || 0;
-                        if (remoteUpdated > localUpdated) {
-                            appData.characters[idx] = char;
-                        }
-                    }
-                }
-            });
-        }
-
-        // Merge messages por topic
-        if (syncedData.messages && typeof syncedData.messages === 'object') {
-            Object.keys(syncedData.messages).forEach(topicId => {
-                const remoteMsgs = syncedData.messages[topicId];
-                if (!Array.isArray(remoteMsgs)) return;
-
-                if (!appData.messages[topicId]) {
-                    appData.messages[topicId] = remoteMsgs;
-                } else {
-                    // Merge por ID de mensaje
-                    const localMsgs = appData.messages[topicId];
-                    const localIds = new Set(localMsgs.map(m => m.id));
-                    
-                    remoteMsgs.forEach(msg => {
-                        if (!localIds.has(msg.id)) {
-                            localMsgs.push(msg);
-                        }
-                    });
-
-                    // Ordenar por timestamp
-                    localMsgs.sort((a, b) => {
-                        const ta = new Date(a.timestamp || 0).getTime();
-                        const tb = new Date(b.timestamp || 0).getTime();
-                        return ta - tb;
-                    });
-                }
-            });
-        }
-
-        // Merge affinities
-        if (syncedData.affinities && typeof syncedData.affinities === 'object') {
-            Object.keys(syncedData.affinities).forEach(topicId => {
-                appData.affinities[topicId] = syncedData.affinities[topicId];
-            });
-        }
-
-        // Merge favorites, journals, reactions
-        if (syncedData.favorites) Object.assign(appData.favorites, syncedData.favorites);
-        if (syncedData.journals) Object.assign(appData.journals, syncedData.journals);
-        if (syncedData.reactions) Object.assign(appData.reactions, syncedData.reactions);
 
         // Guardar en localStorage
         if (typeof persistPartitionedData === 'function') {
@@ -219,29 +164,19 @@ const SupabaseSync = (function () {
             const data = _getProfileDataForSync();
             const now = new Date().toISOString();
 
-            // Intentar UPDATE primero, luego INSERT si no existe
-            const { error: updateError } = await _client()
+            // Upsert directo para cubrir creación de cuenta nueva y actualizaciones.
+            // UPDATE+INSERT puede fallar silenciosamente cuando UPDATE afecta 0 filas.
+            const { error: upsertError } = await _client()
                 .from('user_data')
-                .update({ 
-                    data, 
-                    updated_at: now 
-                })
-                .eq('user_id', userId);
+                .upsert({
+                    user_id: userId,
+                    data,
+                    updated_at: now
+                }, { onConflict: 'user_id' });
 
-            if (updateError) {
-                // Si no existe, hacer INSERT
-                const { error: insertError } = await _client()
-                    .from('user_data')
-                    .insert({ 
-                        user_id: userId, 
-                        data, 
-                        updated_at: now 
-                    });
-
-                if (insertError) {
-                    console.error('[SupabaseSync] upload error:', insertError);
-                    return { ok: false, error: insertError.message };
-                }
+            if (upsertError) {
+                console.error('[SupabaseSync] upload error:', upsertError);
+                return { ok: false, error: upsertError.message };
             }
 
             _lastSyncTime = Date.now();

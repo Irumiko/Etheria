@@ -12,6 +12,14 @@
     document.body.classList.add('pwa-standalone');
     docEl.classList.add('pwa-standalone');
 
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    if (viewportMeta) {
+        viewportMeta.setAttribute(
+            'content',
+            'width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no'
+        );
+    }
+
     const updateViewportVars = () => {
         const innerVh = window.innerHeight * 0.01;
         docEl.style.setProperty('--vh', `${innerVh}px`);

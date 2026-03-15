@@ -420,6 +420,9 @@ function saveProfileNameFromOptions() {
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
     const display = document.getElementById('currentUserDisplay');
     if (display) display.textContent = name;
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') {
+        SupabaseSync.markPending();
+    }
     showAutosave('Nombre actualizado', 'saved');
     // Actualizar initial del avatar si no hay foto
     _syncAvatarInitials();
@@ -438,7 +441,7 @@ function switchOptTab(tabId, btn) {
     const panel = document.getElementById('optPanel-' + tabId);
     if (panel) panel.classList.add('active');
     // Sincronizar perfil al entrar en esa pestaña
-    if (tabId === 'profile') _syncProfileTab();
+    if (tabId === 'profile' || tabId === 'account') _syncProfileTab();
 }
 
 // ── Avatar helpers ────────────────────────────────────────────────────────
@@ -448,18 +451,21 @@ function _getAvatars() {
 }
 function _saveAvatars(arr) {
     try { localStorage.setItem('etheria_user_avatars', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
 }
 function _getGenders() {
     try { return JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch { return []; }
 }
 function _saveGenders(arr) {
     try { localStorage.setItem('etheria_user_genders', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
 }
 function _getBirthdays() {
     try { return JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch { return []; }
 }
 function _saveBirthdays(arr) {
     try { localStorage.setItem('etheria_user_birthdays', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
 }
 
 function _getCurrentProfileAvatar() {

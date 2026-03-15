@@ -749,8 +749,19 @@ const Ethy = (function() {
         try {
             const saved = JSON.parse(localStorage.getItem(POSITION_KEY) || 'null');
             if (saved && saved.right && saved.bottom) {
-                _container.style.right  = saved.right;
-                _container.style.bottom = saved.bottom;
+                const maxRight = Math.max(12, window.innerWidth - 100);
+                const maxBottom = Math.max(12, window.innerHeight - 100);
+                const parsedRight = Number.parseFloat(saved.right);
+                const parsedBottom = Number.parseFloat(saved.bottom);
+                const safeRight = Number.isFinite(parsedRight)
+                    ? `${Math.min(Math.max(parsedRight, 12), maxRight)}px`
+                    : saved.right;
+                const safeBottom = Number.isFinite(parsedBottom)
+                    ? `${Math.min(Math.max(parsedBottom, 12), maxBottom)}px`
+                    : saved.bottom;
+
+                _container.style.right  = safeRight;
+                _container.style.bottom = safeBottom;
                 _container.style.left   = 'auto';
                 _container.style.top    = 'auto';
             }
