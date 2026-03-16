@@ -220,10 +220,17 @@
 
     <!-- Main Menu -->
     <div id="mainMenu" class="main-menu hidden">
+        <!-- Botón día/noche esquina superior derecha -->
+        <button class="menu-theme-toggle" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar entre modo día y noche">
+            <span class="menu-theme-toggle__icon" id="menuThemeIcon">🌙</span>
+        </button>
         <div class="menu-parallax" id="menuParallax">
-            <div class="parallax-layer layer-sky" data-depth="0.08"></div>
-            <div class="parallax-layer layer-midforest" data-depth="0.22"></div>
-            <div class="parallax-layer layer-foreground" data-depth="0.38"></div>
+            <div class="parallax-layer layer-bg-day"   data-speed="0.02"></div>
+            <div class="parallax-layer layer-mid-day"  data-speed="0.05"></div>
+            <div class="parallax-layer layer-fg-day"   data-speed="0.10"></div>
+            <div class="parallax-layer layer-bg-night" data-speed="0.02"></div>
+            <div class="parallax-layer layer-mid-night" data-speed="0.05"></div>
+            <div class="parallax-layer layer-fg-night" data-speed="0.10"></div>
         </div>
         <!-- Canvas de partículas: luciérnagas (noche) + pétalos (día) -->
         <canvas class="menu-fireflies" id="particlesContainer"></canvas>
@@ -1134,23 +1141,51 @@
                 <h3 id="saveHubTitle" style="font-family:Cinzel,serif;">💾 Centro de guardado</h3>
                 <button class="btn-secondary" onclick="closeModal('saveHubModal')">Cerrar</button>
             </div>
-            <p style="color:var(--text-muted);margin-top:0.35rem;">Elige cómo guardar o cargar tus partidas e historias.</p>
+            <p style="color:var(--text-muted);margin-top:0.35rem;">Gestiona tus partidas guardadas en la nube y en local.</p>
+
+            <!-- Sección Nube -->
+            <div class="save-hub-section-label">
+                <span class="save-hub-section-icon">☁️</span> Nube
+                <span class="save-hub-cloud-status" id="saveHubCloudStatus" data-state="pending">Comprobando…</span>
+            </div>
             <div class="save-hub-grid">
-                <button class="save-hub-btn save-hub-primary" onclick="saveGameFromMenu()">
+                <button class="save-hub-btn save-hub-primary" onclick="forceCloudDownload()">
+                    <span class="save-hub-icon">⬇️</span>
+                    <span class="save-hub-text">
+                        <strong>Cargar desde nube</strong>
+                        <small>Reemplaza los datos locales con la versión guardada en tu cuenta</small>
+                    </span>
+                </button>
+                <button class="save-hub-btn" onclick="forceCloudUpload()">
+                    <span class="save-hub-icon">⬆️</span>
+                    <span class="save-hub-text">
+                        <strong>Subir a la nube</strong>
+                        <small>Guarda los datos de este dispositivo en tu cuenta</small>
+                    </span>
+                </button>
+            </div>
+
+            <!-- Separador -->
+            <div class="save-hub-divider"></div>
+
+            <!-- Sección Local -->
+            <div class="save-hub-section-label">
+                <span class="save-hub-section-icon">💻</span> Copia de seguridad local
+            </div>
+            <div class="save-hub-grid">
+                <button class="save-hub-btn" onclick="saveGameFromMenu()">
                     <span class="save-hub-icon">⬇</span>
-                    <span class="save-hub-text"><strong>Descargar partida</strong><small>Exporta todo a JSON local</small></span>
+                    <span class="save-hub-text">
+                        <strong>Exportar a archivo</strong>
+                        <small>Descarga todo como JSON en este dispositivo</small>
+                    </span>
                 </button>
                 <button class="save-hub-btn" onclick="loadGameFromMenu()">
                     <span class="save-hub-icon">📂</span>
-                    <span class="save-hub-text"><strong>Cargar partida</strong><small>Importa desde archivo JSON</small></span>
-                </button>
-                <button class="save-hub-btn" onclick="exportCurrentStoryAsCode()">
-                    <span class="save-hub-icon">🔑</span>
-                    <span class="save-hub-text"><strong>Generar código</strong><small>Comparte la historia activa</small></span>
-                </button>
-                <button class="save-hub-btn" onclick="importStoryFromCode()">
-                    <span class="save-hub-icon">📥</span>
-                    <span class="save-hub-text"><strong>Importar código</strong><small>Recibe una historia compartida</small></span>
+                    <span class="save-hub-text">
+                        <strong>Importar desde archivo</strong>
+                        <small>Carga un JSON exportado previamente</small>
+                    </span>
                 </button>
             </div>
         </div>
