@@ -128,6 +128,17 @@ async function login() {
     hideLoginScreen();
     initializeApp();
     await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
+
+    // La nube siempre gana al iniciar sesión: descargar y reemplazar datos locales.
+    // Resuelve la desincronización entre dispositivos (PWA vs navegador) con el mismo login.
+    if (typeof SupabaseSync !== 'undefined') {
+        const result = await SupabaseSync.downloadProfileData();
+        if (result.ok && result.data) {
+            if (typeof renderTopics === 'function')   renderTopics();
+            if (typeof renderGallery === 'function')  renderGallery();
+            if (typeof renderUserCards === 'function') renderUserCards();
+        }
+    }
 }
 
 async function register() {
@@ -172,6 +183,16 @@ async function register() {
         hideLoginScreen();
         initializeApp();
         await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
+
+        // Nube gana también en registro (puede haber datos de otro dispositivo)
+        if (typeof SupabaseSync !== 'undefined') {
+            const result = await SupabaseSync.downloadProfileData();
+            if (result.ok && result.data) {
+                if (typeof renderTopics === 'function')   renderTopics();
+                if (typeof renderGallery === 'function')  renderGallery();
+                if (typeof renderUserCards === 'function') renderUserCards();
+            }
+        }
     }
 }
 

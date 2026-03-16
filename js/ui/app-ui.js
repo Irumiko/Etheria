@@ -363,6 +363,9 @@ function toggleTheme() {
     // Botón circular perfil: icono del modo actual
     const profileBtn = document.getElementById('profileThemeBtn');
     if (profileBtn) profileBtn.textContent = newTheme === 'dark' ? '🌙' : '☀️';
+    // Botón toggle del menú principal
+    const menuIcon = document.getElementById('menuThemeIcon');
+    if (menuIcon) menuIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
     generateParticles();
 }
 
@@ -741,8 +744,91 @@ function quickSave() {
 
 function openSaveHubModal() {
     openModal('saveHubModal');
-    // Notificar a Ethy
+    // Actualizar estado de última sincronización al abrir
+    _updateSaveHubCloudStatus();
     window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'saveHub' } }));
+}
+
+function _updateSaveHubCloudStatus() {
+    const el = document.getElementById('saveHubCloudStatus');
+    if (!el) return;
+    const userId = window._cachedUserId;
+    if (!userId) {
+        el.textContent = 'Sin sesión activa';
+        el.dataset.state = 'offline';
+        return;
+    }
+    if (typeof SupabaseSync === 'undefined') {
+        el.textContent = 'Sync no disponible';
+        el.dataset.state = 'offline';
+        return;
+    }
+    const last = SupabaseSync.lastSyncTime;
+    if (!last) {
+        el.textContent = 'Sin sincronizar aún';
+        el.dataset.state = 'pending';
+    } else {
+        const mins = Math.round((Date.now() - last) / 60000);
+        el.textContent = mins < 1 ? 'Sincronizado hace un momento' : `Última sync: hace ${mins} min`;
+        el.dataset.state = 'ok';
+    }
+}
+
+async function forceCloudDownload() {
+    if (!window._cachedUserId) {
+        showAutosave('Inicia sesión para usar la nube', 'error');
+        return;
+    }
+    const ok = await openConfirmModal(
+        '¿Cargar datos desde la nube? Esto reemplazará todos los datos locales con la versión guardada en tu cuenta.',
+        'Cargar desde nube'
+    );
+    if (!ok) return;
+
+    showAutosave('Descargando desde la nube…', 'info');
+    try {
+        const result = await SupabaseSync.downloadProfileData();
+        if (result.ok && result.data) {
+            if (typeof renderTopics === 'function')    renderTopics();
+            if (typeof renderGallery === 'function')   renderGallery();
+            if (typeof renderUserCards === 'function') renderUserCards();
+            showAutosave('✓ Datos cargados desde la nube', 'saved');
+            eventBus.emit('audio:play-sfx', { sfx: 'save' });
+            _updateSaveHubCloudStatus();
+        } else if (result.isNew) {
+            showAutosave('No hay datos en la nube para esta cuenta', 'info');
+        } else {
+            showAutosave('Error al descargar: ' + (result.error || 'desconocido'), 'error');
+        }
+    } catch (err) {
+        showAutosave('Error inesperado: ' + err.message, 'error');
+    }
+}
+
+async function forceCloudUpload() {
+    if (!window._cachedUserId) {
+        showAutosave('Inicia sesión para usar la nube', 'error');
+        return;
+    }
+    const ok = await openConfirmModal(
+        '¿Subir datos locales a la nube? Esto reemplazará la versión guardada en tu cuenta con los datos actuales de este dispositivo.',
+        'Subir a la nube'
+    );
+    if (!ok) return;
+
+    showAutosave('Subiendo a la nube…', 'info');
+    try {
+        const result = await SupabaseSync.uploadProfileData();
+        if (result.ok) {
+            showAutosave('✓ Datos subidos a la nube', 'saved');
+            eventBus.emit('audio:play-sfx', { sfx: 'save' });
+            _updateSaveHubCloudStatus();
+        } else {
+            showAutosave('Error al subir: ' + (result.error || 'desconocido'), 'error');
+        }
+    } catch (err) {
+        showAutosave('Error inesperado: ' + err.message, 'error');
+    }
 }
 
 function saveGameFromMenu() {

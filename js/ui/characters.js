@@ -148,6 +148,10 @@ async function selectUser(idx, options = {}) {
         void mainMenu.offsetWidth;
         mainMenu.style.opacity = '1';
         setTimeout(() => { mainMenu.style.transition = ''; mainMenu.style.opacity = ''; }, 320);
+        // Arrancar parallax ahora que el menú es visible
+        menuParallaxBound = false;
+        if (menuParallaxAnimationId) { cancelAnimationFrame(menuParallaxAnimationId); menuParallaxAnimationId = null; }
+        initMenuParallax();
         eventBus.emit('audio:start-menu-music');
         // Onboarding paso 1: menú principal
         const _ob = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
@@ -384,6 +388,8 @@ let menuParallaxBound = false;
 let menuParallaxAnimationId = null;
 let fireflyAnimationId = null;
 let fireflyEntities = []; // kept for compat
+// Flag: true en cuanto el giroscopio entrega un evento real
+let _gyroActive = false;
 
 // ── Canvas particle system ────────────────────────────────────────────────
 let _pCanvas = null, _pCtx = null;
@@ -536,110 +542,67 @@ function _runParticleLoop() {
 }
 
 function initMenuParallax() {
+    if (!_pCanvas) _initParticleCanvas();
+    const parallax = document.getElementById('menuParallax');
+    if (!parallax || parallax.closest('.hidden')) return;
     if (menuParallaxBound) return;
 
-    // ── Init Canvas particle system early ──────────────────────────────
-    if (!_pCanvas) _initParticleCanvas();
-
-    // ── Reduced-motion: sin parallax, sin animaciones ──────────────────
-    const prefersReduced = typeof window.matchMedia === 'function'
-        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) {
-        menuParallaxBound = true;
-        return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        menuParallaxBound = true; return;
     }
 
-    // ── Coarse pointer (móvil táctil): usamos gyroscope si disponible,
-    //    si no, dejamos las capas estáticas (no hay cursor).
-    const coarsePointer = typeof window.matchMedia === 'function'
-        && window.matchMedia('(pointer: coarse)').matches;
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    const layers = parallax.querySelectorAll('.parallax-layer');
 
-    const parallax = document.getElementById('menuParallax');
-    if (!parallax) return;
-
-    // Amplitud máxima de desplazamiento (en px) para la capa con depth=1.0
-    // Cada capa se multiplica por su propio data-depth → movimiento suave y diferenciado
-    const MAX_PX = 22;   // horizontal
-    const MAX_PY = 14;   // vertical (menos para no marear)
-
-    // ── Actualizar custom properties en cada capa según su profundidad ──
-    const applyParallax = () => {
-        const layers = parallax.querySelectorAll('.parallax-layer');
+    function tick() {
+        const centerX = window.innerWidth  / 2;
+        const centerY = window.innerHeight / 2;
+        const offsetX = (mouseX - centerX) / centerX;
+        const offsetY = (mouseY - centerY) / centerY;
         layers.forEach(layer => {
-            const depth = parseFloat(layer.dataset.depth || '0.2');
-            // --px y --py son los desplazamientos BASE (depth=1.0)
-            // La capa lo multiplica por su propio --depth en el transform CSS
-            layer.style.setProperty('--px', `${menuMouseState.x}px`);
-            layer.style.setProperty('--py', `${menuMouseState.y}px`);
+            const speed = parseFloat(layer.dataset.speed || '0.05');
+            const x = offsetX * speed * -100;
+            const y = offsetY * speed * -50;
+            layer.style.transform = `translate3d(${x}px, ${y}px, 0)`;
         });
-    };
-
-    // ── Loop RAF con interpolación suave (lerp) ──────────────────────────
-    const LERP = 0.028; // 0.028 = muy suave, 0.07 = más reactivo
-    const tick = () => {
-        menuMouseState.x += (menuMouseState.targetX - menuMouseState.x) * LERP;
-        menuMouseState.y += (menuMouseState.targetY - menuMouseState.y) * LERP;
-
-        // Solo redibuja si hay movimiento perceptible (> 0.05px)
-        if (Math.abs(menuMouseState.x - menuMouseState.targetX) > 0.05
-         || Math.abs(menuMouseState.y - menuMouseState.targetY) > 0.05
-         || Math.abs(menuMouseState.x) > 0.05
-         || Math.abs(menuMouseState.y) > 0.05) {
-            applyParallax();
-        }
-
-        menuParallaxAnimationId = window.requestAnimationFrame(tick);
-    };
-
-    // ── Mouse / pointer (desktop) ────────────────────────────────────────
-    if (!coarsePointer) {
-        window.addEventListener('mousemove', e => {
-            const nx = (e.clientX / window.innerWidth)  - 0.5; // -0.5 … +0.5
-            const ny = (e.clientY / window.innerHeight) - 0.5;
-            menuMouseState.px = e.clientX;
-            menuMouseState.py = e.clientY;
-            menuMouseState.targetX = nx * MAX_PX;
-            menuMouseState.targetY = ny * MAX_PY;
-        }, { passive: true });
-
-        window.addEventListener('mouseleave', () => {
-            menuMouseState.targetX = 0;
-            menuMouseState.targetY = 0;
-        });
+        menuParallaxAnimationId = requestAnimationFrame(tick);
     }
 
-    // ── Gyroscope (móvil) — amplitud muy baja para no marear ────────────
-    if (coarsePointer && typeof DeviceOrientationEvent !== 'undefined') {
-        const requestGyro = () => {
-            const handler = e => {
-                if (e.gamma == null || e.beta == null) return;
-                // gamma: inclinación lateral (-90…+90), beta: adelante/atrás (-180…+180)
-                const gx = Math.max(-30, Math.min(30, e.gamma)) / 30; // -1…+1
-                const gy = Math.max(-20, Math.min(20, (e.beta - 20))) / 20;
-                menuMouseState.targetX = gx * (MAX_PX * 0.55);
-                menuMouseState.targetY = gy * (MAX_PY * 0.45);
-            };
+    window.addEventListener('mousemove', e => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        menuMouseState.px = e.clientX;
+        menuMouseState.py = e.clientY;
+    }, { passive: true });
 
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                // iOS 13+: requiere gesto de usuario
-                document.addEventListener('touchend', async function _req() {
-                    document.removeEventListener('touchend', _req);
-                    try {
-                        const perm = await DeviceOrientationEvent.requestPermission();
-                        if (perm === 'granted') window.addEventListener('deviceorientation', handler, { passive: true });
-                    } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
-                }, { once: true });
-            } else {
-                window.addEventListener('deviceorientation', handler, { passive: true });
-            }
+    window.addEventListener('mouseleave', () => {
+        mouseX = window.innerWidth  / 2;
+        mouseY = window.innerHeight / 2;
+    });
+
+    const coarse = window.matchMedia?.('(pointer: coarse)').matches;
+    if (coarse && typeof DeviceOrientationEvent !== 'undefined') {
+        const handler = e => {
+            if (e.gamma == null) return;
+            _gyroActive = true;
+            mouseX = window.innerWidth  / 2 + (e.gamma || 0) * 10;
+            mouseY = window.innerHeight / 2 - (e.beta  || 0) *  6;
         };
-        requestGyro();
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            document.addEventListener('touchend', async function _r() {
+                document.removeEventListener('touchend', _r);
+                try { if (await DeviceOrientationEvent.requestPermission() === 'granted')
+                    window.addEventListener('deviceorientation', handler, { passive: true });
+                } catch(e) {}
+            }, { once: true });
+        } else {
+            window.addEventListener('deviceorientation', handler, { passive: true });
+        }
     }
 
     menuParallaxBound = true;
-    if (!menuParallaxAnimationId) {
-        menuParallaxAnimationId = window.requestAnimationFrame(tick);
-    }
+    menuParallaxAnimationId = requestAnimationFrame(tick);
 }
 
 // animateFireflies — replaced by Canvas system (_runParticleLoop)
