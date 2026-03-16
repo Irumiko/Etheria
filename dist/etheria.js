@@ -299,6 +299,14 @@ const cloudMigrationPendingProfiles = new Set();
     document.body.classList.add('pwa-standalone');
     docEl.classList.add('pwa-standalone');
 
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    if (viewportMeta) {
+        viewportMeta.setAttribute(
+            'content',
+            'width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no'
+        );
+    }
+
     const updateViewportVars = () => {
         const innerVh = window.innerHeight * 0.01;
         docEl.style.setProperty('--vh', `${innerVh}px`);
@@ -3463,6 +3471,10 @@ async function selectUser(idx, options = {}) {
         void mainMenu.offsetWidth;
         mainMenu.style.opacity = '1';
         setTimeout(() => { mainMenu.style.transition = ''; mainMenu.style.opacity = ''; }, 320);
+        // Arrancar parallax ahora que el menú es visible
+        menuParallaxBound = false;
+        if (menuParallaxAnimationId) { cancelAnimationFrame(menuParallaxAnimationId); menuParallaxAnimationId = null; }
+        initMenuParallax();
         eventBus.emit('audio:start-menu-music');
         // Onboarding paso 1: menú principal
         const _ob = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
@@ -3699,6 +3711,8 @@ let menuParallaxBound = false;
 let menuParallaxAnimationId = null;
 let fireflyAnimationId = null;
 let fireflyEntities = []; // kept for compat
+// Flag: true en cuanto el giroscopio entrega un evento real
+let _gyroActive = false;
 
 // ── Canvas particle system ────────────────────────────────────────────────
 let _pCanvas = null, _pCtx = null;
@@ -3851,110 +3865,67 @@ function _runParticleLoop() {
 }
 
 function initMenuParallax() {
+    if (!_pCanvas) _initParticleCanvas();
+    const parallax = document.getElementById('menuParallax');
+    if (!parallax || parallax.closest('.hidden')) return;
     if (menuParallaxBound) return;
 
-    // ── Init Canvas particle system early ──────────────────────────────
-    if (!_pCanvas) _initParticleCanvas();
-
-    // ── Reduced-motion: sin parallax, sin animaciones ──────────────────
-    const prefersReduced = typeof window.matchMedia === 'function'
-        && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReduced) {
-        menuParallaxBound = true;
-        return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        menuParallaxBound = true; return;
     }
 
-    // ── Coarse pointer (móvil táctil): usamos gyroscope si disponible,
-    //    si no, dejamos las capas estáticas (no hay cursor).
-    const coarsePointer = typeof window.matchMedia === 'function'
-        && window.matchMedia('(pointer: coarse)').matches;
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    const layers = parallax.querySelectorAll('.parallax-layer');
 
-    const parallax = document.getElementById('menuParallax');
-    if (!parallax) return;
-
-    // Amplitud máxima de desplazamiento (en px) para la capa con depth=1.0
-    // Cada capa se multiplica por su propio data-depth → movimiento suave y diferenciado
-    const MAX_PX = 22;   // horizontal
-    const MAX_PY = 14;   // vertical (menos para no marear)
-
-    // ── Actualizar custom properties en cada capa según su profundidad ──
-    const applyParallax = () => {
-        const layers = parallax.querySelectorAll('.parallax-layer');
+    function tick() {
+        const centerX = window.innerWidth  / 2;
+        const centerY = window.innerHeight / 2;
+        const offsetX = (mouseX - centerX) / centerX;
+        const offsetY = (mouseY - centerY) / centerY;
         layers.forEach(layer => {
-            const depth = parseFloat(layer.dataset.depth || '0.2');
-            // --px y --py son los desplazamientos BASE (depth=1.0)
-            // La capa lo multiplica por su propio --depth en el transform CSS
-            layer.style.setProperty('--px', `${menuMouseState.x}px`);
-            layer.style.setProperty('--py', `${menuMouseState.y}px`);
+            const speed = parseFloat(layer.dataset.speed || '0.05');
+            const x = offsetX * speed * -100;
+            const y = offsetY * speed * -50;
+            layer.style.transform = `translate3d(${x}px, ${y}px, 0)`;
         });
-    };
-
-    // ── Loop RAF con interpolación suave (lerp) ──────────────────────────
-    const LERP = 0.028; // 0.028 = muy suave, 0.07 = más reactivo
-    const tick = () => {
-        menuMouseState.x += (menuMouseState.targetX - menuMouseState.x) * LERP;
-        menuMouseState.y += (menuMouseState.targetY - menuMouseState.y) * LERP;
-
-        // Solo redibuja si hay movimiento perceptible (> 0.05px)
-        if (Math.abs(menuMouseState.x - menuMouseState.targetX) > 0.05
-         || Math.abs(menuMouseState.y - menuMouseState.targetY) > 0.05
-         || Math.abs(menuMouseState.x) > 0.05
-         || Math.abs(menuMouseState.y) > 0.05) {
-            applyParallax();
-        }
-
-        menuParallaxAnimationId = window.requestAnimationFrame(tick);
-    };
-
-    // ── Mouse / pointer (desktop) ────────────────────────────────────────
-    if (!coarsePointer) {
-        window.addEventListener('mousemove', e => {
-            const nx = (e.clientX / window.innerWidth)  - 0.5; // -0.5 … +0.5
-            const ny = (e.clientY / window.innerHeight) - 0.5;
-            menuMouseState.px = e.clientX;
-            menuMouseState.py = e.clientY;
-            menuMouseState.targetX = nx * MAX_PX;
-            menuMouseState.targetY = ny * MAX_PY;
-        }, { passive: true });
-
-        window.addEventListener('mouseleave', () => {
-            menuMouseState.targetX = 0;
-            menuMouseState.targetY = 0;
-        });
+        menuParallaxAnimationId = requestAnimationFrame(tick);
     }
 
-    // ── Gyroscope (móvil) — amplitud muy baja para no marear ────────────
-    if (coarsePointer && typeof DeviceOrientationEvent !== 'undefined') {
-        const requestGyro = () => {
-            const handler = e => {
-                if (e.gamma == null || e.beta == null) return;
-                // gamma: inclinación lateral (-90…+90), beta: adelante/atrás (-180…+180)
-                const gx = Math.max(-30, Math.min(30, e.gamma)) / 30; // -1…+1
-                const gy = Math.max(-20, Math.min(20, (e.beta - 20))) / 20;
-                menuMouseState.targetX = gx * (MAX_PX * 0.55);
-                menuMouseState.targetY = gy * (MAX_PY * 0.45);
-            };
+    window.addEventListener('mousemove', e => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        menuMouseState.px = e.clientX;
+        menuMouseState.py = e.clientY;
+    }, { passive: true });
 
-            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                // iOS 13+: requiere gesto de usuario
-                document.addEventListener('touchend', async function _req() {
-                    document.removeEventListener('touchend', _req);
-                    try {
-                        const perm = await DeviceOrientationEvent.requestPermission();
-                        if (perm === 'granted') window.addEventListener('deviceorientation', handler, { passive: true });
-                    } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
-                }, { once: true });
-            } else {
-                window.addEventListener('deviceorientation', handler, { passive: true });
-            }
+    window.addEventListener('mouseleave', () => {
+        mouseX = window.innerWidth  / 2;
+        mouseY = window.innerHeight / 2;
+    });
+
+    const coarse = window.matchMedia?.('(pointer: coarse)').matches;
+    if (coarse && typeof DeviceOrientationEvent !== 'undefined') {
+        const handler = e => {
+            if (e.gamma == null) return;
+            _gyroActive = true;
+            mouseX = window.innerWidth  / 2 + (e.gamma || 0) * 10;
+            mouseY = window.innerHeight / 2 - (e.beta  || 0) *  6;
         };
-        requestGyro();
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            document.addEventListener('touchend', async function _r() {
+                document.removeEventListener('touchend', _r);
+                try { if (await DeviceOrientationEvent.requestPermission() === 'granted')
+                    window.addEventListener('deviceorientation', handler, { passive: true });
+                } catch(e) {}
+            }, { once: true });
+        } else {
+            window.addEventListener('deviceorientation', handler, { passive: true });
+        }
     }
 
     menuParallaxBound = true;
-    if (!menuParallaxAnimationId) {
-        menuParallaxAnimationId = window.requestAnimationFrame(tick);
-    }
+    menuParallaxAnimationId = requestAnimationFrame(tick);
 }
 
 // animateFireflies — replaced by Canvas system (_runParticleLoop)
@@ -4170,8 +4141,24 @@ function closeActiveModals() {
     document.body.classList.remove('modal-open');
 }
 
+function getCurrentVisibleSection() {
+    const mainMenu = document.getElementById('mainMenu');
+    if (mainMenu && !mainMenu.classList.contains('hidden')) return 'mainMenu';
+
+    if (document.getElementById('topicsSection')?.classList.contains('active')) return 'topics';
+    if (document.getElementById('gallerySection')?.classList.contains('active')) return 'gallery';
+    if (document.getElementById('optionsSection')?.classList.contains('active')) return 'options';
+
+    return null;
+}
+
 function showSection(section) {
     if (isLoading) return;
+    if (_fadeTransitionInProgress) return;
+
+    const currentSection = getCurrentVisibleSection();
+    if (currentSection === section) return;
+
     // transición visual absorbida de mejoras.js (Mejora 9)
     fadeTransition(function() {
         const mainMenu = document.getElementById('mainMenu');
@@ -5032,30 +5019,35 @@ const SupabaseSync = (function () {
      */
     function _getProfileDataForSync() {
         const profileIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
-        
-        // Filtrar datos por perfil
-        const topics = (appData?.topics || []).filter(t => t.createdByIndex === profileIndex);
+        const topics = Array.isArray(appData?.topics) ? appData.topics : [];
         const topicIds = new Set(topics.map(t => String(t.id)));
-        
+
         const messages = {};
         Object.keys(appData?.messages || {}).forEach(topicId => {
-            if (topicIds.has(String(topicId))) {
-                messages[topicId] = appData.messages[topicId];
-            }
+            if (topicIds.has(String(topicId))) messages[topicId] = appData.messages[topicId];
         });
 
-        const characters = (appData?.characters || []).filter(c => c.userIndex === profileIndex);
-        
         const affinities = {};
         Object.keys(appData?.affinities || {}).forEach(topicId => {
-            if (topicIds.has(String(topicId))) {
-                affinities[topicId] = appData.affinities[topicId];
-            }
+            if (topicIds.has(String(topicId))) affinities[topicId] = appData.affinities[topicId];
         });
 
+        const characters = Array.isArray(appData?.characters) ? appData.characters : [];
         const favorites = appData?.favorites || {};
         const journals = appData?.journals || {};
         const reactions = appData?.reactions || {};
+
+        const profileMeta = {
+            genders: (() => {
+                try { return JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch { return []; }
+            })(),
+            birthdays: (() => {
+                try { return JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch { return []; }
+            })(),
+            avatars: (() => {
+                try { return JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]'); } catch { return []; }
+            })()
+        };
 
         return {
             profileIndex,
@@ -5067,6 +5059,7 @@ const SupabaseSync = (function () {
             favorites,
             journals,
             reactions,
+            profileMeta,
             lastMessageIndex: typeof currentMessageIndex !== 'undefined' ? currentMessageIndex : 0,
             settings: {
                 textSpeed: typeof textSpeed !== 'undefined' ? textSpeed : 25,
@@ -5082,8 +5075,6 @@ const SupabaseSync = (function () {
     function _applySyncedData(syncedData) {
         if (!syncedData || typeof syncedData !== 'object') return false;
 
-        const profileIndex = syncedData.profileIndex || 0;
-
         // Actualizar nombres de usuario si existen
         if (Array.isArray(syncedData.userNames) && syncedData.userNames.length > 0) {
             if (typeof userNames !== 'undefined') {
@@ -5094,85 +5085,26 @@ const SupabaseSync = (function () {
             } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         }
 
-        // Merge topics (evitar duplicados por ID)
-        if (Array.isArray(syncedData.topics)) {
-            const existingIds = new Set((appData?.topics || []).map(t => String(t.id)));
-            syncedData.topics.forEach(topic => {
-                if (!existingIds.has(String(topic.id))) {
-                    appData.topics.push(topic);
-                } else {
-                    // Actualizar topic existente si es más reciente
-                    const idx = appData.topics.findIndex(t => String(t.id) === String(topic.id));
-                    if (idx !== -1) {
-                        const localUpdated = appData.topics[idx].updatedAt || 0;
-                        const remoteUpdated = topic.updatedAt || 0;
-                        if (remoteUpdated > localUpdated) {
-                            appData.topics[idx] = topic;
-                        }
-                    }
-                }
-            });
+        const remoteTopics = Array.isArray(syncedData.topics) ? syncedData.topics : [];
+        const remoteCharacters = Array.isArray(syncedData.characters) ? syncedData.characters : [];
+        const remoteMessages = (syncedData.messages && typeof syncedData.messages === 'object') ? syncedData.messages : {};
+        const remoteAffinities = (syncedData.affinities && typeof syncedData.affinities === 'object') ? syncedData.affinities : {};
+
+        appData.topics = remoteTopics;
+        appData.characters = remoteCharacters;
+        appData.messages = remoteMessages;
+        appData.affinities = remoteAffinities;
+        appData.favorites = (syncedData.favorites && typeof syncedData.favorites === 'object') ? syncedData.favorites : {};
+        appData.journals = (syncedData.journals && typeof syncedData.journals === 'object') ? syncedData.journals : {};
+        appData.reactions = (syncedData.reactions && typeof syncedData.reactions === 'object') ? syncedData.reactions : {};
+
+        if (syncedData.profileMeta && typeof syncedData.profileMeta === 'object') {
+            try {
+                localStorage.setItem('etheria_user_genders', JSON.stringify(Array.isArray(syncedData.profileMeta.genders) ? syncedData.profileMeta.genders : []));
+                localStorage.setItem('etheria_user_birthdays', JSON.stringify(Array.isArray(syncedData.profileMeta.birthdays) ? syncedData.profileMeta.birthdays : []));
+                localStorage.setItem('etheria_user_avatars', JSON.stringify(Array.isArray(syncedData.profileMeta.avatars) ? syncedData.profileMeta.avatars : []));
+            } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         }
-
-        // Merge characters
-        if (Array.isArray(syncedData.characters)) {
-            const existingIds = new Set((appData?.characters || []).map(c => String(c.id)));
-            syncedData.characters.forEach(char => {
-                if (!existingIds.has(String(char.id))) {
-                    appData.characters.push(char);
-                } else {
-                    const idx = appData.characters.findIndex(c => String(c.id) === String(char.id));
-                    if (idx !== -1) {
-                        const localUpdated = appData.characters[idx].updatedAt || 0;
-                        const remoteUpdated = char.updatedAt || 0;
-                        if (remoteUpdated > localUpdated) {
-                            appData.characters[idx] = char;
-                        }
-                    }
-                }
-            });
-        }
-
-        // Merge messages por topic
-        if (syncedData.messages && typeof syncedData.messages === 'object') {
-            Object.keys(syncedData.messages).forEach(topicId => {
-                const remoteMsgs = syncedData.messages[topicId];
-                if (!Array.isArray(remoteMsgs)) return;
-
-                if (!appData.messages[topicId]) {
-                    appData.messages[topicId] = remoteMsgs;
-                } else {
-                    // Merge por ID de mensaje
-                    const localMsgs = appData.messages[topicId];
-                    const localIds = new Set(localMsgs.map(m => m.id));
-                    
-                    remoteMsgs.forEach(msg => {
-                        if (!localIds.has(msg.id)) {
-                            localMsgs.push(msg);
-                        }
-                    });
-
-                    // Ordenar por timestamp
-                    localMsgs.sort((a, b) => {
-                        const ta = new Date(a.timestamp || 0).getTime();
-                        const tb = new Date(b.timestamp || 0).getTime();
-                        return ta - tb;
-                    });
-                }
-            });
-        }
-
-        // Merge affinities
-        if (syncedData.affinities && typeof syncedData.affinities === 'object') {
-            Object.keys(syncedData.affinities).forEach(topicId => {
-                appData.affinities[topicId] = syncedData.affinities[topicId];
-            });
-        }
-
-        // Merge favorites, journals, reactions
-        if (syncedData.favorites) Object.assign(appData.favorites, syncedData.favorites);
-        if (syncedData.journals) Object.assign(appData.journals, syncedData.journals);
-        if (syncedData.reactions) Object.assign(appData.reactions, syncedData.reactions);
 
         // Guardar en localStorage
         if (typeof persistPartitionedData === 'function') {
@@ -5197,29 +5129,19 @@ const SupabaseSync = (function () {
             const data = _getProfileDataForSync();
             const now = new Date().toISOString();
 
-            // Intentar UPDATE primero, luego INSERT si no existe
-            const { error: updateError } = await _client()
+            // Upsert directo para cubrir creación de cuenta nueva y actualizaciones.
+            // UPDATE+INSERT puede fallar silenciosamente cuando UPDATE afecta 0 filas.
+            const { error: upsertError } = await _client()
                 .from('user_data')
-                .update({ 
-                    data, 
-                    updated_at: now 
-                })
-                .eq('user_id', userId);
+                .upsert({
+                    user_id: userId,
+                    data,
+                    updated_at: now
+                }, { onConflict: 'user_id' });
 
-            if (updateError) {
-                // Si no existe, hacer INSERT
-                const { error: insertError } = await _client()
-                    .from('user_data')
-                    .insert({ 
-                        user_id: userId, 
-                        data, 
-                        updated_at: now 
-                    });
-
-                if (insertError) {
-                    console.error('[SupabaseSync] upload error:', insertError);
-                    return { ok: false, error: insertError.message };
-                }
+            if (upsertError) {
+                console.error('[SupabaseSync] upload error:', upsertError);
+                return { ok: false, error: upsertError.message };
             }
 
             _lastSyncTime = Date.now();
@@ -5978,6 +5900,376 @@ window.SupabaseSync = SupabaseSync;
 
 }(window));
 
+/* js/utils/supabasePresence.js */
+// ============================================
+// SUPABASE PRESENCE — presencia en historias
+// ============================================
+// Usa canales Realtime Presence (sin tabla) para indicar
+// qué usuarios están activos en cada historia en este momento.
+
+(function (global) {
+    const logger = global.EtheriaLogger;
+
+    let _client = null;
+    let _channel = null;
+    let _storyId = null;
+    let _online = new Map(); // user_id -> metadata
+
+    function _getClient() {
+        if (_client) return _client;
+        try {
+            _client = global.supabaseClient || (global.supabase?.createClient
+                ? global.supabase.createClient(global.SUPABASE_CONFIG?.url, global.SUPABASE_CONFIG?.key)
+                : null);
+        } catch (error) {
+            logger?.warn('supabase:presence', 'client init failed:', error?.message || error);
+            _client = null;
+        }
+        return _client;
+    }
+
+    async function _getCurrentUserId() {
+        if (global._cachedUserId) return global._cachedUserId;
+        const client = _getClient();
+        if (!client?.auth?.getUser) return null;
+        try {
+            const { data, error } = await client.auth.getUser();
+            if (error || !data?.user?.id) return null;
+            global._cachedUserId = data.user.id;
+            return data.user.id;
+        } catch {
+            return null;
+        }
+    }
+
+    function _emitPresenceChange() {
+        const userIds = [..._online.keys()];
+        global.dispatchEvent(new CustomEvent('etheria:story-presence-changed', {
+            detail: {
+                storyId: _storyId,
+                userIds,
+                state: Object.fromEntries(_online.entries())
+            }
+        }));
+    }
+
+    function _readLocalIdentity() {
+        let avatarUrl = '';
+        let displayName = 'Jugador';
+
+        try {
+            const idx = Number(global.currentUserIndex || 0);
+            const names = Array.isArray(global.userNames) ? global.userNames : [];
+            displayName = (names[idx] || names[0] || 'Jugador').trim() || 'Jugador';
+            const avatars = JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]');
+            avatarUrl = avatars[idx] || localStorage.getItem('etheria_cloud_avatar_url') || '';
+        } catch {}
+
+        return { displayName, avatarUrl };
+    }
+
+    function _syncPresenceState() {
+        if (!_channel) return;
+        const state = _channel.presenceState ? _channel.presenceState() : {};
+        _online.clear();
+        Object.values(state || {}).forEach((metas) => {
+            const arr = Array.isArray(metas) ? metas : [];
+            arr.forEach((meta) => {
+                const uid = meta?.user_id;
+                if (!uid) return;
+                _online.set(String(uid), meta);
+            });
+        });
+        _emitPresenceChange();
+    }
+
+    async function joinStory(storyId) {
+        if (!storyId) return false;
+        const client = _getClient();
+        if (!client?.channel) return false;
+
+        await leaveStory();
+
+        const userId = await _getCurrentUserId();
+        if (!userId) return false;
+
+        _storyId = String(storyId);
+        _online.clear();
+
+        try {
+            _channel = client
+                .channel(`presence:story:${_storyId}`, {
+                    config: {
+                        presence: { key: String(userId) }
+                    }
+                })
+                .on('presence', { event: 'sync' }, _syncPresenceState)
+                .on('presence', { event: 'join' }, _syncPresenceState)
+                .on('presence', { event: 'leave' }, _syncPresenceState);
+
+            _channel.subscribe(async (status) => {
+                if (status !== 'SUBSCRIBED') return;
+                const identity = _readLocalIdentity();
+                try {
+                    await _channel.track({
+                        user_id: String(userId),
+                        name: identity.displayName,
+                        avatar_url: identity.avatarUrl || null,
+                        online_at: new Date().toISOString()
+                    });
+                } catch (error) {
+                    logger?.warn('supabase:presence', 'track failed:', error?.message || error);
+                }
+            });
+
+            return true;
+        } catch (error) {
+            logger?.warn('supabase:presence', 'joinStory failed:', error?.message || error);
+            _channel = null;
+            _storyId = null;
+            _online.clear();
+            return false;
+        }
+    }
+
+    async function leaveStory() {
+        const client = _getClient();
+        if (_channel && client) {
+            try {
+                await _channel.untrack();
+            } catch {}
+            try {
+                client.removeChannel(_channel);
+            } catch (error) {
+                logger?.warn('supabase:presence', 'removeChannel failed:', error?.message || error);
+            }
+        }
+        _channel = null;
+        _storyId = null;
+        _online.clear();
+        _emitPresenceChange();
+    }
+
+    function isUserOnline(userId) {
+        if (!userId) return false;
+        return _online.has(String(userId));
+    }
+
+    function getOnlineUserIds() {
+        return [..._online.keys()];
+    }
+
+    global.SupabasePresence = {
+        joinStory,
+        leaveStory,
+        isUserOnline,
+        getOnlineUserIds,
+        get activeStoryId() { return _storyId; }
+    };
+
+})(window);
+
+/* js/utils/supabaseTurnNotifications.js */
+// ============================================
+// SUPABASE TURN NOTIFICATIONS
+// ============================================
+// Notifica en tiempo real cuando le toca responder a otro jugador.
+// Requiere tabla public.turn_notifications + Realtime habilitado.
+
+(function (global) {
+    const cfg = global.SUPABASE_CONFIG || {};
+    const logger = global.EtheriaLogger;
+
+    const SB_URL = cfg.url;
+    const SB_KEY = cfg.key;
+
+    let _client = null;
+    let _channel = null;
+    let _cachedUserId = null;
+
+    const BASE_HEADERS = {
+        apikey: SB_KEY,
+        'Content-Type': 'application/json'
+    };
+
+    function _getClient() {
+        if (_client) return _client;
+        try {
+            _client = global.supabaseClient || (global.supabase?.createClient
+                ? global.supabase.createClient(SB_URL, SB_KEY)
+                : null);
+        } catch (error) {
+            logger?.warn('supabase:turn-notify', 'client init failed:', error?.message || error);
+            _client = null;
+        }
+        return _client;
+    }
+
+    async function _getUserId() {
+        if (_cachedUserId || global._cachedUserId) return _cachedUserId || global._cachedUserId;
+        const c = _getClient();
+        if (!c?.auth?.getUser) return null;
+        try {
+            const { data, error } = await c.auth.getUser();
+            if (error || !data?.user?.id) return null;
+            _cachedUserId = data.user.id;
+            global._cachedUserId = data.user.id;
+            return data.user.id;
+        } catch {
+            return null;
+        }
+    }
+
+    async function _headers() {
+        if (global.SupabaseAuthHeaders?.buildAuthHeaders) {
+            return global.SupabaseAuthHeaders.buildAuthHeaders({
+                apikey: SB_KEY,
+                client: global.supabaseClient,
+                baseHeaders: BASE_HEADERS,
+            });
+        }
+        return { ...BASE_HEADERS, Authorization: `Bearer ${SB_KEY}` };
+    }
+
+    function _toast(text) {
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('ui:show-toast', {
+                text,
+                action: 'Abrir historia',
+                onAction: function () {
+                    if (global.currentTopicId && typeof showSection === 'function') {
+                        showSection('vn');
+                    }
+                }
+            });
+        }
+        if (typeof showAutosave === 'function') {
+            showAutosave(text, 'info');
+        }
+    }
+
+    async function notifyTurn(payload = {}) {
+        const senderId = await _getUserId();
+        if (!senderId) return { ok: false, error: 'Usuario no autenticado' };
+        const recipient = String(payload.recipientUserId || '').trim();
+        if (!recipient || recipient === senderId) return { ok: false, error: 'Destinatario inválido' };
+
+        const row = {
+            story_id: payload.storyId || null,
+            topic_id: payload.topicId || null,
+            recipient_user_id: recipient,
+            sender_user_id: senderId,
+            message_id: payload.messageId || null,
+            title: payload.title || 'Te toca responder',
+            body: payload.body || 'Hay un turno esperando tu respuesta.',
+            meta: payload.meta || {}
+        };
+
+        try {
+            const res = await fetch(`${SB_URL}/rest/v1/turn_notifications`, {
+                method: 'POST',
+                headers: {
+                    ...(await _headers()),
+                    Prefer: 'return=representation'
+                },
+                body: JSON.stringify(row),
+                signal: AbortSignal.timeout(5000)
+            });
+
+            if (!res.ok) {
+                const detail = await res.text().catch(() => String(res.status));
+                logger?.warn('supabase:turn-notify', 'notifyTurn failed:', detail);
+                return { ok: false, error: detail };
+            }
+
+            return { ok: true };
+        } catch (error) {
+            logger?.warn('supabase:turn-notify', 'notifyTurn error:', error?.message || error);
+            return { ok: false, error: error?.message || 'notifyTurn error' };
+        }
+    }
+
+    async function markAsRead(notificationId) {
+        if (!notificationId) return;
+        try {
+            await fetch(`${SB_URL}/rest/v1/turn_notifications?id=eq.${encodeURIComponent(notificationId)}`, {
+                method: 'PATCH',
+                headers: {
+                    ...(await _headers()),
+                    Prefer: 'return=minimal'
+                },
+                body: JSON.stringify({ is_read: true, read_at: new Date().toISOString() }),
+                signal: AbortSignal.timeout(5000)
+            });
+        } catch (error) {
+            logger?.warn('supabase:turn-notify', 'markAsRead failed:', error?.message || error);
+        }
+    }
+
+    async function subscribe() {
+        const client = _getClient();
+        if (!client?.channel) return false;
+
+        await unsubscribe();
+
+        const userId = await _getUserId();
+        if (!userId) return false;
+
+        try {
+            _channel = client
+                .channel(`turn-notifications:${userId}`)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'turn_notifications',
+                    filter: `recipient_user_id=eq.${userId}`
+                }, function (payload) {
+                    const row = payload?.new;
+                    if (!row || row.is_read) return;
+                    _toast(row.title || 'Te toca responder');
+                    global.dispatchEvent(new CustomEvent('etheria:turn-notification', {
+                        detail: { notification: row }
+                    }));
+                    if (row.id) markAsRead(row.id);
+                })
+                .subscribe();
+
+            return true;
+        } catch (error) {
+            logger?.warn('supabase:turn-notify', 'subscribe failed:', error?.message || error);
+            _channel = null;
+            return false;
+        }
+    }
+
+    async function unsubscribe() {
+        const client = _getClient();
+        if (_channel && client) {
+            try { client.removeChannel(_channel); } catch {}
+        }
+        _channel = null;
+    }
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('etheria:auth-changed', function (e) {
+            _cachedUserId = e.detail?.user?.id || null;
+            if (!_cachedUserId) {
+                unsubscribe();
+                return;
+            }
+            subscribe();
+        });
+    }
+
+    global.SupabaseTurnNotifications = {
+        notifyTurn,
+        subscribe,
+        unsubscribe,
+        markAsRead
+    };
+
+})(window);
+
 /* js/ui/vn.js */
 // Modo novela visual: renderizado de mensajes, sprites, typewriter, reply panel, opciones y historial.
 // ============================================
@@ -6315,6 +6607,8 @@ function rollOracleMini() {
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
     }
+
+    notifyNextTurnIfNeeded(newMsg, topic, null).catch(() => {});
     hasUnsavedChanges = true;
     save({ silent: true });
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
@@ -9242,6 +9536,47 @@ function toggleNarratorMode() {
     }
 }
 
+
+async function notifyNextTurnIfNeeded(newMsg, topic, char) {
+    if (!currentStoryId) return;
+    if (typeof SupabaseTurnNotifications === 'undefined' || typeof SupabaseTurnNotifications.notifyTurn !== 'function') return;
+
+    const participants = Array.isArray(currentStoryParticipants) ? currentStoryParticipants : [];
+    const userIds = participants
+        .map(p => p?.user_id)
+        .filter(Boolean)
+        .filter((uid, idx, arr) => arr.indexOf(uid) === idx);
+
+    if (userIds.length < 2) return;
+
+    const me = window._cachedUserId || null;
+    if (!me) return;
+
+    const myIndex = userIds.indexOf(me);
+    if (myIndex === -1) return;
+
+    const recipientUserId = userIds[(myIndex + 1) % userIds.length];
+    if (!recipientUserId || recipientUserId === me) return;
+
+    const topicTitle = topic?.title || 'historia colaborativa';
+    const speaker = newMsg?.isNarrator ? 'Narrador' : (char?.name || newMsg?.charName || 'Jugador');
+    const preview = String(newMsg?.text || '').replace(/\s+/g, ' ').slice(0, 110);
+
+    await SupabaseTurnNotifications.notifyTurn({
+        storyId: currentStoryId,
+        topicId: currentTopicId,
+        messageId: newMsg?.id || null,
+        recipientUserId,
+        title: '🎯 Te toca responder',
+        body: `${speaker} respondió en ${topicTitle}: ${preview}${preview.length >= 110 ? '…' : ''}`,
+        meta: {
+            speaker,
+            topicTitle,
+            weather: currentWeather || null
+        }
+    });
+}
+
 function postVNReply() {
     const replyText = document.getElementById('vnReplyText');
     const text = replyText?.value.trim();
@@ -9354,6 +9689,8 @@ function postVNReply() {
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
     }
+
+    notifyNextTurnIfNeeded(newMsg, topic, char).catch(() => {});
 
     // Notificar a Ethy del mensaje enviado
     window.dispatchEvent(new CustomEvent('etheria:message-sent', {
@@ -10765,6 +11102,10 @@ function save(opts = {}) {
         setLocalProfileUpdatedAt(currentUserIndex);
         hasUnsavedChanges = false;
         cloudUnsyncedChanges = true;
+        // Informar al motor de sync cloud: hay cambios locales listos para subir.
+        if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') {
+            SupabaseSync.markPending();
+        }
         eventBus.emit('sync:status-changed', { status: 'pending-upload', message: 'Subir cambios',       target: 'button' });
         eventBus.emit('sync:status-changed', { status: 'degraded',       message: 'Pendiente de subida', target: 'indicator' });
         showAutosave('Guardado', 'saved');
@@ -11070,6 +11411,9 @@ function toggleTheme() {
     // Botón circular perfil: icono del modo actual
     const profileBtn = document.getElementById('profileThemeBtn');
     if (profileBtn) profileBtn.textContent = newTheme === 'dark' ? '🌙' : '☀️';
+    // Botón toggle del menú principal
+    const menuIcon = document.getElementById('menuThemeIcon');
+    if (menuIcon) menuIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
     generateParticles();
 }
 
@@ -11127,6 +11471,9 @@ function saveProfileNameFromOptions() {
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
     const display = document.getElementById('currentUserDisplay');
     if (display) display.textContent = name;
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') {
+        SupabaseSync.markPending();
+    }
     showAutosave('Nombre actualizado', 'saved');
     // Actualizar initial del avatar si no hay foto
     _syncAvatarInitials();
@@ -11145,7 +11492,7 @@ function switchOptTab(tabId, btn) {
     const panel = document.getElementById('optPanel-' + tabId);
     if (panel) panel.classList.add('active');
     // Sincronizar perfil al entrar en esa pestaña
-    if (tabId === 'profile') _syncProfileTab();
+    if (tabId === 'profile' || tabId === 'account') _syncProfileTab();
 }
 
 // ── Avatar helpers ────────────────────────────────────────────────────────
@@ -11155,18 +11502,90 @@ function _getAvatars() {
 }
 function _saveAvatars(arr) {
     try { localStorage.setItem('etheria_user_avatars', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
 }
 function _getGenders() {
     try { return JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch { return []; }
 }
 function _saveGenders(arr) {
     try { localStorage.setItem('etheria_user_genders', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
 }
 function _getBirthdays() {
     try { return JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch { return []; }
 }
 function _saveBirthdays(arr) {
     try { localStorage.setItem('etheria_user_birthdays', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
+}
+
+function _getCurrentProfileAvatar() {
+    const avatars = _getAvatars();
+    return avatars[currentUserIndex] || localStorage.getItem('etheria_cloud_avatar_url') || '';
+}
+
+async function _getAuthenticatedUserIdForAvatar() {
+    if (window._cachedUserId) return window._cachedUserId;
+    if (!window.supabaseClient || typeof window.supabaseClient.auth?.getUser !== 'function') return null;
+    try {
+        const { data, error } = await window.supabaseClient.auth.getUser();
+        if (error || !data?.user?.id) return null;
+        window._cachedUserId = data.user.id;
+        return data.user.id;
+    } catch {
+        return null;
+    }
+}
+
+function _saveAvatarInLocalProfile(url) {
+    const avatars = _getAvatars();
+    while (avatars.length <= currentUserIndex) avatars.push('');
+    avatars[currentUserIndex] = url || '';
+    _saveAvatars(avatars);
+}
+
+async function _uploadProfileAvatarToCloud(file) {
+    const userId = await _getAuthenticatedUserIdForAvatar();
+    if (!userId) return { ok: false, error: 'Inicia sesión para sincronizar el avatar en la nube.' };
+    if (!window.supabaseClient) return { ok: false, error: 'Supabase no disponible.' };
+
+    const extMatch = (file?.name || '').match(/\.(png|jpg|jpeg|gif|webp)$/i);
+    const ext = extMatch ? extMatch[1].toLowerCase() : 'png';
+    const contentType = file?.type || (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`);
+    const path = `${userId}/profile.${ext}`;
+
+    const { error: uploadError } = await window.supabaseClient.storage
+        .from('user-avatars')
+        .upload(path, file, { upsert: true, contentType });
+
+    if (uploadError) {
+        return { ok: false, error: uploadError.message || 'No se pudo subir el avatar a la nube.' };
+    }
+
+    const { data: urlData } = window.supabaseClient.storage
+        .from('user-avatars')
+        .getPublicUrl(path);
+
+    const publicUrl = urlData?.publicUrl || '';
+    if (!publicUrl) return { ok: false, error: 'No se pudo obtener la URL pública del avatar.' };
+
+    if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
+        await SupabaseSettings.saveUserSettings({ avatar_url: publicUrl });
+    }
+    localStorage.setItem('etheria_cloud_avatar_url', publicUrl);
+    return { ok: true, url: publicUrl };
+}
+
+async function _removeProfileAvatarFromCloud() {
+    const userId = await _getAuthenticatedUserIdForAvatar();
+    if (!userId || !window.supabaseClient) return;
+
+    const paths = ['png', 'jpg', 'jpeg', 'gif', 'webp'].map(ext => `${userId}/profile.${ext}`);
+    try { await window.supabaseClient.storage.from('user-avatars').remove(paths); } catch {}
+    if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
+        await SupabaseSettings.saveUserSettings({ avatar_url: '' });
+    }
+    localStorage.setItem('etheria_cloud_avatar_url', '');
 }
 
 function _syncAvatarInitials() {
@@ -11181,8 +11600,7 @@ function _syncProfileTab() {
     _syncAvatarInitials();
 
     // Avatar
-    const avatars = _getAvatars();
-    const avatar  = avatars[currentUserIndex] || '';
+    const avatar  = _getCurrentProfileAvatar();
     const imgEl   = document.getElementById('optAvatarImg');
     const removeBtn = document.getElementById('optAvatarRemoveBtn');
     if (imgEl) {
@@ -11228,33 +11646,48 @@ function _updateBirthdayHint(bday) {
     } catch { hint.textContent = ''; }
 }
 
-function handleAvatarUpload(input) {
+async function handleAvatarUpload(input) {
     const file = input.files[0];
     if (!file) return;
     if (file.size > 1.2 * 1024 * 1024) {
         showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
         return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const data = e.target.result;
-        const avatars = _getAvatars();
-        while (avatars.length <= currentUserIndex) avatars.push('');
-        avatars[currentUserIndex] = data;
-        _saveAvatars(avatars);
+
+    showAutosave('Guardando avatar...', 'info');
+    const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (userId) {
+        const cloud = await _uploadProfileAvatarToCloud(file);
+        if (!cloud.ok) {
+            showAutosave(cloud.error || 'Error al subir avatar a la nube', 'error');
+            input.value = '';
+            return;
+        }
+        _saveAvatarInLocalProfile(cloud.url);
         _syncProfileTab();
-        showAutosave('Avatar guardado', 'saved');
-        // Refrescar tarjetas de perfil
-        if (typeof renderUserCards === 'function') renderUserCards();
-    };
-    reader.readAsDataURL(file);
-    input.value = ''; // limpiar para poder subir la misma imagen otra vez
+        showAutosave('Avatar guardado en la nube', 'saved');
+    } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = e.target.result;
+            _saveAvatarInLocalProfile(data);
+            _syncProfileTab();
+            showAutosave('Avatar guardado localmente', 'saved');
+            if (typeof renderUserCards === 'function') renderUserCards();
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+        return;
+    }
+
+    if (typeof renderUserCards === 'function') renderUserCards();
+    input.value = '';
 }
 
-function removeProfileAvatar() {
-    const avatars = _getAvatars();
-    if (avatars[currentUserIndex]) avatars[currentUserIndex] = '';
-    _saveAvatars(avatars);
+async function removeProfileAvatar() {
+    _saveAvatarInLocalProfile('');
+    await _removeProfileAvatarFromCloud();
     _syncProfileTab();
     showAutosave('Avatar eliminado', 'saved');
     if (typeof renderUserCards === 'function') renderUserCards();
@@ -11359,8 +11792,91 @@ function quickSave() {
 
 function openSaveHubModal() {
     openModal('saveHubModal');
-    // Notificar a Ethy
+    // Actualizar estado de última sincronización al abrir
+    _updateSaveHubCloudStatus();
     window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'saveHub' } }));
+}
+
+function _updateSaveHubCloudStatus() {
+    const el = document.getElementById('saveHubCloudStatus');
+    if (!el) return;
+    const userId = window._cachedUserId;
+    if (!userId) {
+        el.textContent = 'Sin sesión activa';
+        el.dataset.state = 'offline';
+        return;
+    }
+    if (typeof SupabaseSync === 'undefined') {
+        el.textContent = 'Sync no disponible';
+        el.dataset.state = 'offline';
+        return;
+    }
+    const last = SupabaseSync.lastSyncTime;
+    if (!last) {
+        el.textContent = 'Sin sincronizar aún';
+        el.dataset.state = 'pending';
+    } else {
+        const mins = Math.round((Date.now() - last) / 60000);
+        el.textContent = mins < 1 ? 'Sincronizado hace un momento' : `Última sync: hace ${mins} min`;
+        el.dataset.state = 'ok';
+    }
+}
+
+async function forceCloudDownload() {
+    if (!window._cachedUserId) {
+        showAutosave('Inicia sesión para usar la nube', 'error');
+        return;
+    }
+    const ok = await openConfirmModal(
+        '¿Cargar datos desde la nube? Esto reemplazará todos los datos locales con la versión guardada en tu cuenta.',
+        'Cargar desde nube'
+    );
+    if (!ok) return;
+
+    showAutosave('Descargando desde la nube…', 'info');
+    try {
+        const result = await SupabaseSync.downloadProfileData();
+        if (result.ok && result.data) {
+            if (typeof renderTopics === 'function')    renderTopics();
+            if (typeof renderGallery === 'function')   renderGallery();
+            if (typeof renderUserCards === 'function') renderUserCards();
+            showAutosave('✓ Datos cargados desde la nube', 'saved');
+            eventBus.emit('audio:play-sfx', { sfx: 'save' });
+            _updateSaveHubCloudStatus();
+        } else if (result.isNew) {
+            showAutosave('No hay datos en la nube para esta cuenta', 'info');
+        } else {
+            showAutosave('Error al descargar: ' + (result.error || 'desconocido'), 'error');
+        }
+    } catch (err) {
+        showAutosave('Error inesperado: ' + err.message, 'error');
+    }
+}
+
+async function forceCloudUpload() {
+    if (!window._cachedUserId) {
+        showAutosave('Inicia sesión para usar la nube', 'error');
+        return;
+    }
+    const ok = await openConfirmModal(
+        '¿Subir datos locales a la nube? Esto reemplazará la versión guardada en tu cuenta con los datos actuales de este dispositivo.',
+        'Subir a la nube'
+    );
+    if (!ok) return;
+
+    showAutosave('Subiendo a la nube…', 'info');
+    try {
+        const result = await SupabaseSync.uploadProfileData();
+        if (result.ok) {
+            showAutosave('✓ Datos subidos a la nube', 'saved');
+            eventBus.emit('audio:play-sfx', { sfx: 'save' });
+            _updateSaveHubCloudStatus();
+        } else {
+            showAutosave('Error al subir: ' + (result.error || 'desconocido'), 'error');
+        }
+    } catch (err) {
+        showAutosave('Error inesperado: ' + err.message, 'error');
+    }
 }
 
 function saveGameFromMenu() {
@@ -11750,10 +12266,9 @@ function closeProfileModal() {
 
 function _syncProfileModal() {
     const name     = userNames[currentUserIndex] || '';
-    const avatars  = _getAvatars();
     const genders  = _getGenders();
     const birthdays = _getBirthdays();
-    const avatar   = avatars[currentUserIndex] || '';
+    const avatar   = _getCurrentProfileAvatar();
 
     // Nombre
     const nameInput = document.getElementById('pmName');
@@ -11811,33 +12326,50 @@ function saveProfileModalName() {
     _syncAvatarInitials();
 }
 
-function handleProfileModalAvatar(input) {
+async function handleProfileModalAvatar(input) {
     const file = input.files[0];
     if (!file) return;
     if (file.size > 1.2 * 1024 * 1024) {
         showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
         return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const data = e.target.result;
-        const avatars = _getAvatars();
-        while (avatars.length <= currentUserIndex) avatars.push('');
-        avatars[currentUserIndex] = data;
-        _saveAvatars(avatars);
-        _syncProfileModal();
-        _syncProfileTab();
-        showAutosave('Avatar guardado', 'saved');
-        if (typeof renderUserCards === 'function') renderUserCards();
-    };
-    reader.readAsDataURL(file);
+
+    showAutosave('Guardando avatar...', 'info');
+    const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (userId) {
+        const cloud = await _uploadProfileAvatarToCloud(file);
+        if (!cloud.ok) {
+            showAutosave(cloud.error || 'Error al subir avatar a la nube', 'error');
+            input.value = '';
+            return;
+        }
+        _saveAvatarInLocalProfile(cloud.url);
+    } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = e.target.result;
+            _saveAvatarInLocalProfile(data);
+            _syncProfileModal();
+            _syncProfileTab();
+            showAutosave('Avatar guardado localmente', 'saved');
+            if (typeof renderUserCards === 'function') renderUserCards();
+        };
+        reader.readAsDataURL(file);
+        input.value = '';
+        return;
+    }
+
+    _syncProfileModal();
+    _syncProfileTab();
+    showAutosave('Avatar guardado en la nube', 'saved');
+    if (typeof renderUserCards === 'function') renderUserCards();
     input.value = '';
 }
 
-function removeProfileModalAvatar() {
-    const avatars = _getAvatars();
-    if (avatars[currentUserIndex]) avatars[currentUserIndex] = '';
-    _saveAvatars(avatars);
+async function removeProfileModalAvatar() {
+    _saveAvatarInLocalProfile('');
+    await _removeProfileAvatarFromCloud();
     _syncProfileModal();
     _syncProfileTab();
     showAutosave('Avatar eliminado', 'saved');
@@ -11847,8 +12379,7 @@ function removeProfileModalAvatar() {
 // Sincroniza el mini-avatar del footer con los datos actuales del perfil
 function syncMenuFooterAvatar() {
     const name    = userNames[currentUserIndex] || '?';
-    const avatars = _getAvatars();
-    const avatar  = avatars[currentUserIndex] || '';
+    const avatar  = _getCurrentProfileAvatar();
 
     // Nombre en el footer
     const nameEl = document.getElementById('currentUserDisplay');
@@ -11883,12 +12414,13 @@ function syncMenuFooterAvatar() {
 //   owner_user_id  uuid  → auth.users.id (null = perfil libre)
 //   created_at     timestamp
 //
-// RLS: SELECT public / INSERT+UPDATE solo owner
+// RLS esperado: SELECT de perfiles libres o propios / INSERT+UPDATE solo owner
 // ============================================
 
 const SupabaseProfiles = (function () {
 
     let _initDone = false;   // guard contra init() múltiple
+    const ACTIVE_PROFILE_STORAGE_KEY = 'etheria_active_cloud_profile_id';
 
     // ── Helpers internos ─────────────────────────────────────────────────────
 
@@ -11899,6 +12431,7 @@ const SupabaseProfiles = (function () {
     // supabase-js v2: userId solo disponible async via getUser().
     // Guardamos el último userId conocido en caché local para comparaciones síncronas.
     let _cachedUserId = null;
+    let _activeProfileId = null;
 
     async function _getCurrentUser() {
         const sb = _client();
@@ -11925,16 +12458,51 @@ const SupabaseProfiles = (function () {
         }
     }
 
+    function _readStoredActiveProfileId() {
+        try {
+            return localStorage.getItem(ACTIVE_PROFILE_STORAGE_KEY) || null;
+        } catch {
+            return null;
+        }
+    }
+
+    function _storeActiveProfileId(profileId) {
+        try {
+            if (profileId) localStorage.setItem(ACTIVE_PROFILE_STORAGE_KEY, profileId);
+            else localStorage.removeItem(ACTIVE_PROFILE_STORAGE_KEY);
+        } catch {
+            // ignore storage failures
+        }
+    }
+
+    function _emitActiveProfileChanged(profileId, reason = 'manual') {
+        window.dispatchEvent(new CustomEvent('etheria:active-profile-changed', {
+            detail: { profileId: profileId || null, reason }
+        }));
+    }
+
     // ── Perfiles ─────────────────────────────────────────────────────────────
 
     async function loadCloudProfiles() {
         if (!_isAvailable()) return [];
         _ensureCloudProfilesKey();
         try {
-            const { data, error } = await _client()
+            const user = await _getCurrentUser();
+            const userId = user?.id || null;
+
+            let query = _client()
                 .from('profiles')
                 .select('*')
                 .order('name', { ascending: true });
+
+            // Evitar exponer perfiles ocupados por terceros en la UI.
+            // - Usuario autenticado: ver libres + propios.
+            // - Usuario no autenticado: ver solo libres.
+            query = userId
+                ? query.or(`owner_user_id.is.null,owner_user_id.eq.${userId}`)
+                : query.is('owner_user_id', null);
+
+            const { data, error } = await query;
 
             if (error) {
                 console.error('[SupabaseProfiles] loadCloudProfiles:', error.message);
@@ -12007,6 +12575,35 @@ const SupabaseProfiles = (function () {
         }
     }
 
+    async function claimCloudProfile(profileId) {
+        if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
+        const user = await _getCurrentUser();
+        if (!user) return { ok: false, error: 'No autenticado.' };
+        try {
+            // Claim atómico: solo funciona si sigue libre en servidor.
+            const { data, error } = await _client()
+                .from('profiles')
+                .update({ owner_user_id: user.id })
+                .eq('id', profileId)
+                .is('owner_user_id', null)
+                .select()
+                .single();
+
+            if (error) return { ok: false, error: error.message || 'No se pudo reclamar el perfil.' };
+
+            _ensureCloudProfilesKey();
+            const idx = appData.cloudProfiles.findIndex(p => p.id === profileId);
+            if (idx !== -1) {
+                appData.cloudProfiles[idx] = data;
+            } else {
+                appData.cloudProfiles.push(data);
+            }
+            return { ok: true, profile: data };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
     async function releaseCloudProfile(profileId) {
         if (!_isAvailable()) return { ok: false, error: 'Sin conexión a Supabase.' };
         const user = await _getCurrentUser();
@@ -12066,6 +12663,49 @@ const SupabaseProfiles = (function () {
         return appData.cloudProfiles.filter(p => !isProfileTaken(p));
     }
 
+    function getActiveProfileId() {
+        return _activeProfileId;
+    }
+
+    function getActiveProfile() {
+        if (!_activeProfileId || !Array.isArray(appData?.cloudProfiles)) return null;
+        return appData.cloudProfiles.find(p => p.id === _activeProfileId) || null;
+    }
+
+    async function activateProfile(profileId, options = {}) {
+        const { claimIfFree = true } = options;
+        if (!profileId) {
+            _activeProfileId = null;
+            _storeActiveProfileId(null);
+            _emitActiveProfileChanged(null, 'cleared');
+            return { ok: true, profile: null };
+        }
+
+        const profile = (appData.cloudProfiles || []).find(p => p.id === profileId);
+        if (!profile) return { ok: false, error: 'Perfil no encontrado.' };
+
+        let resolved = profile;
+        const status = getProfileStatus(profile);
+
+        if (status === 'taken') {
+            return { ok: false, error: 'Este perfil ya está ocupado por otro usuario.' };
+        }
+
+        if (status === 'free' && claimIfFree) {
+            const claim = await claimCloudProfile(profileId);
+            if (!claim.ok) {
+                await loadCloudProfiles();
+                return { ok: false, error: claim.error || 'No se pudo reclamar el perfil.' };
+            }
+            resolved = claim.profile || profile;
+        }
+
+        _activeProfileId = resolved.id;
+        _storeActiveProfileId(_activeProfileId);
+        _emitActiveProfileChanged(_activeProfileId, 'activated');
+        return { ok: true, profile: resolved };
+    }
+
     // ── Render ───────────────────────────────────────────────────────────────
 
     function renderCloudProfileList(container, { onSelect, showStats = false } = {}) {
@@ -12113,11 +12753,22 @@ const SupabaseProfiles = (function () {
         if (onSelect) SupabaseProfiles._onSelectCallback = onSelect;
     }
 
-    function _handleSelect(btn) {
+    async function _handleSelect(btn) {
         const profileId = btn?.dataset?.profileId;
         if (!profileId || !SupabaseProfiles._onSelectCallback) return;
-        const profile = (appData.cloudProfiles || []).find(p => p.id === profileId);
-        if (profile) SupabaseProfiles._onSelectCallback(profile);
+
+        const result = await activateProfile(profileId, { claimIfFree: true });
+        if (!result.ok) {
+            if (typeof eventBus !== 'undefined') {
+                eventBus.emit('ui:show-autosave', {
+                    text: result.error || 'No se pudo activar el perfil.',
+                    state: 'error'
+                });
+            }
+            return;
+        }
+
+        if (result.profile) SupabaseProfiles._onSelectCallback(result.profile);
     }
 
     // ── Init ─────────────────────────────────────────────────────────────────
@@ -12128,9 +12779,20 @@ const SupabaseProfiles = (function () {
         // Cargar userId en caché para comparaciones síncronas
         _getCurrentUser().catch(() => {});
 
-        // Cargar perfiles
+        // Cargar perfiles y restaurar perfil activo previo si sigue accesible
         if (_isAvailable()) {
-            loadCloudProfiles().catch(() => {});
+            loadCloudProfiles().then(() => {
+                const storedProfileId = _readStoredActiveProfileId();
+                if (!storedProfileId) return;
+                const profile = (appData.cloudProfiles || []).find(p => p.id === storedProfileId);
+                if (profile) {
+                    _activeProfileId = storedProfileId;
+                    _emitActiveProfileChanged(_activeProfileId, 'restored');
+                } else {
+                    _activeProfileId = null;
+                    _storeActiveProfileId(null);
+                }
+            }).catch(() => {});
         }
 
         // Registrar listeners solo una vez
@@ -12138,7 +12800,14 @@ const SupabaseProfiles = (function () {
         _initDone = true;
 
         // Re-cargar cuando el usuario cambia de sesión
-        window.addEventListener('etheria:auth-changed', () => {
+        window.addEventListener('etheria:auth-changed', (e) => {
+            const userId = e.detail?.user?.id || null;
+            if (!userId) {
+                _cachedUserId = null;
+                _activeProfileId = null;
+                _storeActiveProfileId(null);
+                _emitActiveProfileChanged(null, 'signed-out');
+            }
             _getCurrentUser().then(() => loadCloudProfiles()).catch(() => {});
         });
 
@@ -12158,6 +12827,7 @@ const SupabaseProfiles = (function () {
         loadCloudProfiles,
         createCloudProfile,
         updateCloudProfileStats,
+        claimCloudProfile,
         releaseCloudProfile,
         isProfileTaken,
         getProfileStatus,
@@ -12165,6 +12835,9 @@ const SupabaseProfiles = (function () {
         getProfileStatusClass,
         getMyProfiles,
         getFreeProfiles,
+        getActiveProfileId,
+        getActiveProfile,
+        activateProfile,
         renderCloudProfileList,
         _handleSelect,
         _onSelectCallback: null
@@ -12412,6 +13085,7 @@ window.SupabaseCharacters = SupabaseCharacters;
 //   theme       text  ('light' | 'dark')
 //   ui_volume   int   (0-100) → etheria_master_volume
 //   rain_volume int   (0-100) → etheria_rain_volume
+//   avatar_url  text  (URL pública del avatar de perfil)
 //
 // Flujo: login → loadUserSettings() → aplicar a UI + localStorage
 // Cuando un slider cambia → saveUserSettings() persiste en Supabase
@@ -12424,7 +13098,8 @@ const SupabaseSettings = (function () {
         text_speed : 25,    // valor textSpeed real (no el slider invertido)
         theme      : 'light',
         ui_volume  : 50,
-        rain_volume: 30
+        rain_volume: 30,
+        avatar_url : ''
     };
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -12455,7 +13130,8 @@ const SupabaseSettings = (function () {
             text_speed : rawSpeed ? parseInt(rawSpeed, 10) : DEFAULTS.text_speed,
             theme      : localStorage.getItem('etheria_theme') || DEFAULTS.theme,
             ui_volume  : parseInt(localStorage.getItem('etheria_master_volume') || DEFAULTS.ui_volume,  10),
-            rain_volume: parseInt(localStorage.getItem('etheria_rain_volume')   || DEFAULTS.rain_volume, 10)
+            rain_volume: parseInt(localStorage.getItem('etheria_rain_volume')   || DEFAULTS.rain_volume, 10),
+            avatar_url : localStorage.getItem('etheria_cloud_avatar_url') || ''
         };
     }
 
@@ -12508,6 +13184,9 @@ const SupabaseSettings = (function () {
         if (rvSlider) rvSlider.value = s.rain_volume;
         const rvVal = document.getElementById('optRainVolVal');
         if (rvVal) rvVal.textContent = s.rain_volume + '%';
+
+        // 6. avatar_url de perfil (fallback cloud si no hay avatar local del perfil actual)
+        localStorage.setItem('etheria_cloud_avatar_url', String(s.avatar_url || ''));
 
         // Notificar para que otros módulos puedan reaccionar
         window.dispatchEvent(new CustomEvent('etheria:settings-applied', { detail: s }));
@@ -12567,7 +13246,8 @@ const SupabaseSettings = (function () {
             text_speed : Number(merged.text_speed)  || DEFAULTS.text_speed,
             theme      : String(merged.theme        || DEFAULTS.theme),
             ui_volume  : Number(merged.ui_volume)   || DEFAULTS.ui_volume,
-            rain_volume: Number(merged.rain_volume) || DEFAULTS.rain_volume
+            rain_volume: Number(merged.rain_volume) || DEFAULTS.rain_volume,
+            avatar_url : String(merged.avatar_url || '')
         };
 
         try {
@@ -12703,8 +13383,18 @@ const SupabaseAvatars = (function () {
                 .eq('id', characterId);
 
             if (updateError) {
-                // No es crítico — la URL ya está disponible aunque no se haya guardado en BD
-                console.warn('[SupabaseAvatars] No se pudo guardar avatar_url en BD:', updateError.message);
+                const msg = updateError.message || 'No se pudo guardar avatar_url en BD.';
+                console.warn('[SupabaseAvatars] No se pudo guardar avatar_url en BD:', msg);
+
+                const missingColumn = msg.toLowerCase().includes('avatar_url')
+                    && msg.toLowerCase().includes('column');
+
+                return {
+                    ok: false,
+                    error: missingColumn
+                        ? 'La imagen se subió, pero falta la columna avatar_url en la tabla characters. Ejecuta la migración de SUPABASE_SETUP.'
+                        : `La imagen se subió, pero no se pudo vincular al personaje: ${msg}`
+                };
             }
 
             // 4. Actualizar caché local de cloudCharacters
@@ -14582,6 +15272,37 @@ function continueAsGuest() {
     isOfflineMode = true;
 }
 
+async function logout() {
+    if (!window.supabaseClient) {
+        setAuthStatus('Sin conexión. No se pudo cerrar sesión.', true);
+        return;
+    }
+
+    try {
+        await window.supabaseClient.auth.signOut();
+    } catch (error) {
+        logger?.warn('app:auth', 'logout failed:', error?.message || error);
+    }
+
+    // Limpiar cache de usuario para evitar que módulos de sync crean que hay sesión activa.
+    window._cachedUserId = null;
+    window.dispatchEvent(new CustomEvent('etheria:auth-changed', {
+        detail: { user: null }
+    }));
+
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.stopAutoSync === 'function') {
+        SupabaseSync.stopAutoSync();
+    }
+
+    showLoginScreen();
+    showAuthMain();
+    setAuthStatus('Sesión cerrada. Introduce email y contraseña para entrar.', false);
+    setTimeout(() => {
+        const emailInput = document.getElementById('authEmail');
+        if (emailInput) emailInput.focus();
+    }, 30);
+}
+
 async function login() {
     const email = (document.getElementById('authEmail')?.value || '').trim();
     const password = document.getElementById('authPassword')?.value || '';
@@ -14607,6 +15328,17 @@ async function login() {
     hideLoginScreen();
     initializeApp();
     await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
+
+    // La nube siempre gana al iniciar sesión: descargar y reemplazar datos locales.
+    // Resuelve la desincronización entre dispositivos (PWA vs navegador) con el mismo login.
+    if (typeof SupabaseSync !== 'undefined') {
+        const result = await SupabaseSync.downloadProfileData();
+        if (result.ok && result.data) {
+            if (typeof renderTopics === 'function')   renderTopics();
+            if (typeof renderGallery === 'function')  renderGallery();
+            if (typeof renderUserCards === 'function') renderUserCards();
+        }
+    }
 }
 
 async function register() {
@@ -14651,6 +15383,16 @@ async function register() {
         hideLoginScreen();
         initializeApp();
         await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
+
+        // Nube gana también en registro (puede haber datos de otro dispositivo)
+        if (typeof SupabaseSync !== 'undefined') {
+            const result = await SupabaseSync.downloadProfileData();
+            if (result.ok && result.data) {
+                if (typeof renderTopics === 'function')   renderTopics();
+                if (typeof renderGallery === 'function')  renderGallery();
+                if (typeof renderUserCards === 'function') renderUserCards();
+            }
+        }
     }
 }
 
@@ -14670,6 +15412,11 @@ async function ensureProfile() {
         // Cargar ajustes del usuario desde Supabase y aplicar a UI
         if (typeof SupabaseSettings !== 'undefined') {
             SupabaseSettings.loadUserSettings().catch(() => {});
+        }
+
+        // Suscribirse a notificaciones de turno en tiempo real
+        if (typeof SupabaseTurnNotifications !== 'undefined' && typeof SupabaseTurnNotifications.subscribe === 'function') {
+            SupabaseTurnNotifications.subscribe().catch(() => {});
         }
 
         // Fix 6: cache user globally so Supabase modules avoid repeated getUser() calls
@@ -14783,6 +15530,14 @@ function initializeApp() {
             .catch((err) => {
                 console.warn('No se pudo abrir la sala compartida:', err);
             });
+    } else {
+        const lastProfileId = getStoredLastProfileId();
+        if (lastProfileId !== null && Number.isInteger(lastProfileId) && userNames[lastProfileId]) {
+            selectUser(lastProfileId, { autoLoad: true, instant: true })
+                .catch((err) => {
+                    console.warn('No se pudo cargar el último perfil activo:', err);
+                });
+        }
     }
 
     window.addEventListener('beforeunload', (e) => {
@@ -15030,6 +15785,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
                 ensureProfile().catch(() => {});
+                return;
+            }
+
+            if (event === 'SIGNED_OUT') {
+                window._cachedUserId = null;
+                window.dispatchEvent(new CustomEvent('etheria:auth-changed', { detail: { user: null } }));
+                showLoginScreen();
+                showAuthMain();
             }
         });
     } else {
@@ -15863,8 +16626,19 @@ const Ethy = (function() {
         try {
             const saved = JSON.parse(localStorage.getItem(POSITION_KEY) || 'null');
             if (saved && saved.right && saved.bottom) {
-                _container.style.right  = saved.right;
-                _container.style.bottom = saved.bottom;
+                const maxRight = Math.max(12, window.innerWidth - 100);
+                const maxBottom = Math.max(12, window.innerHeight - 100);
+                const parsedRight = Number.parseFloat(saved.right);
+                const parsedBottom = Number.parseFloat(saved.bottom);
+                const safeRight = Number.isFinite(parsedRight)
+                    ? `${Math.min(Math.max(parsedRight, 12), maxRight)}px`
+                    : saved.right;
+                const safeBottom = Number.isFinite(parsedBottom)
+                    ? `${Math.min(Math.max(parsedBottom, 12), maxBottom)}px`
+                    : saved.bottom;
+
+                _container.style.right  = safeRight;
+                _container.style.bottom = safeBottom;
                 _container.style.left   = 'auto';
                 _container.style.top    = 'auto';
             }
@@ -16915,6 +17689,10 @@ window.Ethy = Ethy;
         // 1. Establecer historia activa
         global.currentStoryId = storyId;
 
+        if (typeof SupabasePresence !== 'undefined' && typeof SupabasePresence.joinStory === 'function') {
+            SupabasePresence.joinStory(storyId).catch(() => {});
+        }
+
         const story = (appData?.stories || []).find(s => s.id === storyId) || { id: storyId, title: '...' };
 
         // Notificar que se está entrando
@@ -17187,17 +17965,28 @@ window.Ethy = Ethy;
             return;
         }
 
+        const isOnline = function (userId) {
+            if (!userId) return false;
+            return typeof SupabasePresence !== 'undefined'
+                && typeof SupabasePresence.isUserOnline === 'function'
+                && SupabasePresence.isUserOnline(userId);
+        };
+
         // XSS fix: build participant elements via DOM to avoid name/avatar injection
         container.innerHTML = '';
         participants.forEach(function (p) {
             const name = p.profile?.name || (p.user_id ? String(p.user_id).slice(0, 8) : '?');
             const avatar = p.profile?.avatar_url || '';
+
+            const wrap = document.createElement('span');
+            wrap.className = 'story-participant-wrap' + (isOnline(p.user_id) ? ' online' : '');
+            wrap.title = isOnline(p.user_id) ? `${name} · En línea` : `${name} · Desconectado`;
+
             let el;
             if (avatar) {
                 el = document.createElement('img');
                 el.src = avatar;
                 el.className = 'story-participant-avatar';
-                el.title = name;
                 el.alt = name;
                 el.onerror = function () { this.style.display = 'none'; };
             } else {
@@ -17205,7 +17994,14 @@ window.Ethy = Ethy;
                 el.className = 'story-participant-chip';
                 el.textContent = name;
             }
-            container.appendChild(el);
+
+            const dot = document.createElement('span');
+            dot.className = 'story-participant-dot';
+            dot.setAttribute('aria-hidden', 'true');
+
+            wrap.appendChild(el);
+            wrap.appendChild(dot);
+            container.appendChild(wrap);
         });
     }
 
@@ -17221,6 +18017,9 @@ window.Ethy = Ethy;
             }
             global._storyRealtimeChannel = null;
         }
+        if (typeof SupabasePresence !== 'undefined' && typeof SupabasePresence.leaveStory === 'function') {
+            SupabasePresence.leaveStory().catch(() => {});
+        }
         global.currentStoryId = null;
         global.currentStoryParticipants = [];
 
@@ -17231,6 +18030,14 @@ window.Ethy = Ethy;
             card.classList.remove('story-card--active');
         });
     }
+
+
+    // Re-render de participantes cuando cambia la presencia realtime
+    global.addEventListener('etheria:story-presence-changed', function (e) {
+        const sid = e?.detail?.storyId;
+        if (!sid || String(sid) !== String(global.currentStoryId)) return;
+        _renderStoryParticipants(global.currentStoryParticipants || []);
+    });
 
     // ── API pública ───────────────────────────────────────────────────────────
 

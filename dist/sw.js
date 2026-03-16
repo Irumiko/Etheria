@@ -9,7 +9,7 @@
 // ================================================================
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
-const CACHE_VERSION = 'mms6md7y';
+const CACHE_VERSION = 'mmtp3n83';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
 const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];

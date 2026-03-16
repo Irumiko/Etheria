@@ -39,76 +39,51 @@
 .menu-parallax {
     position: absolute !important;
     inset: 0 !important;
-    z-index: var(--z-i-1)!important;
+    z-index: var(--z-i-1) !important;
     overflow: hidden !important;
+    background: #1a2a1a !important;
+    transition: background 1.8s ease !important;
 }
 
-/* Cada capa es su propia imagen PNG con transparencia.
-   Se escalan un 10% extra para que el desplazamiento no descubra bordes. */
+[data-theme="light"] .menu-parallax  { background: #4a7a3a !important; }
+[data-theme="dark"]  .menu-parallax  { background: #03061a !important; }
+
 .parallax-layer {
     position: absolute !important;
-    inset: -6% !important;
-    will-change: transform !important;
+    top: -5% !important;
+    left: -5% !important;
+    width: 110% !important;
+    height: 110% !important;
     background-size: cover !important;
+    background-position: center center !important;
     background-repeat: no-repeat !important;
-    transform: translate3d(
-        calc(var(--px, 0px) * var(--depth, 0)),
-        calc(var(--py, 0px) * var(--depth, 0)),
-        0
-    ) scale(1.10) !important;
+    will-change: transform !important;
+    transition: filter 1.8s ease !important;
 }
 
-/* Capa 1 — Fondo (cielo + árboles lejanos) — profundidad baja */
-.layer-sky {
-    --depth: 0.08;
-    background-image: url('../assets/parallax/layer_bg.png') !important;
-    background-position: center bottom !important;
-    z-index: var(--z-i-1)!important;
-}
+/* Imágenes de día */
+.layer-bg-day  { background-image: url('./assets/parallax/layer_bg.png') !important;       z-index: 1 !important; }
+.layer-mid-day { background-image: url('./assets/parallax/layer_mid.png') !important;      z-index: 2 !important; }
+.layer-fg-day  { background-image: url('./assets/parallax/layer_fg.png') !important;       z-index: 3 !important; }
 
-/* Capa 2 — Bosque medio — profundidad media */
-.layer-midforest {
-    --depth: 0.22;
-    background-image: url('../assets/parallax/layer_mid.png') !important;
-    background-position: center bottom !important;
-    z-index: var(--z-i-2)!important;
-}
+/* Imágenes de noche (procesadas píxel a píxel) */
+.layer-bg-night  { background-image: url('./assets/parallax/layer_bg_night.png') !important;  z-index: 1 !important; }
+.layer-mid-night { background-image: url('./assets/parallax/layer_mid_night.png') !important; z-index: 2 !important; }
+.layer-fg-night  { background-image: url('./assets/parallax/layer_fg_night.png') !important;  z-index: 3 !important; }
 
-/* Capa 3 — Primer plano (ramas, flores) — profundidad alta */
-.layer-foreground {
-    --depth: 0.40;
-    background-image: url('../assets/parallax/layer_fg.png') !important;
-    background-position: center bottom !important;
-    z-index: var(--z-i-3)!important;
-}
+/* Por defecto todas ocultas */
+.layer-bg-day, .layer-mid-day, .layer-fg-day,
+.layer-bg-night, .layer-mid-night, .layer-fg-night { opacity: 0 !important; transition: opacity 1.8s ease !important; }
 
-/* ─── Modo día: vibrante y luminoso ─── */
-[data-theme="light"] .layer-sky {
-    opacity: 1 !important;
-    filter: saturate(1.3) brightness(1.05) !important;
-}
-[data-theme="light"] .layer-midforest {
-    opacity: 1 !important;
-    filter: saturate(1.25) brightness(1.0) !important;
-}
-[data-theme="light"] .layer-foreground {
-    opacity: 1 !important;
-    filter: saturate(1.2) brightness(0.95) contrast(1.05) !important;
-}
+/* Día */
+[data-theme="light"] .layer-bg-day,
+[data-theme="light"] .layer-mid-day,
+[data-theme="light"] .layer-fg-day  { opacity: 1 !important; }
 
-/* ─── Modo noche: tonos azul-verde oscuros ─── */
-[data-theme="dark"] .layer-sky {
-    opacity: 0.80 !important;
-    filter: saturate(0.55) brightness(0.42) hue-rotate(195deg) !important;
-}
-[data-theme="dark"] .layer-midforest {
-    opacity: 0.88 !important;
-    filter: saturate(0.65) brightness(0.50) hue-rotate(175deg) !important;
-}
-[data-theme="dark"] .layer-foreground {
-    opacity: 0.92 !important;
-    filter: saturate(0.60) brightness(0.38) hue-rotate(155deg) contrast(1.05) !important;
-}
+/* Noche */
+[data-theme="dark"] .layer-bg-night,
+[data-theme="dark"] .layer-mid-night,
+[data-theme="dark"] .layer-fg-night { opacity: 1 !important; }
 
 /* ─── Overlay de atmósfera general ─── */
 [data-theme="light"] .main-menu::before {
@@ -140,6 +115,18 @@
     gap: 0;
     pointer-events: all;
     animation: contentReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+    /* Evita que el contenido quede tapado por el footer fijo */
+    max-height: calc(100vh - 80px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 4px;
+    /* Ocultar scrollbar visualmente, mantener funcionalidad */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.menu-center-content::-webkit-scrollbar {
+    display: none;
 }
 
 @keyframes contentReveal {
@@ -303,14 +290,14 @@
 /* Modo día */
 [data-theme="light"] .menu-button,
 [data-theme="light"] .menu-button-console {
-    background: rgba(10, 20, 14, 0.72) !important;
-    border: 1px solid rgba(120, 180, 100, 0.35) !important;
-    color: #d4ebb8 !important;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.6) !important;
+    background: rgba(8, 22, 12, 0.88) !important;
+    border: 1px solid rgba(140, 200, 110, 0.55) !important;
+    color: #e8f5d4 !important;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.8) !important;
     box-shadow:
-        0 2px 12px rgba(0,0,0,0.35),
-        inset 0 1px 0 rgba(255,255,255,0.06) !important;
-    backdrop-filter: blur(8px) !important;
+        0 2px 16px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    backdrop-filter: blur(12px) !important;
 }
 
 [data-theme="light"] .menu-button:hover,
@@ -491,8 +478,8 @@
     display: flex !important;
     align-items: center !important;
     gap: 0.65rem !important;
-    background: rgba(0,0,0,0.50) !important;
-    border: 1px solid rgba(100,160,80,0.22) !important;
+    background: rgba(0,0,0,0.72) !important;
+    border: 1px solid rgba(120,180,90,0.45) !important;
     border-radius: 10px !important;
     padding: 0.42rem 0.85rem 0.42rem 0.5rem !important;
     backdrop-filter: blur(12px) !important;
@@ -550,13 +537,13 @@
     font-family: 'Cinzel', serif !important;
     font-size: 0.76rem !important;
     letter-spacing: 0.06em !important;
-    color: #9ec88e !important;
+    color: #c8eaaa !important;
     line-height: 1.2 !important;
 }
 
 .menu-profile-hint {
     font-size: 0.62rem !important;
-    color: rgba(140,190,110,0.5) !important;
+    color: rgba(190,230,160,0.75) !important;
     letter-spacing: 0.04em !important;
     font-family: sans-serif !important;
 }
@@ -858,8 +845,22 @@
         font-size: 0.65rem !important;
         letter-spacing: 0.25em !important;
     }
+    .menu-brand {
+        margin-bottom: 1.6rem !important;
+    }
+    .menu-container {
+        gap: 0.45rem !important;
+    }
     .menu-footer {
         bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    /* En PWA el safe-area-inset-top puede ser 0 o tener valor; dejamos margen extra */
+    .pwa-standalone .menu-center-content,
+    body.is-pwa .menu-center-content {
+        max-height: calc(100vh - 90px
+            - env(safe-area-inset-bottom, 0px)
+            - env(safe-area-inset-top, 0px));
+        padding-top: 8px;
     }
 
     .menu-exit-btn {
@@ -903,4 +904,36 @@
 @media (min-width: 601px) and (max-width: 900px) {
     :root { --menu-btn-w: 340px; }
     .menu-title { font-size: clamp(3rem, 7vw, 5rem) !important; }
+}
+
+/* ── Botón día/noche en el menú principal ───────────────────────────────── */
+.menu-theme-toggle {
+    position: absolute !important;
+    top: 1.2rem !important;
+    right: 1.4rem !important;
+    z-index: 50 !important;
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 50% !important;
+    border: 1.5px solid rgba(255,255,255,0.18) !important;
+    background: rgba(0,0,0,0.35) !important;
+    backdrop-filter: blur(8px) !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 1.1rem !important;
+    transition: background 0.3s, border-color 0.3s, transform 0.2s !important;
+    pointer-events: all !important;
+}
+
+.menu-theme-toggle:hover {
+    background: rgba(255,255,255,0.12) !important;
+    border-color: rgba(255,255,255,0.35) !important;
+    transform: scale(1.1) !important;
+}
+
+[data-theme="light"] .menu-theme-toggle {
+    background: rgba(255,240,200,0.35) !important;
+    border-color: rgba(180,120,20,0.4) !important;
 }

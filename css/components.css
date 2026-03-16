@@ -4,7 +4,7 @@
    Cambiar la ruta aquí afecta a todos los usos.
 ============================================================ */
 :root {
-    --asset-bg-menu: url('../assets/backgrounds/menu_background.jpg');
+    --asset-bg-menu: url('./assets/backgrounds/menu_background.jpg');
 }
 
 /* ============================================================
@@ -1021,51 +1021,17 @@ body::before {
             /* URL del fondo — definida en :root al inicio del archivo */
         }
 
-        /* ── Capas de parallax ─────────────────────────────────────── */
+        /* ── Capas de parallax — estilos base (menu.css sobreescribe) ── */
         .parallax-layer {
             position: absolute;
-            /* 8% de margen extra en cada lado para que el desplazamiento
-               no descubra bordes blancos. Compensamos con scale(1.12). */
-            inset: -8%;
+            top: -5%;
+            left: -5%;
+            width: 110%;
+            height: 110%;
             will-change: transform;
-            transform: translate3d(
-                calc(var(--px, 0px) * var(--depth, 0)),
-                calc(var(--py, 0px) * var(--depth, 0)),
-                0
-            ) scale(1.12);
-        }
-
-        /* ── Capa fondo (cielo + árboles lejanos) — profundidad baja ── */
-        .layer-sky {
-            --depth: 0.08;
-            background-image: url('../assets/parallax/layer_bg.png');
             background-size: cover;
-            background-position: center bottom;
-            opacity: 1;
-            filter: saturate(1.3) brightness(1.05);
-            z-index: var(--z-i-1);
-        }
-
-        /* ── Capa bosque medio — profundidad media ── */
-        .layer-midforest {
-            --depth: 0.22;
-            background-image: url('../assets/parallax/layer_mid.png');
-            background-size: cover;
-            background-position: center bottom;
-            opacity: 1;
-            filter: saturate(1.2) brightness(1.0);
-            z-index: var(--z-i-2);
-        }
-
-        /* ── Capa primer plano (ramas, flores) — profundidad alta ── */
-        .layer-foreground {
-            --depth: 0.40;
-            background-image: url('../assets/parallax/layer_fg.png');
-            background-size: cover;
-            background-position: center bottom;
-            opacity: 1;
-            filter: saturate(1.15) brightness(0.95) contrast(1.05);
-            z-index: var(--z-i-3);
+            background-repeat: no-repeat;
+            background-position: center center;
         }
 
         /* ── Capa niebla CSS-puro: ribbons de gradiente ── */
@@ -1286,33 +1252,7 @@ body::before {
                 rgba(200, 210, 180, 0.28) 100%);
         }
 
-        /* ── Modo día: vibrante, colores naturales ── */
-        [data-theme="light"] .layer-sky {
-            filter: saturate(1.3) brightness(1.05);
-            opacity: 1;
-        }
-        [data-theme="light"] .layer-midforest {
-            filter: saturate(1.2) brightness(1.0);
-            opacity: 1;
-        }
-        [data-theme="light"] .layer-foreground {
-            filter: saturate(1.15) brightness(0.95) contrast(1.05);
-            opacity: 1;
-        }
-
-        /* ── Modo noche: azul-verde oscuro ── */
-        [data-theme="dark"] .layer-sky {
-            filter: saturate(0.55) brightness(0.42) hue-rotate(195deg);
-            opacity: 0.80;
-        }
-        [data-theme="dark"] .layer-midforest {
-            filter: saturate(0.65) brightness(0.50) hue-rotate(175deg);
-            opacity: 0.88;
-        }
-        [data-theme="dark"] .layer-foreground {
-            filter: saturate(0.60) brightness(0.38) hue-rotate(155deg) contrast(1.05);
-            opacity: 0.92;
-        }
+        /* ── Clases layer-sky/midforest/foreground eliminadas — reemplazadas por layer-*-day/night ── */
         [data-theme="light"] .fog-ribbon--1,
         [data-theme="light"] .fog-ribbon--2,
         [data-theme="light"] .fog-ribbon--3 {
@@ -9862,6 +9802,53 @@ body.mode-classic .shadow-glow {
 .save-hub-text small {
     font-size: 0.72rem;
     color: rgba(160, 140, 100, 0.7);
+}
+
+/* Save Hub — nuevos elementos de sección y estado nube */
+.save-hub-section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin: 0.9rem 0 0.25rem;
+}
+.save-hub-section-icon {
+    font-size: 0.9rem;
+}
+.save-hub-cloud-status {
+    margin-left: auto;
+    font-size: 0.68rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 0.18rem 0.55rem;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    transition: background 0.2s, color 0.2s;
+}
+.save-hub-cloud-status[data-state="ok"] {
+    background: rgba(80, 160, 80, 0.12);
+    border-color: rgba(80, 160, 80, 0.3);
+    color: #7acc7a;
+}
+.save-hub-cloud-status[data-state="pending"] {
+    background: rgba(200, 160, 60, 0.12);
+    border-color: rgba(200, 160, 60, 0.3);
+    color: #c8a84a;
+}
+.save-hub-cloud-status[data-state="offline"] {
+    background: rgba(180, 80, 80, 0.12);
+    border-color: rgba(180, 80, 80, 0.3);
+    color: #c07070;
+}
+.save-hub-divider {
+    height: 1px;
+    background: rgba(200, 175, 130, 0.12);
+    margin: 0.85rem 0 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
