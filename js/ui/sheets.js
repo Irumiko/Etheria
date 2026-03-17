@@ -285,11 +285,18 @@ function adjustRpgStat(charId, stat, delta) {
     char.rpgProfile = profile;
     hasUnsavedChanges = true;
     if (typeof save === 'function') save({ silent: true });
+    if (typeof SupabaseSync !== 'undefined') {
+        SupabaseSync.uploadProfileData().catch(() => {});
+    }
 
     // Re-renderizar el modal sin cerrarlo
     renderRpgStatsModal(char);
     // Actualizar también el resumen de la info-card
     if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+    // Notificar al modo bloqueante para actualizar el contador de puntos libres
+    window.dispatchEvent(new CustomEvent('etheria:rpg-stat-changed', {
+        detail: { charId: charId, topicId: currentTopicId }
+    }));
 }
 
 function getAlignmentColor(code) {
@@ -363,13 +370,10 @@ function saveCharacter() {
     save({ silent: true });
     closeModal('characterModal');
     resetCharForm();
-    // Sincronizar avatar_url con Supabase si el personaje tiene ID de Supabase
-    if (typeof SupabaseAvatars !== 'undefined') {
-        const savedChar = appData.characters.find(c => String(c.id) === String(id));
-        if (savedChar && savedChar.avatar) {
-            // El personaje tiene URL de avatar — puede ser local o de Supabase Storage
-            // No hacemos nada aquí; uploadAvatarForChar() se llama manualmente desde UI
-        }
+
+    // Subir a la nube inmediatamente al guardar personaje
+    if (typeof SupabaseSync !== 'undefined') {
+        SupabaseSync.uploadProfileData().catch(() => {});
     }
 
     renderGallery();
@@ -487,3 +491,121 @@ function editFromSheet() {
     closeModal('sheetModal');
     openCharacterEditor(currentSheetCharId);
 }
+
+// Abre el modal de stats RPG desde la selección de personaje (antes de entrar al topic)
+function openRpgStatsModalFromSelect(topicId, charId) {
+    const char = appData.characters.find(ch => String(ch.id) === String(charId));
+    if (!char) return;
+    // Asegurar que el topic está como contexto activo para calcular el profile correcto
+    const prevTopicId = currentTopicId;
+    currentTopicId = topicId;
+    renderRpgStatsModal(char);
+    currentTopicId = prevTopicId;
+    openModal('rpgStatsModal');
+}
+
+// ── Modal de stats RPG en modo bloqueante ────────────────────────────────────
+// Cuando se abre desde la creación de un tema RPG, el modal no se puede cerrar
+// hasta que el jugador pulse "Confirmar ficha y entrar".
+// _rpgStatsCallback se llama cuando el usuario confirma.
+
+let _rpgStatsBlocking   = false;
+let _rpgStatsCallback   = null;
+
+/**
+ * Abre el modal de stats en modo bloqueante (obligatorio antes de entrar al tema).
+ * @param {string}   charId    - ID del personaje
+ * @param {string}   topicId   - ID del tema (para calcular el profile correcto)
+ * @param {Function} onConfirm - Callback que se ejecuta al confirmar
+ */
+function openRpgStatsModalBlocking(charId, topicId, onConfirm) {
+    _rpgStatsBlocking = true;
+    _rpgStatsCallback = onConfirm || null;
+
+    // Ajustar el contexto de topic para el cálculo de profile
+    const prevTopicId = currentTopicId;
+    currentTopicId = topicId;
+
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char) { currentTopicId = prevTopicId; return; }
+
+    renderRpgStatsModal(char);
+    currentTopicId = prevTopicId;
+
+    // Poner el modal en modo bloqueante
+    const overlay   = document.getElementById('rpgStatsModal');
+    const closeBtn  = document.getElementById('rpgStatsCloseBtn');
+    const confirmBar = document.getElementById('rpgStatsConfirmBar');
+
+    if (overlay)    overlay.dataset.blocking = 'true';
+    if (closeBtn)   closeBtn.style.display   = 'none';
+    if (confirmBar) confirmBar.style.display = '';
+
+    _rpgStatsUpdateConfirmState(charId, topicId);
+    openModal('rpgStatsModal');
+}
+
+/** Actualiza el contador de puntos libres y el estado del botón Confirmar */
+function _rpgStatsUpdateConfirmState(charId, topicId) {
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char) return;
+
+    const prevTopicId = currentTopicId;
+    currentTopicId = topicId;
+    const profile   = ensureCharacterRpgProfile(char, topicId);
+    currentTopicId  = prevTopicId;
+
+    const spent     = getRpgSpentPoints(profile);
+    const free      = Math.max(0, RPG_POINTS_POOL - spent);
+    const freeEl    = document.getElementById('rpgStatsFreeCount');
+    const confirmBtn = document.getElementById('rpgStatsConfirmBtn');
+
+    if (freeEl)    freeEl.textContent = free;
+    if (confirmBtn) {
+        // Permitir confirmar siempre — el jugador puede dejar puntos sin gastar si quiere
+        confirmBtn.disabled = false;
+        confirmBtn.title    = free > 0
+            ? `Aún tienes ${free} punto${free !== 1 ? 's' : ''} sin asignar. Puedes confirmar así o seguir distribuyendo.`
+            : '✓ Todos los puntos distribuidos';
+    }
+}
+
+/** El jugador pulsa "Confirmar ficha y entrar" */
+function rpgStatsConfirm() {
+    const cb = _rpgStatsCallback;
+    _rpgStatsBlocking = false;
+    _rpgStatsCallback = null;
+    _rpgStatsResetModal();
+    closeModal('rpgStatsModal');
+    if (typeof cb === 'function') cb();
+}
+
+/** Click fuera del modal — solo cierra si NO es bloqueante */
+function rpgStatsModalOutsideClick(event) {
+    if (event.target !== document.getElementById('rpgStatsModal')) return;
+    if (_rpgStatsBlocking) return; // bloqueado — ignorar
+    closeModal('rpgStatsModal');
+}
+
+/** Restaura el modal a su estado normal (no bloqueante) */
+function _rpgStatsResetModal() {
+    const overlay   = document.getElementById('rpgStatsModal');
+    const closeBtn  = document.getElementById('rpgStatsCloseBtn');
+    const confirmBar = document.getElementById('rpgStatsConfirmBar');
+    if (overlay)    delete overlay.dataset.blocking;
+    if (closeBtn)   closeBtn.style.display   = '';
+    if (confirmBar) confirmBar.style.display = 'none';
+}
+
+// Patch de adjustRpgStat: actualizar también el contador de puntos en modo bloqueante
+// (se usa mediante evento de re-render, sin depender del orden de carga)
+window.addEventListener('etheria:rpg-stat-changed', function(e) {
+    if (!_rpgStatsBlocking) return;
+    const { charId, topicId } = e.detail || {};
+    if (charId && topicId) _rpgStatsUpdateConfirmState(charId, topicId);
+});
+
+window.openRpgStatsModalBlocking  = openRpgStatsModalBlocking;
+window.rpgStatsConfirm             = rpgStatsConfirm;
+window.rpgStatsModalOutsideClick   = rpgStatsModalOutsideClick;
+window._rpgStatsUpdateConfirmState = _rpgStatsUpdateConfirmState;

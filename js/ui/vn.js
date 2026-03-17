@@ -885,8 +885,13 @@ function playVnSceneTransition(vnSection) {
 // Selecciona el personaje según el modo del topic.
 // Devuelve false si se abre un modal y enterTopic debe abortar.
 function _resolveCharacterForMode(t, id, topicMode) {
-    if (topicMode === 'roleplay' && t.roleCharacterId) {
-        const lockedChar = appData.characters.find(c => c.id === t.roleCharacterId && c.userIndex === currentUserIndex);
+    // Buscar lock universal (characterLocks tiene prioridad sobre campos legacy)
+    const lockedCharId = getTopicLockedCharacterId(t);
+
+    if (lockedCharId) {
+        const lockedChar = appData.characters.find(c =>
+            String(c.id) === String(lockedCharId) && c.userIndex === currentUserIndex
+        );
         if (lockedChar) {
             selectedCharId = lockedChar.id;
             if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
@@ -894,18 +899,18 @@ function _resolveCharacterForMode(t, id, topicMode) {
         return true;
     }
 
-    if (topicMode === 'rpg') {
-        const lockedCharId = getTopicLockedCharacterId(t);
-        if (lockedCharId) {
-            selectedCharId = lockedCharId;
-            if (typeof syncVnStore === 'function') syncVnStore({ selectedCharId });
-            return true;
-        }
-        // Fallback: no debería llegar aquí por el check de arriba, pero por seguridad
-        openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
+    // Sin personaje bloqueado: abrir modal de selección para ambos modos
+    const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
+    if (mine.length > 0) {
+        openRoleCharacterModal(id, { mode: topicMode, enterOnSelect: true });
         return false;
     }
 
+    // Sin personajes propios: solo puede entrar como Narrador (modo clásico)
+    if (topicMode === 'rpg') {
+        showAutosave('Necesitas al menos un personaje para modo RPG', 'error');
+        return false;
+    }
     return true;
 }
 
@@ -949,11 +954,17 @@ function enterTopic(id) {
     const t = appData.topics.find(topic => topic.id === id);
     if (!t) return;
 
-    // Guard: RPG sin personaje asignado → modal de selección, sin limpiar estado
+    // Guard: sin personaje asignado → modal de selección, sin limpiar estado
     // (evita el flash de pantalla negra antes de que el usuario elija personaje)
     const topicMode = t.mode || 'roleplay';
-    if (topicMode === 'rpg' && !getTopicLockedCharacterId(t)) {
-        openRoleCharacterModal(id, { mode: 'rpg', enterOnSelect: true });
+    const _lockedId = getTopicLockedCharacterId(t);
+    const _myChars  = appData.characters.filter(c => c.userIndex === currentUserIndex);
+
+    if (!_lockedId && _myChars.length > 0) {
+        // Ningún mode permite responder sin elegir personaje primero.
+        // El creator ya lo eligió al crear (openRoleCharacterModal con enterOnSelect),
+        // los demás participantes deben elegirlo la primera vez que intenten entrar.
+        openRoleCharacterModal(id, { mode: topicMode, enterOnSelect: true });
         return;
     }
 
@@ -2081,6 +2092,9 @@ function deleteCurrentMessage() {
         }
         hasUnsavedChanges = true;
         save({ silent: true });
+        if (typeof SupabaseSync !== 'undefined') {
+            SupabaseSync.uploadProfileData().catch(() => {});
+        }
         showCurrentMessage('forward');
     });
 }
@@ -2217,6 +2231,9 @@ function saveEditedMessage() {
 
     hasUnsavedChanges = true;
     save({ silent: true });
+    if (typeof SupabaseSync !== 'undefined') {
+        SupabaseSync.uploadProfileData().catch(() => {});
+    }
     closeReplyPanel();
 
     editingMessageId = null;
@@ -3429,6 +3446,10 @@ function postVNReply() {
 
     hasUnsavedChanges = true;
     save({ silent: true });
+    // Subir a nube al enviar mensaje (operación más frecuente — crítica para sincronía)
+    if (typeof SupabaseSync !== 'undefined') {
+        SupabaseSync.uploadProfileData().catch(() => {});
+    }
     closeReplyPanel();
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
     triggerDialogueFadeIn();

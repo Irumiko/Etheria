@@ -725,9 +725,10 @@ function deleteCurrentTopic() {
         currentTopicId = null;
         hasUnsavedChanges = true;
         save({ silent: true });
-        // Marcar como sin cambios pendientes para que backToTopics no pregunte
-        // (el guardado ya ocurrió o falló, pero el topic ya no existe en memoria)
         hasUnsavedChanges = false;
+        if (typeof SupabaseSync !== 'undefined') {
+            SupabaseSync.uploadProfileData().catch(() => {});
+        }
         backToTopics();
     });
 }
@@ -744,8 +745,17 @@ function quickSave() {
 
 function openSaveHubModal() {
     openModal('saveHubModal');
-    // Actualizar estado de última sincronización al abrir
-    _updateSaveHubCloudStatus();
+    // Si no hay sesión cacheada, obtenerla antes de actualizar estado del hub
+    if (!window._cachedUserId && window.supabaseClient) {
+        window.supabaseClient.auth.getSession().then(({ data }) => {
+            if (data?.session?.user) {
+                window._cachedUserId = data.session.user.id;
+            }
+            _updateSaveHubCloudStatus();
+        }).catch(() => _updateSaveHubCloudStatus());
+    } else {
+        _updateSaveHubCloudStatus();
+    }
     window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'saveHub' } }));
 }
 
@@ -1067,6 +1077,9 @@ function deleteCharFromModal() {
         appData.characters = appData.characters.filter(c => c.id !== id);
         hasUnsavedChanges = true;
         save({ silent: true });
+        if (typeof SupabaseSync !== 'undefined') {
+            SupabaseSync.uploadProfileData().catch(() => {});
+        }
         closeModal('characterModal');
         resetCharForm();
         renderGallery();

@@ -397,7 +397,17 @@
     // ── Arranque y escucha de eventos de la app ───────────────────────────────
 
     function _init() {
-        // Al hacer login
+        // Comprobación activa: si ya hay usuario cacheado al arrancar (sesión existente),
+        // inicializar el buzón directamente sin esperar al evento auth-changed.
+        // Esto cubre el caso de recarga de página con sesión activa.
+        if (global._cachedUserId) {
+            _loadUnread();
+            _subscribeInbox();
+            const btn = document.getElementById('menuInboxBtn');
+            if (btn) btn.style.display = '';
+        }
+
+        // Al hacer login (o cuando ensureProfile dispara auth-changed)
         global.addEventListener('etheria:auth-changed', function (e) {
             const user = e.detail?.user;
             if (user?.id) {

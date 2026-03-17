@@ -1,6 +1,32 @@
 // Gestión de historias (topics): crear, listar, entrar.
 // EDITOR DE RAMAS
 // ============================================
+
+// ── Guardia de personajes antes de abrir el modal de creación ────────────────
+// Se llama desde el botón "Nueva Historia". Si el usuario no tiene personajes
+// creados, muestra un aviso claro sin abrir el modal de creación.
+function openNewTopicModal() {
+    const mine = (appData?.characters || []).filter(c => c.userIndex === currentUserIndex);
+    if (mine.length === 0) {
+        openNoCharacterWarning();
+        return;
+    }
+    openModal('topicModal');
+}
+
+function openNoCharacterWarning() {
+    const modal = document.getElementById('noCharacterWarningModal');
+    if (modal) {
+        openModal('noCharacterWarningModal');
+    } else {
+        // Fallback por si el modal aún no está en el DOM
+        showAutosave('Necesitas crear al menos un personaje antes de empezar una historia. Ve a Personajes ✦', 'error');
+    }
+}
+
+window.openNewTopicModal    = openNewTopicModal;
+window.openNoCharacterWarning = openNoCharacterWarning;
+
 function openBranchEditor() {
     tempBranches = [];
     for(let i=1; i<=3; i++) {
@@ -445,9 +471,6 @@ function createTopic() {
     renderTopics();
 
     // ── Sincronización automática con la nube ─────────────────────
-    // Si Supabase está disponible, crear la historia en la nube en
-    // background y guardar el storyId en el topic para que todos los
-    // mensajes queden vinculados a ella desde el primer momento.
     if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.createStory === 'function') {
         SupabaseStories.createStory(title).then(function(story) {
             if (story && story.id) {
@@ -456,20 +479,162 @@ function createTopic() {
                     t.storyId = story.id;
                     hasUnsavedChanges = true;
                     save({ silent: true });
-                    // Activar la historia en el contexto global
                     global.currentStoryId = story.id;
                 }
             }
-        }).catch(function() { /* Sin conexión — continúa en local */ });
+        }).catch(function() {});
+    }
+    // Subir perfil a nube tras crear historia
+    if (typeof SupabaseSync !== 'undefined') {
+        SupabaseSync.uploadProfileData().catch(() => {});
     }
     // ─────────────────────────────────────────────────────────────
 
-    if (currentTopicMode === 'roleplay') {
-        pendingRoleTopicId = id;
-        openRoleCharacterModal(id, { mode: 'roleplay', preservePendingTopicId: true, enterOnSelect: true });
-    } else {
-        enterTopic(id);
-    }
+    // Siempre pedir selección de personaje al creador, sea cual sea el modo.
+    // En RPG además abrirá stats si no hay puntos distribuidos.
+    // Si el usuario no tiene personajes, enterTopic lo gestionará como Narrador.
+    pendingRoleTopicId = id;
+    openRoleCharacterModal(id, { mode: currentTopicMode, preservePendingTopicId: true, enterOnSelect: true });
 }
 
 // ============================================
+
+// ============================================
+// GESTOR DE SESIONES — Selección múltiple
+// ============================================
+
+let _smFilter = 'all';
+let _smSelected = new Set();
+
+function openSessionManager() {
+    _smFilter = 'all';
+    _smSelected.clear();
+    _smRender();
+    openModal('sessionManagerModal');
+}
+
+function closeSessionManager() {
+    _smSelected.clear();
+    closeModal('sessionManagerModal');
+}
+
+function _smGetTopics() {
+    let topics = [...(appData.topics || [])];
+    if (_smFilter === 'mine') {
+        topics = topics.filter(t => t.createdByIndex === currentUserIndex);
+    }
+    return topics;
+}
+
+function _smRender() {
+    const list  = document.getElementById('smList');
+    const count = document.getElementById('smSelectedCount');
+    const del   = document.getElementById('smDeleteBtn');
+    const delCt = document.getElementById('smDeleteCount');
+    const sub   = document.getElementById('smSubtitle');
+    const allCb = document.getElementById('smSelectAll');
+    if (!list) return;
+
+    const topics = _smGetTopics();
+
+    // Contar cuántas del filtro actual están seleccionadas
+    const selInView = topics.filter(t => _smSelected.has(t.id)).length;
+    const total     = topics.length;
+
+    if (count) count.textContent = `${_smSelected.size} seleccionada${_smSelected.size !== 1 ? 's' : ''}`;
+    if (sub)   sub.textContent   = total > 0 ? `${total} historia${total !== 1 ? 's' : ''} — selecciona las que quieras eliminar` : 'No hay historias';
+    if (del)   del.disabled      = _smSelected.size === 0;
+    if (delCt) delCt.textContent = _smSelected.size > 0 ? `(${_smSelected.size})` : '';
+    if (allCb) allCb.checked     = total > 0 && selInView === total;
+    if (allCb) allCb.indeterminate = selInView > 0 && selInView < total;
+
+    if (!topics.length) {
+        list.innerHTML = '<div class="sm-empty">No hay historias que mostrar.</div>';
+        return;
+    }
+
+    list.innerHTML = topics.map(t => {
+        const msgs     = Array.isArray(appData.messages?.[t.id]) ? appData.messages[t.id].length : 0;
+        const isOwn    = t.createdByIndex === currentUserIndex;
+        const modeTag  = t.mode === 'rpg' ? '<span class="sm-tag sm-tag-rpg">RPG</span>' : '<span class="sm-tag sm-tag-classic">Clásico</span>';
+        const ownerTag = isOwn ? '<span class="sm-tag sm-tag-own">Tuya</span>' : '';
+        const checked  = _smSelected.has(t.id);
+        const date     = t.date || '';
+
+        return `
+        <label class="sm-item ${checked ? 'sm-item--selected' : ''}" for="sm_cb_${t.id}">
+            <input type="checkbox" class="sm-item-cb" id="sm_cb_${t.id}"
+                ${checked ? 'checked' : ''}
+                onchange="smToggleItem('${t.id}', this.checked)">
+            <span class="sm-item-check"></span>
+            <div class="sm-item-body">
+                <div class="sm-item-title">${escapeHtml(t.title)}</div>
+                <div class="sm-item-meta">
+                    ${modeTag}${ownerTag}
+                    <span class="sm-meta-text">${msgs} mensaje${msgs !== 1 ? 's' : ''}</span>
+                    ${date ? `<span class="sm-meta-text">· ${escapeHtml(date)}</span>` : ''}
+                </div>
+            </div>
+        </label>`;
+    }).join('');
+}
+
+function smToggleItem(topicId, checked) {
+    if (checked) _smSelected.add(topicId);
+    else         _smSelected.delete(topicId);
+    _smRender();
+}
+
+function smToggleAll(checked) {
+    const topics = _smGetTopics();
+    if (checked) topics.forEach(t => _smSelected.add(t.id));
+    else         _smSelected.clear();
+    _smRender();
+}
+
+function smSetFilter(filter, btn) {
+    _smFilter = filter;
+    document.querySelectorAll('.sm-filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    _smRender();
+}
+
+async function smDeleteSelected() {
+    if (_smSelected.size === 0) return;
+
+    const n = _smSelected.size;
+    const ok = await openConfirmModal(
+        `¿Eliminar ${n} historia${n !== 1 ? 's' : ''}? Esta acción no se puede deshacer.`,
+        `Eliminar ${n} historia${n !== 1 ? 's' : ''}`
+    );
+    if (!ok) return;
+
+    // Borrar cada topic seleccionado
+    _smSelected.forEach(id => {
+        appData.topics = appData.topics.filter(t => t.id !== id);
+        delete appData.messages[id];
+        delete appData.affinities[id];
+    });
+
+    hasUnsavedChanges = true;
+    save({ silent: true });
+
+    // Subir a nube
+    if (typeof SupabaseSync !== 'undefined') {
+        SupabaseSync.uploadProfileData().catch(() => {});
+    }
+
+    showAutosave(`${n} historia${n !== 1 ? 's' : ''} eliminada${n !== 1 ? 's' : ''}`, 'saved');
+
+    _smSelected.clear();
+    closeSessionManager();
+    renderTopics();
+}
+
+// Exponer para uso desde HTML
+window.openSessionManager  = openSessionManager;
+window.closeSessionManager = closeSessionManager;
+window.smToggleItem        = smToggleItem;
+window.smToggleAll         = smToggleAll;
+window.smSetFilter         = smSetFilter;
+window.smDeleteSelected    = smDeleteSelected;

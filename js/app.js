@@ -575,6 +575,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Sesión existente, inicializar directamente
         hideLoginScreen();
         initializeApp();
+        await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
     } else {
         // Mostrar pantalla de autenticación
         showLoginScreen();
@@ -631,6 +632,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 text: '✨ Actualización lista. Recarga para aplicar mejoras.',
                                 state: 'success',
                             });
+                        } else if (event.data?.type === 'PUSH_NOTIFICATION_CLICK') {
+                            // El usuario pulsó una notificación push con la app en segundo plano
+                            const { topicId } = event.data;
+                            if (topicId && typeof showSection === 'function') {
+                                showSection('topics');
+                                setTimeout(() => {
+                                    if (typeof enterTopic === 'function') enterTopic(topicId);
+                                }, 350);
+                            }
                         }
                     });
 

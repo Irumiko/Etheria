@@ -74,7 +74,16 @@ function openRoleCharacterModal(topicId, options = {}) {
         const visual = c.avatar
             ? `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}">`
             : `<div class="placeholder">${escapeHtml((c.name || '?')[0])}</div>`;
-        return `<button type="button" class="role-char-bubble" title="${escapeHtml(c.name)}" onclick="selectRoleCharacterForTopic('${topicId}', '${c.id}')">${visual}</button>`;
+        const statsBtn = isRpgMode
+            ? `<button type="button" class="role-char-stats-btn" title="Stats de ${escapeHtml(c.name)}"
+                onclick="event.stopPropagation();openRpgStatsModalFromSelect('${topicId}','${c.id}')">⚔️ Stats</button>`
+            : '';
+        return `<div class="role-char-card">
+            <button type="button" class="role-char-bubble" title="${escapeHtml(c.name)}"
+                onclick="selectRoleCharacterForTopic('${topicId}', '${c.id}')">${visual}</button>
+            <span class="role-char-name">${escapeHtml(c.name)}</span>
+            ${statsBtn}
+        </div>`;
     }).join('');
 
     openModal('roleCharacterModal');
@@ -100,12 +109,34 @@ function selectRoleCharacterForTopic(topicId, charId) {
 
     hasUnsavedChanges = true;
     save({ silent: true });
+    if (typeof SupabaseSync !== 'undefined') {
+        SupabaseSync.uploadProfileData().catch(() => {});
+    }
 
     pendingRoleTopicId = null;
     roleCharacterModalContext = null;
     closeModal('roleCharacterModal');
 
     if (context.enterOnSelect) {
+        // En RPG: comprobar si hay puntos sin distribuir ANTES de entrar
+        const isRpg = context.isRpgMode || topic.mode === 'rpg';
+        if (isRpg && typeof openRpgStatsModalBlocking === 'function') {
+            const char     = appData.characters.find(c => String(c.id) === String(charId));
+            const profile  = (char && typeof ensureCharacterRpgProfile === 'function')
+                ? ensureCharacterRpgProfile(char, topicId)
+                : null;
+            const spent    = (profile && typeof getRpgSpentPoints === 'function')
+                ? getRpgSpentPoints(profile)
+                : 14; // fallback = pool completo → no bloqueante si sheets.js no cargó
+            const statsKey = `etheria_stats_prompted_${topicId}_${charId}`;
+
+            if (spent === 0 && !localStorage.getItem(statsKey)) {
+                // Distribución obligatoria — el callback entra al tema al confirmar
+                localStorage.setItem(statsKey, '1');
+                openRpgStatsModalBlocking(charId, topicId, () => enterTopic(topicId));
+                return; // no entrar aún — se entra al confirmar
+            }
+        }
         enterTopic(topicId);
     }
 }
