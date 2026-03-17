@@ -359,6 +359,10 @@
                             <span class="topics-search-icon">🔍</span>
                             <input type="text" id="topicsSearch" class="topics-search-input" placeholder="Buscar historia..." oninput="filterTopics()">
                         </div>
+                        <button class="btn-global-search" onclick="openGlobalSearch()" title="Buscar en el contenido de todos los mensajes">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            Buscar mensajes
+                        </button>
                         <div class="topics-filter-group">
                             <button class="topic-filter-btn active" data-filter="all" onclick="setTopicFilter('all', this)">Todas</button>
                             <button class="topic-filter-btn" data-filter="roleplay" onclick="setTopicFilter('roleplay', this)">Clásico</button>
@@ -739,6 +743,11 @@
                 </div>
             </div>
 
+            <!-- Botón fijar panel de stats (solo visible en RPG) -->
+                <button class="vn-info-pin-btn" id="vnInfoPinBtn" onclick="toggleIhpPin()" title="Fijar panel de stats" style="display:none;">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg>
+                    Fijar stats
+                </button>
             <!-- Panel expandible (IHP): hover=peek, click avatar=pinned -->
             <div class="vn-info-hover-details" id="vnInfoHoverPanel" data-state="hidden">
                 <!-- Botón cerrar (visible en pinned) -->
@@ -761,10 +770,14 @@
                 <div class="ihp-stats" id="ihpStats"></div>
                 <!-- Sección clásico: relaciones (solo visible en pinned + modo clásico) -->
                 <div class="ihp-relations" id="ihpRelations"></div>
-                <!-- Oráculo directo (solo en pinned + modo RPG) -->
+                <!-- Condiciones activas (RPG) -->
+                <div class="ihp-conditions" id="ihpConditions" style="display:none;"></div>
+                <!-- Botón editar stats (solo RPG, visible en pinned) -->
                 <div class="ihp-oracle-hint" id="ihpOracleHint" style="display:none;">
-                    <button class="ihp-oracle-btn" onclick="toggleOracleMiniPanel()" title="Consultar el oráculo">🎲 Consultar oráculo</button>
-                    <button class="ihp-oracle-btn ihp-stats-edit-btn" onclick="openSelectedCharacterStats()" title="Editar stats del personaje">⚔️ Editar Stats</button>
+                    <button class="ihp-stats-edit-btn" onclick="openSelectedCharacterStats()" title="Ver y editar stats del personaje">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Editar stats
+                    </button>
                 </div>
             </div>
         
@@ -807,13 +820,9 @@
         </div>
 
         <div id="roomCodeWrap" class="room-code-panel" style="display:none;">
-            <span class="room-code-label">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-                Sala
-            </span>
-            <code id="roomCodeValue" class="room-code-value"></code>
-            <button type="button" class="room-code-copy-btn" onclick="copyCurrentRoomCode()" title="Copiar código">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <button type="button" class="room-code-share-btn" id="shareStoryBtn" onclick="shareCurrentStory()" title="Compartir enlace de invitación">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Invitar
             </button>
         </div>
 
@@ -1022,10 +1031,12 @@
             <div class="vn-oracle-minipanel-body">
                 <textarea id="oracleMiniQuestion" class="vn-oracle-minipanel-textarea" placeholder="¿Qué intentas hacer? Describe tu acción..." rows="2" onkeydown="event.stopPropagation()" onkeyup="event.stopPropagation()"></textarea>
                 <div class="vn-oracle-minipanel-stats" id="oracleMiniStatButtons">
-                    <button type="button" class="oracle-stat-btn active" data-stat="STR">STR</button>
-                    <button type="button" class="oracle-stat-btn" data-stat="VIT">VIT</button>
-                    <button type="button" class="oracle-stat-btn" data-stat="INT">INT</button>
-                    <button type="button" class="oracle-stat-btn" data-stat="AGI">AGI</button>
+                    <button type="button" class="oracle-stat-btn active" data-stat="STR" title="Fuerza — combate cuerpo a cuerpo, cargar peso">STR</button>
+                    <button type="button" class="oracle-stat-btn" data-stat="DEX" title="Destreza — sigilo, ataques a distancia, evasión">DEX</button>
+                    <button type="button" class="oracle-stat-btn" data-stat="CON" title="Constitución — resistencia, aguante, venenos">CON</button>
+                    <button type="button" class="oracle-stat-btn" data-stat="INT" title="Inteligencia — magia arcana, conocimiento, investigación">INT</button>
+                    <button type="button" class="oracle-stat-btn" data-stat="WIS" title="Sabiduría — percepción, intuición, magia divina">WIS</button>
+                    <button type="button" class="oracle-stat-btn" data-stat="CHA" title="Carisma — persuasión, engaño, liderazgo">CHA</button>
                 </div>
                 <div class="vn-oracle-minipanel-info" id="oracleMiniInfo">D20 +0 vs 12</div>
                 <button type="button" class="vn-oracle-minipanel-roll" onclick="rollOracleMini()">🎲 Consultar destino</button>
@@ -1604,14 +1615,27 @@
                 <div id="rpgStatsTitle" class="rpg-stats-title">⚔️ Nivel 1</div>
                 <button type="button" class="btn-secondary" id="rpgStatsCloseBtn" onclick="closeModal('rpgStatsModal')">Cerrar</button>
             </div>
+            <div class="rpg-stats-tabs">
+                <button class="rpg-stats-tab active" onclick="switchRpgStatsTab('stats',this)">Stats</button>
+                <button class="rpg-stats-tab" onclick="switchRpgStatsTab('inventory',this)">Inventario</button>
+            </div>
             <div id="rpgStatsBody" class="rpg-stats-body"></div>
+            <div id="rpgInventoryBody" class="rpg-stats-body" style="display:none;"></div>
             <!-- Botón confirmar — solo visible en modo bloqueante (RPG al crear tema) -->
             <div id="rpgStatsConfirmBar" class="rpg-stats-confirm-bar" style="display:none;">
-                <p class="rpg-stats-confirm-hint">Distribuye tus <strong id="rpgStatsFreeCount">14</strong> puntos antes de empezar. Esta distribución es permanente para esta historia.</p>
+                <p class="rpg-stats-confirm-hint">Distribuye tus <strong id="rpgStatsFreeCount">27</strong> puntos (point buy D&D) antes de entrar. Cada tema tiene su propia distribución independiente.</p>
                 <button type="button" class="rpg-stats-confirm-btn" id="rpgStatsConfirmBtn" onclick="rpgStatsConfirm()">
                     ✦ Confirmar ficha y entrar
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal de subida de nivel -->
+    <div id="rpgLevelUpModal" class="modal-overlay" onclick="if(event.target===this)closeModal('rpgLevelUpModal')">
+        <div class="rpg-levelup-modal">
+            <div id="rpgLevelUpBody"></div>
+            <button type="button" class="rpg-levelup-confirm" onclick="closeModal('rpgLevelUpModal')">✦ Continuar la aventura</button>
         </div>
     </div>
 
@@ -1889,6 +1913,52 @@
             <button class="ncw-go-btn" onclick="closeModal('noCharacterWarningModal'); showSection('gallery')">
                 ✦ Ir a Personajes
             </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     MODAL INVITACIÓN — Unirse a una historia compartida
+     ══════════════════════════════════════════════════════════════ -->
+<div id="inviteJoinModal" class="modal-overlay" onclick="if(event.target===this)closeModal('inviteJoinModal')">
+    <div class="invite-join-modal">
+        <div class="ijm-icon">🔗</div>
+        <h3 class="ijm-title" id="inviteJoinTitle">Invitación a historia</h3>
+        <p class="ijm-msg" id="inviteJoinMsg">Comprobando enlace…</p>
+        <div class="ijm-actions">
+            <button class="btn-secondary" onclick="closeModal('inviteJoinModal')">Cancelar</button>
+            <button class="ijm-join-btn" id="inviteJoinBtn" disabled>Cargando…</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     BUSCADOR GLOBAL — Busca en el contenido de todos los mensajes
+     ══════════════════════════════════════════════════════════════ -->
+<div id="globalSearchModal" class="modal-overlay" onclick="if(event.target===this)closeGlobalSearch()">
+    <div class="global-search-modal">
+        <div class="gs-header">
+            <div class="gs-input-wrap">
+                <svg class="gs-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="globalSearchInput" class="gs-input"
+                    placeholder="Buscar en todos los mensajes..."
+                    oninput="onGlobalSearchInput(this.value)"
+                    autocomplete="off" spellcheck="false">
+                <button class="gs-clear-btn" id="gsClearBtn" onclick="clearGlobalSearch()" style="display:none">✕</button>
+            </div>
+            <button class="gs-close-btn" onclick="closeGlobalSearch()">✕</button>
+        </div>
+        <div class="gs-meta" id="gsMetaBar" style="display:none">
+            <span id="gsResultCount" class="gs-count"></span>
+            <span class="gs-hint">Clic en un resultado para ir al mensaje</span>
+        </div>
+        <div class="gs-body" id="gsBody">
+            <div class="gs-empty">
+                <p>Escribe para buscar en el contenido de todos tus mensajes.</p>
+                <p class="gs-empty-sub">Usa comillas para búsqueda exacta: <code>"frase exacta"</code></p>
+            </div>
         </div>
     </div>
 </div>

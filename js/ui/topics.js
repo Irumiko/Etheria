@@ -353,34 +353,82 @@ function ensureTopicByRoomId(roomId) {
     return topic;
 }
 
-function copyCurrentRoomCode() {
+async function copyCurrentRoomCode() {
     if (!currentTopicId) return;
-    const roomCode = String(currentTopicId);
 
-    const onSuccess = () => showAutosave('Código de sala copiado', 'saved');
-    const onFailure = () => showAutosave('No se pudo copiar el código', 'error');
+    const topic = appData.topics.find(t => t.id === currentTopicId);
+    const storyId = topic?.storyId || window.currentStoryId;
 
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-        navigator.clipboard.writeText(roomCode).then(onSuccess).catch(onFailure);
+    const _doCopy = (text, label) => {
+        const onSuccess = () => showAutosave(label + ' copiado', 'saved');
+        const onFailure = () => showAutosave('No se pudo copiar', 'error');
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(onSuccess).catch(onFailure);
+        } else {
+            try {
+                const el = document.createElement('textarea');
+                el.value = text; el.style.cssText = 'position:fixed;opacity:0';
+                document.body.appendChild(el); el.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(el);
+                ok ? onSuccess() : onFailure();
+            } catch { onFailure(); }
+        }
+    };
+
+    // Si la historia está en Supabase, generar enlace de invitación real
+    if (storyId && typeof SupabaseStories !== 'undefined' && window._cachedUserId) {
+        showAutosave('Generando enlace...', 'info');
+        const url = await SupabaseStories.generateInviteLink(storyId);
+        if (url) {
+            _doCopy(url, 'Enlace de invitación');
+            // Actualizar el display en la UI
+            const valueEl = document.getElementById('roomCodeValue');
+            if (valueEl) valueEl.textContent = url.split('?invite=')[1] || url;
+            return;
+        }
+    }
+
+    // Fallback: copiar el ID local
+    _doCopy(String(currentTopicId), 'Código de sala');
+}
+
+async function shareCurrentStory() {
+    if (!currentTopicId) return;
+    const topic = appData.topics.find(t => t.id === currentTopicId);
+    const storyId = topic?.storyId || window.currentStoryId;
+
+    if (!storyId || !window._cachedUserId) {
+        showAutosave('Inicia sesión para compartir historias', 'error');
         return;
     }
 
-    try {
-        const fallback = document.createElement('textarea');
-        fallback.value = roomCode;
-        fallback.setAttribute('readonly', 'readonly');
-        fallback.style.position = 'fixed';
-        fallback.style.opacity = '0';
-        document.body.appendChild(fallback);
-        fallback.select();
-        const ok = document.execCommand('copy');
-        document.body.removeChild(fallback);
-        if (ok) onSuccess();
-        else onFailure();
-    } catch {
-        onFailure();
+    showAutosave('Generando enlace...', 'info');
+    const url = await SupabaseStories.generateInviteLink(storyId);
+    if (!url) {
+        showAutosave('No se pudo generar el enlace', 'error');
+        return;
+    }
+
+    // Usar Web Share API si está disponible (móvil)
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: topic?.title || 'Historia en Etheria',
+                text: '¡Únete a esta historia en Etheria!',
+                url
+            });
+            return;
+        } catch {}
+    }
+
+    // Fallback: copiar al portapapeles
+    if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        showAutosave('✓ Enlace copiado — compártelo con quien quieras unirse', 'saved');
     }
 }
+window.shareCurrentStory = shareCurrentStory;
 
 function updateRoomCodeUI(topicId) {
     const wrap = document.getElementById('roomCodeWrap');
@@ -498,6 +546,77 @@ function createTopic() {
 }
 
 // ============================================
+
+
+// ── Modal de unirse por invitación ───────────────────────────────────────────
+
+async function openInviteJoinModal(token) {
+    if (!token) return;
+
+    const modal = document.getElementById('inviteJoinModal');
+    const titleEl = document.getElementById('inviteJoinTitle');
+    const msgEl   = document.getElementById('inviteJoinMsg');
+    const btn     = document.getElementById('inviteJoinBtn');
+    if (!modal) return;
+
+    if (titleEl) titleEl.textContent = 'Cargando invitación…';
+    if (msgEl)   msgEl.textContent   = '';
+    if (btn)     btn.disabled        = true;
+
+    openModal('inviteJoinModal');
+
+    if (typeof SupabaseStories === 'undefined') {
+        if (titleEl) titleEl.textContent = 'Sin conexión';
+        if (msgEl)   msgEl.textContent   = 'Inicia sesión para unirte a historias compartidas.';
+        return;
+    }
+
+    // Buscar la historia por token sin unirse todavía
+    const sb = window.supabaseClient;
+    let storyTitle = null;
+    let storyInfo  = null;
+    try {
+        const { data } = await sb.from('stories')
+            .select('id, title, created_at')
+            .eq('invite_token', token)
+            .single();
+        storyInfo  = data;
+        storyTitle = data?.title;
+    } catch {}
+
+    if (!storyInfo) {
+        if (titleEl) titleEl.textContent = 'Invitación no válida';
+        if (msgEl)   msgEl.textContent   = 'Este enlace no existe o ha expirado.';
+        return;
+    }
+
+    if (titleEl) titleEl.textContent = `"${storyTitle}"`;
+    if (msgEl)   msgEl.textContent   = 'Alguien te ha invitado a esta historia. ¿Quieres unirte?';
+    if (btn) {
+        btn.disabled    = false;
+        btn.textContent = '✦ Unirme a la historia';
+        btn.onclick     = async () => {
+            btn.disabled    = true;
+            btn.textContent = 'Uniéndome…';
+            const result = await SupabaseStories.joinByInviteToken(token);
+            if (result.ok) {
+                closeModal('inviteJoinModal');
+                if (result.alreadyJoined) {
+                    showAutosave('Ya estás en esta historia', 'info');
+                } else {
+                    showAutosave(`✓ Unido a "${result.title}" — ${result.messageCount || 0} mensajes cargados`, 'saved');
+                }
+                // Ir a la sección de historias
+                if (typeof showSection === 'function') showSection('topics');
+            } else {
+                if (msgEl) msgEl.textContent = result.error || 'No se pudo unir a la historia.';
+                btn.disabled    = false;
+                btn.textContent = 'Reintentar';
+            }
+        };
+    }
+}
+window.openInviteJoinModal = openInviteJoinModal;
 
 // ============================================
 // GESTOR DE SESIONES — Selección múltiple
@@ -638,3 +757,307 @@ window.smToggleItem        = smToggleItem;
 window.smToggleAll         = smToggleAll;
 window.smSetFilter         = smSetFilter;
 window.smDeleteSelected    = smDeleteSelected;
+
+// ============================================
+// BUSCADOR GLOBAL DE MENSAJES
+// ============================================
+// Busca en dos fuentes simultáneamente:
+//   1. Mensajes locales (appData.messages) — resultados instantáneos
+//   2. Supabase (índice GIN en search_vector) — resultados de nube
+// Los resultados se fusionan y deduplicados por ID de mensaje.
+
+let _gsDebounceTimer = null;
+let _gsLastQuery     = '';
+
+function openGlobalSearch() {
+    openModal('globalSearchModal');
+    setTimeout(() => {
+        const inp = document.getElementById('globalSearchInput');
+        if (inp) inp.focus();
+    }, 120);
+}
+
+function closeGlobalSearch() {
+    closeModal('globalSearchModal');
+    clearGlobalSearch();
+}
+
+function clearGlobalSearch() {
+    const inp = document.getElementById('globalSearchInput');
+    if (inp) inp.value = '';
+    const clr = document.getElementById('gsClearBtn');
+    if (clr) clr.style.display = 'none';
+    _gsRenderEmpty();
+    _gsLastQuery = '';
+}
+
+function onGlobalSearchInput(value) {
+    const clr = document.getElementById('gsClearBtn');
+    if (clr) clr.style.display = value.trim() ? '' : 'none';
+
+    if (_gsDebounceTimer) clearTimeout(_gsDebounceTimer);
+
+    const q = value.trim();
+    if (q.length < 2) {
+        _gsRenderEmpty();
+        return;
+    }
+
+    _gsDebounceTimer = setTimeout(() => _gsSearch(q), 280);
+}
+
+async function _gsSearch(query) {
+    if (query === _gsLastQuery) return;
+    _gsLastQuery = query;
+
+    _gsRenderLoading();
+
+    // 1. Búsqueda local (instantánea)
+    const localResults = _gsSearchLocal(query);
+
+    // Mostrar resultados locales inmediatamente
+    _gsRenderResults(localResults, false);
+
+    // 2. Búsqueda en Supabase con índice GIN (si hay sesión)
+    if (window._cachedUserId && window.supabaseClient) {
+        try {
+            const cloudResults = await _gsSearchCloud(query);
+            if (_gsLastQuery !== query) return; // query cambió mientras esperábamos
+
+            // Fusionar: los locales tienen prioridad (más contexto)
+            const localIds = new Set(localResults.map(r => r.msgId));
+            const novelCloud = cloudResults.filter(r => !localIds.has(r.msgId));
+            const merged = [...localResults, ...novelCloud];
+            _gsRenderResults(merged, true);
+        } catch (e) {
+            // Fallo silencioso — ya tenemos resultados locales
+            console.debug('[GlobalSearch] cloud search failed:', e?.message);
+        }
+    }
+}
+
+// Búsqueda local en appData.messages
+function _gsSearchLocal(query) {
+    const results = [];
+    const q = query.toLowerCase().replace(/^"|"$/g, '').trim();
+    const isExact = query.startsWith('"') && query.endsWith('"');
+
+    const topics = appData?.topics || [];
+    const messages = appData?.messages || {};
+
+    for (const topic of topics) {
+        const msgs = messages[topic.id] || [];
+        for (const msg of msgs) {
+            if (!msg.text) continue;
+            const text = msg.text.toLowerCase();
+            const matches = isExact ? text.includes(q) : q.split(/\s+/).every(w => text.includes(w));
+            if (!matches) continue;
+
+            results.push({
+                msgId:     msg.id,
+                topicId:   topic.id,
+                topicTitle: topic.title || 'Sin título',
+                charName:  msg.charName || (msg.isNarrator ? 'Narrador' : ''),
+                text:      msg.text,
+                timestamp: msg.timestamp,
+                source:    'local'
+            });
+            if (results.length >= 50) break;
+        }
+        if (results.length >= 50) break;
+    }
+
+    return results.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
+
+// Búsqueda en Supabase usando el índice GIN (tsvector)
+async function _gsSearchCloud(query) {
+    const sb = window.supabaseClient;
+    if (!sb) return [];
+
+    // Construir query tsquery: palabras separadas por &
+    const cleanQuery = query.replace(/^"|"$/g, '').trim();
+    const isExact = query.startsWith('"') && query.endsWith('"');
+    const tsQuery = isExact
+        ? `'${cleanQuery}'`
+        : cleanQuery.split(/\s+/).filter(Boolean).join(' & ');
+
+    try {
+        const { data, error } = await sb
+            .from('messages')
+            .select('id, session_id, content, created_at, story_id')
+            .textSearch('search_vector', tsQuery, { config: 'spanish' })
+            .limit(40);
+
+        if (error || !data) return [];
+
+        const results = [];
+        for (const row of data) {
+            try {
+                const msg = JSON.parse(row.content);
+                if (!msg.text || msg.metaType === 'typing') continue;
+
+                // Resolver título del topic
+                const topicId = row.session_id;
+                const topic   = appData?.topics?.find(t => String(t.id) === topicId || t.storyId === row.story_id);
+
+                results.push({
+                    msgId:      msg.id || row.id,
+                    topicId:    topicId,
+                    topicTitle: topic?.title || 'Historia en la nube',
+                    charName:   msg.charName || (msg.isNarrator ? 'Narrador' : ''),
+                    text:       msg.text,
+                    timestamp:  msg.timestamp || row.created_at,
+                    source:     'cloud'
+                });
+            } catch {}
+        }
+        return results;
+    } catch (e) {
+        return [];
+    }
+}
+
+// ── Renderizado de resultados ─────────────────────────────────────────────────
+
+function _gsHighlight(text, query) {
+    const q = query.replace(/^"|"$/g, '').trim();
+    if (!q) return escapeHtml(text);
+    const words = q.split(/\s+/).filter(Boolean);
+    let escaped = escapeHtml(text);
+    for (const w of words) {
+        const re = new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        escaped = escaped.replace(re, '<mark class="gs-highlight">$1</mark>');
+    }
+    return escaped;
+}
+
+function _gsSnippet(text, query, maxLen = 160) {
+    const q = query.replace(/^"|"$/g, '').trim().toLowerCase();
+    const lower = text.toLowerCase();
+    const pos = lower.indexOf(q.split(/\s+/)[0]);
+    if (pos === -1 || text.length <= maxLen) return text;
+    const start = Math.max(0, pos - 40);
+    const end   = Math.min(text.length, start + maxLen);
+    return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+}
+
+function _gsRenderEmpty() {
+    const body   = document.getElementById('gsBody');
+    const meta   = document.getElementById('gsMetaBar');
+    if (meta) meta.style.display = 'none';
+    if (body) body.innerHTML = `<div class="gs-empty">
+        <p>Escribe para buscar en el contenido de todos tus mensajes.</p>
+        <p class="gs-empty-sub">Usa comillas para búsqueda exacta: <code>"frase exacta"</code></p>
+    </div>`;
+}
+
+function _gsRenderLoading() {
+    const body = document.getElementById('gsBody');
+    const meta = document.getElementById('gsMetaBar');
+    if (meta) meta.style.display = 'none';
+    if (body) body.innerHTML = `<div class="gs-loading">Buscando…</div>`;
+}
+
+function _gsRenderResults(results, cloudDone) {
+    const body  = document.getElementById('gsBody');
+    const meta  = document.getElementById('gsMetaBar');
+    const count = document.getElementById('gsResultCount');
+    if (!body) return;
+
+    if (results.length === 0) {
+        if (meta) meta.style.display = 'none';
+        body.innerHTML = `<div class="gs-no-results">
+            <p>Sin resultados para <strong>"${escapeHtml(_gsLastQuery)}"</strong></p>
+            ${!cloudDone ? '<p class="gs-empty-sub">Buscando en la nube…</p>' : ''}
+        </div>`;
+        return;
+    }
+
+    if (meta) meta.style.display = '';
+    if (count) {
+        count.textContent = results.length >= 50
+            ? '+50 resultados'
+            : `${results.length} resultado${results.length !== 1 ? 's' : ''}`;
+    }
+
+    // Agrupar por topic
+    const byTopic = new Map();
+    for (const r of results) {
+        if (!byTopic.has(r.topicId)) byTopic.set(r.topicId, { title: r.topicTitle, items: [] });
+        byTopic.get(r.topicId).items.push(r);
+    }
+
+    body.innerHTML = [...byTopic.entries()].map(([topicId, group]) => `
+        <div class="gs-group">
+            <div class="gs-group-title">📖 ${escapeHtml(group.title)}</div>
+            ${group.items.map(r => {
+                const snippet = _gsSnippet(r.text, _gsLastQuery);
+                const highlighted = _gsHighlight(snippet, _gsLastQuery);
+                const dateStr = r.timestamp
+                    ? new Date(r.timestamp).toLocaleDateString('es-ES', { day:'numeric', month:'short' })
+                    : '';
+                return `<div class="gs-result" onclick="gsGoToMessage('${escapeHtml(topicId)}','${escapeHtml(r.msgId)}')">
+                    <div class="gs-result-meta">
+                        <span class="gs-result-char">${escapeHtml(r.charName || 'Mensaje')}</span>
+                        <span class="gs-result-date">${dateStr}</span>
+                        ${r.source === 'cloud' ? '<span class="gs-cloud-badge">☁</span>' : ''}
+                    </div>
+                    <div class="gs-result-text">${highlighted}</div>
+                </div>`;
+            }).join('')}
+        </div>
+    `).join('');
+}
+
+// Ir al mensaje seleccionado
+function gsGoToMessage(topicId, msgId) {
+    closeGlobalSearch();
+
+    const topic = appData?.topics?.find(t => String(t.id) === topicId);
+    if (!topic) {
+        showAutosave('Historia no encontrada localmente', 'error');
+        return;
+    }
+
+    // Ir a la sección de temas y luego entrar al topic
+    if (typeof showSection === 'function') showSection('topics');
+    setTimeout(() => {
+        if (typeof enterTopic === 'function') {
+            enterTopic(topicId);
+            // Posicionar en el mensaje específico tras entrar
+            setTimeout(() => {
+                const msgs = appData?.messages?.[topicId] || [];
+                const idx = msgs.findIndex(m => String(m.id) === String(msgId));
+                if (idx !== -1 && typeof showCurrentMessage === 'function') {
+                    window.currentMessageIndex = idx;
+                    showCurrentMessage('forward');
+                }
+            }, 600);
+        }
+    }, 300);
+}
+
+window.openGlobalSearch   = openGlobalSearch;
+window.closeGlobalSearch  = closeGlobalSearch;
+window.clearGlobalSearch  = clearGlobalSearch;
+window.onGlobalSearchInput = onGlobalSearchInput;
+window.gsGoToMessage      = gsGoToMessage;
+
+// Ctrl+F / Cmd+F para abrir el buscador global cuando la sección de historias está activa
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        const topicsSection = document.getElementById('topicsSection');
+        if (topicsSection && topicsSection.classList.contains('active')) {
+            e.preventDefault();
+            openGlobalSearch();
+        }
+    }
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('globalSearchModal');
+        if (modal && modal.style.display !== 'none') {
+            e.stopPropagation();
+            closeGlobalSearch();
+        }
+    }
+});

@@ -619,6 +619,134 @@
         _renderStoryParticipants(global.currentStoryParticipants || []);
     });
 
+
+    // ── Invitaciones por enlace ───────────────────────────────────────────────
+
+    /**
+     * Genera o recupera el token de invitación de una historia.
+     * Guarda el token en Supabase y devuelve la URL completa para compartir.
+     * @param {string} storyId  UUID de la historia
+     * @returns {string|null}   URL de invitación o null si falla
+     */
+    async function generateInviteLink(storyId) {
+        if (!storyId) return null;
+        const c = _getClient();
+        if (!c) return null;
+
+        try {
+            // Primero comprobar si ya tiene token
+            const { data: existing } = await c
+                .from('stories')
+                .select('invite_token')
+                .eq('id', storyId)
+                .single();
+
+            let token = existing?.invite_token;
+
+            if (!token) {
+                // Generar token nuevo via la función SQL
+                const { data: tokenData } = await c
+                    .rpc('generate_invite_token');
+                token = tokenData;
+
+                // Guardar en la historia
+                await c
+                    .from('stories')
+                    .update({ invite_token: token })
+                    .eq('id', storyId);
+            }
+
+            if (!token) return null;
+
+            const base = global.location.origin + global.location.pathname;
+            return `${base}?invite=${token}`;
+
+        } catch (e) {
+            logger?.warn('supabase:stories', 'generateInviteLink error:', e?.message);
+            return null;
+        }
+    }
+
+    /**
+     * Busca una historia por su token de invitación y la importa al perfil local.
+     * Descarga los mensajes de Supabase y crea el topic en appData.
+     * @param {string} token  Token de invitación (8 chars hex)
+     * @returns {{ ok: boolean, topicId?: string, title?: string, error?: string }}
+     */
+    async function joinByInviteToken(token) {
+        if (!token || token.length < 6) return { ok: false, error: 'Token inválido.' };
+
+        const c = _getClient();
+        if (!c) return { ok: false, error: 'Sin conexión a Supabase.' };
+
+        try {
+            // Buscar la historia por token
+            const { data: story, error: storyErr } = await c
+                .from('stories')
+                .select('id, title, created_by, created_at, invite_token')
+                .eq('invite_token', token)
+                .single();
+
+            if (storyErr || !story) {
+                return { ok: false, error: 'Enlace de invitación no encontrado o expirado.' };
+            }
+
+            const storyId = story.id;
+
+            // Comprobar si el topic ya existe localmente
+            if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+                const existing = appData.topics.find(t => t.storyId === storyId);
+                if (existing) {
+                    return { ok: true, topicId: existing.id, title: story.title, alreadyJoined: true };
+                }
+            }
+
+            // Descargar mensajes de la historia
+            const messages = await _loadStoryMessages(storyId);
+
+            // Crear el topic local vinculado a esta historia
+            const topicId = storyId; // usar el storyId como topicId para mantener coherencia
+            const topic = {
+                id:             topicId,
+                title:          story.title,
+                storyId:        storyId,
+                background:     typeof DEFAULT_TOPIC_BACKGROUND !== 'undefined' ? DEFAULT_TOPIC_BACKGROUND : '',
+                mode:           'roleplay',
+                roleCharacterId: null,
+                createdBy:      story.created_by || 'Desconocido',
+                createdByIndex: -1,  // -1 = otro usuario
+                date:           new Date(story.created_at).toLocaleDateString('es-ES'),
+                _fromInvite:    true
+            };
+
+            if (typeof appData !== 'undefined') {
+                if (!Array.isArray(appData.topics)) appData.topics = [];
+                appData.topics.unshift(topic);
+                appData.messages = appData.messages || {};
+                appData.messages[topicId] = messages;
+            }
+
+            if (typeof hasUnsavedChanges !== 'undefined') hasUnsavedChanges = true;
+            if (typeof save === 'function') save({ silent: true });
+            if (typeof SupabaseSync !== 'undefined') {
+                SupabaseSync.uploadProfileData().catch(() => {});
+            }
+            if (typeof renderTopics === 'function') renderTopics();
+
+            global.currentStoryId = storyId;
+
+            global.dispatchEvent(new CustomEvent('etheria:story-joined', {
+                detail: { storyId, topicId, title: story.title, messageCount: messages.length }
+            }));
+
+            return { ok: true, topicId, title: story.title, messageCount: messages.length };
+
+        } catch (e) {
+            logger?.warn('supabase:stories', 'joinByInviteToken error:', e?.message);
+            return { ok: false, error: e?.message || 'Error inesperado al unirse a la historia.' };
+        }
+    }
+
     // ── API pública ───────────────────────────────────────────────────────────
 
     global.SupabaseStories = {
@@ -626,7 +754,9 @@
         loadStories           : loadStories,
         enterStory            : enterStory,
         leaveStory            : leaveStory,
-        loadStoryParticipants : loadStoryParticipants
+        loadStoryParticipants : loadStoryParticipants,
+        generateInviteLink    : generateInviteLink,
+        joinByInviteToken     : joinByInviteToken
     };
 
 }(window));

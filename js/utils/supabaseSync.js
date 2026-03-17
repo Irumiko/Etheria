@@ -72,6 +72,20 @@ const SupabaseSync = (function () {
         const journals = appData?.journals || {};
         const reactions = appData?.reactions || {};
 
+        // Incluir inventario y estado RPG (flags, nivel, HP) del motor de escenas.
+        // Se guarda por profileIndex para que cada perfil tenga su estado independiente.
+        // Sin esto, el inventario y los flags se pierden al cambiar de dispositivo.
+        const rpgStateSnapshot = (() => {
+            try {
+                if (typeof RPGState !== 'undefined' && typeof RPGState.getSnapshot === 'function') {
+                    return RPGState.getSnapshot();
+                }
+                // Fallback: leer directamente de localStorage si RPGState no está activo
+                const raw = localStorage.getItem(`etheria_rpg_state_${profileIndex}`);
+                return raw ? JSON.parse(raw) : null;
+            } catch { return null; }
+        })();
+
         const profileMeta = {
             genders: (() => {
                 try { return JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch { return []; }
@@ -94,6 +108,7 @@ const SupabaseSync = (function () {
             favorites,
             journals,
             reactions,
+            rpgStateSnapshot,
             profileMeta,
             lastMessageIndex: typeof currentMessageIndex !== 'undefined' ? currentMessageIndex : 0,
             settings: {
@@ -144,6 +159,23 @@ const SupabaseSync = (function () {
         // Guardar en localStorage
         if (typeof persistPartitionedData === 'function') {
             persistPartitionedData(true);
+        }
+
+        // Restaurar inventario y estado RPG del motor de escenas si viene en los datos sincronizados
+        if (syncedData.rpgStateSnapshot && typeof syncedData.rpgStateSnapshot === 'object') {
+            try {
+                const profileIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
+                localStorage.setItem(
+                    `etheria_rpg_state_${profileIndex}`,
+                    JSON.stringify(syncedData.rpgStateSnapshot)
+                );
+                // Recargar en memoria si RPGState ya está inicializado
+                if (typeof RPGState !== 'undefined' && typeof RPGState.loadSnapshot === 'function') {
+                    RPGState.loadSnapshot(syncedData.rpgStateSnapshot);
+                }
+            } catch (e) {
+                window.EtheriaLogger?.warn('supabaseSync', 'No se pudo restaurar rpgStateSnapshot:', e?.message);
+            }
         }
 
         return true;

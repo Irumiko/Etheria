@@ -188,8 +188,9 @@
                     weather          : msgObj.weather           || undefined,
                     diceRoll         : msgObj.diceRoll          || undefined,
                     options          : msgObj.options           || undefined,
-                    oracle           : msgObj.oracle            || undefined,
-                    metaType         : msgObj.metaType          || undefined,
+                    oracle            : msgObj.oracle             || undefined,
+                    oracleConsequence : msgObj.oracleConsequence  || undefined,
+                    metaType          : msgObj.metaType           || undefined,
                     typing           : msgObj.typing            || undefined
                 })
             };

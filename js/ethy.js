@@ -119,7 +119,7 @@ const Ethy = (function() {
                     action: () => highlightElement('.gallery-new-btn')
                 },
                 {
-                    text: 'En modo RPG cada personaje tendrá también stats (STR, INT, VIT, AGI) y un nivel que crece con la experiencia.',
+                    text: 'En modo RPG cada personaje tiene stats D&D (STR, DEX, CON, INT, WIS, CHA) y un nivel que crece con la experiencia.',
                     expression: 'thoughtful',
                     action: null
                 },

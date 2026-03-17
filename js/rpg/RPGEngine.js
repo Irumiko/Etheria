@@ -218,6 +218,7 @@ const RPGEngine = (function () {
 
             case 'modify_stat':
                 RPGState.modifyStat(step.stat, step.amount);
+                _syncBackToActiveChar();
                 _next();
                 break;
 
@@ -237,6 +238,7 @@ const RPGEngine = (function () {
 
             case 'add_xp':
                 RPGState.addXp(step.amount || 0);
+                _syncBackToActiveChar();
                 _next();
                 break;
 
@@ -357,6 +359,19 @@ const RPGEngine = (function () {
     });
 
     // ── Exports ──────────────────────────────────────────────────
+
+    // Sincroniza HP/EXP/level de vuelta a la ficha del personaje activo
+    function _syncBackToActiveChar() {
+        if (typeof RPGState === 'undefined' || typeof RPGState.syncToCharacter !== 'function') return;
+        var charId  = window.selectedCharId;
+        var topicId = window.currentTopicId;
+        if (!charId || !topicId) return;
+        var char = (typeof appData !== 'undefined' && appData.characters)
+            ? appData.characters.find(function(c) { return String(c.id) === String(charId); })
+            : null;
+        if (char) RPGState.syncToCharacter(char, topicId);
+    }
+
     return {
         loadScene:         loadScene,
         advance:           advance,

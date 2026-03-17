@@ -130,8 +130,9 @@ function selectRoleCharacterForTopic(topicId, charId) {
                 : 14; // fallback = pool completo → no bloqueante si sheets.js no cargó
             const statsKey = `etheria_stats_prompted_${topicId}_${charId}`;
 
-            if (spent === 0 && !localStorage.getItem(statsKey)) {
-                // Distribución obligatoria — el callback entra al tema al confirmar
+            if (!localStorage.getItem(statsKey)) {
+                // Distribución obligatoria la primera vez — igual que elegir personaje.
+                // El jugador DEBE confirmar la ficha antes de poder entrar al tema.
                 localStorage.setItem(statsKey, '1');
                 openRpgStatsModalBlocking(charId, topicId, () => enterTopic(topicId));
                 return; // no entrar aún — se entra al confirmar
@@ -587,17 +588,21 @@ function updateInfoHoverDetails(char, isPinned = false) {
         }
     }
 
-    // ── Stats grid (RPG) ─────────────────────────────────────────────
+    // ── Stats grid (RPG) — muestra los 6 stats D&D con modificador ───
     const ihpStats = document.getElementById('ihpStats');
     if (ihpStats) {
         if (isRpg && typeof ensureCharacterRpgProfile === 'function') {
-            const profile   = ensureCharacterRpgProfile(char, currentTopicId);
-            const baseStats = window.RPG_BASE_STATS || { STR: 5, VIT: 5, INT: 5, AGI: 5 };
-            const totalStats = {};
-            for (const k of Object.keys(baseStats)) totalStats[k] = baseStats[k] + (profile.stats?.[k] || 0);
-            ihpStats.innerHTML = Object.keys(baseStats).map(k =>
-                `<div class="ihp-stat-cell"><span class="ihp-stat-key">${k}</span><span class="ihp-stat-num">${totalStats[k]}</span></div>`
-            ).join('');
+            const profile  = ensureCharacterRpgProfile(char, currentTopicId);
+            const statKeys = (window.RPG_STAT_KEYS) || ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+            const modStr   = (v) => { const m = Math.floor((v - 10) / 2); return (m >= 0 ? '+' : '') + m; };
+            ihpStats.innerHTML = statKeys.map(k => {
+                const val = profile.stats?.[k] ?? 8;
+                return `<div class="ihp-stat-cell" title="${window.RPG_STAT_DESC?.[k] || k}">
+                    <span class="ihp-stat-key">${k}</span>
+                    <span class="ihp-stat-num">${val}</span>
+                    <span class="ihp-stat-mod">${modStr(val)}</span>
+                </div>`;
+            }).join('');
         } else {
             ihpStats.innerHTML = '';
         }
@@ -632,10 +637,41 @@ function updateInfoHoverDetails(char, isPinned = false) {
         }
     }
 
-    // ── Botón oráculo (RPG pinned) ────────────────────────────────────
+    // ── Condiciones activas (RPG, bajo los stats) ───────────────────────
+    const ihpConditionsEl = document.getElementById('ihpConditions');
+    if (ihpConditionsEl) {
+        if (isRpg && typeof ensureCharacterRpgProfile === 'function') {
+            const condProfile = ensureCharacterRpgProfile(char, currentTopicId);
+            const conds = condProfile?.conditions || [];
+            if (conds.length > 0 && window.RPG_CONDITIONS) {
+                ihpConditionsEl.style.display = '';
+                ihpConditionsEl.innerHTML = conds.map(cId => {
+                    const c = window.RPG_CONDITIONS[cId];
+                    return c ? `<span class="ihp-cond-pill" style="border-color:${c.color}25;color:${c.color};" title="${c.desc}">${c.icon} ${c.label}</span>` : '';
+                }).join('');
+            } else {
+                ihpConditionsEl.style.display = 'none';
+                ihpConditionsEl.innerHTML = '';
+            }
+        } else {
+            ihpConditionsEl.style.display = 'none';
+        }
+    }
+
+    // ── Botón editar stats (RPG pinned) ──────────────────────────────────
     const ihpOracle = document.getElementById('ihpOracleHint');
     if (ihpOracle) {
         ihpOracle.style.display = (isRpg && pinned) ? '' : 'none';
+    }
+
+    // ── Botón fijar panel (visible en modo RPG, en la info-card fija) ────
+    const pinBtn = document.getElementById('vnInfoPinBtn');
+    if (pinBtn) {
+        pinBtn.style.display = isRpg ? '' : 'none';
+        pinBtn.textContent = '';
+        pinBtn.innerHTML = pinned
+            ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg> Soltar`
+            : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z"/></svg> Fijar stats`;
     }
 }
 

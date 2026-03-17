@@ -84,7 +84,7 @@ async function logout() {
         logger?.warn('app:auth', 'logout failed:', error?.message || error);
     }
 
-    // Limpiar cache de usuario para evitar que módulos de sync crean que hay sesión activa.
+    // Limpiar caché de usuario.
     window._cachedUserId = null;
     window.dispatchEvent(new CustomEvent('etheria:auth-changed', {
         detail: { user: null }
@@ -94,6 +94,14 @@ async function logout() {
         SupabaseSync.stopAutoSync();
     }
 
+    // Limpiar los datos de la cuenta del localStorage para que la próxima
+    // sesión (misma u otra cuenta) arranque desde cero y no herede datos ajenos.
+    _clearAccountData();
+
+    // Resetear el flag de inicialización para que initializeApp() pueda
+    // volver a ejecutarse cuando el siguiente usuario inicie sesión.
+    appInitialized = false;
+
     showLoginScreen();
     showAuthMain();
     setAuthStatus('Sesión cerrada. Introduce email y contraseña para entrar.', false);
@@ -101,6 +109,53 @@ async function logout() {
         const emailInput = document.getElementById('authEmail');
         if (emailInput) emailInput.focus();
     }, 30);
+}
+
+// Limpia del localStorage todos los datos vinculados a una cuenta concreta.
+// Se llama en logout y antes de iniciar sesión con una cuenta distinta.
+// NO borra preferencias de UI (tema, velocidad, tamaño de fuente) porque
+// esas son preferencias del dispositivo, no del usuario.
+function _clearAccountData() {
+    const accountKeys = [
+        'etheria_user_names',
+        'etheria_user_genders',
+        'etheria_user_birthdays',
+        'etheria_user_avatars',
+        'etheria_topics',
+        'etheria_characters',
+        'etheria_affinities',
+        'etheria_message_topics',
+        'etheria_favorites',
+        'etheria_journals',
+        'etheria_reactions',
+        'etheria_data',        // clave legacy
+        'lastProfileId',
+    ];
+    accountKeys.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+
+    // Limpiar claves dinámicas con prefijo (mensajes por tema, timestamps de sync)
+    try {
+        Object.keys(localStorage)
+            .filter(k =>
+                k.startsWith('etheria_messages_') ||
+                k.startsWith('etheria_profile_updated_') ||
+                k.startsWith('etheria_rpg_state_') ||
+                k.startsWith('etheria_stats_prompted_')
+            )
+            .forEach(k => localStorage.removeItem(k));
+    } catch (_) {}
+
+    // Resetear estado de memoria de la app
+    if (typeof appData !== 'undefined') {
+        appData.topics      = [];
+        appData.characters  = [];
+        appData.messages    = {};
+        appData.affinities  = {};
+        appData.favorites   = {};
+        appData.journals    = {};
+        appData.reactions   = {};
+    }
+    if (typeof userNames !== 'undefined') userNames.length = 0;
 }
 
 async function login() {
@@ -125,20 +180,25 @@ async function login() {
         return;
     }
 
+    // Limpiar datos de cualquier cuenta anterior ANTES de cargar los nuevos.
+    // Sin esto, si la cuenta nueva no tiene datos en Supabase, la UI mostraría
+    // los datos locales de la cuenta anterior.
+    _clearAccountData();
+    appInitialized = false;
+
     hideLoginScreen();
     initializeApp();
     await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
 
     // La nube siempre gana al iniciar sesión: descargar y reemplazar datos locales.
-    // Resuelve la desincronización entre dispositivos (PWA vs navegador) con el mismo login.
     if (typeof SupabaseSync !== 'undefined') {
-        const result = await SupabaseSync.downloadProfileData();
-        if (result.ok && result.data) {
-            if (typeof renderTopics === 'function')   renderTopics();
-            if (typeof renderGallery === 'function')  renderGallery();
-            if (typeof renderUserCards === 'function') renderUserCards();
-        }
+        await SupabaseSync.downloadProfileData();
     }
+
+    // Re-renderizar siempre, tanto si había datos en la nube como si no.
+    if (typeof renderTopics === 'function')    renderTopics();
+    if (typeof renderGallery === 'function')   renderGallery();
+    if (typeof renderUserCards === 'function') renderUserCards();
 }
 
 async function register() {
@@ -166,6 +226,14 @@ async function register() {
         return;
     }
 
+    // Limpiar sesión y datos de cualquier cuenta activa antes de registrar una nueva.
+    try {
+        await window.supabaseClient.auth.signOut();
+        window._cachedUserId = null;
+    } catch (e) { /* ignorar — puede no haber sesión activa */ }
+    _clearAccountData();
+    appInitialized = false;
+
     setAuthStatus('Creando cuenta...', null, 'authRegStatus');
     const { data, error } = await window.supabaseClient.auth.signUp({ email, password });
 
@@ -184,15 +252,15 @@ async function register() {
         initializeApp();
         await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
 
-        // Nube gana también en registro (puede haber datos de otro dispositivo)
+        // Cuenta nueva: intentar descargar datos (puede ser cuenta existente en otro dispositivo)
         if (typeof SupabaseSync !== 'undefined') {
-            const result = await SupabaseSync.downloadProfileData();
-            if (result.ok && result.data) {
-                if (typeof renderTopics === 'function')   renderTopics();
-                if (typeof renderGallery === 'function')  renderGallery();
-                if (typeof renderUserCards === 'function') renderUserCards();
-            }
+            await SupabaseSync.downloadProfileData();
         }
+
+        // Re-renderizar siempre.
+        if (typeof renderTopics === 'function')    renderTopics();
+        if (typeof renderGallery === 'function')   renderGallery();
+        if (typeof renderUserCards === 'function') renderUserCards();
     }
 }
 
@@ -319,8 +387,27 @@ function initializeApp() {
     setupGallerySearchListeners();
 
 
+    // Comprobar token de invitación (?invite=TOKEN) — tiene prioridad sobre ?room=
+    const _pendingInviteToken = new URLSearchParams(window.location.search).get('invite');
     pendingRoomInviteId = (typeof getRoomIdFromQuery === 'function') ? getRoomIdFromQuery() : null;
-    if (pendingRoomInviteId) {
+
+    if (_pendingInviteToken) {
+        // Limpiar la URL para no re-procesar en recargas
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+        // Guardar el token para usarlo tras el login
+        window._pendingInviteToken = _pendingInviteToken;
+        // Mostrar modal de invitación cuando el usuario esté autenticado
+        window.addEventListener('etheria:auth-changed', function _onAuthForInvite(e) {
+            if (!e.detail?.user?.id) return;
+            window.removeEventListener('etheria:auth-changed', _onAuthForInvite);
+            const tok = window._pendingInviteToken;
+            window._pendingInviteToken = null;
+            if (tok && typeof openInviteJoinModal === 'function') {
+                setTimeout(() => openInviteJoinModal(tok), 800);
+            }
+        }, { once: false });
+    } else if (pendingRoomInviteId) {
         const defaultProfile = getStoredLastProfileId();
         selectUser(defaultProfile !== null ? defaultProfile : 0, { autoLoad: true })
             .then(() => {

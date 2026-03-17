@@ -97,9 +97,14 @@ function getOracleAutodetectedQuestion(rawText) {
 
 function getOracleSelectedStatValue() {
     const char = appData.characters.find(c => c.id === selectedCharId);
-    if (!char || typeof getRpgSheetData !== 'function') return 5;
-    const stats = getRpgSheetData(char, currentTopicId || null)?.totalStats || {};
-    return Number(stats[oracleStat]) || 5;
+    if (!char || typeof getRpgSheetData !== 'function') return 8;
+    const profile = getRpgSheetData(char, currentTopicId || null)?.profile;
+    const baseVal = Number(profile?.stats?.[oracleStat]) || 8;
+    // Aplicar modificadores de condiciones activas
+    const condMod = (typeof getConditionModifier === 'function' && profile)
+        ? getConditionModifier(profile, oracleStat)
+        : 0;
+    return Math.max(1, baseVal + condMod);
 }
 
 function refreshOracleProbability() {
@@ -121,7 +126,7 @@ function refreshOracleQuestionAutodetect(force = false) {
     if (autoQ && !questionInput.value.trim()) questionInput.value = autoQ;
 }
 function setOracleStat(nextStat) {
-    oracleStat = ['STR', 'VIT', 'INT', 'AGI'].includes(nextStat) ? nextStat : 'STR';
+    oracleStat = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].includes(nextStat) ? nextStat : 'STR';
     document.querySelectorAll('.oracle-stat-btn').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.stat === oracleStat);
     });
@@ -244,9 +249,14 @@ function refreshOracleMiniInfo() {
     if (!infoEl) return;
     const char = appData.characters.find(c => c.id === selectedCharId);
     const stats = (char && typeof getRpgSheetData === 'function')
-        ? (getRpgSheetData(char, currentTopicId || null)?.totalStats || {})
+        ? (getRpgSheetData(char, currentTopicId || null)?.profile?.stats || {})
         : {};
-    const statValue = Number(stats[oracleMiniStat]) || 5;
+    const baseStatValue = Number(stats[oracleMiniStat]) || 8;
+    // Aplicar modificadores de condiciones activas al stat
+    const condMod = (char && typeof ensureCharacterRpgProfile === 'function' && typeof getConditionModifier === 'function')
+        ? getConditionModifier(ensureCharacterRpgProfile(char, currentTopicId), oracleMiniStat)
+        : 0;
+    const statValue = Math.max(1, baseStatValue + condMod);
     const modifier = getOracleModifier(statValue);
     const dc = calculateOracleDifficulty();
     const sign = modifier >= 0 ? '+' : '';
@@ -260,9 +270,14 @@ function rollOracleMini() {
 
     const char = appData.characters.find(c => c.id === selectedCharId);
     const stats = (char && typeof getRpgSheetData === 'function')
-        ? (getRpgSheetData(char, currentTopicId || null)?.totalStats || {})
+        ? (getRpgSheetData(char, currentTopicId || null)?.profile?.stats || {})
         : {};
-    const statValue = Number(stats[oracleMiniStat]) || 5;
+    const baseStatValue = Number(stats[oracleMiniStat]) || 8;
+    // Aplicar modificadores de condiciones activas al stat
+    const condMod = (char && typeof ensureCharacterRpgProfile === 'function' && typeof getConditionModifier === 'function')
+        ? getConditionModifier(ensureCharacterRpgProfile(char, currentTopicId), oracleMiniStat)
+        : 0;
+    const statValue = Math.max(1, baseStatValue + condMod);
     const modifier = getOracleModifier(statValue);
     const dc = calculateOracleDifficulty();
     const roll = Math.floor(Math.random() * 20) + 1;
@@ -328,7 +343,23 @@ function rollOracleMini() {
         oracle: oracleData
     };
 
-    if (topic?.mode === 'rpg') applyRpgNarrativeProgress(selectedCharId, oracleData);
+    // Aplicar efectos mecánicos y guardar la consecuencia estructurada en el mensaje
+    if (topic?.mode === 'rpg') {
+        const char = appData.characters.find(c => String(c.id) === String(selectedCharId));
+        const effects = applyRpgNarrativeProgress(selectedCharId, oracleData);
+        if (effects) {
+            const badgeText = buildConsequenceBadgeText(result, effects, char?.name);
+            if (badgeText) newMsg.oracleConsequence = badgeText;
+            // Guardar el nivel nuevo en effects para el badge
+            if (effects.levelUp && char) {
+                const profile = typeof ensureCharacterRpgProfile === 'function'
+                    ? ensureCharacterRpgProfile(char, currentTopicId)
+                    : null;
+                if (profile) effects.newLevel = profile.level;
+                newMsg.oracleConsequence = buildConsequenceBadgeText(result, effects, char?.name);
+            }
+        }
+    }
 
     topicMessages.push(newMsg);
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
@@ -1001,6 +1032,18 @@ function _doEnterTopic(id, t, topicMode) {
     currentTopicMode = topicMode;
     if (!_resolveCharacterForMode(t, id, topicMode)) return;
 
+    // ── 2b. Sincronizar RPGState desde la ficha del personaje activo ──────────
+    // Sincroniza los stats D&D (STR/DEX/CON/INT/WIS/CHA) de la ficha con el motor
+    // de escenas JSON (RPGState). Solo en modo RPG y si hay personaje activo.
+    if (topicMode === 'rpg' && selectedCharId &&
+        typeof RPGState !== 'undefined' &&
+        typeof RPGState.syncFromCharacter === 'function') {
+        const _activeChar = appData.characters.find(c => String(c.id) === String(selectedCharId));
+        if (_activeChar) {
+            RPGState.syncFromCharacter(_activeChar, id);
+        }
+    }
+
     // ── 3. Aplicar entorno visual (clima, fondo, CSS de modo) ─────────────────
     setWeather(t.weather || 'none');
     const vnSection = document.getElementById('vnSection');
@@ -1480,10 +1523,15 @@ function showCurrentMessage(direction = 'forward') {
             fumble:   { label: 'FALLO CRÍTICO',   cls: 'badge-fumble',   icon: '✕', borderColor: '#ff4444' }
         }[result] || { label: result.toUpperCase(), cls: 'badge-success', icon: '◆', borderColor: '#27ae60' };
 
-        diceBadge.innerHTML = `<span style="margin-right:0.35rem;">${resultMeta.icon}</span><strong>${resultMeta.label}</strong><span style="opacity:0.7;margin-left:0.5rem;font-size:0.85em;">D20(${roll}) ${modSign}${mod} = ${total} vs ${dc}${stat ? ' [' + stat + ']' : ''}</span>`;
+        const consequenceHtml = msg.oracleConsequence
+            ? `<span class="vn-dice-consequence">${msg.oracleConsequence}</span>`
+            : '';
+        diceBadge.innerHTML = `<span style="margin-right:0.35rem;">${resultMeta.icon}</span><strong>${resultMeta.label}</strong><span style="opacity:0.7;margin-left:0.5rem;font-size:0.85em;">D20(${roll}) ${modSign}${mod} = ${total} vs ${dc}${stat ? ' [' + stat + ']' : ''}</span>${consequenceHtml}`;
         diceBadge.className = `vn-dice-badge ${resultMeta.cls}`;
         diceBadge.style.borderLeft = `3px solid ${resultMeta.borderColor}`;
-        diceBadge.style.display = 'inline-flex';
+        diceBadge.style.display = 'flex';
+        diceBadge.style.flexDirection = 'column';
+        diceBadge.style.alignItems = 'flex-start';
     } else if (diceBadge) {
         diceBadge.style.display = 'none';
         diceBadge.style.borderLeft = '';
@@ -1841,8 +1889,11 @@ function updateSprites(currentMsg, activeEmote = null) {
             img.decoding = 'async';
             img.fetchPriority = isCurrent ? 'high' : 'low';
             queueSpriteImageLoad(img, {
-                placeholder: char.charAvatar ? escapeHtml(char.charAvatar) : null,
-                thumb: char.charAvatar ? escapeHtml(char.charAvatar) : null,
+                // No usar el avatar como placeholder — el avatar es una imagen pequeña
+                // de perfil que se estiraría al tamaño del sprite (pantalla completa).
+                // Si hay sprite, se carga directamente sin placeholder intermedio.
+                placeholder: null,
+                thumb: null,
                 full: escapeHtml(char.charSprite),
             });
             img.alt = escapeHtml(char.charName || 'Sprite');
@@ -2578,29 +2629,107 @@ function tickRpgKnockoutTurns(excludedCharId) {
     if (anyChanged) { hasUnsavedChanges = true; save({ silent: true }); }
 }
 
+// Aplica los efectos mecánicos de una tirada de oráculo al perfil del personaje.
+// Devuelve un objeto con los efectos aplicados para mostrarlos en el badge del chat.
 function applyRpgNarrativeProgress(charId, oracleRoll) {
-    if (!charId || !oracleRoll) return;
+    if (!charId || !oracleRoll) return null;
     const char = getCharacterById(charId);
-    if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return null;
 
     const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
+    const expPerLevel = (typeof RPG_EXP_PER_LEVEL !== 'undefined') ? RPG_EXP_PER_LEVEL : 10;
+    const effects = { hpDelta: 0, expDelta: 0, levelUp: false, knockedOut: false, conditionApplied: null };
 
     if (oracleRoll.result === 'fumble') {
-        profile.hp = Math.max(0, profile.hp - 2);
-        if (profile.hp === 0) profile.knockedOutTurns = 5;
+        effects.hpDelta = -2;
+        profile.hp = Math.max(0, profile.hp + effects.hpDelta);
+        if (profile.hp === 0) {
+            profile.knockedOutTurns = 5;
+            effects.knockedOut = true;
+            // Aplicar condición Inconsciente automáticamente
+            if (typeof applyConditionToProfile === 'function') {
+                applyConditionToProfile(profile, 'unconscious');
+                effects.conditionApplied = 'unconscious';
+            }
+        }
     } else if (oracleRoll.result === 'fail') {
-        profile.hp = Math.max(0, profile.hp - 1);
-        if (profile.hp === 0) profile.knockedOutTurns = 5;
+        effects.hpDelta = -1;
+        profile.hp = Math.max(0, profile.hp + effects.hpDelta);
+        if (profile.hp === 0) {
+            profile.knockedOutTurns = 5;
+            effects.knockedOut = true;
+            if (typeof applyConditionToProfile === 'function') {
+                applyConditionToProfile(profile, 'unconscious');
+                effects.conditionApplied = 'unconscious';
+            }
+        }
     } else if (oracleRoll.result === 'success') {
-        profile.exp += 1;
-        if (profile.exp >= 10) { profile.exp = 0; profile.level += 1; }
+        effects.expDelta = 1;
+        profile.exp = (profile.exp || 0) + effects.expDelta;
+        if (profile.exp >= expPerLevel) {
+            profile.exp = profile.exp % expPerLevel;
+            profile.level = (profile.level || 1) + 1;
+            effects.levelUp = true;
+            // Recalcular HP_max al subir de nivel
+            if (typeof recalcHpMaxOnLevelUp === 'function') {
+                recalcHpMaxOnLevelUp(profile, char);
+            }
+        }
     } else if (oracleRoll.result === 'critical') {
-        profile.exp += 2;
-        if (profile.exp >= 10) { profile.exp = 0; profile.level += 1; }
+        effects.expDelta = 2;
+        profile.exp = (profile.exp || 0) + effects.expDelta;
+        if (profile.exp >= expPerLevel) {
+            profile.exp = profile.exp % expPerLevel;
+            profile.level = (profile.level || 1) + 1;
+            effects.levelUp = true;
+            if (typeof recalcHpMaxOnLevelUp === 'function') {
+                recalcHpMaxOnLevelUp(profile, char);
+            }
+        }
     }
-    // Persistir cambios de perfil RPG inmediatamente
+
     hasUnsavedChanges = true;
     save({ silent: true });
+
+    // Sincronizar cambios al motor de escenas RPG si está activo
+    if (typeof RPGState !== 'undefined' && typeof RPGState.syncFromCharacter === 'function') {
+        RPGState.syncFromCharacter(char, currentTopicId);
+    }
+
+    // Disparar level-up modal si procede (pequeño delay para no interrumpir la narrativa)
+    if (effects.levelUp) {
+        setTimeout(() => {
+            if (typeof openLevelUpModal === 'function') openLevelUpModal(charId, profile.level);
+        }, 1200);
+    }
+
+    return effects;
+}
+
+// Construye el texto de consecuencia estructurada para el badge del chat
+function buildConsequenceBadgeText(result, effects, charName) {
+    if (!effects) return null;
+    const name = charName || 'El personaje';
+    const lines = [];
+
+    if (result === 'fumble') {
+        lines.push(`−2 HP ${name}`);
+        if (effects.knockedOut) lines.push('⚠ Inconsciente — KO 5 turnos');
+        else lines.push('Narrador: daño severo, complicación grave o consecuencia permanente');
+    } else if (result === 'fail') {
+        lines.push(`−1 HP ${name}`);
+        if (effects.knockedOut) lines.push('⚠ Inconsciente — KO 5 turnos');
+        else lines.push('Narrador: obstáculo, coste narrativo o consecuencia menor');
+    } else if (result === 'success') {
+        lines.push(`+${effects.expDelta} EXP ${name}`);
+        if (effects.levelUp) lines.push(`✦ ¡Nivel ${effects.newLevel || ''}! Distribuye +1 punto de stat`);
+        else lines.push('Narrador: el objetivo se cumple, con o sin coste menor');
+    } else if (result === 'critical') {
+        lines.push(`+${effects.expDelta} EXP ${name}`);
+        if (effects.levelUp) lines.push(`✦ ¡Nivel ${effects.newLevel || ''}! Distribuye +1 punto de stat`);
+        else lines.push('Narrador: éxito total, beneficio adicional o momento heroico');
+    }
+    return lines.join(' · ');
 }
 
 // ============================================
@@ -3437,7 +3566,19 @@ function postVNReply() {
 
     if (topic?.mode === 'rpg') {
         tickRpgKnockoutTurns(isNarratorMode ? null : selectedCharId);
-        applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, oracleData);
+        const _charForConseq = isNarratorMode ? null : appData.characters.find(c => String(c.id) === String(selectedCharId));
+        const _effects = applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, oracleData);
+        if (_effects && oracleData) {
+            const _conseqText = buildConsequenceBadgeText(oracleData.result, _effects, _charForConseq?.name);
+            if (_conseqText) {
+                newMsg.oracleConsequence = _conseqText;
+                if (_effects.levelUp && _charForConseq) {
+                    const _p = typeof ensureCharacterRpgProfile === 'function'
+                        ? ensureCharacterRpgProfile(_charForConseq, currentTopicId) : null;
+                    if (_p) { _effects.newLevel = _p.level; newMsg.oracleConsequence = buildConsequenceBadgeText(oracleData.result, _effects, _charForConseq.name); }
+                }
+            }
+        }
     }
 
     topicMessages.push(newMsg);

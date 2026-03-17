@@ -20,14 +20,14 @@ const RPGState = (function () {
     let _level        = 1;
     let _hp           = { current: 20, max: 20 };
 
-    // Stats base por defecto (sistema D&D simplificado)
+    // Stats base por defecto — sistema D&D completo (mismo que sheets.js)
     const DEFAULT_STATS = {
-        STR: 10,  // Fuerza
-        DEX: 10,  // Destreza
-        CON: 10,  // Constitución
-        INT: 10,  // Inteligencia
-        WIS: 10,  // Sabiduría
-        CHA: 10   // Carisma
+        STR: 8,  // Fuerza
+        DEX: 8,  // Destreza
+        CON: 8,  // Constitución
+        INT: 8,  // Inteligencia
+        WIS: 8,  // Sabiduría
+        CHA: 8   // Carisma
     };
 
     // ── Ciclo de vida ───────────────────────────────────────────
@@ -278,6 +278,97 @@ const RPGState = (function () {
         }
     }
 
+
+    // ── Puente con las fichas de personaje de Etheria ────────────────────────
+    //
+    // Las fichas usan directamente STR / DEX / CON / INT / WIS / CHA (base 8, rango 8-15)
+    // igual que el motor de escenas. No hay conversión de vocabulario — se copian directo.
+    // HP_max = 10 + (CON_mod × 2) + (level - 1)   (crece con nivel y CON)
+
+    // Sincroniza los stats D&D desde la ficha del personaje al motor de escenas.
+    // Los stats de la ficha YA son D&D (STR/DEX/CON/INT/WIS/CHA, rango 8-15),
+    // por lo que no hay conversión — se copian directamente.
+    function syncFromCharacter(char, topicId) {
+        if (!char) return;
+
+        try {
+            if (typeof ensureCharacterRpgProfile !== 'function') return;
+            const profile = ensureCharacterRpgProfile(char, topicId);
+            if (!profile?.stats) return;
+
+            const s = profile.stats;
+            _stats = {
+                STR: Math.max(1, Number(s.STR) || 8),
+                DEX: Math.max(1, Number(s.DEX) || 8),
+                CON: Math.max(1, Number(s.CON) || 8),
+                INT: Math.max(1, Number(s.INT) || 8),
+                WIS: Math.max(1, Number(s.WIS) || 8),
+                CHA: Math.max(1, Number(s.CHA) || 8)
+            };
+
+            // HP_max derivado de CON según reglas D&D: hp_max = 10 + (CON - 10) * 2
+            const conMod = Math.floor((_stats.CON - 10) / 2);
+            const hpMax  = Math.max(1, 10 + conMod * 2);
+            _hp.max = hpMax;
+
+            // Sincronizar HP actual, XP y nivel desde la ficha si existen
+            if (profile.hp    !== undefined) _hp.current = Math.max(0, Math.min(hpMax, Math.round((profile.hp / 10) * hpMax)));
+            if (profile.exp   !== undefined) _xp   = Math.max(0, profile.exp);
+            if (profile.level !== undefined) _level = Math.max(1, profile.level);
+
+            _save();
+            _emitChange('stats');
+
+            console.debug('[RPGState] Stats D&D sincronizados:', _stats, '| HP_max:', hpMax);
+        } catch (e) {
+            console.warn('[RPGState] syncFromCharacter error:', e?.message);
+        }
+    }
+
+    /**
+     * Escribe de vuelta a la ficha los cambios de HP/EXP/level
+     * que el motor de escenas haya producido (combate, eventos, etc.)
+     * @param {object} char     Personaje de appData.characters
+     * @param {string} topicId
+     */
+    function syncToCharacter(char, topicId) {
+        if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+        try {
+            const profile = ensureCharacterRpgProfile(char, topicId);
+            if (!profile) return;
+
+            // Convertir HP del rango D&D (0-hp.max) al rango de la ficha (0-RPG_HP_MAX).
+            // Sin esta conversion profile.hp podria valer 14, 18... fuera del rango 0-10
+            // que la UI de la ficha espera, corrompiendo la barra de vida del personaje.
+            const sheetHpMax = (typeof RPG_HP_MAX !== 'undefined') ? RPG_HP_MAX : 10;
+            const hpRatio    = _hp.max > 0 ? _hp.current / _hp.max : 1;
+            profile.hp       = Math.max(0, Math.min(sheetHpMax, Math.round(hpRatio * sheetHpMax)));
+
+            // EXP en escala de la ficha (0 a RPG_EXP_PER_LEVEL-1)
+            const expPerLevel = (typeof RPG_EXP_PER_LEVEL !== 'undefined') ? RPG_EXP_PER_LEVEL : 10;
+            profile.exp   = _xp % expPerLevel;
+            profile.level = _level;
+
+            // Persistir
+            const topic = typeof appData !== 'undefined'
+                ? appData.topics?.find(t => String(t.id) === String(topicId))
+                : null;
+            if (topic && topic.rpgProfiles) {
+                topic.rpgProfiles[char.id] = profile;
+            }
+            char.rpgProfile = profile;
+
+            if (typeof hasUnsavedChanges !== 'undefined') hasUnsavedChanges = true;
+            if (typeof save === 'function') save({ silent: true });
+
+            console.debug('[RPGState] Sincronizado a ficha: HP_sheet', profile.hp,
+                '/', sheetHpMax, '| HP_dnd', _hp.current, '/', _hp.max,
+                '| EXP', profile.exp, '| Level', _level);
+        } catch (e) {
+            console.warn('[RPGState] syncToCharacter error:', e?.message);
+        }
+    }
+
     return {
         // Ciclo de vida
         init, reset,
@@ -294,6 +385,8 @@ const RPGState = (function () {
         // Condiciones
         evalCondition,
         // Snapshot
-        getSnapshot, loadSnapshot
+        getSnapshot, loadSnapshot,
+        // Puente con fichas de Etheria
+        syncFromCharacter, syncToCharacter
     };
 })();
