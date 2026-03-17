@@ -62,14 +62,14 @@
 }
 
 /* Imágenes de día */
-.layer-bg-day  { background-image: url('./assets/parallax/layer_bg.png') !important;       z-index: 1 !important; }
-.layer-mid-day { background-image: url('./assets/parallax/layer_mid.png') !important;      z-index: 2 !important; }
-.layer-fg-day  { background-image: url('./assets/parallax/layer_fg.png') !important;       z-index: 3 !important; }
+.layer-bg-day  { background-image: url('../assets/parallax/layer_bg.png') !important;       z-index: 1 !important; }
+.layer-mid-day { background-image: url('../assets/parallax/layer_mid.png') !important;      z-index: 2 !important; }
+.layer-fg-day  { background-image: url('../assets/parallax/layer_fg.png') !important;       z-index: 3 !important; }
 
 /* Imágenes de noche (procesadas píxel a píxel) */
-.layer-bg-night  { background-image: url('./assets/parallax/layer_bg_night.png') !important;  z-index: 1 !important; }
-.layer-mid-night { background-image: url('./assets/parallax/layer_mid_night.png') !important; z-index: 2 !important; }
-.layer-fg-night  { background-image: url('./assets/parallax/layer_fg_night.png') !important;  z-index: 3 !important; }
+.layer-bg-night  { background-image: url('../assets/parallax/layer_bg_night.png') !important;  z-index: 1 !important; }
+.layer-mid-night { background-image: url('../assets/parallax/layer_mid_night.png') !important; z-index: 2 !important; }
+.layer-fg-night  { background-image: url('../assets/parallax/layer_fg_night.png') !important;  z-index: 3 !important; }
 
 /* Por defecto todas ocultas */
 .layer-bg-day, .layer-mid-day, .layer-fg-day,

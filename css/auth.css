@@ -360,3 +360,365 @@
     pointer-events: none;
     transition: opacity 0.5s ease;
 }
+
+
+/* ============================================================
+   BUZÓN FLOTANTE — Botón sutil fijo en esquina superior izquierda
+   ============================================================ */
+
+.menu-inbox-float {
+    position: absolute;
+    /* Junto al botón de tema (top-right), a su izquierda */
+    top: 1.2rem;
+    right: 4.4rem;   /* botón tema ocupa ~42px + 1.4rem ≈ 4.4rem desde la derecha */
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    color: rgba(201, 168, 108, 0.55);
+    cursor: pointer;
+    transition: background 0.3s, border-color 0.3s, color 0.3s, transform 0.2s;
+    backdrop-filter: blur(8px);
+}
+
+.menu-inbox-float:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: rgba(201, 168, 108, 0.95);
+    transform: scale(1.1);
+}
+
+.menu-inbox-float.has-unread {
+    border-color: rgba(200, 110, 78, 0.6);
+    color: rgba(200, 110, 78, 0.9);
+    background: rgba(40, 24, 18, 0.75);
+    animation: inboxFloatGlow 2.5s ease-in-out infinite;
+}
+
+@keyframes inboxFloatGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(200, 110, 78, 0); }
+    50%       { box-shadow: 0 0 10px 2px rgba(200, 110, 78, 0.25); }
+}
+
+.menu-inbox-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    background: #c86e4e;
+    color: #fff;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    border: 1.5px solid #1a1815;
+    pointer-events: none;
+}
+
+@keyframes inboxBadgePulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.5); }
+    100% { transform: scale(1); }
+}
+.inbox-badge-pulse {
+    animation: inboxBadgePulse 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* ── Modal del buzón ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modals);
+    background: rgba(10, 9, 8, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+}
+
+.inbox-modal {
+    width: min(480px, 95vw);
+    max-height: 70vh;
+    background: linear-gradient(145deg, #2a2520 0%, #1e1c19 100%);
+    border: 1px solid rgba(201, 168, 108, 0.25);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(201,168,108,0.08);
+}
+
+.inbox-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(201, 168, 108, 0.15);
+    background: rgba(0,0,0,0.2);
+}
+
+.inbox-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #c9a86c;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0;
+}
+
+.inbox-close {
+    background: none;
+    border: none;
+    color: rgba(232, 213, 163, 0.5);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+}
+.inbox-close:hover { color: #c9a86c; background: rgba(201,168,108,0.1); }
+
+.inbox-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0.5rem 0;
+}
+
+.inbox-empty {
+    text-align: center;
+    color: rgba(232, 213, 163, 0.4);
+    font-style: italic;
+    padding: 2.5rem 1rem;
+    font-size: 0.95rem;
+}
+
+.inbox-item {
+    display: flex;
+    gap: 1rem;
+    padding: 0.9rem 1.5rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(201, 168, 108, 0.06);
+}
+.inbox-item:hover { background: rgba(201,168,108,0.06); }
+
+.inbox-item--unread { background: rgba(201, 168, 108, 0.05); }
+.inbox-item--unread .inbox-item-title { color: #e8d5a3; }
+
+.inbox-item-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+
+.inbox-item-body { flex: 1; min-width: 0; }
+
+.inbox-item-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: rgba(232,213,163,0.75);
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.inbox-item-text {
+    font-size: 0.88rem;
+    color: rgba(232,213,163,0.5);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.inbox-item-date {
+    font-size: 0.75rem;
+    color: rgba(232,213,163,0.3);
+    margin-top: 0.3rem;
+    font-style: italic;
+}
+
+/* ============================================================
+   PRESENCIA EN EL VN — Panel de participantes online
+   ============================================================ */
+
+.vn-presence-panel {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: var(--z-hud);
+    pointer-events: none;
+}
+
+.vn-presence-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    align-items: flex-end;
+}
+
+.vn-presence-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(26, 24, 21, 0.82);
+    border: 1px solid rgba(201, 168, 108, 0.2);
+    border-radius: 20px;
+    padding: 0.3rem 0.7rem 0.3rem 0.3rem;
+    backdrop-filter: blur(6px);
+}
+
+.vn-presence-avatar {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.vn-presence-avatar-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.vn-presence-avatar-initials {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(201,168,108,0.2);
+    border: 1px solid rgba(201,168,108,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    color: #c9a86c;
+    font-weight: 600;
+}
+
+.vn-presence-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    background: #4caf7d;
+    border-radius: 50%;
+    border: 1.5px solid #1a1815;
+    box-shadow: 0 0 6px rgba(76, 175, 125, 0.7);
+}
+
+.vn-presence-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    color: rgba(232, 213, 163, 0.8);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   TYPING INDICATOR — "Nombre está escribiendo..."
+   ============================================================ */
+
+.collab-typing-indicator {
+    position: absolute;
+    bottom: 5.5rem;
+    left: 1rem;
+    right: 1rem;
+    z-index: var(--z-hud);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 0.9rem;
+    color: rgba(232, 213, 163, 0.6);
+    font-style: italic;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+}
+
+.collab-typing-indicator.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.typing-name {
+    color: rgba(201, 168, 108, 0.85);
+    font-style: normal;
+}
+
+.typing-dots {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+    margin-left: 2px;
+}
+
+.typing-dots span {
+    width: 4px;
+    height: 4px;
+    background: rgba(201, 168, 108, 0.6);
+    border-radius: 50%;
+    animation: typingBounce 1.2s ease-in-out infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0);    opacity: 0.4; }
+    30%            { transform: translateY(-4px); opacity: 1;   }
+}
+
+/* ── Seguridad en panel de opciones ── */
+.opt-security-status {
+    font-size: 0.82rem;
+    margin-top: 0.4rem;
+    min-height: 1.2em;
+    font-style: italic;
+    color: var(--text-muted);
+}
+.opt-security-status.error   { color: #e74c3c; }
+.opt-security-status.success { color: #6b8e7d; }
+.opt-security-status.info    { color: rgba(201, 168, 108, 0.7); }
+
+/* ── Enlace "¿Olvidaste tu contraseña?" ── */
+.auth-forgot-link {
+    background: none;
+    border: none;
+    color: rgba(201, 168, 108, 0.55);
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    text-align: center;
+    width: 100%;
+    margin-top: 0.25rem;
+    padding: 0.25rem 0;
+    transition: color 0.2s ease;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.auth-forgot-link:hover { color: #c9a86c; }
+
+@media (max-width: 480px) {
+    .vn-presence-panel { top: 0.5rem; right: 0.5rem; }
+    .vn-presence-name  { display: none; }
+    .inbox-modal       { max-height: 85vh; }
+    .menu-inbox-float  { top: 0.75rem; right: 3.8rem; width: 36px; height: 36px; }
+}

@@ -4115,6 +4115,7 @@ function resetVNTransientState({ clearTopic = false } = {}) {
         if (typeof clearTypingState === 'function') clearTypingState();
         if (typeof cancelContinuousRead === 'function') cancelContinuousRead('exit-topic');
         if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
+        window.dispatchEvent(new CustomEvent('etheria:topic-leave'));
         currentTopicId = null;
         currentMessageIndex = 0;
     }
@@ -4911,6 +4912,49 @@ async function uploadAvatarForChar(fileInput) {
     fileInput.value = '';  // limpiar el input
 }
 
+/**
+ * Sube un archivo de imagen como sprite de un personaje a Supabase Storage.
+ * Se llama desde el input type="file" del editor de personajes.
+ * @param {HTMLInputElement} fileInput
+ */
+async function uploadSpriteForChar(fileInput) {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+
+    if (typeof SupabaseSprites === 'undefined') {
+        showAutosave('Supabase no disponible para subir sprite', 'error');
+        return;
+    }
+
+    const charId = document.getElementById('editCharacterId')?.value;
+    if (!charId) {
+        showAutosave('Guarda el personaje antes de subir el sprite', 'error');
+        return;
+    }
+
+    // Resolver UUID de Supabase si existe
+    let supabaseCharId = charId;
+    if (typeof appData !== 'undefined' && appData.cloudCharacters) {
+        for (const chars of Object.values(appData.cloudCharacters)) {
+            if (!Array.isArray(chars)) continue;
+            const match = chars.find(c => String(c.id) === String(charId));
+            if (match) { supabaseCharId = match.id; break; }
+        }
+    }
+
+    showAutosave('Subiendo sprite...', 'info');
+    const result = await SupabaseSprites.uploadCharacterSprite(supabaseCharId, file);
+
+    if (!result.ok) {
+        showAutosave(result.error || 'Error al subir sprite', 'error');
+        return;
+    }
+
+    // El módulo ya actualiza charSprite en el DOM y en appData
+    showAutosave('Sprite subido correctamente', 'saved');
+    fileInput.value = '';
+}
+
 function resetCharForm() {
     const editId = document.getElementById('editCharacterId');
     if (editId) editId.value = '';
@@ -5298,11 +5342,122 @@ const SupabaseSync = (function () {
 
     // ── Event listeners ──────────────────────────────────────────────────────
 
+    // ── Canal Realtime para detectar cambios desde otros dispositivos ────────
+    let _realtimeChannel = null;
+
+    async function _subscribeRealtimeChanges() {
+        const userId = _getUserId();
+        const c = _client();
+        if (!userId || !c?.channel) return;
+
+        // Evitar duplicados
+        if (_realtimeChannel) {
+            try { c.removeChannel(_realtimeChannel); } catch {}
+            _realtimeChannel = null;
+        }
+
+        _realtimeChannel = c
+            .channel(`user_data:${userId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'user_data',
+                filter: `user_id=eq.${userId}`
+            }, async (payload) => {
+                // Solo descargar si la actualización viene de otro dispositivo
+                // (diferencia de timestamp mayor a 2s para ignorar nuestros propios upserts)
+                const remoteTs = payload?.new?.updated_at
+                    ? new Date(payload.new.updated_at).getTime()
+                    : 0;
+                const msSinceOurLastSync = Date.now() - _lastSyncTime;
+                if (msSinceOurLastSync < 2000) return; // fue nuestro propio upsert
+
+                window.EtheriaLogger?.info?.('sync:realtime', 'Cambio detectado desde otro dispositivo — descargando...');
+                const result = await downloadProfileData();
+                if (result.ok && result.data) {
+                    if (typeof renderTopics  === 'function') renderTopics();
+                    if (typeof renderGallery === 'function') renderGallery();
+                    if (typeof renderUserCards === 'function') renderUserCards();
+                    eventBus.emit('ui:show-autosave', { text: 'Datos actualizados desde otro dispositivo', state: 'info' });
+                }
+            })
+            .subscribe();
+    }
+
+    function _unsubscribeRealtime() {
+        const c = _client();
+        if (_realtimeChannel && c) {
+            try { c.removeChannel(_realtimeChannel); } catch {}
+            _realtimeChannel = null;
+        }
+    }
+
     function _setupEventListeners() {
         // Marcar cambios pendientes cuando se modifican datos
         window.addEventListener('etheria:data-changed', () => {
             _pendingChanges = true;
         });
+
+        // ── Sync al volver de segundo plano (móvil/PWA) ──────────────────────
+        // visibilitychange cubre tanto PWA como navegador estándar
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState !== 'visible') return;
+            const userId = _getUserId();
+            if (!userId) return;
+            const msSinceLastSync = Date.now() - _lastSyncTime;
+            // Solo descargar si han pasado más de 10s desde el último sync
+            // (evita descargas innecesarias al alternar ventanas rápido)
+            if (msSinceLastSync < 10000) return;
+            window.EtheriaLogger?.info?.('sync:visibility', 'App visible de nuevo — sincronizando...');
+            const result = await downloadProfileData();
+            if (result.ok && result.data) {
+                if (typeof renderTopics  === 'function') renderTopics();
+                if (typeof renderGallery === 'function') renderGallery();
+                if (typeof renderUserCards === 'function') renderUserCards();
+            }
+            // Si además había cambios pendientes, subirlos
+            if (_pendingChanges) await uploadProfileData();
+        });
+
+        // ── Sync al recuperar conexión ───────────────────────────────────────
+        window.addEventListener('online', async () => {
+            _isOffline = false;
+            const userId = _getUserId();
+            if (!userId) return;
+            window.EtheriaLogger?.info?.('sync:network', 'Conexión recuperada — sincronizando...');
+            eventBus.emit('ui:show-autosave', { text: 'Conexión recuperada — sincronizando...', state: 'info' });
+            await sync({ silent: false, force: true });
+            // Reconectar canal Realtime (se desconecta al perder red)
+            _subscribeRealtimeChanges();
+        });
+
+        window.addEventListener('offline', () => {
+            _isOffline = true;
+            eventBus.emit('sync:status-changed', { status: 'degraded', message: 'Sin conexión', target: 'indicator' });
+        });
+
+        // ── Sync al cerrar/salir ─────────────────────────────────────────────
+        // beforeunload: sync síncrono con sendBeacon como fallback
+        window.addEventListener('beforeunload', () => {
+            const userId = _getUserId();
+            if (!userId || !_pendingChanges) return;
+            // Intentar sync rápido (puede no completarse, pero lo intentamos)
+            uploadProfileData().catch(() => {});
+            // Fallback: sendBeacon para garantizar que al menos el flag queda registrado
+            // (el Service Worker puede usar esto para reintentar al volver)
+            if (navigator.sendBeacon) {
+                try {
+                    navigator.sendBeacon('/sw-sync-ping', JSON.stringify({ userId, ts: Date.now() }));
+                } catch {}
+            }
+        });
+
+        // pagehide: más fiable que beforeunload en móvil iOS
+        window.addEventListener('pagehide', () => {
+            const userId = _getUserId();
+            if (!userId || !_pendingChanges) return;
+            uploadProfileData().catch(() => {});
+        }, { passive: true });
 
         // Escuchar mensajes del Service Worker
         navigator.serviceWorker?.addEventListener('message', (event) => {
@@ -5321,12 +5476,24 @@ const SupabaseSync = (function () {
         const userId = _getUserId();
         if (userId && _isAvailable()) {
             sync({ silent: true }).catch(() => {});
+            // Suscribir al canal Realtime para detectar cambios desde otros dispositivos
+            _subscribeRealtimeChanges().catch(() => {});
         }
         
         startAutoSync();
     }
 
     // ── API pública ──────────────────────────────────────────────────────────
+
+    // Reconectar realtime cuando cambia el usuario autenticado
+    window.addEventListener('etheria:auth-changed', (e) => {
+        const user = e.detail?.user;
+        if (user?.id) {
+            _subscribeRealtimeChanges().catch(() => {});
+        } else {
+            _unsubscribeRealtime();
+        }
+    });
 
     return {
         init,
@@ -6266,6 +6433,804 @@ window.SupabaseSync = SupabaseSync;
         subscribe,
         unsubscribe,
         markAsRead
+    };
+
+})(window);
+
+/* js/utils/supabaseInbox.js */
+// ============================================
+// SUPABASE INBOX — Buzón, Presencia y Typing
+// ============================================
+// Gestiona tres funcionalidades en tiempo real:
+//
+// 1. BUZÓN: notificaciones no leídas de turn_notifications
+//    - Carga al login, escucha inserts en tiempo real
+//    - Actualiza el badge del menú principal
+//    - Abre un modal con la lista de notificaciones
+//
+// 2. PRESENCIA EN TEMAS: muestra quién está online
+//    - Al entrar en un topic, une al canal de presencia
+//    - Renderiza avatares/nicks iluminados u oscuros en el panel VN
+//    - Se actualiza en tiempo real cuando alguien entra o sale
+//
+// 3. TYPING INDICATOR REAL: burbuja "está escribiendo"
+//    - Usa Supabase Broadcast (sin tabla) en el canal del topic
+//    - Emite cuando el usuario escribe, limpia tras 3s de silencio
+//    - Muestra "Nombre está escribiendo…" en el indicador existente
+// ============================================
+
+(function (global) {
+    'use strict';
+
+    const logger = global.EtheriaLogger;
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function _client() {
+        return global.supabaseClient || null;
+    }
+
+    async function _userId() {
+        if (global._cachedUserId) return global._cachedUserId;
+        const c = _client();
+        if (!c?.auth?.getUser) return null;
+        try {
+            const { data, error } = await c.auth.getUser();
+            if (error || !data?.user?.id) return null;
+            global._cachedUserId = data.user.id;
+            return data.user.id;
+        } catch { return null; }
+    }
+
+    function _myDisplayName() {
+        try {
+            const idx = Number(global.currentUserIndex || 0);
+            const names = Array.isArray(global.userNames) ? global.userNames : [];
+            return (names[idx] || names[0] || 'Jugador').trim() || 'Jugador';
+        } catch { return 'Jugador'; }
+    }
+
+    function _myAvatar() {
+        try {
+            const idx = Number(global.currentUserIndex || 0);
+            const avatars = JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]');
+            return avatars[idx] || localStorage.getItem('etheria_cloud_avatar_url') || '';
+        } catch { return ''; }
+    }
+
+    // ── 1. BUZÓN ─────────────────────────────────────────────────────────────
+
+    let _inboxChannel = null;
+    let _unreadCount  = 0;
+    let _notifications = [];  // cache local
+
+    async function _loadUnread() {
+        const uid = await _userId();
+        if (!uid) return;
+        const c = _client();
+        if (!c) return;
+
+        try {
+            const { data, error } = await c
+                .from('turn_notifications')
+                .select('id, title, body, created_at, is_read, story_id, topic_id, sender_user_id')
+                .eq('recipient_user_id', uid)
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            if (error) { logger?.warn('inbox', 'loadUnread error:', error.message); return; }
+
+            _notifications = data || [];
+            _unreadCount   = _notifications.filter(n => !n.is_read).length;
+            _updateBadge();
+        } catch (e) {
+            logger?.warn('inbox', 'loadUnread exception:', e?.message);
+        }
+    }
+
+    function _updateBadge() {
+        const btn   = document.getElementById('menuInboxBtn');
+        const badge = document.getElementById('menuInboxBadge');
+        if (!btn) return;
+
+        // Mostrar el botón solo si hay al menos una notificación alguna vez
+        if (_notifications.length > 0) btn.style.display = '';
+
+        // Clase visual cuando hay no leídas
+        if (_unreadCount > 0) {
+            btn.classList.add('has-unread');
+        } else {
+            btn.classList.remove('has-unread');
+        }
+
+        if (!badge) return;
+        if (_unreadCount > 0) {
+            badge.textContent = _unreadCount > 9 ? '9+' : String(_unreadCount);
+            badge.style.display = '';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+
+    async function _subscribeInbox() {
+        const uid = await _userId();
+        if (!uid) return;
+        const c = _client();
+        if (!c?.channel) return;
+
+        if (_inboxChannel) { try { c.removeChannel(_inboxChannel); } catch {} }
+
+        _inboxChannel = c
+            .channel(`inbox:${uid}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'turn_notifications',
+                filter: `recipient_user_id=eq.${uid}`
+            }, function (payload) {
+                const row = payload?.new;
+                if (!row) return;
+                _notifications.unshift(row);
+                if (!row.is_read) {
+                    _unreadCount++;
+                    _updateBadge();
+                    // Pulsar el badge brevemente
+                    const badge = document.getElementById('menuInboxBadge');
+                    if (badge) {
+                        badge.classList.add('inbox-badge-pulse');
+                        setTimeout(() => badge.classList.remove('inbox-badge-pulse'), 600);
+                    }
+                }
+                global.dispatchEvent(new CustomEvent('etheria:inbox-new', { detail: { notification: row } }));
+            })
+            .subscribe();
+    }
+
+    async function openInboxModal() {
+        const modal = document.getElementById('inboxModal');
+        if (!modal) return;
+        modal.style.display = 'flex';
+        _renderInboxList();
+
+        // Marcar todas como leídas al abrir
+        const unread = _notifications.filter(n => !n.is_read);
+        if (unread.length > 0) {
+            _unreadCount = 0;
+            _updateBadge();
+            unread.forEach(n => { n.is_read = true; });
+            // Persistir en Supabase en background
+            _markAllRead(unread.map(n => n.id));
+        }
+    }
+
+    function closeInboxModal() {
+        const modal = document.getElementById('inboxModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function _renderInboxList() {
+        const list = document.getElementById('inboxList');
+        if (!list) return;
+
+        if (_notifications.length === 0) {
+            list.innerHTML = '<p class="inbox-empty">No hay notificaciones todavía.</p>';
+            return;
+        }
+
+        list.innerHTML = _notifications.map(n => {
+            const date = n.created_at ? new Date(n.created_at) : null;
+            const dateStr = date
+                ? date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                : '';
+            const unreadClass = !n.is_read ? 'inbox-item--unread' : '';
+            return `
+                <div class="inbox-item ${unreadClass}" onclick="EtheriaInbox.goToTopic('${n.topic_id || ''}')">
+                    <div class="inbox-item-icon">${n.is_read ? '✉' : '📬'}</div>
+                    <div class="inbox-item-body">
+                        <p class="inbox-item-title">${escapeHtml(n.title || 'Nueva notificación')}</p>
+                        <p class="inbox-item-text">${escapeHtml(n.body || '')}</p>
+                        ${dateStr ? `<p class="inbox-item-date">${dateStr}</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function _markAllRead(ids) {
+        const c = _client();
+        if (!c || !ids?.length) return;
+        try {
+            await c
+                .from('turn_notifications')
+                .update({ is_read: true, read_at: new Date().toISOString() })
+                .in('id', ids);
+        } catch (e) {
+            logger?.warn('inbox', 'markAllRead error:', e?.message);
+        }
+    }
+
+    function goToTopic(topicId) {
+        closeInboxModal();
+        if (!topicId) return;
+        if (typeof showSection === 'function') showSection('topics');
+        setTimeout(() => {
+            if (typeof enterTopic === 'function') enterTopic(topicId);
+        }, 300);
+    }
+
+    // ── 2. PRESENCIA VISIBLE EN EL TOPIC ─────────────────────────────────────
+
+    let _presenceTopicId = null;
+    let _presenceChannel = null;
+    let _presenceState   = new Map(); // user_id → { name, avatar_url, online_at }
+
+    async function joinTopicPresence(topicId) {
+        if (!topicId) return;
+        await leaveTopicPresence();
+
+        const uid = await _userId();
+        if (!uid) return;
+        const c = _client();
+        if (!c?.channel) return;
+
+        _presenceTopicId = String(topicId);
+        _presenceState.clear();
+
+        try {
+            _presenceChannel = c
+                .channel(`presence:topic:${_presenceTopicId}`, {
+                    config: { presence: { key: String(uid) } }
+                })
+                .on('presence', { event: 'sync' }, _onPresenceSync)
+                .on('presence', { event: 'join' }, _onPresenceSync)
+                .on('presence', { event: 'leave' }, _onPresenceSync)
+                // Typing broadcast en el mismo canal
+                .on('broadcast', { event: 'typing' }, _onTypingBroadcast);
+
+            _presenceChannel.subscribe(async (status) => {
+                if (status !== 'SUBSCRIBED') return;
+                try {
+                    await _presenceChannel.track({
+                        user_id: String(uid),
+                        name: _myDisplayName(),
+                        avatar_url: _myAvatar() || null,
+                        online_at: new Date().toISOString()
+                    });
+                } catch (e) {
+                    logger?.warn('inbox:presence', 'track failed:', e?.message);
+                }
+            });
+        } catch (e) {
+            logger?.warn('inbox:presence', 'joinTopicPresence failed:', e?.message);
+        }
+    }
+
+    async function leaveTopicPresence() {
+        const c = _client();
+        if (_presenceChannel && c) {
+            try { await _presenceChannel.untrack(); } catch {}
+            try { c.removeChannel(_presenceChannel); } catch {}
+        }
+        _presenceChannel = null;
+        _presenceTopicId = null;
+        _presenceState.clear();
+        _renderPresencePanel();
+        _clearTypingUI();
+    }
+
+    function _onPresenceSync() {
+        if (!_presenceChannel) return;
+        const state = _presenceChannel.presenceState ? _presenceChannel.presenceState() : {};
+        _presenceState.clear();
+        Object.values(state || {}).forEach(metas => {
+            (Array.isArray(metas) ? metas : []).forEach(meta => {
+                if (meta?.user_id) _presenceState.set(String(meta.user_id), meta);
+            });
+        });
+        _renderPresencePanel();
+    }
+
+    function _renderPresencePanel() {
+        const panel = document.getElementById('vnPresencePanel');
+        const list  = document.getElementById('vnPresenceList');
+        if (!panel || !list) return;
+
+        if (_presenceState.size === 0) {
+            panel.style.display = 'none';
+            return;
+        }
+
+        panel.style.display = '';
+        list.innerHTML = [..._presenceState.values()].map(meta => {
+            const name      = escapeHtml(meta.name || 'Jugador');
+            const initials  = (meta.name || '?')[0].toUpperCase();
+            const avatarHtml = meta.avatar_url
+                ? `<img src="${escapeHtml(meta.avatar_url)}" alt="${name}" class="vn-presence-avatar-img">`
+                : `<span class="vn-presence-avatar-initials">${initials}</span>`;
+            return `
+                <div class="vn-presence-user" title="${name} — en línea">
+                    <div class="vn-presence-avatar">
+                        ${avatarHtml}
+                        <span class="vn-presence-dot"></span>
+                    </div>
+                    <span class="vn-presence-name">${name}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ── 3. TYPING INDICATOR REAL ─────────────────────────────────────────────
+
+    let _typingTimer      = null;   // debounce para dejar de emitir
+    let _typingClearTimer = null;   // limpiar UI si no llegan más eventos
+    let _lastTypingUser   = null;
+
+    // Llamar desde el textarea del VN cuando el usuario escribe
+    async function emitTyping() {
+        if (!_presenceChannel) return;
+        const uid = await _userId();
+        if (!uid) return;
+
+        // Enviar broadcast
+        try {
+            await _presenceChannel.send({
+                type: 'broadcast',
+                event: 'typing',
+                payload: {
+                    user_id: String(uid),
+                    name: _myDisplayName(),
+                    ts: Date.now()
+                }
+            });
+        } catch (e) {
+            logger?.warn('inbox:typing', 'emitTyping failed:', e?.message);
+        }
+
+        // Dejar de emitir tras 3s de silencio
+        clearTimeout(_typingTimer);
+        _typingTimer = setTimeout(async () => {
+            try {
+                await _presenceChannel.send({
+                    type: 'broadcast',
+                    event: 'typing',
+                    payload: { user_id: String(uid), name: _myDisplayName(), ts: Date.now(), stopped: true }
+                });
+            } catch {}
+        }, 3000);
+    }
+
+    function _onTypingBroadcast(payload) {
+        const data = payload?.payload;
+        if (!data?.user_id) return;
+
+        // Ignorar si soy yo mismo
+        if (data.user_id === global._cachedUserId) return;
+
+        if (data.stopped) {
+            if (_lastTypingUser === data.user_id) _clearTypingUI();
+            return;
+        }
+
+        _lastTypingUser = data.user_id;
+        _showTypingUI(data.name || 'Alguien');
+
+        // Auto-limpiar si no llega más señal en 4s
+        clearTimeout(_typingClearTimer);
+        _typingClearTimer = setTimeout(_clearTypingUI, 4000);
+    }
+
+    function _showTypingUI(name) {
+        const el = document.getElementById('collabTypingIndicator');
+        if (!el) return;
+        el.innerHTML = `<span class="typing-name">${escapeHtml(name)}</span> está escribiendo<span class="typing-dots"><span></span><span></span><span></span></span>`;
+        el.classList.add('visible');
+    }
+
+    function _clearTypingUI() {
+        _lastTypingUser = null;
+        const el = document.getElementById('collabTypingIndicator');
+        if (!el) return;
+        el.classList.remove('visible');
+        setTimeout(() => { if (!el.classList.contains('visible')) el.innerHTML = ''; }, 400);
+    }
+
+    // ── Arranque y escucha de eventos de la app ───────────────────────────────
+
+    function _init() {
+        // Al hacer login
+        global.addEventListener('etheria:auth-changed', function (e) {
+            const user = e.detail?.user;
+            if (user?.id) {
+                global._cachedUserId = user.id;
+                _loadUnread();
+                _subscribeInbox();
+                const btn = document.getElementById('menuInboxBtn');
+                if (btn) btn.style.display = '';
+            } else {
+                global._cachedUserId = null;
+                _unreadCount = 0;
+                _notifications = [];
+                _updateBadge();
+                if (_inboxChannel) {
+                    try { _client()?.removeChannel(_inboxChannel); } catch {}
+                    _inboxChannel = null;
+                }
+                const btn = document.getElementById('menuInboxBtn');
+                if (btn) btn.style.display = 'none';
+            }
+        });
+
+        // Al entrar en un topic (el collab-guard ya dispara esto)
+        global.addEventListener('etheria:topic-enter', function (e) {
+            const topicId = e.detail?.topicId;
+            if (topicId) joinTopicPresence(topicId);
+        });
+
+        // Al salir del topic
+        global.addEventListener('etheria:topic-leave', function () {
+            leaveTopicPresence();
+        });
+
+        // Conectar el textarea del VN al typing emitter
+        // Usamos delegación para no depender del orden de carga
+        document.addEventListener('input', function (e) {
+            if (e.target && (
+                e.target.id === 'vnInput' ||
+                e.target.classList.contains('vn-input') ||
+                e.target.classList.contains('message-input')
+            )) {
+                emitTyping();
+            }
+        });
+    }
+
+    // Helper escapeHtml por si no está disponible globalmente en este scope
+    function escapeHtml(str) {
+        if (typeof global.escapeHtml === 'function') return global.escapeHtml(str);
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // ── API pública ───────────────────────────────────────────────────────────
+
+    global.EtheriaInbox = {
+        openInboxModal,
+        closeInboxModal,
+        goToTopic,
+        joinTopicPresence,
+        leaveTopicPresence,
+        emitTyping,
+        get unreadCount() { return _unreadCount; }
+    };
+
+    // Alias globales para los onclick del HTML
+    global.openInboxModal  = openInboxModal;
+    global.closeInboxModal = closeInboxModal;
+
+    // Arrancar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _init);
+    } else {
+        _init();
+    }
+
+})(window);
+
+/* js/utils/supabaseExtras.js */
+// ============================================
+// SUPABASE EXTRAS — Activity Log, Backups y Web Push
+// ============================================
+
+(function (global) {
+    'use strict';
+
+    function _client() { return global.supabaseClient || null; }
+
+    async function _userId() {
+        if (global._cachedUserId) return global._cachedUserId;
+        const c = _client();
+        if (!c?.auth?.getUser) return null;
+        try {
+            const { data } = await c.auth.getUser();
+            return data?.user?.id || null;
+        } catch { return null; }
+    }
+
+    // ── 1. ACTIVITY LOG ──────────────────────────────────────────────────────
+
+    async function logActivity(action, entityType = null, entityId = null, metadata = {}) {
+        const userId = await _userId();
+        const c = _client();
+        if (!userId || !c) return;
+        try {
+            await c.from('activity_log').insert({
+                user_id:     userId,
+                action,
+                entity_type: entityType,
+                entity_id:   entityId ? String(entityId) : null,
+                metadata
+            });
+        } catch (e) {
+            global.EtheriaLogger?.warn('extras:activity', e?.message);
+        }
+    }
+
+    // ── 2. BACKUP EXPORTABLE ─────────────────────────────────────────────────
+
+    async function exportBackup() {
+        const userId = await _userId();
+        const c = _client();
+        if (!userId || !c) {
+            if (typeof showAutosave === 'function')
+                showAutosave('Inicia sesión para exportar un backup', 'error');
+            return null;
+        }
+
+        if (typeof showAutosave === 'function')
+            showAutosave('Generando backup...', 'info');
+
+        try {
+            const { data, error } = await c.rpc('generate_user_backup', {
+                p_user_id: userId
+            });
+
+            if (error) {
+                if (typeof showAutosave === 'function')
+                    showAutosave('Error al generar backup: ' + error.message, 'error');
+                return null;
+            }
+
+            // Descargar el JSON automáticamente
+            const blob    = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url     = URL.createObjectURL(blob);
+            const link    = document.createElement('a');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            link.href     = url;
+            link.download = `etheria-backup-${dateStr}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            if (typeof showAutosave === 'function')
+                showAutosave('✓ Backup descargado correctamente', 'saved');
+
+            return data;
+        } catch (e) {
+            if (typeof showAutosave === 'function')
+                showAutosave('Error inesperado al exportar', 'error');
+            global.EtheriaLogger?.warn('extras:backup', e?.message);
+            return null;
+        }
+    }
+
+    async function importBackup(jsonFile) {
+        if (!jsonFile) return;
+        const userId = await _userId();
+        const c = _client();
+        if (!userId || !c) {
+            if (typeof showAutosave === 'function')
+                showAutosave('Inicia sesión para importar un backup', 'error');
+            return;
+        }
+
+        try {
+            const text = await jsonFile.text();
+            const data = JSON.parse(text);
+
+            if (!data.version || !data.user_data) {
+                if (typeof showAutosave === 'function')
+                    showAutosave('Archivo de backup inválido', 'error');
+                return;
+            }
+
+            if (typeof showAutosave === 'function')
+                showAutosave('Importando backup...', 'info');
+
+            // Restaurar user_data en Supabase
+            const { error } = await c.from('user_data').upsert({
+                user_id:    userId,
+                data:       data.user_data,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+
+            if (error) {
+                if (typeof showAutosave === 'function')
+                    showAutosave('Error al importar: ' + error.message, 'error');
+                return;
+            }
+
+            // Registrar en activity_log
+            await logActivity('backup_imported', 'session', null, {
+                backup_date: data.exported_at
+            });
+
+            // Aplicar localmente
+            if (data.user_data && typeof SupabaseSync?.downloadProfileData === 'function') {
+                await SupabaseSync.downloadProfileData();
+                if (typeof renderTopics  === 'function') renderTopics();
+                if (typeof renderGallery === 'function') renderGallery();
+            }
+
+            if (typeof showAutosave === 'function')
+                showAutosave('✓ Backup importado correctamente', 'saved');
+
+        } catch (e) {
+            if (typeof showAutosave === 'function')
+                showAutosave('Error al leer el archivo', 'error');
+            global.EtheriaLogger?.warn('extras:import', e?.message);
+        }
+    }
+
+    // ── 3. WEB PUSH ──────────────────────────────────────────────────────────
+
+    // VAPID public key — debes sustituir esto por tu clave VAPID real
+    // Genérala en: https://web-push-codelab.glitch.me/
+    // o con: npx web-push generate-vapid-keys
+    const VAPID_PUBLIC_KEY = 'YOUR_VAPID_PUBLIC_KEY_HERE';
+
+    function _urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw     = atob(base64);
+        return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+    }
+
+    async function registerPushSubscription() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            global.EtheriaLogger?.warn('extras:push', 'Web Push no soportado en este navegador');
+            return false;
+        }
+
+        if (VAPID_PUBLIC_KEY === 'YOUR_VAPID_PUBLIC_KEY_HERE') {
+            global.EtheriaLogger?.warn('extras:push', 'Configura tu VAPID_PUBLIC_KEY en supabaseExtras.js');
+            return false;
+        }
+
+        const userId = await _userId();
+        const c = _client();
+        if (!userId || !c) return false;
+
+        try {
+            // Pedir permiso al usuario
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') return false;
+
+            // Obtener el Service Worker registrado
+            const registration = await navigator.serviceWorker.ready;
+
+            // Suscribir al push service del navegador
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly:      true,
+                applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+
+            const subJson = subscription.toJSON();
+
+            // Detectar tipo de dispositivo
+            const isMobile    = /Android|iPhone|iPad/i.test(navigator.userAgent);
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                              || navigator.standalone === true;
+            const deviceHint  = isStandalone ? 'pwa' : isMobile ? 'mobile' : 'desktop';
+
+            // Guardar en Supabase
+            const { error } = await c.from('push_subscriptions').upsert({
+                user_id:      userId,
+                endpoint:     subJson.endpoint,
+                p256dh:       subJson.keys.p256dh,
+                auth_key:     subJson.keys.auth,
+                device_hint:  deviceHint,
+                last_used_at: new Date().toISOString()
+            }, { onConflict: 'user_id, endpoint' });
+
+            if (error) {
+                global.EtheriaLogger?.warn('extras:push', 'Error guardando suscripción:', error.message);
+                return false;
+            }
+
+            await logActivity('push_subscribed', 'session', null, { device_hint: deviceHint });
+            global.EtheriaLogger?.info?.('extras:push', 'Suscripción push registrada:', deviceHint);
+            return true;
+
+        } catch (e) {
+            global.EtheriaLogger?.warn('extras:push', 'Error registrando push:', e?.message);
+            return false;
+        }
+    }
+
+    async function unregisterPushSubscription() {
+        const userId = await _userId();
+        const c = _client();
+        if (!userId || !c) return;
+
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+
+            if (subscription) {
+                await subscription.unsubscribe();
+                await c.from('push_subscriptions')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('endpoint', subscription.endpoint);
+            }
+        } catch (e) {
+            global.EtheriaLogger?.warn('extras:push', 'Error eliminando push:', e?.message);
+        }
+    }
+
+    async function isPushSubscribed() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const sub = await registration.pushManager.getSubscription();
+            return !!sub;
+        } catch { return false; }
+    }
+
+    // ── 4. RATE LIMIT (cliente) ───────────────────────────────────────────────
+
+    async function checkRateLimit(action, maxRequests = 30, windowMinutes = 60) {
+        const userId = await _userId();
+        const c = _client();
+        if (!userId || !c) return true; // si no hay usuario, no limitar
+
+        try {
+            const { data, error } = await c.rpc('check_rate_limit', {
+                p_user_id:        userId,
+                p_action:         action,
+                p_max_requests:   maxRequests,
+                p_window_minutes: windowMinutes
+            });
+            if (error) return true; // ante error, permitir
+            return data === true;
+        } catch { return true; }
+    }
+
+    async function getRateLimitRemaining(action, maxRequests = 30, windowMinutes = 60) {
+        const userId = await _userId();
+        const c = _client();
+        if (!userId || !c) return maxRequests;
+
+        try {
+            const { data } = await c.rpc('get_rate_limit_remaining', {
+                p_user_id:        userId,
+                p_action:         action,
+                p_max_requests:   maxRequests,
+                p_window_minutes: windowMinutes
+            });
+            return data ?? maxRequests;
+        } catch { return maxRequests; }
+    }
+
+    // ── Arranque ─────────────────────────────────────────────────────────────
+
+    global.addEventListener('etheria:auth-changed', function (e) {
+        const user = e.detail?.user;
+        if (user?.id) {
+            // Al hacer login, registrar actividad e intentar registrar push
+            logActivity('login', 'session').catch(() => {});
+            // Intentar registrar push si el usuario ya dio permiso antes
+            if (Notification.permission === 'granted') {
+                registerPushSubscription().catch(() => {});
+            }
+        }
+    });
+
+    // ── API pública ───────────────────────────────────────────────────────────
+
+    global.EtheriaExtras = {
+        logActivity,
+        exportBackup,
+        importBackup,
+        registerPushSubscription,
+        unregisterPushSubscription,
+        isPushSubscribed,
+        checkRateLimit,
+        getRateLimitRemaining
     };
 
 })(window);
@@ -7333,6 +8298,9 @@ function _doEnterTopic(id, t, topicMode) {
     window.dispatchEvent(new CustomEvent('etheria:section-changed', { 
         detail: { section: 'vn', mode: currentTopicMode } 
     }));
+
+    // Notificar al módulo de presencia/inbox que se ha entrado en un topic
+    window.dispatchEvent(new CustomEvent('etheria:topic-enter', { detail: { topicId: id } }));
 }
 
 // Memory leak fix: store handler reference so it can be removed before re-adding
@@ -13497,6 +14465,206 @@ const SupabaseAvatars = (function () {
 
 window.SupabaseAvatars = SupabaseAvatars;
 
+/* js/utils/supabaseSprites.js */
+// ============================================
+// SUPABASE SPRITES — Sprites en Storage
+// ============================================
+// Bucket: "sprites" (público)
+// Path:   sprites/{characterId}.{ext}
+//
+// uploadCharacterSprite(characterId, file)
+//   1. Sube imagen al bucket sprites
+//   2. Obtiene URL pública
+//   3. Guarda sprite_url en la tabla characters
+//   4. Actualiza el campo local appData.characters[*].sprite
+// ============================================
+
+const SupabaseSprites = (function () {
+
+    const BUCKET = 'sprites';
+
+    function _client() { return window.supabaseClient || null; }
+    function _isAvailable() { return !!_client(); }
+
+    function _ext(file) {
+        const name = file?.name || '';
+        const m = name.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+        return m ? m[1].toLowerCase() : 'png';
+    }
+
+    function _mimeForExt(ext) {
+        const map = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+        return map[ext] || 'image/png';
+    }
+
+    // ── API pública ──────────────────────────────────────────────────────────
+
+    /**
+     * Sube un archivo de imagen como sprite de un personaje.
+     *
+     * @param {string} characterId  UUID del personaje (tabla Supabase characters) o ID local.
+     * @param {File}   file         Archivo de imagen seleccionado por el usuario.
+     * @returns {Promise<{ok: boolean, url?: string, error?: string}>}
+     */
+    async function uploadCharacterSprite(characterId, file) {
+        if (!_isAvailable()) {
+            return { ok: false, error: 'Sin conexión a Supabase.' };
+        }
+        if (!characterId) {
+            return { ok: false, error: 'characterId requerido.' };
+        }
+        if (!file || !file.type.startsWith('image/')) {
+            return { ok: false, error: 'El archivo debe ser una imagen.' };
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            return { ok: false, error: 'La imagen no puede superar 10 MB.' };
+        }
+
+        const ext  = _ext(file);
+        const path = `${characterId}.${ext}`;
+
+        try {
+            const sb = _client();
+
+            // 1. Subir al bucket (upsert para sobreescribir si ya existe)
+            const { error: uploadError } = await sb.storage
+                .from(BUCKET)
+                .upload(path, file, {
+                    contentType : _mimeForExt(ext),
+                    upsert      : true
+                });
+
+            if (uploadError) {
+                console.error('[SupabaseSprites] upload error:', uploadError.message);
+                return { ok: false, error: uploadError.message || 'Error al subir la imagen.' };
+            }
+
+            // 2. Obtener URL pública
+            const { data: urlData } = sb.storage
+                .from(BUCKET)
+                .getPublicUrl(path);
+
+            const publicUrl = urlData?.publicUrl;
+            if (!publicUrl) {
+                return { ok: false, error: 'No se pudo obtener la URL pública del sprite.' };
+            }
+
+            // 3. Guardar sprite_url en la tabla characters de Supabase
+            const { error: updateError } = await sb
+                .from('characters')
+                .update({ sprite_url: publicUrl })
+                .eq('id', characterId);
+
+            if (updateError) {
+                const msg = updateError.message || 'No se pudo guardar sprite_url en BD.';
+                console.warn('[SupabaseSprites] No se pudo guardar sprite_url en BD:', msg);
+                return {
+                    ok: false,
+                    error: `La imagen se subió, pero no se pudo vincular al personaje: ${msg}`
+                };
+            }
+
+            // 4. Actualizar caché local de cloudCharacters
+            if (typeof appData !== 'undefined' && appData.cloudCharacters) {
+                for (const profileId of Object.keys(appData.cloudCharacters)) {
+                    const chars = appData.cloudCharacters[profileId];
+                    if (!Array.isArray(chars)) continue;
+                    const idx = chars.findIndex(c => c.id === characterId);
+                    if (idx !== -1) {
+                        chars[idx].sprite_url = publicUrl;
+                        break;
+                    }
+                }
+            }
+
+            // 5. Actualizar appData.characters (personajes locales)
+            if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
+                const localChar = appData.characters.find(c => String(c.id) === String(characterId));
+                if (localChar) {
+                    localChar.sprite = publicUrl;
+                    if (typeof persistPartitionedData === 'function') persistPartitionedData();
+                }
+            }
+
+            // 6. Actualizar SupabaseCharacters cache si está disponible
+            if (typeof SupabaseCharacters !== 'undefined') {
+                const cachedChar = SupabaseCharacters.getActiveCharacters()
+                    .find(c => c.id === characterId);
+                if (cachedChar) cachedChar.sprite_url = publicUrl;
+            }
+
+            // 7. Actualizar el campo sprite en el editor si está abierto
+            const spriteInput = document.getElementById('charSprite');
+            if (spriteInput) {
+                spriteInput.value = publicUrl;
+            }
+
+            window.dispatchEvent(new CustomEvent('etheria:sprite-uploaded', {
+                detail: { characterId, url: publicUrl }
+            }));
+
+            return { ok: true, url: publicUrl };
+
+        } catch (err) {
+            console.error('[SupabaseSprites] uploadCharacterSprite exception:', err);
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    /**
+     * Elimina el sprite de un personaje del bucket.
+     * @param {string} characterId
+     * @returns {Promise<{ok: boolean, error?: string}>}
+     */
+    async function deleteCharacterSprite(characterId) {
+        if (!_isAvailable() || !characterId) {
+            return { ok: false, error: 'characterId requerido.' };
+        }
+        try {
+            const sb = _client();
+            const paths = ['png', 'jpg', 'jpeg', 'webp', 'gif'].map(ext => `${characterId}.${ext}`);
+            await sb.storage.from(BUCKET).remove(paths);
+            await sb.from('characters').update({ sprite_url: null }).eq('id', characterId);
+            return { ok: true };
+        } catch (err) {
+            return { ok: false, error: err?.message || 'Error inesperado.' };
+        }
+    }
+
+    /**
+     * Devuelve la URL del sprite de un personaje desde caché local.
+     * @param {string} characterId
+     * @returns {string|null}
+     */
+    function getSpriteUrl(characterId) {
+        if (!characterId) return null;
+
+        if (typeof appData !== 'undefined' && appData.cloudCharacters) {
+            for (const chars of Object.values(appData.cloudCharacters)) {
+                if (!Array.isArray(chars)) continue;
+                const c = chars.find(ch => ch.id === characterId);
+                if (c?.sprite_url) return c.sprite_url;
+            }
+        }
+
+        if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
+            const local = appData.characters.find(c => String(c.id) === String(characterId));
+            if (local?.sprite) return local.sprite;
+        }
+
+        return null;
+    }
+
+    return {
+        uploadCharacterSprite,
+        deleteCharacterSprite,
+        getSpriteUrl
+    };
+
+})();
+
+window.SupabaseSprites = SupabaseSprites;
+
 /* js/collab-guard.js */
 // ============================================
 // COLLAB-GUARD.JS
@@ -15872,6 +17040,86 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (el) el.textContent = phrases[Math.floor(Math.random() * phrases.length)];
     })();
     // ─────────────────────────────────────────────────────────────
+
+    // ── Auth: mostrar vista "olvidé contraseña" ──────────────────
+    const _origShowAuthForm = showAuthForm;
+    window.showAuthForm = function(view) {
+        if (view === 'forgot') {
+            document.querySelectorAll('.auth-view').forEach(v => v.classList.remove('active'));
+            document.getElementById('authForgotView').classList.add('active');
+            setAuthStatus('', null, 'authForgotStatus');
+        } else {
+            _origShowAuthForm(view);
+        }
+    };
+
+    // ── Enviar email de recuperación de contraseña ───────────────
+    window.sendPasswordReset = async function() {
+        const email = (document.getElementById('authForgotEmail')?.value || '').trim();
+        if (!email) {
+            setAuthStatus('Introduce tu email.', true, 'authForgotStatus');
+            return;
+        }
+        setAuthStatus('Enviando enlace...', null, 'authForgotStatus');
+        const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + window.location.pathname
+        });
+        if (error) {
+            setAuthStatus('No se pudo enviar. Comprueba el email.', true, 'authForgotStatus');
+        } else {
+            setAuthStatus('\u2713 Enlace enviado. Revisa tu bandeja de entrada.', false, 'authForgotStatus');
+            document.getElementById('authForgotEmail').value = '';
+        }
+    };
+
+    // ── Cambiar email (con verificación) ────────────────────────
+    window.requestEmailChange = async function() {
+        const newEmail = (document.getElementById('optNewEmail')?.value || '').trim();
+        const statusEl = document.getElementById('optEmailStatus');
+        if (!newEmail) {
+            if (statusEl) { statusEl.textContent = 'Introduce el nuevo email.'; statusEl.className = 'opt-security-status error'; }
+            return;
+        }
+        if (statusEl) { statusEl.textContent = 'Enviando verificación...'; statusEl.className = 'opt-security-status info'; }
+        const { error } = await window.supabaseClient.auth.updateUser({ email: newEmail });
+        if (error) {
+            if (statusEl) { statusEl.textContent = error.message || 'No se pudo solicitar el cambio.'; statusEl.className = 'opt-security-status error'; }
+        } else {
+            if (statusEl) { statusEl.textContent = '\u2713 Revisa ' + newEmail + ' para confirmar el cambio.'; statusEl.className = 'opt-security-status success'; }
+            document.getElementById('optNewEmail').value = '';
+        }
+    };
+
+    // ── Cambiar contraseña (sesión activa) ───────────────────────
+    window.requestPasswordChange = async function() {
+        const newPass     = document.getElementById('optNewPassword')?.value || '';
+        const confirmPass = document.getElementById('optNewPasswordConfirm')?.value || '';
+        const statusEl    = document.getElementById('optPasswordStatus');
+        if (!newPass || !confirmPass) {
+            if (statusEl) { statusEl.textContent = 'Completa ambos campos.'; statusEl.className = 'opt-security-status error'; }
+            return;
+        }
+        if (newPass !== confirmPass) {
+            if (statusEl) { statusEl.textContent = 'Las contraseñas no coinciden.'; statusEl.className = 'opt-security-status error'; }
+            return;
+        }
+        if (newPass.length < 6) {
+            if (statusEl) { statusEl.textContent = 'Mínimo 6 caracteres.'; statusEl.className = 'opt-security-status error'; }
+            return;
+        }
+        if (statusEl) { statusEl.textContent = 'Actualizando...'; statusEl.className = 'opt-security-status info'; }
+        const { error } = await window.supabaseClient.auth.updateUser({ password: newPass });
+        if (error) {
+            if (statusEl) { statusEl.textContent = error.message || 'No se pudo actualizar la contraseña.'; statusEl.className = 'opt-security-status error'; }
+        } else {
+            if (statusEl) { statusEl.textContent = '\u2713 Contraseña actualizada correctamente.'; statusEl.className = 'opt-security-status success'; }
+            document.getElementById('optNewPassword').value = '';
+            document.getElementById('optNewPasswordConfirm').value = '';
+        }
+    };
+
+
+
 });
 
 /* js/ethy.js */

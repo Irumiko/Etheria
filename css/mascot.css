@@ -408,7 +408,7 @@
 .ethy-focus-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.0); /* el oscurecimiento lo hace el box-shadow del highlight */
     z-index: var(--z-notice);
     opacity: 0;
     pointer-events: none;
@@ -421,9 +421,30 @@
 
 .ethy-focus-overlay .ethy-highlight {
     position: absolute;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
-    border-radius: 8px;
-    transition: all 0.4s ease;
+    /* Oscurecer todo lo que hay fuera */
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.82);
+    border-radius: 10px;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Borde dorado brillante para que el elemento destaque claramente */
+    outline: 2px solid rgba(201, 168, 108, 0.9);
+    outline-offset: 2px;
+    /* Brillo alrededor del elemento señalado */
+    filter: drop-shadow(0 0 12px rgba(201, 168, 108, 0.6))
+            drop-shadow(0 0 24px rgba(201, 168, 108, 0.3));
+    animation: ethySpotlightPulse 2s ease-in-out infinite;
+}
+
+@keyframes ethySpotlightPulse {
+    0%, 100% {
+        outline-color: rgba(201, 168, 108, 0.9);
+        filter: drop-shadow(0 0 10px rgba(201, 168, 108, 0.5))
+                drop-shadow(0 0 22px rgba(201, 168, 108, 0.25));
+    }
+    50% {
+        outline-color: rgba(232, 213, 163, 1);
+        filter: drop-shadow(0 0 16px rgba(201, 168, 108, 0.85))
+                drop-shadow(0 0 32px rgba(201, 168, 108, 0.45));
+    }
 }
 
 /* Animación de escritura */
