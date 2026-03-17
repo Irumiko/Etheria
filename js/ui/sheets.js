@@ -425,6 +425,49 @@ async function uploadAvatarForChar(fileInput) {
     fileInput.value = '';  // limpiar el input
 }
 
+/**
+ * Sube un archivo de imagen como sprite de un personaje a Supabase Storage.
+ * Se llama desde el input type="file" del editor de personajes.
+ * @param {HTMLInputElement} fileInput
+ */
+async function uploadSpriteForChar(fileInput) {
+    const file = fileInput?.files?.[0];
+    if (!file) return;
+
+    if (typeof SupabaseSprites === 'undefined') {
+        showAutosave('Supabase no disponible para subir sprite', 'error');
+        return;
+    }
+
+    const charId = document.getElementById('editCharacterId')?.value;
+    if (!charId) {
+        showAutosave('Guarda el personaje antes de subir el sprite', 'error');
+        return;
+    }
+
+    // Resolver UUID de Supabase si existe
+    let supabaseCharId = charId;
+    if (typeof appData !== 'undefined' && appData.cloudCharacters) {
+        for (const chars of Object.values(appData.cloudCharacters)) {
+            if (!Array.isArray(chars)) continue;
+            const match = chars.find(c => String(c.id) === String(charId));
+            if (match) { supabaseCharId = match.id; break; }
+        }
+    }
+
+    showAutosave('Subiendo sprite...', 'info');
+    const result = await SupabaseSprites.uploadCharacterSprite(supabaseCharId, file);
+
+    if (!result.ok) {
+        showAutosave(result.error || 'Error al subir sprite', 'error');
+        return;
+    }
+
+    // El módulo ya actualiza charSprite en el DOM y en appData
+    showAutosave('Sprite subido correctamente', 'saved');
+    fileInput.value = '';
+}
+
 function resetCharForm() {
     const editId = document.getElementById('editCharacterId');
     if (editId) editId.value = '';

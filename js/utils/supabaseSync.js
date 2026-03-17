@@ -333,11 +333,122 @@ const SupabaseSync = (function () {
 
     // ── Event listeners ──────────────────────────────────────────────────────
 
+    // ── Canal Realtime para detectar cambios desde otros dispositivos ────────
+    let _realtimeChannel = null;
+
+    async function _subscribeRealtimeChanges() {
+        const userId = _getUserId();
+        const c = _client();
+        if (!userId || !c?.channel) return;
+
+        // Evitar duplicados
+        if (_realtimeChannel) {
+            try { c.removeChannel(_realtimeChannel); } catch {}
+            _realtimeChannel = null;
+        }
+
+        _realtimeChannel = c
+            .channel(`user_data:${userId}`)
+            .on('postgres_changes', {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'user_data',
+                filter: `user_id=eq.${userId}`
+            }, async (payload) => {
+                // Solo descargar si la actualización viene de otro dispositivo
+                // (diferencia de timestamp mayor a 2s para ignorar nuestros propios upserts)
+                const remoteTs = payload?.new?.updated_at
+                    ? new Date(payload.new.updated_at).getTime()
+                    : 0;
+                const msSinceOurLastSync = Date.now() - _lastSyncTime;
+                if (msSinceOurLastSync < 2000) return; // fue nuestro propio upsert
+
+                window.EtheriaLogger?.info?.('sync:realtime', 'Cambio detectado desde otro dispositivo — descargando...');
+                const result = await downloadProfileData();
+                if (result.ok && result.data) {
+                    if (typeof renderTopics  === 'function') renderTopics();
+                    if (typeof renderGallery === 'function') renderGallery();
+                    if (typeof renderUserCards === 'function') renderUserCards();
+                    eventBus.emit('ui:show-autosave', { text: 'Datos actualizados desde otro dispositivo', state: 'info' });
+                }
+            })
+            .subscribe();
+    }
+
+    function _unsubscribeRealtime() {
+        const c = _client();
+        if (_realtimeChannel && c) {
+            try { c.removeChannel(_realtimeChannel); } catch {}
+            _realtimeChannel = null;
+        }
+    }
+
     function _setupEventListeners() {
         // Marcar cambios pendientes cuando se modifican datos
         window.addEventListener('etheria:data-changed', () => {
             _pendingChanges = true;
         });
+
+        // ── Sync al volver de segundo plano (móvil/PWA) ──────────────────────
+        // visibilitychange cubre tanto PWA como navegador estándar
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState !== 'visible') return;
+            const userId = _getUserId();
+            if (!userId) return;
+            const msSinceLastSync = Date.now() - _lastSyncTime;
+            // Solo descargar si han pasado más de 10s desde el último sync
+            // (evita descargas innecesarias al alternar ventanas rápido)
+            if (msSinceLastSync < 10000) return;
+            window.EtheriaLogger?.info?.('sync:visibility', 'App visible de nuevo — sincronizando...');
+            const result = await downloadProfileData();
+            if (result.ok && result.data) {
+                if (typeof renderTopics  === 'function') renderTopics();
+                if (typeof renderGallery === 'function') renderGallery();
+                if (typeof renderUserCards === 'function') renderUserCards();
+            }
+            // Si además había cambios pendientes, subirlos
+            if (_pendingChanges) await uploadProfileData();
+        });
+
+        // ── Sync al recuperar conexión ───────────────────────────────────────
+        window.addEventListener('online', async () => {
+            _isOffline = false;
+            const userId = _getUserId();
+            if (!userId) return;
+            window.EtheriaLogger?.info?.('sync:network', 'Conexión recuperada — sincronizando...');
+            eventBus.emit('ui:show-autosave', { text: 'Conexión recuperada — sincronizando...', state: 'info' });
+            await sync({ silent: false, force: true });
+            // Reconectar canal Realtime (se desconecta al perder red)
+            _subscribeRealtimeChanges();
+        });
+
+        window.addEventListener('offline', () => {
+            _isOffline = true;
+            eventBus.emit('sync:status-changed', { status: 'degraded', message: 'Sin conexión', target: 'indicator' });
+        });
+
+        // ── Sync al cerrar/salir ─────────────────────────────────────────────
+        // beforeunload: sync síncrono con sendBeacon como fallback
+        window.addEventListener('beforeunload', () => {
+            const userId = _getUserId();
+            if (!userId || !_pendingChanges) return;
+            // Intentar sync rápido (puede no completarse, pero lo intentamos)
+            uploadProfileData().catch(() => {});
+            // Fallback: sendBeacon para garantizar que al menos el flag queda registrado
+            // (el Service Worker puede usar esto para reintentar al volver)
+            if (navigator.sendBeacon) {
+                try {
+                    navigator.sendBeacon('/sw-sync-ping', JSON.stringify({ userId, ts: Date.now() }));
+                } catch {}
+            }
+        });
+
+        // pagehide: más fiable que beforeunload en móvil iOS
+        window.addEventListener('pagehide', () => {
+            const userId = _getUserId();
+            if (!userId || !_pendingChanges) return;
+            uploadProfileData().catch(() => {});
+        }, { passive: true });
 
         // Escuchar mensajes del Service Worker
         navigator.serviceWorker?.addEventListener('message', (event) => {
@@ -356,12 +467,24 @@ const SupabaseSync = (function () {
         const userId = _getUserId();
         if (userId && _isAvailable()) {
             sync({ silent: true }).catch(() => {});
+            // Suscribir al canal Realtime para detectar cambios desde otros dispositivos
+            _subscribeRealtimeChanges().catch(() => {});
         }
         
         startAutoSync();
     }
 
     // ── API pública ──────────────────────────────────────────────────────────
+
+    // Reconectar realtime cuando cambia el usuario autenticado
+    window.addEventListener('etheria:auth-changed', (e) => {
+        const user = e.detail?.user;
+        if (user?.id) {
+            _subscribeRealtimeChanges().catch(() => {});
+        } else {
+            _unsubscribeRealtime();
+        }
+    });
 
     return {
         init,

@@ -1060,6 +1060,9 @@ function _doEnterTopic(id, t, topicMode) {
     window.dispatchEvent(new CustomEvent('etheria:section-changed', { 
         detail: { section: 'vn', mode: currentTopicMode } 
     }));
+
+    // Notificar al módulo de presencia/inbox que se ha entrado en un topic
+    window.dispatchEvent(new CustomEvent('etheria:topic-enter', { detail: { topicId: id } }));
 }
 
 // Memory leak fix: store handler reference so it can be removed before re-adding

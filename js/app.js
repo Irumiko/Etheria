@@ -672,4 +672,84 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (el) el.textContent = phrases[Math.floor(Math.random() * phrases.length)];
     })();
     // ─────────────────────────────────────────────────────────────
+
+    // ── Auth: mostrar vista "olvidé contraseña" ──────────────────
+    const _origShowAuthForm = showAuthForm;
+    window.showAuthForm = function(view) {
+        if (view === 'forgot') {
+            document.querySelectorAll('.auth-view').forEach(v => v.classList.remove('active'));
+            document.getElementById('authForgotView').classList.add('active');
+            setAuthStatus('', null, 'authForgotStatus');
+        } else {
+            _origShowAuthForm(view);
+        }
+    };
+
+    // ── Enviar email de recuperación de contraseña ───────────────
+    window.sendPasswordReset = async function() {
+        const email = (document.getElementById('authForgotEmail')?.value || '').trim();
+        if (!email) {
+            setAuthStatus('Introduce tu email.', true, 'authForgotStatus');
+            return;
+        }
+        setAuthStatus('Enviando enlace...', null, 'authForgotStatus');
+        const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + window.location.pathname
+        });
+        if (error) {
+            setAuthStatus('No se pudo enviar. Comprueba el email.', true, 'authForgotStatus');
+        } else {
+            setAuthStatus('\u2713 Enlace enviado. Revisa tu bandeja de entrada.', false, 'authForgotStatus');
+            document.getElementById('authForgotEmail').value = '';
+        }
+    };
+
+    // ── Cambiar email (con verificación) ────────────────────────
+    window.requestEmailChange = async function() {
+        const newEmail = (document.getElementById('optNewEmail')?.value || '').trim();
+        const statusEl = document.getElementById('optEmailStatus');
+        if (!newEmail) {
+            if (statusEl) { statusEl.textContent = 'Introduce el nuevo email.'; statusEl.className = 'opt-security-status error'; }
+            return;
+        }
+        if (statusEl) { statusEl.textContent = 'Enviando verificación...'; statusEl.className = 'opt-security-status info'; }
+        const { error } = await window.supabaseClient.auth.updateUser({ email: newEmail });
+        if (error) {
+            if (statusEl) { statusEl.textContent = error.message || 'No se pudo solicitar el cambio.'; statusEl.className = 'opt-security-status error'; }
+        } else {
+            if (statusEl) { statusEl.textContent = '\u2713 Revisa ' + newEmail + ' para confirmar el cambio.'; statusEl.className = 'opt-security-status success'; }
+            document.getElementById('optNewEmail').value = '';
+        }
+    };
+
+    // ── Cambiar contraseña (sesión activa) ───────────────────────
+    window.requestPasswordChange = async function() {
+        const newPass     = document.getElementById('optNewPassword')?.value || '';
+        const confirmPass = document.getElementById('optNewPasswordConfirm')?.value || '';
+        const statusEl    = document.getElementById('optPasswordStatus');
+        if (!newPass || !confirmPass) {
+            if (statusEl) { statusEl.textContent = 'Completa ambos campos.'; statusEl.className = 'opt-security-status error'; }
+            return;
+        }
+        if (newPass !== confirmPass) {
+            if (statusEl) { statusEl.textContent = 'Las contraseñas no coinciden.'; statusEl.className = 'opt-security-status error'; }
+            return;
+        }
+        if (newPass.length < 6) {
+            if (statusEl) { statusEl.textContent = 'Mínimo 6 caracteres.'; statusEl.className = 'opt-security-status error'; }
+            return;
+        }
+        if (statusEl) { statusEl.textContent = 'Actualizando...'; statusEl.className = 'opt-security-status info'; }
+        const { error } = await window.supabaseClient.auth.updateUser({ password: newPass });
+        if (error) {
+            if (statusEl) { statusEl.textContent = error.message || 'No se pudo actualizar la contraseña.'; statusEl.className = 'opt-security-status error'; }
+        } else {
+            if (statusEl) { statusEl.textContent = '\u2713 Contraseña actualizada correctamente.'; statusEl.className = 'opt-security-status success'; }
+            document.getElementById('optNewPassword').value = '';
+            document.getElementById('optNewPasswordConfirm').value = '';
+        }
+    };
+
+
+
 });

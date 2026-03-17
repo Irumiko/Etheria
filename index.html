@@ -93,10 +93,30 @@
                         <span class="auth-btn-icon">🔓</span>
                         <span class="auth-btn-text">Entrar</span>
                     </button>
+                    <button class="auth-forgot-link" type="button" onclick="showAuthForm('forgot')">¿Olvidaste tu contraseña?</button>
+                
                 </div>
                 <p id="authStatus" class="auth-status"></p>
             </div>
             
+            <!-- Vista de Recuperar Contraseña -->
+            <div id="authForgotView" class="auth-view">
+                <button class="auth-back" onclick="showAuthForm('login')">← Volver</button>
+                <h2 class="auth-view-title">Recuperar contraseña</h2>
+                <div class="auth-form">
+                    <div class="auth-input-group">
+                        <label for="authForgotEmail">Tu email</label>
+                        <input id="authForgotEmail" type="email" placeholder="tu@email.com" autocomplete="email">
+                    </div>
+                    <button class="auth-btn auth-btn-primary auth-btn-full" onclick="sendPasswordReset()">
+                        <span class="auth-btn-icon">✉️</span>
+                        <span class="auth-btn-text">Enviar enlace</span>
+                    </button>
+                </div>
+                <p id="authForgotStatus" class="auth-status"></p>
+            </div>
+            
+
             <!-- Vista de Registro -->
             <div id="authRegisterView" class="auth-view">
                 <button class="auth-back" onclick="showAuthMain()">← Volver</button>
@@ -139,6 +159,10 @@
 
 
     <!-- Indicador colaborativo "escribiendo" -->
+            <!-- Panel de presencia: participantes de la sala -->
+            <div id="vnPresencePanel" class="vn-presence-panel" style="display:none">
+                <div id="vnPresenceList" class="vn-presence-list"></div>
+            </div>
     <div id="collabTypingIndicator" class="collab-typing-indicator" aria-live="polite"></div>
     <div id="syncToastBackdrop" class="sync-toast-backdrop"></div>
     <div id="syncToast" class="sync-toast" role="status" aria-live="polite">
@@ -148,6 +172,23 @@
             <button class="sync-toast-dismiss" type="button" onclick="hideSyncToast()">Más tarde</button>
         </div>
     </div>
+
+    <!-- Modal Buzón de notificaciones -->
+    <div id="inboxModal" class="modal-overlay" onclick="if(event.target===this)closeInboxModal()" style="display:none">
+        <div class="inbox-modal">
+            <div class="inbox-header">
+                <h2 class="inbox-title">
+                    <svg viewBox="0 0 20 20" fill="none" width="18" height="18"><path d="M3 5h14a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z" stroke="currentColor" stroke-width="1.4"/><path d="M2 6l8 6 8-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    Buzón
+                </h2>
+                <button class="inbox-close" onclick="closeInboxModal()">✕</button>
+            </div>
+            <div id="inboxList" class="inbox-list">
+                <p class="inbox-empty">Cargando...</p>
+            </div>
+        </div>
+    </div>
+
 
     <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-spinner"></div>
@@ -258,6 +299,7 @@
                     <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
                     <span class="menu-label">Opciones</span>
                 </button>
+
             </div>
         </div>
 
@@ -278,6 +320,15 @@
                 <svg viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </button>
         </div>
+
+        <!-- Buzón flotante — esquina superior izquierda, solo para usuarios logueados -->
+        <button class="menu-inbox-float" id="menuInboxBtn" onclick="openInboxModal()" style="display:none" aria-label="Buzón de notificaciones">
+            <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
+                <path d="M3 5h14a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M2 6l8 5.5L18 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span class="menu-inbox-badge" id="menuInboxBadge" style="display:none">0</span>
+        </button>
 
         <!-- Botón Salir — solo visible en PWA -->
         <button class="menu-exit-btn" id="menuExitBtn" onclick="exitApp()" aria-label="Cerrar aplicación">
@@ -475,6 +526,61 @@
                     </div>
                     <div class="option-row" style="border-top: 1px solid rgba(201,168,108,0.08); margin-top: 0.5rem; padding-top: 1rem;">
                         <span class="option-label" style="color: var(--text-muted); font-size: 0.82rem;" id="optProfileStats"></span>
+                    </div>
+                </div>
+                <!-- SEGURIDAD -->
+                <div class="opt-section-title" style="margin-top: 1.5rem;">Seguridad</div>
+                <div class="opt-rows">
+                    <!-- Cambio de email -->
+                    <div class="option-row opt-row-stacked">
+                        <label class="option-label" for="optNewEmail">Cambiar email</label>
+                        <div class="opt-input-row">
+                            <input type="email" id="optNewEmail" class="opt-text-input" placeholder="nuevo@email.com" autocomplete="off">
+                            <button onclick="requestEmailChange()" class="opt-save-btn">Cambiar</button>
+                        </div>
+                        <p id="optEmailStatus" class="opt-security-status"></p>
+                    </div>
+                    <!-- Cambio de contraseña -->
+                    <div class="option-row opt-row-stacked">
+                        <label class="option-label" for="optNewPassword">Nueva contraseña</label>
+                        <div class="opt-input-row">
+                            <input type="password" id="optNewPassword" class="opt-text-input" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                            <button onclick="requestPasswordChange()" class="opt-save-btn">Cambiar</button>
+                        </div>
+                        <div class="opt-input-row" style="margin-top: 0.5rem;">
+                            <input type="password" id="optNewPasswordConfirm" class="opt-text-input" placeholder="Confirmar contraseña" autocomplete="new-password">
+                        </div>
+                        <p id="optPasswordStatus" class="opt-security-status"></p>
+                    </div>
+                </div>
+
+                <!-- Backup exportable -->
+                <div class="opt-section-title" style="margin-top: 1.5rem;">Copia de seguridad</div>
+                <div class="opt-rows">
+                    <div class="option-row opt-row-stacked">
+                        <label class="option-label">Exportar partida</label>
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem; font-style:italic;">Descarga un archivo JSON con todas tus historias, personajes y mensajes.</p>
+                        <div class="opt-input-row">
+                            <button onclick="EtheriaExtras.exportBackup()" class="opt-save-btn">⬇ Descargar backup</button>
+                        </div>
+                    </div>
+                    <div class="option-row opt-row-stacked">
+                        <label class="option-label">Importar partida</label>
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem; font-style:italic;">Restaura desde un archivo de backup. Sobreescribirá los datos actuales en la nube.</p>
+                        <div class="opt-input-row">
+                            <label class="opt-save-btn" style="cursor:pointer;">
+                                ⬆ Importar backup
+                                <input type="file" accept=".json" style="display:none;"
+                                    onchange="EtheriaExtras.importBackup(this.files[0]).then(()=>this.value='')">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="option-row opt-row-stacked">
+                        <label class="option-label">Notificaciones push</label>
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem; font-style:italic;">Recibe una notificación cuando sea tu turno, aunque tengas la app cerrada.</p>
+                        <div class="opt-input-row">
+                            <button onclick="EtheriaExtras.registerPushSubscription().then(ok => showAutosave(ok ? '✓ Notificaciones activadas' : 'No se pudieron activar las notificaciones', ok ? 'saved' : 'error'))" class="opt-save-btn">🔔 Activar notificaciones</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1404,7 +1510,13 @@
 
                             <div class="form-group">
                                 <label>Sprite URL (cuerpo completo)</label>
-                                <input type="text" id="charSprite">
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    <input type="text" id="charSprite" style="flex:1;">
+                                    <label class="avatar-upload-btn" title="Subir sprite a Supabase Storage" style="cursor:pointer; padding:0.4rem 0.7rem; border:1px solid rgba(201,168,108,0.35); border-radius:8px; font-size:0.75rem; color:rgba(201,168,108,0.85); white-space:nowrap; flex-shrink:0;">
+                                        ⬆ Subir
+                                        <input type="file" accept="image/*" style="display:none;" onchange="uploadSpriteForChar(this)">
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -1557,6 +1669,8 @@
 <script src="js/utils/supabaseMessages.js"></script>
 <script src="js/utils/supabasePresence.js"></script>
 <script src="js/utils/supabaseTurnNotifications.js"></script>
+    <script src="js/utils/supabaseInbox.js"></script>
+    <script src="js/utils/supabaseExtras.js"></script>
 <script src="js/ui/vn.js"></script>
 <script src="js/ui/journal.js"></script>
 <script src="js/ui/topics.js"></script>
@@ -1565,6 +1679,7 @@
 <script src="js/utils/supabaseCharacters.js"></script>
 <script src="js/utils/supabaseSettings.js"></script>
 <script src="js/utils/supabaseAvatars.js"></script>
+    <script src="js/utils/supabaseSprites.js"></script>
 <script src="js/collab-guard.js"></script>
 <script src="js/rpg/SceneLoader.js"></script>
 <script src="js/rpg/SceneValidator.js"></script>

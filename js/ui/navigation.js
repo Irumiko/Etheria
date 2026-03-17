@@ -134,6 +134,7 @@ function resetVNTransientState({ clearTopic = false } = {}) {
         if (typeof clearTypingState === 'function') clearTypingState();
         if (typeof cancelContinuousRead === 'function') cancelContinuousRead('exit-topic');
         if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
+        window.dispatchEvent(new CustomEvent('etheria:topic-leave'));
         currentTopicId = null;
         currentMessageIndex = 0;
     }
