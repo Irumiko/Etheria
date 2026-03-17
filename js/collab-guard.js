@@ -1,335 +1,384 @@
 // ============================================
-// COLLAB-GUARD.JS
-// Sistema de colaboración multi-usuario con merge de conflictos.
+// COLLAB-GUARD.JS  v2 — Supabase Realtime
+// ============================================
+// Capa de coordinación colaborativa multi-usuario.
 //
-// Integración con infraestructura existente:
-//   - Lee/escribe usando fetchCloudBin() / putCloudBin() (JSONbin)
-//   - Merge a nivel de mensajes por ID + timestamp (no reemplaza perfiles enteros)
-//   - Usa showSyncToast() / showAutosave() ya existentes para UI
-//   - Se activa al entrar a un topic, se detiene al salir
-//   - No toca save() ni persistPartitionedData() — sólo añade una capa encima
+// Arquitectura:
+//   - Ya NO hace polling ni peticiones propias
+//   - Se engancha a los eventos que SupabaseMessages y SupabaseSync
+//     ya disparan, añadiendo solo la lógica de merge de conflictos
+//   - Canal Realtime propio para user_data (detecta cuando otro
+//     dispositivo/usuario actualiza el perfil compartido)
+//   - Merge de mensajes por ID + timestamp (la lógica buena del v1)
+//   - Broadcast ligero para ediciones y borrados remotos
+//
+// Flujo:
+//   1. Al entrar a un topic → init(topicId)
+//      → suscribe canal Broadcast (edits/deletes del topic)
+//      → suscribe canal user_data para merge desde otro dispositivo
+//      → escucha etheria:realtime-message (ya disparado por SupabaseMessages)
+//   2. Al salir del topic → stop()
+//      → limpia canales y listeners
 // ============================================
 
 const CollaborativeGuard = (function () {
+    'use strict';
 
-    // ── Configuración ────────────────────────────────────────────────────────
-    const CFG = {
-        POLL_INTERVAL:    8000,   // ms entre checks de cambios remotos
-        TYPING_TTL:      10000,   // ms hasta que un indicador "escribiendo" expira
-        TYPING_KEY:      'etheria_collab_typing',
-        COLLAB_ENABLED:  'etheria_collab_enabled',
-    };
+    const logger = window.EtheriaLogger;
 
-    // ── Estado interno ───────────────────────────────────────────────────────
-    let _topicId      = null;
-    let _profileIdx   = 0;       // currentUserIndex en el momento de init
-    let _pollTimer    = null;
-    let _lastSeenMsgCount = 0;   // cuántos mensajes había en remoto la última vez
-    let _lastRemoteModified = 0; // lastModified del cloud la última vez que checkeamos
-    let _merging      = false;   // semáforo para evitar merges concurrentes
-    let _typingTimer  = null;    // interval ID for typing indicator — cleared in stop()
+    // ── Estado interno ────────────────────────────────────────────────────────
+    let _topicId          = null;
+    let _profileIdx       = 0;
+    let _merging          = false;
+    let _broadcastChannel = null;   // Broadcast: ediciones/borrados en tiempo real
+    let _userDataChannel  = null;   // Realtime: user_data de otro dispositivo
+    let _realtimeHandler  = null;   // listener etheria:realtime-message
+    let _lastRemoteDataTs = 0;      // evitar reprocesar el mismo update de user_data
 
-    // ── Helpers de acceso a datos ────────────────────────────────────────────
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * Lee los mensajes locales del topic activo desde appData (ya en memoria).
-     */
+    function _client() {
+        return window.supabaseClient || null;
+    }
+
     function _localMessages() {
         if (!_topicId || typeof getTopicMessages !== 'function') return [];
         return getTopicMessages(_topicId) || [];
     }
 
-    /**
-     * Cuenta mensajes de todos los topics en un appData snapshot (igual que
-     * countMessagesInProfile existente, por si no está disponible).
-     */
-    function _countMsgs(profileData) {
-        if (typeof countMessagesInProfile === 'function') {
-            return countMessagesInProfile(profileData);
+    function _isOwnMessage(msg, row) {
+        const ownId = window._cachedUserId || null;
+        if (ownId && (msg._supabaseUserId || row?.user_id)) {
+            return (msg._supabaseUserId || row?.user_id) === ownId;
         }
-        if (!profileData || !profileData.messages) return 0;
-        return Object.values(profileData.messages)
-            .reduce((sum, arr) => sum + (Array.isArray(arr) ? arr.length : 0), 0);
+        return String(msg.userIndex) === String(_profileIdx);
     }
 
-    /**
-     * Extrae los mensajes de un topic específico del snapshot remoto.
-     * El cloud guarda { profiles: { "0": { appData: { messages: { topicId: [...] } } } } }
-     */
-    function _remoteTopicMessages(cloudRecord) {
-        try {
-            const prof = (cloudRecord?.profiles || {})[String(_profileIdx)];
-            const msgs = prof?.appData?.messages?.[String(_topicId)];
-            return Array.isArray(msgs) ? msgs : [];
-        } catch { return []; }
+    // ── Merge de mensajes ─────────────────────────────────────────────────────
+    // Fusión por ID: en conflicto gana el mensaje con timestamp más reciente.
+
+    function _parseTs(msg) {
+        const t = msg.timestamp || msg.editedAt || msg.ts;
+        if (!t) return 0;
+        if (typeof t === 'number') return t;
+        const d = Date.parse(t);
+        return isNaN(d) ? 0 : d;
     }
 
-    /**
-     * Extrae el lastModified del perfil en el cloud.
-     */
-    function _remoteModified(cloudRecord) {
-        try {
-            const prof = (cloudRecord?.profiles || {})[String(_profileIdx)];
-            return Number(prof?.lastModified || 0);
-        } catch { return 0; }
-    }
-
-    // ── Merge ────────────────────────────────────────────────────────────────
-
-    /**
-     * Fusiona mensajes de dos fuentes por ID.
-     * En caso de conflicto de ID, gana el más reciente (por timestamp ISO).
-     * Devuelve array ordenado cronológicamente.
-     */
     function _mergeMessages(local, remote) {
         const byId = new Map();
-
-        const parseTs = (msg) => {
-            const t = msg.timestamp || msg.editedAt || msg.ts;
-            if (!t) return 0;
-            if (typeof t === 'number') return t;
-            const d = Date.parse(t);
-            return isNaN(d) ? 0 : d;
-        };
-
         for (const msg of [...(local || []), ...(remote || [])]) {
             if (!msg || !msg.id) continue;
             const existing = byId.get(msg.id);
-            if (!existing) {
+            if (!existing || _parseTs(msg) > _parseTs(existing)) {
                 byId.set(msg.id, { ...msg });
-            } else {
-                // Gana el más reciente
-                if (parseTs(msg) > parseTs(existing)) {
-                    byId.set(msg.id, { ...msg, _merged: true });
-                }
             }
         }
-
         return Array.from(byId.values())
-            .sort((a, b) => {
-                const ta = parseTs(a), tb = parseTs(b);
-                return ta - tb;
-            });
+            .sort((a, b) => _parseTs(a) - _parseTs(b));
     }
 
-    // ── Aplicar merge al estado local ────────────────────────────────────────
-
-    /**
-     * Aplica los mensajes mergeados a appData y refresca la UI sin perder posición.
-     */
     function _applyMergedMessages(merged) {
         if (!_topicId || !Array.isArray(merged)) return;
-
-        // Actualizar appData en memoria
         if (typeof appData !== 'undefined' && appData.messages) {
             appData.messages[String(_topicId)] = merged;
         }
-
-        // Persistir localmente (sin subir a cloud — el sync normal se encarga)
         if (typeof persistPartitionedData === 'function') {
             persistPartitionedData();
         }
-
-        // Refrescar UI sin mover el índice de mensaje actual
-        if (typeof showCurrentMessage === 'function') {
-            showCurrentMessage();
-        }
     }
 
-    // ── Poll ─────────────────────────────────────────────────────────────────
-
-    async function _poll() {
-        if (!_topicId || _merging) return;
-
-        // collab-guard aún no está migrado a Supabase.
-        // fetchCloudBin existe como stub deprecado que devuelve null,
-        // por lo que la guarda anterior no era suficiente.
-        // Desactivar el poll hasta que se migre a Supabase Realtime.
-        // TODO: reemplazar por suscripción a Supabase Realtime cuando esté disponible.
-        return;
-
-        try {
-            const cloud = await fetchCloudBin();
-            const remoteModified = _remoteModified(cloud);
-            const remoteTopicMsgs = _remoteTopicMessages(cloud);
-            const remoteCount = remoteTopicMsgs.length;
-            const localMsgs = _localMessages();
-            const localCount = localMsgs.length;
-
-            // Nada nuevo
-            if (remoteModified <= _lastRemoteModified && remoteCount <= _lastSeenMsgCount) return;
-
-            _lastRemoteModified = remoteModified;
-
-            // Calcular mensajes genuinamente nuevos (no están en local por ID)
-            const localIds = new Set(localMsgs.map(m => m.id));
-            const newRemote = remoteTopicMsgs.filter(m => m.id && !localIds.has(m.id));
-
-            if (newRemote.length === 0) {
-                _lastSeenMsgCount = remoteCount;
-                return;
-            }
-
-            _lastSeenMsgCount = remoteCount;
-
-            // Comprobar si el usuario está escribiendo activamente
-            const replyInput = document.getElementById('vnReplyText');
-            const hasDraft = replyInput && replyInput.value.trim().length > 0;
-
-            if (hasDraft) {
-                // Tiene borrador — notificar sin aplicar, para no interrumpir
-                const n = newRemote.length;
-                const label = n === 1 ? '1 mensaje nuevo' : `${n} mensajes nuevos`;
-                eventBus.emit('ui:show-toast', {
-                    text: label + ' de otro jugador',
-                    action: 'Ver ahora',
-                    onAction: () => { _doMerge(localMsgs, remoteTopicMsgs); }
-                });
-            } else {
-                // Sin borrador — merge silencioso y refresco automático
-                _doMerge(localMsgs, remoteTopicMsgs);
-                const n = newRemote.length;
-                const label = n === 1 ? '1 mensaje nuevo recibido' : `${n} mensajes nuevos recibidos`;
-                eventBus.emit('ui:show-autosave', { text: label, state: 'info' });
-            }
-
-        } catch (err) {
-            // Silencioso — el sync normal ya gestiona errores de red
-            console.debug('[CollabGuard] poll error:', err?.message || err);
-        }
-    }
-
-    function _doMerge(local, remote) {
+    function _doMerge(remote) {
         if (_merging) return;
         _merging = true;
         try {
-            const merged = _mergeMessages(local, remote);
+            const merged = _mergeMessages(_localMessages(), remote);
             _applyMergedMessages(merged);
         } finally {
             _merging = false;
         }
     }
 
-    // ── Indicador "escribiendo" ──────────────────────────────────────────────
+    // ── Canal Broadcast: ediciones y borrados remotos ─────────────────────────
+    // Ligero y sin latencia de BD. Se activa cuando alguien edita o borra
+    // un mensaje para que el resto de participantes lo vean al instante.
 
-    function _setTyping(isTyping) {
-        if (!_topicId) return;
+    function _subscribeBroadcast(topicId) {
+        const c = _client();
+        if (!c?.channel) return;
+
         try {
-            const state = {
-                topicId:   String(_topicId),
-                userIndex: _profileIdx,
-                isTyping,
-                ts:        Date.now()
-            };
-            localStorage.setItem(CFG.TYPING_KEY, JSON.stringify(state));
-        } catch { /* localStorage lleno — no crítico */ }
-    }
-
-    function _readTyping() {
-        try {
-            const raw = localStorage.getItem(CFG.TYPING_KEY);
-            if (!raw) return null;
-            const s = JSON.parse(raw);
-            // Expirado o del mismo usuario o de otro topic
-            if (!s || Date.now() - s.ts > CFG.TYPING_TTL) return null;
-            if (s.topicId !== String(_topicId)) return null;
-            if (s.userIndex === _profileIdx) return null;
-            return s;
-        } catch { return null; }
-    }
-
-    function _updateTypingUI() {
-        const state = _readTyping();
-        const el = document.getElementById('collabTypingIndicator');
-        if (!el) return;
-
-        if (state && state.isTyping) {
-            el.textContent = 'Alguien está escribiendo…';
-            el.classList.add('visible');
-        } else {
-            el.classList.remove('visible');
-            // Limpiar texto con delay para que la animación termine
-            setTimeout(() => { if (!el.classList.contains('visible')) el.textContent = ''; }, 400);
+            _broadcastChannel = c
+                .channel(`collab:topic:${topicId}`)
+                .on('broadcast', { event: 'msg_edit' }, (payload) => {
+                    _handleRemoteEdit(payload?.payload);
+                })
+                .on('broadcast', { event: 'msg_delete' }, (payload) => {
+                    _handleRemoteDelete(payload?.payload);
+                })
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        logger?.info('collab', `broadcast activo — topic ${topicId}`);
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        logger?.warn('collab', `broadcast error: ${status}`);
+                    }
+                });
+        } catch (e) {
+            logger?.warn('collab', 'error canal broadcast:', e?.message);
         }
     }
 
-    // ── API pública ──────────────────────────────────────────────────────────
+    // ── Canal Realtime: user_data de otro dispositivo ─────────────────────────
+    // Complementa el canal de supabaseSync.js. Mientras ese canal descarga
+    // el perfil completo, aquí solo mergeamos los mensajes del topic activo
+    // para no sobreescribir borradores o cambios locales no guardados.
 
-    /**
-     * Inicializar para un topic.
-     * Llamar al entrar a enterTopic().
-     */
+    function _subscribeUserDataRealtime() {
+        const c = _client();
+        const uid = window._cachedUserId;
+        if (!c?.channel || !uid) return;
+
+        try {
+            _userDataChannel = c
+                .channel(`collab-userdata:${uid}`)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'user_data',
+                    filter: `user_id=eq.${uid}`
+                }, async (payload) => {
+                    const remoteTs = payload?.new?.updated_at
+                        ? new Date(payload.new.updated_at).getTime()
+                        : 0;
+
+                    // Ignorar si es nuestro propio upsert reciente (< 3s)
+                    const lastOwnSync = (typeof SupabaseSync !== 'undefined')
+                        ? SupabaseSync.lastSyncTime : 0;
+                    if (Date.now() - lastOwnSync < 3000) return;
+
+                    // Ignorar timestamp ya procesado
+                    if (remoteTs <= _lastRemoteDataTs) return;
+                    _lastRemoteDataTs = remoteTs;
+
+                    try {
+                        const remoteData = payload?.new?.data;
+                        if (!remoteData || !_topicId) return;
+
+                        const remoteMsgs = remoteData?.messages?.[String(_topicId)];
+                        if (!Array.isArray(remoteMsgs) || remoteMsgs.length === 0) return;
+
+                        const local = _localMessages();
+                        const localIds = new Set(local.map(m => m.id));
+                        const newMsgs = remoteMsgs.filter(m => m?.id && !localIds.has(m.id));
+                        if (newMsgs.length === 0) return;
+
+                        logger?.info('collab', `${newMsgs.length} msg(s) desde otro dispositivo`);
+
+                        const replyInput = document.getElementById('vnReplyText');
+                        const hasDraft = replyInput && replyInput.value.trim().length > 0;
+
+                        if (hasDraft) {
+                            // Tiene borrador — ofrecer sin interrumpir
+                            if (typeof eventBus !== 'undefined') {
+                                eventBus.emit('ui:show-toast', {
+                                    text: `${newMsgs.length} mensaje(s) de otro dispositivo`,
+                                    action: 'Cargar',
+                                    onAction: () => { _doMerge(remoteMsgs); _refreshUI(); }
+                                });
+                            }
+                        } else {
+                            _doMerge(remoteMsgs);
+                            _refreshUI();
+                            const n = newMsgs.length;
+                            if (typeof eventBus !== 'undefined') {
+                                eventBus.emit('ui:show-autosave', {
+                                    text: `${n} mensaje${n !== 1 ? 's' : ''} sincronizado${n !== 1 ? 's' : ''} desde otro dispositivo`,
+                                    state: 'info'
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        logger?.warn('collab', 'error procesando user_data remoto:', e?.message);
+                    }
+                })
+                .subscribe((status) => {
+                    logger?.info('collab', `user_data realtime: ${status}`);
+                });
+        } catch (e) {
+            logger?.warn('collab', 'error canal user_data:', e?.message);
+        }
+    }
+
+    // ── Handler etheria:realtime-message ─────────────────────────────────────
+    // SupabaseMessages.subscribe ya integra los mensajes nuevos.
+    // Aquí solo resolvemos conflictos de ID (mismo ID, versiones distintas).
+
+    function _onRealtimeMessage(e) {
+        const msg = e.detail?.msg;
+        const row = e.detail?.row;
+        if (!msg || !msg.id || !_topicId) return;
+
+        // Ignorar si es de otro topic
+        if (row?.session_id && String(row.session_id) !== String(_topicId)) return;
+
+        // Ignorar mensajes propios
+        if (_isOwnMessage(msg, row)) return;
+
+        // Solo intervenir si hay conflicto de ID
+        const local = _localMessages();
+        const existing = local.find(m => String(m.id) === String(msg.id));
+        if (!existing) return; // mensaje nuevo — supabaseMessages.subscribe ya lo maneja
+
+        // Conflicto — gana el más reciente
+        if (_parseTs(msg) > _parseTs(existing)) {
+            logger?.info('collab', `conflicto msg ${msg.id} — aplicando versión remota más reciente`);
+            _doMerge([...local.filter(m => m.id !== msg.id), msg]);
+            _refreshUI();
+        }
+    }
+
+    // ── Ediciones y borrados remotos ──────────────────────────────────────────
+
+    function _handleRemoteEdit(payload) {
+        if (!payload?.msgId || !_topicId) return;
+        const msgs = _localMessages();
+        const idx = msgs.findIndex(m => String(m.id) === String(payload.msgId));
+        if (idx === -1) return;
+
+        const existing = msgs[idx];
+        if (_parseTs(payload) <= _parseTs(existing)) return; // nuestra versión es más reciente
+
+        msgs[idx] = { ...existing, ...payload.changes, _remoteEdit: true };
+        if (typeof appData !== 'undefined') {
+            appData.messages[String(_topicId)] = msgs;
+        }
+        _refreshUI();
+        logger?.info('collab', `edición remota aplicada — msg ${payload.msgId}`);
+    }
+
+    function _handleRemoteDelete(payload) {
+        if (!payload?.msgId || !_topicId) return;
+        const msgs = _localMessages();
+        const filtered = msgs.filter(m => String(m.id) !== String(payload.msgId));
+        if (filtered.length === msgs.length) return;
+
+        if (typeof appData !== 'undefined') {
+            appData.messages[String(_topicId)] = filtered;
+        }
+        if (typeof hasUnsavedChanges !== 'undefined') hasUnsavedChanges = true;
+        if (typeof save === 'function') save({ silent: true });
+        _refreshUI();
+        logger?.info('collab', `borrado remoto aplicado — msg ${payload.msgId}`);
+    }
+
+    // ── Broadcast de cambios propios ──────────────────────────────────────────
+    // Llamar desde vn.js al editar o borrar un mensaje propio,
+    // para que otros participantes lo vean sin esperar al sync de 30s.
+
+    function broadcastEdit(msgId, changes) {
+        if (!_broadcastChannel || !msgId) return;
+        try {
+            _broadcastChannel.send({
+                type: 'broadcast',
+                event: 'msg_edit',
+                payload: { msgId, changes, timestamp: new Date().toISOString() }
+            });
+        } catch (e) {
+            logger?.warn('collab', 'broadcastEdit failed:', e?.message);
+        }
+    }
+
+    function broadcastDelete(msgId) {
+        if (!_broadcastChannel || !msgId) return;
+        try {
+            _broadcastChannel.send({
+                type: 'broadcast',
+                event: 'msg_delete',
+                payload: { msgId }
+            });
+        } catch (e) {
+            logger?.warn('collab', 'broadcastDelete failed:', e?.message);
+        }
+    }
+
+    // ── UI ────────────────────────────────────────────────────────────────────
+
+    function _refreshUI() {
+        if (typeof showCurrentMessage === 'function') {
+            showCurrentMessage();
+        }
+    }
+
+    // ── API pública ───────────────────────────────────────────────────────────
+
     function init(topicId, profileIndex) {
-        stop(); // limpiar estado previo
+        stop();
 
         _topicId    = topicId;
         _profileIdx = (typeof profileIndex === 'number') ? profileIndex
-                    : (typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0);
+            : (typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0);
+        _lastRemoteDataTs = 0;
 
-        // Snapshot inicial para comparar en polls futuros
-        _lastSeenMsgCount    = _localMessages().length;
-        _lastRemoteModified  = 0; // se actualizará en el primer poll
+        _subscribeBroadcast(topicId);
+        _subscribeUserDataRealtime();
 
-        // Iniciar polling
-        _poll(); // inmediato
-        _pollTimer = setInterval(_poll, CFG.POLL_INTERVAL);
+        _realtimeHandler = _onRealtimeMessage;
+        window.addEventListener('etheria:realtime-message', _realtimeHandler);
 
-        // Hook: intercepción de emitTypingState (ya existe en vn.js)
-        // Sólo enriquece el canal de localStorage con el estado de typing propio
-        const _origEmit = window.emitTypingState;
-        if (_origEmit && !window._collabEmitPatched) {
-            window._collabEmitPatched = true;
-            window.emitTypingState = function (active) {
-                _setTyping(active);
-                _origEmit.call(this, active);
-            };
-        }
-
-        // Actualizar indicador de typing en cada poll
-        _typingTimer = setInterval(_updateTypingUI, 2000);
-
-        console.debug(`[CollabGuard] activo para topic ${topicId}`);
+        logger?.info('collab', `collab-guard v2 activo — topic ${topicId}`);
     }
 
-    /**
-     * Detener — llamar al salir del topic.
-     */
     function stop() {
-        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
-        if (_typingTimer) { clearInterval(_typingTimer); _typingTimer = null; }
-        if (_topicId) _setTyping(false); // limpiar indicador propio
-        _topicId   = null;
-        _merging   = false;
-        _lastSeenMsgCount   = 0;
-        _lastRemoteModified = 0;
+        const c = _client();
 
-        // Retirar patch de emitTypingState
-        if (window._collabEmitPatched) {
-            // No revertimos para no romper referencias — simplemente lo dejamos
-            // funcionar normalmente (la rama _setTyping es no-op cuando _topicId = null)
+        if (_broadcastChannel && c) {
+            try { c.removeChannel(_broadcastChannel); } catch {}
+            _broadcastChannel = null;
         }
+        if (_userDataChannel && c) {
+            try { c.removeChannel(_userDataChannel); } catch {}
+            _userDataChannel = null;
+        }
+        if (_realtimeHandler) {
+            window.removeEventListener('etheria:realtime-message', _realtimeHandler);
+            _realtimeHandler = null;
+        }
+
+        _topicId          = null;
+        _merging          = false;
+        _lastRemoteDataTs = 0;
     }
 
-    /**
-     * Forzar merge manual (útil para botón de "refrescar" si se quiere exponer).
-     */
     async function forceMerge() {
-        // collab-guard pendiente de migración a Supabase — operación desactivada temporalmente.
         if (!_topicId) return;
-        eventBus.emit('ui:show-autosave', { text: 'Colaboración en tiempo real próximamente', state: 'info' });
+        if (typeof SupabaseMessages === 'undefined') return;
+
+        const topic = (typeof appData !== 'undefined')
+            ? appData.topics?.find(t => String(t.id) === String(_topicId))
+            : null;
+        const storyId = topic?.storyId || window.currentStoryId || null;
+
+        const remote = await SupabaseMessages.load(_topicId, storyId);
+        if (Array.isArray(remote) && remote.length > 0) {
+            _doMerge(remote);
+            _refreshUI();
+            if (typeof eventBus !== 'undefined') {
+                eventBus.emit('ui:show-autosave', { text: 'Mensajes actualizados', state: 'info' });
+            }
+        }
     }
 
     function getStatus() {
         return {
-            active:     !!_topicId,
-            topicId:    _topicId,
-            polling:    !!_pollTimer,
-            localCount: _localMessages().length,
-            lastSeen:   _lastSeenMsgCount
+            active:         !!_topicId,
+            topicId:        _topicId,
+            broadcastReady: !!_broadcastChannel,
+            userDataReady:  !!_userDataChannel,
+            localCount:     _localMessages().length
         };
     }
 
-    return { init, stop, forceMerge, getStatus };
+    return { init, stop, forceMerge, getStatus, broadcastEdit, broadcastDelete };
 
 })();
 

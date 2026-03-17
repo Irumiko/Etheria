@@ -2084,6 +2084,7 @@ function deleteCurrentMessage() {
     const msgs = getTopicMessages(currentTopicId);
     if (msgs.length === 0 || currentMessageIndex >= msgs.length) return;
 
+    const msgToDelete = msgs[currentMessageIndex];
     openConfirmModal('¿Borrar este mensaje?', 'Borrar').then(ok => {
         if (!ok) return;
         msgs.splice(currentMessageIndex, 1);
@@ -2094,6 +2095,10 @@ function deleteCurrentMessage() {
         save({ silent: true });
         if (typeof SupabaseSync !== 'undefined') {
             SupabaseSync.uploadProfileData().catch(() => {});
+        }
+        // Notificar a otros participantes en tiempo real
+        if (msgToDelete?.id && typeof CollaborativeGuard !== 'undefined') {
+            CollaborativeGuard.broadcastDelete(msgToDelete.id);
         }
         showCurrentMessage('forward');
     });
@@ -2233,6 +2238,11 @@ function saveEditedMessage() {
     save({ silent: true });
     if (typeof SupabaseSync !== 'undefined') {
         SupabaseSync.uploadProfileData().catch(() => {});
+    }
+    // Notificar edición a otros participantes en tiempo real
+    const _editedMsgId = editingMessageId;
+    if (_editedMsgId && typeof CollaborativeGuard !== 'undefined') {
+        CollaborativeGuard.broadcastEdit(_editedMsgId, { text, timestamp: new Date().toISOString() });
     }
     closeReplyPanel();
 

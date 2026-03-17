@@ -384,49 +384,99 @@ function saveCharacter() {
  * Se llama desde el input type="file" del editor de personajes.
  * @param {HTMLInputElement} fileInput
  */
+// ── Helper de subida a Supabase Storage ──────────────────────────────────────
+// Sube una imagen a un bucket público y devuelve { ok, url, error }.
+// Usa el ID local del personaje como nombre de archivo para mantener
+// la relación entre el personaje local y su imagen en Storage.
+// No depende de la tabla characters de Supabase.
+
+async function _uploadImageToStorage(bucket, charId, file) {
+    const sb = window.supabaseClient;
+    if (!sb) return { ok: false, error: 'Sin conexión a Supabase.' };
+
+    const ext = (file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i)?.[1] || 'png').toLowerCase();
+    const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+    const path = `${charId}.${ext}`;
+
+    try {
+        const { error: uploadError } = await sb.storage
+            .from(bucket)
+            .upload(path, file, {
+                contentType: mimeMap[ext] || 'image/png',
+                upsert: true
+            });
+
+        if (uploadError) {
+            console.error(`[Storage] upload error (${bucket}):`, uploadError.message);
+            return { ok: false, error: uploadError.message };
+        }
+
+        const { data: urlData } = sb.storage.from(bucket).getPublicUrl(path);
+        const url = urlData?.publicUrl;
+        if (!url) return { ok: false, error: 'No se pudo obtener la URL pública.' };
+
+        // Añadir cache-busting para que el navegador no sirva la versión anterior
+        const publicUrl = `${url}?t=${Date.now()}`;
+        return { ok: true, url: publicUrl };
+
+    } catch (err) {
+        console.error(`[Storage] exception (${bucket}):`, err?.message);
+        return { ok: false, error: err?.message || 'Error inesperado.' };
+    }
+}
+
+
 async function uploadAvatarForChar(fileInput) {
     const file = fileInput?.files?.[0];
     if (!file) return;
 
-    if (typeof SupabaseAvatars === 'undefined') {
-        showAutosave('Supabase no disponible para subir avatar', 'error');
-        return;
-    }
-
-    // Obtener el ID del personaje activo en el editor
     const charId = document.getElementById('editCharacterId')?.value;
     if (!charId) {
         showAutosave('Guarda el personaje antes de subir el avatar', 'error');
         return;
     }
 
-    // Intentar resolver el UUID de Supabase para este personaje
-    let supabaseCharId = charId;
-    if (typeof appData !== 'undefined' && appData.cloudCharacters) {
-        for (const chars of Object.values(appData.cloudCharacters)) {
-            if (!Array.isArray(chars)) continue;
-            const match = chars.find(c => String(c.id) === String(charId));
-            if (match) { supabaseCharId = match.id; break; }
-        }
+    if (!file.type.startsWith('image/')) {
+        showAutosave('El archivo debe ser una imagen', 'error');
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 5 MB', 'error');
+        return;
     }
 
     showAutosave('Subiendo avatar...', 'info');
-    const result = await SupabaseAvatars.uploadCharacterAvatar(supabaseCharId, file);
 
+    // Subir al bucket usando el ID local como nombre de archivo
+    const result = await _uploadImageToStorage('avatars', charId, file);
     if (!result.ok) {
         showAutosave(result.error || 'Error al subir avatar', 'error');
         return;
     }
 
-    // Actualizar el campo de avatar URL en el editor
+    // 1. Actualizar el input del editor (para que saveCharacter() lo coja)
     const avatarInput = document.getElementById('charAvatar');
     if (avatarInput) {
         avatarInput.value = result.url;
         if (typeof updatePreview === 'function') updatePreview();
     }
 
+    // 2. Actualizar appData en memoria y persistir
+    if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
+        const char = appData.characters.find(c => String(c.id) === String(charId));
+        if (char) {
+            char.avatar = result.url;
+            hasUnsavedChanges = true;
+            if (typeof save === 'function') save({ silent: true });
+            if (typeof SupabaseSync !== 'undefined') {
+                SupabaseSync.uploadProfileData().catch(() => {});
+            }
+        }
+    }
+
     showAutosave('Avatar subido correctamente', 'saved');
-    fileInput.value = '';  // limpiar el input
+    fileInput.value = '';
+    if (typeof renderGallery === 'function') renderGallery();
 }
 
 /**
@@ -438,39 +488,50 @@ async function uploadSpriteForChar(fileInput) {
     const file = fileInput?.files?.[0];
     if (!file) return;
 
-    if (typeof SupabaseSprites === 'undefined') {
-        showAutosave('Supabase no disponible para subir sprite', 'error');
-        return;
-    }
-
     const charId = document.getElementById('editCharacterId')?.value;
     if (!charId) {
         showAutosave('Guarda el personaje antes de subir el sprite', 'error');
         return;
     }
 
-    // Resolver UUID de Supabase si existe
-    let supabaseCharId = charId;
-    if (typeof appData !== 'undefined' && appData.cloudCharacters) {
-        for (const chars of Object.values(appData.cloudCharacters)) {
-            if (!Array.isArray(chars)) continue;
-            const match = chars.find(c => String(c.id) === String(charId));
-            if (match) { supabaseCharId = match.id; break; }
-        }
+    if (!file.type.startsWith('image/')) {
+        showAutosave('El archivo debe ser una imagen', 'error');
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 10 MB', 'error');
+        return;
     }
 
     showAutosave('Subiendo sprite...', 'info');
-    const result = await SupabaseSprites.uploadCharacterSprite(supabaseCharId, file);
 
+    const result = await _uploadImageToStorage('sprites', charId, file);
     if (!result.ok) {
         showAutosave(result.error || 'Error al subir sprite', 'error');
         return;
     }
 
-    // El módulo ya actualiza charSprite en el DOM y en appData
+    // 1. Actualizar el input del editor
+    const spriteInput = document.getElementById('charSprite');
+    if (spriteInput) spriteInput.value = result.url;
+
+    // 2. Actualizar appData y persistir
+    if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
+        const char = appData.characters.find(c => String(c.id) === String(charId));
+        if (char) {
+            char.sprite = result.url;
+            hasUnsavedChanges = true;
+            if (typeof save === 'function') save({ silent: true });
+            if (typeof SupabaseSync !== 'undefined') {
+                SupabaseSync.uploadProfileData().catch(() => {});
+            }
+        }
+    }
+
     showAutosave('Sprite subido correctamente', 'saved');
     fileInput.value = '';
 }
+
 
 function resetCharForm() {
     const editId = document.getElementById('editCharacterId');

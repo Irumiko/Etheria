@@ -168,6 +168,61 @@ async function staleWhileRevalidate(req) {
   return cached || networkPromise;
 }
 
+// ── PUSH NOTIFICATIONS ──────────────────────────────────────────
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: 'Etheria', body: event.data?.text() || 'Nueva notificación' };
+  }
+
+  const title   = data.title || 'Etheria';
+  const options = {
+    body:      data.body    || 'Te toca responder',
+    icon:      data.icon    || '/assets/icons/icon-192.png',
+    badge:     data.badge   || '/assets/icons/icon-192.png',
+    tag:       data.tag     || 'etheria-push',
+    renotify:  data.renotify ?? true,
+    data:      data.data    || {},
+    actions: [
+      { action: 'open',    title: 'Abrir historia' },
+      { action: 'dismiss', title: 'Descartar' },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Al pulsar la notificación — abrir/enfocar la app y navegar al topic
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
+  const notifData = event.notification.data || {};
+  const targetUrl = notifData.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // Si la app ya está abierta, enfocarla y enviarle los datos
+      const existing = clients.find(c => c.url.includes(self.location.origin));
+      if (existing) {
+        existing.focus();
+        existing.postMessage({
+          type: 'PUSH_NOTIFICATION_CLICK',
+          topicId:        notifData.topicId,
+          storyId:        notifData.storyId,
+          notificationId: notifData.notificationId,
+        });
+        return;
+      }
+      // Si no está abierta, abrirla
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});
+
 // ── BACKGROUND SYNC ─────────────────────────────────────────────
 self.addEventListener('sync', (event) => {
   if (event.tag === 'etheria-sync') {

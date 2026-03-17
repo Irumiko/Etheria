@@ -316,24 +316,24 @@
                 </div>
                 <svg class="menu-profile-chevron" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <button class="menu-save-btn" onclick="openSaveHubModal()" title="Importar / Exportar partida" aria-label="Importar o exportar">
+            <button class="menu-save-btn" onclick="openSaveHubModal()" title="Centro de guardado" aria-label="Centro de guardado">
                 <svg viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             </button>
         </div>
 
-        <!-- Buzón flotante — esquina superior izquierda, solo para usuarios logueados -->
+        <!-- Botón Salir — fixed bottom-right, solo visible en PWA -->
+        <button class="menu-exit-btn" id="menuExitBtn" onclick="exitApp()" aria-label="Cerrar aplicación">
+            <span class="menu-exit-icon">⏻</span>
+            <span class="menu-exit-label">Salir</span>
+        </button>
+
+        <!-- Buzón flotante — esquina superior derecha junto al botón de tema -->
         <button class="menu-inbox-float" id="menuInboxBtn" onclick="openInboxModal()" style="display:none" aria-label="Buzón de notificaciones">
             <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
                 <path d="M3 5h14a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5"/>
                 <path d="M2 6l8 5.5L18 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
             <span class="menu-inbox-badge" id="menuInboxBadge" style="display:none">0</span>
-        </button>
-
-        <!-- Botón Salir — solo visible en PWA -->
-        <button class="menu-exit-btn" id="menuExitBtn" onclick="exitApp()" aria-label="Cerrar aplicación">
-            <span class="menu-exit-icon">⏻</span>
-            <span class="menu-exit-label">Salir app</span>
         </button>
     </div>
 
@@ -348,9 +348,12 @@
                 <!-- Lista de historias -->
                 <div class="topics-main">
                     <div class="topics-command-bar">
-                        <button onclick="openModal('topicModal')" class="btn-create-topic">
+                        <button onclick="openNewTopicModal()" class="btn-create-topic">
                             <span class="btn-create-icon">✦</span>
                             <span>Nueva Historia</span>
+                        </button>
+                        <button onclick="openSessionManager()" class="btn-manage-topics" title="Seleccionar y eliminar varias historias a la vez">
+                            <span>🗂 Gestionar</span>
                         </button>
                         <div class="topics-search-wrap">
                             <span class="topics-search-icon">🔍</span>
@@ -478,9 +481,8 @@
 
             <!-- CUENTA / PERFIL -->
             <div class="opt-panel active" id="optPanel-account" role="tabpanel">
-                <div class="opt-section-title">Cuenta y Perfil</div>
-                <div class="opt-account-logout-wrap">
-                    <button class="opt-save-btn opt-logout-btn" onclick="logout()">Cerrar sesión</button>
+                <div class="opt-section-title">Perfil
+                    <button class="opt-save-btn opt-logout-btn" onclick="logout()" style="float:right;font-size:0.75rem;padding:0.25rem 0.7rem;margin-top:-2px;">Cerrar sesión</button>
                 </div>
 
                 <!-- Avatar -->
@@ -529,7 +531,7 @@
                     </div>
                 </div>
                 <!-- SEGURIDAD -->
-                <div class="opt-section-title" style="margin-top: 1.5rem;">Seguridad</div>
+                <div class="opt-section-title" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(201,168,108,0.12);">Seguridad</div>
                 <div class="opt-rows">
                     <!-- Cambio de email -->
                     <div class="option-row opt-row-stacked">
@@ -554,35 +556,6 @@
                     </div>
                 </div>
 
-                <!-- Backup exportable -->
-                <div class="opt-section-title" style="margin-top: 1.5rem;">Copia de seguridad</div>
-                <div class="opt-rows">
-                    <div class="option-row opt-row-stacked">
-                        <label class="option-label">Exportar partida</label>
-                        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem; font-style:italic;">Descarga un archivo JSON con todas tus historias, personajes y mensajes.</p>
-                        <div class="opt-input-row">
-                            <button onclick="EtheriaExtras.exportBackup()" class="opt-save-btn">⬇ Descargar backup</button>
-                        </div>
-                    </div>
-                    <div class="option-row opt-row-stacked">
-                        <label class="option-label">Importar partida</label>
-                        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem; font-style:italic;">Restaura desde un archivo de backup. Sobreescribirá los datos actuales en la nube.</p>
-                        <div class="opt-input-row">
-                            <label class="opt-save-btn" style="cursor:pointer;">
-                                ⬆ Importar backup
-                                <input type="file" accept=".json" style="display:none;"
-                                    onchange="EtheriaExtras.importBackup(this.files[0]).then(()=>this.value='')">
-                            </label>
-                        </div>
-                    </div>
-                    <div class="option-row opt-row-stacked">
-                        <label class="option-label">Notificaciones push</label>
-                        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.6rem; font-style:italic;">Recibe una notificación cuando sea tu turno, aunque tengas la app cerrada.</p>
-                        <div class="opt-input-row">
-                            <button onclick="EtheriaExtras.registerPushSubscription().then(ok => showAutosave(ok ? '✓ Notificaciones activadas' : 'No se pudieron activar las notificaciones', ok ? 'saved' : 'error'))" class="opt-save-btn">🔔 Activar notificaciones</button>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- APARIENCIA -->
@@ -682,6 +655,17 @@
                         <span class="option-label">Efectos de UI</span>
                         <label class="opt-switch">
                             <input type="checkbox" id="optUiSounds" checked onchange="updateUiSounds(this.checked)">
+                            <span class="opt-switch-slider"></span>
+                        </label>
+                    </div>
+                    <div class="option-row">
+                        <div class="option-label-group">
+                            <span class="option-label">Notificaciones push</span>
+                            <span class="option-sublabel" id="pushNotifLabel">Avisa cuando te toca responder</span>
+                        </div>
+                        <label class="opt-switch">
+                            <input type="checkbox" id="pushNotifToggle"
+                                onchange="EtheriaPush && (this.checked ? EtheriaPush.requestPermissionAndSubscribe() : EtheriaPush.unsubscribe())">
                             <span class="opt-switch-slider"></span>
                         </label>
                     </div>
@@ -1614,13 +1598,20 @@
         </div>
     </div>
 
-    <div id="rpgStatsModal" class="modal-overlay" onclick="if(event.target === this) closeModal('rpgStatsModal')">
+    <div id="rpgStatsModal" class="modal-overlay" onclick="rpgStatsModalOutsideClick(event)">
         <div class="rpg-stats-modal">
             <div class="rpg-stats-header">
                 <div id="rpgStatsTitle" class="rpg-stats-title">⚔️ Nivel 1</div>
-                <button type="button" class="btn-secondary" onclick="closeModal('rpgStatsModal')">Cerrar</button>
+                <button type="button" class="btn-secondary" id="rpgStatsCloseBtn" onclick="closeModal('rpgStatsModal')">Cerrar</button>
             </div>
             <div id="rpgStatsBody" class="rpg-stats-body"></div>
+            <!-- Botón confirmar — solo visible en modo bloqueante (RPG al crear tema) -->
+            <div id="rpgStatsConfirmBar" class="rpg-stats-confirm-bar" style="display:none;">
+                <p class="rpg-stats-confirm-hint">Distribuye tus <strong id="rpgStatsFreeCount">14</strong> puntos antes de empezar. Esta distribución es permanente para esta historia.</p>
+                <button type="button" class="rpg-stats-confirm-btn" id="rpgStatsConfirmBtn" onclick="rpgStatsConfirm()">
+                    ✦ Confirmar ficha y entrar
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1671,6 +1662,7 @@
 <script src="js/utils/supabaseTurnNotifications.js"></script>
     <script src="js/utils/supabaseInbox.js"></script>
     <script src="js/utils/supabaseExtras.js"></script>
+    <script src="js/utils/pushNotifications.js"></script>
 <script src="js/ui/vn.js"></script>
 <script src="js/ui/journal.js"></script>
 <script src="js/ui/topics.js"></script>
@@ -1839,5 +1831,67 @@
         });
     })();
     </script>
+
+<!-- ══════════════════════════════════════════════════════════════
+     GESTOR DE SESIONES — Selección múltiple y borrado masivo
+     ══════════════════════════════════════════════════════════════ -->
+<div id="sessionManagerModal" class="modal-overlay" onclick="if(event.target===this)closeSessionManager()" role="dialog" aria-modal="true" aria-labelledby="smTitle">
+    <div class="session-manager-modal">
+        <div class="sm-header">
+            <div class="sm-header-left">
+                <h3 id="smTitle" class="sm-title">🗂 Gestionar historias</h3>
+                <span class="sm-subtitle" id="smSubtitle">Selecciona las que quieras eliminar</span>
+            </div>
+            <button class="sm-close-btn" onclick="closeSessionManager()" aria-label="Cerrar">✕</button>
+        </div>
+
+        <!-- Barra de acciones -->
+        <div class="sm-action-bar">
+            <div class="sm-select-all-wrap">
+                <label class="sm-checkbox-label">
+                    <input type="checkbox" id="smSelectAll" onchange="smToggleAll(this.checked)">
+                    <span class="sm-checkbox-custom"></span>
+                    <span class="sm-label-text">Seleccionar todo</span>
+                </label>
+            </div>
+            <div class="sm-action-right">
+                <span class="sm-count" id="smSelectedCount">0 seleccionadas</span>
+                <button class="sm-filter-btn active" data-filter="all" onclick="smSetFilter('all',this)">Todas</button>
+                <button class="sm-filter-btn" data-filter="mine" onclick="smSetFilter('mine',this)">Mías</button>
+            </div>
+        </div>
+
+        <!-- Lista de historias -->
+        <div class="sm-list" id="smList"></div>
+
+        <!-- Footer -->
+        <div class="sm-footer">
+            <button class="btn-secondary" onclick="closeSessionManager()">Cancelar</button>
+            <button class="sm-delete-btn" id="smDeleteBtn" onclick="smDeleteSelected()" disabled>
+                <span>🗑 Eliminar seleccionadas</span>
+                <span class="sm-delete-count" id="smDeleteCount"></span>
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     AVISO: Sin personajes — no se puede crear historia
+     ══════════════════════════════════════════════════════════════ -->
+<div id="noCharacterWarningModal" class="modal-overlay" onclick="if(event.target===this)closeModal('noCharacterWarningModal')">
+    <div class="no-char-warning-modal">
+        <div class="ncw-icon">⚠️</div>
+        <h3 class="ncw-title">Necesitas un personaje</h3>
+        <p class="ncw-body">Para crear una historia debes tener al menos un personaje creado. Ve a <strong>Personajes</strong> y crea el tuyo antes de empezar.</p>
+        <div class="ncw-actions">
+            <button class="btn-secondary" onclick="closeModal('noCharacterWarningModal')">Entendido</button>
+            <button class="ncw-go-btn" onclick="closeModal('noCharacterWarningModal'); showSection('gallery')">
+                ✦ Ir a Personajes
+            </button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
