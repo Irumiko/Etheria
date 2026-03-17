@@ -851,23 +851,63 @@
     .menu-container {
         gap: 0.45rem !important;
     }
+    /* En móvil pequeño (Honor X7, etc.): footer en columna para evitar solapamientos */
     .menu-footer {
-        bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px)) !important;
+        bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px)) !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0.4rem !important;
+        left: 0.6rem !important;
+        right: 0.6rem !important;
+        transform: none !important;
+        width: auto !important;
     }
-    /* En PWA el safe-area-inset-top puede ser 0 o tener valor; dejamos margen extra */
+
+    .menu-profile-btn {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    .menu-profile-name {
+        max-width: 38vw !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+    }
+
+    .menu-profile-hint {
+        display: none !important;
+    }
+
+    /* Botón salir: fixed encima del footer en móvil (no superpuesto) */
+    .menu-exit-btn {
+        bottom: calc(4.4rem + env(safe-area-inset-bottom, 0px)) !important;
+        right: calc(0.7rem + env(safe-area-inset-right, 0px)) !important;
+        padding: 0.3rem 0.55rem !important;
+        font-size: 0.65rem !important;
+    }
+
+    /* Botón de guardado más compacto */
+    .menu-save-btn {
+        width: 32px !important;
+        height: 32px !important;
+        flex: 0 0 32px !important;
+    }
+
+    /* Buzón junto al botón de tema arriba */
+    .menu-inbox-float {
+        top: 0.6rem !important;
+        right: 3.6rem !important;
+        width: 36px !important;
+        height: 36px !important;
+    }
+
     .pwa-standalone .menu-center-content,
     body.is-pwa .menu-center-content {
-        max-height: calc(100vh - 90px
+        max-height: calc(100vh - 100px
             - env(safe-area-inset-bottom, 0px)
             - env(safe-area-inset-top, 0px));
         padding-top: 8px;
-    }
-
-    .menu-exit-btn {
-        bottom: calc(0.8rem + env(safe-area-inset-bottom, 0px)) !important;
-        right: calc(0.9rem + env(safe-area-inset-right, 0px)) !important;
-        padding: 0.36rem 0.72rem !important;
-        font-size: 0.68rem !important;
     }
 }
 
