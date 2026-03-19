@@ -116,6 +116,18 @@ const CollaborativeGuard = (function () {
                 .on('broadcast', { event: 'msg_delete' }, (payload) => {
                     _handleRemoteDelete(payload?.payload);
                 })
+                .on('broadcast', { event: 'dm_challenge' }, (payload) => {
+                    _handleRemoteDmChallenge(payload?.payload);
+                })
+                .on('broadcast', { event: 'dm_condition' }, (payload) => {
+                    _handleRemoteDmCondition(payload?.payload);
+                })
+                .on('broadcast', { event: 'dm_revive' }, (payload) => {
+                    _handleRemoteDmRevive(payload?.payload);
+                })
+                .on('broadcast', { event: 'dm_item_given' }, (payload) => {
+                    window.dispatchEvent(new CustomEvent('etheria:dm-item-given', { detail: payload?.payload }));
+                })
                 .subscribe((status) => {
                     if (status === 'SUBSCRIBED') {
                         logger?.info('collab', `broadcast activo — topic ${topicId}`);
@@ -301,6 +313,41 @@ const CollaborativeGuard = (function () {
         }
     }
 
+    // ── Handlers de eventos DM ───────────────────────────────────────────────
+
+    function _handleRemoteDmChallenge(data) {
+        if (!data?.challenge) return;
+        // Activar la barra de desafío en la pantalla del jugador
+        window.dispatchEvent(new CustomEvent('etheria:dm-challenge', { detail: data }));
+    }
+
+    function _handleRemoteDmCondition(data) {
+        if (!data) return;
+        // Notificar que el estado de un personaje ha cambiado
+        window.dispatchEvent(new CustomEvent('etheria:dm-condition-changed', { detail: data }));
+    }
+
+    function _handleRemoteDmRevive(data) {
+        if (!data) return;
+        window.dispatchEvent(new CustomEvent('etheria:dm-revive', { detail: data }));
+    }
+
+    // ── Broadcast de acciones DM ──────────────────────────────────────────────
+    // Un único método para enviar cualquier acción del DM al canal broadcast.
+    // Los otros jugadores reciben el evento y actualizan su estado local.
+    function broadcastDmEvent(eventName, payload) {
+        if (!_broadcastChannel) return;
+        try {
+            _broadcastChannel.send({
+                type: 'broadcast',
+                event: eventName,
+                payload
+            });
+        } catch (e) {
+            logger?.warn('collab', 'broadcastDmEvent failed:', e?.message);
+        }
+    }
+
     // ── UI ────────────────────────────────────────────────────────────────────
 
     function _refreshUI() {
@@ -378,7 +425,7 @@ const CollaborativeGuard = (function () {
         };
     }
 
-    return { init, stop, forceMerge, getStatus, broadcastEdit, broadcastDelete };
+    return { init, stop, forceMerge, getStatus, broadcastEdit, broadcastDelete, broadcastDmEvent };
 
 })();
 

@@ -54,23 +54,23 @@ const SupabaseSync = (function () {
      */
     function _getProfileDataForSync() {
         const profileIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
+        // topics ya no está en el blob — los topicIds se usan solo para filtrar affinities localmente
         const topics = Array.isArray(appData?.topics) ? appData.topics : [];
         const topicIds = new Set(topics.map(t => String(t.id)));
+        // (topics no se sube al blob, pero se necesita topicIds para filtrar affinities)
 
-        const messages = {};
-        Object.keys(appData?.messages || {}).forEach(topicId => {
-            if (topicIds.has(String(topicId))) messages[topicId] = appData.messages[topicId];
-        });
-
+        // messages se excluye del blob — ya vive en la tabla messages de Supabase.
+        // Guardarlo aquí causaría duplicación y haría crecer el blob O(n_mensajes).
         const affinities = {};
         Object.keys(appData?.affinities || {}).forEach(topicId => {
             if (topicIds.has(String(topicId))) affinities[topicId] = appData.affinities[topicId];
         });
 
-        const characters = Array.isArray(appData?.characters) ? appData.characters : [];
+        // characters se excluye del blob — ya vive en la tabla characters de Supabase.
+        // Se sincronizan vía SupabaseCharacters.upsertCharacter al guardar cada personaje.
         const favorites = appData?.favorites || {};
         const journals = appData?.journals || {};
-        const reactions = appData?.reactions || {};
+        // reactions ya no está en el blob — se carga desde message_reactions en Supabase
 
         // Incluir inventario y estado RPG (flags, nivel, HP) del motor de escenas.
         // Se guarda por profileIndex para que cada perfil tenga su estado independiente.
@@ -98,16 +98,15 @@ const SupabaseSync = (function () {
             })()
         };
 
+        // topics se excluye del blob — ahora vive en la tabla stories de Supabase.
+        // Se sincronizan vía SupabaseStories.upsertStory al crear/modificar cada historia.
         return {
             profileIndex,
             userNames: typeof userNames !== 'undefined' ? userNames : ['Jugador 1', 'Jugador 2', 'Jugador 3'],
-            topics,
-            characters,
-            messages,
             affinities,
             favorites,
             journals,
-            reactions,
+            // reactions se excluye del blob — ahora vive en la tabla message_reactions de Supabase.
             rpgStateSnapshot,
             profileMeta,
             lastMessageIndex: typeof currentMessageIndex !== 'undefined' ? currentMessageIndex : 0,
@@ -135,18 +134,16 @@ const SupabaseSync = (function () {
             } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         }
 
-        const remoteTopics = Array.isArray(syncedData.topics) ? syncedData.topics : [];
-        const remoteCharacters = Array.isArray(syncedData.characters) ? syncedData.characters : [];
-        const remoteMessages = (syncedData.messages && typeof syncedData.messages === 'object') ? syncedData.messages : {};
+        // topics NO se restaura desde el blob — se carga desde la tabla stories de Supabase.
+        // characters NO se restaura desde el blob — se carga desde la tabla characters de Supabase.
+        // messages NO se restaura desde el blob — se carga desde la tabla messages de Supabase.
         const remoteAffinities = (syncedData.affinities && typeof syncedData.affinities === 'object') ? syncedData.affinities : {};
 
-        appData.topics = remoteTopics;
-        appData.characters = remoteCharacters;
-        appData.messages = remoteMessages;
+        // appData.topics se mantiene en memoria y se actualiza vía SupabaseStories.loadStories
         appData.affinities = remoteAffinities;
         appData.favorites = (syncedData.favorites && typeof syncedData.favorites === 'object') ? syncedData.favorites : {};
         appData.journals = (syncedData.journals && typeof syncedData.journals === 'object') ? syncedData.journals : {};
-        appData.reactions = (syncedData.reactions && typeof syncedData.reactions === 'object') ? syncedData.reactions : {};
+        // reactions NO se restaura desde el blob — se carga desde message_reactions en Supabase
 
         if (syncedData.profileMeta && typeof syncedData.profileMeta === 'object') {
             try {
@@ -186,7 +183,19 @@ const SupabaseSync = (function () {
     /**
      * Sube los datos del perfil a Supabase
      */
-    async function uploadProfileData() {
+    // Debounce: evitar múltiples subidas en ráfaga (ej. guardar personaje + guardar topic al mismo tiempo)
+    let _uploadDebounceTimer = null;
+    function uploadProfileData() {
+        return new Promise((resolve) => {
+            clearTimeout(_uploadDebounceTimer);
+            _uploadDebounceTimer = setTimeout(async () => {
+                const result = await _doUploadProfileData();
+                resolve(result);
+            }, 400); // 400ms de debounce
+        });
+    }
+
+    async function _doUploadProfileData() {
         if (!_isAvailable()) return { ok: false, error: 'Supabase no disponible' };
         
         const userId = _getUserId();
@@ -207,7 +216,7 @@ const SupabaseSync = (function () {
                 }, { onConflict: 'user_id' });
 
             if (upsertError) {
-                console.error('[SupabaseSync] upload error:', upsertError);
+                window.EtheriaLogger?.warn('[SupabaseSync]', 'upload error:', upsertError);
                 return { ok: false, error: upsertError.message };
             }
 
@@ -220,7 +229,7 @@ const SupabaseSync = (function () {
 
             return { ok: true };
         } catch (err) {
-            console.error('[SupabaseSync] upload exception:', err);
+            window.EtheriaLogger?.warn('[SupabaseSync]', 'upload exception:', err);
             return { ok: false, error: err.message };
         }
     }
@@ -246,7 +255,7 @@ const SupabaseSync = (function () {
                     // No hay datos aún (no es error)
                     return { ok: true, data: null, isNew: true };
                 }
-                console.error('[SupabaseSync] download error:', error);
+                window.EtheriaLogger?.warn('[SupabaseSync]', 'download error:', error);
                 return { ok: false, error: error.message };
             }
 
@@ -263,7 +272,7 @@ const SupabaseSync = (function () {
 
             return { ok: true, data: null };
         } catch (err) {
-            console.error('[SupabaseSync] download exception:', err);
+            window.EtheriaLogger?.warn('[SupabaseSync]', 'download exception:', err);
             return { ok: false, error: err.message };
         }
     }
@@ -324,7 +333,7 @@ const SupabaseSync = (function () {
             return { status: 'synced' };
 
         } catch (err) {
-            console.error('[SupabaseSync] sync error:', err);
+            window.EtheriaLogger?.warn('[SupabaseSync]', 'sync error:', err);
             _isOffline = true;
             return { status: 'error', error: err.message };
         } finally {
@@ -337,8 +346,8 @@ const SupabaseSync = (function () {
      */
     function _hasLocalData() {
         return (appData?.topics?.length > 0) || 
-               (appData?.characters?.length > 0) ||
-               Object.keys(appData?.messages || {}).length > 0;
+               // characters ya no está en el blob — eliminado
+               Object.keys(appData?.topics || {}).length > 0;
     }
 
     // ── Auto-sync ────────────────────────────────────────────────────────────

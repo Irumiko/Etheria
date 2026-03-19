@@ -116,6 +116,7 @@ async function logout() {
 // NO borra preferencias de UI (tema, velocidad, tamaño de fuente) porque
 // esas son preferencias del dispositivo, no del usuario.
 function _clearAccountData() {
+    // Claves de cuenta — se borran completamente al cambiar de sesión
     const accountKeys = [
         'etheria_user_names',
         'etheria_user_genders',
@@ -128,24 +129,29 @@ function _clearAccountData() {
         'etheria_favorites',
         'etheria_journals',
         'etheria_reactions',
-        'etheria_data',        // clave legacy
+        'etheria_cloud_avatar_url',
+        'etheria_last_story_code',
+        'etheria_onboarding_step',
+        'etheria_data',
         'lastProfileId',
+        'active_profile_id',
     ];
     accountKeys.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
 
-    // Limpiar claves dinámicas con prefijo (mensajes por tema, timestamps de sync)
+    // Claves dinámicas con prefijo
     try {
         Object.keys(localStorage)
             .filter(k =>
                 k.startsWith('etheria_messages_') ||
                 k.startsWith('etheria_profile_updated_') ||
                 k.startsWith('etheria_rpg_state_') ||
-                k.startsWith('etheria_stats_prompted_')
+                k.startsWith('etheria_stats_prompted_') ||
+                k.startsWith('etheria_selected_char_')
             )
             .forEach(k => localStorage.removeItem(k));
     } catch (_) {}
 
-    // Resetear estado de memoria de la app
+    // Resetear estado de memoria
     if (typeof appData !== 'undefined') {
         appData.topics      = [];
         appData.characters  = [];
@@ -154,8 +160,13 @@ function _clearAccountData() {
         appData.favorites   = {};
         appData.journals    = {};
         appData.reactions   = {};
+        appData.cloudProfiles = [];
+        appData.cloudCharacters = {};
     }
     if (typeof userNames !== 'undefined') userNames.length = 0;
+    if (typeof selectedCharId !== 'undefined') selectedCharId = null;
+    if (typeof currentTopicId !== 'undefined') currentTopicId = null;
+    window._cachedUserId = null;
 }
 
 async function login() {
@@ -195,6 +206,22 @@ async function login() {
         await SupabaseSync.downloadProfileData();
     }
 
+
+    // Cargar historias desde Supabase — reconstruye appData.topics si está vacío
+    // (usuario en dispositivo nuevo) o actualiza storyIds en topics existentes.
+    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+        await SupabaseStories.loadStories().catch(() => {});
+    }
+
+    // Sincronizar topics locales con Supabase.
+    // Sube los que no tienen storyId aún y actualiza los que han cambiado.
+    if (typeof SupabaseStories !== 'undefined' &&
+        typeof SupabaseStories.syncAllLocalTopics === 'function' &&
+        Array.isArray(appData?.topics) && appData.topics.length > 0) {
+        SupabaseStories.syncAllLocalTopics(appData.topics).then(() => {
+            if (typeof save === 'function') save({ silent: true });
+        }).catch(() => {});
+    }
     // Re-renderizar siempre, tanto si había datos en la nube como si no.
     if (typeof renderTopics === 'function')    renderTopics();
     if (typeof renderGallery === 'function')   renderGallery();
@@ -272,10 +299,17 @@ async function ensureProfile() {
         const { data: userData, error: userError } = await window.supabaseClient.auth.getUser();
         if (userError || !userData?.user) return;
 
+        const userId = userData.user.id;
+        window._cachedUserId = userId;
+
         // Inicializar módulos de perfiles y personajes
         if (typeof SupabaseProfiles !== 'undefined') {
             SupabaseProfiles.init();
         }
+
+        // La activación del perfil la gestiona SupabaseProfiles.init() automáticamente.
+        // No hace falta nada manual aquí — init() carga perfiles, activa el propio,
+        // y si no existe crea uno. Cubre usuarios nuevos, recurrentes y multicuenta.
 
         // Cargar ajustes del usuario desde Supabase y aplicar a UI
         if (typeof SupabaseSettings !== 'undefined') {
@@ -287,8 +321,6 @@ async function ensureProfile() {
             SupabaseTurnNotifications.subscribe().catch(() => {});
         }
 
-        // Fix 6: cache user globally so Supabase modules avoid repeated getUser() calls
-        window._cachedUserId = userData.user.id;
         // Disparar evento para que otros módulos sepan que hay usuario autenticado
         window.dispatchEvent(new CustomEvent('etheria:auth-changed', {
             detail: { user: userData.user }
@@ -297,6 +329,50 @@ async function ensureProfile() {
         // Silencioso para no bloquear la app
     }
 }
+
+// ── Sincronización de personajes al activar perfil ───────────────────────────
+// El evento 'etheria:active-profile-changed' se emite cuando el perfil activo
+// está completamente cargado y su ID disponible. Es el momento correcto para
+// sincronizar personajes locales — evita la race condition de hacer el sync
+// inmediatamente después del login, cuando el profileId todavía es null.
+(function _registerCharacterSyncListener() {
+    let _charSyncDone = false;
+    window.addEventListener('etheria:active-profile-changed', function(e) {
+        const profileId = e.detail?.profileId;
+        if (!profileId || _charSyncDone) return;
+
+        // Solo sincronizar si hay personajes locales sin subir
+        if (!Array.isArray(appData?.characters) || appData.characters.length === 0) return;
+        if (typeof SupabaseCharacters === 'undefined' ||
+            typeof SupabaseCharacters.syncAllLocalCharacters !== 'function') return;
+
+        _charSyncDone = true; // ejecutar solo una vez por sesión
+
+        // 1. Cargar personajes desde Supabase → appData.characters
+        // Cubre el caso de usuario en dispositivo nuevo sin localStorage
+        SupabaseCharacters.loadCharacters(profileId)
+            .then(cloudChars => {
+                if (cloudChars?.length > 0) {
+                    window.EtheriaLogger?.info('app',
+                        `${cloudChars.length} personajes cargados desde Supabase`);
+                    if (typeof renderGallery === 'function') renderGallery();
+                }
+                // 2. Subir personajes locales que no estén en la nube aún
+                // (migración inicial o creados offline)
+                if (Array.isArray(appData?.characters) && appData.characters.length > 0) {
+                    return SupabaseCharacters.syncAllLocalCharacters(appData.characters, profileId);
+                }
+            })
+            .then(result => {
+                if (result?.synced > 0) {
+                    window.EtheriaLogger?.info('app',
+                        `${result.synced} personajes sincronizados con Supabase`);
+                    if (typeof renderGallery === 'function') renderGallery();
+                }
+            })
+            .catch(() => {});
+    });
+})();
 
 let appInitialized = false;
 
@@ -320,7 +396,7 @@ function initializeApp() {
                 }
             }
         } catch (e) {
-            console.error('Error parsing user names:', e);
+            window.EtheriaLogger?.warn('app', 'Error parsing user names:', e));
         }
     }
 

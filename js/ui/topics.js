@@ -518,21 +518,23 @@ function createTopic() {
     closeModal('topicModal');
     renderTopics();
 
-    // ── Sincronización automática con la nube ─────────────────────
-    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.createStory === 'function') {
-        SupabaseStories.createStory(title).then(function(story) {
-            if (story && story.id) {
-                const t = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
-                if (t) {
-                    t.storyId = story.id;
+    // ── Sincronización con la nube ──────────────────────────────────────────
+    // Usa upsertStory para guardar todos los metadatos del topic (modo, fondo,
+    // locks, etc.) en la tabla stories de Supabase, no solo el título.
+    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.upsertStory === 'function') {
+        const topicRef = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
+        if (topicRef) {
+            SupabaseStories.upsertStory(topicRef).then(function(result) {
+                if (result.ok && result.storyId) {
+                    topicRef.storyId = result.storyId;
+                    global.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
-                    global.currentStoryId = story.id;
                 }
-            }
-        }).catch(function() {});
+            }).catch(function() {});
+        }
     }
-    // Subir perfil a nube tras crear historia
+    // Subir blob actualizado (ya sin topics dentro, pero por si queda algo pendiente)
     if (typeof SupabaseSync !== 'undefined') {
         SupabaseSync.uploadProfileData().catch(() => {});
     }

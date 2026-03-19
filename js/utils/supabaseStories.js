@@ -189,21 +189,78 @@
             }
 
             const stories = await res.json();
+            if (!Array.isArray(stories)) return [];
 
             if (typeof appData !== 'undefined') {
-                appData.stories = Array.isArray(stories) ? stories : [];
+                appData.stories = stories;
+
+                // ── Reconstruir appData.topics desde Supabase ────────────────
+                // Si el usuario está en un dispositivo nuevo sin localStorage,
+                // appData.topics estará vacío. En ese caso reconstruimos los topics
+                // desde las stories de Supabase, incluyendo todos los metadatos
+                // que ahora se guardan en las columnas nuevas (mode, background,
+                // character_locks, etc.).
+                const hasLocalTopics = Array.isArray(appData.topics) && appData.topics.length > 0;
+                if (!hasLocalTopics && stories.length > 0) {
+                    appData.topics = stories.map(s => _storyToTopic(s));
+                    logger?.info('supabase:stories', `Reconstruidos ${appData.topics.length} topics desde Supabase`);
+                    // Persistir en localStorage para las próximas cargas
+                    if (typeof persistPartitionedData === 'function') {
+                        persistPartitionedData(true);
+                    }
+                } else if (hasLocalTopics && stories.length > 0) {
+                    // Actualizar storyId y metadatos en topics locales que ya existen
+                    // para mantener la coherencia si se crearon en otro dispositivo
+                    stories.forEach(s => {
+                        const local = appData.topics.find(t =>
+                            String(t.storyId) === String(s.id) ||
+                            String(t.id) === String(s.local_id)
+                        );
+                        if (local) {
+                            if (!local.storyId) local.storyId = s.id;
+                            // Actualizar metadatos si la versión en nube es más reciente
+                            if (s.updated_at && (!local.updatedAt || s.updated_at > local.updatedAt)) {
+                                if (s.mode)            local.mode            = s.mode;
+                                if (s.background)      local.background      = s.background;
+                                if (s.character_locks) local.characterLocks  = s.character_locks;
+                                if (s.rpg_char_locks)  local.rpgCharacterLocks = s.rpg_char_locks;
+                            }
+                        }
+                    });
+                }
             }
 
             global.dispatchEvent(new CustomEvent('etheria:stories-loaded', {
-                detail: { stories: Array.isArray(stories) ? stories : [] }
+                detail: { stories }
             }));
 
-            return Array.isArray(stories) ? stories : [];
+            return stories;
 
         } catch (e) {
             logger?.warn('supabase:stories', 'loadStories error:', e.message);
             return [];
         }
+    }
+
+    // Convierte una fila de la tabla stories en un objeto topic compatible con appData.topics.
+    // Usa todos los campos nuevos que se añadieron a la tabla stories.
+    function _storyToTopic(story) {
+        return {
+            id:                 story.local_id || story.id,
+            storyId:            story.id,
+            title:              story.title,
+            mode:               story.mode               || 'classic',
+            background:         story.background         || null,
+            weather:            story.weather            || null,
+            createdByIndex:     story.created_by_index   ?? 0,
+            characterLocks:     story.character_locks    || {},
+            rpgCharacterLocks:  story.rpg_char_locks     || {},
+            roleCharacterId:    story.role_character_id  || null,
+            date:               story.created_at
+                                    ? new Date(story.created_at).toLocaleDateString()
+                                    : new Date().toLocaleDateString(),
+            updatedAt:          story.updated_at         || null
+        };
     }
 
     // ── loadStoryParticipants ─────────────────────────────────────────────────
@@ -404,6 +461,52 @@
         try {
             global._storyRealtimeChannel = client
                 .channel('story:' + storyId)
+                // ── Reacciones en tiempo real ──────────────────────────
+                .on(
+                    'postgres_changes',
+                    {
+                        event  : '*',          // INSERT, UPDATE, DELETE
+                        schema : 'public',
+                        table  : 'message_reactions',
+                        filter : 'story_id=eq.' + storyId
+                    },
+                    function (payload) {
+                        try {
+                            if (global.currentStoryId !== storyId) return;
+                            const row      = payload.new || payload.old;
+                            const eventType = payload.eventType; // INSERT | UPDATE | DELETE
+                            if (!row?.message_id) return;
+
+                            const msgId     = String(row.message_id);
+                            const userIndex = String(row.user_index ?? '');
+                            const emoji     = row.emoji || null;
+                            const topicId   = global.currentTopicId;
+
+                            if (!topicId) return;
+                            if (!global.appData) return;
+                            if (!global.appData.reactions) global.appData.reactions = {};
+                            if (!global.appData.reactions[topicId]) global.appData.reactions[topicId] = {};
+                            if (!global.appData.reactions[topicId][msgId]) global.appData.reactions[topicId][msgId] = {};
+
+                            if (eventType === 'DELETE' || !emoji) {
+                                delete global.appData.reactions[topicId][msgId][userIndex];
+                                if (Object.keys(global.appData.reactions[topicId][msgId]).length === 0) {
+                                    delete global.appData.reactions[topicId][msgId];
+                                }
+                            } else {
+                                global.appData.reactions[topicId][msgId][userIndex] = emoji;
+                            }
+
+                            // Refrescar la visualización si el mensaje activo es este
+                            if (typeof updateReactionDisplay === 'function') {
+                                updateReactionDisplay();
+                            }
+                        } catch (e) {
+                            logger?.warn('supabase:stories', 'reaction realtime error:', e.message);
+                        }
+                    }
+                )
+                // ── Mensajes nuevos ────────────────────────────────────────
                 .on(
                     'postgres_changes',
                     {
@@ -537,11 +640,15 @@
     }
 
     function _renderStoryParticipants(participants) {
-        const container = document.getElementById('storyParticipantsList');
+        const panel = document.getElementById('vnPresencePanel');
+        const container = document.getElementById('storyParticipantsList') || document.getElementById('vnPresenceList');
         if (!container) return;
 
+        // Mostrar el panel solo si hay participantes
+        if (panel) panel.style.display = participants?.length ? '' : 'none';
+
         if (!participants || participants.length === 0) {
-            container.innerHTML = '<span class="story-participants-empty">Sin participantes aún</span>';
+            container.innerHTML = '';
             return;
         }
 
@@ -552,35 +659,71 @@
                 && SupabasePresence.isUserOnline(userId);
         };
 
-        // XSS fix: build participant elements via DOM to avoid name/avatar injection
+        // Para cada participante buscar su personaje bloqueado en el topic activo
+        const topic = typeof appData !== 'undefined' && global.currentTopicId
+            ? (appData.topics || []).find(t => String(t.id) === String(global.currentTopicId))
+            : null;
+        const lockMap = topic
+            ? { ...(topic.characterLocks || {}), ...(topic.rpgCharacterLocks || {}) }
+            : {};
+
         container.innerHTML = '';
         participants.forEach(function (p) {
-            const name = p.profile?.name || (p.user_id ? String(p.user_id).slice(0, 8) : '?');
-            const avatar = p.profile?.avatar_url || '';
+            const online = isOnline(p.user_id);
+
+            // Buscar el personaje que este usuario tiene bloqueado en el topic
+            const charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
+            const char   = charId && typeof appData !== 'undefined'
+                ? (appData.characters || []).find(c => String(c.id) === String(charId))
+                : null;
+
+            const displayName = char?.name
+                || p.profile?.name
+                || (p.user_id ? String(p.user_id).slice(0, 8) : '?');
+            const avatar = char?.avatar || char?.sprite || p.profile?.avatar_url || '';
+            const color  = char?.color || 'rgba(201,168,108,0.6)';
 
             const wrap = document.createElement('span');
-            wrap.className = 'story-participant-wrap' + (isOnline(p.user_id) ? ' online' : '');
-            wrap.title = isOnline(p.user_id) ? `${name} · En línea` : `${name} · Desconectado`;
+            wrap.className = 'story-participant-wrap' + (online ? ' online' : '');
+            wrap.title = online
+                ? `${displayName} · En línea`
+                : `${displayName} · Desconectado`;
 
+            // Avatar del personaje si existe, si no iniciales
             let el;
             if (avatar) {
                 el = document.createElement('img');
                 el.src = avatar;
                 el.className = 'story-participant-avatar';
-                el.alt = name;
-                el.onerror = function () { this.style.display = 'none'; };
+                el.alt = displayName;
+                el.onerror = function () {
+                    this.style.display = 'none';
+                    const init = document.createElement('span');
+                    init.className = 'story-participant-initial';
+                    init.textContent = displayName[0]?.toUpperCase() || '?';
+                    init.style.borderColor = color;
+                    wrap.insertBefore(init, wrap.firstChild);
+                };
             } else {
                 el = document.createElement('span');
-                el.className = 'story-participant-chip';
-                el.textContent = name;
+                el.className = 'story-participant-initial';
+                el.textContent = displayName[0]?.toUpperCase() || '?';
+                el.style.borderColor = color;
             }
 
+            // Nombre del personaje en texto pequeño bajo el avatar
+            const nameEl = document.createElement('span');
+            nameEl.className = 'story-participant-name';
+            nameEl.textContent = displayName;
+
+            // Punto de presencia (verde = online, gris = offline)
             const dot = document.createElement('span');
             dot.className = 'story-participant-dot';
             dot.setAttribute('aria-hidden', 'true');
 
             wrap.appendChild(el);
             wrap.appendChild(dot);
+            wrap.appendChild(nameEl);
             container.appendChild(wrap);
         });
     }
@@ -747,6 +890,68 @@
         }
     }
 
+    // ── Upsert de un topic local completo en stories ────────────────────────
+    // Convierte un objeto topic local a una fila de stories en Supabase.
+    // Usa storyId como clave si existe; si no, intenta resolver por local_id.
+    async function upsertStory(topic) {
+        if (!_isAvailable() || !topic?.title) return { ok: false };
+        try {
+            const row = {
+                title:              topic.title,
+                mode:               topic.mode               || 'classic',
+                background:         topic.background         || null,
+                weather:            topic.weather            || null,
+                created_by_index:   typeof topic.createdByIndex === 'number' ? topic.createdByIndex : null,
+                character_locks:    topic.characterLocks     || {},
+                rpg_char_locks:     topic.rpgCharacterLocks  || {},
+                role_character_id:  topic.roleCharacterId    || null,
+                local_id:           String(topic.id),
+                updated_at:         new Date().toISOString()
+            };
+
+            // Si ya tiene storyId usarlo como PK, si no crear nuevo
+            const client = _getClient();
+            if (!client) return { ok: false, error: 'Cliente no disponible' };
+
+            if (topic.storyId) {
+                const { error } = await client.from('stories')
+                    .update(row)
+                    .eq('id', topic.storyId);
+                if (error) return { ok: false, error: error.message };
+                return { ok: true, storyId: topic.storyId };
+            } else {
+                const { data, error } = await client.from('stories')
+                    .insert({ ...row, created_by: _getUserId() })
+                    .select('id')
+                    .single();
+                if (error) return { ok: false, error: error.message };
+                return { ok: true, storyId: data.id };
+            }
+        } catch (e) {
+            logger?.warn('supabase:stories', 'upsertStory error:', e?.message);
+            return { ok: false };
+        }
+    }
+
+    // Sube todos los topics locales a Supabase que no tengan storyId todavía
+    // o que hayan sido modificados. Pensado para ejecutarse al hacer login.
+    async function syncAllLocalTopics(topics) {
+        if (!_isAvailable() || !Array.isArray(topics)) return;
+        const pending = topics.filter(t => !t.storyId || t._dirty);
+        if (!pending.length) return;
+
+        for (const topic of pending) {
+            const result = await upsertStory(topic).catch(() => ({ ok: false }));
+            if (result.ok && result.storyId && !topic.storyId) {
+                topic.storyId = result.storyId;
+            }
+        }
+    }
+
+    function _getUserId() {
+        return window._cachedUserId || null;
+    }
+
     // ── API pública ───────────────────────────────────────────────────────────
 
     global.SupabaseStories = {
@@ -756,7 +961,9 @@
         leaveStory            : leaveStory,
         loadStoryParticipants : loadStoryParticipants,
         generateInviteLink    : generateInviteLink,
-        joinByInviteToken     : joinByInviteToken
+        joinByInviteToken     : joinByInviteToken,
+        upsertStory           : upsertStory,
+        syncAllLocalTopics    : syncAllLocalTopics
     };
 
 }(window));

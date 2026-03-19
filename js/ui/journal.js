@@ -229,23 +229,23 @@ function getReactionSummary(topicId, msgId) {
     return counts; // { '❤️': 2, '🔥': 1, ... }
 }
 
-function toggleReaction(emoji) {
+async function toggleReaction(emoji) {
     if (!currentTopicId) return;
     const msgs = getTopicMessages(currentTopicId);
     const msg  = msgs[currentMessageIndex];
     if (!msg) return;
 
-    const topicReactions = getReactionsForTopic(currentTopicId);
     const msgId = String(msg.id);
+
+    // ── Actualizar estado local primero (UI inmediata) ───────────────────────
+    const topicReactions = getReactionsForTopic(currentTopicId);
     if (!topicReactions[msgId]) topicReactions[msgId] = {};
 
     const current = topicReactions[msgId][String(currentUserIndex)];
     if (current === emoji) {
-        // Quitar reacción
         delete topicReactions[msgId][String(currentUserIndex)];
         if (Object.keys(topicReactions[msgId]).length === 0) delete topicReactions[msgId];
     } else {
-        // Añadir o cambiar
         topicReactions[msgId][String(currentUserIndex)] = emoji;
     }
 
@@ -255,7 +255,68 @@ function toggleReaction(emoji) {
 
     updateReactionDisplay();
     closeReactionPicker();
+
+    // ── Sincronizar con Supabase en segundo plano ────────────────────────────
+    // No bloquea la UI — si falla, el estado local ya está actualizado.
+    _syncReactionToSupabase(msgId, emoji, current === emoji).catch(() => {});
 }
+
+// Sincroniza una reacción individual con la tabla message_reactions de Supabase.
+// Si 'isRemoving' es true elimina la fila; si no, hace upsert.
+async function _syncReactionToSupabase(msgId, emoji, isRemoving) {
+    const sb = window.supabaseClient;
+    if (!sb) return;
+
+    const { data: { user } } = await sb.auth.getUser().catch(() => ({ data: {} }));
+    if (!user?.id) return;
+
+    const topic = getCurrentTopic ? getCurrentTopic() : null;
+    const storyId = topic?.storyId || null;
+
+    if (isRemoving) {
+        await sb.from('message_reactions')
+            .delete()
+            .eq('message_id', msgId)
+            .eq('user_id', user.id);
+    } else {
+        await sb.from('message_reactions')
+            .upsert({
+                message_id: msgId,
+                story_id:   storyId,
+                user_id:    user.id,
+                user_index: currentUserIndex,
+                emoji:      emoji
+            }, { onConflict: 'message_id,user_id' });
+    }
+}
+
+// Carga las reacciones de una historia desde Supabase y las fusiona con el estado local.
+// Se llama al entrar a un topic para asegurar que se ven las reacciones de otros usuarios.
+async function loadReactionsFromSupabase(storyId) {
+    const sb = window.supabaseClient;
+    if (!sb || !storyId) return;
+
+    const { data, error } = await sb
+        .from('message_reactions')
+        .select('message_id, user_index, emoji')
+        .eq('story_id', storyId);
+
+    if (error || !Array.isArray(data)) return;
+
+    // Reconstruir la estructura { msgId: { userIndex: emoji } }
+    const rebuilt = {};
+    data.forEach(r => {
+        if (!rebuilt[r.message_id]) rebuilt[r.message_id] = {};
+        rebuilt[r.message_id][String(r.user_index)] = r.emoji;
+    });
+
+    // Fusionar con el estado local (Supabase tiene prioridad para reacciones remotas)
+    if (!appData.reactions) appData.reactions = {};
+    appData.reactions[currentTopicId] = rebuilt;
+    save({ silent: true });
+}
+
+window.loadReactionsFromSupabase = loadReactionsFromSupabase;
 
 function toggleReactionPicker() {
     const picker = document.getElementById('vnReactionPicker');
@@ -526,3 +587,10 @@ function jumpToChapterWaypoint(msgIdx) {
     currentMessageIndex = Math.max(0, Math.min(msgIdx, getTopicMessages(currentTopicId).length - 1));
     showCurrentMessage('forward');
 }
+
+// Exportar funciones de reacciones para acceso cross-módulo
+window.updateReactionDisplay       = updateReactionDisplay;
+window.getReactionSummary          = getReactionSummary;
+window.getMyReactionForMessage     = getMyReactionForMessage;
+window.toggleReaction              = toggleReaction;
+window.loadReactionsFromSupabase   = loadReactionsFromSupabase;

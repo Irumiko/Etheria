@@ -109,6 +109,11 @@ function selectRoleCharacterForTopic(topicId, charId) {
 
     hasUnsavedChanges = true;
     save({ silent: true });
+    // Sincronizar los locks del personaje en Supabase para que otros jugadores
+    // puedan ver qué personaje tiene asignado cada usuario en este topic
+    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.upsertStory === 'function') {
+        SupabaseStories.upsertStory(topic).catch(() => {});
+    }
     if (typeof SupabaseSync !== 'undefined') {
         SupabaseSync.uploadProfileData().catch(() => {});
     }
@@ -551,7 +556,17 @@ function updateInfoHoverDetails(char, isPinned = false) {
             char.gender    && ['Género', char.gender],
             char.alignment && ['Alin.',  (window.alignments?.[char.alignment] || char.alignment)],
             char.job       && !isRpg && ['Ocup.', char.job],
-            isRpg && char.job && ['Clase', char.job],
+            // En modo RPG mostrar la clase del topic si existe, si no el job del personaje
+            isRpg && (() => {
+                if (typeof ensureCharacterRpgProfile === 'function') {
+                    const p = ensureCharacterRpgProfile(char, currentTopicId);
+                    if (p?.rpgClass && window.RPG_CLASSES) {
+                        const cl = window.RPG_CLASSES.find(c => c.id === p.rpgClass);
+                        if (cl) return ['Clase', cl.name];
+                    }
+                }
+                return char.job ? ['Clase', char.job] : null;
+            })(),
         ].filter(Boolean);
         ihpData.innerHTML = rows.map(([lbl, val]) =>
             `<div class="ihp-row"><span class="ihp-lbl">${lbl}</span><span class="ihp-val">${escapeHtml(String(val))}</span></div>`
@@ -663,6 +678,17 @@ function updateInfoHoverDetails(char, isPinned = false) {
     if (ihpOracle) {
         ihpOracle.style.display = (isRpg && pinned) ? '' : 'none';
     }
+
+    // ── Botón inventario (RPG + pinned + dueño del personaje) ─────────────
+    const invBtn = document.getElementById('ihpInventoryBtn');
+    if (invBtn) {
+        const isOwn = char && char.userIndex === currentUserIndex;
+        invBtn.style.display = (isRpg && pinned && isOwn) ? '' : 'none';
+        // Actualizar hint de auto-uso
+        if (isRpg && pinned && isOwn) _updateIhpAutoHint(char.id);
+    }
+    // Cerrar el panel de inventario si se desancla
+    if (!pinned) closeIhpInventory();
 
     // ── Botón fijar panel (visible en modo RPG, en la info-card fija) ────
     const pinBtn = document.getElementById('vnInfoPinBtn');
@@ -1090,3 +1116,59 @@ function showAffinityMilestone(rankInfo, activeCharId, targetCharId) {
         setTimeout(() => overlay.classList.remove('milestone-out'), 600);
     }, 2800);
 }
+
+// ══════════════════════════════════════════════════════════════════
+// PANEL DE INVENTARIO DEL IHP
+// Se desliza lateralmente desde el panel fijado en modo RPG.
+// Solo visible para el dueño del personaje.
+// ══════════════════════════════════════════════════════════════════
+
+function toggleIhpInventory() {
+    const panel = document.getElementById('ihpInventoryPanel');
+    if (!panel) return;
+    if (panel.style.display === 'none' || !panel.style.display) {
+        openIhpInventory();
+    } else {
+        closeIhpInventory();
+    }
+}
+
+function openIhpInventory() {
+    const panel = document.getElementById('ihpInventoryPanel');
+    if (!panel) return;
+    _refreshIhpInventory(selectedCharId);
+    panel.style.display = 'flex';
+    panel.classList.add('ihp-inv-open');
+}
+
+function closeIhpInventory() {
+    const panel = document.getElementById('ihpInventoryPanel');
+    if (!panel) return;
+    panel.style.display = 'none';
+    panel.classList.remove('ihp-inv-open');
+}
+
+// Refresca el contenido del panel de inventario con el estado actual
+function _refreshIhpInventory(charId) {
+    const body = document.getElementById('ihpInvBody');
+    if (!body || !charId) return;
+    if (typeof renderInventoryPanel === 'function') {
+        body.innerHTML = renderInventoryPanel(charId);
+    }
+    _updateIhpAutoHint(charId);
+}
+
+// Muestra u oculta el hint de uso automático según el inventario
+function _updateIhpAutoHint(charId) {
+    const hint = document.getElementById('ihpInvAutoHint');
+    if (!hint || !charId) return;
+    const hasPotion = typeof getProfileInventory === 'function'
+        ? getProfileInventory(charId).some(i => i.id === 'potion_hp' || i.id === 'potion_greater')
+        : false;
+    hint.style.display = hasPotion ? '' : 'none';
+}
+
+window.toggleIhpInventory = toggleIhpInventory;
+window.openIhpInventory   = openIhpInventory;
+window.closeIhpInventory  = closeIhpInventory;
+window._refreshIhpInventory = _refreshIhpInventory;

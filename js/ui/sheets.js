@@ -19,15 +19,24 @@ const RPG_EXP_PER_LEVEL = 10;
 // automáticamente según el estado del personaje (HP=0 → Inconsciente).
 // Cada condición modifica el oráculo con ventaja/desventaja en stats concretos.
 
+// ── Condiciones básicas de D&D ─────────────────────────────────────────────
+// 6 condiciones generales aplicables por el DM + el estado especial Muerte.
+// Muerte es el único estado que NO aparece en el selector del DM —
+// se activa automáticamente al llegar a HP=0 y solo se quita con un objeto
+// específico (Pluma de Fénix) o mediante un evento narrativo del DM.
 const RPG_CONDITIONS = {
-    poisoned:    { id: 'poisoned',    label: 'Envenenado',   icon: '☠',  color: '#4a8c3f', desc: 'Desventaja en STR y CON. Daño continuo al inicio de cada turno.', statPenalty: { STR: -2, CON: -2 } },
-    frightened:  { id: 'frightened', label: 'Asustado',     icon: '😨', color: '#7a5c9e', desc: 'Desventaja en tiradas de acción mientras la fuente de miedo esté presente.', statPenalty: { STR: -2, WIS: -2 } },
-    stunned:     { id: 'stunned',    label: 'Aturdido',     icon: '💫', color: '#b87c1a', desc: 'No puede realizar acciones. Desventaja en todas las tiradas.', statPenalty: { STR: -3, DEX: -3, INT: -2 } },
-    paralyzed:   { id: 'paralyzed', label: 'Paralizado',    icon: '🧊', color: '#2a6ea6', desc: 'Incapaz de moverse o actuar. Fallo automático en STR y DEX.', statPenalty: { STR: -5, DEX: -5 } },
-    unconscious: { id: 'unconscious',label: 'Inconsciente', icon: '💀', color: '#8b3333', desc: 'KO. Sin acciones hasta recibir curación o pasar turnos de recuperación.', statPenalty: { STR: -10, DEX: -10, CON: -5 } },
-    blinded:     { id: 'blinded',   label: 'Cegado',        icon: '🙈', color: '#5a4a2a', desc: 'Desventaja en tiradas de DEX y WIS. Ventaja para atacantes.', statPenalty: { DEX: -3, WIS: -2 } },
-    advantage:   { id: 'advantage', label: 'Ventaja',       icon: '✦',  color: '#2a7a4a', desc: 'Ventaja en todas las tiradas de este turno. Puede ser de cualquier fuente.', statBonus: { STR: 2, DEX: 2, CON: 2, INT: 2, WIS: 2, CHA: 2 } }
+    poisoned:  { id: 'poisoned',  label: 'Envenenado',  icon: '☠',  color: '#4a8c3f', desc: 'Pierde 1 HP cada turno. Desventaja en STR y CON.', statPenalty: { STR: -2, CON: -2 }, dmOnly: false },
+    paralyzed: { id: 'paralyzed', label: 'Paralizado',  icon: '🧊', color: '#2a6ea6', desc: 'No puede actuar. Fallo automático en STR y DEX.', statPenalty: { STR: -5, DEX: -5 }, dmOnly: false },
+    confused:  { id: 'confused',  label: 'Confundido',  icon: '🌀', color: '#8855cc', desc: 'Las tiradas de INT y WIS tienen desventaja. Puede actuar de forma impredecible.', statPenalty: { INT: -3, WIS: -3 }, dmOnly: false },
+    frightened:{ id: 'frightened',label: 'Asustado',    icon: '😨', color: '#7a5c9e', desc: 'Desventaja en todas las tiradas mientras la fuente de miedo esté presente.', statPenalty: { STR: -2, WIS: -2, CHA: -2 }, dmOnly: false },
+    blinded:   { id: 'blinded',   label: 'Cegado',      icon: '🙈', color: '#5a4a2a', desc: 'Desventaja en DEX y WIS. Los atacantes tienen ventaja contra este personaje.', statPenalty: { DEX: -3, WIS: -2 }, dmOnly: false },
+    blessed:   { id: 'blessed',   label: 'Bendecido',   icon: '✦',  color: '#2a7a4a', desc: 'Ventaja en todas las tiradas durante este turno. Puede otorgarlo el DM o un objeto.', statBonus: { STR: 2, DEX: 2, CON: 2, INT: 2, WIS: 2, CHA: 2 }, dmOnly: false },
+    // Estado especial — no aparece en el selector del DM, solo se activa automáticamente
+    dead:      { id: 'dead',      label: 'Muerto',      icon: '💀', color: '#3a0a0a', desc: 'El personaje ha caído. No puede actuar. Solo puede ser revivido con una Pluma de Fénix o por intervención del DM.', statPenalty: { STR: -99, DEX: -99, CON: -99, INT: -99, WIS: -99, CHA: -99 }, dmOnly: true, isDeathState: true }
 };
+
+// IDs de condiciones que el DM puede aplicar manualmente (excluye 'dead')
+const RPG_DM_CONDITIONS = Object.values(RPG_CONDITIONS).filter(c => !c.dmOnly).map(c => c.id);
 
 // Aplica una condición al perfil del personaje (idempotente)
 function applyConditionToProfile(profile, conditionId) {
@@ -95,19 +104,14 @@ function rpgModifier(val) { return Math.floor((val - 10) / 2); }
 function rpgModStr(val)   { const m = rpgModifier(val); return (m >= 0 ? '+' : '') + m; }
 
 // Clases D&D básicas (las más genéricas y reconocibles)
+// 6 clases básicas y genéricas de D&D — las más reconocibles y distintas entre sí
 const RPG_CLASSES = [
-    { id: 'barbarian', name: 'Bárbaro',    icon: '⚔️',  desc: 'Guerrero feroz impulsado por la rabia.' },
-    { id: 'bard',      name: 'Bardo',      icon: '🎶',  desc: 'Artista con magia de la palabra y el sonido.' },
-    { id: 'cleric',    name: 'Clérigo',    icon: '✝️',  desc: 'Devoto que canaliza el poder divino.' },
-    { id: 'druid',     name: 'Druida',     icon: '🌿',  desc: 'Guardián de la naturaleza con magia primigenia.' },
-    { id: 'fighter',   name: 'Guerrero',   icon: '🛡️',  desc: 'Maestro del combate con cualquier arma.' },
-    { id: 'monk',      name: 'Monje',      icon: '👊',  desc: 'Luchador que domina las artes marciales.' },
-    { id: 'paladin',   name: 'Paladín',    icon: '⚡',  desc: 'Caballero sagrado con poderes divinos.' },
-    { id: 'ranger',    name: 'Explorador', icon: '🏹',  desc: 'Rastreador experto en combate y supervivencia.' },
-    { id: 'rogue',     name: 'Pícaro',     icon: '🗡️',  desc: 'Especialista en sigilo, trampas y ataques precisos.' },
-    { id: 'sorcerer',  name: 'Hechicero',  icon: '🔥',  desc: 'Mago innato con poder mágico en la sangre.' },
-    { id: 'warlock',   name: 'Brujo',      icon: '👁️',  desc: 'Pactante con entidades sobrenaturales.' },
-    { id: 'wizard',    name: 'Mago',       icon: '📖',  desc: 'Erudito que domina la magia arcana estudiada.' }
+    { id: 'fighter',   name: 'Guerrero',   desc: 'Maestro del combate. Fuerte, resistente, versátil con cualquier arma.' },
+    { id: 'ranger',    name: 'Explorador', desc: 'Rastreador experto. Ataques a distancia, supervivencia y sigilo.' },
+    { id: 'rogue',     name: 'Pícaro',     desc: 'Especialista en sigilo, trampas y golpes precisos en el momento justo.' },
+    { id: 'cleric',    name: 'Clérigo',    desc: 'Devoto que canaliza poder divino. Cura aliados y castiga enemigos.' },
+    { id: 'wizard',    name: 'Mago',       desc: 'Erudito arcano. Domina hechizos de gran poder a costa de resistencia física.' },
+    { id: 'barbarian', name: 'Bárbaro',    desc: 'Guerrero feroz impulsado por la rabia. Daño devastador, poca defensa.' }
 ];
 
 function getRpgTitleByLevel(level) {
@@ -331,23 +335,19 @@ function renderRpgStatsModal(c) {
 
     titleEl.textContent = `⚔ Nv.${profile.level} · ${data.title}`;
 
-    // Selector de clase
+    // Selector de clase — dropdown sutil integrado en la estética del panel
     const classSection = isOwn ? `
         <div class="rpg-class-row">
             <span class="rpg-class-label">Clase</span>
-            <div class="rpg-class-grid">
-                ${RPG_CLASSES.map(cl => `
-                    <button class="rpg-class-btn ${profile.rpgClass === cl.id ? 'active' : ''}"
-                            onclick="selectRpgClass('${c.id}','${cl.id}')"
-                            title="${cl.desc}">
-                        <span class="rpg-class-icon">${cl.icon}</span>
-                        <span class="rpg-class-name">${cl.name}</span>
-                    </button>`).join('')}
-            </div>
+            <select class="rpg-class-select" onchange="selectRpgClass('${c.id}', this.value)" title="${profile.rpgClass ? RPG_CLASSES.find(cl=>cl.id===profile.rpgClass)?.desc || '' : 'Elige una clase para tu personaje'}">
+                <option value="" ${!profile.rpgClass ? 'selected' : ''}>Sin clase</option>
+                ${RPG_CLASSES.map(cl => `<option value="${cl.id}" ${profile.rpgClass === cl.id ? 'selected' : ''} title="${cl.desc}">${cl.name}</option>`).join('')}
+            </select>
+            ${profile.rpgClass ? `<span class="rpg-class-desc-hint">${RPG_CLASSES.find(cl=>cl.id===profile.rpgClass)?.desc || ''}</span>` : ''}
         </div>` : (className ? `
         <div class="rpg-class-row">
             <span class="rpg-class-label">Clase</span>
-            <span class="rpg-class-display">${className.icon} ${className.name}</span>
+            <span class="rpg-class-display">${className.name}</span>
         </div>` : '');
 
     bodyEl.innerHTML = `
@@ -434,6 +434,23 @@ function removeCharCondition(charId, conditionId, topicId) {
 
 window.applyCharCondition  = applyCharCondition;
 window.removeCharCondition = removeCharCondition;
+
+// Exportar constantes RPG al scope global para que otros módulos
+// (roleplay.js, vn.js) puedan leerlas sin depender del orden de carga
+// Funciones de perfil RPG — exportadas globalmente para que vn.js y roleplay.js
+// puedan usarlas sin depender del orden de carga ni de scope de módulo
+window.ensureCharacterRpgProfile = ensureCharacterRpgProfile;
+window._persistRpgProfile        = _persistRpgProfile;
+window.applyConditionToProfile   = applyConditionToProfile;
+window.removeConditionFromProfile = removeConditionFromProfile;
+window.getConditionModifier      = getConditionModifier;
+window.RPG_CLASSES      = RPG_CLASSES;
+window.RPG_CONDITIONS   = RPG_CONDITIONS;
+window.RPG_STAT_KEYS    = RPG_STAT_KEYS;
+window.RPG_STAT_DESC    = RPG_STAT_DESC;
+window.RPG_STAT_LABEL   = RPG_STAT_LABEL;
+window.RPG_CLASS_PASSIVES = RPG_CLASS_PASSIVES;
+window.RPG_ITEM_CATALOG = RPG_ITEM_CATALOG;
 
 function openRpgStatsModal(charId) {
     const char = appData.characters.find(ch => String(ch.id) === String(charId));
@@ -569,7 +586,17 @@ function saveCharacter() {
     closeModal('characterModal');
     resetCharForm();
 
-    // Subir a la nube inmediatamente al guardar personaje
+    // Sincronizar personaje completo en Supabase (upsert por id local)
+    // Esto conecta el personaje local con la tabla characters en la nube,
+    // eliminando la dependencia de que el personaje solo exista en el blob.
+    if (typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.upsertCharacter === 'function') {
+        const activeProfileId = SupabaseCharacters.activeProfileId;
+        if (activeProfileId) {
+            SupabaseCharacters.upsertCharacter(charObj, activeProfileId).catch(() => {});
+        }
+    }
+
+    // Subir blob actualizado (topics, affinities, etc.) pero ya sin characters dentro
     if (typeof SupabaseSync !== 'undefined') {
         SupabaseSync.uploadProfileData().catch(() => {});
     }
@@ -814,48 +841,47 @@ function openRpgStatsModalBlocking(charId, topicId, onConfirm) {
 
 /** Actualiza el contador de puntos libres y el estado del botón Confirmar */
 // ── Catálogo de objetos predefinidos ────────────────────────────────────────
+// ── Catálogo de objetos básicos — solo el DM puede darlos ──────────────────
+// 10 objetos esenciales de aventura + la Pluma de Fénix como único objeto
+// capaz de revertir el estado Muerte.
 const RPG_ITEM_CATALOG = [
-    // Pociones y consumibles
-    { id: 'potion_hp',       name: 'Poción de curación',   icon: '🧪', type: 'consumable', desc: 'Restaura 3 HP al usarla.',                         effect: { hp: +3 } },
-    { id: 'potion_hp_great', name: 'Poción mayor de curación', icon: '💊', type: 'consumable', desc: 'Restaura HP máximo al usarla.',                 effect: { hp: 'max' } },
-    { id: 'antidote',        name: 'Antídoto',              icon: '🍵', type: 'consumable', desc: 'Elimina la condición Envenenado.',                  effect: { removeCondition: 'poisoned' } },
-    { id: 'smelling_salts',  name: 'Sales aromáticas',      icon: '🌿', type: 'consumable', desc: 'Elimina la condición Inconsciente con 1 HP.',      effect: { removeCondition: 'unconscious', hp: 1 } },
-    { id: 'elixir_courage',  name: 'Elixir de valor',       icon: '⚗️',  type: 'consumable', desc: 'Elimina Asustado y otorga Ventaja 1 turno.',      effect: { removeCondition: 'frightened', addCondition: 'advantage' } },
-    // Armas (equipables, dan bonus al oráculo)
-    { id: 'sword_basic',    name: 'Espada corta',           icon: '🗡️',  type: 'weapon',    desc: '+1 STR en tiradas de combate.',                    effect: { statBonus: { STR: 1 } } },
-    { id: 'sword_magic',    name: 'Espada mágica +2',       icon: '⚔️',  type: 'weapon',    desc: '+2 STR en combate. Brilla en la oscuridad.',       effect: { statBonus: { STR: 2 } } },
-    { id: 'bow',            name: 'Arco largo',             icon: '🏹',  type: 'weapon',    desc: '+1 DEX en ataques a distancia.',                   effect: { statBonus: { DEX: 1 } } },
-    { id: 'staff_arcane',   name: 'Báculo arcano',          icon: '🪄',  type: 'weapon',    desc: '+2 INT en hechizos.',                              effect: { statBonus: { INT: 2 } } },
-    { id: 'dagger_poison',  name: 'Daga envenenada',        icon: '🔪',  type: 'weapon',    desc: '+1 DEX. En fallo crítico del objetivo: Envenenado.',effect: { statBonus: { DEX: 1 }, onHit: { addCondition: 'poisoned' } } },
-    // Armaduras y escudos
-    { id: 'shield',         name: 'Escudo de madera',       icon: '🛡️',  type: 'armor',     desc: '+1 CON en tiradas de resistencia.',                effect: { statBonus: { CON: 1 } } },
-    { id: 'armor_chain',    name: 'Cota de malla',          icon: '🥋',  type: 'armor',     desc: '+2 CON. Desventaja en sigilo (−1 DEX).',           effect: { statBonus: { CON: 2 }, statPenalty: { DEX: -1 } } },
-    { id: 'cloak_elven',    name: 'Capa élfica',            icon: '🧥',  type: 'armor',     desc: '+2 DEX en sigilo.',                                effect: { statBonus: { DEX: 2 } } },
-    { id: 'amulet_prot',    name: 'Amuleto de protección',  icon: '📿',  type: 'armor',     desc: '+1 a todas las tiradas de salvación.',             effect: { statBonus: { CON: 1, WIS: 1 } } },
-    // Herramientas y objetos especiales
-    { id: 'torch',          name: 'Antorcha',               icon: '🔦',  type: 'tool',      desc: 'Elimina penalizaciones por oscuridad durante 1h.', effect: { removeCondition: 'blinded' } },
-    { id: 'rope',           name: 'Cuerda (15m)',           icon: '🪢',  type: 'tool',      desc: '+1 STR en escalada o captura.',                    effect: { statBonus: { STR: 1 } } },
-    { id: 'thieves_tools',  name: 'Herramientas de ladrón', icon: '🔑',  type: 'tool',      desc: '+2 DEX en cerraduras y trampas.',                  effect: { statBonus: { DEX: 2 } } },
-    { id: 'spellbook',      name: 'Libro de hechizos',      icon: '📖',  type: 'tool',      desc: '+1 INT en rituales o identificación mágica.',      effect: { statBonus: { INT: 1 } } },
-    { id: 'healer_kit',     name: 'Kit de curandero',       icon: '🩹',  type: 'tool',      desc: 'Permite estabilizar a un personaje inconsciente.',  effect: { removeCondition: 'unconscious', hp: 1 } },
-    // Objetos mágicos
-    { id: 'ring_strength',  name: 'Anillo de fuerza',       icon: '💍',  type: 'magic',     desc: '+2 STR permanente mientras se lleve puesto.',      effect: { statBonus: { STR: 2 } } },
-    { id: 'boots_speed',    name: 'Botas de velocidad',     icon: '👢',  type: 'magic',     desc: '+2 DEX en iniciativa y movimiento.',               effect: { statBonus: { DEX: 2 } } },
-    { id: 'hat_intellect',  name: 'Sombrero de intelecto',  icon: '🎩',  type: 'magic',     desc: '+2 INT.',                                          effect: { statBonus: { INT: 2 } } },
-    { id: 'pearl_wisdom',   name: 'Perla de sabiduría',     icon: '🔮',  type: 'magic',     desc: '+2 WIS.',                                          effect: { statBonus: { WIS: 2 } } },
-    { id: 'medallion_cha',  name: 'Medallón de influencia', icon: '🏅',  type: 'magic',     desc: '+2 CHA en negociaciones.',                         effect: { statBonus: { CHA: 2 } } },
-    // Pergaminos (uso único)
-    { id: 'scroll_fireball',name: 'Pergamino de bola de fuego', icon: '📜', type: 'scroll', desc: 'Uso único. +4 INT en el siguiente hechizo de daño.',effect: { oneUse: true, statBonus: { INT: 4 } } },
-    { id: 'scroll_heal',    name: 'Pergamino de curación masiva', icon: '📋', type: 'scroll', desc: 'Uso único. Restaura HP máximo a todos los aliados.', effect: { oneUse: true, hp: 'max' } },
-    { id: 'scroll_teleport',name: 'Pergamino de teletransporte', icon: '🗺️', type: 'scroll', desc: 'Uso único. El DM describe el destino.',             effect: { oneUse: true, narrative: true } },
-    // Comida y descanso
-    { id: 'rations',        name: 'Raciones de viaje',      icon: '🍞',  type: 'consumable', desc: 'Restaura 1 HP. Necesario en viajes largos.',       effect: { hp: 1 } },
-    { id: 'inn_rest',       name: 'Noche en la posada',     icon: '🛏️',  type: 'consumable', desc: 'Restaura HP máximo y elimina todas las condiciones.',effect: { hp: 'max', clearConditions: true } }
+    // Curación
+    { id: 'potion_hp',      name: 'Poción de curación',  icon: '🧪', type: 'consumable',
+      desc: 'Restaura 3 HP al usarla.',
+      effect: { hp: 3 } },
+    { id: 'potion_greater', name: 'Poción mayor',         icon: '💊', type: 'consumable',
+      desc: 'Restaura todos los HP al usarla.',
+      effect: { hp: 'max' } },
+    { id: 'antidote',       name: 'Antídoto',             icon: '🍵', type: 'consumable',
+      desc: 'Elimina la condición Envenenado.',
+      effect: { removeCondition: 'poisoned' } },
+    { id: 'salts',          name: 'Sales aromáticas',     icon: '🌿', type: 'consumable',
+      desc: 'Despeja la mente: elimina Confundido o Asustado.',
+      effect: { removeCondition: 'confused' } },
+    { id: 'elixir',         name: 'Elixir de coraje',     icon: '⚗️', type: 'consumable',
+      desc: 'Elimina Asustado y otorga Bendecido durante 1 turno.',
+      effect: { removeCondition: 'frightened', addCondition: 'blessed' } },
+    // Utilidad
+    { id: 'torch',          name: 'Antorcha',             icon: '🔦', type: 'tool',
+      desc: 'Elimina la condición Cegado durante una escena.',
+      effect: { removeCondition: 'blinded' } },
+    { id: 'healer_kit',     name: 'Kit de curandero',     icon: '🩹', type: 'tool',
+      desc: 'Estabiliza a un personaje Envenenado o Paralizado, restaurando 1 HP.',
+      effect: { removeCondition: 'poisoned', removeCondition2: 'paralyzed', hp: 1 } },
+    { id: 'rations',        name: 'Raciones de viaje',    icon: '🍞', type: 'consumable',
+      desc: 'Descanso y comida: restaura 1 HP.',
+      effect: { hp: 1 } },
+    { id: 'inn_rest',       name: 'Noche en la posada',   icon: '🛏️', type: 'consumable',
+      desc: 'Descanso completo: restaura todos los HP y elimina todas las condiciones activas.',
+      effect: { hp: 'max', clearConditions: true } },
+    // Objeto único de resurrección
+    { id: 'phoenix_feather', name: 'Pluma de Fénix',      icon: '🪶', type: 'special',
+      desc: 'Objeto único. Revive a un personaje caído, restaurando 1 HP y eliminando el estado Muerte.',
+      effect: { revive: true, hp: 1, oneUse: true } }
 ];
 
 const RPG_ITEM_TYPE_LABELS = {
-    consumable: 'Consumible', weapon: 'Arma', armor: 'Armadura',
-    tool: 'Herramienta', magic: 'Objeto mágico', scroll: 'Pergamino'
+    consumable: 'Consumible', tool: 'Herramienta', special: 'Objeto especial'
 };
 
 // Usa un objeto del inventario y aplica su efecto al perfil
@@ -867,59 +893,77 @@ function useInventoryItem(charId, itemId) {
     const catalog  = RPG_ITEM_CATALOG.find(i => i.id === itemId);
     if (!catalog) return;
 
-    const effect = catalog.effect || {};
-    const sheetHpMax = RPG_HP_MAX;
+    const effect  = catalog.effect || {};
+    const hpMax   = RPG_HP_MAX;
     const messages = [];
 
-    // Aplicar efectos
     if (effect.hp === 'max') {
-        profile.hp = sheetHpMax;
-        messages.push(`HP restaurado al máximo`);
+        profile.hp = hpMax;
+        messages.push('HP restaurado al máximo');
     } else if (typeof effect.hp === 'number' && effect.hp !== 0) {
-        profile.hp = Math.max(0, Math.min(sheetHpMax, profile.hp + effect.hp));
+        profile.hp = Math.max(0, Math.min(hpMax, profile.hp + effect.hp));
         messages.push(`${effect.hp > 0 ? '+' : ''}${effect.hp} HP`);
     }
-    if (effect.removeCondition) {
-        removeConditionFromProfile(profile, effect.removeCondition);
-        messages.push(`${RPG_CONDITIONS[effect.removeCondition]?.label || effect.removeCondition} eliminado`);
-    }
-    if (effect.addCondition) {
-        applyConditionToProfile(profile, effect.addCondition);
-        messages.push(`${RPG_CONDITIONS[effect.addCondition]?.label || effect.addCondition} aplicado`);
-    }
-    if (effect.clearConditions) {
-        profile.conditions = [];
-        messages.push('Todas las condiciones eliminadas');
+    if (effect.removeCondition)  { removeConditionFromProfile(profile, effect.removeCondition);  messages.push(`${RPG_CONDITIONS[effect.removeCondition]?.label || effect.removeCondition} eliminado`); }
+    if (effect.removeCondition2) { removeConditionFromProfile(profile, effect.removeCondition2); messages.push(`${RPG_CONDITIONS[effect.removeCondition2]?.label || effect.removeCondition2} eliminado`); }
+    if (effect.addCondition)     { applyConditionToProfile(profile, effect.addCondition);        messages.push(`${RPG_CONDITIONS[effect.addCondition]?.label || effect.addCondition} aplicado`); }
+    if (effect.clearConditions)  { profile.conditions = [];                                      messages.push('Condiciones eliminadas'); }
+    if (effect.revive) {
+        profile.conditions = (profile.conditions || []).filter(c => c !== 'dead');
+        profile.hp = Math.max(1, typeof effect.hp === 'number' ? effect.hp : 1);
+        messages.push('Resucitado con 1 HP');
     }
 
-    // Retirar el objeto si es de un solo uso
-    if (effect.oneUse || catalog.type === 'consumable' || catalog.type === 'scroll') {
-        if (typeof RPGState !== 'undefined') RPGState.removeItem(itemId, 1);
+    // Consumir objeto del inventario del perfil (fuente unificada)
+    const isConsumable = effect.oneUse || catalog.type === 'consumable' || catalog.type === 'special';
+    if (isConsumable) {
+        profile.inventory = profile.inventory || [];
+        const idx = profile.inventory.findIndex(i => i.id === itemId);
+        if (idx !== -1) {
+            profile.inventory[idx].qty = (profile.inventory[idx].qty || 1) - 1;
+            if (profile.inventory[idx].qty <= 0) profile.inventory.splice(idx, 1);
+        }
     }
 
     _persistRpgProfile(char, profile);
     renderRpgStatsModal(char);
+    // Refrescar el panel de inventario del IHP si está visible
+    _refreshIhpInventory(charId);
 
-    const summary = `${catalog.icon} ${catalog.name}: ${messages.join(', ') || 'efectos aplicados'}`;
+    const summary = `${catalog.icon || ''} ${catalog.name}: ${messages.join(', ') || 'usado'}`;
     if (typeof showAutosave === 'function') showAutosave(summary, 'saved');
-
     window.dispatchEvent(new CustomEvent('etheria:rpg-item-used', { detail: { charId, itemId, topicId: currentTopicId } }));
 }
 
 // Renderiza el panel de inventario dentro del modal de stats
+// Obtiene el inventario del personaje desde el perfil del topic.
+// Única fuente de verdad — independiente de RPGState para que funcione
+// tanto para el personaje activo como para los que reciben objetos del DM.
+function getProfileInventory(charId, topicId) {
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return [];
+    const profile = ensureCharacterRpgProfile(char, topicId || currentTopicId);
+    return Array.isArray(profile?.inventory) ? profile.inventory : [];
+}
+
 function renderInventoryPanel(charId) {
-    const items = (typeof RPGState !== 'undefined') ? RPGState.getInventory() : [];
+    const isOwn  = (() => {
+        const char = appData.characters.find(c => String(c.id) === String(charId));
+        return char?.userIndex === currentUserIndex;
+    })();
+    const items  = getProfileInventory(charId);
+
     if (!items.length) {
         return `<div class="rpg-inventory-empty">Sin objetos. El DM puede otorgarte objetos durante la partida.</div>`;
     }
     return items.map(item => {
-        const catalog = RPG_ITEM_CATALOG.find(c => c.id === item.id) || { icon: '📦', name: item.name || item.id, desc: '', effect: {} };
-        const isConsumable = catalog.type === 'consumable' || catalog.type === 'scroll';
-        const useBtn = isConsumable
-            ? `<button class="rpg-item-use-btn" onclick="useInventoryItem('${charId}','${item.id}')" title="Usar">Usar</button>`
+        const catalog = RPG_ITEM_CATALOG.find(c => c.id === item.id) || { icon: '📦', name: item.name || item.id, desc: '', effect: {}, type: 'tool' };
+        const isUsable = isOwn && (catalog.type === 'consumable' || catalog.type === 'special');
+        const useBtn   = isUsable
+            ? `<button class="rpg-item-use-btn" onclick="useInventoryItem('${charId}','${item.id}')" title="Usar ${catalog.name}">Usar</button>`
             : '';
         return `<div class="rpg-inventory-item" title="${catalog.desc}">
-            <span class="rpg-item-icon">${catalog.icon}</span>
+            <span class="rpg-item-icon">${catalog.icon || '📦'}</span>
             <div class="rpg-item-info">
                 <span class="rpg-item-name">${catalog.name}</span>
                 <span class="rpg-item-desc">${catalog.desc}</span>
@@ -929,6 +973,8 @@ function renderInventoryPanel(charId) {
         </div>`;
     }).join('');
 }
+
+window.getProfileInventory = getProfileInventory;
 
 window.useInventoryItem = useInventoryItem;
 
@@ -962,8 +1008,12 @@ function recalcHpMaxOnLevelUp(profile, char) {
 }
 
 // Abre el modal de level-up mostrando el nuevo nivel y el punto de stat disponible
+// Muestra un toast de subida de nivel — privado, solo visible para el dueño del personaje.
+// No es un modal bloqueante: aparece en centro-pantalla, se cierra solo en 6s
+// o al hacer clic. Los demás jugadores no lo ven.
 function openLevelUpModal(charId, newLevel) {
     const char = appData.characters.find(c => String(c.id) === String(charId));
+    // Guardia estricta: solo el dueño del personaje ve el toast
     if (!char || char.userIndex !== currentUserIndex) return;
 
     const profile  = ensureCharacterRpgProfile(char, currentTopicId);
@@ -971,34 +1021,49 @@ function openLevelUpModal(charId, newLevel) {
     const passive  = classObj ? RPG_CLASS_PASSIVES[classObj.id] : null;
     const unlocksPassive = newLevel === 3 && passive;
 
-    // Garantizar que el personaje tenga un punto extra para distribuir
+    // Añadir punto de stat pendiente
     profile.pendingStatPoints = (profile.pendingStatPoints || 0) + 1;
     _persistRpgProfile(char, profile);
 
-    const modal = document.getElementById('rpgLevelUpModal');
-    const body  = document.getElementById('rpgLevelUpBody');
-    if (!modal || !body) return;
+    // Eliminar toast anterior si existía
+    const prev = document.getElementById('levelUpToast');
+    if (prev) prev.remove();
 
-    body.innerHTML = `
-        <div class="levelup-header">
-            <span class="levelup-icon">✦</span>
-            <div class="levelup-title">¡Nivel ${newLevel}!</div>
-            <div class="levelup-sub">${typeof escapeHtml === "function" ? escapeHtml(char.name) : char.name} ha ganado experiencia suficiente para avanzar.</div>
+    const charName = typeof escapeHtml === 'function' ? escapeHtml(char.name) : char.name;
+    const passiveLine = unlocksPassive
+        ? `<div class="lut-passive">⚡ ${passive.name} desbloqueada — ${passive.desc}</div>` : '';
+
+    const toast = document.createElement('div');
+    toast.id = 'levelUpToast';
+    toast.className = 'levelup-toast';
+    toast.innerHTML = `
+        <div class="lut-glow"></div>
+        <button class="lut-close" onclick="this.closest('#levelUpToast').remove()" aria-label="Cerrar">✕</button>
+        <div class="lut-icon">✦</div>
+        <div class="lut-title">¡Nivel ${newLevel}!</div>
+        <div class="lut-char">${charName}</div>
+        <div class="lut-gains">
+            <span class="lut-gain">+1 punto de stat</span>
+            <span class="lut-gain">HP máximo aumentado</span>
         </div>
-        <div class="levelup-gains">
-            <div class="levelup-gain">+1 punto de stat para distribuir</div>
-            <div class="levelup-gain">HP máximo aumentado</div>
-            ${unlocksPassive ? `<div class="levelup-gain unlock">⚡ Habilidad desbloqueada: <strong>${passive.name}</strong> — ${passive.desc}</div>` : ''}
-        </div>
-        <div class="levelup-stat-hint">Abre <strong>Editar stats</strong> para distribuir tu punto.</div>
+        ${passiveLine}
+        <div class="lut-hint">Abre tu ficha → <strong>Editar stats</strong> para distribuir el punto</div>
     `;
 
-    openModal('rpgLevelUpModal');
+    // Click en el toast abre la ficha del personaje
+    toast.addEventListener('click', function(e) {
+        if (e.target.classList.contains('lut-close')) return;
+        if (typeof openRpgStatsModal === 'function') openRpgStatsModal(charId);
+        toast.remove();
+    });
 
-    // Mostrar en el chat también
-    if (typeof showAutosave === 'function') {
-        showAutosave(`✦ ${char.name} — ¡Nivel ${newLevel}!${unlocksPassive ? ' · ' + passive.name + ' desbloqueada' : ''}`, 'saved');
-    }
+    document.body.appendChild(toast);
+
+    // Auto-cierre a los 7 segundos con fade out
+    setTimeout(() => {
+        toast.classList.add('lut-fadeout');
+        setTimeout(() => toast.remove(), 600);
+    }, 7000);
 }
 
 

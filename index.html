@@ -778,6 +778,29 @@
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         Editar stats
                     </button>
+                    <!-- Botón inventario — solo visible en RPG + pinned + dueño del personaje -->
+                    <button class="ihp-inventory-btn" id="ihpInventoryBtn" onclick="toggleIhpInventory()" title="Inventario" style="display:none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                        Inventario
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel de inventario lateral — se desliza a la derecha del IHP cuando está pinned -->
+            <div class="ihp-inventory-panel" id="ihpInventoryPanel" style="display:none;" aria-label="Inventario del personaje">
+                <div class="ihp-inv-header">
+                    <span class="ihp-inv-title">
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                        Inventario
+                    </span>
+                    <button onclick="closeIhpInventory()" aria-label="Cerrar inventario">✕</button>
+                </div>
+                <div class="ihp-inv-body" id="ihpInvBody">
+                    <div class="rpg-inventory-empty">Sin objetos.</div>
+                </div>
+                <div class="ihp-inv-auto-hint" id="ihpInvAutoHint" style="display:none;">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    Poción se usará al ≤30% HP
                 </div>
             </div>
         
@@ -817,6 +840,93 @@
                 </button>
             </div>
             <div id="vnNarratePending" class="vn-narrate-pending" style="display:none;"></div>
+        </div>
+
+        <!-- ══ PANEL DEL DUNGEON MASTER ══════════════════════════════════ -->
+        <!-- Solo visible para el creador del tema en modo RPG             -->
+        <div id="vnDmPanel" class="vn-dm-panel" style="display:none;" aria-label="Panel del DM">
+            <div class="vn-dm-panel-header">
+                <span class="vn-dm-panel-title">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    Dungeon Master
+                </span>
+                <button type="button" onclick="closeDmPanel()" aria-label="Cerrar">✕</button>
+            </div>
+
+            <!-- Sección: Personajes en la partida -->
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Personajes</div>
+                <div id="dmCharacterList" class="dm-character-list"></div>
+            </div>
+
+            <!-- Sección: Condiciones -->
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Aplicar condición</div>
+                <div class="dm-condition-controls">
+                    <select id="dmTargetChar" class="dm-select">
+                        <option value="">— Personaje —</option>
+                    </select>
+                    <select id="dmConditionSelect" class="dm-select">
+                        <option value="">— Condición —</option>
+                    </select>
+                    <div class="dm-btn-row">
+                        <button class="dm-btn dm-btn-apply" onclick="dmApplyCondition()">Aplicar</button>
+                        <button class="dm-btn dm-btn-remove" onclick="dmRemoveCondition()">Quitar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección: Dar objeto -->
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Dar objeto</div>
+                <div class="dm-item-controls">
+                    <select id="dmItemTarget" class="dm-select">
+                        <option value="">— Personaje —</option>
+                    </select>
+                    <select id="dmItemSelect" class="dm-select">
+                        <option value="">— Objeto —</option>
+                    </select>
+                    <button class="dm-btn dm-btn-apply" onclick="dmGiveItem()">Dar objeto</button>
+                </div>
+            </div>
+
+            <!-- Sección: Desafío (tirada con opciones y DC) -->
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Proponer desafío</div>
+                <div class="dm-challenge-controls">
+                    <input type="text" id="dmChallengeDesc" class="dm-input" placeholder="Describe la situación..." maxlength="120">
+                    <div class="dm-challenge-dc-row">
+                        <label class="dm-dc-label">DC (dificultad)</label>
+                        <div class="dm-dc-presets">
+                            <button class="dm-dc-btn" data-dc="5" onclick="dmSetDC(5)">5 Fácil</button>
+                            <button class="dm-dc-btn" data-dc="10" onclick="dmSetDC(10)">10 Medio</button>
+                            <button class="dm-dc-btn active" data-dc="15" onclick="dmSetDC(15)">15 Difícil</button>
+                            <button class="dm-dc-btn" data-dc="20" onclick="dmSetDC(20)">20 Épico</button>
+                        </div>
+                        <input type="number" id="dmDCValue" class="dm-input dm-dc-input" value="15" min="1" max="30">
+                    </div>
+                    <div class="dm-challenge-stats-label">Opciones de stat para el jugador</div>
+                    <div class="dm-challenge-stat-checkboxes" id="dmChallengeStats">
+                        <label class="dm-stat-check"><input type="checkbox" value="STR" checked> <span title="Fuerza — combate, fuerza bruta">STR</span></label>
+                        <label class="dm-stat-check"><input type="checkbox" value="DEX"> <span title="Destreza — sigilo, velocidad, evasión">DEX</span></label>
+                        <label class="dm-stat-check"><input type="checkbox" value="CON"> <span title="Constitución — resistencia, aguante">CON</span></label>
+                        <label class="dm-stat-check"><input type="checkbox" value="INT"> <span title="Inteligencia — conocimiento, magia arcana">INT</span></label>
+                        <label class="dm-stat-check"><input type="checkbox" value="WIS"> <span title="Sabiduría — percepción, intuición">WIS</span></label>
+                        <label class="dm-stat-check"><input type="checkbox" value="CHA"> <span title="Carisma — persuasión, engaño">CHA</span></label>
+                    </div>
+                    <button class="dm-btn dm-btn-roll" onclick="dmSendChallenge()">🎲 Lanzar desafío</button>
+                </div>
+            </div>
+
+            <!-- Sección: Narrar como NPC -->
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Narrar como NPC</div>
+                <div class="dm-npc-controls">
+                    <input type="text" id="dmNpcName" class="dm-input" placeholder="Nombre del NPC" maxlength="40">
+                    <textarea id="dmNpcText" class="dm-textarea" placeholder="Escribe el mensaje del NPC..." rows="3" maxlength="1000"></textarea>
+                    <button class="dm-btn dm-btn-apply" onclick="dmSendAsNpc()">Enviar como NPC</button>
+                </div>
+            </div>
         </div>
 
         <div id="roomCodeWrap" class="room-code-panel" style="display:none;">
@@ -955,6 +1065,18 @@
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
             <div class="vn-speaker-avatar-wrap" aria-hidden="true"></div>
             <div id="messageHasOptions" class="message-has-options hidden" onclick="event.stopPropagation(); showCurrentMessage('forward')" style="cursor:pointer;" title="Ver opciones">🎭 Opciones disponibles</div>
+            <!-- Desafío pendiente del DM — aparece cuando hay una tirada propuesta -->
+            <div id="vnChallengeBar" class="vn-challenge-bar" style="display:none;">
+                <div class="vn-challenge-info">
+                    <span class="vn-challenge-icon">⚔</span>
+                    <div class="vn-challenge-text">
+                        <span class="vn-challenge-desc" id="vnChallengeDesc">El DM propone un desafío</span>
+                        <span class="vn-challenge-dc" id="vnChallengeDc">DC 15</span>
+                    </div>
+                </div>
+                <div class="vn-challenge-stats" id="vnChallengeStatBtns"></div>
+                <button class="vn-challenge-dismiss" onclick="dismissChallenge()" title="Ignorar desafío">✕</button>
+            </div>
             <div id="vnOracleConsequenceBadge" class="vn-oracle-consequence-badge" style="display:none;">🪙 Consecuencia del destino</div>
             <div id="vnDialogueText" class="vn-dialogue-text"></div>
             <div id="vnReactionDisplay" class="vn-reaction-display"></div>
@@ -969,6 +1091,10 @@
                     <div class="vn-dialogue-actions-left">
                         <button id="vnOracleFloatBtn" class="vn-dialogue-action-btn oracle-action-btn" type="button" onclick="handleActionButtonClick(event); toggleOracleMiniPanel()" style="display:none;" title="Consultar al oráculo" aria-label="Oráculo">
                             <span class="action-icon">🎲</span><span class="action-label">Oráculo</span>
+                        </button>
+                        <button id="vnDmBtn" class="vn-dialogue-action-btn dm-action-btn" type="button" onclick="handleActionButtonClick(event); toggleDmPanel()" style="display:none;" title="Panel del Dungeon Master" aria-label="DM">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                            <span class="action-label">DM</span>
                         </button>
                         <button id="vnInnkeeperBtn" class="vn-dialogue-action-btn innkeeper-action-btn" type="button" onclick="handleActionButtonClick(event); triggerInnkeeperScene()" style="display:none;" title="La Posada — nueva escena" aria-label="Posada">
                             <span class="action-icon">🍺</span><span class="action-label">Posada</span>

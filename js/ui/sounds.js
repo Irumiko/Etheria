@@ -413,3 +413,56 @@ function stopMenuMusic(fadeOut) {
     }
 
 })();
+
+// ============================================
+// CONEXIÓN AL EVENTBUS
+// Registra los listeners para que los eventos
+// emitidos desde el resto de la app funcionen.
+// Se ejecuta en DOMContentLoaded para asegurar
+// que eventBus ya está inicializado.
+// ============================================
+
+(function _registerAudioEventListeners() {
+    function _register() {
+        if (typeof eventBus === 'undefined') {
+            // eventBus aún no está listo — reintentar en el siguiente tick
+            setTimeout(_register, 50);
+            return;
+        }
+
+        // Música del menú
+        eventBus.on('audio:start-menu-music', function () {
+            startMenuMusic();
+        });
+        eventBus.on('audio:stop-menu-music', function (data) {
+            stopMenuMusic(data?.fadeOut !== false);
+        });
+
+        // Lluvia ambiental
+        eventBus.on('audio:start-rain', function () {
+            startRainSound();
+        });
+        eventBus.on('audio:stop-rain', function () {
+            stopRainSound();
+        });
+
+        // Efectos de UI
+        eventBus.on('audio:play-sfx', function (data) {
+            const sfx = data?.sfx;
+            if (sfx === 'save')          playSoundSave();
+            else if (sfx === 'click')    playSoundClick();
+            else if (sfx === 'affinity-up')   playSoundAffinityUp();
+            else if (sfx === 'affinity-down') playSoundAffinityDown();
+        });
+
+        // Aplicar volumen guardado al iniciar
+        const savedMaster = parseFloat(localStorage.getItem('etheria_master_volume') || '50') / 100;
+        masterVolume = savedMaster * 0.36; // 0.36 = escala interna máxima
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _register);
+    } else {
+        _register();
+    }
+})();

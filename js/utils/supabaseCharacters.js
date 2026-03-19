@@ -68,10 +68,51 @@ const SupabaseCharacters = (function () {
         } catch { return false; }
     }
 
+    // Fusiona los personajes cargados de Supabase con appData.characters (fuente de verdad de la UI).
+    // Convierte las columnas snake_case de la BD al formato camelCase que usa la app.
     function _updateAppDataCache(profileId, chars) {
         if (typeof appData === 'undefined') return;
         if (!appData.cloudCharacters) appData.cloudCharacters = {};
         appData.cloudCharacters[profileId] = chars;
+
+        // Fusionar en appData.characters para que la galería, el modo RPG y
+        // el IHP vean los personajes de la nube igual que los locales
+        if (!Array.isArray(appData.characters)) appData.characters = [];
+        chars.forEach(row => {
+            const local = appData.characters.find(c => String(c.id) === String(row.id));
+            const mapped = _rowToChar(row);
+            if (local) {
+                // Actualizar campos que pueden haber cambiado en la nube
+                Object.assign(local, mapped);
+            } else {
+                appData.characters.push(mapped);
+            }
+        });
+    }
+
+    // Convierte una fila de la tabla characters al formato del objeto local
+    function _rowToChar(row) {
+        return {
+            id:          row.id,
+            userIndex:   row.user_index   ?? 0,
+            owner:       row.owner        || '',
+            name:        row.name         || '',
+            lastName:    row.last_name    || '',
+            age:         row.age          || '',
+            race:        row.race         || '',
+            gender:      row.gender       || '',
+            alignment:   row.alignment    || '',
+            job:         row.job          || '',
+            color:       row.color        || '#8b7355',
+            avatar:      row.avatar_url   || '',
+            sprite:      row.sprite_url   || '',
+            basic:       row.basic        || '',
+            personality: row.personality  || '',
+            history:     row.history      || '',
+            notes:       row.notes        || '',
+            rpgProfile:  row.rpg_profile  || undefined,
+            stats:       row.stats        || {}
+        };
     }
 
     // ── API pública ───────────────────────────────────────────────────────────
@@ -86,7 +127,7 @@ const SupabaseCharacters = (function () {
                 .order('created_at', { ascending: true });
 
             if (error) {
-                console.error('[SupabaseCharacters] loadCharacters:', error.message);
+                window.EtheriaLogger?.warn('[SupabaseCharacters]', 'loadCharacters:', error.message);
                 return [];
             }
 
@@ -100,7 +141,7 @@ const SupabaseCharacters = (function () {
             }));
             return chars;
         } catch (err) {
-            console.error('[SupabaseCharacters] loadCharacters exception:', err);
+            window.EtheriaLogger?.warn('[SupabaseCharacters]', 'loadCharacters exception:', err);
             return [];
         }
     }
@@ -208,10 +249,86 @@ const SupabaseCharacters = (function () {
         }
     }
 
+    // Sincroniza un personaje completo con Supabase.
+    // Crea o actualiza (upsert) todos los campos, incluidos los nuevos
+    // que antes solo vivían en el blob de user_data.
+    // El id local del personaje se usa como id en Supabase para mantener coherencia.
+    async function upsertCharacter(charObj, profileId) {
+        if (!_isAvailable() || !charObj?.id || !profileId) return { ok: false };
+        try {
+            const row = {
+                id:          String(charObj.id),
+                profile_id:  profileId,
+                name:        charObj.name || 'Sin nombre',
+                last_name:   charObj.lastName   || null,
+                age:         charObj.age         || null,
+                race:        charObj.race        || null,
+                gender:      charObj.gender      || null,
+                alignment:   charObj.alignment   || null,
+                job:         charObj.job         || null,
+                color:       charObj.color       || '#8b7355',
+                basic:       charObj.basic       || null,
+                personality: charObj.personality || null,
+                history:     charObj.history     || null,
+                notes:       charObj.notes       || null,
+                owner:       charObj.owner       || null,
+                user_index:  typeof charObj.userIndex === 'number' ? charObj.userIndex : null,
+                avatar_url:  charObj.avatar      || null,
+                sprite_url:  charObj.sprite      || null,
+                stats:       charObj.stats       || {},
+                rpg_profile: charObj.rpgProfile  || null,
+                updated_at:  new Date().toISOString()
+            };
+
+            const { data, error } = await _client()
+                .from('characters')
+                .upsert(row, { onConflict: 'id' })
+                .select()
+                .single();
+
+            if (error) {
+                window.EtheriaLogger?.warn('supabaseCharacters', 'upsertCharacter failed:', error.message);
+                return { ok: false, error: error.message };
+            }
+            return { ok: true, character: data };
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseCharacters', 'upsertCharacter error:', err?.message);
+            return { ok: false, error: err?.message };
+        }
+    }
+
+    // Sube todos los personajes locales a Supabase de una vez.
+    // Se llama al activarse el perfil activo del usuario.
+    // Filtra por userIndex para que cada usuario solo suba sus propios personajes.
+    async function syncAllLocalCharacters(characters, profileId) {
+        if (!_isAvailable() || !Array.isArray(characters) || !profileId) return;
+
+        // Solo sincronizar los personajes del índice de usuario actual
+        const myIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
+        const myChars = characters.filter(c =>
+            c.userIndex === myIndex || typeof c.userIndex === 'undefined'
+        );
+
+        if (!myChars.length) return { ok: true, synced: 0 };
+
+        const results = await Promise.allSettled(
+            myChars.map(c => upsertCharacter(c, profileId))
+        );
+        const synced = results.filter(r => r.value?.ok === true).length;
+        const failed = results.length - synced;
+        if (failed > 0) {
+            window.EtheriaLogger?.warn('supabaseCharacters',
+                `${failed}/${myChars.length} personajes no se sincronizaron`);
+        }
+        return { ok: failed === 0, synced };
+    }
+
     return {
         loadCharacters,
         createCharacter,
         updateCharacter,
+        upsertCharacter,
+        syncAllLocalCharacters,
         deleteCharacter,
         setActiveProfile,
         getActiveCharacters,

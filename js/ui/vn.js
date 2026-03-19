@@ -1101,6 +1101,10 @@ function _doEnterTopic(id, t, topicMode) {
         if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.enterStory === 'function') {
             SupabaseStories.enterStory(_tForStory.storyId).catch(function(error) { window.EtheriaLogger?.warn('ui:vn', 'enterStory failed:', error?.message || error); });
         }
+        // Cargar reacciones desde Supabase para ver las de todos los usuarios
+        if (typeof loadReactionsFromSupabase === 'function') {
+            loadReactionsFromSupabase(_tForStory.storyId).catch(() => {});
+        }
     } else {
         // Topic sin storyId (creado antes de la integración cloud) — limpiar
         global.currentStoryId = null;
@@ -2144,6 +2148,14 @@ function deleteCurrentMessage() {
         }
         hasUnsavedChanges = true;
         save({ silent: true });
+
+        // Soft delete en Supabase: marcar is_deleted=true en lugar de borrar la fila.
+        // La fila queda invisible (excluida por la policy SELECT) pero existe 30 días
+        // antes de que el cron la purgue. Evita acumulación indefinida de filas huérfanas.
+        if (msgToDelete?.id && typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.deleteMessage === 'function') {
+            SupabaseMessages.deleteMessage(msgToDelete.id).catch(() => {});
+        }
+
         if (typeof SupabaseSync !== 'undefined') {
             SupabaseSync.uploadProfileData().catch(() => {});
         }
@@ -2242,6 +2254,10 @@ function saveEditedMessage() {
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
         if (topic?.mode === 'rpg' && typeof ensureCharacterRpgProfile === 'function') {
             const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
+            if (profile.conditions?.includes('dead')) {
+                showAutosave(`${char.name} ha caído. Solo el DM puede reincorporarle a la partida.`, 'error');
+                return;
+            }
             if (profile.knockedOutTurns > 0) {
                 showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
                 return;
@@ -2287,11 +2303,19 @@ function saveEditedMessage() {
 
     hasUnsavedChanges = true;
     save({ silent: true });
+
+    // Sincronizar edición directamente en la tabla messages de Supabase.
+    // No depender solo del blob de user_data — así la edición llega a todos
+    // los participantes y no queda una versión antigua en la tabla.
+    const _editedMsgId = editingMessageId;
+    if (_editedMsgId && typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.editMessage === 'function') {
+        SupabaseMessages.editMessage(_editedMsgId, text).catch(() => {});
+    }
+
     if (typeof SupabaseSync !== 'undefined') {
         SupabaseSync.uploadProfileData().catch(() => {});
     }
     // Notificar edición a otros participantes en tiempo real
-    const _editedMsgId = editingMessageId;
     if (_editedMsgId && typeof CollaborativeGuard !== 'undefined') {
         CollaborativeGuard.broadcastEdit(_editedMsgId, { text, timestamp: new Date().toISOString() });
     }
@@ -2644,23 +2668,24 @@ function applyRpgNarrativeProgress(charId, oracleRoll) {
         effects.hpDelta = -2;
         profile.hp = Math.max(0, profile.hp + effects.hpDelta);
         if (profile.hp === 0) {
-            profile.knockedOutTurns = 5;
             effects.knockedOut = true;
-            // Aplicar condición Inconsciente automáticamente
+            // HP=0 → estado Muerte, no solo inconsciente
             if (typeof applyConditionToProfile === 'function') {
-                applyConditionToProfile(profile, 'unconscious');
-                effects.conditionApplied = 'unconscious';
+                // Quitar otras condiciones activas y aplicar Muerte
+                profile.conditions = profile.conditions?.filter(c => c === 'dead') || [];
+                applyConditionToProfile(profile, 'dead');
+                effects.conditionApplied = 'dead';
             }
         }
     } else if (oracleRoll.result === 'fail') {
         effects.hpDelta = -1;
         profile.hp = Math.max(0, profile.hp + effects.hpDelta);
         if (profile.hp === 0) {
-            profile.knockedOutTurns = 5;
             effects.knockedOut = true;
             if (typeof applyConditionToProfile === 'function') {
-                applyConditionToProfile(profile, 'unconscious');
-                effects.conditionApplied = 'unconscious';
+                profile.conditions = profile.conditions?.filter(c => c === 'dead') || [];
+                applyConditionToProfile(profile, 'dead');
+                effects.conditionApplied = 'dead';
             }
         }
     } else if (oracleRoll.result === 'success') {
@@ -2701,6 +2726,12 @@ function applyRpgNarrativeProgress(charId, oracleRoll) {
         setTimeout(() => {
             if (typeof openLevelUpModal === 'function') openLevelUpModal(charId, profile.level);
         }, 1200);
+    }
+
+    // Uso automático de poción si HP ≤ 30% y el personaje es del usuario actual
+    if (char && char.userIndex === currentUserIndex && profile.hp > 0) {
+        const _hpMax = (typeof RPG_HP_MAX !== 'undefined') ? RPG_HP_MAX : 10;
+        if (profile.hp / _hpMax <= 0.30) _autoUsePotion(char, profile);
     }
 
     return effects;
@@ -3007,6 +3038,563 @@ function _renderCharInfoPanel(char) {
     }
 }
 
+// ============================================================
+// PANEL DEL DUNGEON MASTER
+// Solo accesible para el creador del tema en modo RPG.
+// Permite: aplicar/quitar condiciones, dar objetos,
+// forzar tiradas y narrar como NPC con nombre propio.
+// ============================================================
+
+function _isDM() {
+    const topic = getCurrentTopic();
+    return topic && canUseNarratorMode(topic) && topic.mode === 'rpg';
+}
+
+// Devuelve todos los personajes activos en el topic actual
+function _getDmCharacters() {
+    const topic = getCurrentTopic();
+    if (!topic) return [];
+    const locks = { ...( topic.characterLocks || {}), ...(topic.rpgCharacterLocks || {}) };
+    const charIds = [...new Set(Object.values(locks))].filter(Boolean);
+    return charIds.map(id => appData.characters.find(c => String(c.id) === String(id))).filter(Boolean);
+}
+
+function openDmPanel() {
+    if (!_isDM()) return;
+    const panel = document.getElementById('vnDmPanel');
+    if (!panel) return;
+    _dmPopulateSelects();
+    _dmRenderCharacterList();
+    panel.style.display = 'flex';
+}
+
+function closeDmPanel() {
+    const panel = document.getElementById('vnDmPanel');
+    if (panel) panel.style.display = 'none';
+}
+
+function toggleDmPanel() {
+    const panel = document.getElementById('vnDmPanel');
+    if (!panel) return;
+    if (panel.style.display === 'none' || !panel.style.display) {
+        openDmPanel();
+    } else {
+        closeDmPanel();
+    }
+}
+
+// Rellena todos los <select> de personaje con los participantes actuales
+function _dmPopulateSelects() {
+    const chars = _getDmCharacters();
+    const options = ['<option value="">— Personaje —</option>',
+        ...chars.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
+    ].join('');
+
+    ['dmTargetChar','dmItemTarget','dmRollTarget'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = options;
+    });
+
+    // Selector de condiciones — excluir 'dead' (se activa solo automáticamente)
+    const condSel = document.getElementById('dmConditionSelect');
+    if (condSel && window.RPG_CONDITIONS) {
+        const dmConds = Object.values(window.RPG_CONDITIONS).filter(c => !c.dmOnly);
+        condSel.innerHTML = '<option value="">— Condición —</option>' +
+            dmConds.map(c =>
+                `<option value="${c.id}">${c.icon} ${c.label}</option>`
+            ).join('');
+    }
+
+    // Selector de objetos
+    const itemSel = document.getElementById('dmItemSelect');
+    if (itemSel && window.RPG_ITEM_CATALOG) {
+        const byType = {};
+        window.RPG_ITEM_CATALOG.forEach(item => {
+            (byType[item.type] = byType[item.type] || []).push(item);
+        });
+        const typeLabels = window.RPG_ITEM_TYPE_LABELS || {};
+        itemSel.innerHTML = '<option value="">— Objeto —</option>' +
+            Object.entries(byType).map(([type, items]) =>
+                `<optgroup label="${typeLabels[type] || type}">` +
+                items.map(i => `<option value="${i.id}">${i.icon || ''} ${i.name}</option>`).join('') +
+                '</optgroup>'
+            ).join('');
+    }
+}
+
+// Renderiza la lista de personajes con sus stats y condiciones activas
+function _dmRenderCharacterList() {
+    const list = document.getElementById('dmCharacterList');
+    if (!list) return;
+    const chars = _getDmCharacters();
+    if (!chars.length) {
+        list.innerHTML = '<div class="dm-empty">Sin personajes en la partida aún.</div>';
+        return;
+    }
+    list.innerHTML = chars.map(c => {
+        const profile = typeof ensureCharacterRpgProfile === 'function'
+            ? ensureCharacterRpgProfile(c, currentTopicId)
+            : null;
+        const hp      = profile?.hp ?? '?';
+        const level   = profile?.level ?? 1;
+        const conds   = profile?.conditions || [];
+        const isDead  = conds.includes('dead');
+        const condHtml = conds.length
+            ? conds.map(cId => {
+                const cond = window.RPG_CONDITIONS?.[cId];
+                return cond ? `<span class="dm-cond-tag ${cId === 'dead' ? 'dm-cond-dead' : ''}">${cond.icon} ${cond.label}</span>` : '';
+            }).join('')
+            : '<span class="dm-no-cond">Sin condiciones</span>';
+        const classObj = window.RPG_CLASSES?.find(cl => cl.id === profile?.rpgClass);
+        // Botón de reincorporar solo aparece cuando el personaje está muerto
+        const reviveBtn = isDead
+            ? `<button class="dm-btn dm-btn-revive" onclick="dmReviveCharacter('${c.id}')" title="El DM reincorpora al personaje (evento narrativo)">✦ Reincorporar</button>`
+            : '';
+        return `<div class="dm-char-row ${isDead ? 'dm-char-dead' : ''}">
+            <div class="dm-char-info">
+                <span class="dm-char-name">${escapeHtml(c.name)}</span>
+                <span class="dm-char-meta">Nv.${level} · HP ${hp}/10${classObj ? ' · ' + classObj.name : ''}</span>
+            </div>
+            <div class="dm-char-conds">${condHtml}</div>
+            ${reviveBtn}
+        </div>`;
+    }).join('');
+}
+
+// Aplicar condición al personaje seleccionado
+function dmApplyCondition() {
+    const charId = document.getElementById('dmTargetChar')?.value;
+    const condId = document.getElementById('dmConditionSelect')?.value;
+    if (!charId || !condId) { showAutosave('Selecciona personaje y condición', 'error'); return; }
+    if (typeof applyCharCondition === 'function') {
+        applyCharCondition(charId, condId, currentTopicId);
+        _dmRenderCharacterList();
+        // Propagar en tiempo real
+        if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
+            CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'apply' });
+        }
+        // Notificar en el chat como mensaje del narrador
+        const char = appData.characters.find(c => String(c.id) === String(charId));
+        const cond = window.RPG_CONDITIONS?.[condId];
+        if (char && cond) _dmPostSystemMessage(`${cond.icon} **${escapeHtml(char.name)}** sufre la condición **${cond.label}**. ${cond.desc}`);
+    }
+}
+
+// Quitar condición del personaje seleccionado
+function dmRemoveCondition() {
+    const charId = document.getElementById('dmTargetChar')?.value;
+    const condId = document.getElementById('dmConditionSelect')?.value;
+    if (!charId || !condId) { showAutosave('Selecciona personaje y condición', 'error'); return; }
+    if (typeof removeCharCondition === 'function') {
+        removeCharCondition(charId, condId, currentTopicId);
+        _dmRenderCharacterList();
+        // Propagar en tiempo real
+        if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
+            CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'remove' });
+        }
+        const char = appData.characters.find(c => String(c.id) === String(charId));
+        const cond = window.RPG_CONDITIONS?.[condId];
+        if (char && cond) _dmPostSystemMessage(`${cond.icon} La condición **${cond.label}** ha sido eliminada de **${escapeHtml(char.name)}**.`);
+    }
+}
+
+// Dar un objeto del catálogo a un personaje
+function dmGiveItem() {
+    const charId = document.getElementById('dmItemTarget')?.value;
+    const itemId = document.getElementById('dmItemSelect')?.value;
+    if (!charId || !itemId) { showAutosave('Selecciona personaje y objeto', 'error'); return; }
+
+    const char    = appData.characters.find(c => String(c.id) === String(charId));
+    const catalog = window.RPG_ITEM_CATALOG?.find(i => i.id === itemId);
+    if (!char || !catalog) return;
+
+    // Guardar siempre en profile.inventory del topic — fuente unificada
+    const profile = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+    if (profile) {
+        profile.inventory = profile.inventory || [];
+        const existing = profile.inventory.find(i => i.id === itemId);
+        if (existing) existing.qty = (existing.qty || 1) + 1;
+        else profile.inventory.push({ id: catalog.id, name: catalog.name, qty: 1, description: catalog.desc });
+        if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+    }
+    // Propagar en tiempo real al jugador destinatario
+    if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
+        CollaborativeGuard.broadcastDmEvent('dm_item_given', {
+            charId, topicId: currentTopicId,
+            item: { id: catalog.id, name: catalog.name, qty: 1, desc: catalog.desc }
+        });
+    }
+
+    _dmPostSystemMessage(`🎁 El DM entrega **${catalog.icon || ''} ${catalog.name}** a **${escapeHtml(char.name)}**. *${catalog.desc}*`);
+    showAutosave(`${catalog.name} entregado a ${char.name}`, 'saved');
+    _dmRenderCharacterList();
+}
+
+// ── Sistema de Desafíos del DM ──────────────────────────────────────────────
+// El DM propone una situación con DC y opciones de stat.
+// El jugador ve el desafío en su pantalla y elige con qué stat tirar.
+
+let _activeChallenge = null;
+
+function dmSetDC(value) {
+    const input = document.getElementById('dmDCValue');
+    if (input) input.value = value;
+    document.querySelectorAll('.dm-dc-btn').forEach(b => {
+        b.classList.toggle('active', Number(b.dataset.dc) === value);
+    });
+}
+
+function dmSendChallenge() {
+    const desc  = document.getElementById('dmChallengeDesc')?.value.trim();
+    const dc    = Number(document.getElementById('dmDCValue')?.value) || 15;
+    const stats = [...document.querySelectorAll('#dmChallengeStats input:checked')].map(i => i.value);
+
+    if (!desc) { showAutosave('Describe la situación del desafío', 'error'); return; }
+    if (!stats.length) { showAutosave('Selecciona al menos un stat', 'error'); return; }
+
+    const challenge = { desc, dc, stats, authorIndex: currentUserIndex, topicId: currentTopicId };
+
+    const statList = stats.map(s => '**' + s + '**').join(' / ');
+    _dmPostSystemMessage(
+        '⚔ **Desafío** — *' + escapeHtml(desc) + '*\n' +
+        'DC ' + dc + ' · Puedes tirar con: ' + statList
+    );
+
+    _activeChallenge = challenge;
+    _renderChallengeBar(challenge);
+
+    // Propagar desafío en tiempo real a todos los jugadores del topic
+    if (typeof CollaborativeGuard !== 'undefined' && typeof CollaborativeGuard.broadcastDmEvent === 'function') {
+        CollaborativeGuard.broadcastDmEvent('dm_challenge', { challenge });
+    }
+
+    document.getElementById('dmChallengeDesc').value = '';
+    closeDmPanel();
+}
+
+function _renderChallengeBar(challenge) {
+    if (!challenge) return;
+    const bar     = document.getElementById('vnChallengeBar');
+    const descEl  = document.getElementById('vnChallengeDesc');
+    const dcEl    = document.getElementById('vnChallengeDc');
+    const btnsCnt = document.getElementById('vnChallengeStatBtns');
+    if (!bar || !descEl || !dcEl || !btnsCnt) return;
+
+    descEl.textContent = challenge.desc;
+    dcEl.textContent   = 'DC ' + challenge.dc;
+
+    const statLabels = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constit.', INT: 'Intelec.', WIS: 'Sabid.', CHA: 'Carisma' };
+    btnsCnt.innerHTML = challenge.stats.map(stat =>
+        '<button class="vn-challenge-stat-btn" onclick="acceptChallenge('' + stat + '')" title="' + (statLabels[stat] || stat) + '">' +
+        '<span class="vn-cs-key">' + stat + '</span>' +
+        '<span class="vn-cs-label">' + (statLabels[stat] || stat) + '</span>' +
+        '</button>'
+    ).join('');
+
+    bar.style.display = 'flex';
+}
+
+function acceptChallenge(stat) {
+    if (!_activeChallenge || !selectedCharId) {
+        showAutosave('Selecciona un personaje para aceptar el desafío', 'error');
+        return;
+    }
+
+    const challenge = _activeChallenge;
+    const char      = appData.characters.find(c => String(c.id) === String(selectedCharId));
+    if (!char) return;
+
+    const profile = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+
+    if (profile?.conditions?.includes('dead')) {
+        showAutosave('Tu personaje ha caído. No puedes aceptar el desafío.', 'error');
+        return;
+    }
+
+    const baseStat = profile?.stats?.[stat] ?? 8;
+    const condMod  = (typeof getConditionModifier === 'function' && profile)
+        ? getConditionModifier(profile, stat) : 0;
+    const statVal  = Math.max(1, baseStat + condMod);
+    const modifier = Math.floor((statVal - 10) / 2);
+    const roll     = Math.floor(Math.random() * 20) + 1;
+    const total    = Math.max(1, Math.min(20, roll + modifier));
+    const dc       = challenge.dc;
+    const result   = roll === 1 ? 'fumble' : roll === 20 ? 'critical' : total >= dc ? 'success' : 'fail';
+    const labels   = { critical: 'ÉXITO CRÍTICO', success: 'ACIERTO', fail: 'FALLO', fumble: 'FALLO CRÍTICO' };
+    const modSign  = modifier >= 0 ? '+' : '';
+    const resultIcon = (result === 'critical' || result === 'success') ? '✓' : '✗';
+
+    showDiceResultOverlay({ roll, modifier, total, result, stat, statValue: statVal });
+
+    const oracleData = { question: challenge.desc, stat, statValue: statVal, modifier, dc, roll, total, result, timestamp: Date.now() };
+    const topic      = getCurrentTopic();
+    const topicMsgs  = getTopicMessages(currentTopicId);
+
+    const newMsg = {
+        id:                (globalThis.crypto?.randomUUID?.()) || (Date.now() + '_' + Math.random().toString(16).slice(2)),
+        characterId:       selectedCharId,
+        charName:          char.name,
+        charColor:         char.color,
+        charAvatar:        char.avatar,
+        charSprite:        char.sprite,
+        text:              '🎲 *Acepta el desafío con **' + stat + '***\nD20(' + roll + ') ' + modSign + modifier + ' = **' + total + '** vs DC' + dc + ' → **' + labels[result] + '** ' + resultIcon,
+        isNarrator:        false,
+        isChallengeResult: true,
+        userIndex:         currentUserIndex,
+        timestamp:         new Date().toISOString(),
+        oracle:            oracleData
+    };
+
+    if (topic?.mode === 'rpg' && typeof applyRpgNarrativeProgress === 'function') {
+        const effects = applyRpgNarrativeProgress(selectedCharId, oracleData);
+        if (effects && typeof buildConsequenceBadgeText === 'function') {
+            const consequence = buildConsequenceBadgeText(result, effects, char.name);
+            if (consequence) newMsg.oracleConsequence = consequence;
+        }
+    }
+
+    topicMsgs.push(newMsg);
+    if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
+        SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
+    }
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    currentMessageIndex = topicMsgs.length - 1;
+    triggerDialogueFadeIn();
+    showCurrentMessage('forward');
+
+    dismissChallenge();
+}
+
+function dismissChallenge() {
+    _activeChallenge = null;
+    const bar = document.getElementById('vnChallengeBar');
+    if (bar) bar.style.display = 'none';
+}
+}
+
+// Enviar mensaje como NPC con nombre personalizado
+function dmSendAsNpc() {
+    const npcName = document.getElementById('dmNpcName')?.value.trim();
+    const npcText = document.getElementById('dmNpcText')?.value.trim();
+    if (!npcName) { showAutosave('Escribe el nombre del NPC', 'error'); return; }
+    if (!npcText) { showAutosave('Escribe el mensaje del NPC', 'error'); return; }
+
+    const topic = getCurrentTopic();
+    if (!topic) return;
+
+    const topicMessages = getTopicMessages(currentTopicId);
+    const newMsg = {
+        id:          (globalThis.crypto?.randomUUID?.()) || `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        characterId: null,
+        charName:    npcName,
+        charColor:   '#8b7355',
+        charAvatar:  null,
+        charSprite:  null,
+        text:        npcText,
+        isNarrator:  true,
+        isNpc:       true,
+        userIndex:   currentUserIndex,
+        timestamp:   new Date().toISOString()
+    };
+
+    topicMessages.push(newMsg);
+    if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
+        SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
+    }
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    currentMessageIndex = topicMessages.length - 1;
+    triggerDialogueFadeIn();
+    showCurrentMessage('forward');
+
+    document.getElementById('dmNpcText').value = '';
+    showAutosave(`Mensaje enviado como ${npcName}`, 'saved');
+    closeDmPanel();
+}
+
+// Publica un mensaje de sistema del DM (condiciones, objetos, tiradas)
+function _dmPostSystemMessage(text) {
+    if (!text || !currentTopicId) return;
+    const topicMessages = getTopicMessages(currentTopicId);
+    const newMsg = {
+        id:          (globalThis.crypto?.randomUUID?.()) || `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        characterId: null,
+        charName:    'Dungeon Master',
+        charColor:   '#c9a86c',
+        charAvatar:  null,
+        charSprite:  null,
+        text,
+        isNarrator:  true,
+        isDmSystem:  true,
+        userIndex:   currentUserIndex,
+        timestamp:   new Date().toISOString()
+    };
+    topicMessages.push(newMsg);
+    if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
+        SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
+    }
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    currentMessageIndex = topicMessages.length - 1;
+    triggerDialogueFadeIn();
+    showCurrentMessage('forward');
+}
+
+// El DM reincorpora manualmente a un personaje muerto (evento narrativo)
+// Solo el DM puede hacer esto — es el equivalente a "ir a la catedral"
+function dmReviveCharacter(charId) {
+    if (!_isDM()) return;
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char) return;
+
+    const profile = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+    if (!profile) return;
+
+    // Reincorporar: quitar estado muerte, restaurar 1 HP mínimo
+    if (typeof removeConditionFromProfile === 'function') {
+        removeConditionFromProfile(profile, 'dead');
+    }
+    profile.conditions = (profile.conditions || []).filter(c => c !== 'dead');
+    profile.hp = Math.max(1, profile.hp || 1);
+
+    if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+
+    _dmPostSystemMessage(
+        `✦ **${escapeHtml(char.name)}** ha sido reincorporado a la partida por intervención del DM. ` +
+        `*La historia continúa.*`
+    );
+    // Propagar en tiempo real para que el jugador pueda volver a actuar
+    if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
+        CollaborativeGuard.broadcastDmEvent('dm_revive', { charId, topicId: currentTopicId });
+    }
+    showAutosave(`${char.name} reincorporado a la partida`, 'saved');
+    _dmRenderCharacterList();
+}
+
+// ── Uso automático de poción al ≤30% HP ─────────────────────────────────────
+// Se activa solo para el personaje del usuario actual, no para el del DM ni
+// para personajes de otros jugadores. Usa la poción menor primero; si no hay,
+// usa la mayor. Solo actúa una vez por bajada de HP (no en bucle).
+function _autoUsePotion(char, profile) {
+    if (!char || !profile) return;
+    const inv = profile.inventory || [];
+    // Prioridad: poción menor → poción mayor
+    const potionId = inv.find(i => i.id === 'potion_hp')?.id
+                  || inv.find(i => i.id === 'potion_greater')?.id;
+    if (!potionId) return;
+
+    const catalog = window.RPG_ITEM_CATALOG?.find(i => i.id === potionId);
+    if (!catalog) return;
+
+    // Aplicar efecto directamente (sin pasar por useInventoryItem para evitar bucle)
+    const hpMax   = (typeof RPG_HP_MAX !== 'undefined') ? RPG_HP_MAX : 10;
+    const hpBefore = profile.hp;
+    if (catalog.effect?.hp === 'max') {
+        profile.hp = hpMax;
+    } else if (typeof catalog.effect?.hp === 'number') {
+        profile.hp = Math.min(hpMax, profile.hp + catalog.effect.hp);
+    }
+
+    // Consumir del inventario
+    const idx = profile.inventory.findIndex(i => i.id === potionId);
+    if (idx !== -1) {
+        profile.inventory[idx].qty = (profile.inventory[idx].qty || 1) - 1;
+        if (profile.inventory[idx].qty <= 0) profile.inventory.splice(idx, 1);
+    }
+
+    if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+    if (typeof _refreshIhpInventory === 'function') _refreshIhpInventory(char.id);
+
+    // Notificar al jugador
+    const hpGained = profile.hp - hpBefore;
+    if (typeof showAutosave === 'function') {
+        showAutosave(`⚡ ${catalog.icon} ${catalog.name} usada automáticamente (+${hpGained} HP)`, 'saved');
+    }
+}
+
+// ── Listeners de eventos DM en tiempo real ───────────────────────────────
+// Reciben los broadcasts del canal collab-guard y actualizan el estado local.
+
+// Desafío: el DM lo lanzó, mostrar la barra al jugador
+window.addEventListener('etheria:dm-challenge', function(e) {
+    const challenge = e.detail?.challenge;
+    if (!challenge) return;
+    // No mostrar al propio DM (ya la tiene)
+    if (challenge.authorIndex === currentUserIndex) return;
+    // Solo si estamos en el mismo topic
+    if (challenge.topicId && challenge.topicId !== currentTopicId) return;
+    _activeChallenge = challenge;
+    _renderChallengeBar(challenge);
+});
+
+// Condición cambiada: actualizar ficha del personaje afectado en tiempo real
+window.addEventListener('etheria:dm-condition-changed', function(e) {
+    const { charId, topicId, conditionId, action } = e.detail || {};
+    if (!charId || topicId !== currentTopicId) return;
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+    const profile = ensureCharacterRpgProfile(char, currentTopicId);
+    if (action === 'apply' && typeof applyConditionToProfile === 'function') {
+        applyConditionToProfile(profile, conditionId);
+    } else if (action === 'remove' && typeof removeConditionFromProfile === 'function') {
+        removeConditionFromProfile(profile, conditionId);
+    }
+    // Refrescar la ficha si está abierta
+    if (typeof updateIhp === 'function') updateIhp();
+});
+
+// Objeto recibido del DM: actualizar inventario en tiempo real
+window.addEventListener('etheria:dm-item-given', function(e) {
+    const { charId, topicId, item } = e.detail || {};
+    if (!charId || !item || topicId !== currentTopicId) return;
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+    const profile = ensureCharacterRpgProfile(char, currentTopicId);
+    profile.inventory = profile.inventory || [];
+    const existing = profile.inventory.find(i => i.id === item.id);
+    if (existing) existing.qty = (existing.qty || 1) + 1;
+    else profile.inventory.push({ ...item });
+    if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+    // Refrescar panel si está visible
+    if (typeof _refreshIhpInventory === 'function') _refreshIhpInventory(charId);
+    // Notificar si el personaje es del usuario actual
+    if (char.userIndex === currentUserIndex && typeof showAutosave === 'function') {
+        showAutosave(`🎁 ${item.name} añadido a tu inventario`, 'saved');
+    }
+});
+
+// Revive: el DM reincorporó a un personaje muerto
+window.addEventListener('etheria:dm-revive', function(e) {
+    const { charId, topicId } = e.detail || {};
+    if (!charId || topicId !== currentTopicId) return;
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+    const profile = ensureCharacterRpgProfile(char, currentTopicId);
+    if (typeof removeConditionFromProfile === 'function') {
+        removeConditionFromProfile(profile, 'dead');
+    }
+    profile.conditions = (profile.conditions || []).filter(c => c !== 'dead');
+    profile.hp = Math.max(1, profile.hp || 1);
+    if (typeof updateIhp === 'function') updateIhp();
+});
+
+window.toggleDmPanel     = toggleDmPanel;
+window.openDmPanel       = openDmPanel;
+window.closeDmPanel      = closeDmPanel;
+window.dmApplyCondition  = dmApplyCondition;
+window.dmRemoveCondition = dmRemoveCondition;
+window.dmGiveItem        = dmGiveItem;
+window.dmReviveCharacter = dmReviveCharacter;
+window.dmSetDC           = dmSetDC;
+window.dmSendChallenge   = dmSendChallenge;
+window.acceptChallenge   = acceptChallenge;
+window.dismissChallenge  = dismissChallenge;
+window.dmSendAsNpc       = dmSendAsNpc;
+
 // ============================================
 // BOTÓN DE NARRACIÓN FLOTANTE (escena/capítulo)
 // ============================================
@@ -3017,6 +3605,10 @@ function updateNarrateButton() {
         || topic.createdByIndex === undefined
         || topic.createdByIndex === null;
     const isRpg = topic?.mode === 'rpg';
+
+    // ⚔️ Botón DM: solo en RPG + creador del tema
+    const dmBtn = document.getElementById('vnDmBtn');
+    if (dmBtn) dmBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
 
     // 🍺 Posada: caja de diálogo, solo RPG + owner
     const innBtn = document.getElementById('vnInnkeeperBtn');
@@ -3480,6 +4072,10 @@ function postVNReply() {
         if (!char) { showAutosave('Personaje no encontrado', 'error'); return; }
         if (topic?.mode === 'rpg' && typeof ensureCharacterRpgProfile === 'function') {
             const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
+            if (profile.conditions?.includes('dead')) {
+                showAutosave(`${char.name} ha caído. Solo el DM puede reincorporarle a la partida.`, 'error');
+                return;
+            }
             if (profile.knockedOutTurns > 0) {
                 showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
                 return;

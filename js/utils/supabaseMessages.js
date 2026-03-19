@@ -535,6 +535,57 @@
         }
     }
 
+    // ── Editar mensaje en Supabase ────────────────────────────────────────────
+    // Actualiza el content de una fila existente en messages y marca edited_at.
+    async function editMessage(messageId, newText) {
+        if (!_isAvailable() || !messageId) return false;
+        try {
+            const headers = await _restHeaders();
+            const res = await fetch(
+                SB_URL + '/rest/v1/messages?id=eq.' + encodeURIComponent(messageId),
+                {
+                    method: 'PATCH',
+                    headers: { ...headers, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                    body: JSON.stringify({
+                        content:   JSON.stringify({ text: newText }),
+                        edited_at: new Date().toISOString()
+                    }),
+                    signal: AbortSignal.timeout(5000)
+                }
+            );
+            return res.ok;
+        } catch (e) {
+            logger?.warn('supabase:messages', 'editMessage failed:', e?.message);
+            return false;
+        }
+    }
+
+    // ── Soft delete de mensaje en Supabase ────────────────────────────────────
+    // Marca is_deleted=true y deleted_at en lugar de borrar la fila.
+    // La policy SELECT ya excluye filas con is_deleted=true.
+    async function deleteMessage(messageId) {
+        if (!_isAvailable() || !messageId) return false;
+        try {
+            const headers = await _restHeaders();
+            const res = await fetch(
+                SB_URL + '/rest/v1/messages?id=eq.' + encodeURIComponent(messageId),
+                {
+                    method: 'PATCH',
+                    headers: { ...headers, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                    body: JSON.stringify({
+                        is_deleted: true,
+                        deleted_at: new Date().toISOString()
+                    }),
+                    signal: AbortSignal.timeout(5000)
+                }
+            );
+            return res.ok;
+        } catch (e) {
+            logger?.warn('supabase:messages', 'deleteMessage failed:', e?.message);
+            return false;
+        }
+    }
+
     // ── API pública ───────────────────────────────────────────────────────────
 
     global.SupabaseMessages = {
@@ -547,6 +598,8 @@
         handleIncomingMessage : handleIncomingMessage,
         sendTyping            : sendTyping,
         unsubscribe           : unsubscribe,
+        editMessage           : editMessage,
+        deleteMessage         : deleteMessage,
         get available() { return _available; }
     };
 

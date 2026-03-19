@@ -99,7 +99,7 @@ const SupabaseProfiles = (function () {
             const { data, error } = await query;
 
             if (error) {
-                console.error('[SupabaseProfiles] loadCloudProfiles:', error.message);
+                window.EtheriaLogger?.warn('[SupabaseProfiles]', 'loadCloudProfiles:', error.message);
                 return [];
             }
             appData.cloudProfiles = Array.isArray(data) ? data : [];
@@ -108,7 +108,7 @@ const SupabaseProfiles = (function () {
             }));
             return appData.cloudProfiles;
         } catch (err) {
-            console.error('[SupabaseProfiles] loadCloudProfiles exception:', err);
+            window.EtheriaLogger?.warn('[SupabaseProfiles]', 'loadCloudProfiles exception:', err);
             return [];
         }
     }
@@ -367,33 +367,88 @@ const SupabaseProfiles = (function () {
 
     // ── Init ─────────────────────────────────────────────────────────────────
 
+    // ── Activación automática del perfil ────────────────────────────────────
+    // Reglas en orden de prioridad:
+    //  1. Si hay un perfil activo guardado en localStorage y sigue siendo del usuario → usarlo
+    //  2. Si el usuario tiene exactamente un perfil propio → activarlo automáticamente
+    //  3. Si el usuario no tiene ningún perfil → crear uno y activarlo
+    // El usuario nunca tiene que hacer nada para tener un perfil funcional.
+    async function _autoActivateProfile() {
+        const profiles = appData.cloudProfiles || [];
+        const user     = await _getCurrentUser().catch(() => null);
+        if (!user?.id) return;
+
+        // Opción 1: restaurar perfil guardado si sigue siendo nuestro
+        const storedId = _readStoredActiveProfileId();
+        if (storedId) {
+            const stored = profiles.find(p => p.id === storedId && p.owner_user_id === user.id);
+            if (stored) {
+                _activeProfileId = storedId;
+                _emitActiveProfileChanged(storedId, 'restored');
+                return;
+            }
+        }
+
+        // Opción 2: activar el único perfil propio
+        const mine = profiles.filter(p => p.owner_user_id === user.id);
+        if (mine.length === 1) {
+            _activeProfileId = mine[0].id;
+            _storeActiveProfileId(_activeProfileId);
+            _emitActiveProfileChanged(_activeProfileId, 'auto-activated');
+            return;
+        }
+
+        // Si hay varios perfiles propios, activar el más reciente
+        if (mine.length > 1) {
+            const newest = mine.sort((a, b) =>
+                new Date(b.created_at || 0) - new Date(a.created_at || 0)
+            )[0];
+            _activeProfileId = newest.id;
+            _storeActiveProfileId(_activeProfileId);
+            _emitActiveProfileChanged(_activeProfileId, 'auto-activated');
+            return;
+        }
+
+        // Opción 3: el usuario no tiene ningún perfil — crear uno automáticamente
+        // Esto cubre usuarios nuevos cuyo trigger aún no haya corrido o falle silenciosamente
+        try {
+            const displayName = user.email?.split('@')[0] || 'Jugador';
+            const { data, error } = await _client()
+                .from('profiles')
+                .insert({ user_id: user.id, name: displayName, owner_user_id: user.id })
+                .select()
+                .single();
+
+            if (!error && data?.id) {
+                if (!appData.cloudProfiles) appData.cloudProfiles = [];
+                appData.cloudProfiles.push(data);
+                _activeProfileId = data.id;
+                _storeActiveProfileId(_activeProfileId);
+                _emitActiveProfileChanged(_activeProfileId, 'created-and-activated');
+            }
+        } catch (e) {
+            window.EtheriaLogger?.warn('supabaseProfiles', 'No se pudo crear perfil automático:', e?.message);
+        }
+    }
+
     function init() {
         _ensureCloudProfilesKey();
 
         // Cargar userId en caché para comparaciones síncronas
         _getCurrentUser().catch(() => {});
 
-        // Cargar perfiles y restaurar perfil activo previo si sigue accesible
+        // Cargar perfiles y activar automáticamente el correcto
         if (_isAvailable()) {
-            loadCloudProfiles().then(() => {
-                const storedProfileId = _readStoredActiveProfileId();
-                if (!storedProfileId) return;
-                const profile = (appData.cloudProfiles || []).find(p => p.id === storedProfileId);
-                if (profile) {
-                    _activeProfileId = storedProfileId;
-                    _emitActiveProfileChanged(_activeProfileId, 'restored');
-                } else {
-                    _activeProfileId = null;
-                    _storeActiveProfileId(null);
-                }
-            }).catch(() => {});
+            loadCloudProfiles()
+                .then(() => _autoActivateProfile())
+                .catch(() => {});
         }
 
         // Registrar listeners solo una vez
         if (_initDone) return;
         _initDone = true;
 
-        // Re-cargar cuando el usuario cambia de sesión
+        // Re-cargar y re-activar cuando el usuario cambia de sesión
         window.addEventListener('etheria:auth-changed', (e) => {
             const userId = e.detail?.user?.id || null;
             if (!userId) {
@@ -401,8 +456,13 @@ const SupabaseProfiles = (function () {
                 _activeProfileId = null;
                 _storeActiveProfileId(null);
                 _emitActiveProfileChanged(null, 'signed-out');
+                return;
             }
-            _getCurrentUser().then(() => loadCloudProfiles()).catch(() => {});
+            // Usuario autenticado: recargar perfiles y activar el correcto
+            _getCurrentUser()
+                .then(() => loadCloudProfiles())
+                .then(() => _autoActivateProfile())
+                .catch(() => {});
         });
 
         // Cargar personajes cuando se activa un perfil
