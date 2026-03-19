@@ -9,7 +9,7 @@
 // ================================================================
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
-const CACHE_VERSION = 'mmuviusw';
+const CACHE_VERSION = '9a5c7932';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
 const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];
@@ -23,6 +23,18 @@ const PRECACHE_URLS = [
   './assets/icons/icon-512.png',
   './assets/backgrounds/default_background.jpg',
   './assets/backgrounds/menu_background.jpg',
+  // Scripts críticos para funcionamiento offline
+  './js/core/events.js',
+  './js/utils/state.js',
+  './js/utils/storage.js',
+  './js/utils/logger.js',
+  './js/ui/sounds.js',
+  './js/ui/vn.js',
+  './js/ui/roleplay.js',
+  './js/ui/sheets.js',
+  './js/app.js',
+  './css/main.css',
+  './css/components.css',
 ];
 
 // ── INSTALL ─────────────────────────────────────────────────────
@@ -167,6 +179,61 @@ async function staleWhileRevalidate(req) {
   // Devolver caché inmediatamente si existe, sino esperar red
   return cached || networkPromise;
 }
+
+// ── PUSH NOTIFICATIONS ──────────────────────────────────────────
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: 'Etheria', body: event.data?.text() || 'Nueva notificación' };
+  }
+
+  const title   = data.title || 'Etheria';
+  const options = {
+    body:      data.body    || 'Te toca responder',
+    icon:      data.icon    || '/assets/icons/icon-192.png',
+    badge:     data.badge   || '/assets/icons/icon-192.png',
+    tag:       data.tag     || 'etheria-push',
+    renotify:  data.renotify ?? true,
+    data:      data.data    || {},
+    actions: [
+      { action: 'open',    title: 'Abrir historia' },
+      { action: 'dismiss', title: 'Descartar' },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Al pulsar la notificación — abrir/enfocar la app y navegar al topic
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
+  const notifData = event.notification.data || {};
+  const targetUrl = notifData.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // Si la app ya está abierta, enfocarla y enviarle los datos
+      const existing = clients.find(c => c.url.includes(self.location.origin));
+      if (existing) {
+        existing.focus();
+        existing.postMessage({
+          type: 'PUSH_NOTIFICATION_CLICK',
+          topicId:        notifData.topicId,
+          storyId:        notifData.storyId,
+          notificationId: notifData.notificationId,
+        });
+        return;
+      }
+      // Si no está abierta, abrirla
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});
 
 // ── BACKGROUND SYNC ─────────────────────────────────────────────
 self.addEventListener('sync', (event) => {
