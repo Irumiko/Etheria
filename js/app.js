@@ -337,12 +337,15 @@ async function ensureProfile() {
 // inmediatamente después del login, cuando el profileId todavía es null.
 (function _registerCharacterSyncListener() {
     let _charSyncDone = false;
+
+    // Resetear al cerrar sesión para que el próximo login vuelva a sincronizar
+    window.addEventListener('etheria:auth-changed', function(e) {
+        if (!e.detail?.user) _charSyncDone = false;
+    });
+
     window.addEventListener('etheria:active-profile-changed', function(e) {
         const profileId = e.detail?.profileId;
         if (!profileId || _charSyncDone) return;
-
-        // Solo sincronizar si hay personajes locales sin subir
-        if (!Array.isArray(appData?.characters) || appData.characters.length === 0) return;
         if (typeof SupabaseCharacters === 'undefined' ||
             typeof SupabaseCharacters.syncAllLocalCharacters !== 'function') return;
 

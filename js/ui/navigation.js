@@ -122,6 +122,8 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     currentFilter = 'none';
     document.body.classList.remove('mode-rpg');
     document.body.classList.remove('mode-classic');
+    // Limpiar atmósfera de afinidad al salir de una historia
+    if (typeof AffinityAtmosphere !== 'undefined') AffinityAtmosphere.clear();
     // Cerrar mini-panel del oráculo si está abierto
     const oracleMini = document.getElementById('vnOracleMiniPanel');
     if (oracleMini) oracleMini.style.display = 'none';
@@ -168,6 +170,7 @@ function getCurrentVisibleSection() {
     if (document.getElementById('topicsSection')?.classList.contains('active')) return 'topics';
     if (document.getElementById('gallerySection')?.classList.contains('active')) return 'gallery';
     if (document.getElementById('optionsSection')?.classList.contains('active')) return 'options';
+    if (document.getElementById('bondsSection')?.classList.contains('active'))  return 'bonds';
 
     return null;
 }
@@ -206,6 +209,11 @@ function showSection(section) {
             if (optionsSection) optionsSection.classList.add('active');
             if (typeof syncOptionsSection === 'function') syncOptionsSection();
             window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'options' } }));
+        } else if(section === 'bonds') {
+            const bondsSection = document.getElementById('bondsSection');
+            if (bondsSection) bondsSection.classList.add('active');
+            if (typeof BondsUI !== 'undefined') BondsUI.render();
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'bonds' } }));
         }
     }, 150);
 }
@@ -454,15 +462,27 @@ function renderGallery() {
             : `<div class="gallery-empty"><p class="gallery-empty-text" style="font-size:1rem;">Sin resultados para esa búsqueda</p></div>`;
         return;
     }
-
     grid.innerHTML = chars.map((c, i) => {
         const ownerName = userNames[c.userIndex] || 'Desconocido';
-        const isOwn = c.userIndex === currentUserIndex;
+        const isOwn     = c.userIndex === currentUserIndex;
         const charColor = c.color || '#8b7355';
         const genderLabel = c.gender === 'Femenino' ? '♀' : c.gender === 'Masculino' ? '♂' : '◇';
 
+        // Indicador de presencia para personajes de otros usuarios
+        const ownerProfile = Array.isArray(appData.cloudProfiles)
+            ? appData.cloudProfiles.find(p => p.userIndex === c.userIndex || p.index === c.userIndex)
+            : null;
+        const ownerUserId = ownerProfile?.owner_user_id || ownerProfile?.id || null;
+        const isOnline = !isOwn && ownerUserId &&
+            typeof SupabasePresence !== 'undefined' &&
+            typeof SupabasePresence.isOnline === 'function' &&
+            SupabasePresence.isOnline(ownerUserId);
+        const presenceDot = !isOwn
+            ? `<span class="presence-dot ${isOnline ? '' : 'offline'}" title="${isOnline ? escapeHtml(ownerName) + ' · En línea' : escapeHtml(ownerName) + ' · Desconectado'}"></span>`
+            : '';
+
         return `
-        <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${charColor}; animation-delay:${i * 0.03}s">
+        <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${charColor}; animation-delay:${i * 0.03}s; position:relative;">
             <div class="char-card-avatar">
                 ${c.avatar
                     ? `<img data-src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" data-fallback="${escapeHtml((c.name || '?')[0])}" class="char-card-img">`
@@ -477,14 +497,15 @@ function renderGallery() {
                     <div class="char-card-meta">
                         <span class="char-card-gender">${genderLabel}</span>
                         ${c.race ? `<span class="char-card-race">${escapeHtml(c.race)}</span>` : ''}
-                        ${c.age ? `<span class="char-card-age">${c.age} años</span>` : ''}
+                        ${c.age  ? `<span class="char-card-age">${c.age} años</span>` : ''}
                     </div>
                 </div>
                 <div class="char-card-hover-extra">
-                    ${c.job ? `<div class="char-card-job">${escapeHtml(c.job)}</div>` : ''}
-                    ${c.basic ? `<div class="char-card-desc">${escapeHtml(c.basic.slice(0, 90))}${c.basic.length > 90 ? '…' : ''}</div>` : ''}
+                    ${c.job   ? `<div class="char-card-job">${escapeHtml(c.job)}</div>` : ''}
+                    ${c.basic ? `<div class="char-card-desc">${escapeHtml(c.basic.slice(0,90))}${c.basic.length > 90 ? '…' : ''}</div>` : ''}
                 </div>
             </div>
+            ${presenceDot}
         </div>`;
     }).join('');
 
@@ -502,3 +523,12 @@ function renderGallery() {
 
 
 // ============================================
+
+// Refrescar galería cuando cambia el estado de presencia
+// para que los puntos online/offline se actualicen en tiempo real
+window.addEventListener('etheria:presence-changed', function () {
+    const gallerySection = document.getElementById('gallerySection');
+    if (gallerySection?.classList.contains('active')) {
+        renderGallery();
+    }
+});

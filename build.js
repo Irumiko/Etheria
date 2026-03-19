@@ -29,6 +29,9 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/features/gallery/index.css',
   'css/features/menu/index.css',
   'css/modules/07-overrides.css',
+  'css/modules/affinity-atmosphere.css',
+  'css/bonds.css',
+  'css/features.css',
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];

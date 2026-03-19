@@ -32,9 +32,15 @@ function toggleFavoriteCurrentMessage() {
     if (favs.has(msgId)) {
         favs.delete(msgId);
         showAutosave('Favorito eliminado', 'info');
+        if (typeof SupabaseFavorites !== 'undefined') {
+            SupabaseFavorites.remove('message', msgId).catch(() => {});
+        }
     } else {
         favs.add(msgId);
         showAutosave('⭐ Marcado como favorito', 'saved');
+        if (typeof SupabaseFavorites !== 'undefined') {
+            SupabaseFavorites.add('message', msgId).catch(() => {});
+        }
     }
 
     saveFavoritesForTopic(currentTopicId, favs);
@@ -156,6 +162,11 @@ function saveJournal() {
     appData.journals[currentTopicId] = textarea.value;
 
     save({ silent: true });
+
+    // Sincronizar con Supabase
+    if (typeof SupabaseJournals !== 'undefined') {
+        SupabaseJournals.upsert(currentTopicId, textarea.value).catch(() => {});
+    }
 
     const indicator = document.getElementById('journalSavedIndicator');
     if (indicator) {

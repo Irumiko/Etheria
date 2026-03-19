@@ -54,33 +54,16 @@ const SupabaseSync = (function () {
      */
     function _getProfileDataForSync() {
         const profileIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
-        // topics ya no está en el blob — los topicIds se usan solo para filtrar affinities localmente
-        const topics = Array.isArray(appData?.topics) ? appData.topics : [];
-        const topicIds = new Set(topics.map(t => String(t.id)));
-        // (topics no se sube al blob, pero se necesita topicIds para filtrar affinities)
 
-        // messages se excluye del blob — ya vive en la tabla messages de Supabase.
-        // Guardarlo aquí causaría duplicación y haría crecer el blob O(n_mensajes).
-        const affinities = {};
-        Object.keys(appData?.affinities || {}).forEach(topicId => {
-            if (topicIds.has(String(topicId))) affinities[topicId] = appData.affinities[topicId];
-        });
-
-        // characters se excluye del blob — ya vive en la tabla characters de Supabase.
-        // Se sincronizan vía SupabaseCharacters.upsertCharacter al guardar cada personaje.
-        const favorites = appData?.favorites || {};
-        const journals = appData?.journals || {};
-        // reactions ya no está en el blob — se carga desde message_reactions en Supabase
+        // affinities, favorites y journals ya viven en sus propias tablas de Supabase.
+        // Se excluyen del blob para no duplicar datos ni crecer innecesariamente.
 
         // Incluir inventario y estado RPG (flags, nivel, HP) del motor de escenas.
-        // Se guarda por profileIndex para que cada perfil tenga su estado independiente.
-        // Sin esto, el inventario y los flags se pierden al cambiar de dispositivo.
         const rpgStateSnapshot = (() => {
             try {
                 if (typeof RPGState !== 'undefined' && typeof RPGState.getSnapshot === 'function') {
                     return RPGState.getSnapshot();
                 }
-                // Fallback: leer directamente de localStorage si RPGState no está activo
                 const raw = localStorage.getItem(`etheria_rpg_state_${profileIndex}`);
                 return raw ? JSON.parse(raw) : null;
             } catch { return null; }
@@ -98,22 +81,16 @@ const SupabaseSync = (function () {
             })()
         };
 
-        // topics se excluye del blob — ahora vive en la tabla stories de Supabase.
-        // Se sincronizan vía SupabaseStories.upsertStory al crear/modificar cada historia.
         return {
             profileIndex,
-            userNames: typeof userNames !== 'undefined' ? userNames : ['Jugador 1', 'Jugador 2', 'Jugador 3'],
-            affinities,
-            favorites,
-            journals,
-            // reactions se excluye del blob — ahora vive en la tabla message_reactions de Supabase.
+            userNames:        typeof userNames !== 'undefined' ? userNames : ['Jugador 1', 'Jugador 2', 'Jugador 3'],
             rpgStateSnapshot,
             profileMeta,
             lastMessageIndex: typeof currentMessageIndex !== 'undefined' ? currentMessageIndex : 0,
             settings: {
                 textSpeed: typeof textSpeed !== 'undefined' ? textSpeed : 25,
-                theme: document.documentElement.getAttribute('data-theme') || 'light',
-                fontSize: localStorage.getItem('etheria_font_size') || '19'
+                theme:     document.documentElement.getAttribute('data-theme') || 'light',
+                fontSize:  localStorage.getItem('etheria_font_size') || '19'
             }
         };
     }
@@ -137,13 +114,9 @@ const SupabaseSync = (function () {
         // topics NO se restaura desde el blob — se carga desde la tabla stories de Supabase.
         // characters NO se restaura desde el blob — se carga desde la tabla characters de Supabase.
         // messages NO se restaura desde el blob — se carga desde la tabla messages de Supabase.
-        const remoteAffinities = (syncedData.affinities && typeof syncedData.affinities === 'object') ? syncedData.affinities : {};
-
-        // appData.topics se mantiene en memoria y se actualiza vía SupabaseStories.loadStories
-        appData.affinities = remoteAffinities;
-        appData.favorites = (syncedData.favorites && typeof syncedData.favorites === 'object') ? syncedData.favorites : {};
-        appData.journals = (syncedData.journals && typeof syncedData.journals === 'object') ? syncedData.journals : {};
-        // reactions NO se restaura desde el blob — se carga desde message_reactions en Supabase
+        // affinities NO se restaura desde el blob — se carga desde la tabla affinities de Supabase.
+        // favorites NO se restaura desde el blob — se carga desde la tabla favorites de Supabase.
+        // journals NO se restaura desde el blob — se carga desde la tabla journals de Supabase.
 
         if (syncedData.profileMeta && typeof syncedData.profileMeta === 'object') {
             try {

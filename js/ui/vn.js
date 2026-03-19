@@ -1121,6 +1121,20 @@ function _doEnterTopic(id, t, topicMode) {
 
     // Notificar al módulo de presencia/inbox que se ha entrado en un topic
     window.dispatchEvent(new CustomEvent('etheria:topic-enter', { detail: { topicId: id } }));
+
+    // ── Vínculos: crear automáticamente entre todos los participantes ─────────
+    // Solo en modo clásico (en RPG no hay sistema de vínculos).
+    if (topicMode !== 'rpg' && typeof SupabaseBonds !== 'undefined') {
+        const _tBonds = appData.topics.find(tp => String(tp.id) === String(id));
+        if (_tBonds) {
+            const _locks = { ...(_tBonds.characterLocks || {}), ...(_tBonds.rpgCharacterLocks || {}) };
+            const _participantCharIds = Object.values(_locks).filter(Boolean).map(String);
+            if (_participantCharIds.length >= 2) {
+                const _storyId = _tBonds.storyId || null;
+                SupabaseBonds.ensureStoryBonds(_storyId || id, _participantCharIds).catch(() => {});
+            }
+        }
+    }
 }
 
 // Memory leak fix: store handler reference so it can be removed before re-adding
@@ -2635,6 +2649,24 @@ function persistTopicLockedCharacter(topic, charId) {
 
     hasUnsavedChanges = true;
     save({ silent: true });
+
+    // Sincronizar story_participants en Supabase
+    // El trigger de la BD lo hace automáticamente al actualizar character_locks,
+    // pero también lo registramos directamente como fallback.
+    if (topic.storyId && typeof window.supabaseClient !== 'undefined' && window.supabaseClient) {
+        window.supabaseClient.auth.getUser().then(({ data }) => {
+            if (!data?.user) return;
+            window.supabaseClient
+                .from('story_participants')
+                .upsert({
+                    story_id:     topic.storyId,
+                    character_id: String(charId),
+                }, { onConflict: 'story_id,character_id', ignoreDuplicates: true })
+                .then(({ error }) => {
+                    if (error) window.EtheriaLogger?.warn('vn', 'story_participants upsert:', error.message);
+                });
+        }).catch(() => {});
+    }
 }
 
 function getCharacterById(charId) {

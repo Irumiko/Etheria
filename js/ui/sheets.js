@@ -590,7 +590,8 @@ function saveCharacter() {
     // Esto conecta el personaje local con la tabla characters en la nube,
     // eliminando la dependencia de que el personaje solo exista en el blob.
     if (typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.upsertCharacter === 'function') {
-        const activeProfileId = SupabaseCharacters.activeProfileId;
+        const activeProfileId = SupabaseCharacters.activeProfileId
+            || (typeof SupabaseProfiles !== 'undefined' ? SupabaseProfiles.activeProfileId : null);
         if (activeProfileId) {
             SupabaseCharacters.upsertCharacter(charObj, activeProfileId).catch(() => {});
         }

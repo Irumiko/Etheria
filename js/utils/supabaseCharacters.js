@@ -323,6 +323,29 @@ const SupabaseCharacters = (function () {
         return { ok: failed === 0, synced };
     }
 
+    // ── Listener: sincronizar _activeProfileId cuando cambia el perfil activo ──
+    // SupabaseProfiles emite este evento al activar un perfil (login, cambio de usuario…).
+    // Sin este listener, _activeProfileId quedaba null si loadCharacters no había sido
+    // llamado todavía, haciendo que upsertCharacter se cancelara silenciosamente.
+    (function _initProfileListener() {
+        function _onActiveProfileChanged(e) {
+            const profileId = e.detail?.profileId;
+            if (!profileId) return;
+            if (_activeProfileId !== profileId) {
+                _activeProfileId = profileId;
+                // Cargar personajes de la nube para este perfil
+                loadCharacters(profileId).catch(() => {});
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.addEventListener('etheria:active-profile-changed', _onActiveProfileChanged);
+            });
+        } else {
+            window.addEventListener('etheria:active-profile-changed', _onActiveProfileChanged);
+        }
+    })();
+
     return {
         loadCharacters,
         createCharacter,

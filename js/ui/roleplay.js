@@ -218,9 +218,10 @@ function getAffinityIncrement(currentValue, direction) {
     return newValue;
 }
 
-function getAffinityKey(charId1, charId2) {
-    const ids = [charId1, charId2].sort();
-    return `${ids[0]}_${ids[1]}`;
+function getAffinityKey(fromCharId, toCharId) {
+    // Clave DIRECCIONAL: A→B es distinto de B→A.
+    // El primer argumento es siempre el personaje activo (quien siente).
+    return `${fromCharId}_${toCharId}`;
 }
 
 function getCurrentAffinity() {
@@ -365,8 +366,11 @@ function updateAffinityDisplay() {
         if (infoName) infoName.textContent = rpgChar.name;
         if (infoSubtitle && typeof ensureCharacterRpgProfile === 'function') {
             const profile = ensureCharacterRpgProfile(rpgChar);
-            const title = typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz';
-            infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${title}`;
+            const classObj = typeof RPG_CLASSES !== 'undefined' && profile.rpgClass
+                ? RPG_CLASSES.find(cl => cl.id === profile.rpgClass)
+                : null;
+            const classLabel = classObj ? classObj.name : (typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz');
+            infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${classLabel}`;
         }
         setAvatar(rpgChar);
         setPills(null);
@@ -397,8 +401,11 @@ function updateAffinityDisplay() {
             if (infoSubtitle) {
                 if (isRpgMode && typeof ensureCharacterRpgProfile === 'function') {
                     const profile = ensureCharacterRpgProfile(char);
-                    const title = typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz';
-                    infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${title}`;
+                    const classObj = typeof RPG_CLASSES !== 'undefined' && profile.rpgClass
+                        ? RPG_CLASSES.find(cl => cl.id === profile.rpgClass)
+                        : null;
+                    const classLabel = classObj ? classObj.name : (typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz');
+                    infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${classLabel}`;
                 } else {
                     // Modo clásico: mostrar ocupación como subtítulo si existe
                     infoSubtitle.textContent = char.job || '';
@@ -444,12 +451,17 @@ function updateAffinityDisplay() {
                     rankNameEl.style.textShadow = `0 0 10px ${rankInfo.color}`;
                 }
                 currentAffinity = affinityValue;
+                // Actualizar atmósfera visual según rango
+                if (typeof AffinityAtmosphere !== 'undefined') {
+                    AffinityAtmosphere.update(rankInfo.name);
+                }
                 return;
             }
         }
     }
 
-    // Por defecto
+    // Por defecto — limpiar atmósfera
+    if (typeof AffinityAtmosphere !== 'undefined') AffinityAtmosphere.clear();
     affinityDisplay?.classList.add('hidden');
     if (vnInfoAffection) vnInfoAffection.style.display = 'none';
     if (infoName)     infoName.textContent     = 'Sin personaje';
