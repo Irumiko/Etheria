@@ -3286,7 +3286,7 @@ function _renderChallengeBar(challenge) {
 
     const statLabels = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constit.', INT: 'Intelec.', WIS: 'Sabid.', CHA: 'Carisma' };
     btnsCnt.innerHTML = challenge.stats.map(stat =>
-        '<button class="vn-challenge-stat-btn" onclick="acceptChallenge('' + stat + '')" title="' + (statLabels[stat] || stat) + '">' +
+        '<button class="vn-challenge-stat-btn" onclick="acceptChallenge(' + "'" + stat + "'" + ')" title="' + (statLabels[stat] || stat) + '">' +
         '<span class="vn-cs-key">' + stat + '</span>' +
         '<span class="vn-cs-label">' + (statLabels[stat] || stat) + '</span>' +
         '</button>'
@@ -3372,7 +3372,6 @@ function dismissChallenge() {
     _activeChallenge = null;
     const bar = document.getElementById('vnChallengeBar');
     if (bar) bar.style.display = 'none';
-}
 }
 
 // Enviar mensaje como NPC con nombre personalizado

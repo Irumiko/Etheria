@@ -449,8 +449,8 @@ window.RPG_CONDITIONS   = RPG_CONDITIONS;
 window.RPG_STAT_KEYS    = RPG_STAT_KEYS;
 window.RPG_STAT_DESC    = RPG_STAT_DESC;
 window.RPG_STAT_LABEL   = RPG_STAT_LABEL;
-window.RPG_CLASS_PASSIVES = RPG_CLASS_PASSIVES;
-window.RPG_ITEM_CATALOG = RPG_ITEM_CATALOG;
+// RPG_CLASS_PASSIVES y RPG_ITEM_CATALOG se declaran más abajo con const —
+// se asignan a window al final del archivo para evitar temporal dead zone.
 
 function openRpgStatsModal(charId) {
     const char = appData.characters.find(ch => String(ch.id) === String(charId));
@@ -1158,3 +1158,9 @@ window.openRpgStatsModalBlocking  = openRpgStatsModalBlocking;
 window.rpgStatsConfirm             = rpgStatsConfirm;
 window.rpgStatsModalOutsideClick   = rpgStatsModalOutsideClick;
 window._rpgStatsUpdateConfirmState = _rpgStatsUpdateConfirmState;
+
+// Asignaciones diferidas — RPG_CLASS_PASSIVES y RPG_ITEM_CATALOG se declaran
+// con const más arriba; se exponen a window aquí, al final del archivo,
+// para evitar el ReferenceError de temporal dead zone.
+window.RPG_CLASS_PASSIVES = RPG_CLASS_PASSIVES;
+window.RPG_ITEM_CATALOG   = RPG_ITEM_CATALOG;

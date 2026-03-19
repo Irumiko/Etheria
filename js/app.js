@@ -396,7 +396,7 @@ function initializeApp() {
                 }
             }
         } catch (e) {
-            window.EtheriaLogger?.warn('app', 'Error parsing user names:', e));
+            window.EtheriaLogger?.warn('app', 'Error parsing user names:', e);
         }
     }
 
