@@ -490,6 +490,10 @@ body,
                     <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 17c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
                     <span class="menu-label">Personajes</span>
                 </button>
+                <button class="menu-button menu-button-console" onclick="showSection('bonds')">
+                    <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><path d="M10 5c0-2 3-3.5 4.5-2S16 7 14 8.5L10 12 6 8.5C4 7 4 3.5 5.5 3S10 3 10 5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4 15.5c1-1.5 3.5-2.5 6-2.5s5 1 6 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    <span class="menu-label">Vínculos</span>
+                </button>
                 <button class="menu-button menu-button-console" onclick="showSection('options')">
                     <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
                     <span class="menu-label">Opciones</span>
@@ -642,6 +646,18 @@ body,
             <!-- Grid -->
             <div id="galleryGrid" class="gallery-grid"></div>
         </div>
+    </div>
+
+    <!-- Bonds Section — Vínculos -->
+    <div id="bondsSection" class="game-section">
+        <div class="bonds-header">
+            <button class="bonds-back-btn" onclick="backToMenu()">← Menú</button>
+            <div>
+                <div class="bonds-title">✦ Vínculos</div>
+                <div class="bonds-subtitle">Las relaciones que tus personajes han forjado</div>
+            </div>
+        </div>
+        <div id="bondsContainer"></div>
     </div>
 
     <!-- Options Section -->
@@ -876,6 +892,17 @@ body,
 
     <!-- VN Section -->
     <div id="vnSection" class="game-section vn-section">
+        <!-- Panel búsqueda de mensajes -->
+        <div id="msgSearchPanel">
+            <div class="msg-search-bar">
+                <input id="msgSearchInput" class="msg-search-input" type="text"
+                    placeholder="Buscar en esta historia…"
+                    oninput="MessageSearch.onInput(this.value)"
+                    onkeydown="if(event.key==='Escape') MessageSearch.close()">
+                <button class="msg-search-close" onclick="MessageSearch.close()">✕ Cerrar</button>
+            </div>
+            <div id="msgSearchResults"></div>
+        </div>
         <div id="vnSceneTransition" class="vn-scene-transition"></div>
         <div id="vnChapterReveal" class="vn-chapter-reveal">
             <div class="vn-chapter-reveal-line"></div>
@@ -1161,6 +1188,11 @@ body,
             <div class="vn-control-slot">
                 <button class="vn-control-btn" onclick="openHistoryLog()" aria-label="Historial">
                     <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2 h7 l3 3 v9 a1 1 0 0 1-1 1 H4 a1 1 0 0 1-1-1 z"/><polyline points="10,2 10,5 13,5"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg></span>
+                </button>
+            </div>
+            <div class="vn-control-slot">
+                <button class="vn-control-btn" onclick="MessageSearch.toggle()" aria-label="Buscar en historia" title="Buscar mensajes">
+                    <span class="vn-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="9.5" y1="9.5" x2="13.5" y2="13.5"/></svg></span>
                 </button>
             </div>
             <div class="vn-control-slot">
@@ -4581,9 +4613,10 @@ function getAffinityIncrement(currentValue, direction) {
     return newValue;
 }
 
-function getAffinityKey(charId1, charId2) {
-    const ids = [charId1, charId2].sort();
-    return `${ids[0]}_${ids[1]}`;
+function getAffinityKey(fromCharId, toCharId) {
+    // Clave DIRECCIONAL: A→B es distinto de B→A.
+    // El primer argumento es siempre el personaje activo (quien siente).
+    return `${fromCharId}_${toCharId}`;
 }
 
 function getCurrentAffinity() {
@@ -4728,8 +4761,11 @@ function updateAffinityDisplay() {
         if (infoName) infoName.textContent = rpgChar.name;
         if (infoSubtitle && typeof ensureCharacterRpgProfile === 'function') {
             const profile = ensureCharacterRpgProfile(rpgChar);
-            const title = typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz';
-            infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${title}`;
+            const classObj = typeof RPG_CLASSES !== 'undefined' && profile.rpgClass
+                ? RPG_CLASSES.find(cl => cl.id === profile.rpgClass)
+                : null;
+            const classLabel = classObj ? classObj.name : (typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz');
+            infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${classLabel}`;
         }
         setAvatar(rpgChar);
         setPills(null);
@@ -4760,8 +4796,11 @@ function updateAffinityDisplay() {
             if (infoSubtitle) {
                 if (isRpgMode && typeof ensureCharacterRpgProfile === 'function') {
                     const profile = ensureCharacterRpgProfile(char);
-                    const title = typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz';
-                    infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${title}`;
+                    const classObj = typeof RPG_CLASSES !== 'undefined' && profile.rpgClass
+                        ? RPG_CLASSES.find(cl => cl.id === profile.rpgClass)
+                        : null;
+                    const classLabel = classObj ? classObj.name : (typeof getRpgTitleByLevel === 'function' ? getRpgTitleByLevel(profile.level) : 'Aprendiz');
+                    infoSubtitle.textContent = `⚔ Nivel ${profile.level} · ${classLabel}`;
                 } else {
                     // Modo clásico: mostrar ocupación como subtítulo si existe
                     infoSubtitle.textContent = char.job || '';
@@ -4807,12 +4846,17 @@ function updateAffinityDisplay() {
                     rankNameEl.style.textShadow = `0 0 10px ${rankInfo.color}`;
                 }
                 currentAffinity = affinityValue;
+                // Actualizar atmósfera visual según rango
+                if (typeof AffinityAtmosphere !== 'undefined') {
+                    AffinityAtmosphere.update(rankInfo.name);
+                }
                 return;
             }
         }
     }
 
-    // Por defecto
+    // Por defecto — limpiar atmósfera
+    if (typeof AffinityAtmosphere !== 'undefined') AffinityAtmosphere.clear();
     affinityDisplay?.classList.add('hidden');
     if (vnInfoAffection) vnInfoAffection.style.display = 'none';
     if (infoName)     infoName.textContent     = 'Sin personaje';
@@ -5535,6 +5579,656 @@ window.toggleIhpInventory = toggleIhpInventory;
 window.openIhpInventory   = openIhpInventory;
 window.closeIhpInventory  = closeIhpInventory;
 window._refreshIhpInventory = _refreshIhpInventory;
+
+</script>
+<script>
+/* js/ui/affinity-atmosphere.js */
+// ═══════════════════════════════════════════════════════════════════
+// AFFINITY ATMOSPHERE — Modo Clásico
+// Efectos visuales en el panel de personaje según rango de afinidad.
+// - Temperatura del fondo del panel (clase en body)
+// - Ornamento en el avatar (emoji animado)
+// - Partículas sutiles dentro del panel (canvas)
+// ═══════════════════════════════════════════════════════════════════
+
+const AffinityAtmosphere = (function () {
+
+    // Mapa de rango → datos del efecto
+    const RANK_CONFIG = {
+        'Desconocidos':       { bodyClass: null,                    ornament: null,  particles: null },
+        'Conocidos':          { bodyClass: 'affinity-conocidos',    ornament: null,  particles: null },
+        'Amigos':             { bodyClass: 'affinity-amigos',       ornament: { emoji: '✦', cls: 'ornament-amigos' },        particles: { color: '52,152,219',  count: 5,  speed: 0.3 } },
+        'Mejores Amigos':     { bodyClass: 'affinity-mejores-amigos', ornament: { emoji: '✦✦', cls: 'ornament-mejores-amigos' }, particles: { color: '39,174,96',  count: 8,  speed: 0.4 } },
+        'Interés Romántico':  { bodyClass: 'affinity-interes-romantico', ornament: { emoji: '🦋', cls: 'ornament-interes-romantico' }, particles: { color: '241,193,80', count: 10, speed: 0.5 } },
+        'Pareja':             { bodyClass: 'affinity-pareja',       ornament: { emoji: '🌸', cls: 'ornament-pareja' },       particles: { color: '231,76,80',   count: 14, speed: 0.6 } },
+    };
+
+    const BODY_CLASSES = Object.values(RANK_CONFIG)
+        .map(c => c.bodyClass).filter(Boolean);
+
+    let _currentRank   = null;
+    let _particleAnim  = null;  // requestAnimationFrame id
+    let _particles     = [];
+    let _canvas        = null;
+    let _ctx           = null;
+    let _panelEl       = null;
+
+    // ── Clase de body ────────────────────────────────────────────────
+    function _setBodyClass(rankName) {
+        BODY_CLASSES.forEach(c => document.body.classList.remove(c));
+        const cfg = RANK_CONFIG[rankName];
+        if (cfg?.bodyClass) document.body.classList.add(cfg.bodyClass);
+    }
+
+    // ── Ornamento del avatar ─────────────────────────────────────────
+    function _updateOrnament(rankName) {
+        // Eliminar ornamento anterior
+        document.querySelectorAll('.vn-affinity-ornament').forEach(el => el.remove());
+
+        const cfg = RANK_CONFIG[rankName];
+        if (!cfg?.ornament) return;
+
+        const avatar = document.getElementById('vnInfoAvatar');
+        if (!avatar) return;
+
+        const el = document.createElement('span');
+        el.className = `vn-affinity-ornament ${cfg.ornament.cls}`;
+        el.textContent = cfg.ornament.emoji;
+        el.setAttribute('aria-hidden', 'true');
+        avatar.appendChild(el);
+
+        // Pequeño delay para que la transición de opacidad se vea
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => el.classList.add('visible'));
+        });
+    }
+
+    // ── Partículas (canvas) ──────────────────────────────────────────
+    function _stopParticles() {
+        if (_particleAnim) {
+            cancelAnimationFrame(_particleAnim);
+            _particleAnim = null;
+        }
+        if (_canvas) {
+            _canvas.remove();
+            _canvas = null;
+            _ctx = null;
+        }
+        _particles = [];
+    }
+
+    function _startParticles(rankName) {
+        _stopParticles();
+
+        const cfg = RANK_CONFIG[rankName];
+        if (!cfg?.particles) return;
+
+        _panelEl = document.getElementById('vnInfoCard');
+        if (!_panelEl) return;
+
+        // Crear contenedor + canvas si no existen
+        let container = _panelEl.querySelector('.vn-affinity-particles');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'vn-affinity-particles';
+            _panelEl.insertBefore(container, _panelEl.firstChild);
+        }
+
+        _canvas = document.createElement('canvas');
+        container.appendChild(_canvas);
+        _ctx = _canvas.getContext('2d');
+
+        const { color, count, speed } = cfg.particles;
+
+        // Inicializar partículas
+        function _initParticles() {
+            const w = _panelEl.offsetWidth  || 160;
+            const h = _panelEl.offsetHeight || 80;
+            _canvas.width  = w;
+            _canvas.height = h;
+            _particles = [];
+            for (let i = 0; i < count; i++) {
+                _particles.push({
+                    x:     Math.random() * w,
+                    y:     Math.random() * h,
+                    r:     1 + Math.random() * 1.5,
+                    alpha: 0.1 + Math.random() * 0.35,
+                    vx:    (Math.random() - 0.5) * speed * 0.5,
+                    vy:    -(speed * 0.4 + Math.random() * speed * 0.4),
+                    life:  Math.random(),        // fase inicial aleatoria
+                    lifeSpeed: 0.003 + Math.random() * 0.004,
+                });
+            }
+        }
+
+        _initParticles();
+
+        // Redimensionar si el panel cambia
+        const _ro = new ResizeObserver(() => _initParticles());
+        _ro.observe(_panelEl);
+
+        function _tick() {
+            if (!_ctx || !_canvas) return;
+            const w = _canvas.width;
+            const h = _canvas.height;
+            _ctx.clearRect(0, 0, w, h);
+
+            _particles.forEach(p => {
+                p.life += p.lifeSpeed;
+                if (p.life > 1) {
+                    // Reiniciar partícula desde abajo
+                    p.life = 0;
+                    p.x  = Math.random() * w;
+                    p.y  = h + p.r;
+                    p.vx = (Math.random() - 0.5) * speed * 0.5;
+                    p.vy = -(speed * 0.4 + Math.random() * speed * 0.4);
+                    p.r  = 1 + Math.random() * 1.5;
+                }
+
+                const fade = Math.sin(p.life * Math.PI); // 0→1→0
+                p.x += p.vx;
+                p.y += p.vy;
+
+                _ctx.beginPath();
+                _ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                _ctx.fillStyle = `rgba(${color}, ${p.alpha * fade})`;
+                _ctx.fill();
+            });
+
+            _particleAnim = requestAnimationFrame(_tick);
+        }
+
+        _particleAnim = requestAnimationFrame(_tick);
+    }
+
+    // ── API pública ──────────────────────────────────────────────────
+
+    // Llamar cada vez que cambia el rango de afinidad o el personaje activo
+    function update(rankName) {
+        // Solo en modo clásico
+        if (!document.body.classList.contains('mode-classic')) {
+            clear();
+            return;
+        }
+
+        if (rankName === _currentRank) return; // sin cambios
+        _currentRank = rankName;
+
+        _setBodyClass(rankName);
+        _updateOrnament(rankName);
+        _startParticles(rankName);
+    }
+
+    // Limpiar todos los efectos (al salir de una historia, cambiar de modo, etc.)
+    function clear() {
+        _currentRank = null;
+        BODY_CLASSES.forEach(c => document.body.classList.remove(c));
+        document.querySelectorAll('.vn-affinity-ornament').forEach(el => el.remove());
+        _stopParticles();
+        // Limpiar contenedor de partículas
+        document.querySelectorAll('.vn-affinity-particles').forEach(el => el.remove());
+    }
+
+    return { update, clear };
+
+})();
+
+window.AffinityAtmosphere = AffinityAtmosphere;
+
+</script>
+<script>
+/* js/ui/bonds-ui.js */
+// ═══════════════════════════════════════════════════════════════════
+// BONDS UI — Sección "Vínculos"
+// Renderiza el tablón de relaciones de cada personaje del usuario.
+// ═══════════════════════════════════════════════════════════════════
+
+const BondsUI = (function () {
+
+    let _bonds       = { outgoing: [], incoming: [] };
+    let _editingKey  = null; // 'fromId_toId' en edición
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    function _char(id) {
+        return (appData?.characters || []).find(c => String(c.id) === String(id)) || null;
+    }
+
+    function _rankColor(rankName) {
+        if (!window.affinityRanks) return '#ffffff';
+        return window.affinityRanks.find(r => r.name === rankName)?.color || '#ffffff';
+    }
+
+    function _isMyChar(charId) {
+        const c = _char(charId);
+        return c && c.userIndex === currentUserIndex;
+    }
+
+    // Indicador de presencia — busca el userId del dueño del personaje
+    function _getPresenceDot(charId) {
+        if (typeof SupabasePresence === 'undefined') return '';
+        const c = _char(charId);
+        if (!c) return '';
+        const ownerProfile = Array.isArray(appData.cloudProfiles)
+            ? appData.cloudProfiles.find(p => p.userIndex === c.userIndex || p.index === c.userIndex)
+            : null;
+        const ownerUserId = ownerProfile?.owner_user_id || ownerProfile?.id || null;
+        if (!ownerUserId) return '';
+        const online = SupabasePresence.isOnline(ownerUserId);
+        const label  = online ? 'En línea' : 'Desconectado';
+        return `<span class="presence-dot ${online ? '' : 'offline'}" title="${label}"></span>`;
+    }
+
+    // Cargar historial de afinidad desde Supabase
+    async function _loadAffinityHistory(fromCharId, toCharId) {
+        if (!window.supabaseClient) return [];
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('affinity_history')
+                .select('old_value, new_value, old_rank, new_rank, changed_at')
+                .eq('from_char_id', String(fromCharId))
+                .eq('to_char_id',   String(toCharId))
+                .order('changed_at', { ascending: false })
+                .limit(10);
+            if (error || !data) return [];
+            return data;
+        } catch { return []; }
+    }
+
+    // ── Render principal ─────────────────────────────────────────────
+    async function render() {
+        const container = document.getElementById('bondsContainer');
+        if (!container) return;
+
+        container.innerHTML = '<div class="bonds-loading">Cargando vínculos…</div>';
+
+        const myChars = (appData?.characters || [])
+            .filter(c => c.userIndex === currentUserIndex);
+
+        if (myChars.length === 0) {
+            container.innerHTML = `
+                <div class="bonds-empty">
+                    <div class="bonds-empty-icon">🔗</div>
+                    <p>Aún no tienes personajes.<br>
+                    <span>Crea tu primer personaje para ver sus vínculos.</span></p>
+                </div>`;
+            return;
+        }
+
+        // Cargar desde Supabase
+        if (typeof SupabaseBonds !== 'undefined') {
+            _bonds = await SupabaseBonds.loadBondsForUser();
+        }
+
+        // Renderizar una tarjeta por cada personaje propio
+        container.innerHTML = myChars.map(char => _renderCharCard(char)).join('');
+
+        // Bind eventos de edición de notas
+        container.querySelectorAll('.bond-note-btn').forEach(btn => {
+            btn.addEventListener('click', () => _startEditNote(
+                btn.dataset.from, btn.dataset.to
+            ));
+        });
+        container.querySelectorAll('.bond-note-save').forEach(btn => {
+            btn.addEventListener('click', () => _saveNote(
+                btn.dataset.from, btn.dataset.to
+            ));
+        });
+        container.querySelectorAll('.bond-note-cancel').forEach(btn => {
+            btn.addEventListener('click', () => _cancelEdit(
+                btn.dataset.from, btn.dataset.to
+            ));
+        });
+    }
+
+    function _renderCharCard(char) {
+        // Vínculos salientes de este personaje
+        const outgoing = _bonds.outgoing.filter(b =>
+            String(b.from_char_id) === String(char.id)
+        );
+        // Vínculos entrantes hacia este personaje (perspectiva recíproca)
+        const incoming = _bonds.incoming.filter(b =>
+            String(b.to_char_id) === String(char.id)
+        );
+
+        // Unir todos los "otros" personajes que aparecen en algún vínculo
+        const otherIds = new Set([
+            ...outgoing.map(b => b.to_char_id),
+            ...incoming.map(b => b.from_char_id),
+        ]);
+
+        const bondRows = otherIds.size > 0
+            ? [...otherIds].map(otherId => _renderBondRow(char, otherId, outgoing, incoming)).join('')
+            : `<div class="bonds-no-relations">Sin vínculos todavía.<br><span>Participa en una historia para que aparezcan aquí.</span></div>`;
+
+        const avatarHtml = char.avatar
+            ? `<img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="bonds-char-avatar-img">`
+            : `<div class="bonds-char-avatar-initial">${escapeHtml((char.name || '?')[0])}</div>`;
+
+        return `
+        <div class="bonds-char-card" style="--char-color: ${char.color || '#8b7355'}">
+            <div class="bonds-char-header">
+                <div class="bonds-char-avatar">${avatarHtml}</div>
+                <div class="bonds-char-info">
+                    <div class="bonds-char-name">${escapeHtml(char.name)}</div>
+                    ${char.race ? `<div class="bonds-char-race">${escapeHtml(char.race)}</div>` : ''}
+                </div>
+                <div class="bonds-char-count">${otherIds.size} vínculo${otherIds.size !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="bonds-list">${bondRows}</div>
+        </div>`;
+    }
+
+    function _renderBondRow(myChar, otherId, outgoing, incoming) {
+        const otherChar   = _char(otherId);
+        const otherName   = otherChar ? escapeHtml(otherChar.name) : `Personaje desconocido`;
+        const otherAvatar = otherChar?.avatar
+            ? `<img src="${escapeHtml(otherChar.avatar)}" alt="${otherName}" class="bond-other-avatar-img">`
+            : `<div class="bond-other-avatar-initial">${escapeHtml((otherChar?.name || '?')[0])}</div>`;
+
+        // Perspectiva saliente: lo que MI personaje siente hacia el otro
+        const out = outgoing.find(b => String(b.to_char_id) === String(otherId));
+        // Perspectiva entrante: lo que el otro siente hacia MI personaje
+        const inc = incoming.find(b => String(b.from_char_id) === String(otherId));
+
+        const myFromId = String(myChar.id);
+        const myToId   = String(otherId);
+        const editKey  = `${myFromId}_${myToId}`;
+        const isEditing = _editingKey === editKey;
+
+        const outRank  = out?.rank_name  || 'Desconocidos';
+        const incRank  = inc?.rank_name  || 'Desconocidos';
+        const outColor = _rankColor(outRank);
+        const incColor = _rankColor(incRank);
+        const outAff   = out?.affinity ?? '—';
+        const incAff   = inc?.affinity ?? '—';
+        const myNote   = out?.note || '';
+
+        return `
+        <div class="bond-row" id="bond-row-${editKey}">
+            <div class="bond-other-avatar">${otherAvatar}</div>
+            <div class="bond-content">
+                <div class="bond-other-name">
+                    ${otherName}
+                    ${_getPresenceDot(otherId)}
+                </div>
+
+                <!-- Afinidades direccionales -->
+                <div class="bond-affinities">
+                    <div class="bond-aff-pill" style="--rank-color: ${outColor}" title="Lo que ${escapeHtml(myChar.name)} siente hacia ${otherName}">
+                        <span class="bond-aff-arrow">→</span>
+                        <span class="bond-aff-rank">${escapeHtml(outRank)}</span>
+                        <span class="bond-aff-val">${outAff}</span>
+                    </div>
+                    <div class="bond-aff-pill bond-aff-incoming" style="--rank-color: ${incColor}" title="Lo que ${otherName} siente hacia ${escapeHtml(myChar.name)}">
+                        <span class="bond-aff-arrow">←</span>
+                        <span class="bond-aff-rank">${escapeHtml(incRank)}</span>
+                        <span class="bond-aff-val">${incAff}</span>
+                    </div>
+                </div>
+
+                <!-- Nota del jugador -->
+                ${isEditing ? `
+                <div class="bond-note-editor">
+                    <textarea class="bond-note-textarea" id="bond-note-input-${editKey}" maxlength="300" placeholder="Cómo ve ${escapeHtml(myChar.name)} a ${otherName}…">${escapeHtml(myNote)}</textarea>
+                    <div class="bond-note-actions">
+                        <button class="bond-note-save btn-sm" data-from="${myFromId}" data-to="${myToId}">Guardar</button>
+                        <button class="bond-note-cancel btn-sm btn-ghost" data-from="${myFromId}" data-to="${myToId}">Cancelar</button>
+                    </div>
+                </div>` : `
+                <div class="bond-note-display" id="bond-note-display-${editKey}">
+                    ${myNote
+                        ? `<p class="bond-note-text">"${escapeHtml(myNote)}"</p>`
+                        : `<p class="bond-note-empty">Sin nota todavía.</p>`
+                    }
+                    <button class="bond-note-btn btn-sm btn-ghost" data-from="${myFromId}" data-to="${myToId}">
+                        ✎ ${myNote ? 'Editar nota' : 'Añadir nota'}
+                    </button>
+                    ${out ? `<button class="bond-history-toggle" onclick="BondsUI.toggleHistory('${myFromId}','${myToId}',this)">▸ Ver historial</button>
+                    <div class="bond-history-list" id="bond-hist-${editKey}" style="display:none;"></div>` : ''}
+                </div>`}
+            </div>
+        </div>`;
+    }
+
+    // ── Edición de notas ─────────────────────────────────────────────
+    function _startEditNote(fromId, toId) {
+        _editingKey = `${fromId}_${toId}`;
+        render();
+    }
+
+    function _cancelEdit() {
+        _editingKey = null;
+        render();
+    }
+
+    async function _saveNote(fromId, toId) {
+        const key   = `${fromId}_${toId}`;
+        const input = document.getElementById(`bond-note-input-${key}`);
+        if (!input) return;
+
+        const note = input.value.trim();
+        const btn  = document.querySelector(`.bond-note-save[data-from="${fromId}"][data-to="${toId}"]`);
+        if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+        const result = typeof SupabaseBonds !== 'undefined'
+            ? await SupabaseBonds.updateNote(fromId, toId, note)
+            : { ok: false };
+
+        if (result.ok) {
+            // Actualizar cache local
+            const bond = _bonds.outgoing.find(b =>
+                String(b.from_char_id) === fromId && String(b.to_char_id) === toId
+            );
+            if (bond) bond.note = note;
+            _editingKey = null;
+            render();
+        } else {
+            if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+            if (typeof showAutosave === 'function') showAutosave('Error al guardar la nota', 'error');
+        }
+    }
+
+    // ── Historial de afinidad ────────────────────────────────────────
+    async function toggleHistory(fromId, toId, btn) {
+        const key = `${fromId}_${toId}`;
+        const container = document.getElementById(`bond-hist-${key}`);
+        if (!container) return;
+
+        const isOpen = container.style.display !== 'none';
+        if (isOpen) {
+            container.style.display = 'none';
+            btn.textContent = '▸ Ver historial';
+            return;
+        }
+
+        btn.textContent = '▾ Cargando…';
+        const history = await _loadAffinityHistory(fromId, toId);
+
+        if (!history.length) {
+            container.innerHTML = '<div class="bond-history-entry" style="font-style:italic;opacity:0.5">Sin cambios registrados</div>';
+        } else {
+            container.innerHTML = history.map(h => {
+                const color = _rankColor(h.new_rank || '');
+                const date  = h.changed_at
+                    ? new Date(h.changed_at).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'2-digit' })
+                    : '';
+                const arrow = h.new_value > h.old_value ? '↑' : '↓';
+                return `<div class="bond-history-entry">
+                    <span class="bond-history-arrow">${arrow}</span>
+                    <span class="bond-history-rank" style="--rank-color:${color}">${escapeHtml(h.new_rank || '')}</span>
+                    <span style="opacity:0.4;font-size:0.67rem">${h.old_value}→${h.new_value}</span>
+                    <span class="bond-history-date">${date}</span>
+                </div>`;
+            }).join('');
+        }
+
+        container.style.display = 'flex';
+        btn.textContent = '▾ Historial';
+    }
+
+    // ── Realtime: refrescar si la sección está abierta ───────────────
+    window.addEventListener('etheria:bonds-changed', function () {
+        const bondsSection = document.getElementById('bondsSection');
+        if (bondsSection?.classList.contains('active')) {
+            render();
+        }
+    });
+
+    // ── API ──────────────────────────────────────────────────────────
+    return { render, toggleHistory };
+
+})();
+
+window.BondsUI = BondsUI;
+
+</script>
+<script>
+/* js/ui/message-search.js */
+// ═══════════════════════════════════════════════════════════════════
+// MESSAGE SEARCH — Búsqueda de texto en mensajes de una historia
+// Usa el índice GIN full-text de Supabase (search_vector en messages)
+// y también búsqueda local para modo offline.
+// ═══════════════════════════════════════════════════════════════════
+
+const MessageSearch = (function () {
+
+    let _isOpen    = false;
+    let _results   = [];
+    let _debounce  = null;
+
+    function _client() { return window.supabaseClient || null; }
+
+    // ── Abrir/cerrar panel ───────────────────────────────────────────
+    function toggle() {
+        _isOpen ? close() : open();
+    }
+
+    function open() {
+        _isOpen = true;
+        const panel = document.getElementById('msgSearchPanel');
+        if (!panel) return;
+        panel.classList.add('active');
+        const input = document.getElementById('msgSearchInput');
+        if (input) { input.value = ''; input.focus(); }
+        _results = [];
+        _renderResults([]);
+    }
+
+    function close() {
+        _isOpen = false;
+        const panel = document.getElementById('msgSearchPanel');
+        if (panel) panel.classList.remove('active');
+    }
+
+    // ── Búsqueda ─────────────────────────────────────────────────────
+    function onInput(query) {
+        clearTimeout(_debounce);
+        if (!query.trim()) { _renderResults([]); return; }
+        _debounce = setTimeout(() => search(query), 350);
+    }
+
+    async function search(query) {
+        const q = query.trim();
+        if (!q || !currentTopicId) return;
+
+        // 1. Búsqueda en Supabase (full-text)
+        let supabaseResults = [];
+        if (_client()) {
+            try {
+                const topic = appData?.topics?.find(t => String(t.id) === String(currentTopicId));
+                const storyId = topic?.storyId;
+                if (storyId) {
+                    const { data, error } = await _client()
+                        .from('messages')
+                        .select('id, author, content, created_at')
+                        .eq('story_id', storyId)
+                        .eq('is_deleted', false)
+                        .textSearch('search_vector', q, { config: 'spanish' })
+                        .order('created_at', { ascending: false })
+                        .limit(30);
+                    if (!error && data) supabaseResults = data;
+                }
+            } catch {}
+        }
+
+        // 2. Búsqueda local como fallback o complemento
+        const msgs = getTopicMessages ? getTopicMessages(currentTopicId) : [];
+        const lower = q.toLowerCase();
+        const localResults = msgs
+            .filter((m, idx) => {
+                if (m.isNarrator && !m.text) return false;
+                const text = (m.text || '').toLowerCase();
+                const author = (m.author || '').toLowerCase();
+                return text.includes(lower) || author.includes(lower);
+            })
+            .map((m, idx) => ({ ...m, _localIndex: msgs.indexOf(m) }))
+            .slice(0, 30);
+
+        // Combinar — preferir locales (tienen índice para navegar)
+        _results = localResults.length > 0 ? localResults : supabaseResults.map(r => ({
+            id: r.id, author: r.author, text: r.content,
+        }));
+
+        _renderResults(_results, q);
+    }
+
+    // ── Render de resultados ─────────────────────────────────────────
+    function _renderResults(results, query = '') {
+        const container = document.getElementById('msgSearchResults');
+        if (!container) return;
+
+        if (results.length === 0) {
+            container.innerHTML = query
+                ? '<div class="msg-search-empty">Sin resultados</div>'
+                : '<div class="msg-search-empty">Escribe para buscar…</div>';
+            return;
+        }
+
+        const lower = query.toLowerCase();
+        container.innerHTML = results.map((r, i) => {
+            const text = r.text || r.content || '';
+            const author = r.author || 'Narrador';
+            // Highlight
+            const highlighted = escapeHtml(text.slice(0, 120))
+                .replace(new RegExp(escapeHtml(lower), 'gi'),
+                    m => `<mark class="msg-search-mark">${m}</mark>`);
+            return `
+            <div class="msg-search-result" onclick="MessageSearch.jumpTo(${i})">
+                <div class="msg-search-author">${escapeHtml(author)}</div>
+                <div class="msg-search-text">${highlighted}${text.length > 120 ? '…' : ''}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // ── Navegar al mensaje ───────────────────────────────────────────
+    function jumpTo(resultIndex) {
+        const r = _results[resultIndex];
+        if (!r) return;
+
+        // Si tiene índice local, navegar directamente
+        if (typeof r._localIndex === 'number') {
+            if (typeof currentMessageIndex !== 'undefined') {
+                currentMessageIndex = r._localIndex;
+                if (typeof showCurrentMessage === 'function') showCurrentMessage('init');
+            }
+        }
+        close();
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────
+    (function _init() {
+        // Cerrar con Escape
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && _isOpen) close();
+        });
+    })();
+
+    return { toggle, open, close, onInput, jumpTo };
+
+})();
+
+window.MessageSearch = MessageSearch;
 
 </script>
 <script>
@@ -6323,6 +7017,8 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     currentFilter = 'none';
     document.body.classList.remove('mode-rpg');
     document.body.classList.remove('mode-classic');
+    // Limpiar atmósfera de afinidad al salir de una historia
+    if (typeof AffinityAtmosphere !== 'undefined') AffinityAtmosphere.clear();
     // Cerrar mini-panel del oráculo si está abierto
     const oracleMini = document.getElementById('vnOracleMiniPanel');
     if (oracleMini) oracleMini.style.display = 'none';
@@ -6369,6 +7065,7 @@ function getCurrentVisibleSection() {
     if (document.getElementById('topicsSection')?.classList.contains('active')) return 'topics';
     if (document.getElementById('gallerySection')?.classList.contains('active')) return 'gallery';
     if (document.getElementById('optionsSection')?.classList.contains('active')) return 'options';
+    if (document.getElementById('bondsSection')?.classList.contains('active'))  return 'bonds';
 
     return null;
 }
@@ -6407,6 +7104,11 @@ function showSection(section) {
             if (optionsSection) optionsSection.classList.add('active');
             if (typeof syncOptionsSection === 'function') syncOptionsSection();
             window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'options' } }));
+        } else if(section === 'bonds') {
+            const bondsSection = document.getElementById('bondsSection');
+            if (bondsSection) bondsSection.classList.add('active');
+            if (typeof BondsUI !== 'undefined') BondsUI.render();
+            window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'bonds' } }));
         }
     }, 150);
 }
@@ -6655,15 +7357,27 @@ function renderGallery() {
             : `<div class="gallery-empty"><p class="gallery-empty-text" style="font-size:1rem;">Sin resultados para esa búsqueda</p></div>`;
         return;
     }
-
     grid.innerHTML = chars.map((c, i) => {
         const ownerName = userNames[c.userIndex] || 'Desconocido';
-        const isOwn = c.userIndex === currentUserIndex;
+        const isOwn     = c.userIndex === currentUserIndex;
         const charColor = c.color || '#8b7355';
         const genderLabel = c.gender === 'Femenino' ? '♀' : c.gender === 'Masculino' ? '♂' : '◇';
 
+        // Indicador de presencia para personajes de otros usuarios
+        const ownerProfile = Array.isArray(appData.cloudProfiles)
+            ? appData.cloudProfiles.find(p => p.userIndex === c.userIndex || p.index === c.userIndex)
+            : null;
+        const ownerUserId = ownerProfile?.owner_user_id || ownerProfile?.id || null;
+        const isOnline = !isOwn && ownerUserId &&
+            typeof SupabasePresence !== 'undefined' &&
+            typeof SupabasePresence.isOnline === 'function' &&
+            SupabasePresence.isOnline(ownerUserId);
+        const presenceDot = !isOwn
+            ? `<span class="presence-dot ${isOnline ? '' : 'offline'}" title="${isOnline ? escapeHtml(ownerName) + ' · En línea' : escapeHtml(ownerName) + ' · Desconectado'}"></span>`
+            : '';
+
         return `
-        <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${charColor}; animation-delay:${i * 0.03}s">
+        <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${charColor}; animation-delay:${i * 0.03}s; position:relative;">
             <div class="char-card-avatar">
                 ${c.avatar
                     ? `<img data-src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" data-fallback="${escapeHtml((c.name || '?')[0])}" class="char-card-img">`
@@ -6678,14 +7392,15 @@ function renderGallery() {
                     <div class="char-card-meta">
                         <span class="char-card-gender">${genderLabel}</span>
                         ${c.race ? `<span class="char-card-race">${escapeHtml(c.race)}</span>` : ''}
-                        ${c.age ? `<span class="char-card-age">${c.age} años</span>` : ''}
+                        ${c.age  ? `<span class="char-card-age">${c.age} años</span>` : ''}
                     </div>
                 </div>
                 <div class="char-card-hover-extra">
-                    ${c.job ? `<div class="char-card-job">${escapeHtml(c.job)}</div>` : ''}
-                    ${c.basic ? `<div class="char-card-desc">${escapeHtml(c.basic.slice(0, 90))}${c.basic.length > 90 ? '…' : ''}</div>` : ''}
+                    ${c.job   ? `<div class="char-card-job">${escapeHtml(c.job)}</div>` : ''}
+                    ${c.basic ? `<div class="char-card-desc">${escapeHtml(c.basic.slice(0,90))}${c.basic.length > 90 ? '…' : ''}</div>` : ''}
                 </div>
             </div>
+            ${presenceDot}
         </div>`;
     }).join('');
 
@@ -6703,6 +7418,15 @@ function renderGallery() {
 
 
 // ============================================
+
+// Refrescar galería cuando cambia el estado de presencia
+// para que los puntos online/offline se actualicen en tiempo real
+window.addEventListener('etheria:presence-changed', function () {
+    const gallerySection = document.getElementById('gallerySection');
+    if (gallerySection?.classList.contains('active')) {
+        renderGallery();
+    }
+});
 
 </script>
 <script>
@@ -7299,7 +8023,8 @@ function saveCharacter() {
     // Esto conecta el personaje local con la tabla characters en la nube,
     // eliminando la dependencia de que el personaje solo exista en el blob.
     if (typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.upsertCharacter === 'function') {
-        const activeProfileId = SupabaseCharacters.activeProfileId;
+        const activeProfileId = SupabaseCharacters.activeProfileId
+            || (typeof SupabaseProfiles !== 'undefined' ? SupabaseProfiles.activeProfileId : null);
         if (activeProfileId) {
             SupabaseCharacters.upsertCharacter(charObj, activeProfileId).catch(() => {});
         }
@@ -7967,33 +8692,16 @@ const SupabaseSync = (function () {
      */
     function _getProfileDataForSync() {
         const profileIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
-        // topics ya no está en el blob — los topicIds se usan solo para filtrar affinities localmente
-        const topics = Array.isArray(appData?.topics) ? appData.topics : [];
-        const topicIds = new Set(topics.map(t => String(t.id)));
-        // (topics no se sube al blob, pero se necesita topicIds para filtrar affinities)
 
-        // messages se excluye del blob — ya vive en la tabla messages de Supabase.
-        // Guardarlo aquí causaría duplicación y haría crecer el blob O(n_mensajes).
-        const affinities = {};
-        Object.keys(appData?.affinities || {}).forEach(topicId => {
-            if (topicIds.has(String(topicId))) affinities[topicId] = appData.affinities[topicId];
-        });
-
-        // characters se excluye del blob — ya vive en la tabla characters de Supabase.
-        // Se sincronizan vía SupabaseCharacters.upsertCharacter al guardar cada personaje.
-        const favorites = appData?.favorites || {};
-        const journals = appData?.journals || {};
-        // reactions ya no está en el blob — se carga desde message_reactions en Supabase
+        // affinities, favorites y journals ya viven en sus propias tablas de Supabase.
+        // Se excluyen del blob para no duplicar datos ni crecer innecesariamente.
 
         // Incluir inventario y estado RPG (flags, nivel, HP) del motor de escenas.
-        // Se guarda por profileIndex para que cada perfil tenga su estado independiente.
-        // Sin esto, el inventario y los flags se pierden al cambiar de dispositivo.
         const rpgStateSnapshot = (() => {
             try {
                 if (typeof RPGState !== 'undefined' && typeof RPGState.getSnapshot === 'function') {
                     return RPGState.getSnapshot();
                 }
-                // Fallback: leer directamente de localStorage si RPGState no está activo
                 const raw = localStorage.getItem(`etheria_rpg_state_${profileIndex}`);
                 return raw ? JSON.parse(raw) : null;
             } catch { return null; }
@@ -8011,22 +8719,16 @@ const SupabaseSync = (function () {
             })()
         };
 
-        // topics se excluye del blob — ahora vive en la tabla stories de Supabase.
-        // Se sincronizan vía SupabaseStories.upsertStory al crear/modificar cada historia.
         return {
             profileIndex,
-            userNames: typeof userNames !== 'undefined' ? userNames : ['Jugador 1', 'Jugador 2', 'Jugador 3'],
-            affinities,
-            favorites,
-            journals,
-            // reactions se excluye del blob — ahora vive en la tabla message_reactions de Supabase.
+            userNames:        typeof userNames !== 'undefined' ? userNames : ['Jugador 1', 'Jugador 2', 'Jugador 3'],
             rpgStateSnapshot,
             profileMeta,
             lastMessageIndex: typeof currentMessageIndex !== 'undefined' ? currentMessageIndex : 0,
             settings: {
                 textSpeed: typeof textSpeed !== 'undefined' ? textSpeed : 25,
-                theme: document.documentElement.getAttribute('data-theme') || 'light',
-                fontSize: localStorage.getItem('etheria_font_size') || '19'
+                theme:     document.documentElement.getAttribute('data-theme') || 'light',
+                fontSize:  localStorage.getItem('etheria_font_size') || '19'
             }
         };
     }
@@ -8050,13 +8752,9 @@ const SupabaseSync = (function () {
         // topics NO se restaura desde el blob — se carga desde la tabla stories de Supabase.
         // characters NO se restaura desde el blob — se carga desde la tabla characters de Supabase.
         // messages NO se restaura desde el blob — se carga desde la tabla messages de Supabase.
-        const remoteAffinities = (syncedData.affinities && typeof syncedData.affinities === 'object') ? syncedData.affinities : {};
-
-        // appData.topics se mantiene en memoria y se actualiza vía SupabaseStories.loadStories
-        appData.affinities = remoteAffinities;
-        appData.favorites = (syncedData.favorites && typeof syncedData.favorites === 'object') ? syncedData.favorites : {};
-        appData.journals = (syncedData.journals && typeof syncedData.journals === 'object') ? syncedData.journals : {};
-        // reactions NO se restaura desde el blob — se carga desde message_reactions en Supabase
+        // affinities NO se restaura desde el blob — se carga desde la tabla affinities de Supabase.
+        // favorites NO se restaura desde el blob — se carga desde la tabla favorites de Supabase.
+        // journals NO se restaura desde el blob — se carga desde la tabla journals de Supabase.
 
         if (syncedData.profileMeta && typeof syncedData.profileMeta === 'object') {
             try {
@@ -11654,6 +12352,20 @@ function _doEnterTopic(id, t, topicMode) {
 
     // Notificar al módulo de presencia/inbox que se ha entrado en un topic
     window.dispatchEvent(new CustomEvent('etheria:topic-enter', { detail: { topicId: id } }));
+
+    // ── Vínculos: crear automáticamente entre todos los participantes ─────────
+    // Solo en modo clásico (en RPG no hay sistema de vínculos).
+    if (topicMode !== 'rpg' && typeof SupabaseBonds !== 'undefined') {
+        const _tBonds = appData.topics.find(tp => String(tp.id) === String(id));
+        if (_tBonds) {
+            const _locks = { ...(_tBonds.characterLocks || {}), ...(_tBonds.rpgCharacterLocks || {}) };
+            const _participantCharIds = Object.values(_locks).filter(Boolean).map(String);
+            if (_participantCharIds.length >= 2) {
+                const _storyId = _tBonds.storyId || null;
+                SupabaseBonds.ensureStoryBonds(_storyId || id, _participantCharIds).catch(() => {});
+            }
+        }
+    }
 }
 
 // Memory leak fix: store handler reference so it can be removed before re-adding
@@ -13168,6 +13880,24 @@ function persistTopicLockedCharacter(topic, charId) {
 
     hasUnsavedChanges = true;
     save({ silent: true });
+
+    // Sincronizar story_participants en Supabase
+    // El trigger de la BD lo hace automáticamente al actualizar character_locks,
+    // pero también lo registramos directamente como fallback.
+    if (topic.storyId && typeof window.supabaseClient !== 'undefined' && window.supabaseClient) {
+        window.supabaseClient.auth.getUser().then(({ data }) => {
+            if (!data?.user) return;
+            window.supabaseClient
+                .from('story_participants')
+                .upsert({
+                    story_id:     topic.storyId,
+                    character_id: String(charId),
+                }, { onConflict: 'story_id,character_id', ignoreDuplicates: true })
+                .then(({ error }) => {
+                    if (error) window.EtheriaLogger?.warn('vn', 'story_participants upsert:', error.message);
+                });
+        }).catch(() => {});
+    }
 }
 
 function getCharacterById(charId) {
@@ -15105,9 +15835,15 @@ function toggleFavoriteCurrentMessage() {
     if (favs.has(msgId)) {
         favs.delete(msgId);
         showAutosave('Favorito eliminado', 'info');
+        if (typeof SupabaseFavorites !== 'undefined') {
+            SupabaseFavorites.remove('message', msgId).catch(() => {});
+        }
     } else {
         favs.add(msgId);
         showAutosave('⭐ Marcado como favorito', 'saved');
+        if (typeof SupabaseFavorites !== 'undefined') {
+            SupabaseFavorites.add('message', msgId).catch(() => {});
+        }
     }
 
     saveFavoritesForTopic(currentTopicId, favs);
@@ -15229,6 +15965,11 @@ function saveJournal() {
     appData.journals[currentTopicId] = textarea.value;
 
     save({ silent: true });
+
+    // Sincronizar con Supabase
+    if (typeof SupabaseJournals !== 'undefined') {
+        SupabaseJournals.upsert(currentTopicId, textarea.value).catch(() => {});
+    }
 
     const indicator = document.getElementById('journalSavedIndicator');
     if (indicator) {
@@ -18944,6 +19685,29 @@ const SupabaseCharacters = (function () {
         return { ok: failed === 0, synced };
     }
 
+    // ── Listener: sincronizar _activeProfileId cuando cambia el perfil activo ──
+    // SupabaseProfiles emite este evento al activar un perfil (login, cambio de usuario…).
+    // Sin este listener, _activeProfileId quedaba null si loadCharacters no había sido
+    // llamado todavía, haciendo que upsertCharacter se cancelara silenciosamente.
+    (function _initProfileListener() {
+        function _onActiveProfileChanged(e) {
+            const profileId = e.detail?.profileId;
+            if (!profileId) return;
+            if (_activeProfileId !== profileId) {
+                _activeProfileId = profileId;
+                // Cargar personajes de la nube para este perfil
+                loadCharacters(profileId).catch(() => {});
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.addEventListener('etheria:active-profile-changed', _onActiveProfileChanged);
+            });
+        } else {
+            window.addEventListener('etheria:active-profile-changed', _onActiveProfileChanged);
+        }
+    })();
+
     return {
         loadCharacters,
         createCharacter,
@@ -18961,6 +19725,856 @@ const SupabaseCharacters = (function () {
 })();
 
 window.SupabaseCharacters = SupabaseCharacters;
+
+</script>
+<script>
+/* js/utils/supabaseBonds.js */
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE BONDS — Vínculos direccionales entre personajes
+// Gestiona la tabla character_bonds:
+//   - Creación automática al participar en una historia
+//   - Sincronización de afinidad cuando cambia
+//   - Edición de notas por el dueño del personaje
+// ═══════════════════════════════════════════════════════════════════
+
+const SupabaseBonds = (function () {
+
+    function _client() { return window.supabaseClient || null; }
+    function _isAvailable() { return !!_client() && !!_currentUserId(); }
+    function _currentUserId() {
+        return window.supabaseClient?.auth?.getUser
+            ? window.__bondsCurrentUserId || null
+            : null;
+    }
+
+    // Cachear el userId para no llamar a getUser en cada operación
+    let _userId = null;
+    async function _ensureUserId() {
+        if (_userId) return _userId;
+        try {
+            const { data } = await _client().auth.getUser();
+            _userId = data?.user?.id || null;
+        } catch { _userId = null; }
+        return _userId;
+    }
+
+    // ── Rango desde valor numérico ───────────────────────────────────
+    function _rankName(affinity) {
+        if (!window.affinityRanks) return 'Desconocidos';
+        const rank = window.affinityRanks.find(r =>
+            affinity >= r.min && affinity <= r.max
+        );
+        return rank ? rank.name : 'Desconocidos';
+    }
+
+    // ── Upsert de un vínculo individual ─────────────────────────────
+    // Crea o actualiza el vínculo from_char → to_char para el usuario actual.
+    async function upsertBond({ fromCharId, toCharId, storyId = null, affinity = 0, note = null }) {
+        const uid = await _ensureUserId();
+        if (!uid || !fromCharId || !toCharId || fromCharId === toCharId) return { ok: false };
+
+        const row = {
+            from_char_id:  String(fromCharId),
+            to_char_id:    String(toCharId),
+            owner_user_id: uid,
+            story_id:      storyId || null,
+            affinity:      Math.max(0, Math.min(100, Number(affinity) || 0)),
+            rank_name:     _rankName(affinity),
+        };
+        // Solo incluir note si se pasa explícitamente
+        if (note !== null) row.note = note;
+
+        try {
+            const { error } = await _client()
+                .from('character_bonds')
+                .upsert(row, { onConflict: 'from_char_id,to_char_id', ignoreDuplicates: false });
+            if (error) {
+                window.EtheriaLogger?.warn('supabaseBonds', 'upsertBond failed:', error.message);
+                return { ok: false, error: error.message };
+            }
+            return { ok: true };
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseBonds', 'upsertBond error:', err?.message);
+            return { ok: false };
+        }
+    }
+
+    // ── Crear vínculos automáticos al entrar a una historia ──────────
+    // Para cada par de personajes (A, B) presentes en la historia,
+    // crea A→B y B→A si no existen ya. Solo crea los vínculos donde
+    // from_char pertenece al usuario actual.
+    async function ensureStoryBonds(storyId, participantCharIds) {
+        const uid = await _ensureUserId();
+        if (!uid || !storyId || !Array.isArray(participantCharIds) || participantCharIds.length < 2) return;
+
+        // Personajes que pertenecen al usuario actual
+        const myChars = (appData?.characters || [])
+            .filter(c => c.userIndex === currentUserIndex)
+            .map(c => String(c.id));
+
+        const myParticipants = participantCharIds
+            .map(String)
+            .filter(id => myChars.includes(id));
+
+        if (myParticipants.length === 0) return;
+
+        // Para cada uno de mis personajes, crear vínculo hacia todos los demás
+        const others = participantCharIds.map(String).filter(id => !myChars.includes(id) || myParticipants.includes(id));
+
+        const tasks = [];
+        for (const fromId of myParticipants) {
+            for (const toId of participantCharIds.map(String)) {
+                if (fromId === toId) continue;
+                // Verificar si ya existe (evitar sobrescribir afinidad con 0)
+                tasks.push(_ensureBondExists(fromId, toId, storyId, uid));
+            }
+        }
+        await Promise.allSettled(tasks);
+    }
+
+    async function _ensureBondExists(fromCharId, toCharId, storyId, uid) {
+        try {
+            // Intentar insertar solo si no existe (ignoreDuplicates: true)
+            const { error } = await _client()
+                .from('character_bonds')
+                .upsert({
+                    from_char_id:  fromCharId,
+                    to_char_id:    toCharId,
+                    owner_user_id: uid,
+                    story_id:      storyId,
+                    affinity:      0,
+                    rank_name:     'Desconocidos',
+                }, { onConflict: 'from_char_id,to_char_id', ignoreDuplicates: true });
+            if (error) window.EtheriaLogger?.warn('supabaseBonds', '_ensureBondExists:', error.message);
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseBonds', '_ensureBondExists error:', err?.message);
+        }
+    }
+
+    // ── Sincronizar afinidad cuando cambia ───────────────────────────
+    async function syncAffinity(fromCharId, toCharId, affinity) {
+        const uid = await _ensureUserId();
+        if (!uid || !fromCharId || !toCharId) return;
+
+        try {
+            const { error } = await _client()
+                .from('character_bonds')
+                .update({
+                    affinity:  Math.max(0, Math.min(100, Number(affinity) || 0)),
+                    rank_name: _rankName(affinity),
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('from_char_id', String(fromCharId))
+                .eq('to_char_id',   String(toCharId))
+                .eq('owner_user_id', uid);
+            if (error) window.EtheriaLogger?.warn('supabaseBonds', 'syncAffinity:', error.message);
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseBonds', 'syncAffinity error:', err?.message);
+        }
+    }
+
+    // ── Actualizar nota (solo el dueño) ──────────────────────────────
+    async function updateNote(fromCharId, toCharId, note) {
+        const uid = await _ensureUserId();
+        if (!uid || !fromCharId || !toCharId) return { ok: false };
+
+        try {
+            const { error } = await _client()
+                .from('character_bonds')
+                .update({ note, updated_at: new Date().toISOString() })
+                .eq('from_char_id',  String(fromCharId))
+                .eq('to_char_id',    String(toCharId))
+                .eq('owner_user_id', uid);
+            if (error) return { ok: false, error: error.message };
+            return { ok: true };
+        } catch (err) {
+            return { ok: false, error: err?.message };
+        }
+    }
+
+    // ── Cargar todos los vínculos relevantes para la sección ─────────
+    // Devuelve todos los vínculos donde from_char es un personaje del usuario,
+    // más todos los vínculos de otros usuarios hacia esos mismos personajes
+    // (para ver la perspectiva recíproca).
+    async function loadBondsForUser() {
+        const uid = await _ensureUserId();
+        if (!uid) return [];
+
+        try {
+            const myCharIds = (appData?.characters || [])
+                .filter(c => c.userIndex === currentUserIndex)
+                .map(c => String(c.id));
+
+            if (myCharIds.length === 0) return [];
+
+            // Vínculos salientes (mis personajes → otros)
+            const { data: outgoing, error: e1 } = await _client()
+                .from('character_bonds')
+                .select('*')
+                .in('from_char_id', myCharIds);
+
+            // Vínculos entrantes (otros → mis personajes), para ver la perspectiva recíproca
+            const { data: incoming, error: e2 } = await _client()
+                .from('character_bonds')
+                .select('*')
+                .in('to_char_id', myCharIds);
+
+            if (e1) window.EtheriaLogger?.warn('supabaseBonds', 'loadBonds outgoing:', e1.message);
+            if (e2) window.EtheriaLogger?.warn('supabaseBonds', 'loadBonds incoming:', e2.message);
+
+            return {
+                outgoing: outgoing || [],
+                incoming: incoming || [],
+            };
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseBonds', 'loadBondsForUser error:', err?.message);
+            return { outgoing: [], incoming: [] };
+        }
+    }
+
+    // ── Inicialización: cachear userId, escuchar afinidad y Realtime ──
+    let _bondsChannel = null;
+
+    function _subscribeBondsRealtime(myCharIds) {
+        if (!_client() || !myCharIds?.length) return;
+        if (_bondsChannel) {
+            try { _client().removeChannel(_bondsChannel); } catch {}
+            _bondsChannel = null;
+        }
+        // Escuchar cambios en vínculos donde to_char_id es uno de mis personajes
+        // (para ver en tiempo real cuando alguien actualiza su perspectiva hacia mí)
+        _bondsChannel = _client()
+            .channel('character_bonds:incoming')
+            .on('postgres_changes', {
+                event:  '*',
+                schema: 'public',
+                table:  'character_bonds',
+            }, function (payload) {
+                const row = payload.new || payload.old;
+                if (!row) return;
+                // Solo nos importa si involucra a uno de nuestros personajes
+                const relevant = myCharIds.includes(String(row.to_char_id)) ||
+                                 myCharIds.includes(String(row.from_char_id));
+                if (!relevant) return;
+                // Notificar a BondsUI para que recargue si está abierto
+                window.dispatchEvent(new CustomEvent('etheria:bonds-changed', { detail: row }));
+            })
+            .subscribe();
+    }
+
+    (function _init() {
+        // Cachear userId cuando cambia la auth
+        window.addEventListener('etheria:auth-changed', async function (e) {
+            if (e.detail?.user) {
+                _userId = e.detail.user.id || null;
+                if (!_userId) {
+                    try {
+                        const { data } = await _client().auth.getUser();
+                        _userId = data?.user?.id || null;
+                    } catch { _userId = null; }
+                }
+                // Suscribir Realtime con los personajes del usuario activo
+                const myCharIds = (appData?.characters || [])
+                    .filter(c => c.userIndex === currentUserIndex)
+                    .map(c => String(c.id));
+                _subscribeBondsRealtime(myCharIds);
+            } else {
+                _userId = null;
+                if (_bondsChannel && _client()) {
+                    try { _client().removeChannel(_bondsChannel); } catch {}
+                    _bondsChannel = null;
+                }
+            }
+        });
+
+        // Re-suscribir cuando cambian los personajes cargados
+        window.addEventListener('etheria:cloud-characters-loaded', function () {
+            const myCharIds = (appData?.characters || [])
+                .filter(c => c.userIndex === currentUserIndex)
+                .map(c => String(c.id));
+            _subscribeBondsRealtime(myCharIds);
+        });
+
+        // Sincronizar afinidad con Supabase cuando cambia (ya lo hace SupabaseAffinities,
+        // pero bonds también necesita actualizar rank_name)
+        if (typeof eventBus !== 'undefined') {
+            eventBus.on('affinity:changed', function (detail) {
+                const { activeCharId, targetCharId, newValue } = detail || {};
+                if (!activeCharId || !targetCharId) return;
+                syncAffinity(activeCharId, targetCharId, newValue).catch(() => {});
+            });
+        } else {
+            window.addEventListener('etheria:section-changed', function _waitBus() {
+                if (typeof eventBus !== 'undefined') {
+                    eventBus.on('affinity:changed', function (detail) {
+                        const { activeCharId, targetCharId, newValue } = detail || {};
+                        if (!activeCharId || !targetCharId) return;
+                        syncAffinity(activeCharId, targetCharId, newValue).catch(() => {});
+                    });
+                    window.removeEventListener('etheria:section-changed', _waitBus);
+                }
+            });
+        }
+    })();
+
+    return {
+        upsertBond,
+        ensureStoryBonds,
+        syncAffinity,
+        updateNote,
+        loadBondsForUser,
+    };
+
+})();
+
+window.SupabaseBonds = SupabaseBonds;
+
+</script>
+<script>
+/* js/utils/supabaseAffinities.js */
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE AFFINITIES — Afinidad direccional en tiempo real
+// Gestiona la tabla `affinities`:
+//   - Escritura cuando el usuario modifica la afinidad
+//   - Suscripción Realtime para recibir cambios de otros usuarios
+//   - Carga inicial al entrar en un topic
+// ═══════════════════════════════════════════════════════════════════
+
+const SupabaseAffinities = (function () {
+
+    let _userId       = null;
+    let _channel      = null;   // canal Realtime activo
+    let _currentTopic = null;   // topic al que estamos suscritos
+
+    // ── Helpers ──────────────────────────────────────────────────────
+    function _client() { return window.supabaseClient || null; }
+    function _isAvailable() { return !!_client() && !!_userId; }
+
+    async function _ensureUserId() {
+        if (_userId) return _userId;
+        try {
+            const { data } = await _client().auth.getUser();
+            _userId = data?.user?.id || null;
+        } catch { _userId = null; }
+        return _userId;
+    }
+
+    // ── Escribir afinidad ────────────────────────────────────────────
+    // Llamado cada vez que el valor cambia en el cliente.
+    async function upsert(fromCharId, toCharId, topicId, value) {
+        const uid = await _ensureUserId();
+        if (!uid || !fromCharId || !toCharId || !topicId) return;
+
+        try {
+            const { error } = await _client()
+                .from('affinities')
+                .upsert({
+                    from_char_id:  String(fromCharId),
+                    to_char_id:    String(toCharId),
+                    topic_id:      String(topicId),
+                    owner_user_id: uid,
+                    value:         Math.max(0, Math.min(100, Number(value) || 0)),
+                    updated_at:    new Date().toISOString(),
+                }, { onConflict: 'from_char_id,to_char_id,topic_id' });
+
+            if (error) {
+                window.EtheriaLogger?.warn('supabaseAffinities', 'upsert failed:', error.message);
+            }
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseAffinities', 'upsert error:', err?.message);
+        }
+    }
+
+    // ── Cargar afinidades de un topic ────────────────────────────────
+    // Al entrar en un topic, carga todas las afinidades (propias y ajenas)
+    // y las fusiona en appData.affinities para que la UI las muestre.
+    async function loadForTopic(topicId) {
+        if (!_client() || !topicId) return;
+
+        try {
+            const { data, error } = await _client()
+                .from('affinities')
+                .select('from_char_id, to_char_id, value')
+                .eq('topic_id', String(topicId));
+
+            if (error) {
+                window.EtheriaLogger?.warn('supabaseAffinities', 'loadForTopic:', error.message);
+                return;
+            }
+
+            if (!Array.isArray(data) || data.length === 0) return;
+
+            // Fusionar en appData.affinities[topicId]
+            if (!appData.affinities) appData.affinities = {};
+            if (!appData.affinities[topicId]) appData.affinities[topicId] = {};
+
+            data.forEach(row => {
+                const key = `${row.from_char_id}_${row.to_char_id}`;
+                appData.affinities[topicId][key] = Number(row.value) || 0;
+            });
+
+            window.EtheriaLogger?.info?.('supabaseAffinities',
+                `${data.length} afinidades cargadas para topic ${topicId}`);
+
+            // Refrescar la UI si está activa
+            if (String(topicId) === String(currentTopicId) &&
+                typeof updateAffinityDisplay === 'function') {
+                updateAffinityDisplay();
+            }
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseAffinities', 'loadForTopic error:', err?.message);
+        }
+    }
+
+    // ── Suscripción Realtime ─────────────────────────────────────────
+    // Escucha cambios en affinities del topic activo.
+    // Cuando otro usuario modifica su afinidad, se refleja inmediatamente.
+    function subscribeToTopic(topicId) {
+        if (!_client() || !topicId) return;
+        if (_currentTopic === String(topicId) && _channel) return; // ya suscrito
+
+        _unsubscribe();
+        _currentTopic = String(topicId);
+
+        _channel = _client()
+            .channel(`affinities:${topicId}`)
+            .on('postgres_changes', {
+                event:  '*',
+                schema: 'public',
+                table:  'affinities',
+                filter: `topic_id=eq.${topicId}`,
+            }, _onRealtimeChange)
+            .subscribe(status => {
+                if (status === 'SUBSCRIBED') {
+                    window.EtheriaLogger?.info?.('supabaseAffinities',
+                        `Realtime activo para topic ${topicId}`);
+                }
+            });
+    }
+
+    function _onRealtimeChange(payload) {
+        const row = payload.new || payload.old;
+        if (!row) return;
+
+        const { from_char_id, to_char_id, topic_id, value } = row;
+        if (!topic_id || !from_char_id || !to_char_id) return;
+
+        // Actualizar appData
+        if (!appData.affinities) appData.affinities = {};
+        if (!appData.affinities[topic_id]) appData.affinities[topic_id] = {};
+
+        const key = `${from_char_id}_${to_char_id}`;
+
+        if (payload.eventType === 'DELETE') {
+            delete appData.affinities[topic_id][key];
+        } else {
+            appData.affinities[topic_id][key] = Number(value) || 0;
+        }
+
+        // Refrescar UI si estamos viendo este topic
+        if (String(topic_id) === String(currentTopicId) &&
+            typeof updateAffinityDisplay === 'function') {
+            updateAffinityDisplay();
+        }
+
+        // Actualizar también el vínculo en character_bonds
+        if (typeof SupabaseBonds !== 'undefined') {
+            SupabaseBonds.syncAffinity(from_char_id, to_char_id, Number(value) || 0).catch(() => {});
+        }
+
+        window.EtheriaLogger?.info?.('supabaseAffinities',
+            `Realtime: ${from_char_id}→${to_char_id} = ${value}`);
+    }
+
+    function _unsubscribe() {
+        if (_channel && _client()) {
+            try { _client().removeChannel(_channel); } catch {}
+            _channel = null;
+        }
+        _currentTopic = null;
+    }
+
+    // ── Migrar afinidades del blob local a Supabase ──────────────────
+    // Se llama una sola vez al hacer login si hay datos locales.
+    // Sube las afinidades que estaban guardadas en appData.affinities (blob).
+    async function migrateLocalAffinities() {
+        const uid = await _ensureUserId();
+        if (!uid || !appData?.affinities) return;
+
+        const rows = [];
+        Object.entries(appData.affinities).forEach(([topicId, pairs]) => {
+            if (typeof pairs !== 'object') return;
+            Object.entries(pairs).forEach(([key, value]) => {
+                // key puede ser "fromId_toId" (nuevo) o "id1_id2" ordenado (legacy simétrico)
+                const parts = key.split('_');
+                if (parts.length < 2) return;
+                // Para datos legacy simétricos tomamos el valor tal cual
+                // (no podemos saber la dirección, así que lo subimos como está)
+                const fromId = parts[0];
+                const toId   = parts.slice(1).join('_'); // por si el id tiene guiones
+                rows.push({
+                    from_char_id:  String(fromId),
+                    to_char_id:    String(toId),
+                    topic_id:      String(topicId),
+                    owner_user_id: uid,
+                    value:         Math.max(0, Math.min(100, Number(value) || 0)),
+                });
+            });
+        });
+
+        if (rows.length === 0) return;
+
+        try {
+            const { error } = await _client()
+                .from('affinities')
+                .upsert(rows, {
+                    onConflict:      'from_char_id,to_char_id,topic_id',
+                    ignoreDuplicates: true, // no sobreescribir datos más recientes
+                });
+            if (error) {
+                window.EtheriaLogger?.warn('supabaseAffinities', 'migrate failed:', error.message);
+            } else {
+                window.EtheriaLogger?.info?.('supabaseAffinities',
+                    `${rows.length} afinidades migradas a Supabase`);
+            }
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseAffinities', 'migrate error:', err?.message);
+        }
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────
+    (function _init() {
+        // Cachear userId al autenticarse
+        window.addEventListener('etheria:auth-changed', async function (e) {
+            if (e.detail?.user) {
+                _userId = e.detail.user.id || null;
+                if (!_userId) {
+                    try {
+                        const { data } = await _client().auth.getUser();
+                        _userId = data?.user?.id || null;
+                    } catch { _userId = null; }
+                }
+                // Migrar datos locales si existen
+                if (_userId) migrateLocalAffinities().catch(() => {});
+            } else {
+                _userId = null;
+                _unsubscribe();
+            }
+        });
+
+        // Suscribirse al topic cuando se entra
+        window.addEventListener('etheria:topic-enter', function (e) {
+            const topicId = e.detail?.topicId;
+            if (!topicId) return;
+            loadForTopic(topicId).catch(() => {});
+            subscribeToTopic(topicId);
+        });
+
+        // Desuscribirse al salir
+        window.addEventListener('etheria:topic-leave', function () {
+            _unsubscribe();
+        });
+
+        // Sincronizar con Supabase cuando la afinidad cambia en el cliente
+        if (typeof eventBus !== 'undefined') {
+            _bindAffinityEvent();
+        } else {
+            // eventBus puede no estar disponible aún — esperar
+            window.addEventListener('etheria:section-changed', function _waitBus() {
+                if (typeof eventBus !== 'undefined') {
+                    _bindAffinityEvent();
+                    window.removeEventListener('etheria:section-changed', _waitBus);
+                }
+            });
+        }
+    })();
+
+    function _bindAffinityEvent() {
+        eventBus.on('affinity:changed', function (detail) {
+            const { activeCharId, targetCharId, newValue, topicId } = detail || {};
+            if (!activeCharId || !targetCharId || !topicId) return;
+            upsert(activeCharId, targetCharId, topicId, newValue).catch(() => {});
+        });
+    }
+
+    return {
+        upsert,
+        loadForTopic,
+        subscribeToTopic,
+        unsubscribe: _unsubscribe,
+        migrateLocalAffinities,
+    };
+
+})();
+
+window.SupabaseAffinities = SupabaseAffinities;
+
+</script>
+<script>
+/* js/utils/supabaseJournals.js */
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE JOURNALS — Diarios de historia
+// Mueve los journals del blob user_data a su propia tabla.
+// ═══════════════════════════════════════════════════════════════════
+
+const SupabaseJournals = (function () {
+
+    let _userId = null;
+
+    function _client() { return window.supabaseClient || null; }
+    function _isAvailable() { return !!_client() && !!_userId; }
+
+    async function _ensureUserId() {
+        if (_userId) return _userId;
+        try {
+            const { data } = await _client().auth.getUser();
+            _userId = data?.user?.id || null;
+        } catch { _userId = null; }
+        return _userId;
+    }
+
+    // ── Cargar todos los journals del usuario ────────────────────────
+    async function loadAll() {
+        const uid = await _ensureUserId();
+        if (!uid) return {};
+        try {
+            const { data, error } = await _client()
+                .from('journals')
+                .select('topic_id, content')
+                .eq('user_id', uid);
+            if (error) { window.EtheriaLogger?.warn('supabaseJournals', 'loadAll:', error.message); return {}; }
+            const result = {};
+            (data || []).forEach(row => { result[row.topic_id] = row.content; });
+            return result;
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseJournals', 'loadAll error:', err?.message);
+            return {};
+        }
+    }
+
+    // ── Guardar o actualizar un journal ─────────────────────────────
+    async function upsert(topicId, content) {
+        const uid = await _ensureUserId();
+        if (!uid || !topicId) return { ok: false };
+        try {
+            const { error } = await _client()
+                .from('journals')
+                .upsert({
+                    user_id:    uid,
+                    topic_id:   String(topicId),
+                    content:    content || {},
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'user_id,topic_id' });
+            if (error) { window.EtheriaLogger?.warn('supabaseJournals', 'upsert:', error.message); return { ok: false }; }
+            return { ok: true };
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseJournals', 'upsert error:', err?.message);
+            return { ok: false };
+        }
+    }
+
+    // ── Migrar journals del blob local ───────────────────────────────
+    async function migrateFromBlob() {
+        const uid = await _ensureUserId();
+        if (!uid || !appData?.journals || !Object.keys(appData.journals).length) return;
+        const entries = Object.entries(appData.journals);
+        if (!entries.length) return;
+        try {
+            const rows = entries.map(([topicId, content]) => ({
+                user_id:  uid,
+                topic_id: String(topicId),
+                content:  content || {},
+            }));
+            const { error } = await _client()
+                .from('journals')
+                .upsert(rows, { onConflict: 'user_id,topic_id', ignoreDuplicates: true });
+            if (error) window.EtheriaLogger?.warn('supabaseJournals', 'migrate:', error.message);
+            else window.EtheriaLogger?.info?.('supabaseJournals', `${rows.length} journals migrados`);
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseJournals', 'migrate error:', err?.message);
+        }
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────
+    (function _init() {
+        window.addEventListener('etheria:auth-changed', async function (e) {
+            if (e.detail?.user) {
+                _userId = e.detail.user.id || null;
+                if (!_userId) {
+                    try { const { data } = await _client().auth.getUser(); _userId = data?.user?.id || null; }
+                    catch { _userId = null; }
+                }
+                if (_userId) {
+                    // Cargar journals desde Supabase y fusionar en appData
+                    loadAll().then(journals => {
+                        if (Object.keys(journals).length > 0) {
+                            appData.journals = { ...appData.journals, ...journals };
+                        }
+                        // Migrar datos locales que no estén en la nube
+                        migrateFromBlob().catch(() => {});
+                    }).catch(() => {});
+                }
+            } else {
+                _userId = null;
+            }
+        });
+    })();
+
+    return { loadAll, upsert, migrateFromBlob };
+
+})();
+
+window.SupabaseJournals = SupabaseJournals;
+
+</script>
+<script>
+/* js/utils/supabaseFavorites.js */
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE FAVORITES — Favoritos de mensajes, historias, personajes
+// Mueve los favorites del blob user_data a su propia tabla.
+// ═══════════════════════════════════════════════════════════════════
+
+const SupabaseFavorites = (function () {
+
+    let _userId = null;
+
+    function _client() { return window.supabaseClient || null; }
+
+    async function _ensureUserId() {
+        if (_userId) return _userId;
+        try {
+            const { data } = await _client().auth.getUser();
+            _userId = data?.user?.id || null;
+        } catch { _userId = null; }
+        return _userId;
+    }
+
+    // ── Cargar todos los favoritos del usuario ───────────────────────
+    // Devuelve el mismo formato que appData.favorites:
+    // { [entityType]: Set<entityId> } → aquí como { [entityType]: { [entityId]: true } }
+    async function loadAll() {
+        const uid = await _ensureUserId();
+        if (!uid) return {};
+        try {
+            const { data, error } = await _client()
+                .from('favorites')
+                .select('entity_type, entity_id')
+                .eq('user_id', uid);
+            if (error) { window.EtheriaLogger?.warn('supabaseFavorites', 'loadAll:', error.message); return {}; }
+            const result = {};
+            (data || []).forEach(row => {
+                if (!result[row.entity_type]) result[row.entity_type] = {};
+                result[row.entity_type][row.entity_id] = true;
+            });
+            return result;
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseFavorites', 'loadAll error:', err?.message);
+            return {};
+        }
+    }
+
+    // ── Añadir favorito ──────────────────────────────────────────────
+    async function add(entityType, entityId) {
+        const uid = await _ensureUserId();
+        if (!uid || !entityType || !entityId) return { ok: false };
+        try {
+            const { error } = await _client()
+                .from('favorites')
+                .upsert({
+                    user_id:     uid,
+                    entity_type: entityType,
+                    entity_id:   String(entityId),
+                }, { onConflict: 'user_id,entity_type,entity_id', ignoreDuplicates: true });
+            if (error) { window.EtheriaLogger?.warn('supabaseFavorites', 'add:', error.message); return { ok: false }; }
+            return { ok: true };
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseFavorites', 'add error:', err?.message);
+            return { ok: false };
+        }
+    }
+
+    // ── Eliminar favorito ────────────────────────────────────────────
+    async function remove(entityType, entityId) {
+        const uid = await _ensureUserId();
+        if (!uid || !entityType || !entityId) return { ok: false };
+        try {
+            const { error } = await _client()
+                .from('favorites')
+                .delete()
+                .eq('user_id',     uid)
+                .eq('entity_type', entityType)
+                .eq('entity_id',   String(entityId));
+            if (error) { window.EtheriaLogger?.warn('supabaseFavorites', 'remove:', error.message); return { ok: false }; }
+            return { ok: true };
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseFavorites', 'remove error:', err?.message);
+            return { ok: false };
+        }
+    }
+
+    // ── Migrar favorites del blob local ──────────────────────────────
+    // appData.favorites tiene formato variado según versión — lo normalizamos
+    async function migrateFromBlob() {
+        const uid = await _ensureUserId();
+        if (!uid || !appData?.favorites) return;
+
+        const rows = [];
+        const favs = appData.favorites;
+
+        // Formato puede ser: { messageId: true } o { message: { id: true } } o arrays
+        Object.entries(favs).forEach(([key, value]) => {
+            if (typeof value === 'boolean' && value) {
+                // Formato plano: { entityId: true } — asumir tipo 'message'
+                rows.push({ user_id: uid, entity_type: 'message', entity_id: String(key) });
+            } else if (typeof value === 'object' && value !== null) {
+                // Formato agrupado: { entityType: { entityId: true } }
+                Object.entries(value).forEach(([entityId, active]) => {
+                    if (active) rows.push({ user_id: uid, entity_type: key, entity_id: String(entityId) });
+                });
+            }
+        });
+
+        if (!rows.length) return;
+        try {
+            const { error } = await _client()
+                .from('favorites')
+                .upsert(rows, { onConflict: 'user_id,entity_type,entity_id', ignoreDuplicates: true });
+            if (error) window.EtheriaLogger?.warn('supabaseFavorites', 'migrate:', error.message);
+            else window.EtheriaLogger?.info?.('supabaseFavorites', `${rows.length} favoritos migrados`);
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseFavorites', 'migrate error:', err?.message);
+        }
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────
+    (function _init() {
+        window.addEventListener('etheria:auth-changed', async function (e) {
+            if (e.detail?.user) {
+                _userId = e.detail.user.id || null;
+                if (!_userId) {
+                    try { const { data } = await _client().auth.getUser(); _userId = data?.user?.id || null; }
+                    catch { _userId = null; }
+                }
+                if (_userId) {
+                    loadAll().then(favorites => {
+                        if (Object.keys(favorites).length > 0) {
+                            // Fusionar con los locales (nube tiene prioridad)
+                            appData.favorites = { ...appData.favorites, ...favorites };
+                        }
+                        migrateFromBlob().catch(() => {});
+                    }).catch(() => {});
+                }
+            } else {
+                _userId = null;
+            }
+        });
+    })();
+
+    return { loadAll, add, remove, migrateFromBlob };
+
+})();
+
+window.SupabaseFavorites = SupabaseFavorites;
 
 </script>
 <script>
@@ -21849,12 +23463,15 @@ async function ensureProfile() {
 // inmediatamente después del login, cuando el profileId todavía es null.
 (function _registerCharacterSyncListener() {
     let _charSyncDone = false;
+
+    // Resetear al cerrar sesión para que el próximo login vuelva a sincronizar
+    window.addEventListener('etheria:auth-changed', function(e) {
+        if (!e.detail?.user) _charSyncDone = false;
+    });
+
     window.addEventListener('etheria:active-profile-changed', function(e) {
         const profileId = e.detail?.profileId;
         if (!profileId || _charSyncDone) return;
-
-        // Solo sincronizar si hay personajes locales sin subir
-        if (!Array.isArray(appData?.characters) || appData.characters.length === 0) return;
         if (typeof SupabaseCharacters === 'undefined' ||
             typeof SupabaseCharacters.syncAllLocalCharacters !== 'function') return;
 

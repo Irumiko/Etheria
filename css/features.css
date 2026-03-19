@@ -1,0 +1,188 @@
+/* ═══════════════════════════════════════════════════════════════════
+   MESSAGE SEARCH — Panel de búsqueda en mensajes
+   ═══════════════════════════════════════════════════════════════════ */
+
+#msgSearchPanel {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: rgba(20, 14, 6, 0.97);
+    border-bottom: 1px solid rgba(201,168,108,0.25);
+    z-index: 120;
+    transform: translateY(-100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 55vh;
+}
+#msgSearchPanel.active {
+    transform: translateY(0);
+}
+.msg-search-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.msg-search-input {
+    flex: 1;
+    background: rgba(40,28,12,0.9);
+    border: 1px solid rgba(201,168,108,0.35);
+    border-radius: 8px;
+    color: #f0e0c0;
+    font-size: 0.88rem;
+    padding: 7px 12px;
+    outline: none;
+    font-family: inherit;
+}
+.msg-search-input:focus {
+    border-color: rgba(201,168,108,0.65);
+}
+.msg-search-input::placeholder { color: rgba(201,168,108,0.3); }
+.msg-search-close {
+    background: none;
+    border: 1px solid rgba(201,168,108,0.2);
+    border-radius: 6px;
+    color: rgba(201,168,108,0.5);
+    cursor: pointer;
+    padding: 4px 9px;
+    font-size: 0.8rem;
+    transition: all 0.15s;
+}
+.msg-search-close:hover {
+    background: rgba(201,168,108,0.1);
+    color: rgba(201,168,108,0.9);
+}
+#msgSearchResults {
+    overflow-y: auto;
+    max-height: 38vh;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.msg-search-empty {
+    color: rgba(201,168,108,0.3);
+    font-style: italic;
+    font-size: 0.82rem;
+    padding: 8px 4px;
+}
+.msg-search-result {
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: rgba(201,168,108,0.04);
+    border: 1px solid rgba(201,168,108,0.08);
+    transition: background 0.15s;
+}
+.msg-search-result:hover {
+    background: rgba(201,168,108,0.10);
+    border-color: rgba(201,168,108,0.2);
+}
+.msg-search-author {
+    font-size: 0.72rem;
+    color: rgba(201,168,108,0.55);
+    font-weight: 600;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.msg-search-text {
+    font-size: 0.82rem;
+    color: rgba(240,224,192,0.8);
+    line-height: 1.45;
+}
+mark.msg-search-mark {
+    background: rgba(241,193,80,0.3);
+    color: #f1c140;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PRESENCE INDICATORS — Puntos de estado online
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Punto online genérico */
+.presence-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #27ae60;
+    box-shadow: 0 0 5px rgba(39,174,96,0.6);
+    flex-shrink: 0;
+    animation: presence-pulse 2.5s ease-in-out infinite;
+}
+.presence-dot.offline {
+    background: rgba(201,168,108,0.2);
+    box-shadow: none;
+    animation: none;
+}
+@keyframes presence-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.7; transform: scale(0.85); }
+}
+
+/* En la galería de personajes */
+.char-card-v2 .presence-dot {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 9px;
+    height: 9px;
+    border: 1.5px solid rgba(20,14,6,0.8);
+}
+
+/* En el tablón de vínculos */
+.bond-row .presence-dot {
+    width: 7px;
+    height: 7px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AFFINITY HISTORY — Historial en el tablón de vínculos
+   ═══════════════════════════════════════════════════════════════════ */
+
+.bond-history-toggle {
+    font-size: 0.72rem;
+    color: rgba(201,168,108,0.4);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.15s;
+}
+.bond-history-toggle:hover { color: rgba(201,168,108,0.8); }
+
+.bond-history-list {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+.bond-history-entry {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: rgba(201,168,108,0.5);
+}
+.bond-history-arrow {
+    font-size: 0.7rem;
+    color: rgba(201,168,108,0.3);
+}
+.bond-history-rank {
+    font-weight: 600;
+    color: var(--rank-color, rgba(201,168,108,0.7));
+}
+.bond-history-date {
+    margin-left: auto;
+    font-size: 0.67rem;
+    opacity: 0.55;
+}

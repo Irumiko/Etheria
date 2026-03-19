@@ -17530,3 +17530,632 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 /* -- css/modules/07-overrides.css -- */
 /* Reserved for feature flags/temporary overrides. Keep last on purpose. */
 
+
+/* -- css/modules/affinity-atmosphere.css -- */
+/* ═══════════════════════════════════════════════════════════════════
+   AFFINITY ATMOSPHERE — Modo Clásico
+   Efectos visuales en el panel de personaje según rango de afinidad.
+   Solo activos en body.mode-classic.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Transición suave del fondo del info-card ── */
+body.mode-classic .vn-info-card {
+    transition:
+        background 1.2s ease,
+        box-shadow 1.2s ease,
+        border-color 0.8s ease;
+}
+
+/* ── Rangos: temperatura del fondo del panel ── */
+body.mode-classic.affinity-conocidos .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(48, 38, 22, 0.96),
+        rgba(38, 28, 12, 0.98));
+    border-color: rgba(180, 150, 80, 0.4);
+}
+body.mode-classic.affinity-amigos .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(30, 48, 56, 0.96),
+        rgba(22, 36, 44, 0.98));
+    border-color: rgba(90, 160, 200, 0.45);
+    box-shadow:
+        0 12px 36px rgba(0,0,0,0.45),
+        0 0 0 1px rgba(90,160,200,0.10),
+        0 0 20px -4px rgba(52,152,219,0.20);
+}
+body.mode-classic.affinity-mejores-amigos .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(22, 46, 32, 0.96),
+        rgba(16, 36, 22, 0.98));
+    border-color: rgba(80, 180, 100, 0.45);
+    box-shadow:
+        0 12px 36px rgba(0,0,0,0.45),
+        0 0 0 1px rgba(80,180,100,0.10),
+        0 0 20px -4px rgba(39,174,96,0.22);
+}
+body.mode-classic.affinity-interes-romantico .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(54, 36, 18, 0.97),
+        rgba(42, 24, 8, 0.99));
+    border-color: rgba(241, 193, 80, 0.55);
+    box-shadow:
+        0 12px 36px rgba(0,0,0,0.45),
+        0 0 0 1px rgba(241,193,80,0.12),
+        0 0 24px -4px rgba(230,160,20,0.30);
+}
+body.mode-classic.affinity-pareja .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(54, 22, 22, 0.97),
+        rgba(42, 14, 14, 0.99));
+    border-color: rgba(231, 76, 80, 0.5);
+    box-shadow:
+        0 12px 36px rgba(0,0,0,0.50),
+        0 0 0 1px rgba(231,76,80,0.12),
+        0 0 28px -4px rgba(220,50,50,0.28);
+}
+
+/* ── Adorno del avatar: contenedor relativo para posicionar el ornamento ── */
+.vn-info-avatar {
+    position: relative;
+}
+
+/* Ornamento base — oculto por defecto */
+.vn-affinity-ornament {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    font-size: 11px;
+    line-height: 1;
+    user-select: none;
+}
+.vn-affinity-ornament.visible {
+    opacity: 1;
+}
+
+/* Amigos: estrellitas sutiles en las esquinas */
+.vn-affinity-ornament.ornament-amigos {
+    top: -4px;
+    right: -4px;
+    font-size: 9px;
+    filter: drop-shadow(0 0 3px rgba(52,152,219,0.7));
+    animation: ornament-twinkle 2.5s ease-in-out infinite;
+}
+/* Mejores Amigos: dos destellos */
+.vn-affinity-ornament.ornament-mejores-amigos {
+    top: -5px;
+    right: -5px;
+    font-size: 11px;
+    filter: drop-shadow(0 0 4px rgba(39,174,96,0.8));
+    animation: ornament-twinkle 2s ease-in-out infinite;
+}
+/* Interés Romántico: mariposa */
+.vn-affinity-ornament.ornament-interes-romantico {
+    top: -8px;
+    right: -6px;
+    font-size: 14px;
+    filter: drop-shadow(0 0 5px rgba(241,193,80,0.8));
+    animation: ornament-butterfly 3s ease-in-out infinite;
+}
+/* Pareja: dos corazones */
+.vn-affinity-ornament.ornament-pareja {
+    top: -8px;
+    right: -6px;
+    font-size: 13px;
+    filter: drop-shadow(0 0 6px rgba(231,76,80,0.9));
+    animation: ornament-heartbeat 1.4s ease-in-out infinite;
+}
+
+@keyframes ornament-twinkle {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50%       { transform: scale(1.2) rotate(15deg); opacity: 0.7; }
+}
+@keyframes ornament-butterfly {
+    0%, 100% { transform: scale(1) translateY(0px) rotate(-5deg); opacity: 1; }
+    30%       { transform: scale(1.1) translateY(-3px) rotate(5deg); opacity: 0.9; }
+    60%       { transform: scale(0.95) translateY(-1px) rotate(-8deg); opacity: 1; }
+}
+@keyframes ornament-heartbeat {
+    0%, 100% { transform: scale(1); }
+    15%       { transform: scale(1.25); }
+    30%       { transform: scale(1); }
+    45%       { transform: scale(1.15); }
+    60%       { transform: scale(1); }
+}
+
+/* ── Partículas de afinidad — contenedor sobre el info-card ── */
+.vn-affinity-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: inherit;
+    z-index: 2;
+}
+.vn-affinity-particles canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+
+/* -- css/bonds.css -- */
+/* ═══════════════════════════════════════════════════════════════════
+   VÍNCULOS — Sección de relaciones entre personajes
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Sección base ── */
+#bondsSection {
+    display: none;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg-primary);
+}
+#bondsSection.active {
+    display: flex;
+    animation: fadeIn 0.4s ease;
+}
+
+/* ── Header ── */
+.bonds-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px 14px;
+    background: linear-gradient(to right, var(--bg-secondary), rgba(26,18,12,0.98));
+    border-bottom: 1px solid rgba(201,168,108,0.2);
+    flex-shrink: 0;
+}
+.bonds-back-btn {
+    background: none;
+    border: 1px solid rgba(201,168,108,0.3);
+    border-radius: 8px;
+    color: var(--accent-gold);
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s, border-color 0.2s;
+}
+.bonds-back-btn:hover {
+    background: rgba(201,168,108,0.1);
+    border-color: rgba(201,168,108,0.6);
+}
+.bonds-title {
+    font-family: var(--font-display, serif);
+    font-size: 1.35rem;
+    color: var(--accent-gold);
+    letter-spacing: 0.06em;
+    flex: 1;
+}
+.bonds-subtitle {
+    font-size: 0.78rem;
+    color: rgba(201,168,108,0.5);
+    font-style: italic;
+}
+
+/* ── Scroll container ── */
+#bondsContainer {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* ── Loading / Empty states ── */
+.bonds-loading,
+.bonds-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    min-height: 200px;
+    color: rgba(201,168,108,0.45);
+    font-style: italic;
+    text-align: center;
+    font-size: 0.95rem;
+}
+.bonds-empty-icon { font-size: 2.5rem; opacity: 0.5; }
+.bonds-empty span { font-size: 0.82rem; opacity: 0.6; }
+
+/* ── Tarjeta de personaje ── */
+.bonds-char-card {
+    background: linear-gradient(135deg,
+        rgba(42, 30, 14, 0.96),
+        rgba(32, 22, 8, 0.98));
+    border: 1px solid rgba(var(--char-color, 201 168 108) / 0.25);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+}
+
+.bonds-char-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--char-color, #8b7355) 18%, transparent),
+        transparent);
+    border-bottom: 1px solid rgba(201,168,108,0.12);
+}
+.bonds-char-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid color-mix(in srgb, var(--char-color, #8b7355) 60%, transparent);
+    flex-shrink: 0;
+}
+.bonds-char-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.bonds-char-avatar-initial {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--char-color, #8b7355) 30%, transparent);
+    color: var(--char-color, #c9a86c);
+    font-size: 1.2rem; font-weight: 600;
+}
+.bonds-char-info { flex: 1; }
+.bonds-char-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--char-color, #c9a86c);
+    letter-spacing: 0.03em;
+}
+.bonds-char-race {
+    font-size: 0.75rem;
+    color: rgba(201,168,108,0.5);
+    font-style: italic;
+    margin-top: 2px;
+}
+.bonds-char-count {
+    font-size: 0.72rem;
+    color: rgba(201,168,108,0.4);
+    background: rgba(201,168,108,0.08);
+    border: 1px solid rgba(201,168,108,0.12);
+    border-radius: 12px;
+    padding: 3px 10px;
+}
+
+/* ── Lista de vínculos ── */
+.bonds-list {
+    padding: 8px 0;
+}
+.bonds-no-relations {
+    padding: 20px 16px;
+    color: rgba(201,168,108,0.35);
+    font-size: 0.82rem;
+    font-style: italic;
+    text-align: center;
+}
+.bonds-no-relations span { font-size: 0.76rem; opacity: 0.7; }
+
+/* ── Fila de vínculo individual ── */
+.bond-row {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(201,168,108,0.06);
+    transition: background 0.2s;
+}
+.bond-row:last-child { border-bottom: none; }
+.bond-row:hover { background: rgba(201,168,108,0.04); }
+
+.bond-other-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid rgba(201,168,108,0.2);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.bond-other-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.bond-other-avatar-initial {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(201,168,108,0.1);
+    color: rgba(201,168,108,0.6);
+    font-size: 0.95rem;
+}
+
+.bond-content { flex: 1; min-width: 0; }
+.bond-other-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #f0e0c0;
+    margin-bottom: 6px;
+}
+
+/* ── Pills de afinidad direccional ── */
+.bond-affinities {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+.bond-aff-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--rank-color, #ffffff) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--rank-color, #ffffff) 35%, transparent);
+    font-size: 0.72rem;
+}
+.bond-aff-incoming { opacity: 0.65; }
+.bond-aff-arrow { color: color-mix(in srgb, var(--rank-color, #ffffff) 70%, transparent); font-size: 0.65rem; }
+.bond-aff-rank  { color: var(--rank-color, #ffffff); font-weight: 600; }
+.bond-aff-val   { color: rgba(255,255,255,0.4); font-size: 0.67rem; }
+
+/* ── Nota ── */
+.bond-note-text {
+    font-size: 0.8rem;
+    color: rgba(220,190,140,0.7);
+    font-style: italic;
+    margin: 0 0 6px;
+    line-height: 1.5;
+}
+.bond-note-empty {
+    font-size: 0.75rem;
+    color: rgba(201,168,108,0.25);
+    font-style: italic;
+    margin: 0 0 6px;
+}
+.bond-note-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+}
+.bond-note-textarea {
+    width: 100%;
+    min-height: 64px;
+    background: rgba(20,14,6,0.7);
+    border: 1px solid rgba(201,168,108,0.3);
+    border-radius: 8px;
+    color: #f0e0c0;
+    font-size: 0.82rem;
+    padding: 8px 10px;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.5;
+    box-sizing: border-box;
+}
+.bond-note-textarea:focus {
+    outline: none;
+    border-color: rgba(201,168,108,0.6);
+}
+.bond-note-actions {
+    display: flex;
+    gap: 6px;
+}
+.btn-sm {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    border: 1px solid rgba(201,168,108,0.4);
+    background: rgba(201,168,108,0.12);
+    color: var(--accent-gold, #c9a86c);
+    transition: background 0.2s;
+}
+.btn-sm:hover { background: rgba(201,168,108,0.22); }
+.btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ghost {
+    background: transparent;
+    border-color: rgba(201,168,108,0.2);
+    color: rgba(201,168,108,0.5);
+}
+.btn-ghost:hover {
+    background: rgba(201,168,108,0.07);
+    color: rgba(201,168,108,0.8);
+}
+
+/* ── Botón del menú principal ── */
+.menu-button.bonds-menu-btn { }
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+    .bonds-char-header { padding: 12px; }
+    .bond-row { padding: 10px 12px; }
+    .bond-affinities { gap: 4px; }
+}
+
+
+/* -- css/features.css -- */
+/* ═══════════════════════════════════════════════════════════════════
+   MESSAGE SEARCH — Panel de búsqueda en mensajes
+   ═══════════════════════════════════════════════════════════════════ */
+
+#msgSearchPanel {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    background: rgba(20, 14, 6, 0.97);
+    border-bottom: 1px solid rgba(201,168,108,0.25);
+    z-index: 120;
+    transform: translateY(-100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 55vh;
+}
+#msgSearchPanel.active {
+    transform: translateY(0);
+}
+.msg-search-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.msg-search-input {
+    flex: 1;
+    background: rgba(40,28,12,0.9);
+    border: 1px solid rgba(201,168,108,0.35);
+    border-radius: 8px;
+    color: #f0e0c0;
+    font-size: 0.88rem;
+    padding: 7px 12px;
+    outline: none;
+    font-family: inherit;
+}
+.msg-search-input:focus {
+    border-color: rgba(201,168,108,0.65);
+}
+.msg-search-input::placeholder { color: rgba(201,168,108,0.3); }
+.msg-search-close {
+    background: none;
+    border: 1px solid rgba(201,168,108,0.2);
+    border-radius: 6px;
+    color: rgba(201,168,108,0.5);
+    cursor: pointer;
+    padding: 4px 9px;
+    font-size: 0.8rem;
+    transition: all 0.15s;
+}
+.msg-search-close:hover {
+    background: rgba(201,168,108,0.1);
+    color: rgba(201,168,108,0.9);
+}
+#msgSearchResults {
+    overflow-y: auto;
+    max-height: 38vh;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.msg-search-empty {
+    color: rgba(201,168,108,0.3);
+    font-style: italic;
+    font-size: 0.82rem;
+    padding: 8px 4px;
+}
+.msg-search-result {
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: rgba(201,168,108,0.04);
+    border: 1px solid rgba(201,168,108,0.08);
+    transition: background 0.15s;
+}
+.msg-search-result:hover {
+    background: rgba(201,168,108,0.10);
+    border-color: rgba(201,168,108,0.2);
+}
+.msg-search-author {
+    font-size: 0.72rem;
+    color: rgba(201,168,108,0.55);
+    font-weight: 600;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.msg-search-text {
+    font-size: 0.82rem;
+    color: rgba(240,224,192,0.8);
+    line-height: 1.45;
+}
+mark.msg-search-mark {
+    background: rgba(241,193,80,0.3);
+    color: #f1c140;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PRESENCE INDICATORS — Puntos de estado online
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Punto online genérico */
+.presence-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #27ae60;
+    box-shadow: 0 0 5px rgba(39,174,96,0.6);
+    flex-shrink: 0;
+    animation: presence-pulse 2.5s ease-in-out infinite;
+}
+.presence-dot.offline {
+    background: rgba(201,168,108,0.2);
+    box-shadow: none;
+    animation: none;
+}
+@keyframes presence-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.7; transform: scale(0.85); }
+}
+
+/* En la galería de personajes */
+.char-card-v2 .presence-dot {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 9px;
+    height: 9px;
+    border: 1.5px solid rgba(20,14,6,0.8);
+}
+
+/* En el tablón de vínculos */
+.bond-row .presence-dot {
+    width: 7px;
+    height: 7px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   AFFINITY HISTORY — Historial en el tablón de vínculos
+   ═══════════════════════════════════════════════════════════════════ */
+
+.bond-history-toggle {
+    font-size: 0.72rem;
+    color: rgba(201,168,108,0.4);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.15s;
+}
+.bond-history-toggle:hover { color: rgba(201,168,108,0.8); }
+
+.bond-history-list {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+.bond-history-entry {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: rgba(201,168,108,0.5);
+}
+.bond-history-arrow {
+    font-size: 0.7rem;
+    color: rgba(201,168,108,0.3);
+}
+.bond-history-rank {
+    font-weight: 600;
+    color: var(--rank-color, rgba(201,168,108,0.7));
+}
+.bond-history-date {
+    margin-left: auto;
+    font-size: 0.67rem;
+    opacity: 0.55;
+}
+
