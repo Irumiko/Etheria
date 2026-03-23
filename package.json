@@ -8,5 +8,11 @@
     "validate:pwa-e2e": "node scripts/validate-pwa-e2e.js",
     "preview": "python3 -m http.server 8000",
     "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

@@ -43,15 +43,14 @@ const STATIC_ASSETS = [
   ['assets/icons/icon-512.png', 'assets/icons/icon-512.png'],
   ['assets/backgrounds/menu_background.jpg', 'assets/backgrounds/menu_background.jpg'],
   ['assets/backgrounds/default_background.jpg', 'assets/backgrounds/default_background.jpg'],
+  ['assets/backgrounds/rpg_background.png', 'assets/backgrounds/rpg_background.png'],
+  ['assets/backgrounds/rpg_background.png', 'assets/backgrounds/rpg_background.png'],
   ['assets/parallax/layer_bg.png', 'assets/parallax/layer_bg.png'],
   ['assets/parallax/layer_mid.png', 'assets/parallax/layer_mid.png'],
   ['assets/parallax/layer_fg.png', 'assets/parallax/layer_fg.png'],
   ['assets/parallax/layer_bg_night.png', 'assets/parallax/layer_bg_night.png'],
   ['assets/parallax/layer_mid_night.png', 'assets/parallax/layer_mid_night.png'],
   ['assets/parallax/layer_fg_night.png', 'assets/parallax/layer_fg_night.png'],
-  ['assets/parallax/branch-left.png', 'assets/parallax/branch-left.png'],
-  ['assets/parallax/branch-right.png', 'assets/parallax/branch-right.png'],
-  ['assets/parallax/bush.png', 'assets/parallax/bush.png'],
   ['assets/ui/ethy.svg', 'assets/ui/ethy.svg'],
 ];
 
@@ -130,7 +129,8 @@ html = html.replace(scriptSrcRe, (full, pre, q, src, post) => {
 fs.mkdirSync(distDir, { recursive: true });
 fs.writeFileSync(path.join(distDir, 'index.html'), html, 'utf8');
 fs.writeFileSync(path.join(distDir, 'etheria.html'), html, 'utf8');
-fs.writeFileSync(path.join(distDir, 'noncritical.css'), `${nonCriticalCss}\n`, 'utf8');
+const nonCriticalCssFixed = nonCriticalCss.replace(/\.\.\/\.\.\/assets\//g, './assets/');
+fs.writeFileSync(path.join(distDir, 'noncritical.css'), `${nonCriticalCssFixed}\n`, 'utf8');
 console.log(`\n  dist/index.html (${(html.length / 1024).toFixed(0)} KB)`);
 
 writeBundleAndMap('etheria.css', cssSegments);

@@ -1542,9 +1542,9 @@ function showCurrentMessage(direction = 'forward') {
         }[result] || { label: result.toUpperCase(), cls: 'badge-success', icon: '◆', borderColor: '#27ae60' };
 
         const consequenceHtml = msg.oracleConsequence
-            ? `<span class="vn-dice-consequence">${msg.oracleConsequence}</span>`
+            ? `<span class="vn-dice-consequence">${escapeHtml(String(msg.oracleConsequence))}</span>`
             : '';
-        diceBadge.innerHTML = `<span style="margin-right:0.35rem;">${resultMeta.icon}</span><strong>${resultMeta.label}</strong><span style="opacity:0.7;margin-left:0.5rem;font-size:0.85em;">D20(${roll}) ${modSign}${mod} = ${total} vs ${dc}${stat ? ' [' + stat + ']' : ''}</span>${consequenceHtml}`;
+        safeHtml(diceBadge, `<span style="margin-right:0.35rem;">${resultMeta.icon}</span><strong>${resultMeta.label}</strong><span style="opacity:0.7;margin-left:0.5rem;font-size:0.85em;">D20(${roll}) ${modSign}${mod} = ${total} vs ${dc}${stat ? ' [' + escapeHtml(String(stat)) + ']' : ''}</span>${consequenceHtml}`);
         diceBadge.className = `vn-dice-badge ${resultMeta.cls}`;
         diceBadge.style.borderLeft = `3px solid ${resultMeta.borderColor}`;
         diceBadge.style.display = 'flex';
@@ -1969,27 +1969,22 @@ function typeWriter(text, element) {
 
     const hasHtml = /<[^>]*>/g.test(text);
 
-    if (prefersReducedMotion()) {
-        element.innerHTML = text;
+    // Siempre usar safeHtml cuando el texto contiene HTML (incluye <em>, <strong>, etc.)
+    // El fade-in con setTimeout causaba race conditions con el sync de Supabase
+    if (hasHtml || prefersReducedMotion()) {
+        safeHtml(element, text);
+        if (hasHtml && !prefersReducedMotion()) {
+            element.style.opacity = '0';
+            element.style.transition = 'opacity 0.35s ease';
+            requestAnimationFrame(() => {
+                if (sessionId !== typewriterSessionId) return;
+                element.style.opacity = '1';
+            });
+        }
         isTyping = false;
         if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
         if (indicator) indicator.style.opacity = '1';
         scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
-        return;
-    }
-
-    if (hasHtml) {
-        element.innerHTML = text;
-        element.style.opacity = '0';
-        element.style.transition = 'opacity 0.4s ease';
-        setTimeout(() => {
-            if (sessionId !== typewriterSessionId) return;
-            element.style.opacity = '1';
-            isTyping = false;
-            if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
-            if (indicator) indicator.style.opacity = '1';
-            scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
-        }, 100);
         return;
     }
 
@@ -2074,7 +2069,7 @@ function handleDialogueClick() {
         const dialogueText = document.getElementById('vnDialogueText');
         if (msg && dialogueText) {
             const { text: cleanText } = parseEmotes(msg.text);
-            dialogueText.innerHTML = formatText(cleanText);
+            safeHtml(dialogueText, formatText(cleanText));
         }
         const indicator = document.getElementById('vnContinueIndicator');
         if (indicator) indicator.style.opacity = '1';
@@ -2535,7 +2530,7 @@ function renderVirtualizedHistory(msgs, container) {
             return `<div style="position:absolute;left:0;right:0;top:${absoluteIdx * state.rowHeight}px;">${buildHistoryEntry(msg, absoluteIdx)}</div>`;
         }).join('');
 
-        state.spacer.innerHTML = html;
+        state.spacer.innerHTML = html;  // html viene de buildHistoryEntry que ya escapa datos de usuario
     };
 
     container.onscroll = paint;
@@ -2925,12 +2920,12 @@ function openVnActiveCharSheet() {
             char.basic     && { label: 'Descripción', val: char.basic.slice(0, 180) + (char.basic.length > 180 ? '…' : ''), full: true, italic: true },
         ].filter(Boolean);
 
-        bodyEl.innerHTML = rows.map(r => `
+        safeHtml(bodyEl, rows.map(r => `
             <div class="ficha-modal-row${r.full ? ' full-width' : ''}">
                 <span class="ficha-modal-label">${r.label}</span>
                 <span class="ficha-modal-value${r.italic ? ' italic' : ''}">${escapeHtml(String(r.val))}</span>
             </div>
-        `).join('');
+        `).join(''));
     }
 
     if (typeof openModal === 'function') openModal('fichaModal');
@@ -3012,7 +3007,7 @@ function _renderCharInfoPanel(char) {
             ? `<div class="cip-basic">"${escapeHtml(char.basic.slice(0, 200))}${char.basic.length > 200 ? '…' : ''}"</div>`
             : '';
 
-        bodyEl.innerHTML = fieldsHtml + basicHtml;
+        safeHtml(bodyEl, fieldsHtml + basicHtml);
     }
 
     // ── TODAS LAS RELACIONES EN LA PARTIDA ─────
@@ -4510,7 +4505,7 @@ function vrpUpdatePreview() {
 
     const raw = textarea.value;
     const rendered = vrpRenderMarkdown(raw);
-    preview.innerHTML = rendered || '';
+    safeHtml(preview, rendered || '');
 
     if (hint) {
         hint.textContent = raw.length > 0
