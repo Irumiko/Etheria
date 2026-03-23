@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
    VÍNCULOS — Sección de relaciones entre personajes
+   Diseño: Vista previa compacta + panel de detalle por personaje
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ── Sección base ── */
@@ -52,14 +53,15 @@
     font-style: italic;
 }
 
-/* ── Scroll container ── */
+/* ── Scroll container — grid de tarjetas compactas ── */
 #bondsContainer {
     flex: 1;
     overflow-y: auto;
     padding: 20px 16px 32px;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 14px;
+    align-content: start;
 }
 
 /* ── Loading / Empty states ── */
@@ -75,34 +77,45 @@
     font-style: italic;
     text-align: center;
     font-size: 0.95rem;
+    grid-column: 1 / -1;
 }
 .bonds-empty-icon { font-size: 2.5rem; opacity: 0.5; }
 .bonds-empty span { font-size: 0.82rem; opacity: 0.6; }
 
-/* ── Tarjeta de personaje ── */
+/* ═══════════════════════════════════════════════════════════════════
+   TARJETA COMPACTA (vista previa)
+   ═══════════════════════════════════════════════════════════════════ */
 .bonds-char-card {
     background: linear-gradient(135deg,
         rgba(42, 30, 14, 0.96),
         rgba(32, 22, 8, 0.98));
-    border: 1px solid rgba(var(--char-color, 201 168 108) / 0.25);
+    border: 1px solid color-mix(in srgb, var(--char-color, #c9a86c) 22%, transparent);
     border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    user-select: none;
 }
+.bonds-char-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    border-color: color-mix(in srgb, var(--char-color, #c9a86c) 55%, transparent);
+}
+.bonds-char-card:active { transform: translateY(0); }
 
 .bonds-char-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
+    gap: 10px;
+    padding: 12px 14px;
     background: linear-gradient(90deg,
         color-mix(in srgb, var(--char-color, #8b7355) 18%, transparent),
         transparent);
-    border-bottom: 1px solid rgba(201,168,108,0.12);
 }
 .bonds-char-avatar {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     overflow: hidden;
     border: 2px solid color-mix(in srgb, var(--char-color, #8b7355) 60%, transparent);
@@ -114,50 +127,197 @@
     display: flex; align-items: center; justify-content: center;
     background: color-mix(in srgb, var(--char-color, #8b7355) 30%, transparent);
     color: var(--char-color, #c9a86c);
-    font-size: 1.2rem; font-weight: 600;
+    font-size: 1.1rem; font-weight: 600;
 }
-.bonds-char-info { flex: 1; }
+.bonds-char-info { flex: 1; min-width: 0; }
 .bonds-char-name {
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--char-color, #c9a86c);
     letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .bonds-char-race {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: rgba(201,168,108,0.5);
     font-style: italic;
-    margin-top: 2px;
+    margin-top: 1px;
 }
 .bonds-char-count {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     color: rgba(201,168,108,0.4);
     background: rgba(201,168,108,0.08);
     border: 1px solid rgba(201,168,108,0.12);
-    border-radius: 12px;
-    padding: 3px 10px;
+    border-radius: 10px;
+    padding: 2px 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-/* ── Lista de vínculos ── */
-.bonds-list {
-    padding: 8px 0;
+/* Preview de mini-avatares */
+.bonds-preview {
+    padding: 8px 14px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    border-top: 1px solid rgba(201,168,108,0.07);
 }
-.bonds-no-relations {
-    padding: 20px 16px;
-    color: rgba(201,168,108,0.35);
-    font-size: 0.82rem;
+.bonds-preview-avatars {
+    display: flex;
+    align-items: center;
+}
+.bonds-preview-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(26, 18, 12, 0.95);
+    margin-left: -7px;
+    flex-shrink: 0;
+    background: rgba(201,168,108,0.1);
+}
+.bonds-preview-avatar:first-child { margin-left: 0; }
+.bonds-preview-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.bonds-preview-avatar-init {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.66rem;
+    color: rgba(201,168,108,0.7);
+}
+.bonds-preview-overflow {
+    font-size: 0.7rem;
+    color: rgba(201,168,108,0.4);
+    margin-left: 6px;
+    white-space: nowrap;
+}
+.bonds-preview-empty {
+    font-size: 0.73rem;
+    color: rgba(201,168,108,0.28);
     font-style: italic;
-    text-align: center;
 }
-.bonds-no-relations span { font-size: 0.76rem; opacity: 0.7; }
+.bonds-preview-cta {
+    margin-left: auto;
+    font-size: 0.65rem;
+    color: rgba(201,168,108,0.28);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+}
+.bonds-char-card:hover .bonds-preview-cta {
+    color: rgba(201,168,108,0.65);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PANEL DE DETALLE (slide-over)
+   ═══════════════════════════════════════════════════════════════════ */
+#bondsDetailOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modals, 500);
+    background: rgba(10, 6, 2, 0.62);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+#bondsDetailOverlay.open {
+    display: flex;
+    justify-content: flex-end;
+    animation: bonds-overlay-in 0.2s ease;
+}
+@keyframes bonds-overlay-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.bonds-detail-panel {
+    width: min(460px, 100vw);
+    height: 100%;
+    background: linear-gradient(160deg, rgba(38,26,11,0.99), rgba(22,15,6,1));
+    border-left: 1px solid rgba(201,168,108,0.18);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: bonds-panel-in 0.25s cubic-bezier(0.22,1,0.36,1);
+    box-shadow: -10px 0 44px rgba(0,0,0,0.65);
+}
+@keyframes bonds-panel-in {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+}
+
+.bonds-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--char-color, #8b7355) 20%, transparent),
+        transparent);
+    border-bottom: 1px solid rgba(201,168,108,0.14);
+    flex-shrink: 0;
+}
+.bonds-detail-avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid color-mix(in srgb, var(--char-color, #8b7355) 65%, transparent);
+    flex-shrink: 0;
+}
+.bonds-detail-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.bonds-detail-avatar-init {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--char-color, #8b7355) 28%, transparent);
+    color: var(--char-color, #c9a86c);
+    font-size: 1.25rem; font-weight: 600;
+}
+.bonds-detail-charinfo { flex: 1; }
+.bonds-detail-charname {
+    font-family: var(--font-display, serif);
+    font-size: 1.05rem;
+    color: var(--char-color, #c9a86c);
+    letter-spacing: 0.04em;
+}
+.bonds-detail-charrace {
+    font-size: 0.72rem;
+    color: rgba(201,168,108,0.48);
+    font-style: italic;
+    margin-top: 2px;
+}
+.bonds-detail-close {
+    background: none;
+    border: 1px solid rgba(201,168,108,0.18);
+    border-radius: 8px;
+    color: rgba(201,168,108,0.45);
+    padding: 6px 9px;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+.bonds-detail-close:hover {
+    background: rgba(201,168,108,0.1);
+    color: var(--accent-gold, #c9a86c);
+}
+
+.bonds-detail-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 0 32px;
+}
 
 /* ── Fila de vínculo individual ── */
 .bond-row {
     display: flex;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 12px 18px;
     border-bottom: 1px solid rgba(201,168,108,0.06);
-    transition: background 0.2s;
+    transition: background 0.18s;
 }
 .bond-row:last-child { border-bottom: none; }
 .bond-row:hover { background: rgba(201,168,108,0.04); }
@@ -186,9 +346,12 @@
     font-weight: 600;
     color: #f0e0c0;
     margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
-/* ── Pills de afinidad direccional ── */
+/* ── Pills de afinidad ── */
 .bond-affinities {
     display: flex;
     gap: 6px;
@@ -248,10 +411,8 @@
     outline: none;
     border-color: rgba(201,168,108,0.6);
 }
-.bond-note-actions {
-    display: flex;
-    gap: 6px;
-}
+.bond-note-actions { display: flex; gap: 6px; }
+
 .btn-sm {
     padding: 4px 12px;
     border-radius: 6px;
@@ -274,12 +435,56 @@
     color: rgba(201,168,108,0.8);
 }
 
-/* ── Botón del menú principal ── */
-.menu-button.bonds-menu-btn { }
+/* ── Historial ── */
+.bond-history-toggle {
+    display: inline-block;
+    background: none;
+    border: none;
+    color: rgba(201,168,108,0.35);
+    font-size: 0.72rem;
+    cursor: pointer;
+    padding: 0;
+    margin-top: 2px;
+    transition: color 0.15s;
+}
+.bond-history-toggle:hover { color: rgba(201,168,108,0.7); }
+.bond-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 6px;
+    padding: 6px 8px;
+    background: rgba(10,6,2,0.4);
+    border-radius: 6px;
+    border: 1px solid rgba(201,168,108,0.08);
+}
+.bond-history-entry {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+}
+.bond-history-arrow { font-weight: 700; color: rgba(201,168,108,0.6); }
+.bond-history-rank  { color: var(--rank-color, #c9a86c); font-weight: 600; }
+.bond-history-date  { color: rgba(201,168,108,0.3); margin-left: auto; font-size: 0.67rem; }
+
+/* ── Sin vínculos ── */
+.bonds-no-relations {
+    padding: 28px 18px;
+    color: rgba(201,168,108,0.35);
+    font-size: 0.82rem;
+    font-style: italic;
+    text-align: center;
+}
+.bonds-no-relations span { font-size: 0.76rem; opacity: 0.7; }
 
 /* ── Responsive ── */
 @media (max-width: 480px) {
-    .bonds-char-header { padding: 12px; }
-    .bond-row { padding: 10px 12px; }
-    .bond-affinities { gap: 4px; }
+    #bondsContainer {
+        grid-template-columns: 1fr;
+        padding: 14px 12px 28px;
+        gap: 10px;
+    }
+    .bonds-detail-panel { width: 100vw; }
+    .bond-row { padding: 10px 14px; }
 }

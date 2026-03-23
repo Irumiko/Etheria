@@ -2284,18 +2284,64 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+/**
+ * Asigna HTML sanitizado a un elemento del DOM.
+ * Usa DOMPurify si está disponible; si no, cae a textContent como capa de seguridad.
+ * Solo permite las etiquetas necesarias para el formato narrativo de Etheria.
+ *
+ * @param {Element} el - Elemento destino
+ * @param {string} html - HTML a insertar (puede contener contenido de usuario)
+ */
+function safeHtml(el, html) {
+    if (!el) return;
+    if (typeof DOMPurify !== 'undefined') {
+        el.innerHTML = DOMPurify.sanitize(html, {
+            ALLOWED_TAGS: ['em', 'i', 'strong', 'b', 'u', 's', 'del', 'br',
+                           'span', 'div', 'img', 'button', 'optgroup', 'option', 'a'],
+            ALLOWED_ATTR: ['class', 'style', 'src', 'alt', 'data-fallback',
+                           'aria-label', 'aria-pressed', 'role', 'disabled',
+                           'onclick', 'value', 'label', 'title', 'href'],
+        });
+        return;
+    }
+    // Fallback sin DOMPurify — strip tags no permitidos, conservar los seguros
+    const ALLOWED = new Set(['em','i','strong','b','u','s','del','br']);
+    const safe = html.replace(/<(\/?)(\w+)[^>]*>/g, (match, slash, tag) =>
+        ALLOWED.has(tag.toLowerCase()) ? '<' + slash + tag.toLowerCase() + '>' : ''
+    );
+    el.innerHTML = safe;
+}
+
 function formatText(text) {
     if (!text) return '';
-    const escaped = String(text)
+    const s = String(text);
+
+    // Normalizar tags permitidos a minúsculas antes de procesar
+    // Esto maneja casos como <EM>, <STRONG>, <B> escritos por el usuario
+    const normalised = s.replace(/<(\/?)(EM|I|STRONG|B|U|S|DEL|BR)(\s*\/?)>/gi,
+        (_, slash, tag, close) => '<' + slash + tag.toLowerCase() + close + '>');
+
+    // Separar en tokens: tags permitidos vs resto
+    const tagRe = /<\/?(?:em|i|strong|b|u|s|del|br)\s*\/?>/gi;
+    const parts = normalised.split(tagRe);
+    const tags  = normalised.match(tagRe) || [];
+
+    // Escapar solo las partes que no son tags
+    const escapePart = (p) => p
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+        .replace(/'/g, '&#39;')
+        .replace(/\*\*(.+?)\*\*/gs, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/gs,       '<em>$1</em>');
 
-    return escaped
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>');
+    // Intercalar partes escapadas con tags originales
+    let result = escapePart(parts[0]);
+    for (let i = 0; i < tags.length; i++) {
+        result += tags[i] + escapePart(parts[i + 1] || '');
+    }
+    return result;
 }
 
 function stripHtml(html) {
@@ -3730,13 +3776,14 @@ window.AffinityAtmosphere = AffinityAtmosphere;
 /* js/ui/bonds-ui.js */
 // ═══════════════════════════════════════════════════════════════════
 // BONDS UI — Sección "Vínculos"
-// Renderiza el tablón de relaciones de cada personaje del usuario.
+// Vista: grid de tarjetas compactas + panel de detalle slide-over
 // ═══════════════════════════════════════════════════════════════════
 
 const BondsUI = (function () {
 
-    let _bonds       = { outgoing: [], incoming: [] };
-    let _editingKey  = null; // 'fromId_toId' en edición
+    let _bonds      = { outgoing: [], incoming: [] };
+    let _editingKey = null;
+    let _detailChar = null; // personaje cuyo panel está abierto
 
     // ── Helpers ──────────────────────────────────────────────────────
 
@@ -3754,7 +3801,6 @@ const BondsUI = (function () {
         return c && c.userIndex === currentUserIndex;
     }
 
-    // Indicador de presencia — busca el userId del dueño del personaje
     function _getPresenceDot(charId) {
         if (typeof SupabasePresence === 'undefined') return '';
         const c = _char(charId);
@@ -3765,11 +3811,9 @@ const BondsUI = (function () {
         const ownerUserId = ownerProfile?.owner_user_id || ownerProfile?.id || null;
         if (!ownerUserId) return '';
         const online = SupabasePresence.isOnline(ownerUserId);
-        const label  = online ? 'En línea' : 'Desconectado';
-        return `<span class="presence-dot ${online ? '' : 'offline'}" title="${label}"></span>`;
+        return `<span class="presence-dot ${online ? '' : 'offline'}" title="${online ? 'En línea' : 'Desconectado'}"></span>`;
     }
 
-    // Cargar historial de afinidad desde Supabase
     async function _loadAffinityHistory(fromCharId, toCharId) {
         if (!window.supabaseClient) return [];
         try {
@@ -3785,7 +3829,7 @@ const BondsUI = (function () {
         } catch { return []; }
     }
 
-    // ── Render principal ─────────────────────────────────────────────
+    // ── Render principal (grid de tarjetas compactas) ─────────────────
     async function render() {
         const container = document.getElementById('bondsContainer');
         if (!container) return;
@@ -3805,89 +3849,182 @@ const BondsUI = (function () {
             return;
         }
 
-        // Cargar desde Supabase
         if (typeof SupabaseBonds !== 'undefined') {
             _bonds = await SupabaseBonds.loadBondsForUser();
         }
 
-        // Renderizar una tarjeta por cada personaje propio
-        container.innerHTML = myChars.map(char => _renderCharCard(char)).join('');
+        container.innerHTML = myChars.map(char => _renderCompactCard(char)).join('');
 
-        // Bind eventos de edición de notas
-        container.querySelectorAll('.bond-note-btn').forEach(btn => {
-            btn.addEventListener('click', () => _startEditNote(
-                btn.dataset.from, btn.dataset.to
-            ));
-        });
-        container.querySelectorAll('.bond-note-save').forEach(btn => {
-            btn.addEventListener('click', () => _saveNote(
-                btn.dataset.from, btn.dataset.to
-            ));
-        });
-        container.querySelectorAll('.bond-note-cancel').forEach(btn => {
-            btn.addEventListener('click', () => _cancelEdit(
-                btn.dataset.from, btn.dataset.to
-            ));
+        // Bind: abrir panel de detalle al hacer clic en una tarjeta
+        container.querySelectorAll('.bonds-char-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const charId = card.dataset.charId;
+                const char = _char(charId);
+                if (char) _openDetailPanel(char);
+            });
         });
     }
 
-    function _renderCharCard(char) {
-        // Vínculos salientes de este personaje
-        const outgoing = _bonds.outgoing.filter(b =>
-            String(b.from_char_id) === String(char.id)
-        );
-        // Vínculos entrantes hacia este personaje (perspectiva recíproca)
-        const incoming = _bonds.incoming.filter(b =>
-            String(b.to_char_id) === String(char.id)
-        );
+    // ── Tarjeta compacta ──────────────────────────────────────────────
+    function _renderCompactCard(char) {
+        const outgoing = _bonds.outgoing.filter(b => String(b.from_char_id) === String(char.id));
+        const incoming = _bonds.incoming.filter(b => String(b.to_char_id)   === String(char.id));
 
-        // Unir todos los "otros" personajes que aparecen en algún vínculo
-        const otherIds = new Set([
+        const otherIds = [...new Set([
             ...outgoing.map(b => b.to_char_id),
             ...incoming.map(b => b.from_char_id),
-        ]);
-
-        const bondRows = otherIds.size > 0
-            ? [...otherIds].map(otherId => _renderBondRow(char, otherId, outgoing, incoming)).join('')
-            : `<div class="bonds-no-relations">Sin vínculos todavía.<br><span>Participa en una historia para que aparezcan aquí.</span></div>`;
+        ])];
 
         const avatarHtml = char.avatar
             ? `<img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="bonds-char-avatar-img">`
             : `<div class="bonds-char-avatar-initial">${escapeHtml((char.name || '?')[0])}</div>`;
 
+        // Mini-avatares para la vista previa (máx. 5)
+        const MAX_PREVIEW = 5;
+        const previewIds  = otherIds.slice(0, MAX_PREVIEW);
+        const overflow    = otherIds.length - MAX_PREVIEW;
+
+        let previewHtml;
+        if (otherIds.length === 0) {
+            previewHtml = `<span class="bonds-preview-empty">Sin vínculos todavía</span>`;
+        } else {
+            const avatars = previewIds.map(id => {
+                const other = _char(id);
+                const inner = other?.avatar
+                    ? `<img src="${escapeHtml(other.avatar)}" alt="">`
+                    : `<div class="bonds-preview-avatar-init">${escapeHtml((other?.name || '?')[0])}</div>`;
+                return `<div class="bonds-preview-avatar">${inner}</div>`;
+            }).join('');
+            const plus = overflow > 0 ? `<span class="bonds-preview-overflow">+${overflow}</span>` : '';
+            previewHtml = `<div class="bonds-preview-avatars">${avatars}</div>${plus}`;
+        }
+
         return `
-        <div class="bonds-char-card" style="--char-color: ${char.color || '#8b7355'}">
+        <div class="bonds-char-card" data-char-id="${char.id}"
+             style="--char-color: ${char.color || '#c9a86c'}">
             <div class="bonds-char-header">
                 <div class="bonds-char-avatar">${avatarHtml}</div>
                 <div class="bonds-char-info">
                     <div class="bonds-char-name">${escapeHtml(char.name)}</div>
                     ${char.race ? `<div class="bonds-char-race">${escapeHtml(char.race)}</div>` : ''}
                 </div>
-                <div class="bonds-char-count">${otherIds.size} vínculo${otherIds.size !== 1 ? 's' : ''}</div>
+                <div class="bonds-char-count">${otherIds.length} vínculo${otherIds.length !== 1 ? 's' : ''}</div>
             </div>
-            <div class="bonds-list">${bondRows}</div>
+            <div class="bonds-preview">
+                ${previewHtml}
+                <span class="bonds-preview-cta">Ver ›</span>
+            </div>
         </div>`;
     }
 
+    // ── Panel de detalle (slide-over) ─────────────────────────────────
+    function _ensureOverlay() {
+        let overlay = document.getElementById('bondsDetailOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'bondsDetailOverlay';
+            overlay.innerHTML = `<div class="bonds-detail-panel" id="bondsDetailPanel"></div>`;
+            document.body.appendChild(overlay);
+
+            // Cerrar al hacer clic en el fondo oscuro
+            overlay.addEventListener('click', e => {
+                if (e.target === overlay) _closeDetailPanel();
+            });
+        }
+        return overlay;
+    }
+
+    function _openDetailPanel(char) {
+        _detailChar = char;
+        _editingKey = null;
+
+        const overlay = _ensureOverlay();
+        const panel   = document.getElementById('bondsDetailPanel');
+
+        panel.style.setProperty('--char-color', char.color || '#c9a86c');
+        panel.innerHTML = _renderDetailPanel(char);
+
+        overlay.classList.add('open');
+
+        // Cerrar con Escape
+        document._bondsEscHandler = e => { if (e.key === 'Escape') _closeDetailPanel(); };
+        document.addEventListener('keydown', document._bondsEscHandler);
+
+        _bindDetailEvents(panel, char);
+    }
+
+    function _closeDetailPanel() {
+        const overlay = document.getElementById('bondsDetailOverlay');
+        if (overlay) overlay.classList.remove('open');
+        if (document._bondsEscHandler) {
+            document.removeEventListener('keydown', document._bondsEscHandler);
+            delete document._bondsEscHandler;
+        }
+        _detailChar = null;
+        _editingKey = null;
+    }
+
+    function _renderDetailPanel(char) {
+        const outgoing = _bonds.outgoing.filter(b => String(b.from_char_id) === String(char.id));
+        const incoming = _bonds.incoming.filter(b => String(b.to_char_id)   === String(char.id));
+
+        const otherIds = [...new Set([
+            ...outgoing.map(b => b.to_char_id),
+            ...incoming.map(b => b.from_char_id),
+        ])];
+
+        const avatarHtml = char.avatar
+            ? `<img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}">`
+            : `<div class="bonds-detail-avatar-init">${escapeHtml((char.name || '?')[0])}</div>`;
+
+        const bondRows = otherIds.length > 0
+            ? otherIds.map(id => _renderBondRow(char, id, outgoing, incoming)).join('')
+            : `<div class="bonds-no-relations">Sin vínculos todavía.<br><span>Participa en una historia para que aparezcan aquí.</span></div>`;
+
+        return `
+        <div class="bonds-detail-header">
+            <div class="bonds-detail-avatar">${avatarHtml}</div>
+            <div class="bonds-detail-charinfo">
+                <div class="bonds-detail-charname">${escapeHtml(char.name)}</div>
+                ${char.race ? `<div class="bonds-detail-charrace">${escapeHtml(char.race)}</div>` : ''}
+            </div>
+            <button class="bonds-detail-close" id="bondsDetailCloseBtn">✕</button>
+        </div>
+        <div class="bonds-detail-body">${bondRows}</div>`;
+    }
+
+    function _bindDetailEvents(panel, char) {
+        panel.querySelector('#bondsDetailCloseBtn')?.addEventListener('click', _closeDetailPanel);
+
+        panel.querySelectorAll('.bond-note-btn').forEach(btn => {
+            btn.addEventListener('click', () => _startEditNote(btn.dataset.from, btn.dataset.to, char));
+        });
+        panel.querySelectorAll('.bond-note-save').forEach(btn => {
+            btn.addEventListener('click', () => _saveNote(btn.dataset.from, btn.dataset.to, char));
+        });
+        panel.querySelectorAll('.bond-note-cancel').forEach(btn => {
+            btn.addEventListener('click', () => _cancelEdit(char));
+        });
+    }
+
+    // ── Fila de vínculo ───────────────────────────────────────────────
     function _renderBondRow(myChar, otherId, outgoing, incoming) {
         const otherChar   = _char(otherId);
-        const otherName   = otherChar ? escapeHtml(otherChar.name) : `Personaje desconocido`;
+        const otherName   = otherChar ? escapeHtml(otherChar.name) : 'Personaje desconocido';
         const otherAvatar = otherChar?.avatar
             ? `<img src="${escapeHtml(otherChar.avatar)}" alt="${otherName}" class="bond-other-avatar-img">`
             : `<div class="bond-other-avatar-initial">${escapeHtml((otherChar?.name || '?')[0])}</div>`;
 
-        // Perspectiva saliente: lo que MI personaje siente hacia el otro
-        const out = outgoing.find(b => String(b.to_char_id) === String(otherId));
-        // Perspectiva entrante: lo que el otro siente hacia MI personaje
+        const out = outgoing.find(b => String(b.to_char_id)   === String(otherId));
         const inc = incoming.find(b => String(b.from_char_id) === String(otherId));
 
-        const myFromId = String(myChar.id);
-        const myToId   = String(otherId);
-        const editKey  = `${myFromId}_${myToId}`;
+        const myFromId  = String(myChar.id);
+        const myToId    = String(otherId);
+        const editKey   = `${myFromId}_${myToId}`;
         const isEditing = _editingKey === editKey;
 
-        const outRank  = out?.rank_name  || 'Desconocidos';
-        const incRank  = inc?.rank_name  || 'Desconocidos';
+        const outRank  = out?.rank_name || 'Desconocidos';
+        const incRank  = inc?.rank_name || 'Desconocidos';
         const outColor = _rankColor(outRank);
         const incColor = _rankColor(incRank);
         const outAff   = out?.affinity ?? '—';
@@ -3902,8 +4039,6 @@ const BondsUI = (function () {
                     ${otherName}
                     ${_getPresenceDot(otherId)}
                 </div>
-
-                <!-- Afinidades direccionales -->
                 <div class="bond-affinities">
                     <div class="bond-aff-pill" style="--rank-color: ${outColor}" title="Lo que ${escapeHtml(myChar.name)} siente hacia ${otherName}">
                         <span class="bond-aff-arrow">→</span>
@@ -3916,11 +4051,10 @@ const BondsUI = (function () {
                         <span class="bond-aff-val">${incAff}</span>
                     </div>
                 </div>
-
-                <!-- Nota del jugador -->
                 ${isEditing ? `
                 <div class="bond-note-editor">
-                    <textarea class="bond-note-textarea" id="bond-note-input-${editKey}" maxlength="300" placeholder="Cómo ve ${escapeHtml(myChar.name)} a ${otherName}…">${escapeHtml(myNote)}</textarea>
+                    <textarea class="bond-note-textarea" id="bond-note-input-${editKey}" maxlength="300"
+                        placeholder="Cómo ve ${escapeHtml(myChar.name)} a ${otherName}…">${escapeHtml(myNote)}</textarea>
                     <div class="bond-note-actions">
                         <button class="bond-note-save btn-sm" data-from="${myFromId}" data-to="${myToId}">Guardar</button>
                         <button class="bond-note-cancel btn-sm btn-ghost" data-from="${myFromId}" data-to="${myToId}">Cancelar</button>
@@ -3929,8 +4063,7 @@ const BondsUI = (function () {
                 <div class="bond-note-display" id="bond-note-display-${editKey}">
                     ${myNote
                         ? `<p class="bond-note-text">"${escapeHtml(myNote)}"</p>`
-                        : `<p class="bond-note-empty">Sin nota todavía.</p>`
-                    }
+                        : `<p class="bond-note-empty">Sin nota todavía.</p>`}
                     <button class="bond-note-btn btn-sm btn-ghost" data-from="${myFromId}" data-to="${myToId}">
                         ✎ ${myNote ? 'Editar nota' : 'Añadir nota'}
                     </button>
@@ -3941,18 +4074,26 @@ const BondsUI = (function () {
         </div>`;
     }
 
-    // ── Edición de notas ─────────────────────────────────────────────
-    function _startEditNote(fromId, toId) {
+    // ── Edición de notas ──────────────────────────────────────────────
+    function _startEditNote(fromId, toId, char) {
         _editingKey = `${fromId}_${toId}`;
-        render();
+        const panel = document.getElementById('bondsDetailPanel');
+        if (panel && char) {
+            panel.innerHTML = _renderDetailPanel(char);
+            _bindDetailEvents(panel, char);
+        }
     }
 
-    function _cancelEdit() {
+    function _cancelEdit(char) {
         _editingKey = null;
-        render();
+        const panel = document.getElementById('bondsDetailPanel');
+        if (panel && char) {
+            panel.innerHTML = _renderDetailPanel(char);
+            _bindDetailEvents(panel, char);
+        }
     }
 
-    async function _saveNote(fromId, toId) {
+    async function _saveNote(fromId, toId, char) {
         const key   = `${fromId}_${toId}`;
         const input = document.getElementById(`bond-note-input-${key}`);
         if (!input) return;
@@ -3966,20 +4107,23 @@ const BondsUI = (function () {
             : { ok: false };
 
         if (result.ok) {
-            // Actualizar cache local
             const bond = _bonds.outgoing.find(b =>
                 String(b.from_char_id) === fromId && String(b.to_char_id) === toId
             );
             if (bond) bond.note = note;
             _editingKey = null;
-            render();
+            const panel = document.getElementById('bondsDetailPanel');
+            if (panel && char) {
+                panel.innerHTML = _renderDetailPanel(char);
+                _bindDetailEvents(panel, char);
+            }
         } else {
             if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
             if (typeof showAutosave === 'function') showAutosave('Error al guardar la nota', 'error');
         }
     }
 
-    // ── Historial de afinidad ────────────────────────────────────────
+    // ── Historial ────────────────────────────────────────────────────
     async function toggleHistory(fromId, toId, btn) {
         const key = `${fromId}_${toId}`;
         const container = document.getElementById(`bond-hist-${key}`);
@@ -4017,15 +4161,22 @@ const BondsUI = (function () {
         btn.textContent = '▾ Historial';
     }
 
-    // ── Realtime: refrescar si la sección está abierta ───────────────
+    // ── Realtime ─────────────────────────────────────────────────────
     window.addEventListener('etheria:bonds-changed', function () {
         const bondsSection = document.getElementById('bondsSection');
         if (bondsSection?.classList.contains('active')) {
             render();
+            // Refrescar panel de detalle si está abierto
+            if (_detailChar) {
+                const panel = document.getElementById('bondsDetailPanel');
+                if (panel) {
+                    panel.innerHTML = _renderDetailPanel(_detailChar);
+                    _bindDetailEvents(panel, _detailChar);
+                }
+            }
         }
     });
 
-    // ── API ──────────────────────────────────────────────────────────
     return { render, toggleHistory };
 
 })();
@@ -10696,9 +10847,9 @@ function showCurrentMessage(direction = 'forward') {
         }[result] || { label: result.toUpperCase(), cls: 'badge-success', icon: '◆', borderColor: '#27ae60' };
 
         const consequenceHtml = msg.oracleConsequence
-            ? `<span class="vn-dice-consequence">${msg.oracleConsequence}</span>`
+            ? `<span class="vn-dice-consequence">${escapeHtml(String(msg.oracleConsequence))}</span>`
             : '';
-        diceBadge.innerHTML = `<span style="margin-right:0.35rem;">${resultMeta.icon}</span><strong>${resultMeta.label}</strong><span style="opacity:0.7;margin-left:0.5rem;font-size:0.85em;">D20(${roll}) ${modSign}${mod} = ${total} vs ${dc}${stat ? ' [' + stat + ']' : ''}</span>${consequenceHtml}`;
+        safeHtml(diceBadge, `<span style="margin-right:0.35rem;">${resultMeta.icon}</span><strong>${resultMeta.label}</strong><span style="opacity:0.7;margin-left:0.5rem;font-size:0.85em;">D20(${roll}) ${modSign}${mod} = ${total} vs ${dc}${stat ? ' [' + escapeHtml(String(stat)) + ']' : ''}</span>${consequenceHtml}`);
         diceBadge.className = `vn-dice-badge ${resultMeta.cls}`;
         diceBadge.style.borderLeft = `3px solid ${resultMeta.borderColor}`;
         diceBadge.style.display = 'flex';
@@ -11123,27 +11274,22 @@ function typeWriter(text, element) {
 
     const hasHtml = /<[^>]*>/g.test(text);
 
-    if (prefersReducedMotion()) {
-        element.innerHTML = text;
+    // Siempre usar safeHtml cuando el texto contiene HTML (incluye <em>, <strong>, etc.)
+    // El fade-in con setTimeout causaba race conditions con el sync de Supabase
+    if (hasHtml || prefersReducedMotion()) {
+        safeHtml(element, text);
+        if (hasHtml && !prefersReducedMotion()) {
+            element.style.opacity = '0';
+            element.style.transition = 'opacity 0.35s ease';
+            requestAnimationFrame(() => {
+                if (sessionId !== typewriterSessionId) return;
+                element.style.opacity = '1';
+            });
+        }
         isTyping = false;
         if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
         if (indicator) indicator.style.opacity = '1';
         scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
-        return;
-    }
-
-    if (hasHtml) {
-        element.innerHTML = text;
-        element.style.opacity = '0';
-        element.style.transition = 'opacity 0.4s ease';
-        setTimeout(() => {
-            if (sessionId !== typewriterSessionId) return;
-            element.style.opacity = '1';
-            isTyping = false;
-            if (typeof syncVnStore === 'function') syncVnStore({ isTyping: false });
-            if (indicator) indicator.style.opacity = '1';
-            scheduleContinuousReadIfNeeded(getTopicMessages(currentTopicId)[currentMessageIndex]);
-        }, 100);
         return;
     }
 
@@ -11228,7 +11374,7 @@ function handleDialogueClick() {
         const dialogueText = document.getElementById('vnDialogueText');
         if (msg && dialogueText) {
             const { text: cleanText } = parseEmotes(msg.text);
-            dialogueText.innerHTML = formatText(cleanText);
+            safeHtml(dialogueText, formatText(cleanText));
         }
         const indicator = document.getElementById('vnContinueIndicator');
         if (indicator) indicator.style.opacity = '1';
@@ -11689,7 +11835,7 @@ function renderVirtualizedHistory(msgs, container) {
             return `<div style="position:absolute;left:0;right:0;top:${absoluteIdx * state.rowHeight}px;">${buildHistoryEntry(msg, absoluteIdx)}</div>`;
         }).join('');
 
-        state.spacer.innerHTML = html;
+        state.spacer.innerHTML = html;  // html viene de buildHistoryEntry que ya escapa datos de usuario
     };
 
     container.onscroll = paint;
@@ -12079,12 +12225,12 @@ function openVnActiveCharSheet() {
             char.basic     && { label: 'Descripción', val: char.basic.slice(0, 180) + (char.basic.length > 180 ? '…' : ''), full: true, italic: true },
         ].filter(Boolean);
 
-        bodyEl.innerHTML = rows.map(r => `
+        safeHtml(bodyEl, rows.map(r => `
             <div class="ficha-modal-row${r.full ? ' full-width' : ''}">
                 <span class="ficha-modal-label">${r.label}</span>
                 <span class="ficha-modal-value${r.italic ? ' italic' : ''}">${escapeHtml(String(r.val))}</span>
             </div>
-        `).join('');
+        `).join(''));
     }
 
     if (typeof openModal === 'function') openModal('fichaModal');
@@ -12166,7 +12312,7 @@ function _renderCharInfoPanel(char) {
             ? `<div class="cip-basic">"${escapeHtml(char.basic.slice(0, 200))}${char.basic.length > 200 ? '…' : ''}"</div>`
             : '';
 
-        bodyEl.innerHTML = fieldsHtml + basicHtml;
+        safeHtml(bodyEl, fieldsHtml + basicHtml);
     }
 
     // ── TODAS LAS RELACIONES EN LA PARTIDA ─────
@@ -13664,7 +13810,7 @@ function vrpUpdatePreview() {
 
     const raw = textarea.value;
     const rendered = vrpRenderMarkdown(raw);
-    preview.innerHTML = rendered || '';
+    safeHtml(preview, rendered || '');
 
     if (hint) {
         hint.textContent = raw.length > 0
