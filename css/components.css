@@ -706,32 +706,59 @@ body::before {
         .rpg-stats-card {
             border: 1px solid var(--border-light);
             border-radius: 8px;
-            padding: 0.3rem 0.4rem;
+            padding: 0.38rem 0.42rem;
             background: rgba(255,255,255,0.02);
             display: grid;
-            grid-template-columns: auto 1fr auto auto auto;
-            align-items: center;
-            gap: 0.3rem;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-rows: auto auto;
+            gap: 0.2rem 0.34rem;
             text-align: left;
+            overflow: hidden;
+            min-width: 0;
+        }
+        .rpg-stats-card-main {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.28rem;
+            min-width: 0;
+            grid-column: 1;
+            grid-row: 1;
         }
         .rpg-stats-card-key {
             font-size: 0.72rem;
             font-weight: 700;
             color: var(--accent-gold);
-            min-width: 26px;
+            min-width: 0;
         }
         .rpg-stats-card-desc {
             font-size: 0.65rem;
             color: var(--text-secondary);
+            grid-column: 1;
+            grid-row: 2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .rpg-stats-card-value {
             font-size: 0.95rem;
             font-weight: 700;
             color: var(--text-primary);
-            min-width: 22px;
-            text-align: center;
+            min-width: 16px;
+            text-align: left;
         }
         /* Botones +/- para distribuir puntos */
+        .rpg-stat-btn-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.18rem;
+            grid-column: 2;
+            grid-row: 1 / span 2;
+            padding: 0.06rem;
+            border-radius: 6px;
+            border: 1px solid rgba(201,168,108,0.2);
+            background: rgba(201,168,108,0.06);
+            align-self: center;
+        }
         .rpg-stat-btn {
             width: 18px; height: 18px;
             border-radius: 4px;
@@ -9612,6 +9639,38 @@ body.mode-classic .shadow-glow {
     pointer-events: none;
 }
 
+.vn-dm-corner-btn {
+    position: absolute;
+    top: -12px;
+    right: 46px;
+    min-width: 42px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(160deg, rgba(90,58,18,0.96), rgba(56,34,10,0.96));
+    border: 1px solid rgba(227, 186, 105, 0.62);
+    color: #f2d9a2;
+    cursor: pointer;
+    z-index: var(--z-i-30);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.45rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.42);
+    transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+}
+.vn-dm-corner-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(240, 204, 130, 0.85);
+    background: linear-gradient(160deg, rgba(112,72,20,0.98), rgba(72,43,11,0.98));
+    box-shadow: 0 7px 14px rgba(0,0,0,0.48);
+}
+.vn-dm-corner-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+}
+
 /* Picker de reacciones sale desde la esquina sup-der de la caja */
 .vn-reaction-picker {
     position: absolute !important;
@@ -12151,17 +12210,15 @@ select {
 
 /* Modificador D&D debajo del valor */
 .rpg-stats-card {
-    grid-template-columns: auto 1fr auto auto auto !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
     grid-template-rows: auto auto;
     position: relative;
 }
 .rpg-stats-card-mod {
     font-size: 0.6rem;
     color: rgba(201,168,108,0.6);
-    text-align: center;
-    grid-column: 3;
-    grid-row: 2;
-    min-width: 22px;
+    text-align: left;
+    min-width: 12px;
 }
 
 /* Tooltip nativo con title — refuerzo visual */
@@ -12590,16 +12647,14 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     right: 12px;
     top: 56px;
     z-index: var(--z-i-211);
-    width: 280px;
-    max-height: calc(100vh - 80px);
-    overflow-y: auto;
+    width: 344px;
     background: linear-gradient(160deg, rgba(20,12,5,0.99), rgba(12,8,3,0.99));
     border: 1px solid rgba(201,168,108,0.4);
     border-radius: 14px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,220,140,0.06);
     backdrop-filter: blur(20px);
     flex-direction: column;
-    overflow-x: hidden;
+    overflow: hidden;
     animation: fadeIn 0.18s ease;
 }
 .vn-dm-panel-header {
@@ -12633,9 +12688,38 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     transition: color 0.12s;
 }
 .vn-dm-panel-header button:hover { color: rgba(201,168,108,0.8); }
+.vn-dm-tabbar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.25rem;
+    padding: 0.45rem 0.55rem;
+    border-bottom: 1px solid rgba(201,168,108,0.12);
+    background: rgba(10, 7, 3, 0.75);
+}
+.vn-dm-tab {
+    border: 1px solid rgba(201,168,108,0.2);
+    background: rgba(201,168,108,0.05);
+    color: rgba(201,168,108,0.6);
+    border-radius: 7px;
+    font-size: 0.58rem;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.15rem;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.vn-dm-tab:hover { border-color: rgba(201,168,108,0.45); color: rgba(225,194,135,0.9); }
+.vn-dm-tab.active {
+    background: rgba(201,168,108,0.2);
+    border-color: rgba(201,168,108,0.5);
+    color: rgba(255,228,170,0.96);
+}
+.vn-dm-tab-panel { display: none; }
+.vn-dm-tab-panel.active { display: block; }
 
 .vn-dm-section {
-    padding: 0.6rem 0.75rem;
+    padding: 0.55rem 0.65rem;
     border-bottom: 1px solid rgba(201,168,108,0.08);
 }
 .vn-dm-section:last-child { border-bottom: none; }
@@ -12791,7 +12875,10 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .vn-dm-panel { right: 8px; left: 8px; width: auto; top: auto; bottom: 1rem; max-height: 75vh; }
+    .vn-dm-panel { right: 8px; left: 8px; width: auto; top: auto; bottom: 1rem; }
+    .vn-dm-tabbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .vn-oracle-minipanel-rolltype {
         flex-direction: column;
         align-items: stretch;

@@ -57,6 +57,16 @@
                 filter 0.3s ease;
     /* Sin background-image — cara renderizada con SVG inline */
 }
+[data-theme="light"] .ethy-body {
+    filter: brightness(0.78) contrast(1.34) saturate(0.86) drop-shadow(0 6px 12px rgba(25, 15, 5, 0.42));
+}
+[data-theme="light"] .ethy-svg .ethy-part-outline,
+[data-theme="light"] .ethy-svg .ethy-part-outline-soft {
+    stroke: rgba(54, 29, 7, 0.98);
+}
+[data-theme="light"] .ethy-svg .ethy-part-face-main {
+    filter: brightness(0.9) contrast(1.22) saturate(0.92);
+}
 
 .ethy-body:hover  { transform: scale(1.1); }
 .ethy-body:active { transform: scale(0.95); }
@@ -356,7 +366,7 @@
 
 /* Modo oscuro ajustes */
 [data-theme="dark"] .ethy-body {
-    filter: brightness(1.15);
+    filter: brightness(1.12) saturate(1.08) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.44));
 }
 
 [data-theme="dark"] .ethy-speech-bubble {

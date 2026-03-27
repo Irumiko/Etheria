@@ -472,11 +472,11 @@
     <!-- Bonds Section — Vínculos -->
     <div id="bondsSection" class="game-section">
         <div class="bonds-header">
-            <button class="bonds-back-btn" onclick="backToMenu()">← Menú</button>
             <div>
                 <div class="bonds-title">✦ Vínculos</div>
                 <div class="bonds-subtitle">Las relaciones que tus personajes han forjado</div>
             </div>
+            <button class="bonds-back-btn" onclick="backToMenu()">← Menú</button>
         </div>
         <div id="bondsContainer"></div>
     </div>
@@ -895,14 +895,23 @@
                 </span>
                 <button type="button" onclick="closeDmPanel()" aria-label="Cerrar">✕</button>
             </div>
+            <div class="vn-dm-tabbar" role="tablist" aria-label="Secciones del panel DM">
+                <button class="vn-dm-tab active" type="button" role="tab" aria-selected="true" data-tab="party" onclick="switchDmTab('party', this)">Grupo</button>
+                <button class="vn-dm-tab" type="button" role="tab" aria-selected="false" data-tab="control" onclick="switchDmTab('control', this)">Control</button>
+                <button class="vn-dm-tab" type="button" role="tab" aria-selected="false" data-tab="scene" onclick="switchDmTab('scene', this)">Escena</button>
+                <button class="vn-dm-tab" type="button" role="tab" aria-selected="false" data-tab="tools" onclick="switchDmTab('tools', this)">Utilidades</button>
+            </div>
 
             <!-- Sección: Personajes en la partida -->
+            <div class="vn-dm-tab-panel active" data-tab-panel="party">
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Personajes</div>
                 <div id="dmCharacterList" class="dm-character-list"></div>
             </div>
+            </div>
 
             <!-- Sección: Condiciones -->
+            <div class="vn-dm-tab-panel" data-tab-panel="control">
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Aplicar condición</div>
                 <div class="dm-condition-controls">
@@ -932,8 +941,10 @@
                     <button class="dm-btn dm-btn-apply" onclick="dmGiveItem()">Dar objeto</button>
                 </div>
             </div>
+            </div>
 
             <!-- Sección: Desafío (tirada con opciones y DC) -->
+            <div class="vn-dm-tab-panel" data-tab-panel="scene">
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Proponer desafío</div>
                 <div class="dm-challenge-controls">
@@ -974,11 +985,14 @@
                     <button class="dm-btn dm-btn-apply" onclick="dmSendAsNpc()">Enviar como NPC</button>
                 </div>
             </div>
+            </div>
+            <div class="vn-dm-tab-panel" data-tab-panel="tools">
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Utilidades</div>
                 <div class="dm-item-controls">
                     <button class="dm-btn dm-btn-apply" onclick="dmTriggerShortRest()">⛺ Activar descanso corto (25% HP)</button>
                 </div>
+            </div>
             </div>
         </div>
 
@@ -1119,6 +1133,11 @@
 </svg>
                 <span id="vnReactionCornerActive" class="vn-reaction-corner-active" style="display:none;"></span>
             </button>
+            <button id="vnDmBtn" class="vn-dm-corner-btn" type="button"
+                    onclick="event.stopPropagation(); handleActionButtonClick(event); toggleDmPanel()"
+                    style="display:none;" aria-label="Panel del Dungeon Master" title="Panel DM (solo gestión)">
+                <span class="vn-dm-corner-label">DM</span>
+            </button>
             <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
             <div class="vn-speaker-avatar-wrap" aria-hidden="true"></div>
@@ -1150,10 +1169,6 @@
                     <div class="vn-dialogue-actions-left">
                         <button id="vnOracleFloatBtn" class="vn-dialogue-action-btn oracle-action-btn" type="button" onclick="handleActionButtonClick(event); toggleOracleMiniPanel()" style="display:none;" title="Consultar al oráculo" aria-label="Oráculo">
                             <span class="action-icon">🎲</span><span class="action-label">Oráculo</span>
-                        </button>
-                        <button id="vnDmBtn" class="vn-dialogue-action-btn dm-action-btn" type="button" onclick="handleActionButtonClick(event); toggleDmPanel()" style="display:none;" title="Panel del Dungeon Master" aria-label="DM">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                            <span class="action-label">DM</span>
                         </button>
                         <button id="vnInnkeeperBtn" class="vn-dialogue-action-btn innkeeper-action-btn" type="button" onclick="handleActionButtonClick(event); triggerInnkeeperScene()" style="display:none;" title="La Posada — nueva escena" aria-label="Posada">
                             <span class="action-icon">🍺</span><span class="action-label">Posada</span>

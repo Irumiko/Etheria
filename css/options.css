@@ -4,7 +4,7 @@
 
 /* ── Sección base ───────────────────────────────────────────────────────── */
 #optionsSection {
-    background: linear-gradient(160deg, #0d0c0a 0%, #1a1815 55%, #0d0c0a 100%);
+    background: #15110d !important;
     min-height: 100vh;
     /* display gestionado por .game-section { display:none } y .game-section.active { display:flex }
        NO sobreescribir aquí — un ID selector tiene mayor especificidad que .game-section
@@ -284,6 +284,12 @@
     .opt-birthday-wrap { flex-wrap: wrap; }
 }
 
-/* Decoración fondo */
-#optionsSection::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at 10% 20%, rgba(201,168,108,0.025) 0%, transparent 40%), radial-gradient(ellipse at 90% 80%, rgba(201,168,108,0.025) 0%, transparent 40%); pointer-events: none; z-index: var(--z-i-0); }
+/* Decoración fondo: desactivada para legibilidad total */
+#optionsSection::before { display: none !important; }
 #optionsSection > * { position: relative; z-index: var(--z-i-1); }
+[data-theme="light"] #optionsSection {
+    background: #ece2cf !important;
+}
+[data-theme="light"] #optionsSection::before {
+    display: none !important;
+}

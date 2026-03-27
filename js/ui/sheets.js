@@ -425,14 +425,18 @@ function renderRpgStatsModal(c) {
                 const canSub = isOwn && val > RPG_STAT_BASE;
                 return `
                 <div class="rpg-stats-card" title="${RPG_STAT_DESC[key]}">
-                    <span class="rpg-stats-card-key">${key}</span>
+                    <div class="rpg-stats-card-main">
+                        <span class="rpg-stats-card-key">${key}</span>
+                        <span class="rpg-stats-card-value" id="rpgStat_${key}">${val}</span>
+                        <span class="rpg-stats-card-mod">${mod}</span>
+                    </div>
                     <span class="rpg-stats-card-desc">${RPG_STAT_LABEL[key]}</span>
-                    <span class="rpg-stats-card-value" id="rpgStat_${key}">${val}</span>
-                    <span class="rpg-stats-card-mod">${mod}</span>
                     ${isOwn ? `
-                    <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',-1)" ${canSub?'':'disabled'} title="Quitar punto">−</button>
-                    <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',1)" ${canAdd?'':'disabled'} title="Añadir punto">+</button>
-                    ` : '<span></span><span></span>'}
+                    <span class="rpg-stat-btn-group">
+                        <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',-1)" ${canSub?'':'disabled'} title="Quitar punto">−</button>
+                        <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',1)" ${canAdd?'':'disabled'} title="Añadir punto">+</button>
+                    </span>
+                    ` : '<span class="rpg-stat-btn-group" aria-hidden="true"></span>'}
                 </div>`;
             }).join('')}
         </div>
