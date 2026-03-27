@@ -709,7 +709,7 @@ body::before {
             padding: 0.3rem 0.4rem;
             background: rgba(255,255,255,0.02);
             display: grid;
-            grid-template-columns: auto 1fr auto auto auto;
+            grid-template-columns: auto minmax(0, 1fr) auto auto;
             align-items: center;
             gap: 0.3rem;
             text-align: left;
@@ -732,6 +732,17 @@ body::before {
             text-align: center;
         }
         /* Botones +/- para distribuir puntos */
+        .rpg-stat-btn-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.18rem;
+            grid-column: 4;
+            grid-row: 1 / span 2;
+            padding: 0.06rem;
+            border-radius: 6px;
+            border: 1px solid rgba(201,168,108,0.2);
+            background: rgba(201,168,108,0.06);
+        }
         .rpg-stat-btn {
             width: 18px; height: 18px;
             border-radius: 4px;
@@ -12151,7 +12162,7 @@ select {
 
 /* Modificador D&D debajo del valor */
 .rpg-stats-card {
-    grid-template-columns: auto 1fr auto auto auto !important;
+    grid-template-columns: auto minmax(0, 1fr) auto auto !important;
     grid-template-rows: auto auto;
     position: relative;
 }
@@ -12590,16 +12601,14 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     right: 12px;
     top: 56px;
     z-index: var(--z-i-211);
-    width: 280px;
-    max-height: calc(100vh - 80px);
-    overflow-y: auto;
+    width: 344px;
     background: linear-gradient(160deg, rgba(20,12,5,0.99), rgba(12,8,3,0.99));
     border: 1px solid rgba(201,168,108,0.4);
     border-radius: 14px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,220,140,0.06);
     backdrop-filter: blur(20px);
     flex-direction: column;
-    overflow-x: hidden;
+    overflow: hidden;
     animation: fadeIn 0.18s ease;
 }
 .vn-dm-panel-header {
@@ -12633,9 +12642,38 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     transition: color 0.12s;
 }
 .vn-dm-panel-header button:hover { color: rgba(201,168,108,0.8); }
+.vn-dm-tabbar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.25rem;
+    padding: 0.45rem 0.55rem;
+    border-bottom: 1px solid rgba(201,168,108,0.12);
+    background: rgba(10, 7, 3, 0.75);
+}
+.vn-dm-tab {
+    border: 1px solid rgba(201,168,108,0.2);
+    background: rgba(201,168,108,0.05);
+    color: rgba(201,168,108,0.6);
+    border-radius: 7px;
+    font-size: 0.58rem;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.15rem;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.vn-dm-tab:hover { border-color: rgba(201,168,108,0.45); color: rgba(225,194,135,0.9); }
+.vn-dm-tab.active {
+    background: rgba(201,168,108,0.2);
+    border-color: rgba(201,168,108,0.5);
+    color: rgba(255,228,170,0.96);
+}
+.vn-dm-tab-panel { display: none; }
+.vn-dm-tab-panel.active { display: block; }
 
 .vn-dm-section {
-    padding: 0.6rem 0.75rem;
+    padding: 0.55rem 0.65rem;
     border-bottom: 1px solid rgba(201,168,108,0.08);
 }
 .vn-dm-section:last-child { border-bottom: none; }
@@ -12751,6 +12789,13 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     cursor: pointer;
     transition: all 0.14s;
 }
+.vn-dm-top-btn {
+    border-color: rgba(201,168,108,0.46);
+    color: rgba(240,213,158,0.95);
+}
+.vn-dm-top-btn:hover {
+    background: rgba(201,168,108,0.18);
+}
 .dm-btn:hover {
     background: rgba(201,168,108,0.16);
     border-color: rgba(201,168,108,0.5);
@@ -12791,7 +12836,10 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .vn-dm-panel { right: 8px; left: 8px; width: auto; top: auto; bottom: 1rem; max-height: 75vh; }
+    .vn-dm-panel { right: 8px; left: 8px; width: auto; top: auto; bottom: 1rem; }
+    .vn-dm-tabbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .vn-oracle-minipanel-rolltype {
         flex-direction: column;
         align-items: stretch;

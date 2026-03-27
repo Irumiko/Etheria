@@ -4,7 +4,10 @@
 
 /* ── Sección base ───────────────────────────────────────────────────────── */
 #optionsSection {
-    background: linear-gradient(160deg, #0d0c0a 0%, #1a1815 55%, #0d0c0a 100%);
+    background:
+        linear-gradient(165deg, rgba(6, 5, 4, 0.94) 0%, rgba(19, 15, 11, 0.94) 54%, rgba(7, 6, 4, 0.95) 100%),
+        radial-gradient(circle at 78% 18%, rgba(201, 168, 108, 0.1) 0%, transparent 52%),
+        radial-gradient(circle at 18% 84%, rgba(130, 80, 38, 0.08) 0%, transparent 48%);
     min-height: 100vh;
     /* display gestionado por .game-section { display:none } y .game-section.active { display:flex }
        NO sobreescribir aquí — un ID selector tiene mayor especificidad que .game-section
@@ -285,5 +288,14 @@
 }
 
 /* Decoración fondo */
-#optionsSection::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse at 10% 20%, rgba(201,168,108,0.025) 0%, transparent 40%), radial-gradient(ellipse at 90% 80%, rgba(201,168,108,0.025) 0%, transparent 40%); pointer-events: none; z-index: var(--z-i-0); }
+#optionsSection::before { content: ''; position: fixed; inset: 0; background: linear-gradient(180deg, rgba(8,7,5,0.78) 0%, rgba(8,7,5,0.62) 100%), radial-gradient(ellipse at 10% 20%, rgba(201,168,108,0.07) 0%, transparent 45%), radial-gradient(ellipse at 90% 80%, rgba(201,168,108,0.06) 0%, transparent 45%); pointer-events: none; z-index: var(--z-i-0); }
 #optionsSection > * { position: relative; z-index: var(--z-i-1); }
+[data-theme="light"] #optionsSection {
+    background:
+        linear-gradient(168deg, rgba(235, 224, 203, 0.92) 0%, rgba(216, 198, 168, 0.93) 52%, rgba(227, 212, 187, 0.94) 100%),
+        radial-gradient(circle at 82% 24%, rgba(164, 119, 63, 0.2) 0%, transparent 52%),
+        radial-gradient(circle at 20% 78%, rgba(128, 84, 36, 0.16) 0%, transparent 46%);
+}
+[data-theme="light"] #optionsSection::before {
+    background: linear-gradient(180deg, rgba(251, 247, 238, 0.76) 0%, rgba(242, 232, 214, 0.7) 100%);
+}

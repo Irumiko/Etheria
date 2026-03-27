@@ -430,9 +430,11 @@ function renderRpgStatsModal(c) {
                     <span class="rpg-stats-card-value" id="rpgStat_${key}">${val}</span>
                     <span class="rpg-stats-card-mod">${mod}</span>
                     ${isOwn ? `
-                    <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',-1)" ${canSub?'':'disabled'} title="Quitar punto">−</button>
-                    <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',1)" ${canAdd?'':'disabled'} title="Añadir punto">+</button>
-                    ` : '<span></span><span></span>'}
+                    <span class="rpg-stat-btn-group">
+                        <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',-1)" ${canSub?'':'disabled'} title="Quitar punto">−</button>
+                        <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',1)" ${canAdd?'':'disabled'} title="Añadir punto">+</button>
+                    </span>
+                    ` : '<span class="rpg-stat-btn-group" aria-hidden="true"></span>'}
                 </div>`;
             }).join('')}
         </div>

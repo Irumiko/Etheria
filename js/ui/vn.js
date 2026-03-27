@@ -3598,6 +3598,7 @@ function openDmPanel() {
     if (!panel) return;
     _dmPopulateSelects();
     _dmRenderCharacterList();
+    switchDmTab('party');
     panel.style.display = 'flex';
 }
 
@@ -3614,6 +3615,23 @@ function toggleDmPanel() {
     } else {
         closeDmPanel();
     }
+}
+
+function switchDmTab(tab, btnEl = null) {
+    const safeTab = ['party', 'control', 'scene', 'tools'].includes(tab) ? tab : 'party';
+    const panel = document.getElementById('vnDmPanel');
+    if (!panel) return;
+
+    panel.querySelectorAll('.vn-dm-tab').forEach(btn => {
+        const active = btn.dataset.tab === safeTab;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    panel.querySelectorAll('.vn-dm-tab-panel').forEach(section => {
+        section.classList.toggle('active', section.dataset.tabPanel === safeTab);
+    });
+
+    if (btnEl?.focus) btnEl.focus();
 }
 
 // Rellena todos los <select> de personaje con los participantes actuales
@@ -4173,6 +4191,7 @@ window.addEventListener('etheria:story-participants-loaded', function(e) {
 window.toggleDmPanel     = toggleDmPanel;
 window.openDmPanel       = openDmPanel;
 window.closeDmPanel      = closeDmPanel;
+window.switchDmTab       = switchDmTab;
 window.dmApplyCondition  = dmApplyCondition;
 window.dmRemoveCondition = dmRemoveCondition;
 window.dmGiveItem        = dmGiveItem;
