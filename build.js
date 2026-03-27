@@ -35,6 +35,10 @@ const NON_CRITICAL_CSS_ORDER = [
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];
+const LEGACY_MENU_CSS_ORDER = [
+  'css/menu.css',
+  'css/features/menu/index.css',
+];
 
 const STATIC_ASSETS = [
   ['manifest.json', 'manifest.json'],
@@ -43,7 +47,6 @@ const STATIC_ASSETS = [
   ['assets/icons/icon-512.png', 'assets/icons/icon-512.png'],
   ['assets/backgrounds/menu_background.jpg', 'assets/backgrounds/menu_background.jpg'],
   ['assets/backgrounds/default_background.jpg', 'assets/backgrounds/default_background.jpg'],
-  ['assets/backgrounds/rpg_background.png', 'assets/backgrounds/rpg_background.png'],
   ['assets/backgrounds/rpg_background.png', 'assets/backgrounds/rpg_background.png'],
   ['assets/parallax/layer_bg.png', 'assets/parallax/layer_bg.png'],
   ['assets/parallax/layer_mid.png', 'assets/parallax/layer_mid.png'],
@@ -104,6 +107,7 @@ const cssSegments = CSS_ORDER.map((f, i) => {
 });
 const criticalCss = cssSegments.slice(0, CRITICAL_CSS_ORDER.length).map((s) => s.content).join('\n\n');
 const nonCriticalCss = cssSegments.slice(CRITICAL_CSS_ORDER.length).map((s) => s.content).join('\n\n');
+const legacyMenuCss = LEGACY_MENU_CSS_ORDER.map((f) => `/* -- ${f} -- */\n${readFile(f)}`).join('\n\n');
 
 html = html.replace(/<link\s+rel="stylesheet"\s+href="css\/[^\"]+"\s*>/gi, '');
 html = html.replace(/<link\s+rel="preload"\s+href="css\/non-critical\.css"[^>]*>/i, '<link rel="preload" href="./noncritical.css" as="style" onload="this.onload=null;this.rel=\'stylesheet\'">');
@@ -130,7 +134,13 @@ fs.mkdirSync(distDir, { recursive: true });
 fs.writeFileSync(path.join(distDir, 'index.html'), html, 'utf8');
 fs.writeFileSync(path.join(distDir, 'etheria.html'), html, 'utf8');
 const nonCriticalCssFixed = nonCriticalCss.replace(/\.\.\/\.\.\/assets\//g, './assets/');
+const legacyMenuCssFixed = legacyMenuCss.replace(/\.\.\/assets\//g, './assets/');
 fs.writeFileSync(path.join(distDir, 'noncritical.css'), `${nonCriticalCssFixed}\n`, 'utf8');
+fs.writeFileSync(
+  path.join(distDir, 'menu-enhanced.css'),
+  `${legacyMenuCssFixed}\n`,
+  'utf8'
+);
 console.log(`\n  dist/index.html (${(html.length / 1024).toFixed(0)} KB)`);
 
 writeBundleAndMap('etheria.css', cssSegments);

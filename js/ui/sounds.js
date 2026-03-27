@@ -46,6 +46,27 @@ function playSoundClick() {
     osc.stop(ctx.currentTime + 0.1);
 }
 
+// Tap corto para botones UI (más discreto que el click de diálogo)
+function playSoundTap() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(640, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(520, ctx.currentTime + 0.05);
+
+    gain.gain.setValueAtTime(masterVolume * 0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.06);
+}
+
 // Subir afinidad: nota ascendente cálida
 function playSoundAffinityUp() {
     const ctx = getAudioContext();
@@ -451,9 +472,23 @@ function stopMenuMusic(fadeOut) {
             const sfx = data?.sfx;
             if (sfx === 'save')          playSoundSave();
             else if (sfx === 'click')    playSoundClick();
+            else if (sfx === 'tap')      playSoundTap();
             else if (sfx === 'affinity-up')   playSoundAffinityUp();
             else if (sfx === 'affinity-down') playSoundAffinityDown();
         });
+
+        // Feedback sutil para botones (evita largos periodos de silencio en la UI)
+        let _lastTapAt = 0;
+        document.addEventListener('click', function (ev) {
+            const target = ev.target instanceof Element
+                ? ev.target.closest('button, .vn-control-btn, .vn-dialogue-action-btn, .menu-button, .dm-btn, .vn-option-btn, .reply-emote-btn')
+                : null;
+            if (!target) return;
+            const now = Date.now();
+            if (now - _lastTapAt < 70) return; // throttle anti-doble-disparo
+            _lastTapAt = now;
+            eventBus.emit('audio:play-sfx', { sfx: 'tap' });
+        }, true);
 
         // Aplicar volumen guardado al iniciar
         const savedMaster = parseFloat(localStorage.getItem('etheria_master_volume') || '50') / 100;

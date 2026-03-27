@@ -1,3 +1,8 @@
+if (window.__ETHERIA_SHEETS_CANONICAL_LOADED__) {
+    throw new Error('[Etheria] js/ui/sheets.js cargado más de una vez.');
+}
+window.__ETHERIA_SHEETS_CANONICAL_LOADED__ = true;
+
 // Fichas de personaje (vista detallada).
 // FICHA DE PERSONAJE — Sistema D&D 5e simplificado
 // ============================================
@@ -14,16 +19,15 @@ const RPG_POINTS_POOL = 27;         // puntos a distribuir (point buy D&D están
 const RPG_HP_MAX      = 10;         // HP base (escala de la ficha, 0-10)
 const RPG_EXP_PER_LEVEL = 10;
 
-// ── Sistema de condiciones D&D ──────────────────────────────────────────────
+// ── Sistema de condiciones narrativas ───────────────────────────────────────
 // 7 condiciones que el DM puede aplicar manualmente, o que se activan
-// automáticamente según el estado del personaje (HP=0 → Inconsciente).
+// automáticamente según el estado del personaje (HP=0 → tensión crítica).
 // Cada condición modifica el oráculo con ventaja/desventaja en stats concretos.
 
-// ── Condiciones básicas de D&D ─────────────────────────────────────────────
-// 6 condiciones generales aplicables por el DM + el estado especial Muerte.
-// Muerte es el único estado que NO aparece en el selector del DM —
-// se activa automáticamente al llegar a HP=0 y solo se quita con un objeto
-// específico (Pluma de Fénix) o mediante un evento narrativo del DM.
+// ── Condiciones básicas ────────────────────────────────────────────────────
+// 6 condiciones generales aplicables por el DM + el estado especial de
+// tensión crítica. Este estado no aparece en el selector del DM: se activa
+// automáticamente al llegar a HP=0 y representa quedar fuera de escena.
 const RPG_CONDITIONS = {
     poisoned:  { id: 'poisoned',  label: 'Envenenado',  icon: '☠',  color: '#4a8c3f', desc: 'Pierde 1 HP cada turno. Desventaja en STR y CON.', statPenalty: { STR: -2, CON: -2 }, dmOnly: false },
     paralyzed: { id: 'paralyzed', label: 'Paralizado',  icon: '🧊', color: '#2a6ea6', desc: 'No puede actuar. Fallo automático en STR y DEX.', statPenalty: { STR: -5, DEX: -5 }, dmOnly: false },
@@ -32,7 +36,7 @@ const RPG_CONDITIONS = {
     blinded:   { id: 'blinded',   label: 'Cegado',      icon: '🙈', color: '#5a4a2a', desc: 'Desventaja en DEX y WIS. Los atacantes tienen ventaja contra este personaje.', statPenalty: { DEX: -3, WIS: -2 }, dmOnly: false },
     blessed:   { id: 'blessed',   label: 'Bendecido',   icon: '✦',  color: '#2a7a4a', desc: 'Ventaja en todas las tiradas durante este turno. Puede otorgarlo el DM o un objeto.', statBonus: { STR: 2, DEX: 2, CON: 2, INT: 2, WIS: 2, CHA: 2 }, dmOnly: false },
     // Estado especial — no aparece en el selector del DM, solo se activa automáticamente
-    dead:      { id: 'dead',      label: 'Muerto',      icon: '💀', color: '#3a0a0a', desc: 'El personaje ha caído. No puede actuar. Solo puede ser revivido con una Pluma de Fénix o por intervención del DM.', statPenalty: { STR: -99, DEX: -99, CON: -99, INT: -99, WIS: -99, CHA: -99 }, dmOnly: true, isDeathState: true }
+    dead:      { id: 'dead',      label: 'Tensión crítica', icon: '💥', color: '#5a1d1d', desc: 'La escena te sobrepasó. Quedas fuera de escena hasta que el DM te reincorpore o la ficción te dé una salida.', statPenalty: { STR: -99, DEX: -99, CON: -99, INT: -99, WIS: -99, CHA: -99 }, dmOnly: true, isDeathState: true }
 };
 
 // IDs de condiciones que el DM puede aplicar manualmente (excluye 'dead')
@@ -106,18 +110,54 @@ function rpgModStr(val)   { const m = rpgModifier(val); return (m >= 0 ? '+' : '
 // Clases D&D básicas (las más genéricas y reconocibles)
 // 6 clases básicas y genéricas de D&D — las más reconocibles y distintas entre sí
 const RPG_CLASSES = [
-    { id: 'fighter',   name: 'Guerrero',   desc: 'Maestro del combate. Fuerte, resistente, versátil con cualquier arma.' },
-    { id: 'ranger',    name: 'Explorador', desc: 'Rastreador experto. Ataques a distancia, supervivencia y sigilo.' },
-    { id: 'rogue',     name: 'Pícaro',     desc: 'Especialista en sigilo, trampas y golpes precisos en el momento justo.' },
-    { id: 'cleric',    name: 'Clérigo',    desc: 'Devoto que canaliza poder divino. Cura aliados y castiga enemigos.' },
-    { id: 'wizard',    name: 'Mago',       desc: 'Erudito arcano. Domina hechizos de gran poder a costa de resistencia física.' },
-    { id: 'barbarian', name: 'Bárbaro',    desc: 'Guerrero feroz impulsado por la rabia. Daño devastador, poca defensa.' }
+    { id: 'fighter',   name: 'Guerrero',   desc: 'Ancla la presión física de la escena. Ideal para abrir paso, sostener el foco o cargar con el peso del relevo.' },
+    { id: 'ranger',    name: 'Explorador', desc: 'Lee el entorno y encuentra rutas narrativas. Destaca rastreando, descubriendo salidas y adelantándose al peligro.' },
+    { id: 'rogue',     name: 'Pícaro',     desc: 'Controla el ritmo desde la sombra. Brilla robando foco, colándose entre riesgos y forzando giros oportunistas.' },
+    { id: 'cleric',    name: 'Clérigo',    desc: 'Sostiene al grupo en momentos límite. Reordena la tensión, protege la escena y devuelve protagonismo a otros.' },
+    { id: 'wizard',    name: 'Mago',       desc: 'Reencuadra la ficción con conocimiento y magia. Puede torcer el momento, preparar rituales o ceder foco con intención.' },
+    { id: 'barbarian', name: 'Bárbaro',    desc: 'Empuja la escena al límite. Convierte presión y visceralidad en impulso para romper bloqueos narrativos.' }
 ];
 
 function getRpgTitleByLevel(level) {
     if (level >= 7) return 'Maestro';
     if (level >= 4) return 'Adepto';
     return 'Aprendiz';
+}
+
+function getRpgClassPassive(rpgClass) {
+    return RPG_CLASS_PASSIVES[rpgClass] || null;
+}
+
+function resolveRpgRollContext({ char, topicId = null, stat = 'STR', rollType = 'check', question = '' } = {}) {
+    const safeStat = RPG_STAT_KEYS.includes(stat) ? stat : 'STR';
+    const profile = char ? ensureCharacterRpgProfile(char, topicId) : null;
+    const baseStat = Number(profile?.stats?.[safeStat]) || RPG_STAT_BASE;
+    const condMod = profile ? getConditionModifier(profile, safeStat) : 0;
+    const statValue = Math.max(1, baseStat + condMod);
+    const abilityModifier = rpgModifier(statValue);
+    const classId = profile?.rpgClass || null;
+    const passive = getRpgClassPassive(classId);
+    const classEdge = passive?.stat === safeStat ? 1 : 0;
+    const modifier = abilityModifier + classEdge;
+    const rollTypeLabel = rollType === 'save' ? 'Reacción / Aguante' : 'Prueba de acción';
+    const label = rollType === 'save' ? `${safeStat} Reacción` : `${safeStat} Prueba`;
+    const breakdown = classEdge
+        ? `${label} · Mod ${modifier >= 0 ? '+' : ''}${modifier} · Rasgo +${classEdge}`
+        : `${label} · Mod ${modifier >= 0 ? '+' : ''}${modifier}`;
+    const advantageState = statValue >= 14 ? 'advantage' : statValue <= 6 ? 'disadvantage' : '';
+
+    return {
+        stat: safeStat,
+        statValue,
+        modifier,
+        classEdge,
+        passiveName: passive?.name || null,
+        label,
+        rollType,
+        rollTypeLabel,
+        breakdown,
+        advantageState
+    };
 }
 
 // Calcula el coste en puntos de comprar un stat a un valor dado
@@ -332,6 +372,7 @@ function renderRpgStatsModal(c) {
     const expWidth = (profile.exp / RPG_EXP_PER_LEVEL) * 100;
     const isOwn    = c.userIndex === currentUserIndex;
     const className = RPG_CLASSES.find(cl => cl.id === profile.rpgClass);
+    const classPassive = getRpgClassPassive(profile.rpgClass);
 
     titleEl.textContent = `⚔ Nv.${profile.level} · ${data.title}`;
 
@@ -350,8 +391,21 @@ function renderRpgStatsModal(c) {
             <span class="rpg-class-display">${className.name}</span>
         </div>` : '');
 
+    const dndLiteMeta = `
+        ${classPassive ? `
+        <div class="rpg-class-row">
+            <span class="rpg-class-label">Rasgo</span>
+            <span class="rpg-class-display">${classPassive.name}</span>
+        </div>
+        <div class="rpg-class-row">
+            <span class="rpg-class-label">Foco</span>
+            <span class="rpg-class-display">${classPassive.desc}</span>
+        </div>` : ''}
+    `;
+
     bodyEl.innerHTML = `
         ${classSection}
+        ${dndLiteMeta}
         <div class="rpg-stats-progress-row">
             <span class="rpg-stats-progress-label">HP</span>
             <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill hp" style="width:${hpWidth}%;"></div></div>
@@ -444,6 +498,8 @@ window._persistRpgProfile        = _persistRpgProfile;
 window.applyConditionToProfile   = applyConditionToProfile;
 window.removeConditionFromProfile = removeConditionFromProfile;
 window.getConditionModifier      = getConditionModifier;
+window.getRpgClassPassive        = getRpgClassPassive;
+window.resolveRpgRollContext     = resolveRpgRollContext;
 window.RPG_CLASSES      = RPG_CLASSES;
 window.RPG_CONDITIONS   = RPG_CONDITIONS;
 window.RPG_STAT_KEYS    = RPG_STAT_KEYS;
@@ -981,18 +1037,18 @@ window.useInventoryItem = useInventoryItem;
 
 // ── Habilidades pasivas de clase (disponibles desde nivel 3) ───────────────
 const RPG_CLASS_PASSIVES = {
-    barbarian:  { name: 'Furia',           stat: 'STR', bonus: 3, desc: '+3 STR al oráculo en combate cuerpo a cuerpo.' },
-    bard:       { name: 'Inspiración',     stat: 'CHA', bonus: 2, desc: '+2 CHA en tiradas de persuasión o actuación.' },
-    cleric:     { name: 'Favor divino',    stat: 'WIS', bonus: 2, desc: '+2 WIS en tiradas de curación o fe.' },
-    druid:      { name: 'Forma natural',   stat: 'WIS', bonus: 2, desc: '+2 WIS en entornos naturales.' },
-    fighter:    { name: 'Estilo de lucha', stat: 'STR', bonus: 2, desc: '+2 STR o DEX según el tipo de ataque.' },
-    monk:       { name: 'Ki',              stat: 'DEX', bonus: 3, desc: '+3 DEX en esquivas y ataques sin arma.' },
-    paladin:    { name: 'Aura de protección', stat: 'CHA', bonus: 2, desc: '+2 CHA y +1 a tiradas de salvación aliadas.' },
-    ranger:     { name: 'Exploración',     stat: 'DEX', bonus: 2, desc: '+2 DEX en terreno conocido o seguimiento.' },
-    rogue:      { name: 'Ataque furtivo',  stat: 'DEX', bonus: 3, desc: '+3 DEX si hay ventaja o aliado adyacente.' },
-    sorcerer:   { name: 'Magia innata',    stat: 'CHA', bonus: 3, desc: '+3 CHA en hechizos de daño directo.' },
-    warlock:    { name: 'Pacto arcano',    stat: 'INT', bonus: 2, desc: '+2 INT en tiradas de conocimiento oscuro.' },
-    wizard:     { name: 'Conjuración',     stat: 'INT', bonus: 3, desc: '+3 INT en hechizos de área o ritual.' }
+    barbarian:  { name: 'Furia',           stat: 'STR', bonus: 3, desc: '+3 STR cuando empuja la escena al límite o rompe un bloqueo frontal.' },
+    bard:       { name: 'Inspiración',     stat: 'CHA', bonus: 2, desc: '+2 CHA al sostener el ánimo o recolocar el foco narrativo.' },
+    cleric:     { name: 'Favor divino',    stat: 'WIS', bonus: 2, desc: '+2 WIS al proteger, estabilizar o devolver calma a la escena.' },
+    druid:      { name: 'Forma natural',   stat: 'WIS', bonus: 2, desc: '+2 WIS cuando el entorno natural marca el ritmo del relevo.' },
+    fighter:    { name: 'Punto de apoyo',  stat: 'STR', bonus: 2, desc: '+2 STR o DEX cuando sostiene la presión física del siguiente momento.' },
+    monk:       { name: 'Ki',              stat: 'DEX', bonus: 3, desc: '+3 DEX al esquivar, fluir o cambiar el ritmo sin perder foco.' },
+    paladin:    { name: 'Aura de protección', stat: 'CHA', bonus: 2, desc: '+2 CHA y apoyo narrativo cuando protege el protagonismo del grupo.' },
+    ranger:     { name: 'Exploración',     stat: 'DEX', bonus: 2, desc: '+2 DEX al rastrear, adelantarse o encontrar una salida limpia.' },
+    rogue:      { name: 'Momento oportuno',stat: 'DEX', bonus: 3, desc: '+3 DEX cuando roba el foco en un hueco de la escena.' },
+    sorcerer:   { name: 'Magia innata',    stat: 'CHA', bonus: 3, desc: '+3 CHA al imponer un giro explosivo o inesperado.' },
+    warlock:    { name: 'Pacto arcano',    stat: 'INT', bonus: 2, desc: '+2 INT al negociar con fuerzas oscuras o conocimiento prohibido.' },
+    wizard:     { name: 'Conjuración',     stat: 'INT', bonus: 3, desc: '+3 INT al reencuadrar el momento con rituales, símbolos o estudio.' }
 };
 
 // Recalcula HP_max al subir de nivel (CON sigue siendo la base)
