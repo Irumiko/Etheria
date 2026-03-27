@@ -1276,6 +1276,27 @@ function playSoundClick() {
     osc.stop(ctx.currentTime + 0.1);
 }
 
+// Tap corto para botones UI (más discreto que el click de diálogo)
+function playSoundTap() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(640, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(520, ctx.currentTime + 0.05);
+
+    gain.gain.setValueAtTime(masterVolume * 0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.06);
+}
+
 // Subir afinidad: nota ascendente cálida
 function playSoundAffinityUp() {
     const ctx = getAudioContext();
@@ -1681,9 +1702,23 @@ function stopMenuMusic(fadeOut) {
             const sfx = data?.sfx;
             if (sfx === 'save')          playSoundSave();
             else if (sfx === 'click')    playSoundClick();
+            else if (sfx === 'tap')      playSoundTap();
             else if (sfx === 'affinity-up')   playSoundAffinityUp();
             else if (sfx === 'affinity-down') playSoundAffinityDown();
         });
+
+        // Feedback sutil para botones (evita largos periodos de silencio en la UI)
+        let _lastTapAt = 0;
+        document.addEventListener('click', function (ev) {
+            const target = ev.target instanceof Element
+                ? ev.target.closest('button, .vn-control-btn, .vn-dialogue-action-btn, .menu-button, .dm-btn, .vn-option-btn, .reply-emote-btn')
+                : null;
+            if (!target) return;
+            const now = Date.now();
+            if (now - _lastTapAt < 70) return; // throttle anti-doble-disparo
+            _lastTapAt = now;
+            eventBus.emit('audio:play-sfx', { sfx: 'tap' });
+        }, true);
 
         // Aplicar volumen guardado al iniciar
         const savedMaster = parseFloat(localStorage.getItem('etheria_master_volume') || '50') / 100;
@@ -1698,6 +1733,11 @@ function stopMenuMusic(fadeOut) {
 })();
 
 /* js/ui/ui.js */
+if (window.__ETHERIA_UI_CANONICAL_LOADED__) {
+    throw new Error('[Etheria] js/ui/ui.js cargado más de una vez.');
+}
+window.__ETHERIA_UI_CANONICAL_LOADED__ = true;
+
 // Funciones de interfaz (menús, modales, renderizado visual).
 // ============================================
 // UI/INTERFACE.JS
@@ -5524,6 +5564,11 @@ window.addEventListener('etheria:presence-changed', function () {
 });
 
 /* js/ui/sheets.js */
+if (window.__ETHERIA_SHEETS_CANONICAL_LOADED__) {
+    throw new Error('[Etheria] js/ui/sheets.js cargado más de una vez.');
+}
+window.__ETHERIA_SHEETS_CANONICAL_LOADED__ = true;
+
 // Fichas de personaje (vista detallada).
 // FICHA DE PERSONAJE — Sistema D&D 5e simplificado
 // ============================================
@@ -5540,16 +5585,15 @@ const RPG_POINTS_POOL = 27;         // puntos a distribuir (point buy D&D están
 const RPG_HP_MAX      = 10;         // HP base (escala de la ficha, 0-10)
 const RPG_EXP_PER_LEVEL = 10;
 
-// ── Sistema de condiciones D&D ──────────────────────────────────────────────
+// ── Sistema de condiciones narrativas ───────────────────────────────────────
 // 7 condiciones que el DM puede aplicar manualmente, o que se activan
-// automáticamente según el estado del personaje (HP=0 → Inconsciente).
+// automáticamente según el estado del personaje (HP=0 → tensión crítica).
 // Cada condición modifica el oráculo con ventaja/desventaja en stats concretos.
 
-// ── Condiciones básicas de D&D ─────────────────────────────────────────────
-// 6 condiciones generales aplicables por el DM + el estado especial Muerte.
-// Muerte es el único estado que NO aparece en el selector del DM —
-// se activa automáticamente al llegar a HP=0 y solo se quita con un objeto
-// específico (Pluma de Fénix) o mediante un evento narrativo del DM.
+// ── Condiciones básicas ────────────────────────────────────────────────────
+// 6 condiciones generales aplicables por el DM + el estado especial de
+// tensión crítica. Este estado no aparece en el selector del DM: se activa
+// automáticamente al llegar a HP=0 y representa quedar fuera de escena.
 const RPG_CONDITIONS = {
     poisoned:  { id: 'poisoned',  label: 'Envenenado',  icon: '☠',  color: '#4a8c3f', desc: 'Pierde 1 HP cada turno. Desventaja en STR y CON.', statPenalty: { STR: -2, CON: -2 }, dmOnly: false },
     paralyzed: { id: 'paralyzed', label: 'Paralizado',  icon: '🧊', color: '#2a6ea6', desc: 'No puede actuar. Fallo automático en STR y DEX.', statPenalty: { STR: -5, DEX: -5 }, dmOnly: false },
@@ -5558,7 +5602,7 @@ const RPG_CONDITIONS = {
     blinded:   { id: 'blinded',   label: 'Cegado',      icon: '🙈', color: '#5a4a2a', desc: 'Desventaja en DEX y WIS. Los atacantes tienen ventaja contra este personaje.', statPenalty: { DEX: -3, WIS: -2 }, dmOnly: false },
     blessed:   { id: 'blessed',   label: 'Bendecido',   icon: '✦',  color: '#2a7a4a', desc: 'Ventaja en todas las tiradas durante este turno. Puede otorgarlo el DM o un objeto.', statBonus: { STR: 2, DEX: 2, CON: 2, INT: 2, WIS: 2, CHA: 2 }, dmOnly: false },
     // Estado especial — no aparece en el selector del DM, solo se activa automáticamente
-    dead:      { id: 'dead',      label: 'Muerto',      icon: '💀', color: '#3a0a0a', desc: 'El personaje ha caído. No puede actuar. Solo puede ser revivido con una Pluma de Fénix o por intervención del DM.', statPenalty: { STR: -99, DEX: -99, CON: -99, INT: -99, WIS: -99, CHA: -99 }, dmOnly: true, isDeathState: true }
+    dead:      { id: 'dead',      label: 'Tensión crítica', icon: '💥', color: '#5a1d1d', desc: 'La escena te sobrepasó. Quedas fuera de escena hasta que el DM te reincorpore o la ficción te dé una salida.', statPenalty: { STR: -99, DEX: -99, CON: -99, INT: -99, WIS: -99, CHA: -99 }, dmOnly: true, isDeathState: true }
 };
 
 // IDs de condiciones que el DM puede aplicar manualmente (excluye 'dead')
@@ -5632,18 +5676,54 @@ function rpgModStr(val)   { const m = rpgModifier(val); return (m >= 0 ? '+' : '
 // Clases D&D básicas (las más genéricas y reconocibles)
 // 6 clases básicas y genéricas de D&D — las más reconocibles y distintas entre sí
 const RPG_CLASSES = [
-    { id: 'fighter',   name: 'Guerrero',   desc: 'Maestro del combate. Fuerte, resistente, versátil con cualquier arma.' },
-    { id: 'ranger',    name: 'Explorador', desc: 'Rastreador experto. Ataques a distancia, supervivencia y sigilo.' },
-    { id: 'rogue',     name: 'Pícaro',     desc: 'Especialista en sigilo, trampas y golpes precisos en el momento justo.' },
-    { id: 'cleric',    name: 'Clérigo',    desc: 'Devoto que canaliza poder divino. Cura aliados y castiga enemigos.' },
-    { id: 'wizard',    name: 'Mago',       desc: 'Erudito arcano. Domina hechizos de gran poder a costa de resistencia física.' },
-    { id: 'barbarian', name: 'Bárbaro',    desc: 'Guerrero feroz impulsado por la rabia. Daño devastador, poca defensa.' }
+    { id: 'fighter',   name: 'Guerrero',   desc: 'Ancla la presión física de la escena. Ideal para abrir paso, sostener el foco o cargar con el peso del relevo.' },
+    { id: 'ranger',    name: 'Explorador', desc: 'Lee el entorno y encuentra rutas narrativas. Destaca rastreando, descubriendo salidas y adelantándose al peligro.' },
+    { id: 'rogue',     name: 'Pícaro',     desc: 'Controla el ritmo desde la sombra. Brilla robando foco, colándose entre riesgos y forzando giros oportunistas.' },
+    { id: 'cleric',    name: 'Clérigo',    desc: 'Sostiene al grupo en momentos límite. Reordena la tensión, protege la escena y devuelve protagonismo a otros.' },
+    { id: 'wizard',    name: 'Mago',       desc: 'Reencuadra la ficción con conocimiento y magia. Puede torcer el momento, preparar rituales o ceder foco con intención.' },
+    { id: 'barbarian', name: 'Bárbaro',    desc: 'Empuja la escena al límite. Convierte presión y visceralidad en impulso para romper bloqueos narrativos.' }
 ];
 
 function getRpgTitleByLevel(level) {
     if (level >= 7) return 'Maestro';
     if (level >= 4) return 'Adepto';
     return 'Aprendiz';
+}
+
+function getRpgClassPassive(rpgClass) {
+    return RPG_CLASS_PASSIVES[rpgClass] || null;
+}
+
+function resolveRpgRollContext({ char, topicId = null, stat = 'STR', rollType = 'check', question = '' } = {}) {
+    const safeStat = RPG_STAT_KEYS.includes(stat) ? stat : 'STR';
+    const profile = char ? ensureCharacterRpgProfile(char, topicId) : null;
+    const baseStat = Number(profile?.stats?.[safeStat]) || RPG_STAT_BASE;
+    const condMod = profile ? getConditionModifier(profile, safeStat) : 0;
+    const statValue = Math.max(1, baseStat + condMod);
+    const abilityModifier = rpgModifier(statValue);
+    const classId = profile?.rpgClass || null;
+    const passive = getRpgClassPassive(classId);
+    const classEdge = passive?.stat === safeStat ? 1 : 0;
+    const modifier = abilityModifier + classEdge;
+    const rollTypeLabel = rollType === 'save' ? 'Reacción / Aguante' : 'Prueba de acción';
+    const label = rollType === 'save' ? `${safeStat} Reacción` : `${safeStat} Prueba`;
+    const breakdown = classEdge
+        ? `${label} · Mod ${modifier >= 0 ? '+' : ''}${modifier} · Rasgo +${classEdge}`
+        : `${label} · Mod ${modifier >= 0 ? '+' : ''}${modifier}`;
+    const advantageState = statValue >= 14 ? 'advantage' : statValue <= 6 ? 'disadvantage' : '';
+
+    return {
+        stat: safeStat,
+        statValue,
+        modifier,
+        classEdge,
+        passiveName: passive?.name || null,
+        label,
+        rollType,
+        rollTypeLabel,
+        breakdown,
+        advantageState
+    };
 }
 
 // Calcula el coste en puntos de comprar un stat a un valor dado
@@ -5858,6 +5938,7 @@ function renderRpgStatsModal(c) {
     const expWidth = (profile.exp / RPG_EXP_PER_LEVEL) * 100;
     const isOwn    = c.userIndex === currentUserIndex;
     const className = RPG_CLASSES.find(cl => cl.id === profile.rpgClass);
+    const classPassive = getRpgClassPassive(profile.rpgClass);
 
     titleEl.textContent = `⚔ Nv.${profile.level} · ${data.title}`;
 
@@ -5876,8 +5957,21 @@ function renderRpgStatsModal(c) {
             <span class="rpg-class-display">${className.name}</span>
         </div>` : '');
 
+    const dndLiteMeta = `
+        ${classPassive ? `
+        <div class="rpg-class-row">
+            <span class="rpg-class-label">Rasgo</span>
+            <span class="rpg-class-display">${classPassive.name}</span>
+        </div>
+        <div class="rpg-class-row">
+            <span class="rpg-class-label">Foco</span>
+            <span class="rpg-class-display">${classPassive.desc}</span>
+        </div>` : ''}
+    `;
+
     bodyEl.innerHTML = `
         ${classSection}
+        ${dndLiteMeta}
         <div class="rpg-stats-progress-row">
             <span class="rpg-stats-progress-label">HP</span>
             <div class="sheet-rpg-progress"><div class="sheet-rpg-progress-fill hp" style="width:${hpWidth}%;"></div></div>
@@ -5970,6 +6064,8 @@ window._persistRpgProfile        = _persistRpgProfile;
 window.applyConditionToProfile   = applyConditionToProfile;
 window.removeConditionFromProfile = removeConditionFromProfile;
 window.getConditionModifier      = getConditionModifier;
+window.getRpgClassPassive        = getRpgClassPassive;
+window.resolveRpgRollContext     = resolveRpgRollContext;
 window.RPG_CLASSES      = RPG_CLASSES;
 window.RPG_CONDITIONS   = RPG_CONDITIONS;
 window.RPG_STAT_KEYS    = RPG_STAT_KEYS;
@@ -6507,18 +6603,18 @@ window.useInventoryItem = useInventoryItem;
 
 // ── Habilidades pasivas de clase (disponibles desde nivel 3) ───────────────
 const RPG_CLASS_PASSIVES = {
-    barbarian:  { name: 'Furia',           stat: 'STR', bonus: 3, desc: '+3 STR al oráculo en combate cuerpo a cuerpo.' },
-    bard:       { name: 'Inspiración',     stat: 'CHA', bonus: 2, desc: '+2 CHA en tiradas de persuasión o actuación.' },
-    cleric:     { name: 'Favor divino',    stat: 'WIS', bonus: 2, desc: '+2 WIS en tiradas de curación o fe.' },
-    druid:      { name: 'Forma natural',   stat: 'WIS', bonus: 2, desc: '+2 WIS en entornos naturales.' },
-    fighter:    { name: 'Estilo de lucha', stat: 'STR', bonus: 2, desc: '+2 STR o DEX según el tipo de ataque.' },
-    monk:       { name: 'Ki',              stat: 'DEX', bonus: 3, desc: '+3 DEX en esquivas y ataques sin arma.' },
-    paladin:    { name: 'Aura de protección', stat: 'CHA', bonus: 2, desc: '+2 CHA y +1 a tiradas de salvación aliadas.' },
-    ranger:     { name: 'Exploración',     stat: 'DEX', bonus: 2, desc: '+2 DEX en terreno conocido o seguimiento.' },
-    rogue:      { name: 'Ataque furtivo',  stat: 'DEX', bonus: 3, desc: '+3 DEX si hay ventaja o aliado adyacente.' },
-    sorcerer:   { name: 'Magia innata',    stat: 'CHA', bonus: 3, desc: '+3 CHA en hechizos de daño directo.' },
-    warlock:    { name: 'Pacto arcano',    stat: 'INT', bonus: 2, desc: '+2 INT en tiradas de conocimiento oscuro.' },
-    wizard:     { name: 'Conjuración',     stat: 'INT', bonus: 3, desc: '+3 INT en hechizos de área o ritual.' }
+    barbarian:  { name: 'Furia',           stat: 'STR', bonus: 3, desc: '+3 STR cuando empuja la escena al límite o rompe un bloqueo frontal.' },
+    bard:       { name: 'Inspiración',     stat: 'CHA', bonus: 2, desc: '+2 CHA al sostener el ánimo o recolocar el foco narrativo.' },
+    cleric:     { name: 'Favor divino',    stat: 'WIS', bonus: 2, desc: '+2 WIS al proteger, estabilizar o devolver calma a la escena.' },
+    druid:      { name: 'Forma natural',   stat: 'WIS', bonus: 2, desc: '+2 WIS cuando el entorno natural marca el ritmo del relevo.' },
+    fighter:    { name: 'Punto de apoyo',  stat: 'STR', bonus: 2, desc: '+2 STR o DEX cuando sostiene la presión física del siguiente momento.' },
+    monk:       { name: 'Ki',              stat: 'DEX', bonus: 3, desc: '+3 DEX al esquivar, fluir o cambiar el ritmo sin perder foco.' },
+    paladin:    { name: 'Aura de protección', stat: 'CHA', bonus: 2, desc: '+2 CHA y apoyo narrativo cuando protege el protagonismo del grupo.' },
+    ranger:     { name: 'Exploración',     stat: 'DEX', bonus: 2, desc: '+2 DEX al rastrear, adelantarse o encontrar una salida limpia.' },
+    rogue:      { name: 'Momento oportuno',stat: 'DEX', bonus: 3, desc: '+3 DEX cuando roba el foco en un hueco de la escena.' },
+    sorcerer:   { name: 'Magia innata',    stat: 'CHA', bonus: 3, desc: '+3 CHA al imponer un giro explosivo o inesperado.' },
+    warlock:    { name: 'Pacto arcano',    stat: 'INT', bonus: 2, desc: '+2 INT al negociar con fuerzas oscuras o conocimiento prohibido.' },
+    wizard:     { name: 'Conjuración',     stat: 'INT', bonus: 3, desc: '+3 INT al reencuadrar el momento con rituales, símbolos o estudio.' }
 };
 
 // Recalcula HP_max al subir de nivel (CON sigue siendo la base)
@@ -9337,7 +9433,21 @@ let pendingSceneChange = null;
 let pendingChapter     = null;
 let oracleStat = 'STR';
 let oracleQuestionDirty = false;
+const NARRATIVE_CRITICAL_TURNS = 3;
 // oracleModeActive está declarado en state.js
+
+function getOracleRollType() {
+    const nextType = document.getElementById('oracleMiniRollType')?.value;
+    return nextType === 'save' ? 'save' : 'check';
+}
+
+function getRollTypeLabel(rollType) {
+    return rollType === 'save' ? 'Reacción / Aguante' : 'Prueba de acción';
+}
+
+function getOracleSelectedCharacter() {
+    return appData.characters.find(c => c.id === selectedCharId) || null;
+}
 
 function isRpgTopicMode(mode) {
     return mode === 'rpg';
@@ -9347,8 +9457,49 @@ function getOracleModifier(statValue) {
     return Math.floor((Number(statValue || 10) - 10) / 2);
 }
 
-function calculateOracleDifficulty() {
-    return 12;
+function getNarrativeTensionData(char = getOracleSelectedCharacter()) {
+    if (!char || typeof getRpgSheetData !== 'function') {
+        return { dc: 12, level: 'estable', label: 'Tensión estable', summary: 'Sin presión extra' };
+    }
+
+    const profile = getRpgSheetData(char, currentTopicId || null)?.profile;
+    const hpMax = Math.max(1, Number(profile?.hpMax) || (typeof RPG_HP_MAX !== 'undefined' ? RPG_HP_MAX : 10));
+    const hp = Math.max(0, Number(profile?.hp) || hpMax);
+    const missingRatio = 1 - (hp / hpMax);
+    const conditionsCount = Array.isArray(profile?.conditions) ? profile.conditions.filter(Boolean).length : 0;
+    const critical = profile?.conditions?.includes('dead') || profile?.knockedOutTurns > 0 || hp <= 0;
+
+    let dc = 12;
+    let level = 'estable';
+
+    if (missingRatio >= 0.25) dc += 1;
+    if (missingRatio >= 0.5) dc += 1;
+    if (conditionsCount >= 2) dc += 1;
+    if (critical) dc += 2;
+
+    dc = Math.max(10, Math.min(18, dc));
+
+    if (critical || dc >= 16) level = 'crítica';
+    else if (dc >= 14) level = 'alta';
+    else if (dc >= 13) level = 'media';
+
+    const label = {
+        estable: 'Tensión estable',
+        media: 'Tensión media',
+        alta: 'Tensión alta',
+        crítica: 'Tensión crítica'
+    }[level] || 'Tensión estable';
+
+    return {
+        dc,
+        level,
+        label,
+        summary: `${label} · DC ${dc}`
+    };
+}
+
+function calculateOracleDifficulty(char = getOracleSelectedCharacter()) {
+    return getNarrativeTensionData(char).dc;
 }
 
 function getOracleRollResult(roll, total) {
@@ -9369,10 +9520,21 @@ function showDiceResultOverlay(rollData) {
     const cssClass = { critical: 'dice-result-critical', success: 'dice-result-success', fail: 'dice-result-fail', fumble: 'dice-result-fumble' }[rollData.result] || 'dice-result-success';
     const label = getOracleResultLabel(rollData.result);
     const modSign = rollData.modifier >= 0 ? '+' : '';
-    const statHint = rollData.stat ? ` [${rollData.stat}]` : '';
-    const advantageText = rollData.statValue >= 14 ? '<div class="dice-close-hint" style="color:rgba(107,221,154,0.7);margin-top:0.3rem;">▲ VENTAJA</div>'
-                        : rollData.statValue <= 6  ? '<div class="dice-close-hint" style="color:rgba(221,107,107,0.7);margin-top:0.3rem;">▼ DESVENTAJA</div>'
-                        : '';
+    const statHint = rollData.label
+        ? ` [${rollData.label}]`
+        : rollData.stat ? ` [${rollData.stat}]` : '';
+    const advantageText = rollData.advantageState === 'advantage'
+        ? '<div class="dice-close-hint" style="color:rgba(107,221,154,0.7);margin-top:0.3rem;">▲ VENTAJA</div>'
+        : rollData.advantageState === 'disadvantage'
+            ? '<div class="dice-close-hint" style="color:rgba(221,107,107,0.7);margin-top:0.3rem;">▼ DESVENTAJA</div>'
+            : rollData.statValue >= 14
+                ? '<div class="dice-close-hint" style="color:rgba(107,221,154,0.7);margin-top:0.3rem;">▲ VENTAJA</div>'
+                : rollData.statValue <= 6
+                    ? '<div class="dice-close-hint" style="color:rgba(221,107,107,0.7);margin-top:0.3rem;">▼ DESVENTAJA</div>'
+                    : '';
+    const breakdownText = rollData.breakdown
+        ? `<div class="dice-close-hint" style="margin-top:0.35rem;font-size:0.8rem;color:rgba(220,210,190,0.62);">${rollData.breakdown}</div>`
+        : '';
 
     const overlay = document.createElement('div');
     overlay.id = 'diceResultOverlay';
@@ -9384,6 +9546,7 @@ function showDiceResultOverlay(rollData) {
             <div class="dice-close-hint" style="margin-top:0.5rem;font-size:0.95rem;color:rgba(220,210,190,0.75);">
                 D20 (${rollData.roll}) ${modSign}${rollData.modifier} = ${rollData.total}${statHint}
             </div>
+            ${breakdownText}
             ${advantageText}
             <div class="dice-close-hint" style="margin-top:1rem;">Clic para cerrar</div>
         </div>`;
@@ -9401,7 +9564,7 @@ function getOracleAutodetectedQuestion(rawText) {
 }
 
 function getOracleSelectedStatValue() {
-    const char = appData.characters.find(c => c.id === selectedCharId);
+    const char = getOracleSelectedCharacter();
     if (!char || typeof getRpgSheetData !== 'function') return 8;
     const profile = getRpgSheetData(char, currentTopicId || null)?.profile;
     const baseVal = Number(profile?.stats?.[oracleStat]) || 8;
@@ -9412,14 +9575,426 @@ function getOracleSelectedStatValue() {
     return Math.max(1, baseVal + condMod);
 }
 
+function getOracleRollContext(questionText = '') {
+    const char = getOracleSelectedCharacter();
+    if (char && typeof resolveRpgRollContext === 'function') {
+        return resolveRpgRollContext({
+            char,
+            topicId: currentTopicId || null,
+            stat: oracleStat,
+            rollType: getOracleRollType(),
+            question: questionText
+        });
+    }
+
+    const statValue = getOracleSelectedStatValue();
+    const modifier = getOracleModifier(statValue);
+    return {
+        stat: oracleStat,
+        statValue,
+        modifier,
+        label: `${oracleStat} Prueba`,
+        rollType: getOracleRollType(),
+        rollTypeLabel: getRollTypeLabel(getOracleRollType()),
+        breakdown: `${getRollTypeLabel(getOracleRollType())} ${oracleStat} · Mod ${modifier >= 0 ? '+' : ''}${modifier}`,
+        advantageState: statValue >= 14 ? 'advantage' : statValue <= 6 ? 'disadvantage' : ''
+    };
+}
+
 function refreshOracleProbability() {
     // Actualiza el indicador de probabilidad en el mini-panel del oráculo
     const infoEl = document.getElementById('oracleMiniInfo');
-    const statValue = getOracleSelectedStatValue();
-    const modifier = getOracleModifier(statValue);
-    const dc = calculateOracleDifficulty();
+    const contextEl = document.getElementById('oracleMiniContext');
+    const questionText = document.getElementById('oracleMiniQuestion')?.value || '';
+    const rollContext = getOracleRollContext(questionText);
+    const tension = getNarrativeTensionData();
+    const statValue = rollContext.statValue;
+    const modifier = rollContext.modifier;
+    const dc = tension.dc;
     const modSign = modifier >= 0 ? '+' : '';
-    if (infoEl) infoEl.textContent = `D20 ${modSign}${modifier} vs ${dc}`;
+    const advantage = rollContext.advantageState === 'advantage'
+        ? ' · ▲ Ventaja'
+        : rollContext.advantageState === 'disadvantage'
+            ? ' · ▼ Desventaja'
+            : '';
+    if (contextEl) contextEl.textContent = `${rollContext.breakdown} · ${tension.label}`;
+    if (infoEl) infoEl.textContent = `D20 ${modSign}${modifier} vs ${dc}${advantage} · ${tension.label}`;
+}
+
+function toggleSceneRelayGuide() {
+    const guide = document.getElementById('vnSceneRelayGuide');
+    const btn = document.getElementById('vnSceneRelayGuideBtn');
+    if (!guide || !btn) return;
+    const willOpen = guide.style.display === 'none' || !guide.style.display;
+    guide.style.display = willOpen ? 'block' : 'none';
+    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+}
+
+function getTurnParticipantNames() {
+    const participants = Array.isArray(currentStoryParticipants) ? currentStoryParticipants : [];
+    return participants
+        .map((participant, index) => {
+            const name = participant?.profile?.name || participant?.profile?.display_name;
+            return name || `Jugador ${index + 1}`;
+        })
+        .filter(Boolean);
+}
+
+function updateVnTurnBadge() {
+    const badge = document.getElementById('vnTurnBadge');
+    if (!badge) return;
+
+    const msgs = getTopicMessages(currentTopicId);
+    const participants = Array.isArray(currentStoryParticipants) ? currentStoryParticipants : [];
+    const latestMsg = msgs[msgs.length - 1];
+
+    if (!currentStoryId || participants.length < 2 || !latestMsg) {
+        badge.style.display = 'none';
+        badge.textContent = '';
+        delete badge.dataset.turnState;
+        return;
+    }
+
+    const participantNames = getTurnParticipantNames();
+    const namesPreview = participantNames.slice(0, 3).join(' · ');
+    const rotationHint = participantNames.length > 3
+        ? `${namesPreview}…`
+        : namesPreview;
+
+    let state = 'waiting';
+    let title = 'Turno en pausa';
+    let body = `Escena por relevos entre ${participants.length} participantes.`;
+
+    if (latestMsg.isNarrator) {
+        title = 'Escena abierta';
+        body = participants.length === 2
+            ? 'El siguiente relevo queda listo para quien continúe la escena.'
+            : `La escena rota entre ${participants.length} participantes sin necesidad de combate formal.`;
+    } else if (latestMsg.userIndex === currentUserIndex) {
+        title = 'Turno cedido';
+        body = participants.length === 2
+            ? 'Tu respuesta ya está en escena; ahora toca esperar la réplica.'
+            : `Tu intervención ya quedó registrada; el relevo sigue girando entre ${participants.length} personas.`;
+    } else if (participants.length === 2) {
+        state = 'self';
+        title = 'Tu turno';
+        body = 'La escena funciona por relevos: puedes continuar cuando quieras.';
+    } else {
+        state = 'other';
+        title = 'Relevo abierto';
+        body = `La escena sigue por turnos suaves entre ${participants.length} participantes.`;
+    }
+
+    badge.dataset.turnState = state;
+    badge.innerHTML = `<strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}${rotationHint ? ` · ${rotationHint}` : ''}</span>`;
+    badge.style.display = 'inline-flex';
+}
+
+const vnPartyPanelState = {
+    topicId: null,
+    participantKey: '',
+    displayedSnapshot: {},
+    respondedThisCycle: new Set(),
+    processedMessageCount: 0,
+    activeCharId: null,
+    bindingsReady: false,
+    closeTimer: null,
+    mobileOpen: false
+};
+
+function isDesktopHoverMode() {
+    return !!window.matchMedia?.('(hover: hover) and (pointer: fine)').matches;
+}
+
+function getRelayPartyCharacterIds() {
+    const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    if (!topic || topic.mode !== 'rpg') return [];
+    const locks = { ...(topic.characterLocks || {}), ...(topic.rpgCharacterLocks || {}) };
+    const ids = [];
+    Object.values(locks).forEach((charId) => {
+        const normalized = String(charId || '').trim();
+        if (normalized && !ids.includes(normalized)) ids.push(normalized);
+    });
+    return ids.filter((charId) => appData.characters.some((c) => String(c.id) === charId));
+}
+
+function buildRelayPartyEntry(charId) {
+    const char = appData.characters.find((c) => String(c.id) === String(charId));
+    if (!char) return null;
+    const profile = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, currentTopicId || null)
+        : null;
+    const hpMax = Math.max(1, Number(profile?.hpMax) || (typeof RPG_HP_MAX !== 'undefined' ? RPG_HP_MAX : 10));
+    const expMax = Math.max(1, (typeof RPG_EXP_PER_LEVEL !== 'undefined' ? RPG_EXP_PER_LEVEL : 10));
+    const hp = Math.max(0, Number(profile?.hp) || hpMax);
+    const exp = Math.max(0, Number(profile?.exp) || 0);
+    const rpgClass = window.RPG_CLASSES?.find((item) => item.id === profile?.rpgClass) || null;
+    const critical = !!profile?.conditions?.includes('dead') || Number(profile?.knockedOutTurns || 0) > 0;
+
+    return {
+        charId: String(char.id),
+        name: char.name || 'Sin nombre',
+        avatar: char.avatar || char.sprite || '',
+        className: rpgClass?.name || 'Sin clase',
+        level: Math.max(1, Number(profile?.level) || 1),
+        hp,
+        hpMax,
+        exp,
+        expMax,
+        critical
+    };
+}
+
+function buildRelayPartySnapshot(charIds) {
+    return charIds.reduce((acc, charId) => {
+        const entry = buildRelayPartyEntry(charId);
+        if (entry) acc[String(charId)] = entry;
+        return acc;
+    }, {});
+}
+
+function getLatestRelaySpeaker(charIds) {
+    const msgs = getTopicMessages(currentTopicId);
+    for (let i = msgs.length - 1; i >= 0; i--) {
+        const msg = msgs[i];
+        if (!msg?.characterId) continue;
+        const charId = String(msg.characterId);
+        if (charIds.includes(charId)) return charId;
+    }
+    return null;
+}
+
+function syncVnPartySnapshot(force = false) {
+    const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    const charIds = getRelayPartyCharacterIds();
+    const participantKey = charIds.join('|');
+    const msgs = currentTopicId ? getTopicMessages(currentTopicId) : [];
+
+    if (!topic || topic.mode !== 'rpg' || !charIds.length) {
+        vnPartyPanelState.topicId = currentTopicId || null;
+        vnPartyPanelState.participantKey = '';
+        vnPartyPanelState.displayedSnapshot = {};
+        vnPartyPanelState.respondedThisCycle = new Set();
+        vnPartyPanelState.processedMessageCount = msgs.length;
+        vnPartyPanelState.activeCharId = null;
+        return { charIds, snapshot: {}, activeCharId: null, respondedThisCycle: new Set() };
+    }
+
+    const needsReset = force
+        || vnPartyPanelState.topicId !== currentTopicId
+        || vnPartyPanelState.participantKey !== participantKey;
+
+    if (needsReset) {
+        vnPartyPanelState.topicId = currentTopicId;
+        vnPartyPanelState.participantKey = participantKey;
+        vnPartyPanelState.displayedSnapshot = buildRelayPartySnapshot(charIds);
+        vnPartyPanelState.respondedThisCycle = new Set();
+        vnPartyPanelState.processedMessageCount = msgs.length;
+        vnPartyPanelState.activeCharId = getLatestRelaySpeaker(charIds);
+    } else {
+        for (let i = vnPartyPanelState.processedMessageCount; i < msgs.length; i++) {
+            const msg = msgs[i];
+            if (!msg?.characterId) continue;
+            const charId = String(msg.characterId);
+            if (!charIds.includes(charId)) continue;
+
+            vnPartyPanelState.activeCharId = charId;
+            vnPartyPanelState.respondedThisCycle.add(charId);
+
+            if (vnPartyPanelState.respondedThisCycle.size >= charIds.length) {
+                vnPartyPanelState.displayedSnapshot = buildRelayPartySnapshot(charIds);
+                vnPartyPanelState.respondedThisCycle = new Set();
+            }
+        }
+
+        if (vnPartyPanelState.respondedThisCycle.size === 0) {
+            vnPartyPanelState.displayedSnapshot = buildRelayPartySnapshot(charIds);
+        }
+
+        vnPartyPanelState.processedMessageCount = msgs.length;
+    }
+
+    return {
+        charIds,
+        snapshot: vnPartyPanelState.displayedSnapshot,
+        activeCharId: vnPartyPanelState.activeCharId,
+        respondedThisCycle: new Set(vnPartyPanelState.respondedThisCycle)
+    };
+}
+
+function clearVnPartyCloseTimer() {
+    if (vnPartyPanelState.closeTimer) {
+        clearTimeout(vnPartyPanelState.closeTimer);
+        vnPartyPanelState.closeTimer = null;
+    }
+}
+
+function openVnPartyPanel() {
+    const shell = document.getElementById('vnPartyShell');
+    const tab = document.getElementById('vnPartyTab');
+    const backdrop = document.getElementById('vnPartyBackdrop');
+    if (!shell || shell.style.display === 'none') return;
+    clearVnPartyCloseTimer();
+    shell.classList.add('open');
+    vnPartyPanelState.mobileOpen = true;
+    if (tab) tab.setAttribute('aria-expanded', 'true');
+    if (backdrop && !isDesktopHoverMode()) backdrop.style.display = 'block';
+}
+
+function closeVnPartyPanel(force = false) {
+    const shell = document.getElementById('vnPartyShell');
+    const tab = document.getElementById('vnPartyTab');
+    const backdrop = document.getElementById('vnPartyBackdrop');
+    if (!shell) return;
+    if (!force && isDesktopHoverMode()) clearVnPartyCloseTimer();
+    shell.classList.remove('open');
+    vnPartyPanelState.mobileOpen = false;
+    if (tab) tab.setAttribute('aria-expanded', 'false');
+    if (backdrop) backdrop.style.display = 'none';
+}
+
+function scheduleVnPartyClose() {
+    if (!isDesktopHoverMode()) return;
+    clearVnPartyCloseTimer();
+    vnPartyPanelState.closeTimer = setTimeout(() => closeVnPartyPanel(true), 1000);
+}
+
+function ensureVnPartyPanelBindings() {
+    if (vnPartyPanelState.bindingsReady) return;
+    const shell = document.getElementById('vnPartyShell');
+    const panel = document.getElementById('vnPartyPanel');
+    const tab = document.getElementById('vnPartyTab');
+    if (!shell || !panel || !tab) return;
+
+    tab.addEventListener('mouseenter', () => {
+        if (isDesktopHoverMode()) openVnPartyPanel();
+    });
+    shell.addEventListener('mouseenter', () => {
+        if (isDesktopHoverMode()) {
+            clearVnPartyCloseTimer();
+            openVnPartyPanel();
+        }
+    });
+    shell.addEventListener('mouseleave', () => {
+        if (isDesktopHoverMode()) scheduleVnPartyClose();
+    });
+    tab.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (isDesktopHoverMode()) {
+            if (shell.classList.contains('open')) closeVnPartyPanel(true);
+            else openVnPartyPanel();
+            return;
+        }
+        if (vnPartyPanelState.mobileOpen) closeVnPartyPanel(true);
+        else openVnPartyPanel();
+    });
+
+    vnPartyPanelState.bindingsReady = true;
+}
+
+function getVnPartySpriteNode(charId) {
+    return [...document.querySelectorAll('.vn-sprite')].find((node) => String(node.dataset.charId) === String(charId)) || null;
+}
+
+function highlightVnPartyCharacter(charId) {
+    const member = [...document.querySelectorAll('.vn-party-member')].find((node) => String(node.dataset.charId) === String(charId)) || null;
+    const sprite = getVnPartySpriteNode(charId);
+    const speakerPlate = document.getElementById('vnSpeakerPlate');
+    const currentMsg = getTopicMessages(currentTopicId)[currentMessageIndex];
+
+    if (member) {
+        member.classList.remove('vn-party-member-highlight');
+        void member.offsetWidth;
+        member.classList.add('vn-party-member-highlight');
+        setTimeout(() => member.classList.remove('vn-party-member-highlight'), 900);
+    }
+
+    if (sprite) {
+        sprite.classList.add('party-highlight');
+        setTimeout(() => sprite.classList.remove('party-highlight'), 900);
+    }
+
+    if (speakerPlate && currentMsg?.characterId && String(currentMsg.characterId) === String(charId)) {
+        speakerPlate.classList.add('party-highlight');
+        setTimeout(() => speakerPlate.classList.remove('party-highlight'), 900);
+    }
+}
+
+function renderVnPartyPanel(force = false) {
+    ensureVnPartyPanelBindings();
+    const shell = document.getElementById('vnPartyShell');
+    const list = document.getElementById('vnPartyList');
+    if (!shell || !list) return;
+
+    const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    const { charIds, snapshot, activeCharId, respondedThisCycle } = syncVnPartySnapshot(force);
+    const shouldShow = !!topic && topic.mode === 'rpg' && charIds.length > 0;
+
+    shell.style.display = shouldShow ? 'flex' : 'none';
+    if (!shouldShow) {
+        closeVnPartyPanel(true);
+        list.innerHTML = '';
+        return;
+    }
+
+    if (!charIds.length) {
+        list.innerHTML = '<div class="vn-party-empty">Sin personajes vinculados todavía.</div>';
+        return;
+    }
+
+    list.innerHTML = charIds.map((charId) => {
+        const entry = snapshot[charId];
+        if (!entry) return '';
+
+        let state = '';
+        let stateText = '';
+        if (entry.critical) {
+            state = 'critical';
+            stateText = '💀 Reincorporación pendiente';
+        } else if (String(activeCharId) === String(charId)) {
+            state = 'active';
+            stateText = '⭐ Hablando...';
+        } else if (respondedThisCycle.size > 0 && !respondedThisCycle.has(String(charId))) {
+            state = 'waiting';
+            stateText = '⏳ En espera';
+        }
+
+        const hpPct = Math.max(0, Math.min(100, (entry.hp / entry.hpMax) * 100));
+        const expPct = Math.max(0, Math.min(100, (entry.exp / entry.expMax) * 100));
+        const avatarHtml = entry.avatar
+            ? `<img src="${escapeHtml(entry.avatar)}" alt="${escapeHtml(entry.name)}">`
+            : `<span>${escapeHtml(entry.name.slice(0, 1).toUpperCase())}</span>`;
+
+        return `
+            <div class="vn-party-member" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}">
+                <button type="button" class="vn-party-avatar" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
+                    ${avatarHtml}
+                </button>
+                <div class="vn-party-main">
+                    <div class="vn-party-topline">
+                        <div>
+                            <div class="vn-party-name">${escapeHtml(entry.name)}</div>
+                            <div class="vn-party-meta">${escapeHtml(entry.className)} · Nv.${entry.level}</div>
+                        </div>
+                        <div class="vn-party-state">${escapeHtml(stateText)}</div>
+                    </div>
+                    <div class="vn-party-bars">
+                        <div class="vn-party-bar-row">
+                            <span class="vn-party-bar-label">HP</span>
+                            <span class="vn-party-bar-track"><span class="vn-party-bar-fill" style="width:${hpPct}%;"></span></span>
+                            <span class="vn-party-bar-value">${entry.hp}/${entry.hpMax}</span>
+                        </div>
+                        <div class="vn-party-bar-row">
+                            <span class="vn-party-bar-label">EXP</span>
+                            <span class="vn-party-bar-track"><span class="vn-party-bar-fill exp" style="width:${expPct}%;"></span></span>
+                            <span class="vn-party-bar-value">${entry.exp}/${entry.expMax}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('') || '<div class="vn-party-empty">Sin personajes vinculados todavía.</div>';
 }
 function refreshOracleQuestionAutodetect(force = false) {
     // El autodetect ahora aplica al mini-panel del oráculo
@@ -9535,13 +10110,22 @@ function toggleOracleMiniPanel() {
         btn.classList.toggle('active', btn.dataset.stat === oracleMiniStat);
         btn.onclick = () => {
             oracleMiniStat = btn.dataset.stat;
+            oracleStat = oracleMiniStat;
             panel.querySelectorAll('.oracle-stat-btn').forEach(b =>
                 b.classList.toggle('active', b.dataset.stat === oracleMiniStat));
             refreshOracleMiniInfo();
         };
     });
+    const rollTypeSelect = document.getElementById('oracleMiniRollType');
+    if (rollTypeSelect) rollTypeSelect.onchange = () => refreshOracleMiniInfo();
     const ta = document.getElementById('oracleMiniQuestion');
-    if (ta) setTimeout(() => ta.focus(), 60);
+    if (ta) {
+        ta.oninput = () => {
+            oracleQuestionDirty = true;
+            refreshOracleMiniInfo();
+        };
+        setTimeout(() => ta.focus(), 60);
+    }
 }
 
 function closeOracleMiniPanel() {
@@ -9550,47 +10134,36 @@ function closeOracleMiniPanel() {
 }
 
 function refreshOracleMiniInfo() {
-    const infoEl = document.getElementById('oracleMiniInfo');
-    if (!infoEl) return;
-    const char = appData.characters.find(c => c.id === selectedCharId);
-    const stats = (char && typeof getRpgSheetData === 'function')
-        ? (getRpgSheetData(char, currentTopicId || null)?.profile?.stats || {})
-        : {};
-    const baseStatValue = Number(stats[oracleMiniStat]) || 8;
-    // Aplicar modificadores de condiciones activas al stat
-    const condMod = (char && typeof ensureCharacterRpgProfile === 'function' && typeof getConditionModifier === 'function')
-        ? getConditionModifier(ensureCharacterRpgProfile(char, currentTopicId), oracleMiniStat)
-        : 0;
-    const statValue = Math.max(1, baseStatValue + condMod);
-    const modifier = getOracleModifier(statValue);
-    const dc = calculateOracleDifficulty();
-    const sign = modifier >= 0 ? '+' : '';
-    const advantage = statValue >= 14 ? ' · ▲ Ventaja' : statValue <= 6 ? ' · ▼ Desventaja' : '';
-    infoEl.textContent = `D20 ${sign}${modifier} vs ${dc}${advantage}`;
+    oracleStat = oracleMiniStat;
+    refreshOracleProbability();
 }
 
 function rollOracleMini() {
     const ta = document.getElementById('oracleMiniQuestion');
     const questionText = (ta?.value || '').trim();
-
-    const char = appData.characters.find(c => c.id === selectedCharId);
-    const stats = (char && typeof getRpgSheetData === 'function')
-        ? (getRpgSheetData(char, currentTopicId || null)?.profile?.stats || {})
-        : {};
-    const baseStatValue = Number(stats[oracleMiniStat]) || 8;
-    // Aplicar modificadores de condiciones activas al stat
-    const condMod = (char && typeof ensureCharacterRpgProfile === 'function' && typeof getConditionModifier === 'function')
-        ? getConditionModifier(ensureCharacterRpgProfile(char, currentTopicId), oracleMiniStat)
-        : 0;
-    const statValue = Math.max(1, baseStatValue + condMod);
-    const modifier = getOracleModifier(statValue);
-    const dc = calculateOracleDifficulty();
+    oracleStat = oracleMiniStat;
+    const activeChar = getOracleSelectedCharacter();
+    const rollContext = getOracleRollContext(questionText);
+    const tension = getNarrativeTensionData(activeChar);
+    const statValue = rollContext.statValue;
+    const modifier = rollContext.modifier;
+    const dc = tension.dc;
     const roll = Math.floor(Math.random() * 20) + 1;
     const total = Math.max(1, Math.min(20, roll + modifier));
     const result = getOracleRollResult(roll, total);
     const label = getOracleResultLabel(result);
 
-    showDiceResultOverlay({ roll, modifier, total, result, stat: oracleMiniStat, statValue });
+    showDiceResultOverlay({
+        roll,
+        modifier,
+        total,
+        result,
+        stat: oracleMiniStat,
+        statValue,
+        label: rollContext.label,
+        breakdown: rollContext.breakdown,
+        advantageState: rollContext.advantageState
+    });
     closeOracleMiniPanel();
     if (ta) ta.value = '';
 
@@ -9629,7 +10202,17 @@ function rollOracleMini() {
 
     const oracleData = {
         question: questionText || `Tirada de ${oracleMiniStat}`,
-        stat: oracleMiniStat, statValue, modifier, dc, roll, total, result,
+        stat: oracleMiniStat,
+        statValue,
+        modifier,
+        dc,
+        roll,
+        total,
+        result,
+        rollType: rollContext.rollType,
+        label: rollContext.label,
+        tensionState: tension.level,
+        tensionLabel: tension.label,
         timestamp: Date.now()
     };
 
@@ -9674,6 +10257,7 @@ function rollOracleMini() {
     notifyNextTurnIfNeeded(newMsg, topic, null).catch(() => {});
     hasUnsavedChanges = true;
     save({ silent: true });
+    renderVnPartyPanel();
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
     triggerDialogueFadeIn();
     showCurrentMessage('forward');
@@ -10695,6 +11279,8 @@ function showCurrentMessage(direction = 'forward') {
         const editBtn = document.getElementById('editMsgBtn');
         if (editBtn) editBtn.classList.add('hidden');
         updateAffinityDisplay();
+        updateVnTurnBadge();
+        renderVnPartyPanel(true);
         return;
     }
 
@@ -10837,6 +11423,7 @@ function showCurrentMessage(direction = 'forward') {
         const mod     = Number(msg.oracle.modifier) || 0;
         const modSign = mod >= 0 ? '+' : '';
         const stat    = msg.oracle.stat || '';
+        const labelText = msg.oracle.label || stat;
         const result  = msg.oracle.result || 'success';
 
         const resultMeta = {
@@ -10849,7 +11436,7 @@ function showCurrentMessage(direction = 'forward') {
         const consequenceHtml = msg.oracleConsequence
             ? `<span class="vn-dice-consequence">${escapeHtml(String(msg.oracleConsequence))}</span>`
             : '';
-        safeHtml(diceBadge, `<span style="margin-right:0.35rem;">${resultMeta.icon}</span><strong>${resultMeta.label}</strong><span style="opacity:0.7;margin-left:0.5rem;font-size:0.85em;">D20(${roll}) ${modSign}${mod} = ${total} vs ${dc}${stat ? ' [' + escapeHtml(String(stat)) + ']' : ''}</span>${consequenceHtml}`);
+        safeHtml(diceBadge, `<span style="margin-right:0.35rem;">${resultMeta.icon}</span><strong>${resultMeta.label}</strong><span style="opacity:0.7;margin-left:0.5rem;font-size:0.85em;">D20(${roll}) ${modSign}${mod} = ${total} vs ${dc}${labelText ? ' [' + escapeHtml(String(labelText)) + ']' : ''}</span>${consequenceHtml}`);
         diceBadge.className = `vn-dice-badge ${resultMeta.cls}`;
         diceBadge.style.borderLeft = `3px solid ${resultMeta.borderColor}`;
         diceBadge.style.display = 'flex';
@@ -10887,6 +11474,8 @@ function showCurrentMessage(direction = 'forward') {
 
     updateAffinityDisplay();
     updateOracleFloatButton();
+    updateVnTurnBadge();
+    renderVnPartyPanel();
     scheduleContinuousReadIfNeeded(msg);
     if (typeof updateFavButton === "function") updateFavButton();
 
@@ -11569,11 +12158,11 @@ function saveEditedMessage() {
         if (topic?.mode === 'rpg' && typeof ensureCharacterRpgProfile === 'function') {
             const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
             if (profile.conditions?.includes('dead')) {
-                showAutosave(`${char.name} ha caído. Solo el DM puede reincorporarle a la partida.`, 'error');
+                showAutosave(`${char.name} está en tensión crítica. Solo el DM o la ficción pueden reincorporarle a la escena.`, 'error');
                 return;
             }
             if (profile.knockedOutTurns > 0) {
-                showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
+                showAutosave(`Este personaje sigue fuera de escena durante ${profile.knockedOutTurns} relevos`, 'error');
                 return;
             }
         }
@@ -11669,7 +12258,7 @@ function showOptions(options) {
     });
 
     const total = normalizedOptions.length;
-    container.innerHTML = normalizedOptions.map((opt, idx) => {
+    const optionButtons = normalizedOptions.map((opt, idx) => {
         const selected = currentMsg.selectedOptionIndex === idx;
         const disabled = currentMsg.selectedOptionIndex !== undefined;
         const optionLabel = `${opt.text}, opción ${idx + 1} de ${total}`;
@@ -11684,6 +12273,12 @@ function showOptions(options) {
         </button>
     `;
     }).join('');
+
+    container.innerHTML = `
+        <div class="vn-options-title">🎭 Reacciones sugeridas</div>
+        <div class="vn-options-subtitle">Elige una ruta propuesta por quien abrió la escena.</div>
+        ${optionButtons}
+    `;
 
     container.classList.add('active');
     // Efecto suspense al mostrar opciones (absorbido de mejoras.js)
@@ -11986,7 +12581,9 @@ function tickRpgKnockoutTurns(excludedCharId) {
 }
 
 // Aplica los efectos mecánicos de una tirada de oráculo al perfil del personaje.
-// Devuelve un objeto con los efectos aplicados para mostrarlos en el badge del chat.
+// En Etheria el HP funciona como medidor de tensión narrativa: llegar a 0
+// no implica "muerte" táctica sino quedar fuera de escena hasta que el relevo
+// te reincorpore. No usamos death saves separados: basta con tensión crítica.
 function applyRpgNarrativeProgress(charId, oracleRoll) {
     if (!charId || !oracleRoll) return null;
     const char = getCharacterById(charId);
@@ -12001,9 +12598,8 @@ function applyRpgNarrativeProgress(charId, oracleRoll) {
         profile.hp = Math.max(0, profile.hp + effects.hpDelta);
         if (profile.hp === 0) {
             effects.knockedOut = true;
-            // HP=0 → estado Muerte, no solo inconsciente
+            profile.knockedOutTurns = Math.max(profile.knockedOutTurns || 0, NARRATIVE_CRITICAL_TURNS);
             if (typeof applyConditionToProfile === 'function') {
-                // Quitar otras condiciones activas y aplicar Muerte
                 profile.conditions = profile.conditions?.filter(c => c === 'dead') || [];
                 applyConditionToProfile(profile, 'dead');
                 effects.conditionApplied = 'dead';
@@ -12014,6 +12610,7 @@ function applyRpgNarrativeProgress(charId, oracleRoll) {
         profile.hp = Math.max(0, profile.hp + effects.hpDelta);
         if (profile.hp === 0) {
             effects.knockedOut = true;
+            profile.knockedOutTurns = Math.max(profile.knockedOutTurns || 0, NARRATIVE_CRITICAL_TURNS);
             if (typeof applyConditionToProfile === 'function') {
                 profile.conditions = profile.conditions?.filter(c => c === 'dead') || [];
                 applyConditionToProfile(profile, 'dead');
@@ -12077,20 +12674,20 @@ function buildConsequenceBadgeText(result, effects, charName) {
 
     if (result === 'fumble') {
         lines.push(`−2 HP ${name}`);
-        if (effects.knockedOut) lines.push('⚠ Inconsciente — KO 5 turnos');
-        else lines.push('Narrador: daño severo, complicación grave o consecuencia permanente');
+        if (effects.knockedOut) lines.push(`⚠ Tensión crítica — fuera de escena ${NARRATIVE_CRITICAL_TURNS} relevos`);
+        else lines.push('Narrador: complicación grave o giro duro en el siguiente momento importante');
     } else if (result === 'fail') {
         lines.push(`−1 HP ${name}`);
-        if (effects.knockedOut) lines.push('⚠ Inconsciente — KO 5 turnos');
-        else lines.push('Narrador: obstáculo, coste narrativo o consecuencia menor');
+        if (effects.knockedOut) lines.push(`⚠ Tensión crítica — fuera de escena ${NARRATIVE_CRITICAL_TURNS} relevos`);
+        else lines.push('Narrador: obstáculo, coste narrativo o pérdida de iniciativa');
     } else if (result === 'success') {
         lines.push(`+${effects.expDelta} EXP ${name}`);
         if (effects.levelUp) lines.push(`✦ ¡Nivel ${effects.newLevel || ''}! Distribuye +1 punto de stat`);
-        else lines.push('Narrador: el objetivo se cumple, con o sin coste menor');
+        else lines.push('Narrador: tomas el siguiente momento importante con un coste menor si procede');
     } else if (result === 'critical') {
         lines.push(`+${effects.expDelta} EXP ${name}`);
         if (effects.levelUp) lines.push(`✦ ¡Nivel ${effects.newLevel || ''}! Distribuye +1 punto de stat`);
-        else lines.push('Narrador: éxito total, beneficio adicional o momento heroico');
+        else lines.push('Narrador: tomas la escena con ventaja clara o beneficio adicional');
     }
     return lines.join(' · ');
 }
@@ -12134,10 +12731,15 @@ function prepareChapter() {
     const background = backgroundRaw.trim()
         ? resolveTopicBackgroundPath(backgroundRaw.trim())
         : null;
+    const bridgeRaw = (topic?.mode !== 'rpg')
+        ? window.prompt('Texto puente de escena (opcional, para evitar salto brusco):', '')
+        : '';
+    if (bridgeRaw === null) return;
+    const bridge = String(bridgeRaw || '').trim();
 
     pendingChapter = { title, number: num };
     if (background) {
-        pendingSceneChange = { title, background, at: new Date().toISOString() };
+        pendingSceneChange = { title, background, bridge, at: new Date().toISOString() };
         updateSceneChangePreview();
     }
     updateChapterPreview();
@@ -12581,16 +13183,18 @@ function dmSendChallenge() {
     const desc  = document.getElementById('dmChallengeDesc')?.value.trim();
     const dc    = Number(document.getElementById('dmDCValue')?.value) || 15;
     const stats = [...document.querySelectorAll('#dmChallengeStats input:checked')].map(i => i.value);
+    const rollType = document.getElementById('dmChallengeRollType')?.value === 'save' ? 'save' : 'check';
 
-    if (!desc) { showAutosave('Describe la situación del desafío', 'error'); return; }
+    if (!desc) { showAutosave('Describe el turno o la presión narrativa', 'error'); return; }
     if (!stats.length) { showAutosave('Selecciona al menos un stat', 'error'); return; }
 
-    const challenge = { desc, dc, stats, authorIndex: currentUserIndex, topicId: currentTopicId };
+    const challenge = { desc, dc, stats, rollType, authorIndex: currentUserIndex, topicId: currentTopicId };
 
     const statList = stats.map(s => '**' + s + '**').join(' / ');
     _dmPostSystemMessage(
-        '⚔ **Desafío** — *' + escapeHtml(desc) + '*\n' +
-        'DC ' + dc + ' · Puedes tirar con: ' + statList
+        '⏳ **Turno de escena** — *' + escapeHtml(desc) + '*\n' +
+        'DC ' + dc + ' · ' + getRollTypeLabel(rollType) + ' · Puedes tirar con: ' + statList + '\n' +
+        '_La tirada decide quién narra el siguiente momento importante, no una victoria o derrota absoluta._'
     );
 
     _activeChallenge = challenge;
@@ -12614,7 +13218,7 @@ function _renderChallengeBar(challenge) {
     if (!bar || !descEl || !dcEl || !btnsCnt) return;
 
     descEl.textContent = challenge.desc;
-    dcEl.textContent   = 'DC ' + challenge.dc;
+    dcEl.textContent   = 'DC ' + challenge.dc + ' · ' + getRollTypeLabel(challenge.rollType) + ' · define el siguiente foco';
 
     const statLabels = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constit.', INT: 'Intelec.', WIS: 'Sabid.', CHA: 'Carisma' };
     btnsCnt.innerHTML = challenge.stats.map(stat =>
@@ -12641,15 +13245,28 @@ function acceptChallenge(stat) {
         ? ensureCharacterRpgProfile(char, currentTopicId) : null;
 
     if (profile?.conditions?.includes('dead')) {
-        showAutosave('Tu personaje ha caído. No puedes aceptar el desafío.', 'error');
+        showAutosave('Tu personaje está en tensión crítica. No puede tomar este relevo todavía.', 'error');
         return;
     }
 
-    const baseStat = profile?.stats?.[stat] ?? 8;
-    const condMod  = (typeof getConditionModifier === 'function' && profile)
-        ? getConditionModifier(profile, stat) : 0;
-    const statVal  = Math.max(1, baseStat + condMod);
-    const modifier = Math.floor((statVal - 10) / 2);
+    const rollContext = (typeof resolveRpgRollContext === 'function')
+        ? resolveRpgRollContext({
+            char,
+            topicId: currentTopicId,
+            stat,
+            rollType: challenge.rollType || 'check',
+            question: challenge.desc
+        })
+        : {
+            stat,
+            statValue: profile?.stats?.[stat] ?? 8,
+            modifier: Math.floor(((profile?.stats?.[stat] ?? 8) - 10) / 2),
+            label: `${stat} Prueba`,
+            breakdown: `${getRollTypeLabel(challenge.rollType || 'check')} ${stat}`,
+            advantageState: ''
+        };
+    const statVal  = rollContext.statValue;
+    const modifier = rollContext.modifier;
     const roll     = Math.floor(Math.random() * 20) + 1;
     const total    = Math.max(1, Math.min(20, roll + modifier));
     const dc       = challenge.dc;
@@ -12658,9 +13275,31 @@ function acceptChallenge(stat) {
     const modSign  = modifier >= 0 ? '+' : '';
     const resultIcon = (result === 'critical' || result === 'success') ? '✓' : '✗';
 
-    showDiceResultOverlay({ roll, modifier, total, result, stat, statValue: statVal });
+    showDiceResultOverlay({
+        roll,
+        modifier,
+        total,
+        result,
+        stat,
+        statValue: statVal,
+        label: rollContext.label,
+        breakdown: rollContext.breakdown,
+        advantageState: rollContext.advantageState
+    });
 
-    const oracleData = { question: challenge.desc, stat, statValue: statVal, modifier, dc, roll, total, result, timestamp: Date.now() };
+    const oracleData = {
+        question: challenge.desc,
+        stat,
+        statValue: statVal,
+        modifier,
+        dc,
+        roll,
+        total,
+        result,
+        rollType: rollContext.rollType || challenge.rollType || 'check',
+        label: rollContext.label,
+        timestamp: Date.now()
+    };
     const topic      = getCurrentTopic();
     const topicMsgs  = getTopicMessages(currentTopicId);
 
@@ -12671,7 +13310,7 @@ function acceptChallenge(stat) {
         charColor:         char.color,
         charAvatar:        char.avatar,
         charSprite:        char.sprite,
-        text:              '🎲 *Acepta el desafío con **' + stat + '***\nD20(' + roll + ') ' + modSign + modifier + ' = **' + total + '** vs DC' + dc + ' → **' + labels[result] + '** ' + resultIcon,
+        text:              '🎲 *Acepta el desafío con **' + escapeHtml(rollContext.label || stat) + '***\nD20(' + roll + ') ' + modSign + modifier + ' = **' + total + '** vs DC' + dc + ' → **' + labels[result] + '** ' + resultIcon,
         isNarrator:        false,
         isChallengeResult: true,
         userIndex:         currentUserIndex,
@@ -12746,6 +13385,19 @@ function dmSendAsNpc() {
     closeDmPanel();
 }
 
+function dmTriggerShortRest() {
+    const topic = getCurrentTopic();
+    if (!topic) return;
+    const isOwner = topic.createdByIndex === currentUserIndex
+        || topic.createdByIndex === undefined
+        || topic.createdByIndex === null;
+    if (!isOwner || topic.mode !== 'rpg') {
+        showAutosave('Solo el DM en modo RPG puede activar descanso corto', 'error');
+        return;
+    }
+    triggerShortRest();
+}
+
 // Publica un mensaje de sistema del DM (condiciones, objetos, tiradas)
 function _dmPostSystemMessage(text) {
     if (!text || !currentTopicId) return;
@@ -12785,7 +13437,7 @@ function dmReviveCharacter(charId) {
         ? ensureCharacterRpgProfile(char, currentTopicId) : null;
     if (!profile) return;
 
-    // Reincorporar: quitar estado muerte, restaurar 1 HP mínimo
+    // Reincorporar: quitar tensión crítica y restaurar 1 HP mínimo
     if (typeof removeConditionFromProfile === 'function') {
         removeConditionFromProfile(profile, 'dead');
     }
@@ -12913,6 +13565,12 @@ window.addEventListener('etheria:dm-revive', function(e) {
     if (typeof updateIhp === 'function') updateIhp();
 });
 
+window.addEventListener('etheria:story-participants-loaded', function(e) {
+    if (e.detail?.storyId && currentStoryId && String(e.detail.storyId) !== String(currentStoryId)) return;
+    updateVnTurnBadge();
+    renderVnPartyPanel(true);
+});
+
 window.toggleDmPanel     = toggleDmPanel;
 window.openDmPanel       = openDmPanel;
 window.closeDmPanel      = closeDmPanel;
@@ -12925,6 +13583,7 @@ window.dmSendChallenge   = dmSendChallenge;
 window.acceptChallenge   = acceptChallenge;
 window.dismissChallenge  = dismissChallenge;
 window.dmSendAsNpc       = dmSendAsNpc;
+window.dmTriggerShortRest = dmTriggerShortRest;
 
 // ============================================
 // BOTÓN DE NARRACIÓN FLOTANTE (escena/capítulo)
@@ -12962,7 +13621,10 @@ function _updateNarratePending() {
     const el = document.getElementById('vnNarratePending');
     if (!el) return;
     const parts = [];
-    if (pendingSceneChange) parts.push(`🎬 ${pendingSceneChange.title}`);
+    if (pendingSceneChange) {
+        parts.push(`🎬 ${pendingSceneChange.title}`);
+        if (pendingSceneChange.bridge) parts.push(`✍️ Puente narrativo preparado`);
+    }
     if (pendingChapter)     parts.push(`📖 ${pendingChapter.title}`);
     if (parts.length) {
         el.style.display = 'block';
@@ -13283,6 +13945,7 @@ function selectCharFromGrid(charId) {
     selectedCharId = charId;
     localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
     updateCharSelector();
+    renderVnPartyPanel(true);
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
@@ -13376,8 +14039,8 @@ async function notifyNextTurnIfNeeded(newMsg, topic, char) {
         topicId: currentTopicId,
         messageId: newMsg?.id || null,
         recipientUserId,
-        title: '🎯 Te toca responder',
-        body: `${speaker} respondió en ${topicTitle}: ${preview}${preview.length >= 110 ? '…' : ''}`,
+        title: '🎯 Te toca continuar la escena',
+        body: `${speaker} dejó su relevo en ${topicTitle}: ${preview}${preview.length >= 110 ? '…' : ''}`,
         meta: {
             speaker,
             topicTitle,
@@ -13404,11 +14067,11 @@ function postVNReply() {
         if (topic?.mode === 'rpg' && typeof ensureCharacterRpgProfile === 'function') {
             const profile = ensureCharacterRpgProfile(char, currentTopicId || null);
             if (profile.conditions?.includes('dead')) {
-                showAutosave(`${char.name} ha caído. Solo el DM puede reincorporarle a la partida.`, 'error');
+                showAutosave(`${char.name} está en tensión crítica. Solo el DM o la ficción pueden reincorporarle a la escena.`, 'error');
                 return;
             }
             if (profile.knockedOutTurns > 0) {
-                showAutosave(`Este personaje está fuera de escena por ${profile.knockedOutTurns} turnos`, 'error');
+                showAutosave(`Este personaje sigue fuera de escena durante ${profile.knockedOutTurns} relevos`, 'error');
                 return;
             }
         }
@@ -13435,19 +14098,23 @@ function postVNReply() {
     pendingSceneChange = null;
     updateSceneChangePreview();
 
-    const finalText = sceneChange ? `🎬 **Escena: ${sceneChange.title}**\n${text}` : text;
+    const bridgeText = sceneChange?.bridge ? `*${sceneChange.bridge}*\n` : '';
+    const finalText = sceneChange ? `${bridgeText}🎬 **Escena: ${sceneChange.title}**\n${text}` : text;
     const oracleQuestionInput = document.getElementById('oracleMiniQuestion'); // fix: id correcto
     const shouldApplyOracle = oracleModeActive && isRpgTopicMode(topic?.mode);
     let oracleData;
     if (shouldApplyOracle) {
-        const statValue = getOracleSelectedStatValue();
-        const modifier = getOracleModifier(statValue);
-        const dc = calculateOracleDifficulty();
+        const oracleQuestion = (oracleQuestionInput?.value || '').trim() || getOracleAutodetectedQuestion(text) || 'Pregunta al destino';
+        const rollContext = getOracleRollContext(oracleQuestion);
+        const tension = getNarrativeTensionData(char);
+        const statValue = rollContext.statValue;
+        const modifier = rollContext.modifier;
+        const dc = tension.dc;
         const roll = Math.floor(Math.random() * 20) + 1;
         const total = Math.max(1, Math.min(20, roll + modifier));
         const result = getOracleRollResult(roll, total);
         oracleData = {
-            question: (oracleQuestionInput?.value || '').trim() || getOracleAutodetectedQuestion(text) || 'Pregunta al destino',
+            question: oracleQuestion,
             stat: oracleStat,
             statValue,
             modifier,
@@ -13455,9 +14122,23 @@ function postVNReply() {
             roll,
             total,
             result,
+            rollType: rollContext.rollType,
+            label: rollContext.label,
+            tensionState: tension.level,
+            tensionLabel: tension.label,
             timestamp: Date.now()
         };
-        showDiceResultOverlay({ roll, modifier, total, result, stat: oracleStat, statValue });
+        showDiceResultOverlay({
+            roll,
+            modifier,
+            total,
+            result,
+            stat: oracleStat,
+            statValue,
+            label: rollContext.label,
+            breakdown: rollContext.breakdown,
+            advantageState: rollContext.advantageState
+        });
     }
 
     const newMsg = {
@@ -13588,6 +14269,8 @@ const GARRICK = {
     color: 'rgba(160, 100, 40, 0.9)',
     colorFull: '#a06428',
 };
+
+const SHORT_REST_HEAL_RATIO = 0.25;
 
 // Diálogos por fase — cada uno con variantes aleatorias
 // fase: 'arrival' | 'night' | 'morning' | 'hp_full' | 'hp_low' | 'farewell'
@@ -13759,6 +14442,47 @@ function triggerInnkeeperScene() {
     showAutosave(`🍺 Garrick ha hablado — HP restaurado. Ahora usa el Narrador para continuar.`, 'saved');
     if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
     if (typeof updateNarrateButton === 'function') updateNarrateButton();
+}
+
+function triggerShortRest() {
+    const topic = getCurrentTopic();
+    if (!topic || !canUseNarratorMode(topic)) {
+        showAutosave('Solo el narrador puede iniciar un descanso corto', 'error');
+        return;
+    }
+    if (topic.mode !== 'rpg') {
+        showAutosave('El descanso corto solo está disponible en partidas RPG', 'error');
+        return;
+    }
+
+    let healedChars = 0;
+    let totalHpRecovered = 0;
+    const hpCap = Math.max(1, Number(globalThis.RPG_HP_MAX || 10));
+
+    appData.characters.forEach((ch) => {
+        if (typeof ensureCharacterRpgProfile !== 'function') return;
+        const profile = ensureCharacterRpgProfile(ch, topic.id);
+        if (!profile) return;
+        if ((profile.hp || 0) <= 0) return; // no reincorpora tensión crítica
+        const before = Math.max(0, Math.min(hpCap, Number(profile.hp || 0)));
+        const healBy = Math.max(1, Math.ceil(hpCap * SHORT_REST_HEAL_RATIO));
+        const after = Math.max(0, Math.min(hpCap, before + healBy));
+        const gained = after - before;
+        profile.hp = after;
+        if (gained > 0) {
+            healedChars += 1;
+            totalHpRecovered += gained;
+        }
+    });
+
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    renderVnPartyPanel();
+    if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+    if (typeof refreshDmPanelCharacterList === 'function') refreshDmPanelCharacterList();
+    showAutosave(healedChars > 0
+        ? `⛺ Descanso corto aplicado (${Math.round(SHORT_REST_HEAL_RATIO * 100)}%): +${totalHpRecovered} HP totales`
+        : '⛺ Descanso corto aplicado (sin curación necesaria)', 'saved');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -21155,6 +21879,11 @@ const RPGRenderer = (function () {
 })();
 
 /* js/app.js */
+if (window.__ETHERIA_APP_CANONICAL_LOADED__) {
+    throw new Error('[Etheria] js/app.js cargado más de una vez.');
+}
+window.__ETHERIA_APP_CANONICAL_LOADED__ = true;
+
 // Punto de entrada: inicializa la app cuando carga el DOM.
 // ============================================
 // CORE/BOOT.JS

@@ -1,3 +1,8 @@
+if (window.__ETHERIA_UI_CANONICAL_LOADED__) {
+    throw new Error('[Etheria] js/ui/ui.js cargado más de una vez.');
+}
+window.__ETHERIA_UI_CANONICAL_LOADED__ = true;
+
 // Funciones de interfaz (menús, modales, renderizado visual).
 // ============================================
 // UI/INTERFACE.JS

@@ -1,3 +1,8 @@
+if (window.__ETHERIA_APP_CANONICAL_LOADED__) {
+    throw new Error('[Etheria] js/app.js cargado más de una vez.');
+}
+window.__ETHERIA_APP_CANONICAL_LOADED__ = true;
+
 // Punto de entrada: inicializa la app cuando carga el DOM.
 // ============================================
 // CORE/BOOT.JS

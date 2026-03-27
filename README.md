@@ -4,6 +4,18 @@ Proyecto web estático organizado para que sea fácil de mantener y desplegar en
 
 ## Estructura
 
+La estructura activa del proyecto queda concentrada en unos pocos puntos claros:
+
+- `index.html`: shell principal y orden de carga.
+- `js/app.js`: arranque de la app.
+- `js/ui/`: UI y pantallas.
+- `js/utils/`: persistencia, Supabase, logging y helpers compartidos.
+- `js/core/`: estado/eventos base.
+- `css/critical*` + `css/non-critical.css`: punto de entrada de estilos.
+- `dist/`: salida generada del build.
+
+Todo lo que no pertenezca a esos puntos debería ser o bien un artefacto generado, o bien un archivo legacy/documental.
+
 ```text
 etheria/
 ├── build.js
@@ -32,6 +44,11 @@ etheria/
 │   │   ├── app-ui.js
 │   │   └── mejoras.js
 │   └── app.js
+├── assets/
+├── scripts/
+├── tests/
+├── supabase/
+├── legacy/
 └── dist/
 ```
 
@@ -90,6 +107,9 @@ En `index.html` los scripts se cargan en este orden (resumen):
 - Si cambias guardado/carga, toca `js/utils/storage.js`.
 - Si cambias menús/UI, revisa módulos dentro de `js/ui/` (ej: `topics.js`, `vn.js`, `app-ui.js`).
 - Si cambias inicio de app, toca `js/app.js`.
+- Evita crear archivos espejo en la raíz si ya existe una versión canónica dentro de `js/` o `css/`.
+- Los archivos raíz `app.js`, `ui.js` y `sheets.js` se mantienen solo como capas de compatibilidad que redirigen a sus equivalentes canónicos en `js/`.
+- Considera `dist/` como salida generada: si aparece un archivo ahí que no sale del build actual, probablemente es residuo y conviene eliminarlo.
 
 ## Requisitos de colaboración con Supabase
 
@@ -137,6 +157,10 @@ Para que las salas colaborativas funcionen de forma segura (sin cambiar el flujo
 - Grafo de relaciones por historia (constelación de afinidades).
 - Demo cargable: **La Última Carta**.
 - Oráculo RPG con consecuencia narrativa en el siguiente mensaje de narrador.
+- Flujo de escena por relevos: pensado para partidas tipo foro, con turnos ligeros entre 2 o más participantes sin exigir combate táctico.
+- DC narrativa variable: el Oráculo ya no es plana, sino que reacciona a la tensión acumulada del personaje en escena.
+- Tensión crítica en vez de death saves: si una escena te sobrepasa quedas fuera de foco unos relevos, sin subsistema extra de 3 fallos.
+- Sin capa táctica pesada: no se centraliza en armas, armaduras o listas de skills; la resolución sigue apoyándose en texto, clase y tensión de escena.
 
 
 ## Troubleshooting rápido

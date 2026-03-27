@@ -1,2 +1,6 @@
+node_modules/
+.DS_Store
+
+# HTML build outputs are regenerated locally.
 dist/etheria.html
 dist/index.html

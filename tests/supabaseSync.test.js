@@ -69,7 +69,7 @@ function makeSandbox() {
   return sandbox;
 }
 
-test('SupabaseSync.uploadProfileData usa upsert y serializa datos globales + profileMeta', async () => {
+test('SupabaseSync.uploadProfileData usa upsert y serializa solo el blob ligero esperado + profileMeta', async () => {
   const sandbox = makeSandbox();
   let upsertPayload = null;
   let upsertOptions = null;
@@ -95,16 +95,17 @@ test('SupabaseSync.uploadProfileData usa upsert y serializa datos globales + pro
   assert.equal(upsertPayload.user_id, 'user-1');
   assert.equal(upsertOptions.onConflict, 'user_id');
 
-  // Debe incluir todos los datos serializados, no solo el perfil activo
-  assert.equal(upsertPayload.data.topics.length, 2);
-  assert.equal(upsertPayload.data.characters.length, 2);
-  assert.deepEqual(Object.keys(upsertPayload.data.messages).sort(), ['t1', 't2']);
+  // Topics/characters/messages viven ahora en tablas separadas de Supabase.
+  assert.equal('topics' in upsertPayload.data, false);
+  assert.equal('characters' in upsertPayload.data, false);
+  assert.equal('messages' in upsertPayload.data, false);
+  assert.equal(JSON.stringify(upsertPayload.data.userNames), JSON.stringify(['Irumiko', 'Usuario 2']));
   assert.equal(JSON.stringify(upsertPayload.data.profileMeta.genders), JSON.stringify(['femenino']));
   assert.equal(JSON.stringify(upsertPayload.data.profileMeta.birthdays), JSON.stringify(['1995-01-01']));
   assert.equal(JSON.stringify(upsertPayload.data.profileMeta.avatars), JSON.stringify(['https://avatar.test/a.png']));
 });
 
-test('SupabaseSync.downloadProfileData reemplaza estado local con datos remotos', async () => {
+test('SupabaseSync.downloadProfileData aplica solo metadata ligera y no pisa tablas locales cargadas por módulos específicos', async () => {
   const sandbox = makeSandbox();
 
   const remoteData = {
@@ -138,10 +139,10 @@ test('SupabaseSync.downloadProfileData reemplaza estado local con datos remotos'
   const result = await sandbox.window.SupabaseSync.downloadProfileData();
 
   assert.equal(result.ok, true);
-  assert.equal(sandbox.appData.topics.length, 1);
-  assert.equal(sandbox.appData.topics[0].id, 'remote-topic');
-  assert.equal(sandbox.appData.characters.length, 1);
-  assert.deepEqual(Object.keys(sandbox.appData.messages), ['remote-topic']);
+  assert.equal(sandbox.appData.topics.length, 2);
+  assert.equal(sandbox.appData.topics[0].id, 't1');
+  assert.equal(sandbox.appData.characters.length, 2);
+  assert.deepEqual(Object.keys(sandbox.appData.messages).sort(), ['t1', 't2']);
   assert.equal(sandbox.userNames[0], 'Nombre Cloud');
   assert.equal(sandbox.localStorage.getItem('etheria_user_genders'), JSON.stringify(['no-binario']));
   assert.equal(sandbox.localStorage.getItem('etheria_user_birthdays'), JSON.stringify(['2000-02-02']));
