@@ -26,6 +26,9 @@
     border-bottom: 1px solid rgba(201,168,108,0.2);
     flex-shrink: 0;
 }
+.bonds-header > div {
+    flex: 1;
+}
 .bonds-back-btn {
     background: none;
     border: 1px solid rgba(201,168,108,0.3);
@@ -35,6 +38,7 @@
     cursor: pointer;
     font-size: 0.85rem;
     transition: background 0.2s, border-color 0.2s;
+    margin-left: auto;
 }
 .bonds-back-btn:hover {
     background: rgba(201,168,108,0.1);
