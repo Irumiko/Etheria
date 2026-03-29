@@ -319,23 +319,31 @@ const SupabaseSync = (function () {
      */
     function _hasLocalData() {
         return (appData?.topics?.length > 0) || 
-               // characters ya no está en el blob — eliminado
-               Object.keys(appData?.topics || {}).length > 0;
+               (appData?.characters?.length > 0);
     }
 
     // ── Auto-sync ────────────────────────────────────────────────────────────
 
     function startAutoSync() {
         if (_syncInterval) clearInterval(_syncInterval);
-        
+
+        const intervalMs = _isOffline ? CFG.OFFLINE_INTERVAL : CFG.SYNC_INTERVAL;
+
         _syncInterval = setInterval(async () => {
             const userId = _getUserId();
             if (!userId) return; // No sincronizar si no hay usuario
-            
+
+            // Reajustar intervalo si el estado offline cambió desde la última vez
+            const expectedMs = _isOffline ? CFG.OFFLINE_INTERVAL : CFG.SYNC_INTERVAL;
+            if (expectedMs !== intervalMs) {
+                startAutoSync(); // reiniciar con el intervalo correcto
+                return;
+            }
+
             if (_pendingChanges || hasUnsavedChanges) {
                 await sync({ silent: true });
             }
-        }, _isOffline ? CFG.OFFLINE_INTERVAL : CFG.SYNC_INTERVAL);
+        }, intervalMs);
     }
 
     function stopAutoSync() {
@@ -379,9 +387,19 @@ const SupabaseSync = (function () {
 
                 window.EtheriaLogger?.info?.('sync:realtime', 'Cambio detectado desde otro dispositivo — descargando...');
                 const result = await downloadProfileData();
-                if (result.ok && result.data) {
-                    if (typeof renderTopics  === 'function') renderTopics();
-                    if (typeof renderGallery === 'function') renderGallery();
+                if (result.ok) {
+                    // Recargar topics desde su tabla propia (no viajan en el blob)
+                    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+                        await SupabaseStories.loadStories().catch(() => {});
+                    }
+                    const _rtActiveProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+                        ? SupabaseProfiles.getActiveProfileId()
+                        : null;
+                    if (_rtActiveProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+                        await SupabaseCharacters.loadCharacters(_rtActiveProfileId).catch(() => {});
+                    }
+                    if (typeof renderTopics   === 'function') renderTopics();
+                    if (typeof renderGallery  === 'function') renderGallery();
                     if (typeof renderUserCards === 'function') renderUserCards();
                     eventBus.emit('ui:show-autosave', { text: 'Datos actualizados desde otro dispositivo', state: 'info' });
                 }
@@ -415,7 +433,20 @@ const SupabaseSync = (function () {
             if (msSinceLastSync < 10000) return;
             window.EtheriaLogger?.info?.('sync:visibility', 'App visible de nuevo — sincronizando...');
             const result = await downloadProfileData();
-            if (result.ok && result.data) {
+
+            // Recargar topics y characters desde sus tablas propias,
+            // ya que no viajan en el blob de user_data
+            if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+                await SupabaseStories.loadStories().catch(() => {});
+            }
+            const _visActiveProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+                ? SupabaseProfiles.getActiveProfileId()
+                : null;
+            if (_visActiveProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+                await SupabaseCharacters.loadCharacters(_visActiveProfileId).catch(() => {});
+            }
+
+            if (result.ok) {
                 if (typeof renderTopics  === 'function') renderTopics();
                 if (typeof renderGallery === 'function') renderGallery();
                 if (typeof renderUserCards === 'function') renderUserCards();
@@ -432,6 +463,18 @@ const SupabaseSync = (function () {
             window.EtheriaLogger?.info?.('sync:network', 'Conexión recuperada — sincronizando...');
             eventBus.emit('ui:show-autosave', { text: 'Conexión recuperada — sincronizando...', state: 'info' });
             await sync({ silent: false, force: true });
+            // Recargar topics y characters que no viajan en el blob
+            if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+                await SupabaseStories.loadStories().catch(() => {});
+            }
+            const _onlineActiveProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+                ? SupabaseProfiles.getActiveProfileId()
+                : null;
+            if (_onlineActiveProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+                await SupabaseCharacters.loadCharacters(_onlineActiveProfileId).catch(() => {});
+            }
+            if (typeof renderTopics  === 'function') renderTopics();
+            if (typeof renderGallery === 'function') renderGallery();
             // Reconectar canal Realtime (se desconecta al perder red)
             _subscribeRealtimeChanges();
         });
@@ -480,7 +523,19 @@ const SupabaseSync = (function () {
         // Sincronización inicial silenciosa
         const userId = _getUserId();
         if (userId && _isAvailable()) {
-            sync({ silent: true }).catch(() => {});
+            sync({ silent: true })
+                .then(async () => {
+                    // Cargar topics desde su tabla propia (no viajan en el blob de user_data).
+                    // Los personajes (characters) los gestiona el listener etheria:active-profile-changed
+                    // en app.js, que se dispara cuando SupabaseProfiles resuelve el perfil activo
+                    // (siempre ocurre después de que este init() se ejecute).
+                    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+                        await SupabaseStories.loadStories().catch(() => {});
+                    }
+                    if (typeof renderTopics  === 'function') renderTopics();
+                    if (typeof renderGallery === 'function') renderGallery();
+                })
+                .catch(() => {});
             // Suscribir al canal Realtime para detectar cambios desde otros dispositivos
             _subscribeRealtimeChanges().catch(() => {});
         }

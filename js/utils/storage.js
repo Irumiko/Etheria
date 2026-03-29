@@ -456,7 +456,12 @@ async function syncBidirectional(options = {}) {
     // Usar SupabaseSync si está disponible
     if (typeof SupabaseSync !== 'undefined') {
         const result = await SupabaseSync.sync({ silent, force: forceApplyRemote });
-        
+
+        // La sync principal cubre user_data; topics/characters viven en tablas separadas.
+        if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+            await SupabaseStories.loadStories().catch(() => {});
+        }
+
         // Mapear estados de SupabaseSync a los esperados por el código existente
         const statusMap = {
             'synced': 'noop',

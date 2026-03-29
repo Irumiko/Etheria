@@ -174,6 +174,45 @@ function _clearAccountData() {
     window._cachedUserId = null;
 }
 
+let _postAuthHydrationPromise = null;
+async function _waitForActiveProfileId(timeoutMs = 3000) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        const profileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+            ? SupabaseProfiles.getActiveProfileId()
+            : null;
+        if (profileId) return profileId;
+        await new Promise(resolve => setTimeout(resolve, 120));
+    }
+    return null;
+}
+async function hydrateCloudAfterAuth() {
+    if (_postAuthHydrationPromise) return _postAuthHydrationPromise;
+    _postAuthHydrationPromise = (async () => {
+        // user_data (meta, ajustes, snapshot RPG)
+        if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.downloadProfileData === 'function') {
+            await SupabaseSync.downloadProfileData().catch(() => {});
+        }
+        // stories (fuente de verdad para topics)
+        if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+            await SupabaseStories.loadStories().catch(() => {});
+        }
+        // characters del perfil activo
+        const profileId = await _waitForActiveProfileId();
+        if (profileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+            await SupabaseCharacters.loadCharacters(profileId).catch(() => {});
+        }
+        if (typeof renderTopics === 'function') renderTopics();
+        if (typeof renderGallery === 'function') renderGallery();
+        if (typeof renderUserCards === 'function') renderUserCards();
+    })();
+    try {
+        await _postAuthHydrationPromise;
+    } finally {
+        _postAuthHydrationPromise = null;
+    }
+}
+
 async function login() {
     const email = (document.getElementById('authEmail')?.value || '').trim();
     const password = document.getElementById('authPassword')?.value || '';
@@ -205,32 +244,16 @@ async function login() {
     hideLoginScreen();
     initializeApp();
     await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
-
     // La nube siempre gana al iniciar sesión: descargar y reemplazar datos locales.
     if (typeof SupabaseSync !== 'undefined') {
         await SupabaseSync.downloadProfileData();
     }
-
-
     // Cargar historias desde Supabase — reconstruye appData.topics si está vacío
     // (usuario en dispositivo nuevo) o actualiza storyIds en topics existentes.
     if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
         await SupabaseStories.loadStories().catch(() => {});
     }
-
-    // Sincronizar topics locales con Supabase.
-    // Sube los que no tienen storyId aún y actualiza los que han cambiado.
-    if (typeof SupabaseStories !== 'undefined' &&
-        typeof SupabaseStories.syncAllLocalTopics === 'function' &&
-        Array.isArray(appData?.topics) && appData.topics.length > 0) {
-        SupabaseStories.syncAllLocalTopics(appData.topics).then(() => {
-            if (typeof save === 'function') save({ silent: true });
-        }).catch(() => {});
-    }
-    // Re-renderizar siempre, tanto si había datos en la nube como si no.
-    if (typeof renderTopics === 'function')    renderTopics();
-    if (typeof renderGallery === 'function')   renderGallery();
-    if (typeof renderUserCards === 'function') renderUserCards();
+    await hydrateCloudAfterAuth();
 }
 
 async function register() {
@@ -283,16 +306,11 @@ async function register() {
         hideLoginScreen();
         initializeApp();
         await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
-
         // Cuenta nueva: intentar descargar datos (puede ser cuenta existente en otro dispositivo)
         if (typeof SupabaseSync !== 'undefined') {
             await SupabaseSync.downloadProfileData();
         }
-
-        // Re-renderizar siempre.
-        if (typeof renderTopics === 'function')    renderTopics();
-        if (typeof renderGallery === 'function')   renderGallery();
-        if (typeof renderUserCards === 'function') renderUserCards();
+        await hydrateCloudAfterAuth();
     }
 }
 
@@ -747,6 +765,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         hideLoginScreen();
         initializeApp();
         await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
+        await hydrateCloudAfterAuth();
     } else {
         // Mostrar pantalla de autenticación
         showLoginScreen();
@@ -756,7 +775,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.supabaseClient) {
         window.supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
-                ensureProfile().catch(() => {});
+                ensureProfile()
+                    .then(() => hydrateCloudAfterAuth())
+                    .catch(() => {});
                 return;
             }
 

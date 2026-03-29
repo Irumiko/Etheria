@@ -194,39 +194,59 @@
             if (typeof appData !== 'undefined') {
                 appData.stories = stories;
 
-                // ── Reconstruir appData.topics desde Supabase ────────────────
-                // Si el usuario está en un dispositivo nuevo sin localStorage,
-                // appData.topics estará vacío. En ese caso reconstruimos los topics
-                // desde las stories de Supabase, incluyendo todos los metadatos
-                // que ahora se guardan en las columnas nuevas (mode, background,
-                // character_locks, etc.).
-                const hasLocalTopics = Array.isArray(appData.topics) && appData.topics.length > 0;
-                if (!hasLocalTopics && stories.length > 0) {
-                    appData.topics = stories.map(s => _storyToTopic(s));
-                    logger?.info('supabase:stories', `Reconstruidos ${appData.topics.length} topics desde Supabase`);
-                    // Persistir en localStorage para las próximas cargas
-                    if (typeof persistPartitionedData === 'function') {
-                        persistPartitionedData(true);
-                    }
-                } else if (hasLocalTopics && stories.length > 0) {
-                    // Actualizar storyId y metadatos en topics locales que ya existen
-                    // para mantener la coherencia si se crearon en otro dispositivo
-                    stories.forEach(s => {
-                        const local = appData.topics.find(t =>
-                            String(t.storyId) === String(s.id) ||
-                            String(t.id) === String(s.local_id)
-                        );
-                        if (local) {
-                            if (!local.storyId) local.storyId = s.id;
-                            // Actualizar metadatos si la versión en nube es más reciente
-                            if (s.updated_at && (!local.updatedAt || s.updated_at > local.updatedAt)) {
-                                if (s.mode)            local.mode            = s.mode;
-                                if (s.background)      local.background      = s.background;
-                                if (s.character_locks) local.characterLocks  = s.character_locks;
-                                if (s.rpg_char_locks)  local.rpgCharacterLocks = s.rpg_char_locks;
-                            }
+                // ── Sincronización completa de topics con Supabase ───────────
+                // La nube (tabla stories) es la fuente de verdad.
+                // 1. Topics en nube pero no locales → añadir.
+                // 2. Topics locales que ya existen en nube → actualizar metadatos si la nube es más reciente.
+                // 3. Topics locales sin storyId (nunca subidos) → conservar tal cual.
+                // 4. Topics locales con storyId que ya NO están en nube → fueron borrados en otro
+                //    dispositivo, eliminarlos también aquí.
+                if (!Array.isArray(appData.topics)) appData.topics = [];
+
+                const cloudIds = new Set(stories.map(s => String(s.id)));
+
+                // Paso 4: eliminar topics cuyo storyId ya no existe en la nube
+                const beforeCount = appData.topics.length;
+                appData.topics = appData.topics.filter(t =>
+                    !t.storyId || cloudIds.has(String(t.storyId))
+                );
+                const removedCount = beforeCount - appData.topics.length;
+                if (removedCount > 0) {
+                    logger?.info('supabase:stories', `Eliminados ${removedCount} topics borrados en otro dispositivo`);
+                }
+
+                // Pasos 1 y 2: recorrer stories de la nube
+                let addedCount = 0;
+                stories.forEach(s => {
+                    const local = appData.topics.find(t =>
+                        String(t.storyId) === String(s.id) ||
+                        String(t.id) === String(s.local_id)
+                    );
+                    if (local) {
+                        // Paso 2: actualizar storyId y metadatos si la nube es más reciente
+                        if (!local.storyId) local.storyId = s.id;
+                        if (s.updated_at && (!local.updatedAt || s.updated_at > local.updatedAt)) {
+                            if (s.mode)            local.mode              = s.mode;
+                            if (s.background)      local.background        = s.background;
+                            if (s.weather)         local.weather           = s.weather;
+                            if (s.character_locks) local.characterLocks    = s.character_locks;
+                            if (s.rpg_char_locks)  local.rpgCharacterLocks = s.rpg_char_locks;
+                            local.updatedAt = s.updated_at;
                         }
-                    });
+                    } else {
+                        // Paso 1: topic existe en nube pero no localmente → añadir
+                        appData.topics.push(_storyToTopic(s));
+                        addedCount++;
+                    }
+                });
+
+                if (addedCount > 0) {
+                    logger?.info('supabase:stories', `Añadidos ${addedCount} topics nuevos desde otro dispositivo`);
+                }
+
+                if (addedCount > 0 || removedCount > 0) {
+                    if (typeof markDirty === 'function') markDirty('topics');
+                    if (typeof persistPartitionedData === 'function') persistPartitionedData();
                 }
             }
 
@@ -933,6 +953,28 @@
         }
     }
 
+    // Elimina una historia de Supabase por su storyId (UUID).
+    // Devuelve { ok: true } si se borró o no existía, { ok: false, error } si hubo error real.
+    async function deleteStory(storyId) {
+        if (!storyId) return { ok: false, error: 'storyId requerido' };
+        const client = _getClient();
+        if (!client) return { ok: false, error: 'Cliente no disponible' };
+        try {
+            const { error } = await client
+                .from('stories')
+                .delete()
+                .eq('id', storyId);
+            if (error) {
+                logger?.warn('supabase:stories', 'deleteStory error:', error.message);
+                return { ok: false, error: error.message };
+            }
+            return { ok: true };
+        } catch (e) {
+            logger?.warn('supabase:stories', 'deleteStory exception:', e?.message);
+            return { ok: false, error: e?.message };
+        }
+    }
+
     // Sube todos los topics locales a Supabase que no tengan storyId todavía
     // o que hayan sido modificados. Pensado para ejecutarse al hacer login.
     async function syncAllLocalTopics(topics) {
@@ -963,7 +1005,8 @@
         generateInviteLink    : generateInviteLink,
         joinByInviteToken     : joinByInviteToken,
         upsertStory           : upsertStory,
-        syncAllLocalTopics    : syncAllLocalTopics
+        syncAllLocalTopics    : syncAllLocalTopics,
+        deleteStory           : deleteStory
     };
 
 }(window));

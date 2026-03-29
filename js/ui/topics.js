@@ -119,6 +119,40 @@ function saveBranches() {
 let _topicsFilter = 'all';
 let _topicsSearch = '';
 
+function _normalizeTopicId(topicId) {
+    return String(topicId ?? '');
+}
+
+function _dedupeTopicsInPlace() {
+    if (!Array.isArray(appData?.topics) || appData.topics.length < 2) return false;
+
+    const seen = new Set();
+    const deduped = [];
+    let changed = false;
+
+    for (const topic of appData.topics) {
+        if (!topic) continue;
+        const idKey = _normalizeTopicId(topic.id);
+        const storyKey = topic.storyId ? String(topic.storyId) : '';
+        const key = storyKey ? `story:${storyKey}` : `local:${idKey}`;
+
+        if (seen.has(key)) {
+            changed = true;
+            continue;
+        }
+
+        seen.add(key);
+        deduped.push(topic);
+    }
+
+    if (changed) {
+        appData.topics = deduped;
+        hasUnsavedChanges = true;
+        if (typeof save === 'function') save({ silent: true });
+    }
+    return changed;
+}
+
 
 function formatRelativeDayLabel(dateValue) {
     if (!dateValue) return 'Sin actividad reciente';
@@ -166,6 +200,8 @@ function filterTopics() {
 function renderTopics() {
     const container = document.getElementById('topicsList');
     if (!container) return;
+
+    _dedupeTopicsInPlace();
 
     let topics = appData.topics;
 
@@ -249,7 +285,7 @@ function renderTopics() {
             const progressPct = Math.min(100, Math.round((progressCurrent / 10) * 100));
 
             return `
-                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}" onclick="enterTopic('${t.id}')">
+                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}" onclick="enterTopic('${_normalizeTopicId(t.id)}')">
                     <div class="topic-card-accent"></div>
                     <div class="topic-card-watermark">${watermarkSvg}</div>
                     <span class="topic-card-corner topic-card-corner--tl">${cornerSvg}</span>
@@ -628,6 +664,7 @@ let _smFilter = 'all';
 let _smSelected = new Set();
 
 function openSessionManager() {
+    _dedupeTopicsInPlace();
     _smFilter = 'all';
     _smSelected.clear();
     _smRender();
@@ -659,7 +696,7 @@ function _smRender() {
     const topics = _smGetTopics();
 
     // Contar cuántas del filtro actual están seleccionadas
-    const selInView = topics.filter(t => _smSelected.has(t.id)).length;
+    const selInView = topics.filter(t => _smSelected.has(_normalizeTopicId(t.id))).length;
     const total     = topics.length;
 
     if (count) count.textContent = `${_smSelected.size} seleccionada${_smSelected.size !== 1 ? 's' : ''}`;
@@ -679,14 +716,15 @@ function _smRender() {
         const isOwn    = t.createdByIndex === currentUserIndex;
         const modeTag  = t.mode === 'rpg' ? '<span class="sm-tag sm-tag-rpg">RPG</span>' : '<span class="sm-tag sm-tag-classic">Clásico</span>';
         const ownerTag = isOwn ? '<span class="sm-tag sm-tag-own">Tuya</span>' : '';
-        const checked  = _smSelected.has(t.id);
+        const normalizedId = _normalizeTopicId(t.id);
+        const checked  = _smSelected.has(normalizedId);
         const date     = t.date || '';
 
         return `
-        <label class="sm-item ${checked ? 'sm-item--selected' : ''}" for="sm_cb_${t.id}">
-            <input type="checkbox" class="sm-item-cb" id="sm_cb_${t.id}"
+        <label class="sm-item ${checked ? 'sm-item--selected' : ''}" for="sm_cb_${normalizedId}">
+            <input type="checkbox" class="sm-item-cb" id="sm_cb_${normalizedId}"
                 ${checked ? 'checked' : ''}
-                onchange="smToggleItem('${t.id}', this.checked)">
+                onchange="smToggleItem('${normalizedId}', this.checked)">
             <span class="sm-item-check"></span>
             <div class="sm-item-body">
                 <div class="sm-item-title">${escapeHtml(t.title)}</div>
@@ -701,14 +739,15 @@ function _smRender() {
 }
 
 function smToggleItem(topicId, checked) {
-    if (checked) _smSelected.add(topicId);
-    else         _smSelected.delete(topicId);
+    const normalizedId = _normalizeTopicId(topicId);
+    if (checked) _smSelected.add(normalizedId);
+    else         _smSelected.delete(normalizedId);
     _smRender();
 }
 
 function smToggleAll(checked) {
     const topics = _smGetTopics();
-    if (checked) topics.forEach(t => _smSelected.add(t.id));
+    if (checked) topics.forEach(t => _smSelected.add(_normalizeTopicId(t.id)));
     else         _smSelected.clear();
     _smRender();
 }
@@ -722,6 +761,7 @@ function smSetFilter(filter, btn) {
 
 async function smDeleteSelected() {
     if (_smSelected.size === 0) return;
+    _dedupeTopicsInPlace();
 
     const n = _smSelected.size;
     const ok = await openConfirmModal(
@@ -731,17 +771,26 @@ async function smDeleteSelected() {
     if (!ok) return;
 
     // Borrar cada topic seleccionado
+    const storyIdsToDelete = [];
     _smSelected.forEach(id => {
-        appData.topics = appData.topics.filter(t => t.id !== id);
-        delete appData.messages[id];
-        delete appData.affinities[id];
+        const normalizedId = _normalizeTopicId(id);
+        const topic = appData.topics.find(t => _normalizeTopicId(t.id) === normalizedId);
+        if (topic?.storyId) storyIdsToDelete.push(topic.storyId);
+        appData.topics = appData.topics.filter(t => _normalizeTopicId(t.id) !== normalizedId);
+        delete appData.messages[normalizedId];
+        delete appData.affinities[normalizedId];
     });
 
     hasUnsavedChanges = true;
     save({ silent: true });
 
-    // Subir a nube
-    if (typeof SupabaseSync !== 'undefined') {
+    // Borrar de Supabase (tabla stories) para que otros dispositivos no las resuciten
+    if (storyIdsToDelete.length > 0 && typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.deleteStory === 'function') {
+        storyIdsToDelete.forEach(storyId => {
+            SupabaseStories.deleteStory(storyId).catch(() => {});
+        });
+    } else if (typeof SupabaseSync !== 'undefined') {
+        // Fallback por si SupabaseStories no está disponible
         SupabaseSync.uploadProfileData().catch(() => {});
     }
 

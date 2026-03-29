@@ -736,6 +736,22 @@ function deleteCurrentTopic() {
 async function manualSyncFromScene() {
     if (hasUnsavedChanges) save({ silent: true });
     await syncBidirectional({ silent: false, allowRemotePrompt: true });
+
+    // La sync principal cubre user_data; topics y characters viven en tablas separadas.
+    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+        await SupabaseStories.loadStories().catch(() => {});
+    }
+
+    const activeProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+        ? SupabaseProfiles.getActiveProfileId()
+        : null;
+    if (activeProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+        await SupabaseCharacters.loadCharacters(activeProfileId).catch(() => {});
+    }
+
+    if (typeof renderTopics    === 'function') renderTopics();
+    if (typeof renderGallery   === 'function') renderGallery();
+    if (typeof renderUserCards === 'function') renderUserCards();
 }
 
 function quickSave() {
@@ -1074,12 +1090,23 @@ function deleteCharFromModal() {
             selectedCharId = null;
             localStorage.removeItem(`etheria_selected_char_${currentUserIndex}`);
         }
+
+        // Obtener el profileId activo antes de eliminar del array local
+        const activeProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+            ? SupabaseProfiles.getActiveProfileId()
+            : null;
+
         appData.characters = appData.characters.filter(c => c.id !== id);
         hasUnsavedChanges = true;
         save({ silent: true });
-        if (typeof SupabaseSync !== 'undefined') {
+
+        // Borrar de Supabase (tabla characters) para que otros dispositivos no lo resuciten
+        if (activeProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.deleteCharacter === 'function') {
+            SupabaseCharacters.deleteCharacter(id, activeProfileId).catch(() => {});
+        } else if (typeof SupabaseSync !== 'undefined') {
             SupabaseSync.uploadProfileData().catch(() => {});
         }
+
         closeModal('characterModal');
         resetCharForm();
         renderGallery();
