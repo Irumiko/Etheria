@@ -1,18 +1,18 @@
 {
   "name": "Etheria - Roleplay Visual Novel",
-  "short_name": "EtheriaV2",
-  "description": "Etheria — Plataforma de narrativa colaborativa y roleplay con novela visual, modo RPG y oráculo.",
-  "start_url": "./",
-  "scope": "./",
+  "short_name": "Etheria",
+  "description": "Crea y juega historias de rol colaborativas con narrativa visual.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
-  "orientation": "landscape",
-  "background_color": "#1a1815",
-  "theme_color": "#1a1815",
+  "orientation": "portrait",
+  "background_color": "#0f0f1a",
+  "theme_color": "#1a1a2e",
   "lang": "es",
   "categories": [
     "games",
     "entertainment",
-    "social"
+    "role-playing"
   ],
   "icons": [
     {
@@ -42,18 +42,36 @@
   ],
   "screenshots": [
     {
-      "src": "assets/backgrounds/default_background.jpg",
+      "src": "assets/backgrounds/menu_background.jpg",
       "sizes": "1920x1080",
       "type": "image/jpeg",
       "form_factor": "wide"
+    },
+    {
+      "src": "assets/backgrounds/default_background.jpg",
+      "sizes": "750x1334",
+      "type": "image/jpeg",
+      "form_factor": "narrow"
     }
   ],
   "shortcuts": [
     {
-      "name": "Nueva historia",
-      "short_name": "Nueva",
+      "name": "Continuar historia",
+      "short_name": "Continuar",
+      "description": "Reanuda tu última sesión",
+      "url": "/?action=continue",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Nueva aventura",
+      "short_name": "Nuevo",
       "description": "Crear un nuevo tema de roleplay",
-      "url": "./#topics",
+      "url": "/?action=new",
       "icons": [
         {
           "src": "assets/icons/icon-192.png",

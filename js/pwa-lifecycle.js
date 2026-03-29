@@ -24,6 +24,19 @@
         } catch (error) { logger?.warn('pwa:lifecycle', 'backupState failed:', error?.message || error); }
     }
 
+    async function registerPeriodicBackup() {
+        try {
+            const registration = await navigator.serviceWorker?.ready;
+            if (!registration || !('periodicSync' in registration)) return false;
+            await registration.periodicSync.register('backup-sync', {
+                minInterval: 24 * 60 * 60 * 1000
+            });
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') backupState();
     });
@@ -36,6 +49,13 @@
         document.documentElement.classList.toggle('pwa-standalone', standalone);
     }, { passive: true });
 
+    navigator.serviceWorker?.addEventListener?.('message', (event) => {
+        if (event?.data?.type === 'PERIODIC_BACKUP_REQUIRED') {
+            backupState();
+        }
+    });
+
     // Backup de progreso VN cada 30s (best effort)
     setInterval(backupState, 30000);
+    registerPeriodicBackup();
 })();

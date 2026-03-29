@@ -314,6 +314,22 @@ const cloudMigrationPendingProfiles = new Set();
         const vv = window.visualViewport;
         const visualHeight = vv?.height || window.innerHeight;
         docEl.style.setProperty('--vvh', `${visualHeight * 0.01}px`);
+
+        const keyboardHeight = Math.max(0, window.innerHeight - visualHeight);
+        docEl.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+        const isKeyboardOpen = keyboardHeight > 150;
+        docEl.classList.toggle('keyboard-open', isKeyboardOpen);
+
+        const partyPanel = document.getElementById('vnPartyPanel');
+        if (partyPanel) {
+            if (isKeyboardOpen) {
+                partyPanel.style.maxHeight = `${Math.max(180, visualHeight - 96)}px`;
+                partyPanel.style.overflowY = 'auto';
+            } else {
+                partyPanel.style.removeProperty('max-height');
+                partyPanel.style.removeProperty('overflow-y');
+            }
+        }
     };
 
     let raf = null;
@@ -400,6 +416,19 @@ const cloudMigrationPendingProfiles = new Set();
         } catch (error) { logger?.warn('pwa:lifecycle', 'backupState failed:', error?.message || error); }
     }
 
+    async function registerPeriodicBackup() {
+        try {
+            const registration = await navigator.serviceWorker?.ready;
+            if (!registration || !('periodicSync' in registration)) return false;
+            await registration.periodicSync.register('backup-sync', {
+                minInterval: 24 * 60 * 60 * 1000
+            });
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') backupState();
     });
@@ -412,8 +441,15 @@ const cloudMigrationPendingProfiles = new Set();
         document.documentElement.classList.toggle('pwa-standalone', standalone);
     }, { passive: true });
 
+    navigator.serviceWorker?.addEventListener?.('message', (event) => {
+        if (event?.data?.type === 'PERIODIC_BACKUP_REQUIRED') {
+            backupState();
+        }
+    });
+
     // Backup de progreso VN cada 30s (best effort)
     setInterval(backupState, 30000);
+    registerPeriodicBackup();
 })();
 
 /* js/pwa-capabilities.js */
@@ -433,8 +469,13 @@ const cloudMigrationPendingProfiles = new Set();
 
     if (!isStandalone()) return;
 
+    function shouldKeepAwake() {
+        const vnSection = document.getElementById('vnSection');
+        return !!vnSection?.classList.contains('active') && !document.hidden;
+    }
+
     async function requestWakeLock() {
-        if (!isStandalone() || !('wakeLock' in navigator)) return false;
+        if (!isStandalone() || !('wakeLock' in navigator) || !shouldKeepAwake()) return false;
         try {
             wakeLock = await navigator.wakeLock.request('screen');
             wakeLock.addEventListener('release', () => { wakeLock = null; });
@@ -450,17 +491,49 @@ const cloudMigrationPendingProfiles = new Set();
     }
 
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') requestWakeLock();
+        if (document.visibilityState === 'visible' && shouldKeepAwake()) requestWakeLock();
         else releaseWakeLock();
     });
 
+    class EtheriaBadging {
+        async updateUnreadCount(count) {
+            const safe = Math.max(0, Number(count) || 0);
+            try {
+                if ('setAppBadge' in navigator && safe > 0) await navigator.setAppBadge(safe);
+                else if ('clearAppBadge' in navigator) await navigator.clearAppBadge();
+                document.title = safe > 0 ? `(${safe}) Etheria` : 'Etheria';
+            } catch (_) {
+                document.title = safe > 0 ? `(${safe}) Etheria` : 'Etheria';
+            }
+        }
+
+        bindInboxBadge() {
+            const badge = document.getElementById('menuInboxBadge');
+            if (!badge) return;
+            const readCount = () => Number(String(badge.textContent || '0').trim()) || 0;
+            const update = () => {
+                if (document.hidden && isStandalone()) this.updateUnreadCount(readCount());
+                else this.updateUnreadCount(0);
+            };
+            const obs = new MutationObserver(update);
+            obs.observe(badge, { characterData: true, childList: true, subtree: true, attributes: true });
+            document.addEventListener('visibilitychange', update);
+            update();
+        }
+    }
+
+    const badging = new EtheriaBadging();
+    badging.bindInboxBadge();
+
     window.PWACapabilities = {
         isStandalone,
+        shouldKeepAwake,
         requestWakeLock,
         releaseWakeLock,
+        badging,
     };
 
-    requestWakeLock();
+    if (shouldKeepAwake()) requestWakeLock();
 })();
 
 /* js/utils/webVitals.js */
@@ -1167,7 +1240,12 @@ async function syncBidirectional(options = {}) {
     // Usar SupabaseSync si está disponible
     if (typeof SupabaseSync !== 'undefined') {
         const result = await SupabaseSync.sync({ silent, force: forceApplyRemote });
-        
+
+        // La sync principal cubre user_data; topics/characters viven en tablas separadas.
+        if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+            await SupabaseStories.loadStories().catch(() => {});
+        }
+
         // Mapear estados de SupabaseSync a los esperados por el código existente
         const statusMap = {
             'synced': 'noop',
@@ -5939,6 +6017,7 @@ function renderRpgStatsModal(c) {
     const isOwn    = c.userIndex === currentUserIndex;
     const className = RPG_CLASSES.find(cl => cl.id === profile.rpgClass);
     const classPassive = getRpgClassPassive(profile.rpgClass);
+    const forgingMode = !!_rpgStatsBlocking;
 
     titleEl.textContent = `⚔ Nv.${profile.level} · ${data.title}`;
 
@@ -5970,6 +6049,12 @@ function renderRpgStatsModal(c) {
     `;
 
     bodyEl.innerHTML = `
+        ${forgingMode ? `
+        <section class="rpg-forge-intro">
+            <div class="rpg-forge-kicker">Preparación de aventura</div>
+            <h4 class="rpg-forge-title">Forja de personaje</h4>
+            <p class="rpg-forge-copy">Distribuye atributos como en D&D para definir el estilo de juego antes de entrar al tema.</p>
+        </section>` : ''}
         ${classSection}
         ${dndLiteMeta}
         <div class="rpg-stats-progress-row">
@@ -5987,6 +6072,7 @@ function renderRpgStatsModal(c) {
                 const val    = profile.stats[key];
                 const mod    = rpgModStr(val);
                 const spent  = getRpgSpentPoints(profile);
+                const nextCost = rpgPointBuyCost(Math.min(RPG_STAT_MAX, val + 1)) - rpgPointBuyCost(val);
                 const canAdd = isOwn && val < RPG_STAT_MAX && (RPG_POINTS_POOL - spent) >= (rpgPointBuyCost(val + 1) - rpgPointBuyCost(val));
                 const canSub = isOwn && val > RPG_STAT_BASE;
                 return `
@@ -5995,16 +6081,19 @@ function renderRpgStatsModal(c) {
                     <span class="rpg-stats-card-desc">${RPG_STAT_LABEL[key]}</span>
                     <span class="rpg-stats-card-value" id="rpgStat_${key}">${val}</span>
                     <span class="rpg-stats-card-mod">${mod}</span>
+                    ${isOwn ? `<span class="rpg-stats-card-cost">Coste +${Math.max(1, nextCost)}</span>` : ''}
                     ${isOwn ? `
-                    <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',-1)" ${canSub?'':'disabled'} title="Quitar punto">−</button>
-                    <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',1)" ${canAdd?'':'disabled'} title="Añadir punto">+</button>
-                    ` : '<span></span><span></span>'}
+                    <span class="rpg-stat-btn-group">
+                        <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',-1)" ${canSub?'':'disabled'} title="Quitar punto">−</button>
+                        <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',1)" ${canAdd?'':'disabled'} title="Añadir punto">+</button>
+                    </span>
+                    ` : '<span class="rpg-stat-btn-group" aria-hidden="true"></span>'}
                 </div>`;
             }).join('')}
         </div>
         <div class="rpg-stats-points" id="rpgFreePoints">
             ${isOwn
-                ? `✦ Puntos restantes: <strong>${data.freePoints}</strong> / ${RPG_POINTS_POOL}`
+                ? `✦ Reserva de creación: <strong>${data.freePoints}</strong> / ${RPG_POINTS_POOL}`
                 : `Puntos distribuidos: ${RPG_POINTS_POOL - data.freePoints} / ${RPG_POINTS_POOL}`}
         </div>
         ${renderConditionBadges(profile, isOwn, c.id)
@@ -6410,6 +6499,8 @@ function openRpgStatsModalFromSelect(topicId, charId) {
     currentTopicId = topicId;
     renderRpgStatsModal(char);
     currentTopicId = prevTopicId;
+    const overlay = document.getElementById('rpgStatsModal');
+    if (overlay) delete overlay.dataset.flow;
     openModal('rpgStatsModal');
 }
 
@@ -6447,6 +6538,7 @@ function openRpgStatsModalBlocking(charId, topicId, onConfirm) {
     const confirmBar = document.getElementById('rpgStatsConfirmBar');
 
     if (overlay)    overlay.dataset.blocking = 'true';
+    if (overlay)    overlay.dataset.flow = 'creation';
     if (closeBtn)   closeBtn.style.display   = 'none';
     if (confirmBar) confirmBar.style.display = '';
 
@@ -6765,6 +6857,7 @@ function _rpgStatsResetModal() {
     const closeBtn  = document.getElementById('rpgStatsCloseBtn');
     const confirmBar = document.getElementById('rpgStatsConfirmBar');
     if (overlay)    delete overlay.dataset.blocking;
+    if (overlay)    delete overlay.dataset.flow;
     if (closeBtn)   closeBtn.style.display   = '';
     if (confirmBar) confirmBar.style.display = 'none';
 }
@@ -7141,23 +7234,31 @@ const SupabaseSync = (function () {
      */
     function _hasLocalData() {
         return (appData?.topics?.length > 0) || 
-               // characters ya no está en el blob — eliminado
-               Object.keys(appData?.topics || {}).length > 0;
+               (appData?.characters?.length > 0);
     }
 
     // ── Auto-sync ────────────────────────────────────────────────────────────
 
     function startAutoSync() {
         if (_syncInterval) clearInterval(_syncInterval);
-        
+
+        const intervalMs = _isOffline ? CFG.OFFLINE_INTERVAL : CFG.SYNC_INTERVAL;
+
         _syncInterval = setInterval(async () => {
             const userId = _getUserId();
             if (!userId) return; // No sincronizar si no hay usuario
-            
+
+            // Reajustar intervalo si el estado offline cambió desde la última vez
+            const expectedMs = _isOffline ? CFG.OFFLINE_INTERVAL : CFG.SYNC_INTERVAL;
+            if (expectedMs !== intervalMs) {
+                startAutoSync(); // reiniciar con el intervalo correcto
+                return;
+            }
+
             if (_pendingChanges || hasUnsavedChanges) {
                 await sync({ silent: true });
             }
-        }, _isOffline ? CFG.OFFLINE_INTERVAL : CFG.SYNC_INTERVAL);
+        }, intervalMs);
     }
 
     function stopAutoSync() {
@@ -7201,9 +7302,19 @@ const SupabaseSync = (function () {
 
                 window.EtheriaLogger?.info?.('sync:realtime', 'Cambio detectado desde otro dispositivo — descargando...');
                 const result = await downloadProfileData();
-                if (result.ok && result.data) {
-                    if (typeof renderTopics  === 'function') renderTopics();
-                    if (typeof renderGallery === 'function') renderGallery();
+                if (result.ok) {
+                    // Recargar topics desde su tabla propia (no viajan en el blob)
+                    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+                        await SupabaseStories.loadStories().catch(() => {});
+                    }
+                    const _rtActiveProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+                        ? SupabaseProfiles.getActiveProfileId()
+                        : null;
+                    if (_rtActiveProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+                        await SupabaseCharacters.loadCharacters(_rtActiveProfileId).catch(() => {});
+                    }
+                    if (typeof renderTopics   === 'function') renderTopics();
+                    if (typeof renderGallery  === 'function') renderGallery();
                     if (typeof renderUserCards === 'function') renderUserCards();
                     eventBus.emit('ui:show-autosave', { text: 'Datos actualizados desde otro dispositivo', state: 'info' });
                 }
@@ -7237,7 +7348,20 @@ const SupabaseSync = (function () {
             if (msSinceLastSync < 10000) return;
             window.EtheriaLogger?.info?.('sync:visibility', 'App visible de nuevo — sincronizando...');
             const result = await downloadProfileData();
-            if (result.ok && result.data) {
+
+            // Recargar topics y characters desde sus tablas propias,
+            // ya que no viajan en el blob de user_data
+            if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+                await SupabaseStories.loadStories().catch(() => {});
+            }
+            const _visActiveProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+                ? SupabaseProfiles.getActiveProfileId()
+                : null;
+            if (_visActiveProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+                await SupabaseCharacters.loadCharacters(_visActiveProfileId).catch(() => {});
+            }
+
+            if (result.ok) {
                 if (typeof renderTopics  === 'function') renderTopics();
                 if (typeof renderGallery === 'function') renderGallery();
                 if (typeof renderUserCards === 'function') renderUserCards();
@@ -7254,6 +7378,18 @@ const SupabaseSync = (function () {
             window.EtheriaLogger?.info?.('sync:network', 'Conexión recuperada — sincronizando...');
             eventBus.emit('ui:show-autosave', { text: 'Conexión recuperada — sincronizando...', state: 'info' });
             await sync({ silent: false, force: true });
+            // Recargar topics y characters que no viajan en el blob
+            if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+                await SupabaseStories.loadStories().catch(() => {});
+            }
+            const _onlineActiveProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+                ? SupabaseProfiles.getActiveProfileId()
+                : null;
+            if (_onlineActiveProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+                await SupabaseCharacters.loadCharacters(_onlineActiveProfileId).catch(() => {});
+            }
+            if (typeof renderTopics  === 'function') renderTopics();
+            if (typeof renderGallery === 'function') renderGallery();
             // Reconectar canal Realtime (se desconecta al perder red)
             _subscribeRealtimeChanges();
         });
@@ -7302,7 +7438,19 @@ const SupabaseSync = (function () {
         // Sincronización inicial silenciosa
         const userId = _getUserId();
         if (userId && _isAvailable()) {
-            sync({ silent: true }).catch(() => {});
+            sync({ silent: true })
+                .then(async () => {
+                    // Cargar topics desde su tabla propia (no viajan en el blob de user_data).
+                    // Los personajes (characters) los gestiona el listener etheria:active-profile-changed
+                    // en app.js, que se dispara cuando SupabaseProfiles resuelve el perfil activo
+                    // (siempre ocurre después de que este init() se ejecute).
+                    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+                        await SupabaseStories.loadStories().catch(() => {});
+                    }
+                    if (typeof renderTopics  === 'function') renderTopics();
+                    if (typeof renderGallery === 'function') renderGallery();
+                })
+                .catch(() => {});
             // Suscribir al canal Realtime para detectar cambios desde otros dispositivos
             _subscribeRealtimeChanges().catch(() => {});
         }
@@ -9929,9 +10077,12 @@ function renderVnPartyPanel(force = false) {
 
     const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
     const { charIds, snapshot, activeCharId, respondedThisCycle } = syncVnPartySnapshot(force);
-    const shouldShow = !!topic && topic.mode === 'rpg' && charIds.length > 0;
+    const vnSection = document.getElementById('vnSection');
+    const isInVn = !!vnSection?.classList.contains('active');
+    const shouldShow = isInVn && !!topic && topic.mode === 'rpg' && charIds.length > 0;
 
     shell.style.display = shouldShow ? 'flex' : 'none';
+    shell.classList.toggle('open', shouldShow);
     if (!shouldShow) {
         closeVnPartyPanel(true);
         list.innerHTML = '';
@@ -9962,15 +10113,8 @@ function renderVnPartyPanel(force = false) {
 
         const hpPct = Math.max(0, Math.min(100, (entry.hp / entry.hpMax) * 100));
         const expPct = Math.max(0, Math.min(100, (entry.exp / entry.expMax) * 100));
-        const avatarHtml = entry.avatar
-            ? `<img src="${escapeHtml(entry.avatar)}" alt="${escapeHtml(entry.name)}">`
-            : `<span>${escapeHtml(entry.name.slice(0, 1).toUpperCase())}</span>`;
-
         return `
-            <div class="vn-party-member" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}">
-                <button type="button" class="vn-party-avatar" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
-                    ${avatarHtml}
-                </button>
+            <button type="button" class="vn-party-member" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
                 <div class="vn-party-main">
                     <div class="vn-party-topline">
                         <div>
@@ -9992,7 +10136,7 @@ function renderVnPartyPanel(force = false) {
                         </div>
                     </div>
                 </div>
-            </div>
+            </button>
         `;
     }).join('') || '<div class="vn-party-empty">Sin personajes vinculados todavía.</div>';
 }
@@ -12999,6 +13143,7 @@ function openDmPanel() {
     if (!panel) return;
     _dmPopulateSelects();
     _dmRenderCharacterList();
+    switchDmTab('party');
     panel.style.display = 'flex';
 }
 
@@ -13015,6 +13160,23 @@ function toggleDmPanel() {
     } else {
         closeDmPanel();
     }
+}
+
+function switchDmTab(tab, btnEl = null) {
+    const safeTab = ['party', 'control', 'scene', 'tools'].includes(tab) ? tab : 'party';
+    const panel = document.getElementById('vnDmPanel');
+    if (!panel) return;
+
+    panel.querySelectorAll('.vn-dm-tab').forEach(btn => {
+        const active = btn.dataset.tab === safeTab;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    panel.querySelectorAll('.vn-dm-tab-panel').forEach(section => {
+        section.classList.toggle('active', section.dataset.tabPanel === safeTab);
+    });
+
+    if (btnEl?.focus) btnEl.focus();
 }
 
 // Rellena todos los <select> de personaje con los participantes actuales
@@ -13574,6 +13736,7 @@ window.addEventListener('etheria:story-participants-loaded', function(e) {
 window.toggleDmPanel     = toggleDmPanel;
 window.openDmPanel       = openDmPanel;
 window.closeDmPanel      = closeDmPanel;
+window.switchDmTab       = switchDmTab;
 window.dmApplyCondition  = dmApplyCondition;
 window.dmRemoveCondition = dmRemoveCondition;
 window.dmGiveItem        = dmGiveItem;
@@ -15322,6 +15485,40 @@ function saveBranches() {
 let _topicsFilter = 'all';
 let _topicsSearch = '';
 
+function _normalizeTopicId(topicId) {
+    return String(topicId ?? '');
+}
+
+function _dedupeTopicsInPlace() {
+    if (!Array.isArray(appData?.topics) || appData.topics.length < 2) return false;
+
+    const seen = new Set();
+    const deduped = [];
+    let changed = false;
+
+    for (const topic of appData.topics) {
+        if (!topic) continue;
+        const idKey = _normalizeTopicId(topic.id);
+        const storyKey = topic.storyId ? String(topic.storyId) : '';
+        const key = storyKey ? `story:${storyKey}` : `local:${idKey}`;
+
+        if (seen.has(key)) {
+            changed = true;
+            continue;
+        }
+
+        seen.add(key);
+        deduped.push(topic);
+    }
+
+    if (changed) {
+        appData.topics = deduped;
+        hasUnsavedChanges = true;
+        if (typeof save === 'function') save({ silent: true });
+    }
+    return changed;
+}
+
 
 function formatRelativeDayLabel(dateValue) {
     if (!dateValue) return 'Sin actividad reciente';
@@ -15369,6 +15566,8 @@ function filterTopics() {
 function renderTopics() {
     const container = document.getElementById('topicsList');
     if (!container) return;
+
+    _dedupeTopicsInPlace();
 
     let topics = appData.topics;
 
@@ -15452,7 +15651,7 @@ function renderTopics() {
             const progressPct = Math.min(100, Math.round((progressCurrent / 10) * 100));
 
             return `
-                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}" onclick="enterTopic('${t.id}')">
+                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}" onclick="enterTopic('${_normalizeTopicId(t.id)}')">
                     <div class="topic-card-accent"></div>
                     <div class="topic-card-watermark">${watermarkSvg}</div>
                     <span class="topic-card-corner topic-card-corner--tl">${cornerSvg}</span>
@@ -15831,6 +16030,7 @@ let _smFilter = 'all';
 let _smSelected = new Set();
 
 function openSessionManager() {
+    _dedupeTopicsInPlace();
     _smFilter = 'all';
     _smSelected.clear();
     _smRender();
@@ -15862,7 +16062,7 @@ function _smRender() {
     const topics = _smGetTopics();
 
     // Contar cuántas del filtro actual están seleccionadas
-    const selInView = topics.filter(t => _smSelected.has(t.id)).length;
+    const selInView = topics.filter(t => _smSelected.has(_normalizeTopicId(t.id))).length;
     const total     = topics.length;
 
     if (count) count.textContent = `${_smSelected.size} seleccionada${_smSelected.size !== 1 ? 's' : ''}`;
@@ -15882,14 +16082,15 @@ function _smRender() {
         const isOwn    = t.createdByIndex === currentUserIndex;
         const modeTag  = t.mode === 'rpg' ? '<span class="sm-tag sm-tag-rpg">RPG</span>' : '<span class="sm-tag sm-tag-classic">Clásico</span>';
         const ownerTag = isOwn ? '<span class="sm-tag sm-tag-own">Tuya</span>' : '';
-        const checked  = _smSelected.has(t.id);
+        const normalizedId = _normalizeTopicId(t.id);
+        const checked  = _smSelected.has(normalizedId);
         const date     = t.date || '';
 
         return `
-        <label class="sm-item ${checked ? 'sm-item--selected' : ''}" for="sm_cb_${t.id}">
-            <input type="checkbox" class="sm-item-cb" id="sm_cb_${t.id}"
+        <label class="sm-item ${checked ? 'sm-item--selected' : ''}" for="sm_cb_${normalizedId}">
+            <input type="checkbox" class="sm-item-cb" id="sm_cb_${normalizedId}"
                 ${checked ? 'checked' : ''}
-                onchange="smToggleItem('${t.id}', this.checked)">
+                onchange="smToggleItem('${normalizedId}', this.checked)">
             <span class="sm-item-check"></span>
             <div class="sm-item-body">
                 <div class="sm-item-title">${escapeHtml(t.title)}</div>
@@ -15904,14 +16105,15 @@ function _smRender() {
 }
 
 function smToggleItem(topicId, checked) {
-    if (checked) _smSelected.add(topicId);
-    else         _smSelected.delete(topicId);
+    const normalizedId = _normalizeTopicId(topicId);
+    if (checked) _smSelected.add(normalizedId);
+    else         _smSelected.delete(normalizedId);
     _smRender();
 }
 
 function smToggleAll(checked) {
     const topics = _smGetTopics();
-    if (checked) topics.forEach(t => _smSelected.add(t.id));
+    if (checked) topics.forEach(t => _smSelected.add(_normalizeTopicId(t.id)));
     else         _smSelected.clear();
     _smRender();
 }
@@ -15925,6 +16127,7 @@ function smSetFilter(filter, btn) {
 
 async function smDeleteSelected() {
     if (_smSelected.size === 0) return;
+    _dedupeTopicsInPlace();
 
     const n = _smSelected.size;
     const ok = await openConfirmModal(
@@ -15934,17 +16137,26 @@ async function smDeleteSelected() {
     if (!ok) return;
 
     // Borrar cada topic seleccionado
+    const storyIdsToDelete = [];
     _smSelected.forEach(id => {
-        appData.topics = appData.topics.filter(t => t.id !== id);
-        delete appData.messages[id];
-        delete appData.affinities[id];
+        const normalizedId = _normalizeTopicId(id);
+        const topic = appData.topics.find(t => _normalizeTopicId(t.id) === normalizedId);
+        if (topic?.storyId) storyIdsToDelete.push(topic.storyId);
+        appData.topics = appData.topics.filter(t => _normalizeTopicId(t.id) !== normalizedId);
+        delete appData.messages[normalizedId];
+        delete appData.affinities[normalizedId];
     });
 
     hasUnsavedChanges = true;
     save({ silent: true });
 
-    // Subir a nube
-    if (typeof SupabaseSync !== 'undefined') {
+    // Borrar de Supabase (tabla stories) para que otros dispositivos no las resuciten
+    if (storyIdsToDelete.length > 0 && typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.deleteStory === 'function') {
+        storyIdsToDelete.forEach(storyId => {
+            SupabaseStories.deleteStory(storyId).catch(() => {});
+        });
+    } else if (typeof SupabaseSync !== 'undefined') {
+        // Fallback por si SupabaseStories no está disponible
         SupabaseSync.uploadProfileData().catch(() => {});
     }
 
@@ -16266,7 +16478,6 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
-
 /* js/ui/app-ui.js */
 // Utilidades generales de app: guardado, modales, tema visual y ajustes de lectura.
 // UTILIDADES
@@ -17006,6 +17217,22 @@ function deleteCurrentTopic() {
 async function manualSyncFromScene() {
     if (hasUnsavedChanges) save({ silent: true });
     await syncBidirectional({ silent: false, allowRemotePrompt: true });
+
+    // La sync principal cubre user_data; topics y characters viven en tablas separadas.
+    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+        await SupabaseStories.loadStories().catch(() => {});
+    }
+
+    const activeProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+        ? SupabaseProfiles.getActiveProfileId()
+        : null;
+    if (activeProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+        await SupabaseCharacters.loadCharacters(activeProfileId).catch(() => {});
+    }
+
+    if (typeof renderTopics    === 'function') renderTopics();
+    if (typeof renderGallery   === 'function') renderGallery();
+    if (typeof renderUserCards === 'function') renderUserCards();
 }
 
 function quickSave() {
@@ -17344,12 +17571,23 @@ function deleteCharFromModal() {
             selectedCharId = null;
             localStorage.removeItem(`etheria_selected_char_${currentUserIndex}`);
         }
+
+        // Obtener el profileId activo antes de eliminar del array local
+        const activeProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+            ? SupabaseProfiles.getActiveProfileId()
+            : null;
+
         appData.characters = appData.characters.filter(c => c.id !== id);
         hasUnsavedChanges = true;
         save({ silent: true });
-        if (typeof SupabaseSync !== 'undefined') {
+
+        // Borrar de Supabase (tabla characters) para que otros dispositivos no lo resuciten
+        if (activeProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.deleteCharacter === 'function') {
+            SupabaseCharacters.deleteCharacter(id, activeProfileId).catch(() => {});
+        } else if (typeof SupabaseSync !== 'undefined') {
             SupabaseSync.uploadProfileData().catch(() => {});
         }
+
         closeModal('characterModal');
         resetCharForm();
         renderGallery();
@@ -22055,6 +22293,45 @@ function _clearAccountData() {
     window._cachedUserId = null;
 }
 
+let _postAuthHydrationPromise = null;
+async function _waitForActiveProfileId(timeoutMs = 3000) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        const profileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
+            ? SupabaseProfiles.getActiveProfileId()
+            : null;
+        if (profileId) return profileId;
+        await new Promise(resolve => setTimeout(resolve, 120));
+    }
+    return null;
+}
+async function hydrateCloudAfterAuth() {
+    if (_postAuthHydrationPromise) return _postAuthHydrationPromise;
+    _postAuthHydrationPromise = (async () => {
+        // user_data (meta, ajustes, snapshot RPG)
+        if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.downloadProfileData === 'function') {
+            await SupabaseSync.downloadProfileData().catch(() => {});
+        }
+        // stories (fuente de verdad para topics)
+        if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
+            await SupabaseStories.loadStories().catch(() => {});
+        }
+        // characters del perfil activo
+        const profileId = await _waitForActiveProfileId();
+        if (profileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
+            await SupabaseCharacters.loadCharacters(profileId).catch(() => {});
+        }
+        if (typeof renderTopics === 'function') renderTopics();
+        if (typeof renderGallery === 'function') renderGallery();
+        if (typeof renderUserCards === 'function') renderUserCards();
+    })();
+    try {
+        await _postAuthHydrationPromise;
+    } finally {
+        _postAuthHydrationPromise = null;
+    }
+}
+
 async function login() {
     const email = (document.getElementById('authEmail')?.value || '').trim();
     const password = document.getElementById('authPassword')?.value || '';
@@ -22086,32 +22363,16 @@ async function login() {
     hideLoginScreen();
     initializeApp();
     await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
-
     // La nube siempre gana al iniciar sesión: descargar y reemplazar datos locales.
     if (typeof SupabaseSync !== 'undefined') {
         await SupabaseSync.downloadProfileData();
     }
-
-
     // Cargar historias desde Supabase — reconstruye appData.topics si está vacío
     // (usuario en dispositivo nuevo) o actualiza storyIds en topics existentes.
     if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
         await SupabaseStories.loadStories().catch(() => {});
     }
-
-    // Sincronizar topics locales con Supabase.
-    // Sube los que no tienen storyId aún y actualiza los que han cambiado.
-    if (typeof SupabaseStories !== 'undefined' &&
-        typeof SupabaseStories.syncAllLocalTopics === 'function' &&
-        Array.isArray(appData?.topics) && appData.topics.length > 0) {
-        SupabaseStories.syncAllLocalTopics(appData.topics).then(() => {
-            if (typeof save === 'function') save({ silent: true });
-        }).catch(() => {});
-    }
-    // Re-renderizar siempre, tanto si había datos en la nube como si no.
-    if (typeof renderTopics === 'function')    renderTopics();
-    if (typeof renderGallery === 'function')   renderGallery();
-    if (typeof renderUserCards === 'function') renderUserCards();
+    await hydrateCloudAfterAuth();
 }
 
 async function register() {
@@ -22164,16 +22425,11 @@ async function register() {
         hideLoginScreen();
         initializeApp();
         await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
-
         // Cuenta nueva: intentar descargar datos (puede ser cuenta existente en otro dispositivo)
         if (typeof SupabaseSync !== 'undefined') {
             await SupabaseSync.downloadProfileData();
         }
-
-        // Re-renderizar siempre.
-        if (typeof renderTopics === 'function')    renderTopics();
-        if (typeof renderGallery === 'function')   renderGallery();
-        if (typeof renderUserCards === 'function') renderUserCards();
+        await hydrateCloudAfterAuth();
     }
 }
 
@@ -22628,6 +22884,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         hideLoginScreen();
         initializeApp();
         await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
+        await hydrateCloudAfterAuth();
     } else {
         // Mostrar pantalla de autenticación
         showLoginScreen();
@@ -22637,7 +22894,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.supabaseClient) {
         window.supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
-                ensureProfile().catch(() => {});
+                ensureProfile()
+                    .then(() => hydrateCloudAfterAuth())
+                    .catch(() => {});
                 return;
             }
 
@@ -22675,7 +22934,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Escuchar mensajes del SW
                     navigator.serviceWorker.addEventListener('message', (event) => {
-                        if (event.data?.type === 'SYNC_REQUIRED') {
+                        if (event.data?.type === 'SYNC_REQUIRED' || event.data?.type === 'SYNC_MESSAGES_REQUIRED') {
                             if (typeof SupabaseSync !== 'undefined') {
                                 SupabaseSync.sync({ silent: true });
                             }
@@ -24556,39 +24815,59 @@ window.Ethy = Ethy;
             if (typeof appData !== 'undefined') {
                 appData.stories = stories;
 
-                // ── Reconstruir appData.topics desde Supabase ────────────────
-                // Si el usuario está en un dispositivo nuevo sin localStorage,
-                // appData.topics estará vacío. En ese caso reconstruimos los topics
-                // desde las stories de Supabase, incluyendo todos los metadatos
-                // que ahora se guardan en las columnas nuevas (mode, background,
-                // character_locks, etc.).
-                const hasLocalTopics = Array.isArray(appData.topics) && appData.topics.length > 0;
-                if (!hasLocalTopics && stories.length > 0) {
-                    appData.topics = stories.map(s => _storyToTopic(s));
-                    logger?.info('supabase:stories', `Reconstruidos ${appData.topics.length} topics desde Supabase`);
-                    // Persistir en localStorage para las próximas cargas
-                    if (typeof persistPartitionedData === 'function') {
-                        persistPartitionedData(true);
-                    }
-                } else if (hasLocalTopics && stories.length > 0) {
-                    // Actualizar storyId y metadatos en topics locales que ya existen
-                    // para mantener la coherencia si se crearon en otro dispositivo
-                    stories.forEach(s => {
-                        const local = appData.topics.find(t =>
-                            String(t.storyId) === String(s.id) ||
-                            String(t.id) === String(s.local_id)
-                        );
-                        if (local) {
-                            if (!local.storyId) local.storyId = s.id;
-                            // Actualizar metadatos si la versión en nube es más reciente
-                            if (s.updated_at && (!local.updatedAt || s.updated_at > local.updatedAt)) {
-                                if (s.mode)            local.mode            = s.mode;
-                                if (s.background)      local.background      = s.background;
-                                if (s.character_locks) local.characterLocks  = s.character_locks;
-                                if (s.rpg_char_locks)  local.rpgCharacterLocks = s.rpg_char_locks;
-                            }
+                // ── Sincronización completa de topics con Supabase ───────────
+                // La nube (tabla stories) es la fuente de verdad.
+                // 1. Topics en nube pero no locales → añadir.
+                // 2. Topics locales que ya existen en nube → actualizar metadatos si la nube es más reciente.
+                // 3. Topics locales sin storyId (nunca subidos) → conservar tal cual.
+                // 4. Topics locales con storyId que ya NO están en nube → fueron borrados en otro
+                //    dispositivo, eliminarlos también aquí.
+                if (!Array.isArray(appData.topics)) appData.topics = [];
+
+                const cloudIds = new Set(stories.map(s => String(s.id)));
+
+                // Paso 4: eliminar topics cuyo storyId ya no existe en la nube
+                const beforeCount = appData.topics.length;
+                appData.topics = appData.topics.filter(t =>
+                    !t.storyId || cloudIds.has(String(t.storyId))
+                );
+                const removedCount = beforeCount - appData.topics.length;
+                if (removedCount > 0) {
+                    logger?.info('supabase:stories', `Eliminados ${removedCount} topics borrados en otro dispositivo`);
+                }
+
+                // Pasos 1 y 2: recorrer stories de la nube
+                let addedCount = 0;
+                stories.forEach(s => {
+                    const local = appData.topics.find(t =>
+                        String(t.storyId) === String(s.id) ||
+                        String(t.id) === String(s.local_id)
+                    );
+                    if (local) {
+                        // Paso 2: actualizar storyId y metadatos si la nube es más reciente
+                        if (!local.storyId) local.storyId = s.id;
+                        if (s.updated_at && (!local.updatedAt || s.updated_at > local.updatedAt)) {
+                            if (s.mode)            local.mode              = s.mode;
+                            if (s.background)      local.background        = s.background;
+                            if (s.weather)         local.weather           = s.weather;
+                            if (s.character_locks) local.characterLocks    = s.character_locks;
+                            if (s.rpg_char_locks)  local.rpgCharacterLocks = s.rpg_char_locks;
+                            local.updatedAt = s.updated_at;
                         }
-                    });
+                    } else {
+                        // Paso 1: topic existe en nube pero no localmente → añadir
+                        appData.topics.push(_storyToTopic(s));
+                        addedCount++;
+                    }
+                });
+
+                if (addedCount > 0) {
+                    logger?.info('supabase:stories', `Añadidos ${addedCount} topics nuevos desde otro dispositivo`);
+                }
+
+                if (addedCount > 0 || removedCount > 0) {
+                    if (typeof markDirty === 'function') markDirty('topics');
+                    if (typeof persistPartitionedData === 'function') persistPartitionedData();
                 }
             }
 
@@ -25295,6 +25574,28 @@ window.Ethy = Ethy;
         }
     }
 
+    // Elimina una historia de Supabase por su storyId (UUID).
+    // Devuelve { ok: true } si se borró o no existía, { ok: false, error } si hubo error real.
+    async function deleteStory(storyId) {
+        if (!storyId) return { ok: false, error: 'storyId requerido' };
+        const client = _getClient();
+        if (!client) return { ok: false, error: 'Cliente no disponible' };
+        try {
+            const { error } = await client
+                .from('stories')
+                .delete()
+                .eq('id', storyId);
+            if (error) {
+                logger?.warn('supabase:stories', 'deleteStory error:', error.message);
+                return { ok: false, error: error.message };
+            }
+            return { ok: true };
+        } catch (e) {
+            logger?.warn('supabase:stories', 'deleteStory exception:', e?.message);
+            return { ok: false, error: e?.message };
+        }
+    }
+
     // Sube todos los topics locales a Supabase que no tengan storyId todavía
     // o que hayan sido modificados. Pensado para ejecutarse al hacer login.
     async function syncAllLocalTopics(topics) {
@@ -25325,7 +25626,8 @@ window.Ethy = Ethy;
         generateInviteLink    : generateInviteLink,
         joinByInviteToken     : joinByInviteToken,
         upsertStory           : upsertStory,
-        syncAllLocalTopics    : syncAllLocalTopics
+        syncAllLocalTopics    : syncAllLocalTopics,
+        deleteStory           : deleteStory
     };
 
 }(window));

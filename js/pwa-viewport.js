@@ -27,6 +27,22 @@
         const vv = window.visualViewport;
         const visualHeight = vv?.height || window.innerHeight;
         docEl.style.setProperty('--vvh', `${visualHeight * 0.01}px`);
+
+        const keyboardHeight = Math.max(0, window.innerHeight - visualHeight);
+        docEl.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+        const isKeyboardOpen = keyboardHeight > 150;
+        docEl.classList.toggle('keyboard-open', isKeyboardOpen);
+
+        const partyPanel = document.getElementById('vnPartyPanel');
+        if (partyPanel) {
+            if (isKeyboardOpen) {
+                partyPanel.style.maxHeight = `${Math.max(180, visualHeight - 96)}px`;
+                partyPanel.style.overflowY = 'auto';
+            } else {
+                partyPanel.style.removeProperty('max-height');
+                partyPanel.style.removeProperty('overflow-y');
+            }
+        }
     };
 
     let raf = null;

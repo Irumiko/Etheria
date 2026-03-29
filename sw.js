@@ -93,7 +93,12 @@ self.addEventListener('fetch', (event) => {
   if (url.protocol === 'chrome-extension:') return;
   if (url.protocol === 'ws:' || url.protocol === 'wss:') return;
 
-  // Nunca cachear peticiones externas (Supabase, Google Fonts, CDNs)
+  // Supabase API/Auth → Network First con timeout para no congelar la UI offline.
+  if (url.hostname.includes('supabase.co')) {
+    event.respondWith(networkFirstWithTimeout(req, 5000));
+    return;
+  }
+  // Nunca cachear otras peticiones externas (Google Fonts, CDNs, etc.)
   if (url.origin !== self.location.origin) return;
 
   const isHTML = req.mode === 'navigate' ||
@@ -102,9 +107,14 @@ self.addEventListener('fetch', (event) => {
   const isImage = /\.(jpe?g|png|gif|webp|svg|avif)(\?.*)?$/i.test(url.pathname) ||
                   (req.headers.get('accept') || '').includes('image/');
 
+  const isSpriteAsset = /\/assets\/sprites\//i.test(url.pathname);
+
   if (isHTML) {
     // HTML: Network First → si falla, caché → si no hay caché, offline page
     event.respondWith(networkFirstHTML(req));
+  } else if (isSpriteAsset) {
+    // Sprites lazy: respuesta inmediata + actualización en background.
+    event.respondWith(staleWhileRevalidate(req));
   } else if (isImage) {
     // Imágenes: Cache First — sirve inmediatamente desde caché si existe,
     // actualiza en background. Evita parpadeo/blank en fondos y avatares.
@@ -114,6 +124,20 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(staleWhileRevalidate(req));
   }
 });
+
+async function networkFirstWithTimeout(req, timeoutMs = 5000) {
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('timeout')), timeoutMs);
+  });
+  try {
+    return await Promise.race([fetch(req), timeoutPromise]);
+  } catch {
+    return new Response(
+      JSON.stringify({ error: 'offline', message: 'No se pudo conectar con el servidor.' }),
+      { status: 503, headers: { 'Content-Type': 'application/json; charset=utf-8' } }
+    );
+  }
+}
 
 // ── Estrategia Network First (HTML) ─────────────────────────────
 async function networkFirstHTML(req) {
@@ -243,6 +267,30 @@ self.addEventListener('sync', (event) => {
         clients.forEach((client) => {
           client.postMessage({ type: 'SYNC_REQUIRED' });
         });
+      })
+    );
+  }
+  if (event.tag === 'sync-messages') {
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'SYNC_MESSAGES_REQUIRED' }));
+      })
+    );
+  }
+  if (event.tag === 'backup-sync') {
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'PERIODIC_BACKUP_REQUIRED' }));
+      })
+    );
+  }
+});
+
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'backup-sync') {
+    event.waitUntil(
+      self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: 'PERIODIC_BACKUP_REQUIRED' }));
       })
     );
   }
