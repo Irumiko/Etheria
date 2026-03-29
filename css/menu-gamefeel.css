@@ -1,0 +1,152 @@
+/* Game-like polish for menus and topic management */
+
+:root {
+    --game-ui-gold: #e8c884;
+    --game-ui-border: rgba(232, 200, 132, 0.34);
+    --game-ui-bg: linear-gradient(180deg, rgba(14, 16, 28, 0.9), rgba(9, 10, 20, 0.9));
+}
+
+.section-header-bar {
+    border-bottom: 1px solid var(--game-ui-border);
+    background:
+        linear-gradient(90deg, rgba(13, 16, 30, 0.95), rgba(22, 17, 10, 0.86)),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 2px, rgba(0, 0, 0, 0.02) 2px 4px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.section-title {
+    letter-spacing: 0.075em;
+}
+
+.back-button {
+    border-radius: 8px;
+    border-color: rgba(232, 200, 132, 0.38);
+    background: linear-gradient(180deg, rgba(36, 26, 14, 0.5), rgba(22, 16, 10, 0.36));
+}
+
+.back-button:hover {
+    transform: translateY(-1px);
+}
+
+.topics-command-bar {
+    border-radius: 16px;
+    border: 1px solid var(--game-ui-border);
+    background: var(--game-ui-bg);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    padding: 0.62rem 0.7rem;
+}
+
+.btn-create-topic,
+.btn-manage-topics,
+.btn-global-search {
+    border-radius: 10px;
+    border: 1px solid rgba(232, 200, 132, 0.28);
+    background: linear-gradient(180deg, rgba(46, 33, 18, 0.88), rgba(25, 19, 12, 0.88));
+    color: #f4e3be;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+.btn-create-topic:hover,
+.btn-manage-topics:hover,
+.btn-global-search:hover {
+    border-color: rgba(242, 213, 156, 0.62);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(242, 213, 156, 0.12);
+}
+
+.topics-search-wrap {
+    border-radius: 12px;
+    border: 1px solid rgba(232, 200, 132, 0.22);
+    background: rgba(8, 10, 20, 0.72);
+}
+
+.topics-search-input {
+    color: #efe4ca;
+}
+
+.topics-search-input::placeholder {
+    color: rgba(214, 193, 150, 0.62);
+}
+
+.topics-filter-group {
+    background: rgba(8, 10, 20, 0.65);
+    border: 1px solid rgba(232, 200, 132, 0.2);
+    border-radius: 11px;
+    padding: 0.18rem;
+}
+
+.topic-filter-btn {
+    border-radius: 8px;
+    color: rgba(226, 211, 176, 0.8);
+    letter-spacing: 0.02em;
+}
+
+.topic-filter-btn.active {
+    background: linear-gradient(180deg, rgba(102, 73, 35, 0.8), rgba(66, 49, 25, 0.82));
+    color: #fff1ce;
+    border-color: rgba(239, 214, 162, 0.5);
+}
+
+.topics-stats-card {
+    border-radius: 16px;
+    border: 1px solid rgba(232, 200, 132, 0.24);
+    background: linear-gradient(180deg, rgba(13, 14, 25, 0.92), rgba(12, 10, 8, 0.9));
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.36);
+}
+
+.topic-card {
+    border-radius: 16px;
+    border-width: 1.4px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+    transition: transform 180ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.topic-card:hover {
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 22px 36px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(245, 218, 159, 0.14);
+}
+
+.topic-card-title {
+    letter-spacing: 0.018em;
+}
+
+.session-manager-modal {
+    border-radius: 18px;
+    border: 1px solid rgba(232, 200, 132, 0.36);
+    background: linear-gradient(180deg, rgba(13, 15, 27, 0.95), rgba(11, 11, 16, 0.95));
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.46);
+}
+
+.sm-header,
+.sm-action-bar,
+.sm-footer {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.sm-item {
+    border-radius: 10px;
+    border-color: rgba(232, 200, 132, 0.12);
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.sm-item:hover {
+    border-color: rgba(232, 200, 132, 0.28);
+}
+
+.sm-item--selected {
+    border-color: rgba(240, 214, 160, 0.44);
+    box-shadow: inset 0 0 0 1px rgba(240, 214, 160, 0.2);
+}
+
+@media (max-width: 900px) {
+    .topics-command-bar {
+        border-radius: 12px;
+        padding: 0.46rem;
+    }
+
+    .btn-create-topic,
+    .btn-manage-topics,
+    .btn-global-search {
+        border-radius: 9px;
+    }
+}

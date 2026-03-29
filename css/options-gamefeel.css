@@ -1,0 +1,147 @@
+/* Game-like readability and polish for Options section */
+
+#optionsSection::before {
+    background:
+        linear-gradient(180deg, rgba(6, 6, 10, 0.54) 0%, rgba(7, 7, 12, 0.58) 100%),
+        radial-gradient(circle at 20% 18%, rgba(232, 200, 132, 0.06) 0%, transparent 48%);
+}
+
+#optionsSection .opt-tab-bar {
+    margin: 0.55rem auto 0;
+    width: min(1120px, calc(100% - 2.2rem));
+    border: 1px solid rgba(232, 200, 132, 0.28);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(13, 15, 26, 0.94), rgba(9, 10, 18, 0.92));
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.3);
+    padding: 0.2rem;
+    gap: 0.2rem;
+}
+
+#optionsSection .opt-tab {
+    border-bottom: none;
+    border-radius: 10px;
+    color: rgba(228, 210, 172, 0.64);
+    font-size: 0.76rem;
+    letter-spacing: 0.09em;
+}
+
+#optionsSection .opt-tab:hover {
+    background: rgba(232, 200, 132, 0.1);
+    color: rgba(255, 236, 199, 0.88);
+}
+
+#optionsSection .opt-tab.active {
+    background: linear-gradient(180deg, rgba(104, 73, 34, 0.92), rgba(73, 53, 27, 0.9));
+    color: #fff2cf;
+    border: 1px solid rgba(240, 214, 161, 0.45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 14px rgba(0, 0, 0, 0.2);
+}
+
+#optionsSection .opt-panels {
+    padding: 0.95rem 0 1.2rem;
+}
+
+#optionsSection .opt-panel {
+    max-width: min(980px, calc(100% - 1.4rem));
+    padding: 1.2rem 1.35rem 2rem;
+    border: 1px solid rgba(232, 200, 132, 0.3);
+    border-radius: 18px;
+    background:
+        linear-gradient(180deg, rgba(12, 14, 24, 0.94), rgba(10, 10, 18, 0.95)),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0 2px, rgba(0, 0, 0, 0.02) 2px 4px);
+    box-shadow: 0 20px 46px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#optionsSection .opt-section-title {
+    color: rgba(242, 220, 174, 0.86);
+    border-bottom-color: rgba(232, 200, 132, 0.3);
+    margin-bottom: 1rem;
+}
+
+#optionsSection .opt-rows {
+    border: 1px solid rgba(232, 200, 132, 0.14);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.015);
+    padding: 0.2rem 0.95rem;
+}
+
+#optionsSection .option-row {
+    border-bottom-color: rgba(232, 200, 132, 0.12);
+}
+
+#optionsSection .option-label {
+    color: rgba(247, 236, 210, 0.94);
+}
+
+#optionsSection .option-sublabel,
+#optionsSection .opt-avatar-hint,
+#optionsSection .opt-birthday-hint,
+#optionsSection .opt-security-status {
+    color: rgba(217, 201, 165, 0.75);
+}
+
+#optionsSection .opt-text-input,
+#optionsSection .opt-select,
+#optionsSection .opt-date-input {
+    border-color: rgba(232, 200, 132, 0.26);
+    background: rgba(6, 7, 14, 0.78);
+    color: #f4e8c9;
+}
+
+#optionsSection .opt-text-input:focus,
+#optionsSection .opt-select:focus,
+#optionsSection .opt-date-input:focus {
+    border-color: rgba(240, 214, 161, 0.66);
+    box-shadow: 0 0 0 3px rgba(240, 214, 161, 0.12);
+}
+
+#optionsSection .opt-save-btn,
+#optionsSection .opt-toggle-btn {
+    border-color: rgba(232, 200, 132, 0.42);
+    background: linear-gradient(180deg, rgba(84, 61, 31, 0.88), rgba(58, 43, 24, 0.9));
+    color: #fff1cf;
+    font-weight: 600;
+}
+
+#optionsSection .opt-save-btn:hover,
+#optionsSection .opt-toggle-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(247, 225, 179, 0.82);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.26);
+}
+
+#optionsSection .opt-avatar-preview {
+    width: 92px;
+    height: 92px;
+    border-color: rgba(240, 214, 161, 0.54);
+    box-shadow: 0 0 0 3px rgba(240, 214, 161, 0.13), 0 10px 22px rgba(0, 0, 0, 0.32);
+}
+
+#optionsSection .opt-switch .opt-slider,
+#optionsSection .opt-switch .opt-switch-slider {
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(232, 200, 132, 0.2);
+}
+
+#optionsSection .opt-switch input:checked + .opt-slider,
+#optionsSection .opt-switch input:checked + .opt-switch-slider {
+    background: rgba(201, 168, 108, 0.44);
+}
+
+@media (max-width: 700px) {
+    #optionsSection .opt-tab-bar {
+        width: calc(100% - 0.9rem);
+        margin-top: 0.35rem;
+        border-radius: 11px;
+    }
+
+    #optionsSection .opt-panel {
+        max-width: calc(100% - 0.7rem);
+        padding: 1rem 0.8rem 1.3rem;
+        border-radius: 13px;
+    }
+
+    #optionsSection .opt-rows {
+        padding: 0.1rem 0.6rem;
+    }
+}
