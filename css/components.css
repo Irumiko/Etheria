@@ -777,6 +777,48 @@ body::before {
             line-height: 1.4;
             text-align: center;
         }
+        #rpgStatsModal[data-flow="creation"] .rpg-stats-modal {
+            width: min(440px, 94vw);
+            padding: 1rem 1rem 0.85rem;
+            border-color: rgba(201, 168, 108, 0.6);
+            background:
+                radial-gradient(120% 100% at 0% 0%, rgba(201,168,108,0.12), transparent 55%),
+                linear-gradient(180deg, rgba(18, 12, 8, 0.98), rgba(9, 7, 5, 0.98));
+            box-shadow: 0 24px 65px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255, 226, 164, 0.14);
+        }
+        .rpg-forge-intro {
+            border: 1px solid rgba(201,168,108,0.22);
+            border-radius: 10px;
+            padding: 0.6rem 0.7rem;
+            background: linear-gradient(180deg, rgba(201,168,108,0.08), rgba(201,168,108,0.02));
+            margin-bottom: 0.25rem;
+        }
+        .rpg-forge-kicker {
+            font-size: 0.58rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(230,205,155,0.7);
+            margin-bottom: 0.18rem;
+        }
+        .rpg-forge-title {
+            margin: 0;
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            color: rgba(245,220,160,0.95);
+        }
+        .rpg-forge-copy {
+            margin: 0.28rem 0 0;
+            color: rgba(210,190,150,0.75);
+            font-size: 0.67rem;
+            line-height: 1.35;
+        }
+        .rpg-stats-card-cost {
+            grid-column: 2 / span 2;
+            font-size: 0.53rem;
+            letter-spacing: 0.03em;
+            color: rgba(201,168,108,0.62);
+            margin-top: -0.08rem;
+        }
 
         /* Avatar */
         .user-avatar {
@@ -13400,9 +13442,9 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 
 .vn-party-shell {
     position: fixed;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
+    top: max(6.7rem, calc(env(safe-area-inset-top) + 5.9rem));
+    left: 0.85rem;
+    transform: none;
     z-index: calc(var(--z-controls, 200) + 1);
     display: flex;
     align-items: stretch;
@@ -13416,21 +13458,7 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 }
 
 .vn-party-tab {
-    align-self: center;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.72rem 0.7rem;
-    margin-right: -1px;
-    border: 1px solid rgba(201,168,108,0.18);
-    border-right: none;
-    border-radius: 14px 0 0 14px;
-    background:
-        linear-gradient(180deg, rgba(52,34,22,0.96), rgba(27,18,12,0.96));
-    color: rgba(236,223,198,0.88);
-    box-shadow: 0 10px 26px rgba(0,0,0,0.26);
-    font-family: 'Cinzel', serif;
-    cursor: pointer;
+    display: none;
 }
 .vn-party-tab-label {
     writing-mode: vertical-rl;
@@ -13440,19 +13468,18 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 }
 
 .vn-party-panel {
-    width: 288px;
-    max-height: min(78vh, 720px);
+    width: min(232px, calc(100vw - 1.5rem));
+    max-height: min(55vh, 460px);
     overflow: auto;
-    transform: translateX(calc(100% - 6px));
+    transform: none;
     transition: transform 0.24s ease;
     background:
         linear-gradient(180deg, rgba(42,29,18,0.96), rgba(24,17,11,0.98)),
         repeating-linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 12px, rgba(0,0,0,0.02) 12px, rgba(0,0,0,0.02) 24px);
     border: 1px solid rgba(201,168,108,0.2);
-    border-right: none;
-    border-radius: 18px 0 0 18px;
+    border-radius: 16px;
     box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-    padding: 0.8rem 0.78rem 0.9rem;
+    padding: 0.62rem 0.6rem 0.68rem;
 }
 .vn-party-header {
     display: flex;
@@ -13485,18 +13512,19 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     padding: 0.4rem 0.1rem;
 }
 .vn-party-member {
-    display: grid;
-    grid-template-columns: 50px minmax(0, 1fr);
-    gap: 0.7rem;
+    display: block;
+    width: 100%;
     align-items: start;
-    padding: 0.65rem;
-    border-radius: 14px;
+    padding: 0.45rem 0.5rem;
+    border-radius: 10px;
     border: 1px solid rgba(201,168,108,0.12);
     background: rgba(255,248,235,0.03);
     transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+    text-align: left;
+    cursor: pointer;
 }
 .vn-party-member:hover {
-    transform: translateX(-2px);
+    transform: translateX(0);
 }
 .vn-party-member[data-state="active"] {
     border-color: rgba(224,190,104,0.52);
@@ -13509,26 +13537,6 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     border-color: rgba(164,74,74,0.46);
     box-shadow: 0 0 0 1px rgba(164,74,74,0.12);
 }
-.vn-party-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 1px solid rgba(201,168,108,0.24);
-    background: rgba(17, 12, 8, 0.95);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #f0e3cc;
-    font-family: 'Cinzel', serif;
-    cursor: pointer;
-}
-.vn-party-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
 .vn-party-main {
     min-width: 0;
 }
@@ -13540,7 +13548,7 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 }
 .vn-party-name {
     color: #f4e7d0;
-    font-size: 0.86rem;
+    font-size: 0.79rem;
     font-family: 'Cinzel', serif;
     white-space: nowrap;
     overflow: hidden;
@@ -13548,36 +13556,36 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 }
 .vn-party-meta {
     color: rgba(214,196,168,0.68);
-    font-size: 0.68rem;
+    font-size: 0.61rem;
     margin-top: 0.12rem;
 }
 .vn-party-state {
     flex-shrink: 0;
-    font-size: 0.67rem;
+    font-size: 0.59rem;
     color: rgba(236,223,198,0.78);
     padding-top: 0.08rem;
 }
 .vn-party-bars {
-    margin-top: 0.45rem;
+    margin-top: 0.34rem;
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
 }
 .vn-party-bar-row {
     display: grid;
-    grid-template-columns: 32px minmax(0, 1fr) auto;
-    gap: 0.4rem;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    gap: 0.32rem;
     align-items: center;
 }
 .vn-party-bar-label,
 .vn-party-bar-value {
-    font-size: 0.6rem;
+    font-size: 0.56rem;
     color: rgba(214,196,168,0.68);
     letter-spacing: 0.05em;
 }
 .vn-party-bar-track {
     position: relative;
-    height: 7px;
+    height: 6px;
     border-radius: 999px;
     background: rgba(11,8,6,0.78);
     overflow: hidden;
@@ -13607,18 +13615,13 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 
 @media (max-width: 768px) {
     .vn-party-shell {
-        top: auto;
-        bottom: 86px;
+        top: max(5.8rem, calc(env(safe-area-inset-top) + 4.9rem));
+        left: 0.6rem;
+        right: auto;
         transform: none;
     }
     .vn-party-panel {
-        width: min(84vw, 320px);
-        max-height: 70vh;
-        border-right: 1px solid rgba(201,168,108,0.2);
-        border-radius: 18px 0 0 18px;
-        transform: translateX(calc(100% + 6px));
-    }
-    .vn-party-tab {
-        padding: 0.7rem 0.55rem;
+        width: min(180px, calc(100vw - 1.2rem));
+        max-height: min(44vh, 300px);
     }
 }
