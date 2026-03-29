@@ -18177,6 +18177,841 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
  * TODO: move menu selectors from legacy bundles into this feature file.
  */
 
+/* -- css/features/theme-menu/index.css -- */
+/* ═══════════════════════════════════════════════════════════════════
+   ETHERIA — THEME MENU INTERFACE
+   Visual Novel style interface for mode selection (RPG & Classic)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ─── Variables del sistema ─── */
+:root {
+    /* Colores base compartidos */
+    --tm-gold: #c9a86c;
+    --tm-gold-light: #f0d898;
+    --tm-gold-dark: rgba(139, 105, 20, 0.8);
+    --tm-border-gold: rgba(201, 168, 108, 0.4);
+    --tm-bg-dark: rgba(18, 13, 6, 0.92);
+    --tm-bg-glass: rgba(10, 12, 22, 0.85);
+    --tm-text-cream: #f0e3cc;
+    --tm-text-muted: rgba(214, 196, 168, 0.7);
+    
+    /* Toolbar específicos */
+    --tm-toolbar-width: 52px;
+    --tm-toolbar-expanded: 180px;
+    --tm-btn-size: 38px;
+    --tm-transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   1. BARRA DE HERRAMIENTAS VERTICAL — Lateral derecho
+   Iconos en rombo con expansión sutil al hover
+   ═══════════════════════════════════════════════════════════════════ */
+
+.vn-controls {
+    /* Posicionar vertical a la derecha */
+    position: fixed !important;
+    right: 0.85rem !important;
+    top: max(1.2rem, env(safe-area-inset-top, 0px)) !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    
+    /* Layout vertical */
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 0.35rem !important;
+    max-height: calc(100dvh - 2.4rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto !important;
+    overflow-x: visible !important;
+    
+    /* Estilo visual */
+    width: var(--tm-toolbar-width) !important;
+    padding: 0.5rem 0.4rem !important;
+    border-radius: 14px !important;
+    border: 1px solid var(--tm-border-gold) !important;
+    background: linear-gradient(
+        180deg,
+        rgba(22, 16, 8, 0.94) 0%,
+        rgba(14, 10, 5, 0.96) 100%
+    ) !important;
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 220, 140, 0.05) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* Línea decorativa superior de la toolbar */
+.vn-controls::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 15% !important;
+    right: 15% !important;
+    height: 2px !important;
+    background: linear-gradient(90deg, transparent, var(--tm-gold), transparent) !important;
+    border-radius: 0 0 2px 2px !important;
+    z-index: 1 !important;
+}
+
+/* ─── Slots de botones ─── */
+.vn-control-slot {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+}
+
+.vn-control-slot:has(> .vn-control-btn.hidden) {
+    display: none !important;
+}
+
+/* ─── Botones de control: estilo elegante y sutil ─── */
+.vn-control-btn {
+    position: relative !important;
+    width: var(--tm-btn-size) !important;
+    height: var(--tm-btn-size) !important;
+    min-width: var(--tm-btn-size) !important;
+    padding: 0 !important;
+    
+    /* Forma sutil con bordes redondeados */
+    border-radius: 8px !important;
+    border: 1px solid rgba(201, 168, 108, 0.18) !important;
+    background: rgba(20, 15, 8, 0.85) !important;
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 220, 140, 0.04) !important;
+    
+    cursor: pointer !important;
+    transition:
+        transform var(--tm-transition),
+        border-color var(--tm-transition),
+        box-shadow var(--tm-transition),
+        background var(--tm-transition) !important;
+    
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Icono dentro del boton */
+.vn-control-btn .vn-control-icon {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    color: var(--tm-gold) !important;
+    opacity: 0.7 !important;
+    transition: opacity var(--tm-transition), color var(--tm-transition) !important;
+}
+
+.vn-control-btn .vn-control-icon svg {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+/* ─── Hover: desplazamiento sutil + tooltip ─── */
+.vn-control-btn:hover,
+.vn-control-btn:focus-visible {
+    border-color: rgba(201, 168, 108, 0.45) !important;
+    background: rgba(35, 28, 15, 0.92) !important;
+    box-shadow:
+        0 3px 12px rgba(0, 0, 0, 0.35),
+        0 0 8px rgba(201, 168, 108, 0.08),
+        inset 0 1px 0 rgba(255, 220, 140, 0.06) !important;
+    
+    /* Desplazamiento sutil hacia la izquierda */
+    transform: translateX(-3px) !important;
+}
+
+.vn-control-btn:hover .vn-control-icon,
+.vn-control-btn:focus-visible .vn-control-icon {
+    opacity: 1 !important;
+    color: var(--tm-gold-light) !important;
+}
+
+/* ─── Tooltip al hover: aparece a la izquierda ─── */
+.vn-control-btn::after {
+    content: attr(aria-label) !important;
+    position: absolute !important;
+    top: 50% !important;
+    right: calc(100% + 10px) !important;
+    transform: translateY(-50%) !important;
+    
+    /* Estilo visual */
+    padding: 0.3rem 0.55rem !important;
+    border-radius: 5px !important;
+    border: 1px solid rgba(201, 168, 108, 0.25) !important;
+    background: rgba(15, 12, 6, 0.95) !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4) !important;
+    
+    /* Tipografia */
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.58rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: var(--tm-text) !important;
+    white-space: nowrap !important;
+    
+    /* Transicion */
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.15s ease !important;
+}
+
+.vn-control-btn:hover::after,
+.vn-control-btn:focus-visible::after {
+    opacity: 1 !important;
+}
+
+/* ─── Separador vertical entre grupos ─── */
+.vn-control-divider {
+    width: 24px !important;
+    height: 1px !important;
+    margin: 0.25rem auto !important;
+    background: linear-gradient(90deg, transparent, rgba(201, 168, 108, 0.3), transparent) !important;
+}
+
+/* ─── Estados especiales de botones ─── */
+.vn-control-btn.is-syncing .vn-control-icon {
+    animation: tm-sync-spin 1.2s linear infinite !important;
+}
+
+.vn-control-btn.is-upload-pending {
+    border-color: rgba(255, 180, 60, 0.6) !important;
+}
+
+.vn-control-btn.is-error {
+    border-color: rgba(255, 100, 80, 0.6) !important;
+}
+
+#favMsgBtn.is-favorited .vn-control-icon {
+    color: #f4c842 !important;
+}
+
+@keyframes tm-sync-spin {
+    from { transform: rotate(-45deg); }
+    to { transform: rotate(315deg); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   2. PANEL DE PARTY — Sistema de turnos
+   Diseño no intrusivo con orden de respuesta
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Shell del party: posición fija sin solaparse */
+.vn-party-shell {
+    position: fixed !important;
+    top: auto !important;
+    bottom: max(1.2rem, env(safe-area-inset-bottom, 0px)) !important;
+    left: 0.85rem !important;
+    right: auto !important;
+    transform: none !important;
+    z-index: calc(var(--z-controls, 200) + 1) !important;
+    pointer-events: none !important;
+}
+
+.vn-party-shell > * {
+    pointer-events: auto !important;
+}
+
+/* Panel principal de party */
+.vn-party-panel {
+    width: min(200px, calc(100vw - 1.5rem)) !important;
+    max-height: min(45vh, 380px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    
+    /* Estilo visual sutil */
+    background: linear-gradient(
+        180deg,
+        rgba(22, 16, 10, 0.92) 0%,
+        rgba(14, 10, 6, 0.95) 100%
+    ) !important;
+    border: 1px solid rgba(201, 168, 108, 0.22) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35) !important;
+    backdrop-filter: blur(10px) !important;
+    padding: 0.55rem !important;
+    
+    transform: none !important;
+    transition: transform 0.24s ease, opacity 0.24s ease !important;
+}
+
+/* Header del panel */
+.vn-party-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding-bottom: 0.45rem !important;
+    margin-bottom: 0.5rem !important;
+    border-bottom: 1px solid rgba(201, 168, 108, 0.12) !important;
+}
+
+.vn-party-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    color: var(--tm-text-cream) !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+}
+
+.vn-party-subtitle {
+    font-size: 0.62rem !important;
+    color: var(--tm-text-muted) !important;
+    letter-spacing: 0.04em !important;
+}
+
+/* Lista de miembros */
+.vn-party-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.4rem !important;
+}
+
+/* ─── Miembro individual: indicador de turno ─── */
+.vn-party-member {
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    padding: 0.45rem 0.5rem !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(201, 168, 108, 0.1) !important;
+    background: rgba(255, 248, 235, 0.02) !important;
+    transition: all 0.2s ease !important;
+    cursor: pointer !important;
+}
+
+/* Estado: esperando su turno (pendiente de responder) */
+.vn-party-member[data-state="waiting"] {
+    opacity: 0.6 !important;
+    border-style: dashed !important;
+}
+
+.vn-party-member[data-state="waiting"]::before {
+    content: '' !important;
+    position: absolute !important;
+    left: -4px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    background: rgba(180, 160, 120, 0.5) !important;
+    border: 1px solid rgba(180, 160, 120, 0.3) !important;
+}
+
+/* Estado: activo (puede responder / ya respondió) */
+.vn-party-member[data-state="active"] {
+    border-color: rgba(120, 200, 100, 0.45) !important;
+    background: rgba(120, 200, 100, 0.06) !important;
+}
+
+.vn-party-member[data-state="active"]::before {
+    content: '' !important;
+    position: absolute !important;
+    left: -4px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 8px !important;
+    height: 8px !important;
+    border-radius: 50% !important;
+    background: rgba(120, 200, 100, 0.8) !important;
+    box-shadow: 0 0 8px rgba(120, 200, 100, 0.4) !important;
+}
+
+/* Estado: respondió este turno */
+.vn-party-member[data-state="responded"] {
+    border-color: rgba(201, 168, 108, 0.35) !important;
+    background: rgba(201, 168, 108, 0.08) !important;
+}
+
+.vn-party-member[data-state="responded"]::before {
+    content: '✓' !important;
+    position: absolute !important;
+    left: -6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-size: 0.55rem !important;
+    color: var(--tm-gold) !important;
+}
+
+/* Orden de turno badge */
+.vn-party-turn-order {
+    position: absolute !important;
+    right: 0.4rem !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 18px !important;
+    height: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    background: rgba(201, 168, 108, 0.15) !important;
+    border: 1px solid rgba(201, 168, 108, 0.25) !important;
+    font-size: 0.55rem !important;
+    font-family: 'Cinzel', serif !important;
+    font-weight: 600 !important;
+    color: var(--tm-gold) !important;
+}
+
+/* Nombre del personaje */
+.vn-party-name {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.72rem !important;
+    color: var(--tm-text-cream) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100px !important;
+}
+
+.vn-party-meta {
+    font-size: 0.58rem !important;
+    color: var(--tm-text-muted) !important;
+}
+
+/* Empty state */
+.vn-party-empty {
+    text-align: center !important;
+    padding: 0.8rem 0.5rem !important;
+    font-size: 0.7rem !important;
+    color: var(--tm-text-muted) !important;
+    font-style: italic !important;
+}
+
+/* ─── Party Bars (HP/EXP) ─── */
+.vn-party-bars {
+    margin-top: 0.3rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+}
+
+.vn-party-bar-row {
+    display: grid !important;
+    grid-template-columns: 22px minmax(0, 1fr) auto !important;
+    gap: 0.28rem !important;
+    align-items: center !important;
+}
+
+.vn-party-bar-label,
+.vn-party-bar-value {
+    font-size: 0.52rem !important;
+    color: var(--tm-text-muted) !important;
+    letter-spacing: 0.04em !important;
+}
+
+.vn-party-bar-track {
+    position: relative !important;
+    height: 5px !important;
+    border-radius: 999px !important;
+    background: rgba(11, 8, 6, 0.75) !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(201, 168, 108, 0.06) !important;
+}
+
+.vn-party-bar-fill {
+    position: absolute !important;
+    inset: 0 auto 0 0 !important;
+    width: 0 !important;
+    border-radius: inherit !important;
+    background: linear-gradient(90deg, rgba(160, 80, 64, 0.9), rgba(200, 110, 80, 0.9)) !important;
+    transition: width 0.3s ease !important;
+}
+
+.vn-party-bar-fill.exp {
+    background: linear-gradient(90deg, rgba(100, 90, 160, 0.9), rgba(160, 140, 200, 0.9)) !important;
+}
+
+/* State row - inline text */
+.vn-party-state {
+    font-size: 0.54rem !important;
+    color: var(--tm-text-muted) !important;
+    white-space: nowrap !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   3. MODO RPG — Estilo D&D con aire Visual Novel
+   Elementos de hoja de personaje, pergamino y fantasía
+   ═════════════════════════════════════════════════��═════════════════ */
+
+body.mode-rpg {
+    /* Variables específicas RPG */
+    --rpg-parchment: rgba(245, 235, 220, 0.04);
+    --rpg-ink: #2a1a0a;
+    --rpg-gold-border: rgba(180, 140, 80, 0.5);
+    --rpg-red-hp: #a84040;
+    --rpg-blue-mp: #4068a8;
+    --rpg-purple-xp: #7048a8;
+}
+
+/* Toolbar RPG: bordes más ornamentados */
+body.mode-rpg .vn-controls {
+    border-width: 2px !important;
+    border-image: linear-gradient(
+        180deg,
+        rgba(201, 168, 108, 0.6) 0%,
+        rgba(139, 105, 20, 0.4) 50%,
+        rgba(201, 168, 108, 0.6) 100%
+    ) 1 !important;
+}
+
+body.mode-rpg .vn-controls::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 15% !important;
+    right: 15% !important;
+    height: 2px !important;
+    background: linear-gradient(90deg, transparent, var(--tm-gold), transparent) !important;
+}
+
+/* Botones RPG: ligeramente mas definidos */
+body.mode-rpg .vn-control-btn {
+    border-color: rgba(201, 168, 108, 0.25) !important;
+    background: rgba(28, 20, 10, 0.9) !important;
+}
+
+body.mode-rpg .vn-control-btn:hover {
+    border-color: rgba(201, 168, 108, 0.5) !important;
+    box-shadow:
+        0 3px 14px rgba(0, 0, 0, 0.4),
+        0 0 12px rgba(201, 168, 108, 0.1) !important;
+}
+
+/* Panel de diálogo RPG: más épico */
+body.mode-rpg .vn-dialogue-box {
+    border: 2px solid var(--rpg-gold-border) !important;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(28, 20, 10, 0.95) 0%,
+            rgba(18, 12, 6, 0.98) 100%
+        ),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 L20 0 L40 20 L20 40 Z' fill='none' stroke='rgba(201,168,108,0.03)' stroke-width='0.5'/%3E%3C/svg%3E") !important;
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 220, 140, 0.08) !important;
+}
+
+/* Esquinas ornamentales RPG */
+body.mode-rpg .vn-dialogue-box::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -1px !important;
+    left: -1px !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-top: 2px solid var(--tm-gold) !important;
+    border-left: 2px solid var(--tm-gold) !important;
+    border-radius: 12px 0 0 0 !important;
+    pointer-events: none !important;
+}
+
+body.mode-rpg .vn-dialogue-box::after {
+    content: '' !important;
+    position: absolute !important;
+    top: -1px !important;
+    right: -1px !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-top: 2px solid var(--tm-gold) !important;
+    border-right: 2px solid var(--tm-gold) !important;
+    border-radius: 0 12px 0 0 !important;
+    pointer-events: none !important;
+}
+
+/* Party Panel RPG: estilo hoja de personaje */
+body.mode-rpg .vn-party-panel {
+    border: 2px solid var(--rpg-gold-border) !important;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(35, 25, 12, 0.96) 0%,
+            rgba(20, 14, 7, 0.98) 100%
+        ) !important;
+}
+
+body.mode-rpg .vn-party-header {
+    border-bottom: 1px solid var(--rpg-gold-border) !important;
+}
+
+body.mode-rpg .vn-party-title::before {
+    content: '⚔ ' !important;
+    opacity: 0.7 !important;
+}
+
+/* Barras de stats en party RPG */
+body.mode-rpg .vn-party-bars {
+    margin-top: 0.35rem !important;
+}
+
+body.mode-rpg .vn-party-bar-fill {
+    background: linear-gradient(90deg, var(--rpg-red-hp), #c86464) !important;
+}
+
+body.mode-rpg .vn-party-bar-fill.exp {
+    background: linear-gradient(90deg, var(--rpg-purple-xp), #9868c8) !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   4. MODO CLÁSICO — Visual Novel japonés tradicional
+   Elegante, narrativo, foros de rol
+   ═══════════════════════════════════════════════════════════════════ */
+
+body.mode-classic {
+    /* Variables específicas Classic */
+    --classic-cream: rgba(255, 252, 245, 0.06);
+    --classic-ink: #1a1510;
+    --classic-sepia: rgba(180, 150, 100, 0.4);
+    --classic-rose: rgba(180, 120, 140, 0.3);
+}
+
+/* Toolbar Classic: más suave y elegante */
+body.mode-classic .vn-controls {
+    border-color: rgba(180, 150, 100, 0.3) !important;
+    background: linear-gradient(
+        180deg,
+        rgba(30, 24, 16, 0.92) 0%,
+        rgba(20, 16, 10, 0.95) 100%
+    ) !important;
+    box-shadow:
+        0 8px 28px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 240, 200, 0.04) !important;
+}
+
+/* Botones Classic: suaves y elegantes */
+body.mode-classic .vn-control-btn {
+    border-color: rgba(180, 150, 100, 0.15) !important;
+    background: rgba(30, 24, 14, 0.88) !important;
+}
+
+body.mode-classic .vn-control-btn:hover {
+    border-color: rgba(180, 150, 100, 0.4) !important;
+    background: rgba(40, 32, 18, 0.92) !important;
+}
+
+body.mode-classic .vn-control-btn .vn-control-icon {
+    color: rgba(220, 190, 140, 0.85) !important;
+}
+
+/* Tooltip classic: más literario */
+body.mode-classic .vn-control-btn::after {
+    font-family: 'Crimson Text', serif !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.03em !important;
+    text-transform: none !important;
+    font-style: italic !important;
+}
+
+/* Panel de diálogo Classic: estilo pergamino suave */
+body.mode-classic .vn-dialogue-box {
+    border: 1px solid var(--classic-sepia) !important;
+    background: linear-gradient(
+        180deg,
+        rgba(32, 26, 18, 0.94) 0%,
+        rgba(22, 18, 12, 0.97) 100%
+    ) !important;
+    box-shadow:
+        0 16px 44px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 240, 200, 0.05) !important;
+}
+
+/* Decoración sutil tipo libro */
+body.mode-classic .vn-dialogue-box::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 6px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 40px !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, var(--classic-sepia), transparent) !important;
+    pointer-events: none !important;
+}
+
+/* Party Panel Classic: oculto por defecto (no es RPG) */
+body.mode-classic .vn-party-shell {
+    display: none !important;
+}
+
+/* Speaker plate Classic: más elegante */
+body.mode-classic .vn-speaker-plate {
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 0.12em !important;
+    border-color: var(--classic-sepia) !important;
+    background: linear-gradient(
+        180deg,
+        rgba(45, 35, 20, 0.96) 0%,
+        rgba(30, 24, 14, 0.98) 100%
+    ) !important;
+}
+
+/* Info card Classic: ficha literaria */
+body.mode-classic .vn-info-card {
+    border-color: var(--classic-sepia) !important;
+    background: linear-gradient(
+        135deg,
+        rgba(35, 28, 18, 0.94) 0%,
+        rgba(25, 20, 12, 0.96) 100%
+    ) !important;
+}
+
+body.mode-classic .vn-info-name {
+    font-family: 'Crimson Text', serif !important;
+    font-style: italic !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   5. RESPONSIVE — Adaptaciones móviles
+   ══��════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+    .vn-controls {
+        right: 0.6rem !important;
+        width: 46px !important;
+        --tm-btn-size: 34px !important;
+        padding: 0.4rem 0.35rem !important;
+    }
+    
+    .vn-control-btn .vn-control-icon svg {
+        width: 13px !important;
+        height: 13px !important;
+    }
+    
+    .vn-party-panel {
+        width: min(170px, calc(100vw - 1rem)) !important;
+        max-height: min(38vh, 300px) !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .vn-controls {
+        right: 0.4rem !important;
+        width: 42px !important;
+        --tm-btn-size: 30px !important;
+        gap: 0.25rem !important;
+        border-radius: 10px !important;
+    }
+    
+    .vn-control-divider {
+        width: 18px !important;
+        margin: 0.15rem auto !important;
+    }
+    
+    /* Tooltips más cortos en móvil */
+    .vn-control-btn::after {
+        font-size: 0.58rem !important;
+        padding: 0.25rem 0.5rem !important;
+    }
+    
+    .vn-party-shell {
+        bottom: max(0.8rem, env(safe-area-inset-bottom, 0px)) !important;
+        left: 0.5rem !important;
+    }
+    
+    .vn-party-panel {
+        width: min(150px, calc(100vw - 0.8rem)) !important;
+        padding: 0.4rem !important;
+    }
+    
+    .vn-party-name {
+        max-width: 70px !important;
+        font-size: 0.68rem !important;
+    }
+}
+
+/* Touch devices: botones más grandes */
+@media (pointer: coarse) {
+    .vn-control-btn {
+        --tm-btn-size: 40px !important;
+    }
+    
+    .vn-party-member {
+        padding: 0.55rem 0.55rem !important;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   6. ANIMACIONES Y TRANSICIONES
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Entrada de la toolbar */
+@keyframes tm-toolbar-enter {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.vn-controls {
+    animation: tm-toolbar-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+
+/* Entrada escalonada de botones */
+.vn-control-slot:nth-child(1) { animation-delay: 0.05s !important; }
+.vn-control-slot:nth-child(2) { animation-delay: 0.08s !important; }
+.vn-control-slot:nth-child(3) { animation-delay: 0.11s !important; }
+.vn-control-slot:nth-child(4) { animation-delay: 0.14s !important; }
+.vn-control-slot:nth-child(5) { animation-delay: 0.17s !important; }
+.vn-control-slot:nth-child(6) { animation-delay: 0.20s !important; }
+
+/* Pulse de notificación en party */
+@keyframes tm-party-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(201, 168, 108, 0); }
+    50% { box-shadow: 0 0 0 6px rgba(201, 168, 108, 0.15); }
+}
+
+.vn-party-member.has-notification {
+    animation: tm-party-pulse 2s ease-in-out infinite !important;
+}
+
+/* Transición suave para cambios de estado */
+.vn-party-member::before {
+    transition: all 0.25s ease !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   7. ACCESIBILIDAD
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Focus visible mejorado */
+.vn-control-btn:focus-visible {
+    outline: 2px solid var(--tm-gold) !important;
+    outline-offset: 3px !important;
+}
+
+.vn-party-member:focus-visible {
+    outline: 2px solid var(--tm-gold) !important;
+    outline-offset: 2px !important;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .vn-controls,
+    .vn-control-btn,
+    .vn-party-member,
+    .vn-control-btn::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
 /* -- css/modules/07-overrides.css -- */
 /* ═══════════════════════════════════════════════════════════════════
    ETHERIA — REDESIGN UNIFICADO v2

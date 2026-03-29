@@ -10094,22 +10094,50 @@ function renderVnPartyPanel(force = false) {
         return;
     }
 
+    // Calcular orden de turno basado en quién ha respondido
+    const turnOrder = [];
+    const responded = [];
+    const waiting = [];
+    
+    charIds.forEach((charId) => {
+        const hasResponded = respondedThisCycle.has(String(charId));
+        if (hasResponded) {
+            responded.push(charId);
+        } else {
+            waiting.push(charId);
+        }
+    });
+    
+    // El orden de turno: primero los que han respondido (en orden), luego los que esperan
+    [...responded, ...waiting].forEach((charId, idx) => {
+        turnOrder.push({ charId, order: idx + 1 });
+    });
+
     list.innerHTML = charIds.map((charId) => {
         const entry = snapshot[charId];
         if (!entry) return '';
 
         let state = '';
         let stateText = '';
+        const hasResponded = respondedThisCycle.has(String(charId));
+        
         if (entry.critical) {
             state = 'critical';
-            stateText = '💀 Reincorporación pendiente';
+            stateText = '💀 Reincorporación';
         } else if (String(activeCharId) === String(charId)) {
             state = 'active';
-            stateText = '⭐ Hablando...';
-        } else if (respondedThisCycle.size > 0 && !respondedThisCycle.has(String(charId))) {
+            stateText = '⭐ Activo';
+        } else if (hasResponded) {
+            state = 'responded';
+            stateText = '✓ Respondió';
+        } else if (respondedThisCycle.size > 0) {
             state = 'waiting';
-            stateText = '⏳ En espera';
+            stateText = '⏳ Esperando';
         }
+        
+        // Obtener número de turno
+        const turnInfo = turnOrder.find(t => t.charId === charId);
+        const turnNumber = turnInfo ? turnInfo.order : '';
 
         const hpPct = Math.max(0, Math.min(100, (entry.hp / entry.hpMax) * 100));
         const expPct = Math.max(0, Math.min(100, (entry.exp / entry.expMax) * 100));
@@ -10136,6 +10164,7 @@ function renderVnPartyPanel(force = false) {
                         </div>
                     </div>
                 </div>
+                ${turnNumber ? `<span class="vn-party-turn-order">${turnNumber}</span>` : ''}
             </button>
         `;
     }).join('') || '<div class="vn-party-empty">Sin personajes vinculados todavía.</div>';
