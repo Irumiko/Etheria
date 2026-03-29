@@ -528,9 +528,12 @@ function renderVnPartyPanel(force = false) {
 
     const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
     const { charIds, snapshot, activeCharId, respondedThisCycle } = syncVnPartySnapshot(force);
-    const shouldShow = !!topic && topic.mode === 'rpg' && charIds.length > 0;
+    const vnSection = document.getElementById('vnSection');
+    const isInVn = !!vnSection?.classList.contains('active');
+    const shouldShow = isInVn && !!topic && topic.mode === 'rpg' && charIds.length > 0;
 
     shell.style.display = shouldShow ? 'flex' : 'none';
+    shell.classList.toggle('open', shouldShow);
     if (!shouldShow) {
         closeVnPartyPanel(true);
         list.innerHTML = '';
@@ -561,15 +564,8 @@ function renderVnPartyPanel(force = false) {
 
         const hpPct = Math.max(0, Math.min(100, (entry.hp / entry.hpMax) * 100));
         const expPct = Math.max(0, Math.min(100, (entry.exp / entry.expMax) * 100));
-        const avatarHtml = entry.avatar
-            ? `<img src="${escapeHtml(entry.avatar)}" alt="${escapeHtml(entry.name)}">`
-            : `<span>${escapeHtml(entry.name.slice(0, 1).toUpperCase())}</span>`;
-
         return `
-            <div class="vn-party-member" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}">
-                <button type="button" class="vn-party-avatar" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
-                    ${avatarHtml}
-                </button>
+            <button type="button" class="vn-party-member" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
                 <div class="vn-party-main">
                     <div class="vn-party-topline">
                         <div>
@@ -591,7 +587,7 @@ function renderVnPartyPanel(force = false) {
                         </div>
                     </div>
                 </div>
-            </div>
+            </button>
         `;
     }).join('') || '<div class="vn-party-empty">Sin personajes vinculados todavía.</div>';
 }

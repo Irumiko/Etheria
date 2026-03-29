@@ -815,7 +815,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     // Escuchar mensajes del SW
                     navigator.serviceWorker.addEventListener('message', (event) => {
-                        if (event.data?.type === 'SYNC_REQUIRED') {
+                        if (event.data?.type === 'SYNC_REQUIRED' || event.data?.type === 'SYNC_MESSAGES_REQUIRED') {
                             if (typeof SupabaseSync !== 'undefined') {
                                 SupabaseSync.sync({ silent: true });
                             }

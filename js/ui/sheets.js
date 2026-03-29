@@ -373,6 +373,7 @@ function renderRpgStatsModal(c) {
     const isOwn    = c.userIndex === currentUserIndex;
     const className = RPG_CLASSES.find(cl => cl.id === profile.rpgClass);
     const classPassive = getRpgClassPassive(profile.rpgClass);
+    const forgingMode = !!_rpgStatsBlocking;
 
     titleEl.textContent = `⚔ Nv.${profile.level} · ${data.title}`;
 
@@ -404,6 +405,12 @@ function renderRpgStatsModal(c) {
     `;
 
     bodyEl.innerHTML = `
+        ${forgingMode ? `
+        <section class="rpg-forge-intro">
+            <div class="rpg-forge-kicker">Preparación de aventura</div>
+            <h4 class="rpg-forge-title">Forja de personaje</h4>
+            <p class="rpg-forge-copy">Distribuye atributos como en D&D para definir el estilo de juego antes de entrar al tema.</p>
+        </section>` : ''}
         ${classSection}
         ${dndLiteMeta}
         <div class="rpg-stats-progress-row">
@@ -421,6 +428,7 @@ function renderRpgStatsModal(c) {
                 const val    = profile.stats[key];
                 const mod    = rpgModStr(val);
                 const spent  = getRpgSpentPoints(profile);
+                const nextCost = rpgPointBuyCost(Math.min(RPG_STAT_MAX, val + 1)) - rpgPointBuyCost(val);
                 const canAdd = isOwn && val < RPG_STAT_MAX && (RPG_POINTS_POOL - spent) >= (rpgPointBuyCost(val + 1) - rpgPointBuyCost(val));
                 const canSub = isOwn && val > RPG_STAT_BASE;
                 return `
@@ -429,6 +437,7 @@ function renderRpgStatsModal(c) {
                     <span class="rpg-stats-card-desc">${RPG_STAT_LABEL[key]}</span>
                     <span class="rpg-stats-card-value" id="rpgStat_${key}">${val}</span>
                     <span class="rpg-stats-card-mod">${mod}</span>
+                    ${isOwn ? `<span class="rpg-stats-card-cost">Coste +${Math.max(1, nextCost)}</span>` : ''}
                     ${isOwn ? `
                     <span class="rpg-stat-btn-group">
                         <button class="rpg-stat-btn" onclick="adjustRpgStat('${c.id}','${key}',-1)" ${canSub?'':'disabled'} title="Quitar punto">−</button>
@@ -440,7 +449,7 @@ function renderRpgStatsModal(c) {
         </div>
         <div class="rpg-stats-points" id="rpgFreePoints">
             ${isOwn
-                ? `✦ Puntos restantes: <strong>${data.freePoints}</strong> / ${RPG_POINTS_POOL}`
+                ? `✦ Reserva de creación: <strong>${data.freePoints}</strong> / ${RPG_POINTS_POOL}`
                 : `Puntos distribuidos: ${RPG_POINTS_POOL - data.freePoints} / ${RPG_POINTS_POOL}`}
         </div>
         ${renderConditionBadges(profile, isOwn, c.id)
@@ -846,6 +855,8 @@ function openRpgStatsModalFromSelect(topicId, charId) {
     currentTopicId = topicId;
     renderRpgStatsModal(char);
     currentTopicId = prevTopicId;
+    const overlay = document.getElementById('rpgStatsModal');
+    if (overlay) delete overlay.dataset.flow;
     openModal('rpgStatsModal');
 }
 
@@ -883,6 +894,7 @@ function openRpgStatsModalBlocking(charId, topicId, onConfirm) {
     const confirmBar = document.getElementById('rpgStatsConfirmBar');
 
     if (overlay)    overlay.dataset.blocking = 'true';
+    if (overlay)    overlay.dataset.flow = 'creation';
     if (closeBtn)   closeBtn.style.display   = 'none';
     if (confirmBar) confirmBar.style.display = '';
 
@@ -1201,6 +1213,7 @@ function _rpgStatsResetModal() {
     const closeBtn  = document.getElementById('rpgStatsCloseBtn');
     const confirmBar = document.getElementById('rpgStatsConfirmBar');
     if (overlay)    delete overlay.dataset.blocking;
+    if (overlay)    delete overlay.dataset.flow;
     if (closeBtn)   closeBtn.style.display   = '';
     if (confirmBar) confirmBar.style.display = 'none';
 }
