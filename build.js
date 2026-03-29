@@ -28,6 +28,7 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/features/vn/index.css',
   'css/features/gallery/index.css',
   'css/features/menu/index.css',
+  'css/features/theme-menu/index.css',
   'css/modules/07-overrides.css',
   'css/modules/affinity-atmosphere.css',
   'css/bonds.css',
