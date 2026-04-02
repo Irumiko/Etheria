@@ -1,0 +1,13 @@
+<svg width="600" height="24" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldGradient" x1="0%" x2="100%">
+      <stop offset="0%" stop-color="#c9a86c" stop-opacity="0" />
+      <stop offset="50%" stop-color="#c9a86c" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#c9a86c" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="12" width="600" height="1" fill="url(#goldGradient)" />
+  <polygon points="300,12 295,7 305,7" fill="#c9a86c" />
+  <polygon points="220,12 217,10 223,10" fill="#c9a86c" />
+  <polygon points="380,12 377,10 383,10" fill="#c9a86c" />
+</svg>
