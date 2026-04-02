@@ -1,0 +1,12 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 200 100'>
+    <defs>
+        <linearGradient id='goldGradient' x1='0%' y1='0%' x2='100%' y2='0%'>
+            <stop offset='0%' style='stop-color:#FFD700;stop-opacity:1' />
+            <stop offset='100%' style='stop-color:#FFBF00;stop-opacity:1' />
+        </linearGradient>
+    </defs>
+    <rect width='200' height='100' rx='15' ry='15' fill='none' stroke='url(#goldGradient)' stroke-width='3'/>
+    <line x1='0' y1='0' x2='0' y2='100' stroke='gold' stroke-width='5'/>
+    <polygon points='0,50 10,45 10,55' fill='gold'/>
+    <text x='50%' y='50%' font-family='Arial' font-size='24' fill='black' dominant-baseline='middle' text-anchor='middle'>Character Name</text>
+</svg>
