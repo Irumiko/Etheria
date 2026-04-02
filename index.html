@@ -740,6 +740,20 @@
         </div>
         <!-- Contenedores de clima -->
         <div id="weatherContainer" class="weather-container"></div>
+        <div class="vn-rpg-hud-quickbar" aria-label="Atajos RPG">
+            <button type="button" class="vn-rpg-hud-icon" title="Inventario" aria-label="Inventario">
+                <span>🎒</span>
+            </button>
+            <button type="button" class="vn-rpg-hud-icon" title="Misiones" aria-label="Misiones">
+                <span>📜</span>
+            </button>
+            <button type="button" class="vn-rpg-hud-icon" title="Mapa" aria-label="Mapa">
+                <span>🗺️</span>
+            </button>
+            <button type="button" class="vn-rpg-hud-icon" title="Ajustes" aria-label="Ajustes">
+                <span>⚙️</span>
+            </button>
+        </div>
 
         <!-- Info Card -->
         <div class="vn-info-card" id="vnInfoCard">
@@ -782,6 +796,13 @@
                             <div class="vn-info-hp-fill" id="vnInfoHpFill" style="width:100%"></div>
                         </div>
                         <span class="vn-info-hp-val" id="vnInfoHpVal">10/10</span>
+                    </div>
+                    <div class="vn-info-hp-wrap vn-info-exp-wrap">
+                        <span class="vn-info-hp-label">EXP</span>
+                        <div class="vn-info-hp-bar">
+                            <div class="vn-info-hp-fill vn-info-exp-fill" id="vnInfoExpFill" style="width:0%"></div>
+                        </div>
+                        <span class="vn-info-hp-val" id="vnInfoExpVal">0/10</span>
                     </div>
                 </div>
             </div>

@@ -320,12 +320,21 @@ function updateAffinityDisplay() {
         }
 
         const profile = ensureCharacterRpgProfile(char);
-        // Barra HP inline
+        // Barras HP/EXP inline
         const hpFill = document.getElementById('vnInfoHpFill');
         const hpVal  = document.getElementById('vnInfoHpVal');
-        const hpPct  = Math.max(0, Math.min(100, (profile.hp / 10) * 100));
+        const expFill = document.getElementById('vnInfoExpFill');
+        const expVal  = document.getElementById('vnInfoExpVal');
+        const hpMax = Math.max(1, Number(profile.hpMax) || (typeof RPG_HP_MAX !== 'undefined' ? RPG_HP_MAX : 10));
+        const expMax = Math.max(1, (typeof RPG_EXP_PER_LEVEL !== 'undefined' ? RPG_EXP_PER_LEVEL : 10));
+        const hp = Math.max(0, Number(profile.hp) || hpMax);
+        const exp = Math.max(0, Number(profile.exp) || 0);
+        const hpPct  = Math.max(0, Math.min(100, (hp / hpMax) * 100));
+        const expPct = Math.max(0, Math.min(100, (exp / expMax) * 100));
         if (hpFill) hpFill.style.width = `${hpPct}%`;
-        if (hpVal)  hpVal.textContent  = `${profile.hp}/10`;
+        if (hpVal)  hpVal.textContent  = `${hp}/${hpMax}`;
+        if (expFill) expFill.style.width = `${expPct}%`;
+        if (expVal)  expVal.textContent  = `${exp}/${expMax}`;
 
         vnInfoRpg.dataset.charId = char.id;
         vnInfoRpg.classList.remove('hidden');
