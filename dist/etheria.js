@@ -2833,12 +2833,21 @@ function updateAffinityDisplay() {
         }
 
         const profile = ensureCharacterRpgProfile(char);
-        // Barra HP inline
+        // Barras HP/EXP inline
         const hpFill = document.getElementById('vnInfoHpFill');
         const hpVal  = document.getElementById('vnInfoHpVal');
-        const hpPct  = Math.max(0, Math.min(100, (profile.hp / 10) * 100));
+        const expFill = document.getElementById('vnInfoExpFill');
+        const expVal  = document.getElementById('vnInfoExpVal');
+        const hpMax = Math.max(1, Number(profile.hpMax) || (typeof RPG_HP_MAX !== 'undefined' ? RPG_HP_MAX : 10));
+        const expMax = Math.max(1, (typeof RPG_EXP_PER_LEVEL !== 'undefined' ? RPG_EXP_PER_LEVEL : 10));
+        const hp = Math.max(0, Number(profile.hp) || hpMax);
+        const exp = Math.max(0, Number(profile.exp) || 0);
+        const hpPct  = Math.max(0, Math.min(100, (hp / hpMax) * 100));
+        const expPct = Math.max(0, Math.min(100, (exp / expMax) * 100));
         if (hpFill) hpFill.style.width = `${hpPct}%`;
-        if (hpVal)  hpVal.textContent  = `${profile.hp}/10`;
+        if (hpVal)  hpVal.textContent  = `${hp}/${hpMax}`;
+        if (expFill) expFill.style.width = `${expPct}%`;
+        if (expVal)  expVal.textContent  = `${exp}/${expMax}`;
 
         vnInfoRpg.dataset.charId = char.id;
         vnInfoRpg.classList.remove('hidden');
@@ -22088,10 +22097,37 @@ const RPGRenderer = (function () {
         var hp  = (data && data.hp)    || RPGState.getHp();
         var xp  = (data && data.xp  != null) ? data.xp  : RPGState.getXp();
         var lvl = (data && data.level != null) ? data.level : RPGState.getLevel();
+        var maxHp = Math.max(1, Number(hp.max) || 1);
+        var hpPct = Math.max(0, Math.min(100, Math.round(((Number(hp.current) || 0) / maxHp) * 100)));
+        var xpGoal = (lvl || 1) * 100;
+        var xpPct = Math.max(0, Math.min(100, Math.round(((Number(xp) || 0) / xpGoal) * 100)));
+        var avatar = _getInfoAvatarMarkup();
 
         bar.innerHTML =
-            '<span class="rpg-stat-hp">❤ ' + hp.current + '/' + hp.max + '</span>' +
-            '<span class="rpg-stat-xp">✦ Nv.' + lvl + ' (' + xp + ' XP)</span>';
+            '<div class="rpg-stat-avatar">' + avatar + '</div>' +
+            '<div class="rpg-stat-body">' +
+                '<div class="rpg-stat-row">' +
+                    '<span class="rpg-stat-label">HP</span>' +
+                    '<div class="rpg-stat-track"><span class="rpg-stat-fill rpg-stat-fill--hp" style="width:' + hpPct + '%"></span></div>' +
+                    '<span class="rpg-stat-value">' + hp.current + '/' + hp.max + '</span>' +
+                '</div>' +
+                '<div class="rpg-stat-row">' +
+                    '<span class="rpg-stat-label">EXP</span>' +
+                    '<div class="rpg-stat-track"><span class="rpg-stat-fill rpg-stat-fill--xp" style="width:' + xpPct + '%"></span></div>' +
+                    '<span class="rpg-stat-value">Nv.' + lvl + '</span>' +
+                '</div>' +
+            '</div>';
+    }
+
+    function _getInfoAvatarMarkup() {
+        var infoAvatar = document.getElementById('vnInfoAvatar');
+        if (!infoAvatar) return '<span>👤</span>';
+        var img = infoAvatar.querySelector('img');
+        if (img && img.src) {
+            var safeSrc = String(img.src).replace(/"/g, '&quot;');
+            return '<img src="' + safeSrc + '" alt="">';
+        }
+        return infoAvatar.innerHTML || '<span>👤</span>';
     }
 
     // ── Helpers ──────────────────────────────────────────────────
