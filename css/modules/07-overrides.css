@@ -684,6 +684,10 @@ body.mode-rpg .vn-info-card {
     background: rgba(20,13,5,0.88) !important;
 }
 .vn-rpg-hud-quickbar { display: none; }
+/* Guardas anti-conflicto entre modos */
+body:not(.mode-rpg) .vn-rpg-hud-quickbar { display: none !important; }
+body.mode-classic .vn-rpg-hud-quickbar { display: none !important; }
+body.mode-classic #vnSection .vn-info-exp-wrap { display: none !important; }
 
 /* ── HUD retro fantasy: marco general + perfil compacto + quickbar ── */
 body.mode-rpg #vnSection {
