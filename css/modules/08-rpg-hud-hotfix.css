@@ -1,0 +1,51 @@
+/* Hotfix aislado para HUD RPG.
+   Objetivo: evitar conflictos con 07-overrides manteniendo cambios solo en modo RPG. */
+
+.vn-rpg-hud-quickbar { display: none; }
+
+body.mode-rpg #vnSection .vn-rpg-hud-quickbar {
+    position: fixed;
+    top: 1rem;
+    right: 4.6rem;
+    z-index: 140;
+    display: flex;
+    gap: 0.45rem;
+    padding: 0.42rem 0.5rem;
+    border: 1px solid rgba(192, 168, 112, 0.45);
+    border-radius: 10px;
+    background: linear-gradient(180deg, rgba(58, 40, 16, 0.94), rgba(24, 14, 6, 0.96));
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.42);
+}
+
+body.mode-rpg #vnSection .vn-rpg-hud-icon {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid rgba(192, 168, 112, 0.4);
+    border-radius: 6px;
+    background: linear-gradient(145deg, rgba(74, 46, 20, 0.95), rgba(30, 18, 8, 0.96));
+    color: #f5ecd8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.mode-rpg #vnSection .vn-info-card {
+    z-index: 120;
+}
+
+body.mode-rpg #vnSection .vn-info-exp-wrap { display: flex; }
+
+body.mode-rpg #vnSection .vn-info-exp-fill {
+    background: linear-gradient(90deg, #244d5c, #3f8aa3);
+}
+
+body.mode-rpg #vnSection .vn-dialogue-box {
+    z-index: 105;
+    border-color: rgba(192, 168, 112, 0.45);
+}
+
+body.mode-classic #vnSection .vn-rpg-hud-quickbar,
+body:not(.mode-rpg) #vnSection .vn-rpg-hud-quickbar {
+    display: none !important;
+}
+
