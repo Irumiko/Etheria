@@ -311,10 +311,37 @@ const RPGRenderer = (function () {
         var hp  = (data && data.hp)    || RPGState.getHp();
         var xp  = (data && data.xp  != null) ? data.xp  : RPGState.getXp();
         var lvl = (data && data.level != null) ? data.level : RPGState.getLevel();
+        var maxHp = Math.max(1, Number(hp.max) || 1);
+        var hpPct = Math.max(0, Math.min(100, Math.round(((Number(hp.current) || 0) / maxHp) * 100)));
+        var xpGoal = (lvl || 1) * 100;
+        var xpPct = Math.max(0, Math.min(100, Math.round(((Number(xp) || 0) / xpGoal) * 100)));
+        var avatar = _getInfoAvatarMarkup();
 
         bar.innerHTML =
-            '<span class="rpg-stat-hp">❤ ' + hp.current + '/' + hp.max + '</span>' +
-            '<span class="rpg-stat-xp">✦ Nv.' + lvl + ' (' + xp + ' XP)</span>';
+            '<div class="rpg-stat-avatar">' + avatar + '</div>' +
+            '<div class="rpg-stat-body">' +
+                '<div class="rpg-stat-row">' +
+                    '<span class="rpg-stat-label">HP</span>' +
+                    '<div class="rpg-stat-track"><span class="rpg-stat-fill rpg-stat-fill--hp" style="width:' + hpPct + '%"></span></div>' +
+                    '<span class="rpg-stat-value">' + hp.current + '/' + hp.max + '</span>' +
+                '</div>' +
+                '<div class="rpg-stat-row">' +
+                    '<span class="rpg-stat-label">EXP</span>' +
+                    '<div class="rpg-stat-track"><span class="rpg-stat-fill rpg-stat-fill--xp" style="width:' + xpPct + '%"></span></div>' +
+                    '<span class="rpg-stat-value">Nv.' + lvl + '</span>' +
+                '</div>' +
+            '</div>';
+    }
+
+    function _getInfoAvatarMarkup() {
+        var infoAvatar = document.getElementById('vnInfoAvatar');
+        if (!infoAvatar) return '<span>👤</span>';
+        var img = infoAvatar.querySelector('img');
+        if (img && img.src) {
+            var safeSrc = String(img.src).replace(/"/g, '&quot;');
+            return '<img src="' + safeSrc + '" alt="">';
+        }
+        return infoAvatar.innerHTML || '<span>👤</span>';
     }
 
     // ── Helpers ──────────────────────────────────────────────────
