@@ -683,6 +683,97 @@ body.mode-rpg .vn-info-card {
     border-color: rgba(200,184,144,0.22) !important;
     background: rgba(20,13,5,0.88) !important;
 }
+.vn-rpg-hud-quickbar { display: none; }
+
+/* ── HUD retro fantasy: marco general + perfil compacto + quickbar ── */
+body.mode-rpg #vnSection {
+    border: 1px solid rgba(188, 154, 92, 0.34);
+    box-shadow:
+        inset 0 0 0 2px rgba(28, 18, 7, 0.8),
+        inset 0 0 0 4px rgba(139, 106, 58, 0.22),
+        inset 0 0 120px rgba(0, 0, 0, 0.5);
+}
+body.mode-rpg #vnSection::before {
+    box-shadow:
+        inset 0 0 0 1px rgba(214, 180, 117, 0.12),
+        inset 0 0 60px rgba(0, 0, 0, 0.35);
+}
+body.mode-rpg .vn-rpg-hud-quickbar {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.45rem;
+    z-index: 25;
+    padding: 0.38rem 0.45rem;
+    border: 1px solid rgba(187, 151, 89, 0.42);
+    border-radius: 8px;
+    background:
+        linear-gradient(180deg, rgba(62, 41, 21, 0.92), rgba(23, 14, 7, 0.95)),
+        radial-gradient(circle at 30% 20%, rgba(212, 177, 112, 0.22), transparent 65%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 224, 170, 0.16),
+        0 8px 20px rgba(0, 0, 0, 0.45);
+}
+body.mode-rpg .vn-rpg-hud-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 6px;
+    border: 1px solid rgba(214, 174, 103, 0.28);
+    background: linear-gradient(145deg, rgba(49, 33, 17, 0.95), rgba(26, 16, 8, 0.95));
+    color: #dec28f;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+}
+body.mode-rpg .vn-rpg-hud-icon span { filter: saturate(0.85) brightness(0.95); }
+body.mode-rpg .vn-info-card {
+    top: 0.85rem !important;
+    left: 0.85rem !important;
+    min-width: 270px;
+    border-radius: 10px !important;
+    border: 1px solid rgba(200, 159, 95, 0.34) !important;
+    background:
+        linear-gradient(165deg, rgba(54, 36, 18, 0.93), rgba(18, 11, 5, 0.92)) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(245, 214, 158, 0.07),
+        0 10px 20px rgba(0, 0, 0, 0.44) !important;
+}
+body.mode-rpg .vn-info-avatar {
+    border: 1px solid rgba(210, 173, 110, 0.35) !important;
+    box-shadow: 0 0 0 2px rgba(20, 12, 4, 0.7), 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+body.mode-rpg .vn-info-rpg {
+    display: grid;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+}
+body.mode-rpg .vn-info-exp-wrap .vn-info-hp-label { color: #71b587 !important; }
+body.mode-rpg .vn-info-exp-fill {
+    background: linear-gradient(90deg, #315f80, #56a4c4) !important;
+    box-shadow: 0 0 8px rgba(85, 174, 207, 0.44) !important;
+}
+body.mode-rpg .vn-dialogue-box {
+    border-radius: 12px !important;
+    border: 1px solid rgba(206, 168, 102, 0.35) !important;
+    background:
+        linear-gradient(180deg, rgba(45, 29, 14, 0.96), rgba(23, 14, 7, 0.98)) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(233, 202, 147, 0.11),
+        inset 0 0 90px rgba(0, 0, 0, 0.42),
+        0 20px 55px rgba(0, 0, 0, 0.62),
+        0 0 0 3px rgba(33, 21, 10, 0.85) !important;
+}
+body.mode-rpg .vn-dialogue-text {
+    color: #f3dfbf !important;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+}
+@media (max-width: 900px) {
+    body.mode-rpg .vn-rpg-hud-quickbar { top: 0.7rem; right: 0.7rem; }
+    body.mode-rpg .vn-rpg-hud-icon { width: 1.8rem; height: 1.8rem; }
+    body.mode-rpg .vn-info-card { min-width: 240px; }
+}
 
 
 /* ════════════════════════════════════════════════════════════════════
