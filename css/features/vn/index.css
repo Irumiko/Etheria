@@ -1,3 +1,71 @@
 /* Feature module: Visual Novel (VN)
- * TODO: migrate VN-specific selectors from components.css progressively.
+ * Art Deco Fantasy themed visual novel components
  */
+
+:root {
+    /* === Etheria VN Palette === */
+    --etheria-night-deep: #050810;
+    --etheria-night-blue: #0a0e1a;
+    --etheria-gold-aged: #c9a86c;
+    --etheria-gold-light: #f6dda0;
+    --etheria-gold-dim: #8a6f3e;
+    --etheria-pearl: #e8dfc8;
+}
+
+.vn-avatar-frame-speaker {
+    width: 140px;
+    height: 140px;
+    background-image: url('../../assets/avatar-frame-speaker.svg');
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+.vn-avatar-frame-info {
+    width: 86px;
+    height: 86px;
+    background-image: url('../../assets/avatar-frame-info.svg');
+    background-size: contain;
+}
+
+.vn-dialog-frame {
+    background-image: url('../../assets/dialog-frame.svg');
+    background-size: cover;
+    min-height: 200px;
+    padding: 20px;
+    color: var(--etheria-pearl);
+}
+
+.vn-dialog-frame-mobile {
+    background-image: url('../../assets/dialog-frame-mobile.svg');
+    background-size: cover;
+    min-height: 180px;
+    padding: 15px;
+    color: var(--etheria-pearl);
+}
+
+.vn-name-badge {
+    background-image: url('../../assets/name-badge.svg');
+    height: 44px;
+    display: flex;
+    align-items: center;
+}
+
+.vn-divider-ornament {
+    background-image: url('../../assets/divider-ornament.svg');
+    height: 24px;
+    width: 600px;
+    margin: 20px auto;
+}
+
+.vn-btn-advance {
+    width: 64px;
+    height: 64px;
+    background-image: url('../../assets/btn-advance.svg');
+    border: none;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .vn-dialog-frame { display: none; }
+    .vn-dialog-frame-mobile { display: block; }
+}
