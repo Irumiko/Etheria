@@ -738,23 +738,40 @@
                 <div class="vn-affinity-milestone-label">Nueva etapa de la relación</div>
             </div>
         </div>
-        <!-- Contenedores de clima -->
-        <div id="weatherContainer" class="weather-container"></div>
-        <div class="vn-rpg-hud-quickbar" aria-label="Atajos RPG">
-            <button type="button" class="vn-rpg-hud-icon" title="Inventario" aria-label="Inventario">
-                <span>🎒</span>
-            </button>
-            <button type="button" class="vn-rpg-hud-icon" title="Misiones" aria-label="Misiones">
-                <span>📜</span>
-            </button>
-            <button type="button" class="vn-rpg-hud-icon" title="Mapa" aria-label="Mapa">
-                <span>🗺️</span>
-            </button>
-            <button type="button" class="vn-rpg-hud-icon" title="Ajustes" aria-label="Ajustes">
-                <span>⚙️</span>
-            </button>
-        </div>
+        <div class="game-frame">
+            <div class="scene-layer">
+                <!-- Contenedores de clima -->
+                <div id="weatherContainer" class="weather-container"></div>
+                <div id="vnSpriteContainer" class="vn-sprite-container"></div>
+                <!-- Opciones flotantes -->
+                <div id="vnOptionsContainer" class="vn-options-container"></div>
+            </div>
 
+            <div class="ui-layer">
+                <div class="top-panel">
+                    <div class="vn-rpg-hud-quickbar" aria-label="Atajos RPG">
+                        <button type="button" class="vn-rpg-hud-icon" title="Inventario" aria-label="Inventario">
+                            <span>🎒</span>
+                        </button>
+                        <button type="button" class="vn-rpg-hud-icon" title="Misiones" aria-label="Misiones">
+                            <span>📜</span>
+                        </button>
+                        <button type="button" class="vn-rpg-hud-icon" title="Mapa" aria-label="Mapa">
+                            <span>🗺️</span>
+                        </button>
+                        <button type="button" class="vn-rpg-hud-icon" title="Ajustes" aria-label="Ajustes">
+                            <span>⚙️</span>
+                        </button>
+                    </div>
+                    <div id="roomCodeWrap" class="room-code-panel" style="display:none;">
+                        <button type="button" class="room-code-share-btn" id="shareStoryBtn" onclick="shareCurrentStory()" title="Compartir enlace de invitación">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                            Invitar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="left-panel">
         <!-- Info Card -->
         <div class="vn-info-card" id="vnInfoCard">
             <!-- Avatar — click para pinnar/despinnar el IHP -->
@@ -869,6 +886,7 @@
             </div>
         
         </div>
+                </div>
 
         <!-- Panel de ficha de personaje (desplegable desde la info-card) -->
         <div id="vnCharInfoPanel" class="vn-char-info-panel" style="display:none;" role="dialog" aria-label="Ficha del personaje">
@@ -1017,13 +1035,7 @@
             </div>
         </div>
 
-        <div id="roomCodeWrap" class="room-code-panel" style="display:none;">
-            <button type="button" class="room-code-share-btn" id="shareStoryBtn" onclick="shareCurrentStory()" title="Compartir enlace de invitación">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                Invitar
-            </button>
-        </div>
-
+        <div class="right-panel">
         <!-- Controles -->
         <div class="vn-controls">
             <!-- Grupo Navegación -->
@@ -1128,7 +1140,9 @@
                 </button>
             </div>
         </div>
+        </div>
 
+        <div class="bottom-panel">
         <div id="vnMobileFabNav" class="vn-mobile-fab-nav" style="display:none;">
             <button type="button" class="vn-mobile-fab-btn" onclick="previousMessage()" aria-label="Mensaje anterior">◀</button>
             <button type="button" class="vn-mobile-fab-btn main" onclick="openReplyPanel()" aria-label="Responder">💬</button>
@@ -1148,11 +1162,6 @@
             <button class="emote-btn" onclick="selectEmote('idea')" title="/idea" aria-label="Insertar emote idea">💡</button>
             <button class="emote-btn" onclick="selectEmote('sleep')" title="/sleep" aria-label="Insertar emote sleep">💤</button>
         </div>
-
-        <div id="vnSpriteContainer" class="vn-sprite-container"></div>
-
-        <!-- Opciones flotantes -->
-        <div id="vnOptionsContainer" class="vn-options-container"></div>
 
         <div class="vn-dialogue-box" onclick="handleDialogueClick()">
             <!-- Botón de reacción — esquina superior derecha -->
@@ -1456,6 +1465,9 @@
                 </div>
 
             </div><!-- /vrp-modal -->
+        </div>
+        </div>
+            </div>
         </div>
     </div>
 
