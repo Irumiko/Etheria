@@ -8,16 +8,11 @@
 
 /* ── Área de elecciones ──────────────────────────────────── */
 
-/* ── Layout base VN + RPG (estructura de capas, sin rediseño) ── */
-#vnSection.game-frame,
+/* ── Layout base VN + RPG (estructura única de pantalla) ── */
 #vnSection .game-frame {
     position: relative;
-    width: 100%;
-    min-height: 100dvh;
-    height: 100%;
-}
-
-#vnSection .game-frame {
+    width: 100vw;
+    height: 100vh;
     overflow: hidden;
 }
 
@@ -28,37 +23,47 @@
 }
 
 #vnSection .ui-layer {
+    --ui-frame-separator: rgba(188, 148, 84, 0.46);
     position: absolute;
     inset: 0;
     z-index: 2;
     display: grid;
-    grid-template-columns: minmax(240px, 22vw) 1fr auto;
-    grid-template-rows: auto 1fr auto;
     grid-template-areas:
-        "top top top"
         "left center right"
         "bottom bottom bottom";
+    grid-template-columns: 260px 1fr 260px;
+    grid-template-rows: 1fr auto;
+    gap: 0;
     pointer-events: none;
 }
 
-#vnSection .top-panel,
 #vnSection .left-panel,
+#vnSection .center-panel,
 #vnSection .right-panel,
 #vnSection .bottom-panel {
     pointer-events: auto;
-}
-
-#vnSection .top-panel {
-    grid-area: top;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    margin: 0 !important;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    box-sizing: border-box;
 }
 
 #vnSection .left-panel {
     grid-area: left;
     display: flex;
     flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    border-right: 1px solid var(--ui-frame-separator);
+}
+
+#vnSection .center-panel {
+    grid-area: center;
+    display: flex;
+    justify-content: space-between;
     align-items: flex-start;
 }
 
@@ -66,7 +71,9 @@
     grid-area: right;
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
+    justify-content: flex-start;
+    align-items: stretch;
+    border-left: 1px solid var(--ui-frame-separator);
 }
 
 #vnSection .bottom-panel {
@@ -74,82 +81,24 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    width: 100%;
+    align-self: stretch;
+    border-top: 1px solid var(--ui-frame-separator);
 }
 
+/* Neutralizar look de "tarjeta" en paneles estructurales */
 #vnSection .left-panel .vn-info-card,
 #vnSection .right-panel .vn-controls,
-#vnSection .bottom-panel .vn-dialogue-box {
-    position: relative;
-}
-
-/* Marco continuo: UI unificada sin paneles flotantes */
-body.mode-rpg #vnSection .ui-layer {
-    --ui-frame-border: rgba(188, 148, 84, 0.46);
-    --ui-frame-bg: rgba(10, 8, 12, 0.22);
-    gap: 0;
-    grid-template-columns: minmax(260px, 22vw) 1fr minmax(76px, 96px);
-    grid-template-rows: auto 1fr auto;
-    border: 1px solid var(--ui-frame-border);
-    background: var(--ui-frame-bg);
-    box-sizing: border-box;
-}
-
-body.mode-rpg #vnSection .top-panel,
-body.mode-rpg #vnSection .left-panel,
-body.mode-rpg #vnSection .right-panel,
-body.mode-rpg #vnSection .bottom-panel {
-    margin: 0 !important;
-    border-radius: 0 !important;
-    min-width: 0;
-    min-height: 0;
-    box-sizing: border-box;
-}
-
-body.mode-rpg #vnSection .top-panel {
-    border-bottom: 1px solid var(--ui-frame-border);
-    padding: 0.55rem 0.65rem;
-}
-
-body.mode-rpg #vnSection .left-panel {
-    border-right: 1px solid var(--ui-frame-border);
-    align-self: stretch;
-    justify-content: flex-start;
-    overflow: hidden;
-}
-
-body.mode-rpg #vnSection .right-panel {
-    border-left: 1px solid var(--ui-frame-border);
-    align-self: stretch;
-    justify-content: flex-start;
-    overflow: hidden;
-}
-
-body.mode-rpg #vnSection .bottom-panel {
-    border-top: 1px solid var(--ui-frame-border);
-    width: 100%;
-    align-self: stretch;
-}
-
-/* Quitar bordes redundantes en contenedores internos para continuidad visual */
-body.mode-rpg #vnSection .left-panel .vn-info-card,
-body.mode-rpg #vnSection .right-panel .vn-controls,
-body.mode-rpg #vnSection .bottom-panel .vn-dialogue-box {
-    margin: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-}
-
-/* Integración en la grilla: los paneles ocupan su área completa */
-body.mode-rpg #vnSection .left-panel .vn-info-card,
-body.mode-rpg #vnSection .right-panel .vn-controls,
-body.mode-rpg #vnSection .bottom-panel .vn-dialogue-box,
-body.mode-rpg #vnSection .bottom-panel #vnReplyPanel {
+#vnSection .bottom-panel .vn-dialogue-box,
+#vnSection .bottom-panel #vnReplyPanel {
     position: static !important;
     inset: auto !important;
     width: 100% !important;
     max-width: 100% !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
 }
 
 #vnChoiceArea {
