@@ -17789,6 +17789,99 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 
 /* ── Área de elecciones ──────────────────────────────────── */
 
+/* ── Layout base VN + RPG (estructura única de pantalla) ── */
+#vnSection .game-frame {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+#vnSection .scene-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+}
+
+#vnSection .ui-layer {
+    --ui-frame-separator: rgba(188, 148, 84, 0.46);
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: grid;
+    grid-template-areas:
+        "left center right"
+        "bottom bottom bottom";
+    grid-template-columns: 260px 1fr 260px;
+    grid-template-rows: 1fr auto;
+    gap: 0;
+    pointer-events: none;
+}
+
+#vnSection .left-panel,
+#vnSection .center-panel,
+#vnSection .right-panel,
+#vnSection .bottom-panel {
+    pointer-events: auto;
+    margin: 0 !important;
+    min-width: 0;
+    min-height: 0;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    box-sizing: border-box;
+}
+
+#vnSection .left-panel {
+    grid-area: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    border-right: 1px solid var(--ui-frame-separator);
+}
+
+#vnSection .center-panel {
+    grid-area: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+#vnSection .right-panel {
+    grid-area: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    border-left: 1px solid var(--ui-frame-separator);
+}
+
+#vnSection .bottom-panel {
+    grid-area: bottom;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-self: stretch;
+    border-top: 1px solid var(--ui-frame-separator);
+}
+
+/* Neutralizar look de "tarjeta" en paneles estructurales */
+#vnSection .left-panel .vn-info-card,
+#vnSection .right-panel .vn-controls,
+#vnSection .bottom-panel .vn-dialogue-box,
+#vnSection .bottom-panel #vnReplyPanel {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
 #vnChoiceArea {
     display: none;
     flex-direction: column;
@@ -19992,6 +20085,141 @@ body.mode-rpg .vn-section::before {
 @media (prefers-reduced-motion: reduce) {
     body.mode-rpg .vn-section::before,
     body.mode-rpg #vnSection::after { animation: none !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   VN FRAME HARD RESET — arquitectura unificada sin paneles tipo card
+   ════════════════════════════════════════════════════════════════════ */
+#vnSection .ui-layer,
+#vnSection .ui-layer > .left-panel,
+#vnSection .ui-layer > .center-panel,
+#vnSection .ui-layer > .right-panel,
+#vnSection .ui-layer > .bottom-panel {
+    gap: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+#vnSection .ui-layer > .left-panel,
+#vnSection .ui-layer > .center-panel,
+#vnSection .ui-layer > .right-panel,
+#vnSection .ui-layer > .bottom-panel {
+    background: transparent !important;
+}
+
+#vnSection .ui-layer > .left-panel {
+    border-right: 1px solid rgba(188, 148, 84, 0.46) !important;
+}
+
+#vnSection .ui-layer > .right-panel {
+    border-left: 1px solid rgba(188, 148, 84, 0.46) !important;
+}
+
+#vnSection .ui-layer > .bottom-panel {
+    border-top: 1px solid rgba(188, 148, 84, 0.46) !important;
+}
+
+#vnSection .left-panel .vn-info-card,
+#vnSection .right-panel .vn-controls,
+#vnSection .bottom-panel .vn-dialogue-box,
+#vnSection .bottom-panel #vnReplyPanel {
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+
+#vnSection .left-panel .vn-info-card::before,
+#vnSection .left-panel .vn-info-card::after,
+#vnSection .right-panel .vn-controls::before,
+#vnSection .right-panel .vn-controls::after,
+#vnSection .bottom-panel .vn-dialogue-box::before,
+#vnSection .bottom-panel .vn-dialogue-box::after,
+#vnSection .bottom-panel #vnReplyPanel::before,
+#vnSection .bottom-panel #vnReplyPanel::after {
+    content: none !important;
+    box-shadow: none !important;
+    border: 0 !important;
+}
+
+/* RESET FINAL DE UNIDAD VISUAL: una sola superficie continua */
+#vnSection .ui-layer {
+    background: rgba(10, 8, 12, 0.22) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+#vnSection .ui-layer > .left-panel,
+#vnSection .ui-layer > .center-panel,
+#vnSection .ui-layer > .right-panel,
+#vnSection .ui-layer > .bottom-panel {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+#vnSection .ui-layer > .left-panel > *,
+#vnSection .ui-layer > .center-panel > *,
+#vnSection .ui-layer > .right-panel > *,
+#vnSection .ui-layer > .bottom-panel > * {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+#vnSection .left-panel,
+#vnSection .center-panel,
+#vnSection .right-panel,
+#vnSection .bottom-panel,
+#vnSection .left-panel::before,
+#vnSection .center-panel::before,
+#vnSection .right-panel::before,
+#vnSection .bottom-panel::before,
+#vnSection .left-panel::after,
+#vnSection .center-panel::after,
+#vnSection .right-panel::after,
+#vnSection .bottom-panel::after {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    filter: none !important;
+}
+
+/* AJUSTE FINAL DE PERCEPCIÓN: superficie plana y totalmente uniforme */
+#vnSection .ui-layer {
+    background-color: rgba(10, 8, 12, 0.22) !important;
+    background-image: none !important;
+    border: 0 !important;
+    outline: 0 !important;
+}
+
+#vnSection .ui-layer > .left-panel,
+#vnSection .ui-layer > .center-panel,
+#vnSection .ui-layer > .right-panel,
+#vnSection .ui-layer > .bottom-panel {
+    background-color: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    filter: none !important;
+    mix-blend-mode: normal !important;
+    opacity: 1 !important;
+}
+
+#vnSection .ui-layer > .left-panel,
+#vnSection .ui-layer > .right-panel,
+#vnSection .ui-layer > .bottom-panel {
+    border-color: transparent !important;
 }
 
 
