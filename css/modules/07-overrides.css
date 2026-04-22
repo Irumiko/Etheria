@@ -994,9 +994,7 @@ body.mode-rpg .vn-section::before {
 }
 
 #vnSection .left-panel .vn-info-card,
-#vnSection .right-panel .vn-controls,
-#vnSection .bottom-panel .vn-dialogue-box,
-#vnSection .bottom-panel #vnReplyPanel {
+#vnSection .right-panel .vn-controls {
     margin: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
@@ -1007,14 +1005,36 @@ body.mode-rpg .vn-section::before {
 #vnSection .left-panel .vn-info-card::before,
 #vnSection .left-panel .vn-info-card::after,
 #vnSection .right-panel .vn-controls::before,
-#vnSection .right-panel .vn-controls::after,
-#vnSection .bottom-panel .vn-dialogue-box::before,
-#vnSection .bottom-panel .vn-dialogue-box::after,
-#vnSection .bottom-panel #vnReplyPanel::before,
-#vnSection .bottom-panel #vnReplyPanel::after {
+#vnSection .right-panel .vn-controls::after {
     content: none !important;
     box-shadow: none !important;
     border: 0 !important;
+}
+
+/* Restaurar caja de diálogo y acciones integradas del panel inferior */
+#vnSection .bottom-panel .vn-dialogue-box {
+    background: rgba(18, 12, 8, 0.78) !important;
+    border: 1px solid rgba(201,168,108,0.35) !important;
+    border-top: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 14px !important;
+    box-shadow:
+        0 18px 40px rgba(0,0,0,0.55),
+        0 2px 0 rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+#vnSection .bottom-panel #vnReplyPanel {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Ocultar barra lateral experimental que estaba ensuciando el layout RPG */
+body.mode-rpg .vn-controls {
+    display: none !important;
 }
 
 /* RESET FINAL DE UNIDAD VISUAL: una sola superficie continua */
