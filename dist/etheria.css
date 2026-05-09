@@ -2268,10 +2268,15 @@ body::before {
             content: '';
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            background: radial-gradient(
+                ellipse at 50% 20%,
+                rgba(0, 0, 0, 0.04) 0%,
+                rgba(0, 0, 0, 0.08) 40%,
+                rgba(0, 0, 0, 0.14) 100%
+            );
             pointer-events: none;
-            z-index: var(--z-i-9999);
-            opacity: 0.4;
+            z-index: var(--z-i-0);
+            opacity: 1;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -5490,7 +5495,6 @@ body::before {
 
         .vn-section > * {
             position: relative;
-            z-index: var(--z-i-1);
         }
 
         .vn-section.sepia { filter: sepia(0.6) contrast(1.1); }
@@ -5503,19 +5507,16 @@ body::before {
             top: 20px;
             left: 20px;
             z-index: var(--z-controls, 200);
-            background: linear-gradient(135deg, rgba(38, 28, 18, 0.92), rgba(22, 16, 11, 0.96));
-            border: 1.5px solid rgba(201, 168, 108, 0.4);
-            border-radius: 16px;
+            background: rgba(20, 15, 10, 0.62);
+            border: 1px solid rgba(201, 168, 108, 0.3);
+            border-radius: 14px;
             padding: 0.9rem 1rem 0.9rem 0.9rem;
             display: flex;
             align-items: flex-start;
             gap: 0.85rem;
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            box-shadow:
-                0 12px 36px rgba(0,0,0,0.45),
-                0 0 0 1px rgba(255,255,255,0.03),
-                inset 0 1px 0 rgba(255,255,255,0.05);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.35);
             min-width: 220px;
             max-width: 290px;
             transition: border-color 0.5s ease, box-shadow 0.5s ease;
@@ -6059,24 +6060,20 @@ body::before {
             bottom: 2rem;
             width: min(900px, 85%);
 
-            background: linear-gradient(135deg,
-                rgba(45, 32, 22, 0.94) 0%,
-                rgba(26, 20, 15, 0.97) 100%);
-
-            border-radius: 20px;
+            background: rgba(18, 12, 8, 0.78);
+            border-radius: 14px;
             /* El borde usa el color del personaje activo vía JS → --char-color */
-            border: 1.5px solid var(--char-color, rgba(201, 168, 108, 0.45));
+            border: 1px solid rgba(201,168,108,0.35);
+            border-top: 1px solid rgba(255,255,255,0.06);
             padding: 2.8rem 2rem 1.2rem 9rem; /* top extra space for nameplate */
 
             box-shadow:
-                0 24px 64px rgba(0, 0, 0, 0.62),
-                0 0 0 1px rgba(201, 168, 108, 0.08),
-                0 0 22px -6px var(--char-color, rgba(201, 168, 108, 0.25)),
-                inset 0 1px 0 rgba(255, 255, 255, 0.06),
-                inset 0 -16px 24px rgba(0, 0, 0, 0.18);
+                0 18px 40px rgba(0,0,0,0.55),
+                0 2px 0 rgba(0,0,0,0.35),
+                inset 0 1px 0 rgba(255,255,255,0.05);
 
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
             z-index: var(--z-i-150);
             cursor: pointer;
             /* Transición suave del color del personaje */
@@ -19987,11 +19984,8 @@ body.mode-rpg .vn-control-btn:hover {
 body.mode-rpg .vn-info-card {
     border-radius: 4px !important;
     border-color: rgba(200,184,144,0.22) !important;
-    background: rgba(20,13,5,0.88) !important;
 }
-.vn-rpg-hud-quickbar { display: none; }
-
-/* ── HUD retro fantasy: marco general + perfil compacto + quickbar ── */
+/* ── HUD retro fantasy: marco general + perfil compacto ── */
 body.mode-rpg #vnSection {
     border: 1px solid rgba(188, 154, 92, 0.34);
     box-shadow:
@@ -20004,44 +19998,15 @@ body.mode-rpg #vnSection::before {
         inset 0 0 0 1px rgba(214, 180, 117, 0.12),
         inset 0 0 60px rgba(0, 0, 0, 0.35);
 }
-body.mode-rpg .vn-rpg-hud-quickbar {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    display: flex;
-    gap: 0.45rem;
-    z-index: 25;
-    padding: 0.38rem 0.45rem;
-    border: 1px solid rgba(187, 151, 89, 0.42);
-    border-radius: 8px;
-    background:
-        linear-gradient(180deg, rgba(62, 41, 21, 0.92), rgba(23, 14, 7, 0.95)),
-        radial-gradient(circle at 30% 20%, rgba(212, 177, 112, 0.22), transparent 65%);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 224, 170, 0.16),
-        0 8px 20px rgba(0, 0, 0, 0.45);
-}
-body.mode-rpg .vn-rpg-hud-icon {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 6px;
-    border: 1px solid rgba(214, 174, 103, 0.28);
-    background: linear-gradient(145deg, rgba(49, 33, 17, 0.95), rgba(26, 16, 8, 0.95));
-    color: #dec28f;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: default;
-}
-body.mode-rpg .vn-rpg-hud-icon span { filter: saturate(0.85) brightness(0.95); }
 body.mode-rpg .vn-info-card {
     top: 0.85rem !important;
     left: 0.85rem !important;
     min-width: 270px;
     border-radius: 10px !important;
     border: 1px solid rgba(200, 159, 95, 0.34) !important;
-    background:
-        linear-gradient(165deg, rgba(54, 36, 18, 0.93), rgba(18, 11, 5, 0.92)) !important;
+    background: rgba(20,15,10,0.6) !important;
+    backdrop-filter: blur(5px) !important;
+    -webkit-backdrop-filter: blur(5px) !important;
     box-shadow:
         inset 0 0 0 1px rgba(245, 214, 158, 0.07),
         0 10px 20px rgba(0, 0, 0, 0.44) !important;
@@ -20076,8 +20041,6 @@ body.mode-rpg .vn-dialogue-text {
     text-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
 }
 @media (max-width: 900px) {
-    body.mode-rpg .vn-rpg-hud-quickbar { top: 0.7rem; right: 0.7rem; }
-    body.mode-rpg .vn-rpg-hud-icon { width: 1.8rem; height: 1.8rem; }
     body.mode-rpg .vn-info-card { min-width: 240px; }
 }
 
@@ -20209,6 +20172,7 @@ body.mode-rpg .vn-control-btn:hover {
    ════════════════════════════════════════════════════════════════════ */
 
 body.mode-rpg #vnSection {
+    position: relative;
     background:
         url('../../assets/backgrounds/rpg_background.png')
         center bottom / cover no-repeat !important;
@@ -20220,13 +20184,15 @@ body.mode-rpg #vnSection::after {
     position: absolute !important;
     inset: 0 !important;
     pointer-events: none !important;
+    mix-blend-mode: screen !important;
+    opacity: 0.18 !important;
     z-index: 1 !important;
     background:
-        radial-gradient(circle 2px at 20% 75%, rgba(255,160,40,0.85) 0%, transparent 100%),
-        radial-gradient(circle 1.5px at 36% 68%, rgba(255,140,20,0.75) 0%, transparent 100%),
-        radial-gradient(circle 2px at 50% 73%, rgba(255,180,60,0.65) 0%, transparent 100%),
-        radial-gradient(circle 1px at 65% 70%, rgba(255,150,30,0.8) 0%, transparent 100%),
-        radial-gradient(circle 1.5px at 80% 74%, rgba(255,170,50,0.7) 0%, transparent 100%),
+        radial-gradient(circle 2px at 20% 75%, rgba(255,160,40,0.9) 0%, transparent 100%),
+        radial-gradient(circle 1.5px at 36% 68%, rgba(255,140,20,0.6) 0%, transparent 100%),
+        radial-gradient(circle 2px at 50% 73%, rgba(255,180,60,0.7) 0%, transparent 100%),
+        radial-gradient(circle 1px at 65% 70%, rgba(255,150,30,0.5) 0%, transparent 100%),
+        radial-gradient(circle 1.5px at 80% 74%, rgba(255,170,50,0.65) 0%, transparent 100%),
         radial-gradient(ellipse at 50% 60%,
             transparent 25%,
             rgba(3,5,9,0.45) 65%,
@@ -20297,9 +20263,7 @@ body.mode-rpg .vn-section::before {
 }
 
 #vnSection .left-panel .vn-info-card,
-#vnSection .right-panel .vn-controls,
-#vnSection .bottom-panel .vn-dialogue-box,
-#vnSection .bottom-panel #vnReplyPanel {
+#vnSection .right-panel .vn-controls {
     margin: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;
@@ -20310,19 +20274,43 @@ body.mode-rpg .vn-section::before {
 #vnSection .left-panel .vn-info-card::before,
 #vnSection .left-panel .vn-info-card::after,
 #vnSection .right-panel .vn-controls::before,
-#vnSection .right-panel .vn-controls::after,
-#vnSection .bottom-panel .vn-dialogue-box::before,
-#vnSection .bottom-panel .vn-dialogue-box::after,
-#vnSection .bottom-panel #vnReplyPanel::before,
-#vnSection .bottom-panel #vnReplyPanel::after {
+#vnSection .right-panel .vn-controls::after {
     content: none !important;
     box-shadow: none !important;
     border: 0 !important;
 }
 
+/* Restaurar caja de diálogo y acciones integradas del panel inferior */
+#vnSection .bottom-panel .vn-dialogue-box {
+    background: rgba(18, 12, 8, 0.78) !important;
+    border: 1px solid rgba(201,168,108,0.35) !important;
+    border-top: 1px solid rgba(255,255,255,0.06) !important;
+    border-radius: 14px !important;
+    box-shadow:
+        0 18px 40px rgba(0,0,0,0.55),
+        0 2px 0 rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+#vnSection .bottom-panel #vnReplyPanel {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* La toolbar principal debe seguir visible en RPG; la barra experimental fue retirada del DOM. */
+body.mode-rpg .vn-controls {
+    display: flex !important;
+}
+
 /* RESET FINAL DE UNIDAD VISUAL: una sola superficie continua */
 #vnSection .ui-layer {
-    background: rgba(10, 8, 12, 0.22) !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: transparent !important;
     border-radius: 0 !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
@@ -20333,6 +20321,7 @@ body.mode-rpg .vn-section::before {
 #vnSection .ui-layer > .center-panel,
 #vnSection .ui-layer > .right-panel,
 #vnSection .ui-layer > .bottom-panel {
+    position: relative !important;
     background: transparent !important;
     box-shadow: none !important;
     border-radius: 0 !important;
@@ -20364,6 +20353,7 @@ body.mode-rpg .vn-section::before {
 #vnSection .center-panel::after,
 #vnSection .right-panel::after,
 #vnSection .bottom-panel::after {
+    content: none !important;
     box-shadow: none !important;
     border-radius: 0 !important;
     filter: none !important;
@@ -20371,7 +20361,7 @@ body.mode-rpg .vn-section::before {
 
 /* AJUSTE FINAL DE PERCEPCIÓN: superficie plana y totalmente uniforme */
 #vnSection .ui-layer {
-    background-color: rgba(10, 8, 12, 0.22) !important;
+    background-color: transparent !important;
     background-image: none !important;
     border: 0 !important;
     outline: 0 !important;
@@ -20395,6 +20385,274 @@ body.mode-rpg .vn-section::before {
 #vnSection .ui-layer > .right-panel,
 #vnSection .ui-layer > .bottom-panel {
     border-color: transparent !important;
+}
+
+/* -- css/modules/08-rpg-hud-hotfix.css -- */
+/* Hotfix aislado para HUD RPG.
+   Objetivo: evitar conflictos con 07-overrides manteniendo cambios solo en modo RPG. */
+
+.vn-rpg-hud-quickbar,
+body.mode-rpg #vnSection .vn-rpg-hud-quickbar,
+body.mode-classic #vnSection .vn-rpg-hud-quickbar,
+body:not(.mode-rpg) #vnSection .vn-rpg-hud-quickbar {
+    display: none !important;
+}
+
+body.mode-rpg #vnSection .vn-rpg-controls {
+    display: flex !important;
+}
+
+body.mode-rpg #vnSection .vn-info-card {
+    z-index: 120;
+}
+
+body.mode-rpg #vnSection .vn-info-exp-wrap { display: flex; }
+
+body.mode-rpg #vnSection .vn-info-exp-fill {
+    background: linear-gradient(90deg, #244d5c, #3f8aa3);
+}
+
+body.mode-rpg #vnSection .vn-dialogue-box {
+    z-index: 105;
+    border-color: rgba(192, 168, 112, 0.45);
+}
+
+/* -- css/modules/09-vn-mode-menus.css -- */
+/* ============================================================
+   VN MODE MENUS
+   Menús separados por modo para evitar que cambios visuales del
+   clásico afecten al RPG y viceversa.
+   ============================================================ */
+
+#vnSection .vn-toolbar {
+    position: fixed;
+    top: max(1.2rem, env(safe-area-inset-top, 0px));
+    right: 0.85rem;
+    left: auto;
+    bottom: auto;
+    z-index: var(--z-controls, 200);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    max-height: calc(100dvh - 2.4rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overflow-x: visible;
+    pointer-events: auto;
+    box-sizing: border-box;
+}
+
+body.mode-classic #vnSection .vn-classic-controls,
+body:not(.mode-rpg) #vnSection .vn-classic-controls {
+    display: flex;
+}
+
+body.mode-rpg #vnSection .vn-rpg-controls {
+    display: flex;
+}
+
+body.mode-rpg #vnSection .vn-classic-controls,
+body.mode-classic #vnSection .vn-rpg-controls,
+body:not(.mode-rpg) #vnSection .vn-rpg-controls {
+    display: none !important;
+}
+
+/* ── Menú clásico: cristal dorado de novela visual ─────────── */
+#vnSection .vn-classic-controls {
+    width: 54px;
+    padding: 0.52rem 0.42rem;
+    border: 1px solid rgba(246, 219, 149, 0.42);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(9, 13, 25, 0.88), rgba(16, 12, 8, 0.94));
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 232, 180, 0.08);
+    backdrop-filter: blur(12px) saturate(1.08);
+    -webkit-backdrop-filter: blur(12px) saturate(1.08);
+}
+
+#vnSection .vn-classic-control-slot {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+#vnSection .vn-classic-control-divider {
+    width: 72%;
+    height: 1px;
+    margin: 0.2rem 0;
+    background: linear-gradient(90deg, transparent, rgba(246, 219, 149, 0.34), transparent);
+}
+
+#vnSection .vn-classic-control-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(246, 219, 149, 0.18);
+    border-radius: 10px;
+    background: rgba(20, 15, 8, 0.82);
+    color: rgba(240, 227, 204, 0.78);
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+#vnSection .vn-classic-control-btn:hover,
+#vnSection .vn-classic-control-btn:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(246, 219, 149, 0.58);
+    background: rgba(70, 45, 18, 0.9);
+    color: #ffe9b4;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.38);
+    outline: none;
+}
+
+#vnSection .vn-classic-control-icon,
+#vnSection .vn-classic-control-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+#vnSection .vn-classic-control-btn.is-syncing .vn-classic-control-icon {
+    animation: syncSpin 1.2s linear infinite;
+}
+
+#vnSection .vn-classic-control-btn.is-upload-pending { color: rgba(255, 190, 78, 0.95); }
+#vnSection .vn-classic-control-btn.is-download-pending { color: rgba(150, 205, 255, 0.95); }
+#vnSection .vn-classic-control-btn.is-error { color: rgba(255, 112, 92, 0.95); }
+#vnSection .vn-classic-control-btn[data-vn-control="favorite-message"].is-favorited,
+#vnSection .vn-classic-control-btn[data-vn-control="favorite-message"].is-favorited .vn-classic-control-icon { color: #f4c842; }
+
+
+#vnSection .vn-classic-active-story-badge {
+    max-width: 42px;
+    padding: 0.14rem 0.22rem;
+    border-radius: 999px;
+    border: 1px solid rgba(246, 219, 149, 0.34);
+    background: rgba(25, 20, 12, 0.92);
+    color: #ffe9b4;
+    font-size: 0.58rem;
+    line-height: 1.1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#vnSection .vn-rpg-active-story-badge {
+    max-width: 42px;
+    padding: 0.12rem 0.2rem;
+    border-radius: 4px;
+    border: 1px solid rgba(180, 140, 80, 0.45);
+    background: rgba(34, 23, 12, 0.96);
+    color: #dec28f;
+    font-size: 0.56rem;
+    line-height: 1.1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Menú RPG: pergamino oscuro, independiente del clásico ─── */
+#vnSection .vn-rpg-controls {
+    width: 58px;
+    padding: 0.46rem 0.36rem;
+    border: 2px solid rgba(180, 140, 80, 0.52);
+    border-image: linear-gradient(180deg, rgba(213, 177, 103, 0.62), rgba(99, 70, 31, 0.5), rgba(213, 177, 103, 0.62)) 1;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(34, 23, 12, 0.94), rgba(15, 10, 6, 0.98));
+    box-shadow: inset 0 1px 0 rgba(255, 225, 170, 0.1), 0 10px 24px rgba(0, 0, 0, 0.48);
+}
+
+#vnSection .vn-rpg-control-slot {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+#vnSection .vn-rpg-control-divider {
+    width: 78%;
+    height: 1px;
+    margin: 0.22rem 0;
+    background: linear-gradient(90deg, transparent, rgba(180, 140, 80, 0.45), transparent);
+}
+
+#vnSection .vn-rpg-control-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(200, 184, 144, 0.28);
+    border-radius: 4px;
+    background: linear-gradient(145deg, rgba(49, 33, 17, 0.95), rgba(23, 14, 7, 0.96));
+    color: rgba(222, 194, 143, 0.78);
+    cursor: pointer;
+    transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+}
+
+#vnSection .vn-rpg-control-btn:hover,
+#vnSection .vn-rpg-control-btn:focus-visible {
+    transform: translateX(-1px);
+    border-color: rgba(220, 178, 105, 0.56);
+    background: linear-gradient(145deg, rgba(100, 24, 24, 0.42), rgba(29, 18, 9, 0.98));
+    color: #f3dfbf;
+    box-shadow: 0 0 12px rgba(201, 168, 108, 0.12), 0 4px 16px rgba(0, 0, 0, 0.46);
+    outline: none;
+}
+
+#vnSection .vn-rpg-control-icon,
+#vnSection .vn-rpg-control-icon svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+}
+
+#vnSection .vn-rpg-control-btn.is-syncing .vn-rpg-control-icon {
+    animation: syncSpin 1.2s linear infinite;
+}
+
+#vnSection .vn-rpg-control-btn.is-upload-pending { color: rgba(255, 180, 60, 0.95); }
+#vnSection .vn-rpg-control-btn.is-download-pending { color: rgba(120, 190, 255, 0.95); }
+#vnSection .vn-rpg-control-btn.is-error { color: rgba(255, 100, 80, 0.95); }
+#vnSection .vn-rpg-control-btn[data-vn-control="favorite-message"].is-favorited,
+#vnSection .vn-rpg-control-btn[data-vn-control="favorite-message"].is-favorited .vn-rpg-control-icon { color: #f0c04d; }
+
+body.immersive-mode #vnSection .vn-toolbar {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+}
+
+body.immersive-mode.immersive-reveal #vnSection .vn-toolbar {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@media (max-width: 900px) {
+    #vnSection .vn-toolbar {
+        top: max(0.7rem, env(safe-area-inset-top, 0px));
+        right: 0.7rem;
+    }
+}
+
+@media (max-width: 768px) {
+    #vnSection .vn-toolbar {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #vnSection .vn-classic-control-btn,
+    #vnSection .vn-rpg-control-btn,
+    #vnSection .vn-classic-control-btn.is-syncing .vn-classic-control-icon,
+    #vnSection .vn-rpg-control-btn.is-syncing .vn-rpg-control-icon {
+        animation: none !important;
+        transition: none !important;
+    }
 }
 
 /* -- css/modules/affinity-atmosphere.css -- */

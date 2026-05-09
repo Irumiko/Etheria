@@ -30,6 +30,8 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/features/menu/index.css',
   'css/features/theme-menu/index.css',
   'css/modules/07-overrides.css',
+  'css/modules/08-rpg-hud-hotfix.css',
+  'css/modules/09-vn-mode-menus.css',
   'css/modules/affinity-atmosphere.css',
   'css/bonds.css',
   'css/features.css',

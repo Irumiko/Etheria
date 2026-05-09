@@ -202,7 +202,7 @@ const Ethy = (function() {
                 {
                     text: 'La barra de controles te permite navegar por el historial, marcar favoritos y exportar la historia completa. 📜',
                     expression: 'surprised',
-                    action: () => highlightElement('.vn-controls')
+                    action: () => highlightElement('.vn-toolbar')
                 }
             ]
         },

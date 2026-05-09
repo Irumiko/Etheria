@@ -1,37 +1,39 @@
-// Import the necessary libraries
-import { describe, it, expect } from 'jest';
-import { cachingStrategy, eventHandlers } from '../src/service-worker';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
-describe('Service Worker Caching Strategies', () => {
-  it('should cache the static assets', () => {
-    // Simulate fetch event
-    const request = new Request('/index.html');
-    const response = cachingStrategy(request);
+const ROOT = path.resolve(__dirname, '..');
+const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
-    expect(response).toBeDefined();
-    expect(response.status).toEqual(200);
-  });
-
-  it('should return cached response', async () => {
-    const request = new Request('/about.html');
-    const cachedResponse = await caches.open('my-cache').then(cache => cache.match(request));
-
-    expect(cachedResponse).toBeDefined();
-  });
+test('service worker source registers install, activate, message, fetch and push handlers', () => {
+  const source = read('sw.js');
+  for (const eventName of ['install', 'activate', 'message', 'fetch', 'push', 'notificationclick']) {
+    assert.match(
+      source,
+      new RegExp(`self\\.addEventListener\\(['"]${eventName}['"]`),
+      `missing ${eventName} listener`
+    );
+  }
 });
 
-describe('Service Worker Event Handlers', () => {
-  it('should handle install event', () => {
-    const event = { waitUntil: jest.fn() };
-    eventHandlers.install(event);
+test('service worker source keeps cache helpers and precache list coherent', () => {
+  const source = read('sw.js');
+  assert.match(source, /const CACHE_VERSION = '__ETHERIA_SW_VERSION__';/);
+  assert.match(source, /const CACHE_NAME\s*=\s*`etheria-\$\{CACHE_VERSION\}`;/);
+  assert.match(source, /const PRECACHE_URLS = \[/);
+  assert.match(source, /Promise\.allSettled/);
+  for (const asset of ['./', './index.html', './manifest.json', './assets/icons/icon-192.png', './assets/icons/icon-512.png', './noncritical.css', './etheria.css', './etheria.js']) {
+    assert.match(source, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  for (const helper of ['networkFirstWithTimeout', 'networkFirstHTML', 'cacheFirstImage', 'staleWhileRevalidate']) {
+    assert.match(source, new RegExp(`async function ${helper}\\(`), `missing ${helper}`);
+  }
+});
 
-    expect(event.waitUntil).toHaveBeenCalled();
-  });
-
-  it('should handle fetch event', () => {
-    const event = { request: new Request('/index.html'), respondWith: jest.fn() };
-    eventHandlers.fetch(event);
-
-    expect(event.respondWith).toHaveBeenCalled();
-  });
+test('built service worker has an injected cache version', () => {
+  const built = read('dist/sw.js');
+  assert.doesNotMatch(built, /__ETHERIA_SW_VERSION__/);
+  assert.match(built, /const CACHE_VERSION = '[a-z0-9]+';/);
+  assert.match(built, /const CACHE_NAME\s*=\s*`etheria-\$\{CACHE_VERSION\}`;/);
 });

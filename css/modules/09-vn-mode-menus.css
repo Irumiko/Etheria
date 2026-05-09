@@ -1,0 +1,236 @@
+/* ============================================================
+   VN MODE MENUS
+   Menús separados por modo para evitar que cambios visuales del
+   clásico afecten al RPG y viceversa.
+   ============================================================ */
+
+#vnSection .vn-toolbar {
+    position: fixed;
+    top: max(1.2rem, env(safe-area-inset-top, 0px));
+    right: 0.85rem;
+    left: auto;
+    bottom: auto;
+    z-index: var(--z-controls, 200);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    max-height: calc(100dvh - 2.4rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    overflow-x: visible;
+    pointer-events: auto;
+    box-sizing: border-box;
+}
+
+body.mode-classic #vnSection .vn-classic-controls,
+body:not(.mode-rpg) #vnSection .vn-classic-controls {
+    display: flex;
+}
+
+body.mode-rpg #vnSection .vn-rpg-controls {
+    display: flex;
+}
+
+body.mode-rpg #vnSection .vn-classic-controls,
+body.mode-classic #vnSection .vn-rpg-controls,
+body:not(.mode-rpg) #vnSection .vn-rpg-controls {
+    display: none !important;
+}
+
+/* ── Menú clásico: cristal dorado de novela visual ─────────── */
+#vnSection .vn-classic-controls {
+    width: 54px;
+    padding: 0.52rem 0.42rem;
+    border: 1px solid rgba(246, 219, 149, 0.42);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(9, 13, 25, 0.88), rgba(16, 12, 8, 0.94));
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 232, 180, 0.08);
+    backdrop-filter: blur(12px) saturate(1.08);
+    -webkit-backdrop-filter: blur(12px) saturate(1.08);
+}
+
+#vnSection .vn-classic-control-slot {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+#vnSection .vn-classic-control-divider {
+    width: 72%;
+    height: 1px;
+    margin: 0.2rem 0;
+    background: linear-gradient(90deg, transparent, rgba(246, 219, 149, 0.34), transparent);
+}
+
+#vnSection .vn-classic-control-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(246, 219, 149, 0.18);
+    border-radius: 10px;
+    background: rgba(20, 15, 8, 0.82);
+    color: rgba(240, 227, 204, 0.78);
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+#vnSection .vn-classic-control-btn:hover,
+#vnSection .vn-classic-control-btn:focus-visible {
+    transform: translateY(-1px);
+    border-color: rgba(246, 219, 149, 0.58);
+    background: rgba(70, 45, 18, 0.9);
+    color: #ffe9b4;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.38);
+    outline: none;
+}
+
+#vnSection .vn-classic-control-icon,
+#vnSection .vn-classic-control-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+
+#vnSection .vn-classic-control-btn.is-syncing .vn-classic-control-icon {
+    animation: syncSpin 1.2s linear infinite;
+}
+
+#vnSection .vn-classic-control-btn.is-upload-pending { color: rgba(255, 190, 78, 0.95); }
+#vnSection .vn-classic-control-btn.is-download-pending { color: rgba(150, 205, 255, 0.95); }
+#vnSection .vn-classic-control-btn.is-error { color: rgba(255, 112, 92, 0.95); }
+#vnSection .vn-classic-control-btn[data-vn-control="favorite-message"].is-favorited,
+#vnSection .vn-classic-control-btn[data-vn-control="favorite-message"].is-favorited .vn-classic-control-icon { color: #f4c842; }
+
+
+#vnSection .vn-classic-active-story-badge {
+    max-width: 42px;
+    padding: 0.14rem 0.22rem;
+    border-radius: 999px;
+    border: 1px solid rgba(246, 219, 149, 0.34);
+    background: rgba(25, 20, 12, 0.92);
+    color: #ffe9b4;
+    font-size: 0.58rem;
+    line-height: 1.1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#vnSection .vn-rpg-active-story-badge {
+    max-width: 42px;
+    padding: 0.12rem 0.2rem;
+    border-radius: 4px;
+    border: 1px solid rgba(180, 140, 80, 0.45);
+    background: rgba(34, 23, 12, 0.96);
+    color: #dec28f;
+    font-size: 0.56rem;
+    line-height: 1.1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Menú RPG: pergamino oscuro, independiente del clásico ─── */
+#vnSection .vn-rpg-controls {
+    width: 58px;
+    padding: 0.46rem 0.36rem;
+    border: 2px solid rgba(180, 140, 80, 0.52);
+    border-image: linear-gradient(180deg, rgba(213, 177, 103, 0.62), rgba(99, 70, 31, 0.5), rgba(213, 177, 103, 0.62)) 1;
+    border-radius: 8px;
+    background: linear-gradient(180deg, rgba(34, 23, 12, 0.94), rgba(15, 10, 6, 0.98));
+    box-shadow: inset 0 1px 0 rgba(255, 225, 170, 0.1), 0 10px 24px rgba(0, 0, 0, 0.48);
+}
+
+#vnSection .vn-rpg-control-slot {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+#vnSection .vn-rpg-control-divider {
+    width: 78%;
+    height: 1px;
+    margin: 0.22rem 0;
+    background: linear-gradient(90deg, transparent, rgba(180, 140, 80, 0.45), transparent);
+}
+
+#vnSection .vn-rpg-control-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1.5px solid rgba(200, 184, 144, 0.28);
+    border-radius: 4px;
+    background: linear-gradient(145deg, rgba(49, 33, 17, 0.95), rgba(23, 14, 7, 0.96));
+    color: rgba(222, 194, 143, 0.78);
+    cursor: pointer;
+    transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+}
+
+#vnSection .vn-rpg-control-btn:hover,
+#vnSection .vn-rpg-control-btn:focus-visible {
+    transform: translateX(-1px);
+    border-color: rgba(220, 178, 105, 0.56);
+    background: linear-gradient(145deg, rgba(100, 24, 24, 0.42), rgba(29, 18, 9, 0.98));
+    color: #f3dfbf;
+    box-shadow: 0 0 12px rgba(201, 168, 108, 0.12), 0 4px 16px rgba(0, 0, 0, 0.46);
+    outline: none;
+}
+
+#vnSection .vn-rpg-control-icon,
+#vnSection .vn-rpg-control-icon svg {
+    width: 17px;
+    height: 17px;
+    display: block;
+}
+
+#vnSection .vn-rpg-control-btn.is-syncing .vn-rpg-control-icon {
+    animation: syncSpin 1.2s linear infinite;
+}
+
+#vnSection .vn-rpg-control-btn.is-upload-pending { color: rgba(255, 180, 60, 0.95); }
+#vnSection .vn-rpg-control-btn.is-download-pending { color: rgba(120, 190, 255, 0.95); }
+#vnSection .vn-rpg-control-btn.is-error { color: rgba(255, 100, 80, 0.95); }
+#vnSection .vn-rpg-control-btn[data-vn-control="favorite-message"].is-favorited,
+#vnSection .vn-rpg-control-btn[data-vn-control="favorite-message"].is-favorited .vn-rpg-control-icon { color: #f0c04d; }
+
+body.immersive-mode #vnSection .vn-toolbar {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+}
+
+body.immersive-mode.immersive-reveal #vnSection .vn-toolbar {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@media (max-width: 900px) {
+    #vnSection .vn-toolbar {
+        top: max(0.7rem, env(safe-area-inset-top, 0px));
+        right: 0.7rem;
+    }
+}
+
+@media (max-width: 768px) {
+    #vnSection .vn-toolbar {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #vnSection .vn-classic-control-btn,
+    #vnSection .vn-rpg-control-btn,
+    #vnSection .vn-classic-control-btn.is-syncing .vn-classic-control-icon,
+    #vnSection .vn-rpg-control-btn.is-syncing .vn-rpg-control-icon {
+        animation: none !important;
+        transition: none !important;
+    }
+}

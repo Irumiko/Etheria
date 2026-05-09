@@ -9,7 +9,7 @@
 // ================================================================
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
-const CACHE_VERSION = 'mntdgbu1';
+const CACHE_VERSION = 'moypqiul';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
 const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];
@@ -35,16 +35,29 @@ const PRECACHE_URLS = [
   './js/app.js',
   './css/main.css',
   './css/components.css',
+  // Build standalone (dist/) assets. Missing entries are tolerated by install.
+  './noncritical.css',
+  './etheria.css',
+  './etheria.js',
+  './menu-enhanced.css',
 ];
 
 // ── INSTALL ─────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
+      .then((cache) => Promise.allSettled(
+        PRECACHE_URLS.map((url) => cache.add(url))
+      ))
+      .then((results) => {
+        const failed = results.filter((result) => result.status === 'rejected');
+        if (failed.length) {
+          console.warn('[SW] Precache parcial:', failed.length, 'recursos no disponibles');
+        }
+        return self.skipWaiting();
+      })
       .catch((err) => {
-        console.warn('[SW] Precache parcial fallido:', err);
+        console.warn('[SW] Precache fallido:', err);
         return self.skipWaiting();
       })
   );

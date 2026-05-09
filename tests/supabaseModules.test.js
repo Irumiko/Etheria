@@ -61,3 +61,70 @@ test('SupabaseStories read/write headers use auth helper', async () => {
   await sandbox.window.SupabaseStories.loadStories();
   assert.ok(headerCalls >= 2);
 });
+
+
+test('SupabaseStories upsertStory authenticates user and falls back to basic schema', async () => {
+  const sandbox = makeSandbox();
+  sandbox.window.supabaseClient = {
+    auth: {
+      getUser: async () => ({ data: { user: { id: 'user-1' } } }),
+      getSession: async () => ({ data: { session: { access_token: 'jwt' } } }),
+    },
+  };
+  let insertedRows = [];
+  sandbox.window.supabaseClient.from = (table) => ({
+    insert(row) {
+      insertedRows.push({ table, row });
+      return {
+        select() {
+          return {
+            single: async () => insertedRows.length === 1
+              ? { data: null, error: { message: 'Could not find the local_id column in schema cache' } }
+              : { data: { id: 'story-1' }, error: null },
+          };
+        },
+      };
+    },
+    update() { throw new Error('unexpected update'); },
+  });
+  loadScript('js/utils/supabaseStories.js', sandbox);
+
+  const result = await sandbox.window.SupabaseStories.upsertStory({ id: 'local-1', title: 'Historia Nueva', mode: 'rpg' });
+  assert.equal(result.ok, true);
+  assert.equal(result.storyId, 'story-1');
+  assert.equal(insertedRows.length, 2);
+  assert.equal(insertedRows[0].row.created_by, 'user-1');
+  assert.equal(insertedRows[0].row.local_id, 'local-1');
+  assert.deepEqual(JSON.parse(JSON.stringify(insertedRows[1].row)), { title: 'Historia Nueva', created_by: 'user-1' });
+});
+
+test('SupabaseStories deleteStory removes story messages before the story row', async () => {
+  const sandbox = makeSandbox();
+  const calls = [];
+  sandbox.window.supabaseClient = {
+    auth: {
+      getUser: async () => ({ data: { user: { id: 'user-1' } } }),
+      getSession: async () => ({ data: { session: { access_token: 'jwt' } } }),
+    },
+    from(table) {
+      return {
+        delete() {
+          return {
+            eq(column, value) {
+              calls.push({ table, column, value });
+              return Promise.resolve({ error: null });
+            },
+          };
+        },
+      };
+    },
+  };
+  loadScript('js/utils/supabaseStories.js', sandbox);
+
+  const result = await sandbox.window.SupabaseStories.deleteStory('story-1');
+  assert.equal(result.ok, true);
+  assert.deepEqual(calls, [
+    { table: 'messages', column: 'story_id', value: 'story-1' },
+    { table: 'stories', column: 'id', value: 'story-1' },
+  ]);
+});

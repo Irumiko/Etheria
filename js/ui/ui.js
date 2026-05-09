@@ -184,7 +184,7 @@ function setupTouchGestures() {
         '.vn-dialogue-box',
         '.vn-options-container',
         '.vn-reply-panel',
-        '.vn-controls'
+        '.vn-toolbar'
     ];
 
     const isInExcludedZone = (x, y) => {
@@ -214,7 +214,7 @@ function setupTouchGestures() {
     vnSection.addEventListener('touchend', (e) => {
         if (!vnSection.classList.contains('active') || e.changedTouches.length !== 1) return;
         const target = e.target;
-        if (target && target.closest('#vnReplyPanel, .vn-controls, .vn-mobile-fab-nav, #settingsPanel, #vnOptionsContainer')) return;
+        if (target && target.closest('#vnReplyPanel, .vn-toolbar, .vn-mobile-fab-nav, #settingsPanel, #vnOptionsContainer')) return;
 
         const replyPanel = document.getElementById('vnReplyPanel');
         const panelOpen = replyPanel?.style.display === 'flex';

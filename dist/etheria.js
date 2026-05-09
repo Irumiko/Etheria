@@ -886,6 +886,94 @@ function getTopicMessages(topicId) {
     return loaded;
 }
 
+
+function _localStoryMatchesId(topic, idSet) {
+    if (!topic || !idSet || idSet.size === 0) return false;
+    return idSet.has(String(topic.id)) || (topic.storyId && idSet.has(String(topic.storyId)));
+}
+
+function listLocalStories() {
+    const topics = Array.isArray(appData?.topics)
+        ? appData.topics
+        : parseStoredJSON(STORAGE_KEYS.topics, []) || [];
+
+    return topics.map((topic) => {
+        const id = String(topic?.id ?? '');
+        const messages = id ? getTopicMessages(id) : [];
+        return {
+            id,
+            storyId: topic?.storyId || null,
+            title: topic?.title || 'Sin título',
+            mode: topic?.mode || 'roleplay',
+            createdBy: topic?.createdBy || null,
+            createdByIndex: topic?.createdByIndex ?? null,
+            date: topic?.date || null,
+            messageCount: Array.isArray(messages) ? messages.length : 0,
+            storageKey: id ? getTopicStorageKey(id) : null
+        };
+    });
+}
+
+function deleteLocalStories(topicIds) {
+    const ids = Array.isArray(topicIds) ? topicIds : [topicIds];
+    const idSet = new Set(ids.map(id => String(id || '').trim()).filter(Boolean));
+    if (idSet.size === 0) {
+        return { ok: false, removed: [], remaining: Array.isArray(appData?.topics) ? appData.topics.length : 0, error: 'No se indicó ningún id local.' };
+    }
+
+    if (!Array.isArray(appData?.topics)) {
+        return { ok: false, removed: [], remaining: 0, error: 'appData.topics no está disponible.' };
+    }
+
+    const removedTopics = appData.topics.filter(topic => _localStoryMatchesId(topic, idSet));
+    if (removedTopics.length === 0) {
+        return { ok: false, removed: [], remaining: appData.topics.length, error: 'No se encontró ninguna historia local con ese id/storyId.' };
+    }
+
+    appData.topics = appData.topics.filter(topic => !_localStoryMatchesId(topic, idSet));
+
+    removedTopics.forEach((topic) => {
+        const topicId = String(topic.id);
+        delete appData.messages?.[topicId];
+        delete appData.affinities?.[topicId];
+        delete appData.favorites?.[topicId];
+        delete appData.journals?.[topicId];
+        delete appData.reactions?.[topicId];
+        try { localStorage.removeItem(getTopicStorageKey(topicId)); } catch (error) { window.EtheriaLogger?.warn('storage', 'local story message cleanup failed:', error?.message || error); }
+    });
+
+    if (removedTopics.some(topic => String(topic.id) === String(currentTopicId))) {
+        currentTopicId = null;
+    }
+
+    if (typeof markDirty === 'function') {
+        markDirty('topics');
+        markDirty('affinities');
+        markDirty('favorites');
+        markDirty('journals');
+        markDirty('reactions');
+        markDirty('messages');
+    }
+    hasUnsavedChanges = true;
+    if (typeof save === 'function') save({ silent: true });
+
+    if (typeof renderTopics === 'function') renderTopics();
+    if (typeof showAutosave === 'function') {
+        showAutosave(`${removedTopics.length} historia${removedTopics.length !== 1 ? 's' : ''} local${removedTopics.length !== 1 ? 'es' : ''} eliminada${removedTopics.length !== 1 ? 's' : ''}`, 'saved');
+    }
+
+    return {
+        ok: true,
+        removed: removedTopics.map(topic => ({ id: String(topic.id), storyId: topic.storyId || null, title: topic.title || 'Sin título' })),
+        remaining: appData.topics.length
+    };
+}
+
+window.EtheriaLocalStories = {
+    list: listLocalStories,
+    deleteById: deleteLocalStories
+};
+
 // ── Fix 9: dirty-partition tracking ────────────────────────────────────────
 // Instead of serialising every collection on every save(), callers mark only
 // the partitions that changed. persistPartitionedData() then flushes only
@@ -1997,7 +2085,7 @@ function setupTouchGestures() {
         '.vn-dialogue-box',
         '.vn-options-container',
         '.vn-reply-panel',
-        '.vn-controls'
+        '.vn-toolbar'
     ];
 
     const isInExcludedZone = (x, y) => {
@@ -2027,7 +2115,7 @@ function setupTouchGestures() {
     vnSection.addEventListener('touchend', (e) => {
         if (!vnSection.classList.contains('active') || e.changedTouches.length !== 1) return;
         const target = e.target;
-        if (target && target.closest('#vnReplyPanel, .vn-controls, .vn-mobile-fab-nav, #settingsPanel, #vnOptionsContainer')) return;
+        if (target && target.closest('#vnReplyPanel, .vn-toolbar, .vn-mobile-fab-nav, #settingsPanel, #vnOptionsContainer')) return;
 
         const replyPanel = document.getElementById('vnReplyPanel');
         const panelOpen = replyPanel?.style.display === 'flex';
@@ -11133,10 +11221,9 @@ function _doEnterTopic(id, t, topicMode) {
         playVnSceneTransition(vnSection);
     }
 
-    const deleteBtn = document.getElementById('deleteTopicBtn');
-    if (deleteBtn) {
-        const isOwner = t.createdByIndex === currentUserIndex || t.createdByIndex === undefined || t.createdByIndex === null;
-        const deleteSlot = deleteBtn.closest('.vn-control-slot');
+    const isOwner = t.createdByIndex === currentUserIndex || t.createdByIndex === undefined || t.createdByIndex === null;
+    document.querySelectorAll('[data-vn-control="delete-topic"]').forEach((deleteBtn) => {
+        const deleteSlot = deleteBtn.closest('.vn-classic-control-slot, .vn-rpg-control-slot');
         if (isOwner) {
             deleteBtn.classList.remove('hidden');
             if (deleteSlot) deleteSlot.style.display = '';
@@ -11144,7 +11231,7 @@ function _doEnterTopic(id, t, topicMode) {
             deleteBtn.classList.add('hidden');
             if (deleteSlot) deleteSlot.style.display = 'none';
         }
-    }
+    });
 
     // ── 5. Inicializar UI y controles de lectura ──────────────────────────────
     // Usamos 'init' en vez de 'forward' para que showCurrentMessage aplique
@@ -12727,18 +12814,21 @@ function persistTopicLockedCharacter(topic, charId) {
     hasUnsavedChanges = true;
     save({ silent: true });
 
-    // Sincronizar story_participants en Supabase
-    // El trigger de la BD lo hace automáticamente al actualizar character_locks,
-    // pero también lo registramos directamente como fallback.
+    // Sincronizar story_participants en Supabase.
+    // Incluimos user_id para que las policies RLS puedan comprobar pertenencia
+    // con auth.uid() y para evitar conflictos con tablas que usan (story_id,user_id)
+    // como clave primaria.
     if (topic.storyId && typeof window.supabaseClient !== 'undefined' && window.supabaseClient) {
         window.supabaseClient.auth.getUser().then(({ data }) => {
-            if (!data?.user) return;
+            const userId = data?.user?.id;
+            if (!userId) return;
             window.supabaseClient
                 .from('story_participants')
                 .upsert({
                     story_id:     topic.storyId,
+                    user_id:      userId,
                     character_id: String(charId),
-                }, { onConflict: 'story_id,character_id', ignoreDuplicates: true })
+                }, { onConflict: 'story_id,user_id' })
                 .then(({ error }) => {
                     if (error) window.EtheriaLogger?.warn('vn', 'story_participants upsert:', error.message);
                 });
@@ -13798,8 +13888,9 @@ function updateNarrateButton() {
     const isRpg = topic?.mode === 'rpg';
 
     // ⚔️ Botón DM: solo en RPG + creador del tema
-    const dmBtn = document.getElementById('vnDmBtn');
-    if (dmBtn) dmBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
+    document.querySelectorAll('[data-vn-control="dm-panel"]').forEach((dmBtn) => {
+        dmBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
+    });
 
     // 🍺 Posada: caja de diálogo, solo RPG + owner
     const innBtn = document.getElementById('vnInnkeeperBtn');
@@ -13812,8 +13903,9 @@ function updateNarrateButton() {
     // ⚔️ Stats fijo: eliminado de la caja de diálogo — ahora solo en IHP panel (fijado)
 
     // ✒ Narrar en barra de controles: ya no necesario, quitar si existe
-    const narrateCtrl = document.getElementById('vnNarrateBtn');
-    if (narrateCtrl) narrateCtrl.style.display = 'none';
+    document.querySelectorAll('[data-vn-control-slot="narrate"]').forEach((narrateCtrl) => {
+        narrateCtrl.style.display = 'none';
+    });
 
     _updateNarratePending();
 }
@@ -14844,15 +14936,17 @@ function toggleFavoriteCurrentMessage() {
 }
 
 function updateFavButton() {
-    const icon = document.getElementById('favMsgIcon');
-    if (!icon) return;
+    const icons = document.querySelectorAll('[data-vn-control-icon="favorite-message"]');
+    if (!icons.length) return;
     const SVG_EMPTY = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/></svg>';
     const SVG_FULL  = '<svg viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/></svg>';
-    if (!currentTopicId) { icon.innerHTML = SVG_EMPTY; return; }
-    const msgs = getTopicMessages(currentTopicId);
+    const msgs = currentTopicId ? getTopicMessages(currentTopicId) : [];
     const msg  = msgs[currentMessageIndex];
-    if (!msg) { icon.innerHTML = SVG_EMPTY; return; }
-    icon.innerHTML = isMessageFavorite(currentTopicId, String(msg.id)) ? SVG_FULL : SVG_EMPTY;
+    const isFav = Boolean(currentTopicId && msg && isMessageFavorite(currentTopicId, String(msg.id)));
+    icons.forEach((icon) => { icon.innerHTML = isFav ? SVG_FULL : SVG_EMPTY; });
+    document.querySelectorAll('[data-vn-control="favorite-message"]').forEach((btn) => {
+        btn.classList.toggle('is-favorited', isFav);
+    });
 }
 
 // ============================================
@@ -15970,8 +16064,15 @@ function createTopic() {
                     global.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
+                } else {
+                    const detail = result?.error ? ': ' + result.error : '';
+                    window.EtheriaLogger?.warn('topics', 'No se pudo guardar la historia en Supabase' + detail);
+                    if (typeof showAutosave === 'function') showAutosave('Historia local; no se guardó en Supabase' + detail, 'error');
                 }
-            }).catch(function() {});
+            }).catch(function(error) {
+                window.EtheriaLogger?.warn('topics', 'upsertStory exception:', error?.message || error);
+                if (typeof showAutosave === 'function') showAutosave('Historia local; error al guardar en Supabase', 'error');
+            });
         }
     }
     // Subir blob actualizado (ya sin topics dentro, pero por si queda algo pendiente)
@@ -16189,16 +16290,25 @@ async function smDeleteSelected() {
     save({ silent: true });
 
     // Borrar de Supabase (tabla stories) para que otros dispositivos no las resuciten
+    let failedCloudDeletes = 0;
     if (storyIdsToDelete.length > 0 && typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.deleteStory === 'function') {
-        storyIdsToDelete.forEach(storyId => {
-            SupabaseStories.deleteStory(storyId).catch(() => {});
-        });
+        const results = await Promise.all(storyIdsToDelete.map(storyId =>
+            SupabaseStories.deleteStory(storyId).catch(error => ({ ok: false, error: error?.message || String(error) }))
+        ));
+        failedCloudDeletes = results.filter(result => !result?.ok).length;
+        if (failedCloudDeletes > 0) {
+            window.EtheriaLogger?.warn('topics', failedCloudDeletes + ' historias no se pudieron borrar en Supabase');
+        }
     } else if (typeof SupabaseSync !== 'undefined') {
         // Fallback por si SupabaseStories no está disponible
         SupabaseSync.uploadProfileData().catch(() => {});
     }
 
-    showAutosave(`${n} historia${n !== 1 ? 's' : ''} eliminada${n !== 1 ? 's' : ''}`, 'saved');
+    if (failedCloudDeletes > 0) {
+        showAutosave(`${n} historia${n !== 1 ? 's' : ''} eliminada${n !== 1 ? 's' : ''} localmente; ${failedCloudDeletes} no se borraron en Supabase`, 'error');
+    } else {
+        showAutosave(`${n} historia${n !== 1 ? 's' : ''} eliminada${n !== 1 ? 's' : ''}`, 'saved');
+    }
 
     _smSelected.clear();
     closeSessionManager();
@@ -16692,38 +16802,42 @@ function _updateCloudSyncIndicatorDOM(status, message) {
 }
 
 function _updateSyncButtonStateDOM(status, message) {
-    const btn = document.getElementById('syncNowBtn');
-    if (!btn) return;
-    btn.classList.remove('is-synced', 'is-syncing', 'is-upload-pending', 'is-download-pending', 'is-error');
-    const icon  = btn.querySelector('.vn-control-icon');
-    const label = btn.querySelector('.vn-control-label');
+    const buttons = document.querySelectorAll('[data-vn-control="sync-now"]');
+    if (!buttons.length) return;
 
     const SVG_SYNC = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 a5 5 0 0 1 9-3"/><path d="M13 8 a5 5 0 0 1-9 3"/><polyline points="12,2 12,5 15,5"/><polyline points="4,11 4,14 1,14"/></svg>';
     const SVG_UP   = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,3 8,13"/><polyline points="4,7 8,3 12,7"/><line x1="3" y1="13" x2="13" y2="13"/></svg>';
     const SVG_DOWN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,13 8,3"/><polyline points="4,9 8,13 12,9"/><line x1="3" y1="3" x2="13" y2="3"/></svg>';
     const SVG_WARN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 L14.5 13 H1.5 Z"/><line x1="8" y1="6.5" x2="8" y2="10"/><circle cx="8" cy="11.8" r="0.6" fill="currentColor" stroke="none"/></svg>';
 
-    if (status === 'syncing') {
-        btn.classList.add('is-syncing');
-        if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = 'syncSpin 1.2s linear infinite'; }
-    } else if (status === 'pending-upload') {
-        btn.classList.add('is-upload-pending');
-        if (icon) icon.innerHTML = SVG_UP;
-        btn.style.animation = '';
-    } else if (status === 'pending-download') {
-        btn.classList.add('is-download-pending');
-        if (icon) icon.innerHTML = SVG_DOWN;
-        btn.style.animation = '';
-    } else if (status === 'error') {
-        btn.classList.add('is-error');
-        if (icon) icon.innerHTML = SVG_WARN;
-        btn.style.animation = '';
-    } else {
-        btn.classList.add('is-synced');
-        if (icon) icon.innerHTML = SVG_SYNC;
-        btn.style.animation = '';
-    }
-    if (label) label.textContent = message || 'Sincronizar';
+    buttons.forEach((btn) => {
+        btn.classList.remove('is-synced', 'is-syncing', 'is-upload-pending', 'is-download-pending', 'is-error');
+        const icon  = btn.querySelector('[data-vn-control-icon="sync-now"]');
+        const label = btn.querySelector('.vn-control-label');
+
+        if (status === 'syncing') {
+            btn.classList.add('is-syncing');
+            if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = 'syncSpin 1.2s linear infinite'; }
+            if (label) label.textContent = 'Sincronizando';
+        } else if (status === 'pending-upload') {
+            btn.classList.add('is-upload-pending');
+            if (icon) { icon.innerHTML = SVG_UP; btn.style.animation = ''; }
+            if (label) label.textContent = 'Subir cambios';
+        } else if (status === 'pending-download') {
+            btn.classList.add('is-download-pending');
+            if (icon) { icon.innerHTML = SVG_DOWN; btn.style.animation = ''; }
+            if (label) label.textContent = 'Descargar';
+        } else if (status === 'error' || status === 'offline') {
+            btn.classList.add('is-error');
+            if (icon) { icon.innerHTML = SVG_WARN; btn.style.animation = ''; }
+            if (label) label.textContent = status === 'offline' ? 'Offline' : 'Error';
+        } else {
+            btn.classList.add('is-synced');
+            if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = ''; }
+            if (label) label.textContent = 'Sincronizado';
+        }
+        btn.title = message || label?.textContent || 'Sincronizar';
+    });
 }
 
 // Modal de confirmación genérico — reemplaza confirm() nativo
@@ -23345,7 +23459,7 @@ const Ethy = (function() {
                 {
                     text: 'La barra de controles te permite navegar por el historial, marcar favoritos y exportar la historia completa. 📜',
                     expression: 'surprised',
-                    action: () => highlightElement('.vn-controls')
+                    action: () => highlightElement('.vn-toolbar')
                 }
             ]
         },
@@ -24791,6 +24905,38 @@ window.Ethy = Ethy;
         };
     }
 
+
+    function _isAvailable() {
+        return !!SB_URL && !!SB_KEY && !!_getClient();
+    }
+
+    function _isRecoverableSchemaError(error) {
+        const message = String(error?.message || error || '').toLowerCase();
+        return message.includes('column')
+            || message.includes('schema cache')
+            || message.includes('could not find')
+            || message.includes('created_by_index')
+            || message.includes('local_id')
+            || message.includes('updated_at');
+    }
+
+    function _storyRowFromTopic(topic, { basic = false } = {}) {
+        const row = { title: String(topic.title || '').trim() };
+        if (basic) return row;
+        return {
+            ...row,
+            mode:               topic.mode               || 'classic',
+            background:         topic.background         || null,
+            weather:            topic.weather            || null,
+            created_by_index:   typeof topic.createdByIndex === 'number' ? topic.createdByIndex : null,
+            character_locks:    topic.characterLocks     || {},
+            rpg_char_locks:     topic.rpgCharacterLocks  || {},
+            role_character_id:  topic.roleCharacterId    || null,
+            local_id:           String(topic.id),
+            updated_at:         new Date().toISOString()
+        };
+    }
+
     // ── createStory ───────────────────────────────────────────────────────────
     /**
      * Crea una nueva historia en Supabase.
@@ -25334,11 +25480,12 @@ window.Ethy = Ethy;
 
     function _updateActiveStoryUI(story) {
         // Actualizar badge de historia activa en la barra VN
-        const badge = document.getElementById('activeStoryBadge');
-        if (badge) {
+        document.querySelectorAll('[data-vn-control-badge="active-story"]').forEach((badge) => {
             badge.textContent = '📖 ' + (story.title || 'Historia');
             badge.style.display = 'inline-flex';
-        }
+            const slot = badge.closest('[data-vn-control-slot="active-story"]');
+            if (slot) slot.style.display = '';
+        });
         // Resaltar la historia activa en la lista
         document.querySelectorAll('.story-card').forEach(function (card) {
             card.classList.toggle('story-card--active', card.dataset.storyId === story.id);
@@ -25452,8 +25599,11 @@ window.Ethy = Ethy;
         global.currentStoryId = null;
         global.currentStoryParticipants = [];
 
-        const badge = document.getElementById('activeStoryBadge');
-        if (badge) badge.style.display = 'none';
+        document.querySelectorAll('[data-vn-control-badge="active-story"]').forEach((badge) => {
+            badge.style.display = 'none';
+            const slot = badge.closest('[data-vn-control-slot="active-story"]');
+            if (slot) slot.style.display = 'none';
+        });
 
         document.querySelectorAll('.story-card').forEach(function (card) {
             card.classList.remove('story-card--active');
@@ -25600,42 +25750,50 @@ window.Ethy = Ethy;
     // Convierte un objeto topic local a una fila de stories en Supabase.
     // Usa storyId como clave si existe; si no, intenta resolver por local_id.
     async function upsertStory(topic) {
-        if (!_isAvailable() || !topic?.title) return { ok: false };
-        try {
-            const row = {
-                title:              topic.title,
-                mode:               topic.mode               || 'classic',
-                background:         topic.background         || null,
-                weather:            topic.weather            || null,
-                created_by_index:   typeof topic.createdByIndex === 'number' ? topic.createdByIndex : null,
-                character_locks:    topic.characterLocks     || {},
-                rpg_char_locks:     topic.rpgCharacterLocks  || {},
-                role_character_id:  topic.roleCharacterId    || null,
-                local_id:           String(topic.id),
-                updated_at:         new Date().toISOString()
-            };
+        if (!_isAvailable() || !topic?.title) return { ok: false, error: 'Supabase no disponible o título vacío' };
+        const client = _getClient();
+        const user = await _getUser();
+        if (!user?.id) return { ok: false, error: 'Usuario no autenticado' };
 
-            // Si ya tiene storyId usarlo como PK, si no crear nuevo
-            const client = _getClient();
-            if (!client) return { ok: false, error: 'Cliente no disponible' };
+        async function insertStory(row) {
+            return client.from('stories')
+                .insert({ ...row, created_by: user.id })
+                .select('id')
+                .single();
+        }
+
+        async function updateStory(row) {
+            return client.from('stories')
+                .update(row)
+                .eq('id', topic.storyId)
+                .select('id')
+                .single();
+        }
+
+        try {
+            const fullRow = _storyRowFromTopic(topic);
+            const basicRow = _storyRowFromTopic(topic, { basic: true });
 
             if (topic.storyId) {
-                const { error } = await client.from('stories')
-                    .update(row)
-                    .eq('id', topic.storyId);
+                let { error } = await updateStory(fullRow);
+                if (error && _isRecoverableSchemaError(error)) {
+                    logger?.warn('supabase:stories', 'upsertStory update: usando schema básico por:', error.message);
+                    ({ error } = await updateStory(basicRow));
+                }
                 if (error) return { ok: false, error: error.message };
                 return { ok: true, storyId: topic.storyId };
-            } else {
-                const { data, error } = await client.from('stories')
-                    .insert({ ...row, created_by: _getUserId() })
-                    .select('id')
-                    .single();
-                if (error) return { ok: false, error: error.message };
-                return { ok: true, storyId: data.id };
             }
+
+            let { data, error } = await insertStory(fullRow);
+            if (error && _isRecoverableSchemaError(error)) {
+                logger?.warn('supabase:stories', 'upsertStory insert: usando schema básico por:', error.message);
+                ({ data, error } = await insertStory(basicRow));
+            }
+            if (error) return { ok: false, error: error.message };
+            return { ok: true, storyId: data?.id };
         } catch (e) {
             logger?.warn('supabase:stories', 'upsertStory error:', e?.message);
-            return { ok: false };
+            return { ok: false, error: e?.message || 'Error inesperado' };
         }
     }
 
@@ -25646,6 +25804,17 @@ window.Ethy = Ethy;
         const client = _getClient();
         if (!client) return { ok: false, error: 'Cliente no disponible' };
         try {
+            // Primero eliminar mensajes vinculados: si la FK messages.story_id no tiene
+            // ON DELETE CASCADE, borrar la historia directamente falla y luego se "resucita".
+            const { error: msgError } = await client
+                .from('messages')
+                .delete()
+                .eq('story_id', storyId);
+            if (msgError) {
+                logger?.warn('supabase:stories', 'deleteStory messages error:', msgError.message);
+                return { ok: false, error: msgError.message };
+            }
+
             const { error } = await client
                 .from('stories')
                 .delete()
