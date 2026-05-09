@@ -173,38 +173,42 @@ function _updateCloudSyncIndicatorDOM(status, message) {
 }
 
 function _updateSyncButtonStateDOM(status, message) {
-    const btn = document.getElementById('syncNowBtn');
-    if (!btn) return;
-    btn.classList.remove('is-synced', 'is-syncing', 'is-upload-pending', 'is-download-pending', 'is-error');
-    const icon  = btn.querySelector('.vn-control-icon');
-    const label = btn.querySelector('.vn-control-label');
+    const buttons = document.querySelectorAll('[data-vn-control="sync-now"]');
+    if (!buttons.length) return;
 
     const SVG_SYNC = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 a5 5 0 0 1 9-3"/><path d="M13 8 a5 5 0 0 1-9 3"/><polyline points="12,2 12,5 15,5"/><polyline points="4,11 4,14 1,14"/></svg>';
     const SVG_UP   = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,3 8,13"/><polyline points="4,7 8,3 12,7"/><line x1="3" y1="13" x2="13" y2="13"/></svg>';
     const SVG_DOWN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,13 8,3"/><polyline points="4,9 8,13 12,9"/><line x1="3" y1="3" x2="13" y2="3"/></svg>';
     const SVG_WARN = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 L14.5 13 H1.5 Z"/><line x1="8" y1="6.5" x2="8" y2="10"/><circle cx="8" cy="11.8" r="0.6" fill="currentColor" stroke="none"/></svg>';
 
-    if (status === 'syncing') {
-        btn.classList.add('is-syncing');
-        if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = 'syncSpin 1.2s linear infinite'; }
-    } else if (status === 'pending-upload') {
-        btn.classList.add('is-upload-pending');
-        if (icon) icon.innerHTML = SVG_UP;
-        btn.style.animation = '';
-    } else if (status === 'pending-download') {
-        btn.classList.add('is-download-pending');
-        if (icon) icon.innerHTML = SVG_DOWN;
-        btn.style.animation = '';
-    } else if (status === 'error') {
-        btn.classList.add('is-error');
-        if (icon) icon.innerHTML = SVG_WARN;
-        btn.style.animation = '';
-    } else {
-        btn.classList.add('is-synced');
-        if (icon) icon.innerHTML = SVG_SYNC;
-        btn.style.animation = '';
-    }
-    if (label) label.textContent = message || 'Sincronizar';
+    buttons.forEach((btn) => {
+        btn.classList.remove('is-synced', 'is-syncing', 'is-upload-pending', 'is-download-pending', 'is-error');
+        const icon  = btn.querySelector('[data-vn-control-icon="sync-now"]');
+        const label = btn.querySelector('.vn-control-label');
+
+        if (status === 'syncing') {
+            btn.classList.add('is-syncing');
+            if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = 'syncSpin 1.2s linear infinite'; }
+            if (label) label.textContent = 'Sincronizando';
+        } else if (status === 'pending-upload') {
+            btn.classList.add('is-upload-pending');
+            if (icon) { icon.innerHTML = SVG_UP; btn.style.animation = ''; }
+            if (label) label.textContent = 'Subir cambios';
+        } else if (status === 'pending-download') {
+            btn.classList.add('is-download-pending');
+            if (icon) { icon.innerHTML = SVG_DOWN; btn.style.animation = ''; }
+            if (label) label.textContent = 'Descargar';
+        } else if (status === 'error' || status === 'offline') {
+            btn.classList.add('is-error');
+            if (icon) { icon.innerHTML = SVG_WARN; btn.style.animation = ''; }
+            if (label) label.textContent = status === 'offline' ? 'Offline' : 'Error';
+        } else {
+            btn.classList.add('is-synced');
+            if (icon) { icon.innerHTML = SVG_SYNC; btn.style.animation = ''; }
+            if (label) label.textContent = 'Sincronizado';
+        }
+        btn.title = message || label?.textContent || 'Sincronizar';
+    });
 }
 
 // Modal de confirmación genérico — reemplaza confirm() nativo

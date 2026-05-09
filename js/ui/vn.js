@@ -1575,10 +1575,9 @@ function _doEnterTopic(id, t, topicMode) {
         playVnSceneTransition(vnSection);
     }
 
-    const deleteBtn = document.getElementById('deleteTopicBtn');
-    if (deleteBtn) {
-        const isOwner = t.createdByIndex === currentUserIndex || t.createdByIndex === undefined || t.createdByIndex === null;
-        const deleteSlot = deleteBtn.closest('.vn-control-slot');
+    const isOwner = t.createdByIndex === currentUserIndex || t.createdByIndex === undefined || t.createdByIndex === null;
+    document.querySelectorAll('[data-vn-control="delete-topic"]').forEach((deleteBtn) => {
+        const deleteSlot = deleteBtn.closest('.vn-classic-control-slot, .vn-rpg-control-slot');
         if (isOwner) {
             deleteBtn.classList.remove('hidden');
             if (deleteSlot) deleteSlot.style.display = '';
@@ -1586,7 +1585,7 @@ function _doEnterTopic(id, t, topicMode) {
             deleteBtn.classList.add('hidden');
             if (deleteSlot) deleteSlot.style.display = 'none';
         }
-    }
+    });
 
     // ── 5. Inicializar UI y controles de lectura ──────────────────────────────
     // Usamos 'init' en vez de 'forward' para que showCurrentMessage aplique
@@ -3169,18 +3168,21 @@ function persistTopicLockedCharacter(topic, charId) {
     hasUnsavedChanges = true;
     save({ silent: true });
 
-    // Sincronizar story_participants en Supabase
-    // El trigger de la BD lo hace automáticamente al actualizar character_locks,
-    // pero también lo registramos directamente como fallback.
+    // Sincronizar story_participants en Supabase.
+    // Incluimos user_id para que las policies RLS puedan comprobar pertenencia
+    // con auth.uid() y para evitar conflictos con tablas que usan (story_id,user_id)
+    // como clave primaria.
     if (topic.storyId && typeof window.supabaseClient !== 'undefined' && window.supabaseClient) {
         window.supabaseClient.auth.getUser().then(({ data }) => {
-            if (!data?.user) return;
+            const userId = data?.user?.id;
+            if (!userId) return;
             window.supabaseClient
                 .from('story_participants')
                 .upsert({
                     story_id:     topic.storyId,
+                    user_id:      userId,
                     character_id: String(charId),
-                }, { onConflict: 'story_id,character_id', ignoreDuplicates: true })
+                }, { onConflict: 'story_id,user_id' })
                 .then(({ error }) => {
                     if (error) window.EtheriaLogger?.warn('vn', 'story_participants upsert:', error.message);
                 });
@@ -4240,8 +4242,9 @@ function updateNarrateButton() {
     const isRpg = topic?.mode === 'rpg';
 
     // ⚔️ Botón DM: solo en RPG + creador del tema
-    const dmBtn = document.getElementById('vnDmBtn');
-    if (dmBtn) dmBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
+    document.querySelectorAll('[data-vn-control="dm-panel"]').forEach((dmBtn) => {
+        dmBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
+    });
 
     // 🍺 Posada: caja de diálogo, solo RPG + owner
     const innBtn = document.getElementById('vnInnkeeperBtn');
@@ -4254,8 +4257,9 @@ function updateNarrateButton() {
     // ⚔️ Stats fijo: eliminado de la caja de diálogo — ahora solo en IHP panel (fijado)
 
     // ✒ Narrar en barra de controles: ya no necesario, quitar si existe
-    const narrateCtrl = document.getElementById('vnNarrateBtn');
-    if (narrateCtrl) narrateCtrl.style.display = 'none';
+    document.querySelectorAll('[data-vn-control-slot="narrate"]').forEach((narrateCtrl) => {
+        narrateCtrl.style.display = 'none';
+    });
 
     _updateNarratePending();
 }

@@ -105,6 +105,38 @@
         };
     }
 
+
+    function _isAvailable() {
+        return !!SB_URL && !!SB_KEY && !!_getClient();
+    }
+
+    function _isRecoverableSchemaError(error) {
+        const message = String(error?.message || error || '').toLowerCase();
+        return message.includes('column')
+            || message.includes('schema cache')
+            || message.includes('could not find')
+            || message.includes('created_by_index')
+            || message.includes('local_id')
+            || message.includes('updated_at');
+    }
+
+    function _storyRowFromTopic(topic, { basic = false } = {}) {
+        const row = { title: String(topic.title || '').trim() };
+        if (basic) return row;
+        return {
+            ...row,
+            mode:               topic.mode               || 'classic',
+            background:         topic.background         || null,
+            weather:            topic.weather            || null,
+            created_by_index:   typeof topic.createdByIndex === 'number' ? topic.createdByIndex : null,
+            character_locks:    topic.characterLocks     || {},
+            rpg_char_locks:     topic.rpgCharacterLocks  || {},
+            role_character_id:  topic.roleCharacterId    || null,
+            local_id:           String(topic.id),
+            updated_at:         new Date().toISOString()
+        };
+    }
+
     // ── createStory ───────────────────────────────────────────────────────────
     /**
      * Crea una nueva historia en Supabase.
@@ -648,11 +680,12 @@
 
     function _updateActiveStoryUI(story) {
         // Actualizar badge de historia activa en la barra VN
-        const badge = document.getElementById('activeStoryBadge');
-        if (badge) {
+        document.querySelectorAll('[data-vn-control-badge="active-story"]').forEach((badge) => {
             badge.textContent = '📖 ' + (story.title || 'Historia');
             badge.style.display = 'inline-flex';
-        }
+            const slot = badge.closest('[data-vn-control-slot="active-story"]');
+            if (slot) slot.style.display = '';
+        });
         // Resaltar la historia activa en la lista
         document.querySelectorAll('.story-card').forEach(function (card) {
             card.classList.toggle('story-card--active', card.dataset.storyId === story.id);
@@ -766,8 +799,11 @@
         global.currentStoryId = null;
         global.currentStoryParticipants = [];
 
-        const badge = document.getElementById('activeStoryBadge');
-        if (badge) badge.style.display = 'none';
+        document.querySelectorAll('[data-vn-control-badge="active-story"]').forEach((badge) => {
+            badge.style.display = 'none';
+            const slot = badge.closest('[data-vn-control-slot="active-story"]');
+            if (slot) slot.style.display = 'none';
+        });
 
         document.querySelectorAll('.story-card').forEach(function (card) {
             card.classList.remove('story-card--active');
@@ -914,42 +950,50 @@
     // Convierte un objeto topic local a una fila de stories en Supabase.
     // Usa storyId como clave si existe; si no, intenta resolver por local_id.
     async function upsertStory(topic) {
-        if (!_isAvailable() || !topic?.title) return { ok: false };
-        try {
-            const row = {
-                title:              topic.title,
-                mode:               topic.mode               || 'classic',
-                background:         topic.background         || null,
-                weather:            topic.weather            || null,
-                created_by_index:   typeof topic.createdByIndex === 'number' ? topic.createdByIndex : null,
-                character_locks:    topic.characterLocks     || {},
-                rpg_char_locks:     topic.rpgCharacterLocks  || {},
-                role_character_id:  topic.roleCharacterId    || null,
-                local_id:           String(topic.id),
-                updated_at:         new Date().toISOString()
-            };
+        if (!_isAvailable() || !topic?.title) return { ok: false, error: 'Supabase no disponible o título vacío' };
+        const client = _getClient();
+        const user = await _getUser();
+        if (!user?.id) return { ok: false, error: 'Usuario no autenticado' };
 
-            // Si ya tiene storyId usarlo como PK, si no crear nuevo
-            const client = _getClient();
-            if (!client) return { ok: false, error: 'Cliente no disponible' };
+        async function insertStory(row) {
+            return client.from('stories')
+                .insert({ ...row, created_by: user.id })
+                .select('id')
+                .single();
+        }
+
+        async function updateStory(row) {
+            return client.from('stories')
+                .update(row)
+                .eq('id', topic.storyId)
+                .select('id')
+                .single();
+        }
+
+        try {
+            const fullRow = _storyRowFromTopic(topic);
+            const basicRow = _storyRowFromTopic(topic, { basic: true });
 
             if (topic.storyId) {
-                const { error } = await client.from('stories')
-                    .update(row)
-                    .eq('id', topic.storyId);
+                let { error } = await updateStory(fullRow);
+                if (error && _isRecoverableSchemaError(error)) {
+                    logger?.warn('supabase:stories', 'upsertStory update: usando schema básico por:', error.message);
+                    ({ error } = await updateStory(basicRow));
+                }
                 if (error) return { ok: false, error: error.message };
                 return { ok: true, storyId: topic.storyId };
-            } else {
-                const { data, error } = await client.from('stories')
-                    .insert({ ...row, created_by: _getUserId() })
-                    .select('id')
-                    .single();
-                if (error) return { ok: false, error: error.message };
-                return { ok: true, storyId: data.id };
             }
+
+            let { data, error } = await insertStory(fullRow);
+            if (error && _isRecoverableSchemaError(error)) {
+                logger?.warn('supabase:stories', 'upsertStory insert: usando schema básico por:', error.message);
+                ({ data, error } = await insertStory(basicRow));
+            }
+            if (error) return { ok: false, error: error.message };
+            return { ok: true, storyId: data?.id };
         } catch (e) {
             logger?.warn('supabase:stories', 'upsertStory error:', e?.message);
-            return { ok: false };
+            return { ok: false, error: e?.message || 'Error inesperado' };
         }
     }
 
@@ -960,6 +1004,17 @@
         const client = _getClient();
         if (!client) return { ok: false, error: 'Cliente no disponible' };
         try {
+            // Primero eliminar mensajes vinculados: si la FK messages.story_id no tiene
+            // ON DELETE CASCADE, borrar la historia directamente falla y luego se "resucita".
+            const { error: msgError } = await client
+                .from('messages')
+                .delete()
+                .eq('story_id', storyId);
+            if (msgError) {
+                logger?.warn('supabase:stories', 'deleteStory messages error:', msgError.message);
+                return { ok: false, error: msgError.message };
+            }
+
             const { error } = await client
                 .from('stories')
                 .delete()

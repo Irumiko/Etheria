@@ -102,6 +102,94 @@ function getTopicMessages(topicId) {
     return loaded;
 }
 
+
+function _localStoryMatchesId(topic, idSet) {
+    if (!topic || !idSet || idSet.size === 0) return false;
+    return idSet.has(String(topic.id)) || (topic.storyId && idSet.has(String(topic.storyId)));
+}
+
+function listLocalStories() {
+    const topics = Array.isArray(appData?.topics)
+        ? appData.topics
+        : parseStoredJSON(STORAGE_KEYS.topics, []) || [];
+
+    return topics.map((topic) => {
+        const id = String(topic?.id ?? '');
+        const messages = id ? getTopicMessages(id) : [];
+        return {
+            id,
+            storyId: topic?.storyId || null,
+            title: topic?.title || 'Sin título',
+            mode: topic?.mode || 'roleplay',
+            createdBy: topic?.createdBy || null,
+            createdByIndex: topic?.createdByIndex ?? null,
+            date: topic?.date || null,
+            messageCount: Array.isArray(messages) ? messages.length : 0,
+            storageKey: id ? getTopicStorageKey(id) : null
+        };
+    });
+}
+
+function deleteLocalStories(topicIds) {
+    const ids = Array.isArray(topicIds) ? topicIds : [topicIds];
+    const idSet = new Set(ids.map(id => String(id || '').trim()).filter(Boolean));
+    if (idSet.size === 0) {
+        return { ok: false, removed: [], remaining: Array.isArray(appData?.topics) ? appData.topics.length : 0, error: 'No se indicó ningún id local.' };
+    }
+
+    if (!Array.isArray(appData?.topics)) {
+        return { ok: false, removed: [], remaining: 0, error: 'appData.topics no está disponible.' };
+    }
+
+    const removedTopics = appData.topics.filter(topic => _localStoryMatchesId(topic, idSet));
+    if (removedTopics.length === 0) {
+        return { ok: false, removed: [], remaining: appData.topics.length, error: 'No se encontró ninguna historia local con ese id/storyId.' };
+    }
+
+    appData.topics = appData.topics.filter(topic => !_localStoryMatchesId(topic, idSet));
+
+    removedTopics.forEach((topic) => {
+        const topicId = String(topic.id);
+        delete appData.messages?.[topicId];
+        delete appData.affinities?.[topicId];
+        delete appData.favorites?.[topicId];
+        delete appData.journals?.[topicId];
+        delete appData.reactions?.[topicId];
+        try { localStorage.removeItem(getTopicStorageKey(topicId)); } catch (error) { window.EtheriaLogger?.warn('storage', 'local story message cleanup failed:', error?.message || error); }
+    });
+
+    if (removedTopics.some(topic => String(topic.id) === String(currentTopicId))) {
+        currentTopicId = null;
+    }
+
+    if (typeof markDirty === 'function') {
+        markDirty('topics');
+        markDirty('affinities');
+        markDirty('favorites');
+        markDirty('journals');
+        markDirty('reactions');
+        markDirty('messages');
+    }
+    hasUnsavedChanges = true;
+    if (typeof save === 'function') save({ silent: true });
+
+    if (typeof renderTopics === 'function') renderTopics();
+    if (typeof showAutosave === 'function') {
+        showAutosave(`${removedTopics.length} historia${removedTopics.length !== 1 ? 's' : ''} local${removedTopics.length !== 1 ? 'es' : ''} eliminada${removedTopics.length !== 1 ? 's' : ''}`, 'saved');
+    }
+
+    return {
+        ok: true,
+        removed: removedTopics.map(topic => ({ id: String(topic.id), storyId: topic.storyId || null, title: topic.title || 'Sin título' })),
+        remaining: appData.topics.length
+    };
+}
+
+window.EtheriaLocalStories = {
+    list: listLocalStories,
+    deleteById: deleteLocalStories
+};
+
 // ── Fix 9: dirty-partition tracking ────────────────────────────────────────
 // Instead of serialising every collection on every save(), callers mark only
 // the partitions that changed. persistPartitionedData() then flushes only

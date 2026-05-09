@@ -49,15 +49,17 @@ function toggleFavoriteCurrentMessage() {
 }
 
 function updateFavButton() {
-    const icon = document.getElementById('favMsgIcon');
-    if (!icon) return;
+    const icons = document.querySelectorAll('[data-vn-control-icon="favorite-message"]');
+    if (!icons.length) return;
     const SVG_EMPTY = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/></svg>';
     const SVG_FULL  = '<svg viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/></svg>';
-    if (!currentTopicId) { icon.innerHTML = SVG_EMPTY; return; }
-    const msgs = getTopicMessages(currentTopicId);
+    const msgs = currentTopicId ? getTopicMessages(currentTopicId) : [];
     const msg  = msgs[currentMessageIndex];
-    if (!msg) { icon.innerHTML = SVG_EMPTY; return; }
-    icon.innerHTML = isMessageFavorite(currentTopicId, String(msg.id)) ? SVG_FULL : SVG_EMPTY;
+    const isFav = Boolean(currentTopicId && msg && isMessageFavorite(currentTopicId, String(msg.id)));
+    icons.forEach((icon) => { icon.innerHTML = isFav ? SVG_FULL : SVG_EMPTY; });
+    document.querySelectorAll('[data-vn-control="favorite-message"]').forEach((btn) => {
+        btn.classList.toggle('is-favorited', isFav);
+    });
 }
 
 // ============================================

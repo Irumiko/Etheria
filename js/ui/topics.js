@@ -566,8 +566,15 @@ function createTopic() {
                     global.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
+                } else {
+                    const detail = result?.error ? ': ' + result.error : '';
+                    window.EtheriaLogger?.warn('topics', 'No se pudo guardar la historia en Supabase' + detail);
+                    if (typeof showAutosave === 'function') showAutosave('Historia local; no se guardó en Supabase' + detail, 'error');
                 }
-            }).catch(function() {});
+            }).catch(function(error) {
+                window.EtheriaLogger?.warn('topics', 'upsertStory exception:', error?.message || error);
+                if (typeof showAutosave === 'function') showAutosave('Historia local; error al guardar en Supabase', 'error');
+            });
         }
     }
     // Subir blob actualizado (ya sin topics dentro, pero por si queda algo pendiente)
@@ -785,16 +792,25 @@ async function smDeleteSelected() {
     save({ silent: true });
 
     // Borrar de Supabase (tabla stories) para que otros dispositivos no las resuciten
+    let failedCloudDeletes = 0;
     if (storyIdsToDelete.length > 0 && typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.deleteStory === 'function') {
-        storyIdsToDelete.forEach(storyId => {
-            SupabaseStories.deleteStory(storyId).catch(() => {});
-        });
+        const results = await Promise.all(storyIdsToDelete.map(storyId =>
+            SupabaseStories.deleteStory(storyId).catch(error => ({ ok: false, error: error?.message || String(error) }))
+        ));
+        failedCloudDeletes = results.filter(result => !result?.ok).length;
+        if (failedCloudDeletes > 0) {
+            window.EtheriaLogger?.warn('topics', failedCloudDeletes + ' historias no se pudieron borrar en Supabase');
+        }
     } else if (typeof SupabaseSync !== 'undefined') {
         // Fallback por si SupabaseStories no está disponible
         SupabaseSync.uploadProfileData().catch(() => {});
     }
 
-    showAutosave(`${n} historia${n !== 1 ? 's' : ''} eliminada${n !== 1 ? 's' : ''}`, 'saved');
+    if (failedCloudDeletes > 0) {
+        showAutosave(`${n} historia${n !== 1 ? 's' : ''} eliminada${n !== 1 ? 's' : ''} localmente; ${failedCloudDeletes} no se borraron en Supabase`, 'error');
+    } else {
+        showAutosave(`${n} historia${n !== 1 ? 's' : ''} eliminada${n !== 1 ? 's' : ''}`, 'saved');
+    }
 
     _smSelected.clear();
     closeSessionManager();

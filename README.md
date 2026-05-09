@@ -111,6 +111,10 @@ En `index.html` los scripts se cargan en este orden (resumen):
 - Los archivos raíz `app.js`, `ui.js` y `sheets.js` se mantienen solo como capas de compatibilidad que redirigen a sus equivalentes canónicos en `js/`.
 - Considera `dist/` como salida generada: si aparece un archivo ahí que no sale del build actual, probablemente es residuo y conviene eliminarlo.
 
+## Mantenimiento de datos en Supabase
+
+- Para localizar y borrar historias fantasma sin conocer manualmente su UUID, usa la guía `docs/supabase/limpiar-historias-fantasma.md`.
+
 ## Requisitos de colaboración con Supabase
 
 Para que las salas colaborativas funcionen de forma segura (sin cambiar el flujo cliente actual), la tabla `messages` en Supabase debe mantener **RLS habilitado** y policies activas para:
