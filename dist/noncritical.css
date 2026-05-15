@@ -22429,6 +22429,165 @@ body.theme-rpg .vrp-modal .vrp-narrator-switch.active .vrp-switch-track {
 }
 
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODAL "NUEVA HISTORIA" — Selector de modo diferenciado
+   Las dos cards del selector muestran su identidad visual ya en la creación.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Modal container: cristal oscuro con borde dorado reforzado ─────────── */
+#topicModal .topic-modal {
+    border: 2px solid rgba(201, 168, 108, 0.75) !important;
+    box-shadow:
+        0 0 0 1px rgba(201, 168, 108, 0.12) inset,
+        0 32px 72px rgba(0, 0, 0, 0.65),
+        0 0 80px -20px rgba(201, 168, 108, 0.18) !important;
+}
+
+/* ── Título: ✦ Nueva Historia ✦ con glow dorado ─────────────────────────── */
+#topicModal .topic-title {
+    font-family: 'Cinzel Decorative', 'Cinzel', serif !important;
+    font-size: 1.15rem !important;
+    letter-spacing: 0.06em !important;
+    background: linear-gradient(135deg, #f0d898, #c8a84a, #f0d898) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    text-shadow: none !important;
+}
+
+/* ── Cards del selector de modo ─────────────────────────────────────────── */
+#topicModal .topic-mode-toggle {
+    background: rgba(0, 0, 0, 0.18) !important;
+    border: 1px solid rgba(201, 168, 108, 0.22) !important;
+    padding: 0.55rem !important;
+    gap: 0.6rem !important;
+    border-radius: 18px !important;
+}
+
+/* Base de cada card */
+#topicModal .topic-mode-option {
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px !important;
+    padding: 1rem 1.1rem !important;
+    border: 1.5px solid transparent !important;
+    transition: all 0.3s ease !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.4rem !important;
+    font-size: 0.88rem !important;
+}
+
+/* ── CLÁSICO — Constelaciones: glassmorphism azul-plata ─── */
+#topicModal .topic-mode-option:has(input[value="roleplay"]) {
+    background:
+        radial-gradient(ellipse at 80% 20%, rgba(80, 120, 210, 0.18), transparent 60%),
+        rgba(7, 11, 34, 0.55) !important;
+    border-color: rgba(130, 175, 255, 0.28) !important;
+    backdrop-filter: blur(12px) !important;
+}
+
+#topicModal .topic-mode-option:has(input[value="roleplay"]) span {
+    color: #cce0ff !important;
+}
+
+/* Estrella animada en esquina */
+#topicModal .topic-mode-option:has(input[value="roleplay"])::after {
+    content: '✦ ✦ ✦';
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.7rem;
+    font-size: 0.5rem;
+    color: rgba(155, 200, 255, 0.5);
+    letter-spacing: 0.3em;
+    animation: vnt-star-twinkle 2.8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* Card activa Clásico */
+#topicModal .topic-mode-option.active:has(input[value="roleplay"]) {
+    background:
+        radial-gradient(ellipse at 80% 20%, rgba(80, 120, 210, 0.35), transparent 60%),
+        rgba(8, 14, 45, 0.75) !important;
+    border-color: rgba(130, 175, 255, 0.7) !important;
+    box-shadow:
+        0 0 20px -5px rgba(90, 140, 255, 0.35),
+        inset 0 1px 0 rgba(155, 200, 255, 0.15) !important;
+}
+
+/* ── RPG — Pergamino: parchment cálido dorado ─────────────── */
+#topicModal .topic-mode-option:has(input[value="rpg"]) {
+    background:
+        radial-gradient(ellipse at 20% 80%, rgba(180, 120, 40, 0.2), transparent 55%),
+        rgba(26, 18, 8, 0.65) !important;
+    border-color: rgba(180, 140, 60, 0.32) !important;
+}
+
+#topicModal .topic-mode-option:has(input[value="rpg"]) span {
+    color: #f0ddb0 !important;
+}
+
+/* Sello ornamental esquina */
+#topicModal .topic-mode-option:has(input[value="rpg"])::after {
+    content: '⚜';
+    position: absolute;
+    bottom: 0.55rem;
+    right: 0.85rem;
+    font-size: 0.85rem;
+    color: rgba(200, 160, 60, 0.45);
+    pointer-events: none;
+}
+
+/* Card activa RPG */
+#topicModal .topic-mode-option.active:has(input[value="rpg"]) {
+    background:
+        radial-gradient(ellipse at 20% 80%, rgba(180, 120, 40, 0.38), transparent 55%),
+        rgba(30, 20, 8, 0.85) !important;
+    border-color: rgba(201, 168, 108, 0.85) !important;
+    box-shadow:
+        0 0 20px -5px rgba(180, 120, 40, 0.4),
+        inset 0 1px 0 rgba(255, 210, 120, 0.12) !important;
+}
+
+/* Hover */
+#topicModal .topic-mode-option:has(input[value="roleplay"]):hover {
+    border-color: rgba(130, 175, 255, 0.55) !important;
+}
+#topicModal .topic-mode-option:has(input[value="rpg"]):hover {
+    border-color: rgba(201, 168, 108, 0.6) !important;
+}
+
+/* Radio buttons: hereda accent del modo */
+#topicModal .topic-mode-option:has(input[value="roleplay"]) input[type="radio"] {
+    accent-color: #82aaff !important;
+}
+#topicModal .topic-mode-option:has(input[value="rpg"]) input[type="radio"] {
+    accent-color: #c8a84a !important;
+}
+
+/* ── Botón Crear Historia: dorado premium ────────────────────────────────── */
+#topicModal .topic-create-btn {
+    background: linear-gradient(135deg, #c8a84a, #f0d070, #c8a84a) !important;
+    background-size: 200% 100% !important;
+    color: #1a1008 !important;
+    font-family: 'Cinzel', serif !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+    border: 1px solid rgba(240, 208, 112, 0.7) !important;
+    text-shadow: 0 1px 0 rgba(255, 235, 160, 0.4) !important;
+    box-shadow:
+        0 4px 16px rgba(200, 168, 74, 0.35),
+        inset 0 1px 0 rgba(255, 240, 180, 0.4) !important;
+    transition: background-position 0.4s ease, box-shadow 0.3s ease !important;
+}
+#topicModal .topic-create-btn:hover {
+    background-position: 100% 0 !important;
+    box-shadow:
+        0 6px 22px rgba(200, 168, 74, 0.55),
+        inset 0 1px 0 rgba(255, 240, 180, 0.5) !important;
+}
+
+
 /* -- css/menu-gamefeel.css -- */
 /* Game-like polish for menus and topic management */
 
