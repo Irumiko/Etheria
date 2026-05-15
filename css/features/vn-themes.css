@@ -1,12 +1,12 @@
-/* ── vn-themes.css ────────────────────────────────────────────────────────────
+﻿/* â”€â”€ vn-themes.css â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    Dual aesthetic for the VN dialogue textbox:
-     body.theme-classic  →  "Constelaciones"  (glassmorphism + animated stars)
-     body.theme-rpg      →  "Pergamino/Tarot" (parchment texture + gold filigrees)
+     body.theme-classic  â†’  "Constelaciones"  (glassmorphism + animated stars)
+     body.theme-rpg      â†’  "Pergamino/Tarot" (parchment texture + gold filigrees)
    Applied by _applyModeClasses() in vn-sprites.js alongside mode-classic/rpg.
-   ─────────────────────────────────────────────────────────────────────────── */
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 
-/* ── Corner decoration container (shared, injected by JS) ────────────── */
+/* â”€â”€ Corner decoration container (shared, injected by JS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 #vnSection .vn-db-corners {
     position: absolute;
     inset: 0;
@@ -23,12 +23,12 @@
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MODO CLÁSICO — "Constelaciones"
-   Glassmorphism · Hilos de plata · Estrellas titilantes · Mágico y dulce
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   MODO CLÃSICO â€” "Constelaciones"
+   Glassmorphism Â· Hilos de plata Â· Estrellas titilantes Â· MÃ¡gico y dulce
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ── Dialogue box: cristal estelar ──────────────────────────────────────── */
+/* â”€â”€ Dialogue box: cristal estelar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 body.theme-classic #vnSection .vn-dialogue-box {
     background: rgba(7, 11, 34, 0.58) !important;
     backdrop-filter: blur(22px) saturate(1.35) !important;
@@ -54,7 +54,7 @@ body.theme-classic #vnSection .vn-dialogue-box::before {
 
 /* Estrella ambiental esquina inferior-derecha */
 body.theme-classic #vnSection .vn-dialogue-box::after {
-    content: '✦' !important;
+    content: 'âœ¦' !important;
     position: absolute !important;
     bottom: 1.05rem !important;
     right: 1.35rem !important;
@@ -64,7 +64,7 @@ body.theme-classic #vnSection .vn-dialogue-box::after {
     pointer-events: none !important;
 }
 
-/* Estrellas en las cuatro esquinas vía .vn-db-corners */
+/* Estrellas en las cuatro esquinas vÃ­a .vn-db-corners */
 body.theme-classic #vnSection .vn-db-corners i {
     width: 22px;
     height: 22px;
@@ -77,7 +77,7 @@ body.theme-classic #vnSection .vn-db-corners i {
 }
 
 body.theme-classic #vnSection .vn-db-corners i::before {
-    content: '✦';
+    content: 'âœ¦';
 }
 
 body.theme-classic #vnSection .vn-db-corners i:nth-child(1) { top: 9px;    left: 11px;  animation-delay: 0s;    }
@@ -85,7 +85,7 @@ body.theme-classic #vnSection .vn-db-corners i:nth-child(2) { top: 9px;    right
 body.theme-classic #vnSection .vn-db-corners i:nth-child(3) { bottom: 9px; left: 11px;  animation-delay: 1.6s;  }
 body.theme-classic #vnSection .vn-db-corners i:nth-child(4) { bottom: 9px; right: 11px; animation-delay: 2.4s;  }
 
-/* Texto del diálogo: tono frío celestial */
+/* Texto del diÃ¡logo: tono frÃ­o celestial */
 body.theme-classic #vnSection .vn-dialogue-text {
     color: #e4eeff !important;
     text-shadow:
@@ -93,7 +93,7 @@ body.theme-classic #vnSection .vn-dialogue-text {
         0 1px 2px rgba(0, 0, 25, 0.5) !important;
 }
 
-/* ── Speaker plate: píldora de cristal con estrellas flanqueantes ─────── */
+/* â”€â”€ Speaker plate: pÃ­ldora de cristal con estrellas flanqueantes â”€â”€â”€â”€â”€â”€â”€ */
 body.theme-classic #vnSection .vn-speaker-plate {
     background: rgba(9, 15, 50, 0.70) !important;
     backdrop-filter: blur(16px) !important;
@@ -110,18 +110,18 @@ body.theme-classic #vnSection .vn-speaker-plate {
 }
 
 body.theme-classic #vnSection .vn-speaker-plate::before {
-    content: '✦ ' !important;
+    content: 'âœ¦ ' !important;
     opacity: 0.65 !important;
     animation: vnt-star-twinkle 2.6s ease-in-out infinite !important;
     display: inline !important;
 }
 
 body.theme-classic #vnSection .vn-speaker-plate::after {
-    content: ' ✦' !important;
+    content: ' âœ¦' !important;
     opacity: 0.65 !important;
     animation: vnt-star-twinkle 2.6s ease-in-out infinite 1.3s !important;
     display: inline !important;
-    /* Sobrescribir el ❧ decorativo que pueda venir del CSS base */
+    /* Sobrescribir el â§ decorativo que pueda venir del CSS base */
     position: static !important;
     bottom: auto !important;
     right: auto !important;
@@ -130,12 +130,12 @@ body.theme-classic #vnSection .vn-speaker-plate::after {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MODO RPG — "Pergamino & Tarot"
-   Papel antiguo · Marco dorado doble · Filigranas · Pesado y épico
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   MODO RPG â€” "Pergamino & Tarot"
+   Papel antiguo Â· Marco dorado doble Â· Filigranas Â· Pesado y Ã©pico
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ── Dialogue box: pergamino oscuro con marco dorado ─────────────────── */
+/* â”€â”€ Dialogue box: pergamino oscuro con marco dorado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 body.theme-rpg #vnSection .vn-dialogue-box {
     background:
         radial-gradient(ellipse at 18% 35%, rgba(95, 62, 15, 0.20) 0%, transparent 52%),
@@ -164,9 +164,9 @@ body.theme-rpg #vnSection .vn-dialogue-box::before {
     background: transparent !important;
 }
 
-/* Ornamento ⚜ esquina inferior-derecha */
+/* Ornamento âšœ esquina inferior-derecha */
 body.theme-rpg #vnSection .vn-dialogue-box::after {
-    content: '⚜' !important;
+    content: 'âšœ' !important;
     position: absolute !important;
     bottom: 0.9rem !important;
     right: 1.2rem !important;
@@ -203,7 +203,7 @@ body.theme-rpg #vnSection .vn-db-corners i:nth-child(4) {
     border-right:  2px solid rgba(201, 168, 108, 0.72);
 }
 
-/* Texto del diálogo: tono parchment cálido */
+/* Texto del diÃ¡logo: tono parchment cÃ¡lido */
 body.theme-rpg #vnSection .vn-dialogue-text {
     color: #f0e8d4 !important;
     font-family: 'Crimson Text', serif !important;
@@ -212,7 +212,7 @@ body.theme-rpg #vnSection .vn-dialogue-text {
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 22px rgba(201, 168, 108, 0.04) !important;
 }
 
-/* ── Speaker plate: cuero dorado con ornamentos ⚜ ────────────────────── */
+/* â”€â”€ Speaker plate: cuero dorado con ornamentos âšœ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 body.theme-rpg #vnSection .vn-speaker-plate {
     border: 1px solid rgba(201, 168, 108, 0.58) !important;
     color: #f0d88a !important;
@@ -225,13 +225,13 @@ body.theme-rpg #vnSection .vn-speaker-plate {
 }
 
 body.theme-rpg #vnSection .vn-speaker-plate::before {
-    content: '⚜ ' !important;
+    content: 'âšœ ' !important;
     color: rgba(201, 168, 108, 0.65) !important;
     display: inline !important;
 }
 
 body.theme-rpg #vnSection .vn-speaker-plate::after {
-    content: ' ⚜' !important;
+    content: ' âšœ' !important;
     color: rgba(201, 168, 108, 0.65) !important;
     display: inline !important;
     position: static !important;
@@ -242,14 +242,14 @@ body.theme-rpg #vnSection .vn-speaker-plate::after {
 }
 
 
-/* ── Keyframes ──────────────────────────────────────────────────────── */
+/* â”€â”€ Keyframes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @keyframes vnt-star-twinkle {
     0%, 100% { opacity: 0.45; transform: scale(1);    }
     50%       { opacity: 1;    transform: scale(1.25); }
 }
 
 
-/* ── Responsive: mobile ─────────────────────────────────────────────── */
+/* â”€â”€ Responsive: mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 600px) {
     body.theme-classic #vnSection .vn-db-corners i,
     body.theme-rpg     #vnSection .vn-db-corners i {
@@ -261,11 +261,11 @@ body.theme-rpg #vnSection .vn-speaker-plate::after {
 }
 
 
-/* ════════════════════════════════════════════════════════════════════════════
-   SISTEMA DE BOTONES DE INTERACCIÓN
-   ════════════════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SISTEMA DE BOTONES DE INTERACCIÃ“N
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ── Base: message action buttons (top-right of dialogue box) ────────── */
+/* â”€â”€ Base: message action buttons (top-right of dialogue box) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 #vnSection .vn-msg-actions {
     position: absolute;
     top: 1.05rem;
@@ -300,7 +300,7 @@ body.theme-rpg #vnSection .vn-speaker-plate::after {
 #vnSection .vma-text { font-size: 0.63rem; }
 
 
-/* ══ CLASSIC — Silver Charms ═══════════════════════════════════════════════ */
+/* â•â• CLASSIC â€” Silver Charms â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 body.theme-classic #vnSection .vma-btn {
     background: rgba(9, 14, 50, 0.65) !important;
@@ -334,14 +334,14 @@ body.theme-classic #vnSection .vma-delete:hover {
     color: rgba(220, 185, 255, 0.9) !important;
 }
 
-/* Hide adventure bar in Classic — Oracle, Master, Innkeeper have no place here */
+/* Hide adventure bar in Classic â€” Oracle, Master, Innkeeper have no place here */
 body.theme-classic #vnSection .vn-adv-actions,
 body.theme-classic #vnSection #vnInnkeeperBtn {
     display: none !important;
 }
 
 
-/* ══ RPG — Bronze Coins / Gold Plates ══════════════════════════════════════ */
+/* â•â• RPG â€” Bronze Coins / Gold Plates â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 body.theme-rpg #vnSection .vma-btn {
     background: radial-gradient(ellipse at 50% 0%, rgba(95, 65, 18, 0.88), rgba(28, 18, 6, 0.95)) !important;
@@ -378,7 +378,7 @@ body.theme-rpg #vnSection .vma-delete:hover {
 }
 
 
-/* ── Adventure Action Bar ─────────────────────────────────────────────── */
+/* â”€â”€ Adventure Action Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Container */
 #vnSection .vn-adv-actions {
@@ -410,7 +410,7 @@ body.theme-rpg #vnSection .vma-delete:hover {
 #vnSection .vna-icon { font-size: 0.9rem; }
 #vnSection .vna-text { font-size: 0.72rem; }
 
-/* ── Oracle button ───────────────────────────────────────────── */
+/* â”€â”€ Oracle button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 body.theme-rpg #vnSection .vna-oracle {
     background: radial-gradient(ellipse at 50% 0%, rgba(78, 52, 14, 0.94), rgba(22, 15, 5, 0.97)) !important;
     border-color: rgba(175, 138, 68, 0.68) !important;
@@ -443,7 +443,7 @@ body.theme-rpg #vnSection .vna-oracle[data-oracle-active="true"] {
         0 4px 14px rgba(0, 0, 0, 0.68) !important;
 }
 
-/* ── Master button — most ornamental ─────────────────────────── */
+/* â”€â”€ Master button â€” most ornamental â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 body.theme-rpg #vnSection .vna-master {
     background: radial-gradient(ellipse at 50% 0%, rgba(108, 72, 18, 0.96), rgba(32, 20, 6, 0.98)) !important;
     border-color: rgba(215, 175, 82, 0.80) !important;
@@ -468,9 +468,9 @@ body.theme-rpg #vnSection .vna-master:hover {
     transform: translateY(-2px);
 }
 
-/* ⚜ prefix on master */
+/* âšœ prefix on master */
 body.theme-rpg #vnSection .vna-master::before {
-    content: '⚜';
+    content: 'âšœ';
     font-family: inherit;
     color: rgba(255, 220, 110, 0.65);
     font-size: 0.72rem;
@@ -478,7 +478,7 @@ body.theme-rpg #vnSection .vna-master::before {
 }
 
 
-/* ── Otome Choice System — exclusive to Classic ───────────────────────── */
+/* â”€â”€ Otome Choice System â€” exclusive to Classic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 /* Hide choices in RPG (dice system handles narrative branching) */
 body.theme-rpg .options-toggle-container,
@@ -486,7 +486,7 @@ body.theme-rpg #optionsToggleContainer {
     display: none !important;
 }
 
-/* Style choices for Classic — constellation/starry aesthetic */
+/* Style choices for Classic â€” constellation/starry aesthetic */
 body.theme-classic .options-toggle-container,
 body.theme-classic #optionsToggleContainer {
     border: 1px solid rgba(125, 170, 255, 0.24) !important;
@@ -546,18 +546,18 @@ body.theme-classic .option-textarea:focus {
 
 /* Relabel the options toggle for Classic Otome feel */
 body.theme-classic .options-toggle label::before {
-    content: '✦ ';
+    content: 'âœ¦ ';
     color: rgba(155, 195, 255, 0.6);
     animation: vnt-star-twinkle 2.8s ease-in-out infinite;
 }
 
 
-/* ════════════════════════════════════════════════════════════════════════════
-   VOZ NARRADORA — Diferenciación visual por modo
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   VOZ NARRADORA â€” DiferenciaciÃ³n visual por modo
    Activa cuando dialogueBox[data-narrator="true"]
-   ════════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ══ CLÁSICO: Narrador sutil y poético — plata etérea, sin peso ═══════════ */
+/* â•â• CLÃSICO: Narrador sutil y poÃ©tico â€” plata etÃ©rea, sin peso â•â•â•â•â•â•â•â•â•â•â• */
 
 body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate {
     background: transparent !important;
@@ -573,16 +573,16 @@ body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker
     font-weight: 400 !important;
 }
 
-/* Estrellas ✦ flanqueando el nombre narrador */
+/* Estrellas âœ¦ flanqueando el nombre narrador */
 body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate::before {
-    content: '✦  ' !important;
+    content: 'âœ¦  ' !important;
     color: rgba(145, 185, 255, 0.45) !important;
     opacity: 1 !important;
     animation: vnt-star-twinkle 2.8s ease-in-out infinite !important;
     display: inline !important;
 }
 body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate::after {
-    content: '  ✦' !important;
+    content: '  âœ¦' !important;
     color: rgba(145, 185, 255, 0.45) !important;
     position: static !important;
     bottom: auto !important;
@@ -592,7 +592,7 @@ body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker
     display: inline !important;
 }
 
-/* Texto narrador clásico: plata suave, cursiva, etéreo */
+/* Texto narrador clÃ¡sico: plata suave, cursiva, etÃ©reo */
 body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-dialogue-text {
     color: rgba(195, 218, 255, 0.72) !important;
     font-style: italic !important;
@@ -605,13 +605,13 @@ body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-dialogu
         0 1px 3px rgba(0, 0, 25, 0.42) !important;
 }
 
-/* Diálogo box: fondo aún más translúcido cuando narra */
+/* DiÃ¡logo box: fondo aÃºn mÃ¡s translÃºcido cuando narra */
 body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] {
     background: rgba(5, 8, 25, 0.44) !important;
 }
 
 
-/* ══ RPG: Master / Narrador — pergamino, autoridad, aventura ═══════════════ */
+/* â•â• RPG: Master / Narrador â€” pergamino, autoridad, aventura â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate {
     background: linear-gradient(135deg,
@@ -630,14 +630,14 @@ body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-pla
         0 4px 12px rgba(0, 0, 0, 0.6) !important;
 }
 
-/* ⚜ flanqueando el nombre del Master */
+/* âšœ flanqueando el nombre del Master */
 body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate::before {
-    content: '⚜  ' !important;
+    content: 'âšœ  ' !important;
     color: rgba(215, 170, 65, 0.72) !important;
     display: inline !important;
 }
 body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate::after {
-    content: '  ⚜' !important;
+    content: '  âšœ' !important;
     color: rgba(215, 170, 65, 0.72) !important;
     position: static !important;
     bottom: auto !important;
@@ -647,7 +647,7 @@ body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-pla
     display: inline !important;
 }
 
-/* Texto Master: ocre cálido, cursiva solemne, peso épico */
+/* Texto Master: ocre cÃ¡lido, cursiva solemne, peso Ã©pico */
 body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-dialogue-text {
     color: #edddb0 !important;
     font-style: italic !important;
@@ -669,11 +669,11 @@ body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] {
 }
 
 
-/* ════════════════════════════════════════════════════════════════════════════
-   PENSAMIENTOS — <em> dentro del texto de diálogo (.vn-thought)
-   formatText() ya convierte *texto* → <em>texto</em>
-   Estas reglas dan color temático a esas cursivas
-   ════════════════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   PENSAMIENTOS â€” <em> dentro del texto de diÃ¡logo (.vn-thought)
+   formatText() ya convierte *texto* â†’ <em>texto</em>
+   Estas reglas dan color temÃ¡tico a esas cursivas
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 body.theme-classic #vnSection .vn-dialogue-text em {
     color: rgba(155, 200, 255, 0.80) !important;
@@ -695,12 +695,12 @@ body.theme-rpg #vnSection .vn-dialogue-text .vn-thought {
 }
 
 
-/* ════════════════════════════════════════════════════════════════════════════
-   ELECCIONES OTOME — Botones de opción (showOptions → #vnOptionsContainer)
-   Solo Clásico: RPG usa dados en lugar de elecciones narrativas
-   ════════════════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ELECCIONES OTOME â€” Botones de opciÃ³n (showOptions â†’ #vnOptionsContainer)
+   Solo ClÃ¡sico: RPG usa dados en lugar de elecciones narrativas
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* Título y subtítulo */
+/* TÃ­tulo y subtÃ­tulo */
 body.theme-classic #vnSection .vn-options-title {
     color: rgba(175, 212, 255, 0.78) !important;
     font-family: 'Cinzel', serif !important;
@@ -717,7 +717,7 @@ body.theme-classic #vnSection .vn-options-subtitle {
     font-size: 0.88rem !important;
 }
 
-/* Botón de elección — cristal estelar */
+/* BotÃ³n de elecciÃ³n â€” cristal estelar */
 body.theme-classic #vnSection .vn-option-btn {
     background: rgba(7, 12, 42, 0.70) !important;
     backdrop-filter: blur(20px) saturate(1.3) !important;
@@ -741,7 +741,7 @@ body.theme-classic #vnSection .vn-option-btn {
 
 /* Estrella esquina superior-izquierda */
 body.theme-classic #vnSection .vn-option-btn::before {
-    content: '✦' !important;
+    content: 'âœ¦' !important;
     position: absolute !important;
     top: 0.6rem !important;
     left: 0.95rem !important;
@@ -753,7 +753,7 @@ body.theme-classic #vnSection .vn-option-btn::before {
 
 /* Estrella esquina inferior-derecha */
 body.theme-classic #vnSection .vn-option-btn::after {
-    content: '✦' !important;
+    content: 'âœ¦' !important;
     position: absolute !important;
     bottom: 0.6rem !important;
     right: 0.95rem !important;
@@ -773,7 +773,7 @@ body.theme-classic #vnSection .vn-option-btn:hover:not(:disabled) {
     transform: translateY(-2px) !important;
 }
 
-/* Opción elegida */
+/* OpciÃ³n elegida */
 body.theme-classic #vnSection .vn-option-btn.chosen {
     background: rgba(16, 28, 78, 0.78) !important;
     border-color: rgba(165, 208, 255, 0.62) !important;
@@ -783,7 +783,7 @@ body.theme-classic #vnSection .vn-option-btn.chosen {
         0 0 32px rgba(95, 162, 255, 0.20) !important;
 }
 
-/* Opción deshabilitada (ya se eligió otra) */
+/* OpciÃ³n deshabilitada (ya se eligiÃ³ otra) */
 body.theme-classic #vnSection .vn-option-btn:disabled:not(.chosen) {
     opacity: 0.4 !important;
     transform: none !important;
@@ -791,10 +791,10 @@ body.theme-classic #vnSection .vn-option-btn:disabled:not(.chosen) {
 }
 
 
-/* ════════════════════════════════════════════════════════════════════════════
-   SELECTOR DE VOZ (Narrador / Personaje) — Reply Panel
-   Diferenciación visual por tema en el toggle switch
-   ════════════════════════════════════════════════════════════════════════════ */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SELECTOR DE VOZ (Narrador / Personaje) â€” Reply Panel
+   DiferenciaciÃ³n visual por tema en el toggle switch
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 /* Classic: cristal plateado */
 body.theme-classic .vrp-modal .vrp-narrator-switch {
@@ -824,7 +824,7 @@ body.theme-classic .vrp-modal .vrp-narrator-switch.active .vrp-switch-track {
     border-color: rgba(140, 188, 255, 0.55) !important;
 }
 
-/* RPG: ámbar dorado */
+/* RPG: Ã¡mbar dorado */
 body.theme-rpg .vrp-modal .vrp-narrator-switch {
     border-color: rgba(175, 138, 58, 0.32) !important;
     background: rgba(26, 16, 5, 0.72) !important;
@@ -853,7 +853,7 @@ body.theme-rpg .vrp-modal .vrp-narrator-switch.active .vrp-switch-track {
 }
 
 
-/* ── Responsive: mobile ─────────────────────────────────────────────── */
+/* â”€â”€ Responsive: mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @media (max-width: 700px) {
     /* Message actions: show icons only */
     #vnSection .vma-text { display: none; }
@@ -866,160 +866,319 @@ body.theme-rpg .vrp-modal .vrp-narrator-switch.active .vrp-switch-track {
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MODAL "NUEVA HISTORIA" — Selector de modo diferenciado
-   Las dos cards del selector muestran su identidad visual ya en la creación.
-   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Modal container: cristal oscuro con borde dorado reforzado ─────────── */
-#topicModal .topic-modal {
-    border: 2px solid rgba(201, 168, 108, 0.75) !important;
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   TOPIC CREATION WIZARD â€” Asistente por pasos de nueva historia
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+/* â”€â”€ Modal container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#topicModal .topic-wizard {
+    width: min(92vw, 700px) !important;
+    max-height: min(92vh, 820px) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 2px solid rgba(201, 168, 108, 0.6) !important;
     box-shadow:
-        0 0 0 1px rgba(201, 168, 108, 0.12) inset,
-        0 32px 72px rgba(0, 0, 0, 0.65),
-        0 0 80px -20px rgba(201, 168, 108, 0.18) !important;
+        0 0 0 1px rgba(201, 168, 108, 0.10) inset,
+        0 32px 80px rgba(0, 0, 0, 0.65),
+        0 0 100px -30px rgba(201, 168, 108, 0.20) !important;
+    background: rgba(12, 8, 4, 0.97) !important;
+    display: flex;
+    flex-direction: column;
 }
 
-/* ── Título: ✦ Nueva Historia ✦ con glow dorado ─────────────────────────── */
-#topicModal .topic-title {
-    font-family: 'Cinzel Decorative', 'Cinzel', serif !important;
-    font-size: 1.15rem !important;
-    letter-spacing: 0.06em !important;
-    background: linear-gradient(135deg, #f0d898, #c8a84a, #f0d898) !important;
-    -webkit-background-clip: text !important;
-    background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    text-shadow: none !important;
+/* â”€â”€ Steps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#topicModal .tw-step {
+    display: none;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+}
+#topicModal .tw-step--active {
+    display: flex;
+    animation: tw-fade-in 0.26s ease;
+}
+@keyframes tw-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Cards del selector de modo ─────────────────────────────────────────── */
-#topicModal .topic-mode-toggle {
-    background: rgba(0, 0, 0, 0.18) !important;
-    border: 1px solid rgba(201, 168, 108, 0.22) !important;
-    padding: 0.55rem !important;
-    gap: 0.6rem !important;
-    border-radius: 18px !important;
+/* â”€â”€ PASO 1: Gran Selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#topicModal .tw-step--1 {
+    padding: 2rem 2rem 1.6rem;
+    align-items: center;
+    gap: 1.4rem;
 }
-
-/* Base de cada card */
-#topicModal .topic-mode-option {
-    position: relative;
-    overflow: hidden;
-    border-radius: 14px !important;
-    padding: 1rem 1.1rem !important;
-    border: 1.5px solid transparent !important;
-    transition: all 0.3s ease !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 0.4rem !important;
-    font-size: 0.88rem !important;
+.tw-main-title {
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-size: 1.25rem;
+    letter-spacing: 0.06em;
+    background: linear-gradient(135deg, #f0d898, #c8a84a, #f0d898);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center; margin: 0;
 }
+.tw-main-sub {
+    color: rgba(220, 195, 145, 0.60); font-size: 0.87rem;
+    text-align: center; margin: 0; font-style: italic;
+}
+.tw-card-row {
+    display: flex; gap: 1.2rem; width: 100%; flex: 1;
+}
+.tw-card {
+    flex: 1; position: relative;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 2rem 1.4rem 1.8rem; border-radius: 18px;
+    border: 1.5px solid transparent; cursor: pointer;
+    text-align: center; background: none; outline: none;
+    gap: 0.65rem; min-height: 240px; overflow: hidden;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.tw-card:hover { transform: translateY(-5px); }
 
-/* ── CLÁSICO — Constelaciones: glassmorphism azul-plata ─── */
-#topicModal .topic-mode-option:has(input[value="roleplay"]) {
+/* Classic card */
+.tw-card--classic {
     background:
-        radial-gradient(ellipse at 80% 20%, rgba(80, 120, 210, 0.18), transparent 60%),
-        rgba(7, 11, 34, 0.55) !important;
-    border-color: rgba(130, 175, 255, 0.28) !important;
-    backdrop-filter: blur(12px) !important;
+        radial-gradient(ellipse at 50% 0%, rgba(60,90,200,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse at 20% 100%, rgba(40,70,180,0.12) 0%, transparent 50%),
+        rgba(7, 11, 34, 0.90);
+    border-color: rgba(120, 165, 255, 0.28);
+    box-shadow: 0 8px 32px rgba(0, 0, 30, 0.50);
 }
-
-#topicModal .topic-mode-option:has(input[value="roleplay"]) span {
-    color: #cce0ff !important;
+.tw-card--classic:hover {
+    border-color: rgba(130, 175, 255, 0.65);
+    box-shadow: 0 14px 48px rgba(50,90,255,0.18), 0 0 60px -20px rgba(100,150,255,0.30);
 }
-
-/* Estrella animada en esquina */
-#topicModal .topic-mode-option:has(input[value="roleplay"])::after {
-    content: '✦ ✦ ✦';
-    position: absolute;
-    bottom: 0.5rem;
-    right: 0.7rem;
-    font-size: 0.5rem;
-    color: rgba(155, 200, 255, 0.5);
-    letter-spacing: 0.3em;
-    animation: vnt-star-twinkle 2.8s ease-in-out infinite;
+.tw-card--classic::before {
+    content: 'âœ¦  âœ¦  âœ¦'; position: absolute; top: 0.8rem; right: 0.9rem;
+    font-size: 0.42rem; letter-spacing: 0.3em;
+    color: rgba(155, 200, 255, 0.30); animation: vnt-star-twinkle 3.5s ease-in-out infinite;
     pointer-events: none;
 }
 
-/* Card activa Clásico */
-#topicModal .topic-mode-option.active:has(input[value="roleplay"]) {
+/* RPG card */
+.tw-card--rpg {
     background:
-        radial-gradient(ellipse at 80% 20%, rgba(80, 120, 210, 0.35), transparent 60%),
-        rgba(8, 14, 45, 0.75) !important;
-    border-color: rgba(130, 175, 255, 0.7) !important;
-    box-shadow:
-        0 0 20px -5px rgba(90, 140, 255, 0.35),
-        inset 0 1px 0 rgba(155, 200, 255, 0.15) !important;
+        radial-gradient(ellipse at 50% 0%, rgba(150,100,20,0.22) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(120,80,15,0.15) 0%, transparent 50%),
+        rgba(18, 12, 5, 0.95);
+    border-color: rgba(180, 140, 60, 0.30);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+}
+.tw-card--rpg:hover {
+    border-color: rgba(201, 168, 108, 0.75);
+    box-shadow: 0 14px 48px rgba(180,120,20,0.20), 0 0 60px -20px rgba(201,168,108,0.30);
+}
+.tw-card--rpg::before {
+    content: 'âšœ'; position: absolute; bottom: 0.8rem; left: 1rem;
+    font-size: 1.1rem; color: rgba(180,140,60,0.18); pointer-events: none;
 }
 
-/* ── RPG — Pergamino: parchment cálido dorado ─────────────── */
-#topicModal .topic-mode-option:has(input[value="rpg"]) {
-    background:
-        radial-gradient(ellipse at 20% 80%, rgba(180, 120, 40, 0.2), transparent 55%),
-        rgba(26, 18, 8, 0.65) !important;
-    border-color: rgba(180, 140, 60, 0.32) !important;
+.tw-card-glyph { font-size: 2.4rem; line-height: 1; display: block; }
+.tw-card--classic .tw-card-glyph { color: rgba(155, 200, 255, 0.80); }
+.tw-card--rpg     .tw-card-glyph { color: rgba(201, 168, 108, 0.88); }
+
+.tw-card-name {
+    font-family: 'Cinzel', serif; font-size: 0.98rem; font-weight: 700;
+    letter-spacing: 0.04em; margin: 0; line-height: 1.2;
+}
+.tw-card--classic .tw-card-name { color: #cce4ff; }
+.tw-card--rpg     .tw-card-name { color: #f0ddb0; }
+
+.tw-card-mode-tag {
+    font-family: 'Cinzel', serif; font-size: 0.64rem;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    padding: 0.18rem 0.7rem; border-radius: 999px; border: 1px solid;
+}
+.tw-card--classic .tw-card-mode-tag { color: rgba(155,200,255,0.78); border-color: rgba(130,175,255,0.28); background: rgba(60,90,200,0.10); }
+.tw-card--rpg     .tw-card-mode-tag { color: rgba(201,168,108,0.82); border-color: rgba(180,140,60,0.28); background: rgba(140,100,20,0.10); }
+
+.tw-card-desc {
+    font-size: 0.79rem; line-height: 1.55; margin: 0; flex: 1;
+    display: flex; align-items: flex-end;
+}
+.tw-card--classic .tw-card-desc { color: rgba(180, 210, 255, 0.55); }
+.tw-card--rpg     .tw-card-desc { color: rgba(220, 185, 130, 0.50); }
+
+.tw-link-cancel {
+    background: none; border: none;
+    color: rgba(200, 170, 110, 0.38); font-size: 0.8rem;
+    cursor: pointer; padding: 0.3rem 0.6rem;
+    transition: color 0.15s ease;
+}
+.tw-link-cancel:hover { color: rgba(200, 170, 110, 0.70); }
+
+/* â”€â”€ PASOS 2 & 3: cabecera â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-step-head {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 1.1rem 1.4rem 0.85rem;
+    border-bottom: 1px solid rgba(201, 168, 108, 0.13);
+    flex-shrink: 0; flex-wrap: wrap;
+}
+.tw-back-btn {
+    background: none; border: 1px solid rgba(201, 168, 108, 0.24);
+    color: rgba(220, 190, 130, 0.65); border-radius: 8px;
+    padding: 0.26rem 0.65rem; font-size: 0.79rem; cursor: pointer;
+    transition: border-color 0.14s, color 0.14s; white-space: nowrap;
+}
+.tw-back-btn:hover { border-color: rgba(201,168,108,0.50); color: #f0d898; }
+.tw-step-title {
+    flex: 1; font-family: 'Cinzel', serif; font-size: 0.98rem; font-weight: 700;
+    letter-spacing: 0.04em; color: #e8cc88; margin: 0;
+}
+.tw-step-sub {
+    width: 100%; color: rgba(220,195,145,0.50); font-size: 0.79rem;
+    margin: 0; font-style: italic; padding-left: 0;
+    order: 10;
+}
+.tw-weather-row { display: flex; gap: 0.3rem; margin-left: auto; }
+
+/* â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-body {
+    flex: 1; overflow-y: auto; padding: 1.1rem 1.4rem;
+    display: flex; flex-direction: column; gap: 1rem; min-height: 0;
+}
+.tw-field { display: flex; flex-direction: column; gap: 0.45rem; }
+.tw-label-row { display: flex; align-items: center; gap: 0.55rem; }
+.tw-label { font-size: 0.81rem; font-weight: 600; color: rgba(220,190,130,0.78); letter-spacing: 0.02em; }
+.tw-note { font-size: 0.74rem; color: rgba(200,170,110,0.42); font-weight: 400; font-style: italic; }
+.tw-required { color: rgba(255,140,100,0.70); font-size: 0.9em; }
+.tw-input, .tw-textarea {
+    width: 100%; box-sizing: border-box;
+    background: rgba(255,255,255,0.042); border: 1px solid rgba(201,168,108,0.20);
+    border-radius: 10px; color: #e8d8b0; padding: 0.62rem 0.88rem;
+    font-size: 0.9rem; font-family: inherit; transition: border-color 0.14s; resize: vertical;
+}
+.tw-input::placeholder, .tw-textarea::placeholder { color: rgba(200,170,110,0.26); }
+.tw-input:focus, .tw-textarea:focus { outline: none; border-color: rgba(201,168,108,0.48); background: rgba(255,255,255,0.058); }
+
+/* â”€â”€ Character list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-char-list { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+.tw-no-chars { color: rgba(200,170,110,0.44); font-size: 0.82rem; font-style: italic; margin: 0; }
+.tw-char-card {
+    position: relative; display: flex; flex-direction: column;
+    align-items: center; gap: 0.32rem; padding: 0.58rem 0.65rem 0.48rem;
+    border-radius: 12px; border: 1.5px solid rgba(201,168,108,0.16);
+    background: rgba(255,255,255,0.028); cursor: pointer;
+    transition: border-color 0.14s, background 0.14s, transform 0.14s;
+    min-width: 78px; max-width: 98px; outline: none;
+}
+.tw-char-card:hover { border-color: rgba(201,168,108,0.44); background: rgba(201,168,108,0.055); transform: translateY(-2px); }
+.tw-char-card--sel { border-color: rgba(201,168,108,0.80); background: rgba(201,168,108,0.095); box-shadow: 0 0 14px -4px rgba(201,168,108,0.28); }
+.tw-char-avatar {
+    width: 50px; height: 50px; border-radius: 50%; overflow: hidden;
+    background: rgba(201,168,108,0.10); display: flex; align-items: center;
+    justify-content: center; border: 1.5px solid rgba(201,168,108,0.18); flex-shrink: 0;
+}
+.tw-char-img { width: 100%; height: 100%; object-fit: cover; }
+.tw-char-initial { font-family: 'Cinzel', serif; font-size: 1.25rem; color: rgba(201,168,108,0.68); font-weight: 700; }
+.tw-char-name {
+    font-size: 0.72rem; color: rgba(230,205,155,0.82); text-align: center;
+    line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 88px;
+}
+.tw-char-check {
+    position: absolute; top: 0.28rem; right: 0.28rem;
+    background: rgba(201,168,108,0.90); color: #1a1008; border-radius: 50%;
+    width: 15px; height: 15px; font-size: 0.60rem;
+    display: flex; align-items: center; justify-content: center; font-weight: 900;
 }
 
-#topicModal .topic-mode-option:has(input[value="rpg"]) span {
-    color: #f0ddb0 !important;
+/* â”€â”€ RPG Step 3: class grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-class-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.52rem; }
+.tw-class-card {
+    display: flex; flex-direction: column; align-items: center; gap: 0.28rem;
+    padding: 0.58rem 0.45rem 0.52rem; border-radius: 10px;
+    border: 1.5px solid rgba(180,140,60,0.16); background: rgba(180,120,20,0.045);
+    cursor: pointer; text-align: center; outline: none;
+    transition: border-color 0.14s, background 0.14s, transform 0.14s;
+}
+.tw-class-card:hover { border-color: rgba(201,168,108,0.44); background: rgba(180,120,20,0.095); transform: translateY(-2px); }
+.tw-class-card--sel { border-color: rgba(201,168,108,0.82); background: rgba(180,120,20,0.155); box-shadow: 0 0 12px -4px rgba(201,168,108,0.25); }
+.tw-class-glyph { font-size: 1.22rem; line-height: 1; display: block; }
+.tw-class-name { font-size: 0.74rem; font-family: 'Cinzel', serif; color: rgba(230,200,140,0.88); font-weight: 600; letter-spacing: 0.02em; }
+
+/* â”€â”€ RPG Step 3: stat grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-points-badge {
+    font-family: 'Cinzel', serif; font-size: 0.71rem; padding: 0.14rem 0.58rem;
+    border-radius: 999px; border: 1px solid rgba(180,140,60,0.28);
+    color: rgba(220,185,110,0.72); background: rgba(180,120,20,0.075); white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.tw-points-badge--done { color: rgba(120,200,120,0.85); border-color: rgba(100,180,100,0.32); background: rgba(60,130,60,0.09); }
+.tw-stat-grid { display: flex; flex-direction: column; gap: 0.42rem; }
+.tw-stat-row { display: grid; grid-template-columns: 7rem 28px 2.1rem 28px 2.4rem; align-items: center; gap: 0.32rem; }
+.tw-stat-name { font-size: 0.79rem; color: rgba(220,190,130,0.78); font-weight: 500; }
+.tw-stat-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(180,140,60,0.26);
+    background: rgba(180,120,20,0.075); color: rgba(220,185,110,0.78);
+    font-size: 1rem; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: border-color 0.11s, background 0.11s; padding: 0;
+}
+.tw-stat-btn:hover:not(:disabled) { border-color: rgba(201,168,108,0.52); background: rgba(180,120,20,0.17); color: #f0d070; }
+.tw-stat-btn:disabled { opacity: 0.26; cursor: not-allowed; }
+.tw-stat-val { font-family: 'Cinzel', serif; font-size: 1.02rem; font-weight: 700; color: #f0d898; text-align: center; }
+.tw-stat-mod { font-size: 0.74rem; color: rgba(180,200,180,0.58); font-family: 'Cinzel', serif; }
+
+/* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.8rem; padding: 0.95rem 1.4rem 1.25rem;
+    border-top: 1px solid rgba(201,168,108,0.11); flex-shrink: 0;
+}
+.tw-btn-cancel {
+    background: none; border: 1px solid rgba(201,168,108,0.20);
+    color: rgba(200,170,110,0.52); border-radius: 9px;
+    padding: 0.52rem 1.05rem; font-size: 0.82rem; cursor: pointer;
+    transition: border-color 0.14s, color 0.14s;
+}
+.tw-btn-cancel:hover { border-color: rgba(201,168,108,0.42); color: rgba(200,170,110,0.82); }
+
+/* Next / Crear button (step 2) */
+.tw-btn-next {
+    padding: 0.58rem 1.4rem; border-radius: 10px;
+    border: 1.5px solid rgba(201,168,108,0.20);
+    background: rgba(201,168,108,0.06); color: rgba(201,168,108,0.40);
+    font-size: 0.86rem; font-family: 'Cinzel', serif; letter-spacing: 0.04em;
+    cursor: not-allowed; transition: all 0.2s ease;
+}
+.tw-btn-next--ready {
+    border-color: rgba(201,168,108,0.62); background: rgba(201,168,108,0.11); color: #f0d898;
+    cursor: pointer; box-shadow: 0 4px 16px -4px rgba(201,168,108,0.22);
+}
+.tw-btn-next--ready:hover { background: rgba(201,168,108,0.17); box-shadow: 0 6px 22px -4px rgba(201,168,108,0.35); }
+
+/* Forjar Historia button (step 3) */
+.tw-btn-create {
+    display: flex; align-items: center; gap: 0.65rem;
+    padding: 0.68rem 1.7rem; border-radius: 12px;
+    border: 2px solid rgba(201,168,108,0.16);
+    background: rgba(201,168,108,0.04); color: rgba(201,168,108,0.28);
+    font-family: 'Cinzel Decorative', 'Cinzel', serif; font-size: 0.87rem;
+    letter-spacing: 0.07em; cursor: not-allowed; transition: all 0.3s ease;
+}
+.tw-btn-create--ready {
+    border-color: rgba(201,168,108,0.78);
+    background: linear-gradient(135deg, rgba(201,168,108,0.14), rgba(240,210,112,0.09), rgba(201,168,108,0.14));
+    color: #f0d070; cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(240,208,112,0.11) inset, 0 6px 24px -6px rgba(201,168,108,0.38), 0 0 40px -15px rgba(201,168,108,0.28);
+    animation: tw-plaque-glow 2.5s ease-in-out infinite;
+}
+.tw-btn-create--ready:hover {
+    box-shadow: 0 0 0 1px rgba(240,208,112,0.18) inset, 0 8px 32px -6px rgba(201,168,108,0.52), 0 0 60px -15px rgba(201,168,108,0.42);
+    transform: translateY(-1px);
+}
+.tw-create-gem { font-size: 0.68rem; opacity: 0.68; }
+
+@keyframes tw-plaque-glow {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(240,208,112,0.11) inset, 0 6px 24px -6px rgba(201,168,108,0.38), 0 0 40px -15px rgba(201,168,108,0.28); }
+    50%       { box-shadow: 0 0 0 1px rgba(240,208,112,0.17) inset, 0 6px 28px -4px rgba(201,168,108,0.52), 0 0 60px -10px rgba(201,168,108,0.38); }
 }
 
-/* Sello ornamental esquina */
-#topicModal .topic-mode-option:has(input[value="rpg"])::after {
-    content: '⚜';
-    position: absolute;
-    bottom: 0.55rem;
-    right: 0.85rem;
-    font-size: 0.85rem;
-    color: rgba(200, 160, 60, 0.45);
-    pointer-events: none;
-}
-
-/* Card activa RPG */
-#topicModal .topic-mode-option.active:has(input[value="rpg"]) {
-    background:
-        radial-gradient(ellipse at 20% 80%, rgba(180, 120, 40, 0.38), transparent 55%),
-        rgba(30, 20, 8, 0.85) !important;
-    border-color: rgba(201, 168, 108, 0.85) !important;
-    box-shadow:
-        0 0 20px -5px rgba(180, 120, 40, 0.4),
-        inset 0 1px 0 rgba(255, 210, 120, 0.12) !important;
-}
-
-/* Hover */
-#topicModal .topic-mode-option:has(input[value="roleplay"]):hover {
-    border-color: rgba(130, 175, 255, 0.55) !important;
-}
-#topicModal .topic-mode-option:has(input[value="rpg"]):hover {
-    border-color: rgba(201, 168, 108, 0.6) !important;
-}
-
-/* Radio buttons: hereda accent del modo */
-#topicModal .topic-mode-option:has(input[value="roleplay"]) input[type="radio"] {
-    accent-color: #82aaff !important;
-}
-#topicModal .topic-mode-option:has(input[value="rpg"]) input[type="radio"] {
-    accent-color: #c8a84a !important;
-}
-
-/* ── Botón Crear Historia: dorado premium ────────────────────────────────── */
-#topicModal .topic-create-btn {
-    background: linear-gradient(135deg, #c8a84a, #f0d070, #c8a84a) !important;
-    background-size: 200% 100% !important;
-    color: #1a1008 !important;
-    font-family: 'Cinzel', serif !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.08em !important;
-    border: 1px solid rgba(240, 208, 112, 0.7) !important;
-    text-shadow: 0 1px 0 rgba(255, 235, 160, 0.4) !important;
-    box-shadow:
-        0 4px 16px rgba(200, 168, 74, 0.35),
-        inset 0 1px 0 rgba(255, 240, 180, 0.4) !important;
-    transition: background-position 0.4s ease, box-shadow 0.3s ease !important;
-}
-#topicModal .topic-create-btn:hover {
-    background-position: 100% 0 !important;
-    box-shadow:
-        0 6px 22px rgba(200, 168, 74, 0.55),
-        inset 0 1px 0 rgba(255, 240, 180, 0.5) !important;
+@media (max-width: 540px) {
+    .tw-card-row { flex-direction: column; }
+    .tw-card { min-height: 160px; padding: 1.2rem 1rem; flex-direction: row; text-align: left; gap: 0.8rem; }
+    .tw-card-desc { display: none; }
+    .tw-class-grid { grid-template-columns: repeat(2, 1fr); }
+    .tw-stat-row { grid-template-columns: 5.5rem 28px 2.1rem 28px 2.4rem; }
 }

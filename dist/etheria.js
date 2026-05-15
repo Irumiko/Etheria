@@ -15526,7 +15526,7 @@ function openNewTopicModal() {
         openNoCharacterWarning();
         return;
     }
-    openModal('topicModal');
+    topicWizardOpen();
 }
 
 function openNoCharacterWarning() {
@@ -16642,7 +16642,248 @@ document.addEventListener('keydown', function(e) {
             closeGlobalSearch();
         }
     }
+    if (e.key === 'Escape') {
+        if (document.getElementById('topicModal')?.classList.contains('open')) {
+            closeModal('topicModal');
+        }
+    }
 });
+/* ════════════════════════════════════════════════════════════════════════════
+   TOPIC CREATION WIZARD — Asistente por pasos de nueva historia
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const _tw = { mode: null, charId: null, rpgClass: null, stats: null };
+
+const _TW_CLASSES = [
+    { id: 'fighter',   name: 'Guerrero',   glyph: '⚔',  desc: 'Ancla la presion fisica de la escena. Ideal para abrir paso y sostener el foco.' },
+    { id: 'ranger',    name: 'Explorador', glyph: '🏹', desc: 'Lee el entorno y encuentra rutas narrativas. Adelantate al peligro.' },
+    { id: 'rogue',     name: 'Picaro',     glyph: '🗡',  desc: 'Controla el ritmo desde la sombra. Brilla robando foco y forzando giros.' },
+    { id: 'cleric',    name: 'Clerigo',    glyph: '✚',  desc: 'Sostiene al grupo en momentos limite. Reordena la tension y protege la escena.' },
+    { id: 'wizard',    name: 'Mago',       glyph: '✦',  desc: 'Reencuadra la ficcion con conocimiento y magia. Tuerce el momento.' },
+    { id: 'barbarian', name: 'Barbaro',    glyph: '⚡', desc: 'Empuja la escena al limite. Convierte presion en impulso para romper bloqueos.' },
+];
+const _TW_STATS     = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+const _TW_STAT_NAME = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constitucion', INT: 'Inteligencia', WIS: 'Sabiduria', CHA: 'Carisma' };
+const _TW_BASE = 8, _TW_MAX = 15, _TW_POOL = 27;
+const _TW_COSTS = [0, 1, 2, 3, 4, 5, 7, 9];
+
+function _twCost(v)  { return _TW_COSTS[Math.max(0, Math.min(v - _TW_BASE, 7))]; }
+function _twSpent()  { return _TW_STATS.reduce(function(s, k) { return s + _twCost((_tw.stats || {})[k] || _TW_BASE); }, 0); }
+function _twRemain() { return _TW_POOL - _twSpent(); }
+
+function topicWizardOpen() {
+    _tw.mode = null; _tw.charId = null; _tw.rpgClass = null;
+    _tw.stats = Object.fromEntries(_TW_STATS.map(function(k) { return [k, _TW_BASE]; }));
+    ['topicTitleInput', 'topicFirstMsg'].forEach(function(id) {
+        var el = document.getElementById(id); if (el) el.value = '';
+    });
+    document.querySelectorAll('.topic-weather-btn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.weather === 'none');
+    });
+    var wi = document.getElementById('topicWeatherInput'); if (wi) wi.value = 'none';
+    topicWizardGoStep(1);
+    openModal('topicModal');
+}
+
+function topicWizardGoStep(n) {
+    document.querySelectorAll('#topicModal .tw-step').forEach(function(el, i) {
+        el.classList.toggle('tw-step--active', i + 1 === n);
+    });
+    if (n === 2) {
+        var te = document.getElementById('twStep2Title');
+        if (te) te.textContent = _tw.mode === 'rpg' ? '⛜ Configura tu historia' : '✦ Configura tu historia';
+        var nl = document.getElementById('twNextLabel');
+        if (nl) nl.textContent = _tw.mode === 'rpg' ? 'Hoja de Aventura ›' : 'Crear Historia';
+        _twRenderChars(); topicWizardValidate();
+    }
+    if (n === 3) { _twRenderRpgSheet(); _twValidateRpg(); }
+}
+
+function topicWizardSelectMode(mode) {
+    _tw.mode = mode;
+    var rid = mode === 'rpg' ? 'modeRpg' : 'modeRoleplay';
+    var r = document.getElementById(rid); if (r) r.checked = true;
+    if (typeof updateTopicModeUI === 'function') updateTopicModeUI();
+    topicWizardGoStep(2);
+}
+
+function _twRenderChars() {
+    var list = document.getElementById('twCharList'); if (!list) return;
+    var mine = ((appData && appData.characters) || []).filter(function(c) { return c.userIndex === currentUserIndex; });
+    if (!mine.length) { list.innerHTML = '<p class="tw-no-chars">No tienes personajes. Crea uno desde la Galeria.</p>'; return; }
+    list.innerHTML = mine.map(function(c) {
+        var sel = String(c.id) === String(_tw.charId);
+        var vis = c.avatar
+            ? '<img src="' + escapeHtml(c.avatar) + '" alt="" class="tw-char-img">'
+            : '<span class="tw-char-initial">' + escapeHtml((c.name || '?')[0].toUpperCase()) + '</span>';
+        return '<button type="button" class="tw-char-card' + (sel ? ' tw-char-card--sel' : '') + '" onclick="topicWizardSelectChar(' + JSON.stringify(String(c.id)) + ')" aria-pressed="' + sel + '">'
+            + '<div class="tw-char-avatar">' + vis + '</div>'
+            + '<div class="tw-char-name">' + escapeHtml(c.name) + '</div>'
+            + (sel ? '<div class="tw-char-check" aria-hidden="true">✓</div>' : '')
+            + '</button>';
+    }).join('');
+}
+
+function topicWizardSelectChar(charId) { _tw.charId = charId; _twRenderChars(); topicWizardValidate(); }
+
+function topicWizardValidate() {
+    var title = ((document.getElementById('topicTitleInput') || {}).value || '').trim();
+    var msg   = ((document.getElementById('topicFirstMsg')   || {}).value || '').trim();
+    var btn   = document.getElementById('twNextBtn');
+    var ok    = !!(title && msg && _tw.charId);
+    if (btn) { btn.disabled = !ok; btn.classList.toggle('tw-btn-next--ready', ok); }
+}
+
+function topicWizardNext() {
+    if (_tw.mode === 'rpg') topicWizardGoStep(3); else createTopicFromWizard();
+}
+
+function _twRenderRpgSheet() {
+    var cg = document.getElementById('twClassGrid');
+    if (cg) {
+        cg.innerHTML = _TW_CLASSES.map(function(cls) {
+            var sel = _tw.rpgClass === cls.id;
+            return '<button type="button" class="tw-class-card' + (sel ? ' tw-class-card--sel' : '') + '" onclick="topicWizardSelectClass(' + JSON.stringify(cls.id) + ')" title="' + escapeHtml(cls.desc) + '" aria-pressed="' + sel + '">'
+                + '<span class="tw-class-glyph">' + cls.glyph + '</span>'
+                + '<span class="tw-class-name">' + escapeHtml(cls.name) + '</span>'
+                + '</button>';
+        }).join('');
+    }
+    _twRenderStats();
+}
+
+function _twRenderStats() {
+    var grid = document.getElementById('twStatGrid'); if (!grid) return;
+    var rem = _twRemain();
+    var badge = document.getElementById('twPointsBadge');
+    if (badge) {
+        badge.textContent = rem === 0 ? '✓ distribuidos' : rem + ' restantes';
+        badge.className = 'tw-points-badge' + (rem === 0 ? ' tw-points-badge--done' : '');
+    }
+    grid.innerHTML = _TW_STATS.map(function(key) {
+        var val    = ((_tw.stats || {})[key]) || _TW_BASE;
+        var incCost = _twCost(val + 1) - _twCost(val);
+        var canInc  = val < _TW_MAX && rem >= incCost;
+        var canDec  = val > _TW_BASE;
+        var mod     = Math.floor((val - 10) / 2);
+        var modStr  = (mod >= 0 ? '+' : '') + mod;
+        return '<div class="tw-stat-row">'
+            + '<span class="tw-stat-name">' + (_TW_STAT_NAME[key] || key) + '</span>'
+            + '<button type="button" class="tw-stat-btn" onclick="topicWizardAdjustStat(' + JSON.stringify(key) + ',-1)"' + (canDec ? '' : ' disabled') + '>−</button>'
+            + '<span class="tw-stat-val">' + val + '</span>'
+            + '<button type="button" class="tw-stat-btn" onclick="topicWizardAdjustStat(' + JSON.stringify(key) + ',1)"' + (canInc ? '' : ' disabled') + '>+</button>'
+            + '<span class="tw-stat-mod">' + modStr + '</span>'
+            + '</div>';
+    }).join('');
+    _twValidateRpg();
+}
+
+function topicWizardSelectClass(classId) { _tw.rpgClass = classId; _twRenderRpgSheet(); }
+
+function topicWizardAdjustStat(key, delta) {
+    if (!_tw.stats) return;
+    var cur = _tw.stats[key] || _TW_BASE, next = cur + delta;
+    if (next < _TW_BASE || next > _TW_MAX) return;
+    if (delta > 0 && (_twCost(next) - _twCost(cur)) > _twRemain()) return;
+    _tw.stats[key] = next; _twRenderStats();
+}
+
+function _twValidateRpg() {
+    var btn = document.getElementById('twCreateBtn'), ok = !!_tw.rpgClass;
+    if (btn) { btn.disabled = !ok; btn.classList.toggle('tw-btn-create--ready', ok); }
+}
+
+function createTopicFromWizard() {
+    var titleEl = document.getElementById('topicTitleInput');
+    var msgEl   = document.getElementById('topicFirstMsg');
+    var wxEl    = document.getElementById('topicWeatherInput');
+    var title   = ((titleEl && titleEl.value) || '').trim();
+    var text    = ((msgEl   && msgEl.value)   || '').trim();
+    var weather = ((wxEl    && wxEl.value)    || 'none');
+
+    if (!title || !text) { showAutosave('Completa todos los campos obligatorios', 'error'); return; }
+    var genericTitles = ['prueba', 'test', 'historia', 'nueva historia'];
+    if (genericTitles.indexOf(title.toLowerCase()) !== -1) { showAutosave('Elige un titulo mas descriptivo para la historia', 'error'); return; }
+    if (!_tw.charId) { showAutosave('Selecciona un personaje', 'error'); return; }
+
+    var mode = _tw.mode || 'roleplay';
+    currentTopicMode = mode;
+    var id = generateTopicId();
+
+    var newTopic = {
+        id: id, title: title,
+        background: DEFAULT_TOPIC_BACKGROUND,
+        weather: weather !== 'none' ? weather : undefined,
+        mode: mode, roleCharacterId: null,
+        createdBy: ((userNames && userNames[currentUserIndex]) || 'Jugador'),
+        createdByIndex: currentUserIndex,
+        date: new Date().toLocaleDateString(),
+    };
+    if (mode === 'rpg') {
+        newTopic.characterLocks    = {}; newTopic.characterLocks[currentUserIndex]    = _tw.charId;
+        newTopic.rpgCharacterLocks = {}; newTopic.rpgCharacterLocks[currentUserIndex] = _tw.charId;
+    } else {
+        newTopic.roleCharacterId = _tw.charId;
+    }
+    appData.topics.push(newTopic);
+
+    var msgId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
+              : (Date.now() + '_' + Math.random().toString(16).slice(2));
+    appData.messages[id] = [{
+        id: msgId, characterId: null, charName: 'Narrador',
+        charColor: null, charAvatar: null, charSprite: null,
+        text: text, isNarrator: true, userIndex: currentUserIndex,
+        timestamp: new Date().toISOString(),
+        weather: weather !== 'none' ? weather : undefined,
+    }];
+
+    selectedCharId = _tw.charId;
+    localStorage.setItem('etheria_selected_char_' + currentUserIndex, _tw.charId);
+
+    if (mode === 'rpg' && _tw.rpgClass) {
+        var chr = (appData.characters || []).find(function(c) { return String(c.id) === String(_tw.charId); });
+        if (chr && typeof ensureCharacterRpgProfile === 'function') {
+            var profile = ensureCharacterRpgProfile(chr, id);
+            if (profile) { profile.rpgClass = _tw.rpgClass; if (_tw.stats) Object.assign(profile.stats, _tw.stats); }
+        }
+        localStorage.setItem('etheria_stats_prompted_' + id + '_' + _tw.charId, '1');
+    }
+
+    hasUnsavedChanges = true;
+    save({ silent: true });
+    closeModal('topicModal');
+    renderTopics();
+
+    var topicRef = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
+    if (topicRef && typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.upsertStory === 'function') {
+        SupabaseStories.upsertStory(topicRef).then(function(result) {
+            if (result.ok && result.storyId) {
+                topicRef.storyId = result.storyId;
+                hasUnsavedChanges = true; save({ silent: true });
+            } else {
+                var detail = (result && result.error) ? ': ' + result.error : '';
+                if (typeof showAutosave === 'function') showAutosave('Historia local; no se guardo en Supabase' + detail, 'error');
+            }
+        }).catch(function() {
+            if (typeof showAutosave === 'function') showAutosave('Historia local; error al guardar en Supabase', 'error');
+        });
+    }
+    if (typeof SupabaseSync !== 'undefined') SupabaseSync.uploadProfileData().catch(function() {});
+
+    pendingRoleTopicId = null;
+    enterTopic(id);
+}
+
+window.topicWizardOpen        = topicWizardOpen;
+window.topicWizardGoStep      = topicWizardGoStep;
+window.topicWizardSelectMode  = topicWizardSelectMode;
+window.topicWizardSelectChar  = topicWizardSelectChar;
+window.topicWizardValidate    = topicWizardValidate;
+window.topicWizardNext        = topicWizardNext;
+window.topicWizardSelectClass = topicWizardSelectClass;
+window.topicWizardAdjustStat  = topicWizardAdjustStat;
+window.createTopicFromWizard  = createTopicFromWizard;
+
 /* js/ui/app-ui.js */
 // Utilidades generales de app: guardado, modales, tema visual y ajustes de lectura.
 // UTILIDADES

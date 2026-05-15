@@ -1724,58 +1724,104 @@
             </div>
         </div>
     </div>
-<div id="topicModal" class="modal-overlay" onclick="if(event.target === this) closeModal('topicModal')">
-        <div class="modal topic-modal">
-            <div class="topic-header-row">
-                <h3 class="topic-title">Nueva Historia</h3>
-                <div class="topic-weather-inline" role="group" aria-label="Ambientación">
-                    <button type="button" class="weather-btn topic-weather-btn active" data-tooltip="Normal" data-tooltip-delay="300" data-weather="none" onclick="setTopicWeather('none', this)" aria-label="Ambientación normal">☀️</button>
-                    <button type="button" class="weather-btn topic-weather-btn" data-tooltip="Lluvia" data-tooltip-delay="300" data-weather="rain" onclick="setTopicWeather('rain', this)" aria-label="Ambientación lluvia">☁️</button>
-                    <button type="button" class="weather-btn topic-weather-btn" data-tooltip="Niebla" data-tooltip-delay="300" data-weather="fog" onclick="setTopicWeather('fog', this)" aria-label="Ambientación niebla">🌫️</button>
-                </div>
-                <input type="hidden" id="topicWeatherInput" value="none">
-            </div>
+<div id="topicModal" class="modal-overlay" onclick="if(event.target===this)closeModal('topicModal')">
+  <div class="modal topic-modal topic-wizard">
 
-            <div class="topic-modal-body">
-
-            <!-- Selector de modo compacto -->
-            <div class="form-group">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Modo de historia</label>
-                <div class="topic-mode-toggle">
-                    <label class="topic-mode-option active">
-                        <input type="radio" name="topicMode" value="roleplay" id="modeRoleplay" checked onchange="updateTopicModeUI()">
-                        <span>🎭 Modo clásico</span>
-                    </label>
-                    <label class="topic-mode-option">
-                        <input type="radio" name="topicMode" value="rpg" id="modeRpg" onchange="updateTopicModeUI()">
-                        <span>📖 Modo RPG</span>
-                    </label>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.55rem;">El inicio siempre será como <strong>Narrador</strong>. El flujo adicional del modo clásico se realiza después de crear la historia.</div>
-            </div>
-
-            <!-- Título -->
-            <div class="form-group">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Título *</label>
-                <input type="text" id="topicTitleInput" placeholder="Título de la historia...">
-            </div>
-
-            <!-- Texto inicial -->
-            <div class="form-group topic-inicio-group">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Inicio *</label>
-                <textarea id="topicFirstMsg" name="inicio" rows="3" placeholder="Primer mensaje de la historia..."></textarea>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Puedes usar **negrita** y *cursiva*</div>
-            </div>
-
-            </div>
-
-            <!-- Botones de acción -->
-            <div class="topic-modal-footer">
-                <button onclick="closeModal('topicModal')" class="btn-secondary" style="padding: 0.7rem 1.5rem;">Cancelar</button>
-                <button onclick="createTopic()" class="btn-primary topic-create-btn">✨ Crear Historia</button>
-            </div>
-        </div>
+    <!-- PASO 1 — El Gran Selector -->
+    <div class="tw-step tw-step--1 tw-step--active" id="twStep1">
+      <h3 class="tw-main-title">✦ Nueva Historia ✦</h3>
+      <p class="tw-main-sub">Elige el camino que tomará tu historia</p>
+      <div class="tw-card-row">
+        <button type="button" class="tw-card tw-card--classic" onclick="topicWizardSelectMode('roleplay')">
+          <span class="tw-card-glyph">✦</span>
+          <h4 class="tw-card-name">Camino de la Palabra</h4>
+          <span class="tw-card-mode-tag">Clásico</span>
+          <p class="tw-card-desc">Narrativa libre y conversación íntima. Las constelaciones guían tu relato.</p>
+        </button>
+        <button type="button" class="tw-card tw-card--rpg" onclick="topicWizardSelectMode('rpg')">
+          <span class="tw-card-glyph">⚜</span>
+          <h4 class="tw-card-name">Senda del Azar</h4>
+          <span class="tw-card-mode-tag">RPG</span>
+          <p class="tw-card-desc">Rol de mesa, dados del destino y estadísticas. El pergamino registra tu leyenda.</p>
+        </button>
+      </div>
+      <button type="button" class="tw-link-cancel" onclick="closeModal('topicModal')">Cancelar</button>
     </div>
+
+    <!-- PASO 2 — Configuración de Historia -->
+    <div class="tw-step tw-step--2" id="twStep2">
+      <div class="tw-step-head">
+        <button type="button" class="tw-back-btn" onclick="topicWizardGoStep(1)">‹ Volver</button>
+        <h3 class="tw-step-title" id="twStep2Title">Configura tu historia</h3>
+        <div class="tw-weather-row" role="group" aria-label="Ambientación">
+          <button type="button" class="weather-btn topic-weather-btn active" data-weather="none" onclick="setTopicWeather('none',this)" aria-label="Normal">☀️</button>
+          <button type="button" class="weather-btn topic-weather-btn" data-weather="rain" onclick="setTopicWeather('rain',this)" aria-label="Lluvia">☁️</button>
+          <button type="button" class="weather-btn topic-weather-btn" data-weather="fog" onclick="setTopicWeather('fog',this)" aria-label="Niebla">🌫️</button>
+        </div>
+        <input type="hidden" id="topicWeatherInput" value="none">
+      </div>
+      <div class="tw-body">
+        <div class="tw-field">
+          <label class="tw-label" for="topicTitleInput">Título de la historia</label>
+          <input type="text" id="topicTitleInput" class="tw-input" placeholder="Un nombre que recuerde el tiempo…" oninput="topicWizardValidate()" autocomplete="off">
+        </div>
+        <div class="tw-field">
+          <label class="tw-label" for="topicFirstMsg">Apertura <span class="tw-note">— siempre como Narrador</span></label>
+          <textarea id="topicFirstMsg" class="tw-textarea" rows="3" placeholder="El relato comienza cuando…" oninput="topicWizardValidate()"></textarea>
+        </div>
+        <div class="tw-field">
+          <div class="tw-label-row">
+            <span class="tw-label">Tu personaje <span class="tw-required">*</span></span>
+          </div>
+          <div class="tw-char-list" id="twCharList"></div>
+        </div>
+      </div>
+      <div class="tw-footer">
+        <button type="button" class="tw-btn-cancel" onclick="closeModal('topicModal')">Cancelar</button>
+        <button type="button" class="tw-btn-next" id="twNextBtn" onclick="topicWizardNext()" disabled>
+          <span id="twNextLabel">Crear Historia</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- PASO 3 — Hoja de Aventura RPG -->
+    <div class="tw-step tw-step--3" id="twStep3">
+      <div class="tw-step-head">
+        <button type="button" class="tw-back-btn" onclick="topicWizardGoStep(2)">‹ Volver</button>
+        <h3 class="tw-step-title">⚜ Hoja de Aventura</h3>
+        <p class="tw-step-sub">Prepara a tu personaje antes de comenzar</p>
+      </div>
+      <div class="tw-body">
+        <div class="tw-field">
+          <label class="tw-label">Clase de aventurero</label>
+          <div class="tw-class-grid" id="twClassGrid"></div>
+        </div>
+        <div class="tw-field">
+          <div class="tw-label-row">
+            <span class="tw-label">Distribuye tus puntos</span>
+            <span class="tw-points-badge" id="twPointsBadge">27 restantes</span>
+          </div>
+          <div class="tw-stat-grid" id="twStatGrid"></div>
+        </div>
+      </div>
+      <div class="tw-footer">
+        <button type="button" class="tw-btn-cancel" onclick="closeModal('topicModal')">Cancelar</button>
+        <button type="button" class="tw-btn-create" id="twCreateBtn" onclick="createTopicFromWizard()" disabled>
+          <span class="tw-create-gem">✦</span>
+          <span class="tw-create-text">Forjar Historia</span>
+          <span class="tw-create-gem">✦</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Inputs ocultos para compatibilidad con updateTopicModeUI() -->
+    <div style="display:none" aria-hidden="true">
+      <input type="radio" name="topicMode" value="roleplay" id="modeRoleplay" checked onchange="updateTopicModeUI()">
+      <input type="radio" name="topicMode" value="rpg" id="modeRpg" onchange="updateTopicModeUI()">
+    </div>
+
+  </div>
+</div>
 <div id="roleCharacterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('roleCharacterModal')">
         <div class="role-char-modal">
             <h3 id="roleCharacterTitle" style="margin:0; text-align:center; color: var(--accent-gold);">Selecciona tu personaje activo</h3>
