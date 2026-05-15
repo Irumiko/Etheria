@@ -20296,7 +20296,7 @@ body.mode-rpg .vn-section::before {
     max-width: calc(100vw - 2rem) !important;
     margin: 0 !important;
     /* ── Apariencia ── */
-    background: rgba(18, 12, 8, 0.78) !important;
+    background: rgba(18, 12, 8, 0.65) !important;
     border: 1px solid rgba(201,168,108,0.35) !important;
     border-top: 1px solid rgba(255,255,255,0.06) !important;
     border-radius: 14px !important;
@@ -20399,6 +20399,35 @@ body.mode-rpg .vn-controls {
 #vnSection .ui-layer > .right-panel,
 #vnSection .ui-layer > .bottom-panel {
     border-color: transparent !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UI CLEANUP — Ajustes de percepción visual (barra vacía · speaker plate · texto)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Eliminar borde/fondo del .right-panel que aparece fuera del grid.
+      Los nav de controles usan position:fixed y son independientes del contenedor. */
+#vnSection > .right-panel {
+    border: none !important;
+    background: transparent !important;
+    width: 0 !important;
+    overflow: hidden !important;
+}
+
+/* 2. Speaker plate: sobresale ligeramente sobre el borde superior de la caja
+      y tiene más aire interior para no parecer encajonado. */
+#vnSection .vn-speaker-plate {
+    top: -0.9rem !important;
+    left: 9rem !important;
+    padding-left: 1.1rem !important;
+    border-top: 1px solid rgba(201, 168, 108, 0.38) !important;
+    border-left: 1px solid rgba(201, 168, 108, 0.22) !important;
+    border-radius: 6px 10px 10px 0 !important;
+}
+
+/* 3. Texto del diálogo: más espacio respecto al avatar a la izquierda. */
+#vnSection .vn-dialogue-text {
+    padding-left: 1.8rem !important;
 }
 
 /* -- css/modules/08-rpg-hud-hotfix.css -- */
