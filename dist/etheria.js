@@ -11106,16 +11106,26 @@ function _resolveCharacterForMode(t, id, topicMode) {
 
 // Aplica las CSS classes de modo en vnSection y body.
 function _applyModeClasses(vnSection, topicMode) {
+    // Inyectar .vn-db-corners (esquinas decorativas) si no existe aún
+    const dbox = vnSection.querySelector('.vn-dialogue-box');
+    if (dbox && !dbox.querySelector('.vn-db-corners')) {
+        const corners = document.createElement('div');
+        corners.className = 'vn-db-corners';
+        corners.setAttribute('aria-hidden', 'true');
+        corners.innerHTML = '<i></i><i></i><i></i><i></i>';
+        dbox.appendChild(corners);
+    }
     if (topicMode === 'rpg') {
         vnSection.classList.remove('classic-mode', 'mode-classic');
         vnSection.classList.add('mode-rpg');
-        document.body.classList.add('mode-rpg');
+        document.body.classList.add('mode-rpg', 'theme-rpg');
+        document.body.classList.remove('mode-classic', 'theme-classic');
     } else {
         // Modo clásico: sprites desaparecen al avanzar
         vnSection.classList.add('classic-mode', 'mode-classic');
         vnSection.classList.remove('mode-rpg');
-        document.body.classList.remove('mode-rpg');
-        document.body.classList.add('mode-classic');
+        document.body.classList.remove('mode-rpg', 'theme-rpg');
+        document.body.classList.add('mode-classic', 'theme-classic');
     }
 }
 
@@ -11574,10 +11584,13 @@ function showCurrentMessage(direction = 'forward') {
         if (!charData) charExists = false;
     }
 
-    // Aplicar/quitar atributo data-garrick en la caja de diálogo
+    // Aplicar/quitar atributos de tema en la caja de diálogo
     const dialogueBox = document.querySelector('.vn-dialogue-box');
     if (dialogueBox) {
         dialogueBox.dataset.garrick = msg.isGarrick ? 'true' : 'false';
+        // isPureNarrator: solo el narrador real (no Garrick ni resultado del oráculo)
+        const isPureNarrator = !!(msg.isNarrator && !msg.isGarrick && !msg.isOracleResult);
+        dialogueBox.dataset.narrator = isPureNarrator ? 'true' : 'false';
     }
 
     if (msg.isNarrator || !msg.characterId) {
@@ -13891,6 +13904,10 @@ function updateNarrateButton() {
     document.querySelectorAll('[data-vn-control="dm-panel"]').forEach((dmBtn) => {
         dmBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
     });
+
+    // ⚔️ Botón MASTER en Adventure Bar (caja de diálogo): solo RPG + owner
+    const masterBtn = document.getElementById('vnMasterBtn');
+    if (masterBtn) masterBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
 
     // 🍺 Posada: caja de diálogo, solo RPG + owner
     const innBtn = document.getElementById('vnInnkeeperBtn');
