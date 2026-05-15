@@ -1282,6 +1282,28 @@
                 <button class="vn-challenge-dismiss" onclick="dismissChallenge()" title="Ocultar propuesta">✕</button>
             </div>
             <div id="vnOracleConsequenceBadge" class="vn-oracle-consequence-badge" style="display:none;">🪙 Consecuencia del destino</div>
+
+            <!-- ── Acciones del mensaje: siempre visibles, esquina superior derecha ── -->
+            <div class="vn-msg-actions" id="vnMsgActions">
+                <button class="vma-btn vma-reply" type="button"
+                        onclick="handleActionButtonClick(event); openReplyPanel()"
+                        aria-label="Responder al mensaje">
+                    <span class="vma-icon" aria-hidden="true">💬</span><span class="vma-text">Responder</span>
+                </button>
+                <button id="editMsgBtn" class="vma-btn vma-edit" type="button"
+                        onclick="handleActionButtonClick(event); editCurrentMessage()"
+                        aria-label="Editar mensaje">
+                    <span class="vma-icon" aria-hidden="true">✎</span><span class="vma-text">Editar</span>
+                </button>
+                <button class="vma-btn vma-delete" type="button"
+                        onclick="handleActionButtonClick(event); deleteCurrentMessage()"
+                        aria-label="Borrar mensaje">
+                    <span class="vma-icon" aria-hidden="true">🗑</span><span class="vma-text">Borrar</span>
+                </button>
+                <!-- icon reference mantenido para compatibilidad JS -->
+                <span id="vnReactionBtnIcon" style="display:none;" aria-hidden="true">🙂</span>
+            </div>
+
             <div id="vnDialogueText" class="vn-dialogue-text"></div>
             <div id="vnReactionDisplay" class="vn-reaction-display"></div>
             <div id="vnContinueIndicator" class="vn-continue-indicator"></div>
@@ -1291,22 +1313,40 @@
                     <div id="vnDiceBadge" class="vn-dice-badge" style="display:none;"></div>
                 </div>
                 <div class="vn-dialogue-actions">
-                    <!-- Izquierda: herramientas de narración y partida -->
+                    <!-- Barra de Aventura + utilidades -->
                     <div class="vn-dialogue-actions-left">
-                        <button id="vnOracleFloatBtn" class="vn-dialogue-action-btn oracle-action-btn" type="button" onclick="handleActionButtonClick(event); toggleOracleMiniPanel()" style="display:none;" title="Consultar al oráculo" aria-label="Oráculo">
-                            <span class="action-icon">🎲</span><span class="action-label">Oráculo</span>
-                        </button>
+
+                        <!-- ── Barra de Aventura — solo MODO RPG ─────────────────── -->
+                        <div class="vn-adv-actions" id="vnAdvActions">
+                            <button id="vnOracleFloatBtn" class="vn-adv-btn vna-oracle" type="button"
+                                    onclick="handleActionButtonClick(event); toggleOracleMiniPanel()"
+                                    style="display:none;"
+                                    title="Consultar al oráculo" aria-label="Oráculo">
+                                <span class="vna-icon" aria-hidden="true">🎲</span>
+                                <span class="vna-text">Oráculo</span>
+                            </button>
+                            <button id="vnMasterBtn" class="vn-adv-btn vna-master" type="button"
+                                    onclick="handleActionButtonClick(event); toggleDmPanel()"
+                                    style="display:none;"
+                                    title="Panel del Dungeon Master" aria-label="Master">
+                                <span class="vna-icon" aria-hidden="true">⚔</span>
+                                <span class="vna-text">Master</span>
+                            </button>
+                        </div>
+
+                        <!-- Posada (RPG + owner) -->
                         <button id="vnInnkeeperBtn" class="vn-dialogue-action-btn innkeeper-action-btn" type="button" onclick="handleActionButtonClick(event); triggerInnkeeperScene()" style="display:none;" title="La Posada — nueva escena" aria-label="Posada">
                             <span class="action-icon">🍺</span><span class="action-label">Posada</span>
                         </button>
+                        <!-- Nueva escena (Clásico + owner) -->
                         <button id="vnNarrateDialogBtn" class="vn-dialogue-action-btn narrate-action-btn" type="button" onclick="handleActionButtonClick(event); prepareChapter()" style="display:none;" title="Nueva escena" aria-label="Nueva escena">
                             <span class="action-icon">✒</span><span class="action-label">Escena</span>
                         </button>
-                        <!-- Botón Emotes en la caja de diálogo — estilo chat videojuego -->
+                        <!-- Emotes (ambos modos) -->
                         <button id="vnEmoteDialogBtn" class="vn-dialogue-action-btn emote-action-btn" type="button" onclick="handleActionButtonClick(event); toggleVnDialogEmotePicker(event)" title="Emotes" aria-label="Emotes">
                             <span class="action-icon">🎭</span><span class="action-label">Emotes</span>
                         </button>
-                        <!-- Popover de emotes para la caja de diálogo -->
+                        <!-- Popover de emotes -->
                         <div id="vnDialogEmotePopover" class="vn-dialog-emote-popover" style="display:none;" aria-hidden="true">
                             <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('angry')" title="/angry"><span class="re-icon">💢</span><span class="re-label">Ira</span></button>
                             <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('happy')" title="/happy"><span class="re-icon">✨</span><span class="re-label">Alegría</span></button>
@@ -1320,20 +1360,8 @@
                             <button class="reply-emote-btn" type="button" onclick="selectReplyEmote('sleep')" title="/sleep"><span class="re-icon">💤</span><span class="re-label">Sueño</span></button>
                         </div>
                     </div>
-                    <!-- Derecha: acciones comunes -->
-                    <div class="vn-dialogue-actions-right">
-                        <button class="vn-dialogue-action-btn reply-btn" onclick="handleActionButtonClick(event); openReplyPanel()" aria-label="Responder">
-                            <span class="action-icon">💬</span><span class="action-label">Responder</span>
-                        </button>
-                        <button id="editMsgBtn" class="vn-dialogue-action-btn" onclick="handleActionButtonClick(event); editCurrentMessage()" aria-label="Editar mensaje">
-                            <span class="action-icon">✎</span><span class="action-label">Editar</span>
-                        </button>
-                        <!-- reaction-trigger-btn moved to corner badge; keeping icon span for JS -->
-                        <span id="vnReactionBtnIcon" style="display:none;">🙂</span>
-                        <button class="vn-dialogue-action-btn delete-message-btn" onclick="handleActionButtonClick(event); deleteCurrentMessage()" aria-label="Borrar mensaje">
-                            <span class="action-icon">🗑</span>
-                        </button>
-                    </div>
+                    <!-- Derecha: vacía — acciones de mensaje subidas a .vn-msg-actions -->
+                    <div class="vn-dialogue-actions-right" aria-hidden="true" style="display:none;"></div>
                 </div>
             </div>
             <!-- Picker de reacciones — se abre sobre el botón esquina -->

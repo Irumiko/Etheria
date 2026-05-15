@@ -4246,6 +4246,10 @@ function updateNarrateButton() {
         dmBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
     });
 
+    // ⚔️ Botón MASTER en Adventure Bar (caja de diálogo): solo RPG + owner
+    const masterBtn = document.getElementById('vnMasterBtn');
+    if (masterBtn) masterBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
+
     // 🍺 Posada: caja de diálogo, solo RPG + owner
     const innBtn = document.getElementById('vnInnkeeperBtn');
     if (innBtn) innBtn.style.display = (isRpg && isOwner) ? 'inline-flex' : 'none';
