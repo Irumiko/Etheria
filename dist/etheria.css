@@ -20280,8 +20280,22 @@ body.mode-rpg .vn-section::before {
     border: 0 !important;
 }
 
-/* Restaurar caja de diálogo y acciones integradas del panel inferior */
+/* Restaurar caja de diálogo y acciones integradas del panel inferior.
+   rpg-scene.css aplica position:static!important asumiendo que .bottom-panel
+   está dentro del grid .ui-layer. Como en el HTML real está fuera del grid,
+   restauramos el posicionamiento fijo original. */
 #vnSection .bottom-panel .vn-dialogue-box {
+    /* ── Posicionamiento ── */
+    position: fixed !important;
+    left: 50% !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: 2rem !important;
+    transform: translateX(-50%) !important;
+    width: min(900px, 85%) !important;
+    max-width: calc(100vw - 2rem) !important;
+    margin: 0 !important;
+    /* ── Apariencia ── */
     background: rgba(18, 12, 8, 0.78) !important;
     border: 1px solid rgba(201,168,108,0.35) !important;
     border-top: 1px solid rgba(255,255,255,0.06) !important;
