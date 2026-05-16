@@ -12984,15 +12984,15 @@ function rollOracleMini() {
         const char = appData.characters.find(c => String(c.id) === String(selectedCharId));
         const effects = applyRpgNarrativeProgress(selectedCharId, oracleData);
         if (effects) {
+            // Leer el perfil post-aplicación una sola vez (evita doble búsqueda)
+            const _profile = typeof ensureCharacterRpgProfile === 'function' && char
+                ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+            if (effects.levelUp && _profile) effects.newLevel = _profile.level;
             const badgeText = buildConsequenceBadgeText(result, effects, char?.name);
             if (badgeText) newMsg.oracleConsequence = badgeText;
-            // Guardar el nivel nuevo en effects para el badge
-            if (effects.levelUp && char) {
-                const profile = typeof ensureCharacterRpgProfile === 'function'
-                    ? ensureCharacterRpgProfile(char, currentTopicId)
-                    : null;
-                if (profile) effects.newLevel = profile.level;
-                newMsg.oracleConsequence = buildConsequenceBadgeText(result, effects, char?.name);
+            // Pieza B: embeber snapshot para propagación Realtime a co-autores
+            if (char && _profile) {
+                newMsg.rpgEffects = _buildRpgEffectsPayload(selectedCharId, _profile, effects);
             }
         }
     }
@@ -15455,6 +15455,89 @@ function buildConsequenceBadgeText(result, effects, charName) {
     return lines.join(' · ');
 }
 
+// ── Pieza B: Propagación Realtime de stats RPG ───────────────────────────────
+//
+// Cuando el Oráculo o el Master aplican efectos (HP/EXP/nivel) a un personaje,
+// el mensaje resultante lleva un campo `rpgEffects` con los valores absolutos
+// post-aplicación. El co-autor lo recibe vía _injectRealtimeMessage y llama
+// applyRpgEffectsFromMessage() para actualizar su copia local del perfil.
+//
+// Diseño: valores ABSOLUTOS (no deltas) → idempotente aunque llegue más de una vez.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Construye el payload rpgEffects con los valores actuales del perfil.
+ * Se llama justo DESPUÉS de que applyRpgNarrativeProgress() haya modificado
+ * el perfil local, capturando el estado resultante.
+ *
+ * @param {string} charId
+ * @param {object} profile — topic.rpgProfiles[charId] ya modificado
+ * @param {object} effects — devuelto por applyRpgNarrativeProgress
+ * @returns {object|null}
+ */
+function _buildRpgEffectsPayload(charId, profile, effects) {
+    if (!charId || !profile || !effects) return null;
+    return {
+        charId:          String(charId),
+        newHp:           Number(profile.hp          ?? 0),
+        newHpMax:        Number(profile.hpMax        ?? (typeof RPG_HP_MAX !== 'undefined' ? RPG_HP_MAX : 10)),
+        newExp:          Number(profile.exp          ?? 0),
+        newLevel:        Number(profile.level        ?? 1),
+        levelUp:         !!effects.levelUp,
+        knockedOut:      !!effects.knockedOut,
+        conditions:      Array.isArray(profile.conditions) ? [...profile.conditions] : [],
+        knockedOutTurns: Number(profile.knockedOutTurns ?? 0),
+        appliedAt:       new Date().toISOString()
+    };
+}
+
+/**
+ * Aplica un rpgEffects recibido vía Realtime al perfil local del personaje.
+ * Solo actúa sobre personajes que NO pertenecen al usuario actual (el autor
+ * ya aplicó los efectos al lanzar la tirada).
+ *
+ * @param {object} effects — msg.rpgEffects
+ * @param {string} [topicId]
+ */
+function applyRpgEffectsFromMessage(effects, topicId) {
+    if (!effects || !effects.charId) return;
+    var tid = topicId || currentTopicId;
+    if (!tid) return;
+
+    var char = typeof getCharacterById === 'function'
+        ? getCharacterById(effects.charId)
+        : (appData?.characters || []).find(function (c) { return String(c.id) === String(effects.charId); });
+    if (!char) return;
+    if (typeof ensureCharacterRpgProfile !== 'function') return;
+
+    // Saltar si el personaje pertenece al usuario actual: ya aplicó los efectos localmente
+    if (String(char.userIndex) === String(currentUserIndex)) return;
+
+    var profile = ensureCharacterRpgProfile(char, tid);
+
+    // Aplicar valores absolutos
+    if (typeof effects.newHp      === 'number') profile.hp             = effects.newHp;
+    if (typeof effects.newHpMax   === 'number') profile.hpMax          = effects.newHpMax;
+    if (typeof effects.newExp     === 'number') profile.exp            = effects.newExp;
+    if (typeof effects.newLevel   === 'number') profile.level          = effects.newLevel;
+    if (typeof effects.knockedOutTurns === 'number') profile.knockedOutTurns = effects.knockedOutTurns;
+    if (Array.isArray(effects.conditions))      profile.conditions     = effects.conditions;
+
+    // Guardar localmente
+    if (typeof hasUnsavedChanges !== 'undefined') hasUnsavedChanges = true;
+    if (typeof save === 'function') save({ silent: true });
+
+    // Refrescar panel de party (si está visible y estamos en modo RPG)
+    if (typeof renderVnPartyPanel === 'function') renderVnPartyPanel();
+
+    // Sincronizar con el motor RPG si está activo y el personaje es el activo
+    if (typeof RPGState !== 'undefined' && typeof RPGState.syncFromCharacter === 'function') {
+        try { RPGState.syncFromCharacter(char, tid); } catch (_e) { /* silencioso */ }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ============================================
 // ============================================
 // MODO CLÁSICO — CAPÍTULOS
@@ -16101,9 +16184,18 @@ function acceptChallenge(stat) {
 
     if (topic?.mode === 'rpg' && typeof applyRpgNarrativeProgress === 'function') {
         const effects = applyRpgNarrativeProgress(selectedCharId, oracleData);
-        if (effects && typeof buildConsequenceBadgeText === 'function') {
-            const consequence = buildConsequenceBadgeText(result, effects, char.name);
-            if (consequence) newMsg.oracleConsequence = consequence;
+        if (effects) {
+            const _profile = typeof ensureCharacterRpgProfile === 'function'
+                ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+            if (effects.levelUp && _profile) effects.newLevel = _profile.level;
+            if (typeof buildConsequenceBadgeText === 'function') {
+                const consequence = buildConsequenceBadgeText(result, effects, char.name);
+                if (consequence) newMsg.oracleConsequence = consequence;
+            }
+            // Pieza B: embeber snapshot para propagación Realtime a co-autores
+            if (_profile) {
+                newMsg.rpgEffects = _buildRpgEffectsPayload(selectedCharId, _profile, effects);
+            }
         }
     }
 
@@ -17048,14 +17140,15 @@ function postVNReply() {
         const _charForConseq = isNarratorMode ? null : appData.characters.find(c => String(c.id) === String(selectedCharId));
         const _effects = applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, oracleData);
         if (_effects && oracleData) {
+            // Leer perfil post-aplicación una sola vez
+            const _p = _charForConseq && typeof ensureCharacterRpgProfile === 'function'
+                ? ensureCharacterRpgProfile(_charForConseq, currentTopicId) : null;
+            if (_effects.levelUp && _p) _effects.newLevel = _p.level;
             const _conseqText = buildConsequenceBadgeText(oracleData.result, _effects, _charForConseq?.name);
-            if (_conseqText) {
-                newMsg.oracleConsequence = _conseqText;
-                if (_effects.levelUp && _charForConseq) {
-                    const _p = typeof ensureCharacterRpgProfile === 'function'
-                        ? ensureCharacterRpgProfile(_charForConseq, currentTopicId) : null;
-                    if (_p) { _effects.newLevel = _p.level; newMsg.oracleConsequence = buildConsequenceBadgeText(oracleData.result, _effects, _charForConseq.name); }
-                }
+            if (_conseqText) newMsg.oracleConsequence = _conseqText;
+            // Pieza B: embeber snapshot para propagación Realtime a co-autores
+            if (_charForConseq && _p) {
+                newMsg.rpgEffects = _buildRpgEffectsPayload(selectedCharId, _p, _effects);
             }
         }
     }
@@ -28677,6 +28770,15 @@ window.Ethy = Ethy;
             msgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             if (global.appData) global.appData.messages[global.currentTopicId] = msgs;
             if (typeof save === 'function') save({ silent: true });
+
+            // Pieza B: aplicar efectos RPG embebidos al perfil local del co-autor
+            if (msg.rpgEffects && typeof applyRpgEffectsFromMessage === 'function') {
+                try {
+                    applyRpgEffectsFromMessage(msg.rpgEffects, global.currentTopicId);
+                } catch (_e) {
+                    logger?.warn('supabase:stories', 'rpgEffects apply error:', _e?.message);
+                }
+            }
 
             const isAtEnd = global.currentMessageIndex >= msgs.length - 2;
             if (isAtEnd) {

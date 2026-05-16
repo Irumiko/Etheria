@@ -698,6 +698,15 @@
             if (global.appData) global.appData.messages[global.currentTopicId] = msgs;
             if (typeof save === 'function') save({ silent: true });
 
+            // Pieza B: aplicar efectos RPG embebidos al perfil local del co-autor
+            if (msg.rpgEffects && typeof applyRpgEffectsFromMessage === 'function') {
+                try {
+                    applyRpgEffectsFromMessage(msg.rpgEffects, global.currentTopicId);
+                } catch (_e) {
+                    logger?.warn('supabase:stories', 'rpgEffects apply error:', _e?.message);
+                }
+            }
+
             const isAtEnd = global.currentMessageIndex >= msgs.length - 2;
             if (isAtEnd) {
                 global.currentMessageIndex = msgs.length - 1;
