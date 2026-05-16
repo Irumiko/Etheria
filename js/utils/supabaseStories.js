@@ -698,12 +698,42 @@
             if (global.appData) global.appData.messages[global.currentTopicId] = msgs;
             if (typeof save === 'function') save({ silent: true });
 
-            // Pieza B: aplicar efectos RPG embebidos al perfil local del co-autor
+            // Pieza B: efectos RPG de un solo personaje (Oracle, HP directo, condiciones)
             if (msg.rpgEffects && typeof applyRpgEffectsFromMessage === 'function') {
                 try {
                     applyRpgEffectsFromMessage(msg.rpgEffects, global.currentTopicId);
                 } catch (_e) {
                     logger?.warn('supabase:stories', 'rpgEffects apply error:', _e?.message);
+                }
+            }
+            // Pieza C.1: efectos RPG múltiples (descanso corto, etc.)
+            if (Array.isArray(msg.rpgEffectsMulti) && typeof applyRpgEffectsFromMessage === 'function') {
+                msg.rpgEffectsMulti.forEach(function (eff) {
+                    try {
+                        applyRpgEffectsFromMessage(eff, global.currentTopicId);
+                    } catch (_e) {
+                        logger?.warn('supabase:stories', 'rpgEffectsMulti apply error:', _e?.message);
+                    }
+                });
+            }
+            // Pieza C.2c: forzar escena/clima del DM para co-autores
+            if (msg.isDmSystem) {
+                if (msg.sceneChange && typeof applySceneChangeToTopic === 'function') {
+                    try {
+                        const _t = global.appData?.topics?.find(function (t) {
+                            return String(t.id) === String(global.currentTopicId);
+                        });
+                        if (_t) applySceneChangeToTopic(_t, msg.sceneChange);
+                    } catch (_e) {
+                        logger?.warn('supabase:stories', 'sceneChange apply error:', _e?.message);
+                    }
+                }
+                if (msg.weatherChange && msg.weatherChange.weather && typeof setWeather === 'function') {
+                    try {
+                        setWeather(msg.weatherChange.weather);
+                    } catch (_e) {
+                        logger?.warn('supabase:stories', 'weatherChange apply error:', _e?.message);
+                    }
                 }
             }
 

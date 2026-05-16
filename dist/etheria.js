@@ -13540,7 +13540,8 @@ function _dmPopulateSelects() {
         ...chars.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
     ].join('');
 
-    ['dmTargetChar','dmItemTarget','dmRollTarget'].forEach(id => {
+    // Selects de personaje (existentes + nuevos de C.2)
+    ['dmTargetChar','dmItemTarget','dmRollTarget','dmHpTarget','dmExpTarget'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = options;
     });
@@ -13616,18 +13617,30 @@ function dmApplyCondition() {
     const charId = document.getElementById('dmTargetChar')?.value;
     const condId = document.getElementById('dmConditionSelect')?.value;
     if (!charId || !condId) { showAutosave('Selecciona personaje y condición', 'error'); return; }
-    if (typeof applyCharCondition === 'function') {
-        applyCharCondition(charId, condId, currentTopicId);
-        _dmRenderCharacterList();
-        // Propagar en tiempo real
-        if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
-            CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'apply' });
-        }
-        // Notificar en el chat como mensaje del narrador
-        const char = appData.characters.find(c => String(c.id) === String(charId));
-        const cond = window.RPG_CONDITIONS?.[condId];
-        if (char && cond) _dmPostSystemMessage(`${cond.icon} **${escapeHtml(char.name)}** sufre la condición **${cond.label}**. ${cond.desc}`);
+    if (typeof applyCharCondition !== 'function') return;
+
+    applyCharCondition(charId, condId, currentTopicId);
+    _dmRenderCharacterList();
+    renderVnPartyPanel();
+
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    const cond = window.RPG_CONDITIONS?.[condId];
+    if (!char || !cond) return;
+
+    // Pieza C.1: propagar vía rpgEffects en el mensaje (canal persistente)
+    const profile = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+    const rpgEffects = profile
+        ? _buildRpgEffectsPayload(charId, profile, { hpDelta: 0, expDelta: 0, levelUp: false, knockedOut: profile.hp === 0 })
+        : null;
+    // Mantener CollaborativeGuard como canal secundario (usuarios online simultáneamente)
+    if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
+        CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'apply' });
     }
+    _dmPostSystemMessage(
+        `${cond.icon} **${escapeHtml(char.name)}** sufre la condición **${cond.label}**. ${cond.desc}`,
+        rpgEffects ? { rpgEffects } : undefined
+    );
 }
 
 // Quitar condición del personaje seleccionado
@@ -13635,17 +13648,28 @@ function dmRemoveCondition() {
     const charId = document.getElementById('dmTargetChar')?.value;
     const condId = document.getElementById('dmConditionSelect')?.value;
     if (!charId || !condId) { showAutosave('Selecciona personaje y condición', 'error'); return; }
-    if (typeof removeCharCondition === 'function') {
-        removeCharCondition(charId, condId, currentTopicId);
-        _dmRenderCharacterList();
-        // Propagar en tiempo real
-        if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
-            CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'remove' });
-        }
-        const char = appData.characters.find(c => String(c.id) === String(charId));
-        const cond = window.RPG_CONDITIONS?.[condId];
-        if (char && cond) _dmPostSystemMessage(`${cond.icon} La condición **${cond.label}** ha sido eliminada de **${escapeHtml(char.name)}**.`);
+    if (typeof removeCharCondition !== 'function') return;
+
+    removeCharCondition(charId, condId, currentTopicId);
+    _dmRenderCharacterList();
+    renderVnPartyPanel();
+
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    const cond = window.RPG_CONDITIONS?.[condId];
+    if (!char || !cond) return;
+
+    const profile = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+    const rpgEffects = profile
+        ? _buildRpgEffectsPayload(charId, profile, { hpDelta: 0, expDelta: 0, levelUp: false, knockedOut: false })
+        : null;
+    if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
+        CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'remove' });
     }
+    _dmPostSystemMessage(
+        `${cond.icon} La condición **${cond.label}** ha sido eliminada de **${escapeHtml(char.name)}**.`,
+        rpgEffects ? { rpgEffects } : undefined
+    );
 }
 
 // Dar un objeto del catálogo a un personaje
@@ -13923,8 +13947,17 @@ function dmTriggerShortRest() {
     triggerShortRest();
 }
 
-// Publica un mensaje de sistema del DM (condiciones, objetos, tiradas)
-function _dmPostSystemMessage(text) {
+/**
+ * Publica un mensaje de sistema del DM en el chat.
+ *
+ * @param {string} text       — Texto del mensaje (Markdown soportado)
+ * @param {object} [payload]  — Campos extra para propagación Realtime:
+ *   .rpgEffects      {object}   — snapshot de stats de un personaje (Pieza B)
+ *   .rpgEffectsMulti {object[]} — array de snapshots (descanso corto, etc.)
+ *   .sceneChange     {object}   — { background } — fuerza fondo para co-autores
+ *   .weatherChange   {object}   — { weather }    — fuerza clima para co-autores
+ */
+function _dmPostSystemMessage(text, payload) {
     if (!text || !currentTopicId) return;
     const topicMessages = getTopicMessages(currentTopicId);
     const newMsg = {
@@ -13940,6 +13973,13 @@ function _dmPostSystemMessage(text) {
         userIndex:   currentUserIndex,
         timestamp:   new Date().toISOString()
     };
+    // Embeber payload para propagación Realtime (Pieza C.1)
+    if (payload) {
+        if (payload.rpgEffects)      newMsg.rpgEffects      = payload.rpgEffects;
+        if (payload.rpgEffectsMulti) newMsg.rpgEffectsMulti = payload.rpgEffectsMulti;
+        if (payload.sceneChange)     newMsg.sceneChange     = payload.sceneChange;
+        if (payload.weatherChange)   newMsg.weatherChange   = payload.weatherChange;
+    }
     topicMessages.push(newMsg);
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
@@ -13971,16 +14011,23 @@ function dmReviveCharacter(charId) {
 
     if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
 
-    _dmPostSystemMessage(
-        `✦ **${escapeHtml(char.name)}** ha sido reincorporado a la partida por intervención del DM. ` +
-        `*La historia continúa.*`
+    // Pieza C.1: propagar reincorporación vía rpgEffects (canal persistente)
+    const _reviveEffects = _buildRpgEffectsPayload(
+        charId, profile,
+        { hpDelta: 0, expDelta: 0, levelUp: false, knockedOut: false }
     );
-    // Propagar en tiempo real para que el jugador pueda volver a actuar
+    // Canal secundario para usuarios online (presencia)
     if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
         CollaborativeGuard.broadcastDmEvent('dm_revive', { charId, topicId: currentTopicId });
     }
+    _dmPostSystemMessage(
+        `✦ **${escapeHtml(char.name)}** ha sido reincorporado a la partida por intervención del DM. ` +
+        `*La historia continúa.*`,
+        _reviveEffects ? { rpgEffects: _reviveEffects } : undefined
+    );
     showAutosave(`${char.name} reincorporado a la partida`, 'saved');
     _dmRenderCharacterList();
+    renderVnPartyPanel();
 }
 
 // ── Uso automático de poción al ≤30% HP ─────────────────────────────────────
@@ -14096,6 +14143,134 @@ window.addEventListener('etheria:story-participants-loaded', function(e) {
     renderVnPartyPanel(true);
 });
 
+// ── C.2a — Ajuste directo de HP por el DM ────────────────────────────────────
+/**
+ * Ajusta el HP del personaje seleccionado en #dmHpTarget.
+ * @param {number} sign  +1 = curar, -1 = dañar
+ */
+function dmAdjustHp(sign) {
+    if (!_isDM()) return;
+    const charId = document.getElementById('dmHpTarget')?.value;
+    const amount = Math.max(1, Math.abs(Number(document.getElementById('dmHpAmount')?.value) || 1));
+    if (!charId) { showAutosave('Selecciona un personaje', 'error'); return; }
+
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+    const profile = ensureCharacterRpgProfile(char, currentTopicId);
+
+    const hpMax    = Math.max(1, Number(profile.hpMax) || (typeof RPG_HP_MAX !== 'undefined' ? RPG_HP_MAX : 10));
+    const hpBefore = Math.max(0, Math.min(hpMax, Number(profile.hp) || 0));
+    profile.hp     = Math.max(0, Math.min(hpMax, hpBefore + sign * amount));
+    const hpAfter  = profile.hp;
+    const delta    = hpAfter - hpBefore;
+
+    if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+    _dmRenderCharacterList();
+    renderVnPartyPanel();
+
+    const icon   = sign > 0 ? '💚' : '🩸';
+    const sign_s = delta >= 0 ? '+' : '';
+    const rpgEffects = typeof _buildRpgEffectsPayload === 'function'
+        ? _buildRpgEffectsPayload(charId, profile, { hpDelta: delta, expDelta: 0, levelUp: false, knockedOut: hpAfter === 0 })
+        : null;
+
+    _dmPostSystemMessage(
+        `${icon} El DM ajusta los PV de **${escapeHtml(char.name)}**: ${sign_s}${delta} HP → ${hpAfter}/${hpMax}.`,
+        rpgEffects ? { rpgEffects } : undefined
+    );
+}
+
+// ── C.2b — Conceder EXP manualmente ─────────────────────────────────────────
+function dmAwardExp() {
+    if (!_isDM()) return;
+    const charId = document.getElementById('dmExpTarget')?.value;
+    const amount = Math.max(1, Number(document.getElementById('dmExpAmount')?.value) || 1);
+    if (!charId) { showAutosave('Selecciona un personaje', 'error'); return; }
+
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+    const profile = ensureCharacterRpgProfile(char, currentTopicId);
+
+    const expPerLevel = typeof RPG_EXP_PER_LEVEL !== 'undefined' ? RPG_EXP_PER_LEVEL : 10;
+    profile.exp = (profile.exp || 0) + amount;
+    let leveledUp = false;
+
+    if (profile.exp >= expPerLevel) {
+        profile.exp   = profile.exp % expPerLevel;
+        profile.level = (profile.level || 1) + 1;
+        leveledUp     = true;
+        if (typeof recalcHpMaxOnLevelUp === 'function') recalcHpMaxOnLevelUp(profile, char);
+    }
+
+    if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+    _dmRenderCharacterList();
+    renderVnPartyPanel();
+
+    const effects    = { hpDelta: 0, expDelta: amount, levelUp: leveledUp };
+    if (leveledUp) effects.newLevel = profile.level;
+    const rpgEffects = typeof _buildRpgEffectsPayload === 'function'
+        ? _buildRpgEffectsPayload(charId, profile, effects) : null;
+
+    let msgText = `✦ El DM concede **+${amount} EXP** a **${escapeHtml(char.name)}**.`;
+    if (leveledUp) {
+        msgText += ` *¡Sube al nivel ${profile.level}! Distribuye +1 punto de stat desde la ficha.*`;
+        setTimeout(() => {
+            if (typeof openLevelUpModal === 'function') openLevelUpModal(charId, profile.level);
+        }, 800);
+    }
+    _dmPostSystemMessage(msgText, rpgEffects ? { rpgEffects } : undefined);
+    showAutosave(leveledUp ? `✦ ¡${char.name} sube al nivel ${profile.level}!` : `+${amount} EXP concedidos a ${char.name}`, 'saved');
+}
+
+// ── C.2c — Forzar cambio de escena/clima para todos ─────────────────────────
+function dmForceScene() {
+    if (!_isDM()) return;
+    const background = (document.getElementById('dmSceneBackground')?.value || '').trim();
+    const weather    = document.getElementById('dmSceneWeather')?.value || 'none';
+    const narration  = (document.getElementById('dmSceneNarration')?.value || '').trim();
+
+    if (!background && weather === 'none' && !narration) {
+        showAutosave('Define un fondo, clima o narración de escena', 'error');
+        return;
+    }
+
+    const topic = getCurrentTopic();
+    if (!topic) return;
+
+    // Aplicar localmente
+    const sceneChange   = background ? { background } : null;
+    const weatherChange = weather !== 'none' ? { weather } : null;
+
+    if (background) {
+        topic.background = background;
+        const vnSection  = document.getElementById('vnSection');
+        if (typeof applyTopicBackground === 'function') applyTopicBackground(vnSection, background);
+        if (typeof playVnSceneTransition === 'function') playVnSceneTransition(vnSection);
+    }
+    if (weather !== 'none' && typeof setWeather === 'function') setWeather(weather);
+
+    // Texto de narración
+    const weatherLabels = { rain: '🌧 Lluvia', fog: '🌫 Niebla' };
+    let msgText = narration
+        ? `🎬 *${escapeHtml(narration)}*`
+        : '🎬 **El DM cambia la escena.**';
+    if (weatherChange) msgText += ` · ${weatherLabels[weather] || weather}`;
+
+    _dmPostSystemMessage(msgText, {
+        sceneChange:   sceneChange   || undefined,
+        weatherChange: weatherChange || undefined
+    });
+
+    // Limpiar campos
+    const bgEl  = document.getElementById('dmSceneBackground');
+    const narEl = document.getElementById('dmSceneNarration');
+    if (bgEl)  bgEl.value  = '';
+    if (narEl) narEl.value = '';
+
+    showAutosave('Cambio de escena enviado a todos', 'saved');
+    closeDmPanel();
+}
+
 window.toggleDmPanel     = toggleDmPanel;
 window.openDmPanel       = openDmPanel;
 window.closeDmPanel      = closeDmPanel;
@@ -14110,6 +14285,9 @@ window.acceptChallenge   = acceptChallenge;
 window.dismissChallenge  = dismissChallenge;
 window.dmSendAsNpc       = dmSendAsNpc;
 window.dmTriggerShortRest = dmTriggerShortRest;
+window.dmAdjustHp        = dmAdjustHp;
+window.dmAwardExp        = dmAwardExp;
+window.dmForceScene      = dmForceScene;
 
 // ============================================
 // BOTÓN DE NARRACIÓN FLOTANTE (escena/capítulo)
@@ -15074,6 +15252,8 @@ function triggerShortRest() {
     let healedChars = 0;
     let totalHpRecovered = 0;
     const hpCap = Math.max(1, Number(globalThis.RPG_HP_MAX || 10));
+    // Pieza C.1: recopilar snapshots post-curación para todos los personajes
+    const rpgEffectsMulti = [];
 
     appData.characters.forEach((ch) => {
         if (typeof ensureCharacterRpgProfile !== 'function') return;
@@ -15089,6 +15269,11 @@ function triggerShortRest() {
             healedChars += 1;
             totalHpRecovered += gained;
         }
+        // Capturar snapshot absoluto para propagación Realtime
+        const eff = typeof _buildRpgEffectsPayload === 'function'
+            ? _buildRpgEffectsPayload(String(ch.id), profile, { hpDelta: gained, expDelta: 0, levelUp: false, knockedOut: false })
+            : null;
+        if (eff) rpgEffectsMulti.push(eff);
     });
 
     hasUnsavedChanges = true;
@@ -15096,9 +15281,15 @@ function triggerShortRest() {
     renderVnPartyPanel();
     if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
     if (typeof refreshDmPanelCharacterList === 'function') refreshDmPanelCharacterList();
+
+    const _restLabel = healedChars > 0
+        ? `⛺ Descanso corto — la party recupera ${Math.round(SHORT_REST_HEAL_RATIO * 100)}% de vida (+${totalHpRecovered} HP en total).`
+        : '⛺ Descanso corto — la party descansa. Nadie necesitaba curación.';
     showAutosave(healedChars > 0
         ? `⛺ Descanso corto aplicado (${Math.round(SHORT_REST_HEAL_RATIO * 100)}%): +${totalHpRecovered} HP totales`
         : '⛺ Descanso corto aplicado (sin curación necesaria)', 'saved');
+    // Enviar mensaje de sistema con los snapshots para co-autores
+    _dmPostSystemMessage(_restLabel, rpgEffectsMulti.length ? { rpgEffectsMulti } : undefined);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -26253,12 +26444,42 @@ window.Ethy = Ethy;
             if (global.appData) global.appData.messages[global.currentTopicId] = msgs;
             if (typeof save === 'function') save({ silent: true });
 
-            // Pieza B: aplicar efectos RPG embebidos al perfil local del co-autor
+            // Pieza B: efectos RPG de un solo personaje (Oracle, HP directo, condiciones)
             if (msg.rpgEffects && typeof applyRpgEffectsFromMessage === 'function') {
                 try {
                     applyRpgEffectsFromMessage(msg.rpgEffects, global.currentTopicId);
                 } catch (_e) {
                     logger?.warn('supabase:stories', 'rpgEffects apply error:', _e?.message);
+                }
+            }
+            // Pieza C.1: efectos RPG múltiples (descanso corto, etc.)
+            if (Array.isArray(msg.rpgEffectsMulti) && typeof applyRpgEffectsFromMessage === 'function') {
+                msg.rpgEffectsMulti.forEach(function (eff) {
+                    try {
+                        applyRpgEffectsFromMessage(eff, global.currentTopicId);
+                    } catch (_e) {
+                        logger?.warn('supabase:stories', 'rpgEffectsMulti apply error:', _e?.message);
+                    }
+                });
+            }
+            // Pieza C.2c: forzar escena/clima del DM para co-autores
+            if (msg.isDmSystem) {
+                if (msg.sceneChange && typeof applySceneChangeToTopic === 'function') {
+                    try {
+                        const _t = global.appData?.topics?.find(function (t) {
+                            return String(t.id) === String(global.currentTopicId);
+                        });
+                        if (_t) applySceneChangeToTopic(_t, msg.sceneChange);
+                    } catch (_e) {
+                        logger?.warn('supabase:stories', 'sceneChange apply error:', _e?.message);
+                    }
+                }
+                if (msg.weatherChange && msg.weatherChange.weather && typeof setWeather === 'function') {
+                    try {
+                        setWeather(msg.weatherChange.weather);
+                    } catch (_e) {
+                        logger?.warn('supabase:stories', 'weatherChange apply error:', _e?.message);
+                    }
                 }
             }
 

@@ -929,15 +929,32 @@
                 <button class="vn-dm-tab" type="button" role="tab" aria-selected="false" data-tab="tools" onclick="switchDmTab('tools', this)">Utilidades</button>
             </div>
 
-            <!-- Sección: Personajes en la partida -->
+            <!-- ── Grupo: personajes + ajuste de HP ── -->
             <div class="vn-dm-tab-panel active" data-tab-panel="party">
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Personajes</div>
                 <div id="dmCharacterList" class="dm-character-list"></div>
             </div>
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Ajustar HP</div>
+                <div class="dm-hp-controls">
+                    <select id="dmHpTarget" class="dm-select">
+                        <option value="">— Personaje —</option>
+                    </select>
+                    <div class="dm-hp-adj-row">
+                        <button class="dm-btn dm-btn-dmg" onclick="dmAdjustHp(-1)" title="Dañar">−</button>
+                        <input type="number" id="dmHpAmount" class="dm-input dm-hp-input" value="1" min="1" max="99" aria-label="Cantidad de HP">
+                        <button class="dm-btn dm-btn-heal" onclick="dmAdjustHp(1)" title="Curar">+</button>
+                    </div>
+                    <div class="dm-btn-row">
+                        <button class="dm-btn dm-btn-dmg" onclick="dmAdjustHp(-1)">🩸 Dañar</button>
+                        <button class="dm-btn dm-btn-heal" onclick="dmAdjustHp(1)">💚 Curar</button>
+                    </div>
+                </div>
+            </div>
             </div>
 
-            <!-- Sección: Condiciones -->
+            <!-- ── Control: condiciones + objetos ── -->
             <div class="vn-dm-tab-panel" data-tab-panel="control">
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Aplicar condición</div>
@@ -954,8 +971,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Sección: Dar objeto -->
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Dar objeto</div>
                 <div class="dm-item-controls">
@@ -970,8 +985,21 @@
             </div>
             </div>
 
-            <!-- Sección: Desafío (tirada con opciones y DC) -->
+            <!-- ── Escena: fondo, clima, desafío, NPC ── -->
             <div class="vn-dm-tab-panel" data-tab-panel="scene">
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Forzar escena</div>
+                <div class="dm-scene-controls">
+                    <input type="url" id="dmSceneBackground" class="dm-input" placeholder="URL del fondo (dejar vacío para no cambiar)" maxlength="500">
+                    <select id="dmSceneWeather" class="dm-select" aria-label="Clima de la escena">
+                        <option value="none">☀️ Sin cambio de clima</option>
+                        <option value="rain">🌧 Lluvia</option>
+                        <option value="fog">🌫 Niebla</option>
+                    </select>
+                    <input type="text" id="dmSceneNarration" class="dm-input" placeholder="Narración del cambio (opcional)" maxlength="200">
+                    <button class="dm-btn dm-btn-roll" onclick="dmForceScene()">🎬 Aplicar a todos</button>
+                </div>
+            </div>
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Proponer desafío</div>
                 <div class="dm-challenge-controls">
@@ -1002,8 +1030,6 @@
                     <button class="dm-btn dm-btn-roll" onclick="dmSendChallenge()">🎲 Lanzar propuesta</button>
                 </div>
             </div>
-
-            <!-- Sección: Narrar como NPC -->
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Narrar como NPC</div>
                 <div class="dm-npc-controls">
@@ -1013,11 +1039,25 @@
                 </div>
             </div>
             </div>
+
+            <!-- ── Utilidades: descanso + EXP manual ── -->
             <div class="vn-dm-tab-panel" data-tab-panel="tools">
             <div class="vn-dm-section">
-                <div class="vn-dm-section-label">Utilidades</div>
+                <div class="vn-dm-section-label">Descanso corto</div>
                 <div class="dm-item-controls">
                     <button class="dm-btn dm-btn-apply" onclick="dmTriggerShortRest()">⛺ Activar descanso corto (25% HP)</button>
+                </div>
+            </div>
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Conceder EXP</div>
+                <div class="dm-exp-controls">
+                    <select id="dmExpTarget" class="dm-select">
+                        <option value="">— Personaje —</option>
+                    </select>
+                    <div class="dm-hp-adj-row">
+                        <input type="number" id="dmExpAmount" class="dm-input dm-hp-input" value="1" min="1" max="999" aria-label="Cantidad de EXP">
+                    </div>
+                    <button class="dm-btn dm-btn-heal" onclick="dmAwardExp()">✦ Conceder EXP</button>
                 </div>
             </div>
             </div>
