@@ -737,6 +737,17 @@
                 }
             }
 
+            // C.4: tiradas de salvación — propagar al jugador objetivo vía canal persistente
+            if (msg.isMasterRoll && msg.masterRoll && typeof global._handleIncomingMasterRoll === 'function') {
+                try { global._handleIncomingMasterRoll(msg.masterRoll); }
+                catch (_e) { logger?.warn('supabase:stories', 'masterRoll inject error:', _e?.message); }
+            }
+            // C.4: resolución — eliminar tirada de los pendientes del receptor
+            if (msg.masterRollResolution && typeof global._handleMasterRollResolution === 'function') {
+                try { global._handleMasterRollResolution(msg.masterRollResolution); }
+                catch (_e) { logger?.warn('supabase:stories', 'masterRollResolution error:', _e?.message); }
+            }
+
             const isAtEnd = global.currentMessageIndex >= msgs.length - 2;
             if (isAtEnd) {
                 global.currentMessageIndex = msgs.length - 1;

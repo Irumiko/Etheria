@@ -1688,3 +1688,166 @@ body.mode-rpg .story-participant-turn-icon {
         transform: translateX(0) translateY(0);
     }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Sección 11 — C.4 Tirada de Salvación (Master Roll bar + DM form)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Barra del jugador — aparece sobre la zona de diálogo ── */
+#vnMasterRollBar {
+    display: none;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.7rem 0.85rem 0.8rem;
+    background: linear-gradient(135deg,
+        rgba(20, 10, 5, 0.97) 0%,
+        rgba(90, 30, 10, 0.95) 100%);
+    border: 1px solid rgba(201, 168, 108, 0.45);
+    border-left: 3px solid #c9a86c;
+    border-radius: 8px;
+    margin: 0.5rem 0 0.25rem;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.5), inset 0 0 30px rgba(201,168,108,0.04);
+    animation: mrBarSlideIn 0.3s ease;
+}
+
+@keyframes mrBarSlideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+
+.vn-mr-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+}
+
+.vn-mr-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.vn-mr-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+}
+
+.vn-mr-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--eth-gold);
+    opacity: 0.8;
+}
+
+.vn-mr-situation {
+    font-size: 0.84rem;
+    color: rgba(255,245,225,0.92);
+    line-height: 1.4;
+    font-style: italic;
+}
+
+.vn-mr-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.vn-mr-opt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(201,168,108,0.1);
+    border: 1px solid rgba(201,168,108,0.35);
+    border-radius: 6px;
+    color: rgba(255,245,225,0.9);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s;
+    text-align: left;
+    max-width: 100%;
+}
+.vn-mr-opt-btn:hover {
+    background: rgba(201,168,108,0.22);
+    border-color: rgba(201,168,108,0.7);
+    transform: translateY(-1px);
+}
+.vn-mr-opt-btn:active {
+    transform: translateY(0);
+}
+
+.vn-mr-opt-letter {
+    font-weight: 700;
+    color: var(--eth-gold);
+    flex-shrink: 0;
+    min-width: 1rem;
+}
+
+.vn-mr-opt-text {
+    flex: 1;
+}
+
+.vn-mr-opt-hp {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.vn-mr-hp-pos {
+    color: #7ecb8f;
+    background: rgba(90, 148, 112, 0.18);
+    border: 1px solid rgba(90,148,112,0.3);
+}
+.vn-mr-hp-neg {
+    color: #e07070;
+    background: rgba(140, 40, 40, 0.18);
+    border: 1px solid rgba(140,40,40,0.3);
+}
+
+/* ── DM form — Tirada de Salvación (panel Utilidades) ── */
+.dm-masterroll-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.dm-mr-options-label {
+    font-size: 0.7rem;
+    color: rgba(201,168,108,0.75);
+    letter-spacing: 0.04em;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+.dm-mr-option-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.dm-mr-opt-hp.dm-input {
+    width: 5.5rem;
+    text-align: center;
+}
+
+/* ── Mobile ── */
+@media (max-width: 540px) {
+    .vn-mr-options {
+        flex-direction: column;
+    }
+    .vn-mr-opt-btn {
+        width: 100%;
+    }
+    .dm-mr-option-row {
+        grid-template-columns: 1fr;
+    }
+    .dm-mr-opt-hp.dm-input {
+        width: 100%;
+    }
+}

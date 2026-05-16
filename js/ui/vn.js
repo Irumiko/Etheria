@@ -30,6 +30,7 @@ const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
 const preloadedBackgrounds = new Set();
 let pendingSceneChange = null;
 let pendingChapter     = null;
+var _pendingMasterRolls = []; // C.4 — tiradas de salvación pendientes [{ id, targetCharId, situation, options, resolved }]
 let oracleStat = 'STR';
 let oracleQuestionDirty = false;
 const NARRATIVE_CRITICAL_TURNS = 3;
@@ -3764,8 +3765,8 @@ function _dmPopulateSelects() {
         ...chars.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
     ].join('');
 
-    // Selects de personaje (existentes + nuevos de C.2)
-    ['dmTargetChar','dmItemTarget','dmRollTarget','dmHpTarget','dmExpTarget'].forEach(id => {
+    // Selects de personaje (existentes + nuevos de C.2 / C.4)
+    ['dmTargetChar','dmItemTarget','dmRollTarget','dmHpTarget','dmExpTarget','dmMrTarget'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = options;
     });
@@ -4197,12 +4198,15 @@ function _dmPostSystemMessage(text, payload) {
         userIndex:   currentUserIndex,
         timestamp:   new Date().toISOString()
     };
-    // Embeber payload para propagación Realtime (Pieza C.1)
+    // Embeber payload para propagación Realtime (Pieza C.1 / C.4)
     if (payload) {
-        if (payload.rpgEffects)      newMsg.rpgEffects      = payload.rpgEffects;
-        if (payload.rpgEffectsMulti) newMsg.rpgEffectsMulti = payload.rpgEffectsMulti;
-        if (payload.sceneChange)     newMsg.sceneChange     = payload.sceneChange;
-        if (payload.weatherChange)   newMsg.weatherChange   = payload.weatherChange;
+        if (payload.rpgEffects)           newMsg.rpgEffects           = payload.rpgEffects;
+        if (payload.rpgEffectsMulti)      newMsg.rpgEffectsMulti      = payload.rpgEffectsMulti;
+        if (payload.sceneChange)          newMsg.sceneChange          = payload.sceneChange;
+        if (payload.weatherChange)        newMsg.weatherChange        = payload.weatherChange;
+        if (payload.isMasterRoll)         newMsg.isMasterRoll         = payload.isMasterRoll;
+        if (payload.masterRoll)           newMsg.masterRoll           = payload.masterRoll;
+        if (payload.masterRollResolution) newMsg.masterRollResolution = payload.masterRollResolution;
     }
     topicMessages.push(newMsg);
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
@@ -4495,6 +4499,263 @@ function dmForceScene() {
     closeDmPanel();
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// C.4 — TIRADA DE SALVACIÓN (Master Roll)
+// El DM define una situación + opciones con consecuencias para un personaje.
+// Las opciones aparecen SOLO cuando es el turno de ese personaje, y solo el
+// propietario puede elegir. El resultado se narra automáticamente.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function dmSendMasterRoll() {
+    if (!_isDM()) return;
+    const charId    = document.getElementById('dmMrTarget')?.value;
+    const situation = document.getElementById('dmMrSituation')?.value.trim();
+
+    if (!charId)    { showAutosave('Selecciona un personaje objetivo', 'warn'); return; }
+    if (!situation) { showAutosave('Describe la situación primero', 'warn'); return; }
+
+    // Recoger opciones (solo las que tienen etiqueta)
+    const rows    = document.querySelectorAll('#dmMrOptionsList .dm-mr-option-row');
+    const options = [];
+    rows.forEach(function (row) {
+        const lbl    = row.querySelector('.dm-mr-opt-label')?.value.trim();
+        const hpStr  = row.querySelector('.dm-mr-opt-hp')?.value.trim();
+        const hpNum  = hpStr !== '' ? Number(hpStr) : null;
+        if (lbl) options.push({ label: lbl, hpDelta: (hpStr === '' || isNaN(hpNum)) ? null : hpNum });
+    });
+
+    if (options.length < 2) { showAutosave('Añade al menos 2 opciones', 'warn'); return; }
+
+    const char = appData.characters.find(function (c) { return String(c.id) === String(charId); });
+    if (!char) return;
+
+    const mrId       = (globalThis.crypto?.randomUUID?.()) || ('mr_' + Date.now());
+    const masterRoll = { id: mrId, targetCharId: String(charId), situation: situation, options: options, resolved: false };
+
+    // Texto del mensaje en el chat (visible para todos)
+    const letters  = ['A','B','C','D'];
+    const optLines = options.map(function (o, i) {
+        const hpHint = o.hpDelta !== null
+            ? ' (' + (o.hpDelta >= 0 ? '+' : '') + o.hpDelta + ' HP)'
+            : '';
+        return '**' + (letters[i] || (i+1)) + '.** ' + escapeHtml(o.label) + hpHint;
+    }).join('\n');
+
+    _dmPostSystemMessage(
+        '⚔️ **Tirada de Salvación** — *' + escapeHtml(situation) + '*\n' +
+        'El personaje **' + escapeHtml(char.name) + '** debe elegir en su turno:\n' + optLines,
+        { isMasterRoll: true, masterRoll: masterRoll }
+    );
+
+    // Limpiar formulario
+    const sitEl = document.getElementById('dmMrSituation');
+    if (sitEl) sitEl.value = '';
+    document.querySelectorAll('#dmMrOptionsList .dm-mr-opt-label').forEach(function (i) { i.value = ''; });
+    document.querySelectorAll('#dmMrOptionsList .dm-mr-opt-hp').forEach(function (i) { i.value = ''; });
+
+    showAutosave('Tirada de salvación enviada para ' + char.name, 'saved');
+    closeDmPanel();
+}
+
+// Llamada desde supabaseStories cuando llega un msg.isMasterRoll vía Realtime
+function _handleIncomingMasterRoll(masterRoll) {
+    if (!masterRoll || !masterRoll.id) return;
+    if (_pendingMasterRolls.some(function (mr) { return mr.id === masterRoll.id; })) return;
+    _pendingMasterRolls.push(masterRoll);
+    _checkAndShowMasterRollBar();
+}
+
+// Llamada desde supabaseStories cuando llega un msg.masterRollResolution
+function _handleMasterRollResolution(resolution) {
+    if (!resolution || !resolution.originalMrId) return;
+    _pendingMasterRolls = _pendingMasterRolls.filter(function (mr) { return mr.id !== resolution.originalMrId; });
+    _checkAndShowMasterRollBar();
+}
+
+// Escanea los mensajes al entrar a una historia para reconstruir _pendingMasterRolls
+function _scanForPendingMasterRolls(topicId) {
+    if (!topicId) return;
+    const msgs = typeof getTopicMessages === 'function'
+        ? getTopicMessages(topicId)
+        : ((appData && appData.messages && appData.messages[topicId]) || []);
+
+    // Recoger IDs ya resueltos
+    const resolvedIds = new Set();
+    msgs.forEach(function (m) {
+        if (m.masterRollResolution && m.masterRollResolution.originalMrId) {
+            resolvedIds.add(m.masterRollResolution.originalMrId);
+        }
+    });
+
+    // Reconstruir lista de pendientes
+    _pendingMasterRolls = [];
+    msgs.forEach(function (m) {
+        if (m.isMasterRoll && m.masterRoll && !resolvedIds.has(m.masterRoll.id)) {
+            if (!_pendingMasterRolls.some(function (mr) { return mr.id === m.masterRoll.id; })) {
+                _pendingMasterRolls.push(m.masterRoll);
+            }
+        }
+    });
+    _checkAndShowMasterRollBar();
+}
+
+// Evalúa si debe mostrarse la barra de tirada de salvación para el personaje activo
+function _checkAndShowMasterRollBar() {
+    if (!selectedCharId || !currentTopicId) { _hideMasterRollBar(); return; }
+
+    const topic = getCurrentTopic();
+    if (!topic || topic.mode !== 'rpg') { _hideMasterRollBar(); return; }
+
+    // El personaje seleccionado debe pertenecer al usuario actual
+    const myChar = (appData.characters || []).find(function (c) {
+        return String(c.id) === String(selectedCharId) &&
+               String(c.userIndex) === String(currentUserIndex);
+    });
+    if (!myChar) { _hideMasterRollBar(); return; }
+
+    // Si hay turn_mode activo, solo mostrar cuando sea el turno del usuario
+    const turnMode = topic.turn_mode || topic.turnMode || 'off';
+    if (turnMode !== 'off') {
+        const activeUserId = topic.turnOrder && topic.turnOrder[0];
+        const myUserId     = window._cachedUserId;
+        if (activeUserId && myUserId && String(activeUserId) !== String(myUserId)) {
+            _hideMasterRollBar(); return;
+        }
+    }
+
+    // Buscar tirada pendiente para este personaje
+    const pending = _pendingMasterRolls.find(function (mr) {
+        return String(mr.targetCharId) === String(selectedCharId) && !mr.resolved;
+    });
+    if (!pending) { _hideMasterRollBar(); return; }
+
+    _showMasterRollBar(pending);
+}
+
+function _showMasterRollBar(mr) {
+    const bar    = document.getElementById('vnMasterRollBar');
+    const sitEl  = document.getElementById('vnMrSituation');
+    const optsEl = document.getElementById('vnMrOptions');
+    if (!bar) return;
+
+    if (sitEl) sitEl.textContent = mr.situation || '…';
+
+    if (optsEl) {
+        const letters = ['A','B','C','D'];
+        optsEl.innerHTML = mr.options.map(function (opt, i) {
+            const letter  = letters[i] || String(i + 1);
+            const hpClass = (opt.hpDelta !== null && opt.hpDelta !== undefined)
+                ? (opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg') : '';
+            const hpHtml  = (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta))
+                ? '<span class="vn-mr-opt-hp ' + hpClass + '">' +
+                  (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP</span>'
+                : '';
+            return '<button class="vn-mr-opt-btn" ' +
+                   'onclick="resolveMasterRoll(\'' + escapeHtml(mr.id) + '\',' + i + ')">' +
+                   '<span class="vn-mr-opt-letter">' + letter + '</span>' +
+                   '<span class="vn-mr-opt-text">' + escapeHtml(opt.label) + '</span>' +
+                   hpHtml +
+                   '</button>';
+        }).join('');
+    }
+
+    bar.style.display = 'flex';
+}
+
+function _hideMasterRollBar() {
+    const bar = document.getElementById('vnMasterRollBar');
+    if (bar) bar.style.display = 'none';
+}
+
+// El jugador elige una opción — aplica efectos, narra, cierra la barra
+function resolveMasterRoll(mrId, optionIndex) {
+    const mr = _pendingMasterRolls.find(function (m) { return m.id === mrId; });
+    if (!mr || mr.resolved) return;
+
+    const opt = mr.options[optionIndex];
+    if (!opt) return;
+
+    // Solo el propietario del personaje puede resolver
+    const char = (appData.characters || []).find(function (c) {
+        return String(c.id) === String(mr.targetCharId) &&
+               String(c.userIndex) === String(currentUserIndex);
+    });
+    if (!char) { showAutosave('Solo el propietario de este personaje puede elegir', 'warn'); return; }
+
+    const topicId = currentTopicId;
+    const profile  = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, topicId) : null;
+
+    let rpgEffects   = null;
+    let hpResultText = '';
+
+    // Aplicar cambio de HP si la opción lo especifica
+    if (profile && opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta)) {
+        const hpMax  = profile.hpMax || profile.hp || 10;
+        profile.hp   = Math.max(0, Math.min(hpMax, (profile.hp || 0) + opt.hpDelta));
+        if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+
+        rpgEffects = typeof _buildRpgEffectsPayload === 'function'
+            ? _buildRpgEffectsPayload(String(char.id), profile, {
+                hpDelta:   opt.hpDelta,
+                expDelta:  0,
+                levelUp:   false,
+                knockedOut: profile.hp === 0
+              })
+            : null;
+
+        const sign = opt.hpDelta >= 0 ? '+' : '';
+        hpResultText = ' *[' + sign + opt.hpDelta + ' HP → ' + profile.hp + '/' + hpMax + ']*';
+        if (typeof renderVnPartyPanel === 'function') renderVnPartyPanel();
+    }
+
+    // Marcar resuelta y ocultar barra
+    mr.resolved = true;
+    _pendingMasterRolls = _pendingMasterRolls.filter(function (m) { return m.id !== mrId; });
+    _hideMasterRollBar();
+
+    // Texto narrado automáticamente
+    const letter       = ['A','B','C','D'][optionIndex] || String(optionIndex + 1);
+    const narratorText = '⚔️ **Tirada de Salvación resuelta** — *' + escapeHtml(mr.situation) + '*\n' +
+        '**' + escapeHtml(char.name) + '** elige: **' + letter + '. ' + escapeHtml(opt.label) + '**' + hpResultText;
+
+    const resolution = {
+        originalMrId:      mrId,
+        targetCharId:      String(mr.targetCharId),
+        chosenOptionIndex: optionIndex
+    };
+
+    const topicMessages = typeof getTopicMessages === 'function' ? getTopicMessages(topicId) : [];
+    const resolveMsg    = {
+        id:          (globalThis.crypto?.randomUUID?.()) || ('mr_res_' + Date.now()),
+        characterId: null,
+        charName:    'Narrador',
+        charColor:   '#c9a86c',
+        charAvatar:  null,
+        charSprite:  null,
+        text:        narratorText,
+        isNarrator:  true,
+        isDmSystem:  false,
+        userIndex:   currentUserIndex,
+        timestamp:   new Date().toISOString(),
+        masterRollResolution: resolution
+    };
+    if (rpgEffects) resolveMsg.rpgEffects = rpgEffects;
+
+    topicMessages.push(resolveMsg);
+    if (typeof SupabaseMessages !== 'undefined' && topicId) {
+        SupabaseMessages.send(topicId, resolveMsg).catch(function () {});
+    }
+    hasUnsavedChanges = true;
+    if (typeof save === 'function') save({ silent: true });
+
+    currentMessageIndex = topicMessages.length - 1;
+    if (typeof triggerDialogueFadeIn === 'function') triggerDialogueFadeIn();
+    if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
+
+    showAutosave('¡' + char.name + ' ha elegido su destino!', 'saved');
+}
+
 window.toggleDmPanel     = toggleDmPanel;
 window.openDmPanel       = openDmPanel;
 window.closeDmPanel      = closeDmPanel;
@@ -4512,6 +4773,30 @@ window.dmTriggerShortRest = dmTriggerShortRest;
 window.dmAdjustHp        = dmAdjustHp;
 window.dmAwardExp        = dmAwardExp;
 window.dmForceScene      = dmForceScene;
+window.dmSendMasterRoll  = dmSendMasterRoll;
+window.resolveMasterRoll = resolveMasterRoll;
+// Exponer para supabaseStories
+window._handleIncomingMasterRoll  = _handleIncomingMasterRoll;
+window._handleMasterRollResolution = _handleMasterRollResolution;
+window._scanForPendingMasterRolls  = _scanForPendingMasterRolls;
+
+// ── Listeners de turno y entrada a historia ──────────────────────────────────
+// Reevalúa la barra de salvación cuando el turno rota o se entra a una historia
+;(function () {
+    function _onTurnChange() {
+        if (typeof _checkAndShowMasterRollBar === 'function') _checkAndShowMasterRollBar();
+    }
+    function _onStoryEntered(e) {
+        const topicId = e?.detail?.topicId || (typeof currentTopicId !== 'undefined' ? currentTopicId : null);
+        if (topicId && typeof _scanForPendingMasterRolls === 'function') {
+            _scanForPendingMasterRolls(topicId);
+        }
+    }
+    window.addEventListener('etheria:turn-rotated', _onTurnChange);
+    window.addEventListener('etheria:turn-updated', _onTurnChange);
+    window.addEventListener('etheria:turn-skipped', _onTurnChange);
+    window.addEventListener('etheria:story-entered', _onStoryEntered);
+})();
 
 // ============================================
 // BOTÓN DE NARRACIÓN FLOTANTE (escena/capítulo)

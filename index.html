@@ -1060,6 +1060,31 @@
                     <button class="dm-btn dm-btn-heal" onclick="dmAwardExp()">✦ Conceder EXP</button>
                 </div>
             </div>
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Tirada de Salvación</div>
+                <div class="dm-masterroll-controls">
+                    <select id="dmMrTarget" class="dm-select">
+                        <option value="">— Personaje objetivo —</option>
+                    </select>
+                    <input type="text" id="dmMrSituation" class="dm-input" placeholder="Situación dramática que enfrenta el personaje…" maxlength="200">
+                    <div class="dm-mr-options-label">Opciones del jugador (mín. 2, con consecuencias)</div>
+                    <div id="dmMrOptionsList">
+                        <div class="dm-mr-option-row">
+                            <input type="text" class="dm-input dm-mr-opt-label" placeholder="Opción A" maxlength="80">
+                            <input type="number" class="dm-input dm-mr-opt-hp" placeholder="HP (ej: -5)" min="-99" max="99">
+                        </div>
+                        <div class="dm-mr-option-row">
+                            <input type="text" class="dm-input dm-mr-opt-label" placeholder="Opción B" maxlength="80">
+                            <input type="number" class="dm-input dm-mr-opt-hp" placeholder="HP (ej: +3)" min="-99" max="99">
+                        </div>
+                        <div class="dm-mr-option-row">
+                            <input type="text" class="dm-input dm-mr-opt-label" placeholder="Opción C (opcional)" maxlength="80">
+                            <input type="number" class="dm-input dm-mr-opt-hp" placeholder="HP (opcional)" min="-99" max="99">
+                        </div>
+                    </div>
+                    <button class="dm-btn dm-btn-roll" onclick="dmSendMasterRoll()">⚔️ Lanzar salvación</button>
+                </div>
+            </div>
             </div>
         </div>
 
@@ -1322,6 +1347,17 @@
                 </div>
                 <div class="vn-challenge-stats" id="vnChallengeStatBtns"></div>
                 <button class="vn-challenge-dismiss" onclick="dismissChallenge()" title="Ocultar propuesta">✕</button>
+            </div>
+            <!-- Tirada de Salvación — aparece al propietario del personaje cuando es su turno -->
+            <div id="vnMasterRollBar" class="vn-masterroll-bar" style="display:none;" role="dialog" aria-label="Tirada de Salvación">
+                <div class="vn-mr-header">
+                    <span class="vn-mr-icon" aria-hidden="true">⚔️</span>
+                    <div class="vn-mr-info">
+                        <span class="vn-mr-label">Tirada de Salvación</span>
+                        <span class="vn-mr-situation" id="vnMrSituation">El destino te pide elegir…</span>
+                    </div>
+                </div>
+                <div class="vn-mr-options" id="vnMrOptions"></div>
             </div>
             <div id="vnOracleConsequenceBadge" class="vn-oracle-consequence-badge" style="display:none;">🪙 Consecuencia del destino</div>
 
