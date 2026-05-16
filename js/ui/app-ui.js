@@ -360,6 +360,7 @@ function toggleTheme() {
     html.setAttribute('data-theme', newTheme);
     setThemeMetaColor(newTheme);
     localStorage.setItem('etheria_theme', newTheme);
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('settings');
     if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
     // Botón menú ajustes: texto descriptivo
     const themeBtn = document.getElementById('themeToggleBtn');
@@ -427,8 +428,9 @@ function saveProfileNameFromOptions() {
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
     const display = document.getElementById('currentUserDisplay');
     if (display) display.textContent = name;
-    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') {
-        SupabaseSync.markPending();
+    if (typeof SupabaseSync !== 'undefined') {
+        if (typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('userNames');
+        else if (typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
     }
     showAutosave('Nombre actualizado', 'saved');
     // Actualizar initial del avatar si no hay foto
@@ -458,21 +460,30 @@ function _getAvatars() {
 }
 function _saveAvatars(arr) {
     try { localStorage.setItem('etheria_user_avatars', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
-    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
+    if (typeof SupabaseSync !== 'undefined') {
+        if (typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('profileMeta');
+        else if (typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
+    }
 }
 function _getGenders() {
     try { return JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch { return []; }
 }
 function _saveGenders(arr) {
     try { localStorage.setItem('etheria_user_genders', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
-    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
+    if (typeof SupabaseSync !== 'undefined') {
+        if (typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('profileMeta');
+        else if (typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
+    }
 }
 function _getBirthdays() {
     try { return JSON.parse(localStorage.getItem('etheria_user_birthdays') || '[]'); } catch { return []; }
 }
 function _saveBirthdays(arr) {
     try { localStorage.setItem('etheria_user_birthdays', JSON.stringify(arr)); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
-    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
+    if (typeof SupabaseSync !== 'undefined') {
+        if (typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('profileMeta');
+        else if (typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
+    }
 }
 
 function _getCurrentProfileAvatar() {
@@ -1161,6 +1172,7 @@ function closeSettings() {
 function updateTextSpeed(val) {
     textSpeed = 110 - parseInt(val);
     localStorage.setItem('etheria_text_speed', textSpeed);
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('settings');
     if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
 
     const speedValue = document.getElementById('speedValue');
@@ -1174,6 +1186,7 @@ function updateTextSpeed(val) {
 function updateFontSize(val) {
     document.documentElement.style.setProperty('--font-size-base', val + 'px');
     localStorage.setItem('etheria_font_size', val);
+    if (typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('settings');
     if (typeof SupabaseSettings !== 'undefined') SupabaseSettings.syncCurrentSettings().catch(() => {});
 }
 
@@ -1308,6 +1321,10 @@ function saveProfileModalName() {
     if (!name) { showAutosave('Escribe un nombre', 'error'); return; }
     userNames[currentUserIndex] = name;
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    if (typeof SupabaseSync !== 'undefined') {
+        if (typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('userNames');
+        else if (typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
+    }
     const display = document.getElementById('currentUserDisplay');
     if (display) display.textContent = name;
     showAutosave('Nombre actualizado', 'saved');
