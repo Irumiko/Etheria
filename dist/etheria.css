@@ -20792,6 +20792,22 @@ body.mode-rpg #vnSection .vn-rpg-control-divider {
     gap: 0.65rem !important;
 }
 
+/* ── 9. BUGFIXES ──────────────────────────────────────────────────────────── */
+
+/* Bug #1: Barra de stats RPG visible en modo clásico.
+   RPGRenderer inyecta #vnRpgStatBar y lo rellena aunque no estemos en modo RPG.
+   En modo no-RPG lo ocultamos completamente. */
+body:not(.mode-rpg) #vnRpgStatBar {
+    display: none !important;
+}
+
+/* Bug #3: El modal de confirmación aparece detrás del gestor de sesiones.
+   Ambos usan z-index: 9500, pero #confirmModal está antes en el DOM que
+   #sessionManagerModal, así que éste lo cubre. Elevamos #confirmModal. */
+#confirmModal {
+    z-index: var(--z-i-9999) !important;
+}
+
 /* -- css/modules/08-rpg-hud-hotfix.css -- */
 /* Hotfix aislado para HUD RPG.
    Objetivo: evitar conflictos con 07-overrides manteniendo cambios solo en modo RPG. */
