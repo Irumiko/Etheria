@@ -1220,7 +1220,7 @@ function _twRenderChars() {
         var vis = c.avatar
             ? '<img src="' + escapeHtml(c.avatar) + '" alt="" class="tw-char-img">'
             : '<span class="tw-char-initial">' + escapeHtml((c.name || '?')[0].toUpperCase()) + '</span>';
-        return '<button type="button" class="tw-char-card' + (sel ? ' tw-char-card--sel' : '') + '" onclick="topicWizardSelectChar(' + escapeHtml(JSON.stringify(String(c.id))) + ')" aria-pressed="' + sel + '">'
+        return '<button type="button" class="tw-char-card' + (sel ? ' tw-char-card--sel' : '') + '" data-char-id="' + escapeHtml(String(c.id)) + '" onclick="topicWizardSelectChar(this.dataset.charId)" aria-pressed="' + sel + '">'
             + '<div class="tw-char-avatar">' + vis + '</div>'
             + '<div class="tw-char-name">' + escapeHtml(c.name) + '</div>'
             + (sel ? '<div class="tw-char-check" aria-hidden="true">✓</div>' : '')

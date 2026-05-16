@@ -3603,6 +3603,8 @@ function closeCharacterInfoPanel() {
 }
 
 function _closeCharPanelOnOutside(e) {
+    // No interceptar clicks si hay un modal activo (ej: wizard de nueva historia)
+    if (document.querySelector('.modal-overlay.active')) return;
     const panel = document.getElementById('vnCharInfoPanel');
     const btn   = document.getElementById('vnInfoClassicToggleBtn');
     if (!panel) return;
