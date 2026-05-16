@@ -1210,9 +1210,12 @@ function topicWizardSelectMode(mode) {
 
 function _twRenderChars() {
     var list = document.getElementById('twCharList'); if (!list) return;
-    var mine = ((appData && appData.characters) || []).filter(function(c) { return c.userIndex === currentUserIndex; });
-    if (!mine.length) { list.innerHTML = '<p class="tw-no-chars">No tienes personajes. Crea uno desde la Galeria.</p>'; return; }
-    list.innerHTML = mine.map(function(c) {
+    // Preferir personajes del usuario actual; si hay desfase offline/Supabase
+    // (userIndex no coincide) mostrar todos para no bloquear la creación.
+    var mine  = ((appData && appData.characters) || []).filter(function(c) { return c.userIndex === currentUserIndex; });
+    var chars = mine.length ? mine : ((appData && appData.characters) || []);
+    if (!chars.length) { list.innerHTML = '<p class="tw-no-chars">No tienes personajes. Crea uno desde la Galería.</p>'; return; }
+    list.innerHTML = chars.map(function(c) {
         var sel = String(c.id) === String(_tw.charId);
         var vis = c.avatar
             ? '<img src="' + escapeHtml(c.avatar) + '" alt="" class="tw-char-img">'
