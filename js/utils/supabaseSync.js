@@ -535,6 +535,35 @@ const SupabaseSync = (function () {
             }
             // Si además había cambios pendientes, subirlos
             if (_pendingChanges) await uploadProfileData();
+
+            // ── Detección de inactividad y oferta de skip de turno ───────────
+            // Si el tema activo tiene turno activado y el jugador con turno lleva
+            // más de 24 horas sin responder, emitir un evento para que la UI
+            // ofrezca el botón de skip. No hacemos skip automático (sería intrusivo).
+            const SKIP_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 h
+            try {
+                const _activeTopic = (typeof getCurrentTopic === 'function') ? getCurrentTopic() : null;
+                if (_activeTopic?.turnMode && _activeTopic.turnMode !== 'off'
+                        && _activeTopic.turnLastAt) {
+                    const _msSinceLastMsg = Date.now() - new Date(_activeTopic.turnLastAt).getTime();
+                    const _myId = _getUserId();
+                    // Solo ofrecer skip si somos participantes (hay cola) y NO somos el que tiene el turno
+                    const _isMyTurn = Array.isArray(_activeTopic.turnOrder)
+                        && _activeTopic.turnOrder.length > 0
+                        && _activeTopic.turnOrder[0] === _myId;
+                    if (_msSinceLastMsg >= SKIP_THRESHOLD_MS && !_isMyTurn && _myId) {
+                        window.EtheriaLogger?.info?.('sync:turns', 'Inactividad ≥24h detectada — ofreciendo skip');
+                        window.dispatchEvent(new CustomEvent('etheria:turn-inactive', {
+                            detail: {
+                                topicId:       _activeTopic.id,
+                                storyId:       _activeTopic.storyId,
+                                inactiveUserId: _activeTopic.turnOrder?.[0] || null,
+                                msInactive:    _msSinceLastMsg
+                            }
+                        }));
+                    }
+                }
+            } catch (_) {}
         });
 
         // ── Sync al recuperar conexión ───────────────────────────────────────

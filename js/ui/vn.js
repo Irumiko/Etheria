@@ -4436,6 +4436,30 @@ function openReplyPanel() {
         }
     }
 
+    // ── Guard de turno activo ──────────────────────────────────────────────
+    // Se evalúa DESPUÉS del bloqueo Otome (que tiene prioridad).
+    // Aplica en modo clásico y RPG si el tema tiene turn_mode ≠ 'off'.
+    // 'strict' → bloqueo duro (return). 'soft' → aviso pero continúa.
+    if (!editingMessageId) {
+        const _turnTopic = getCurrentTopic();
+        const _turnResult = _checkTurnPermission(_turnTopic);
+        if (_turnResult === 'blocked') {
+            const _next = _turnTopic?.turnOrder?.[0];
+            // Intentar mostrar el nombre del participante que tiene el turno
+            const _nextParticipant = Array.isArray(currentStoryParticipants)
+                ? currentStoryParticipants.find(p => p?.user_id === _next)
+                : null;
+            const _nextName = _nextParticipant?.profile?.name
+                || (_next ? _next.slice(0, 8) + '…' : 'el otro jugador');
+            showAutosave(`⏳ Espera — es el turno de ${_nextName}`, 'warn');
+            return;
+        }
+        if (_turnResult === 'soft-warn') {
+            showAutosave('ℹ️ Puede que no sea tu turno — responde con moderación', 'info');
+            // No hace return — modo soft solo avisa
+        }
+    }
+
     // ── Mover el panel al <body> si sigue dentro de vnSection ────────────
     // position:fixed se rompe cuando un ancestro tiene filter: o transform:.
     // Al moverlo a body se garantiza que el overlay cubre el viewport real.
@@ -4696,6 +4720,32 @@ function toggleNarratorMode() {
 }
 
 
+// ── Sistema de gestión de turnos ─────────────────────────────────────────────
+// Umbral de inactividad: 24 horas para rol escrito. Pasado este tiempo, cualquier
+// participante puede ofrecer el skip sin esperar al jugador inactivo.
+const TURN_SKIP_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 h
+
+/**
+ * Comprueba si el usuario actual tiene permiso para escribir en este topic.
+ *
+ * Reglas:
+ *   - turnMode 'off' o sin cola → siempre ok (comportamiento original)
+ *   - turnMode 'strict'         → bloqueo duro si no es el turno del usuario
+ *   - turnMode 'soft'           → aviso visual pero no bloquea
+ *
+ * @param {object} topic  Objeto topic de appData.topics
+ * @returns {'ok'|'blocked'|'soft-warn'|'no-queue'}
+ */
+function _checkTurnPermission(topic) {
+    if (!topic?.turnMode || topic.turnMode === 'off') return 'ok';
+    const queue = topic.turnOrder;
+    if (!Array.isArray(queue) || queue.length === 0) return 'no-queue';
+    const me = window._cachedUserId;
+    if (!me) return 'ok'; // sin auth → no bloqueamos
+    if (queue[0] === me) return 'ok';
+    return topic.turnMode === 'strict' ? 'blocked' : 'soft-warn';
+}
+
 async function notifyNextTurnIfNeeded(newMsg, topic, char) {
     if (!currentStoryId) return;
     if (typeof SupabaseTurnNotifications === 'undefined' || typeof SupabaseTurnNotifications.notifyTurn !== 'function') return;
@@ -4720,6 +4770,16 @@ async function notifyNextTurnIfNeeded(newMsg, topic, char) {
     const topicTitle = topic?.title || 'historia colaborativa';
     const speaker = newMsg?.isNarrator ? 'Narrador' : (char?.name || newMsg?.charName || 'Jugador');
     const preview = String(newMsg?.text || '').replace(/\s+/g, ' ').slice(0, 110);
+
+    // ── Rotar la cola de turnos en Supabase ──────────────────────────────────
+    // Se ejecuta ANTES de la notificación push para que el servidor ya tenga
+    // la cola actualizada si el receptor abre la app inmediatamente.
+    const _currentTopic = getCurrentTopic();
+    if (_currentTopic?.turnMode && _currentTopic.turnMode !== 'off'
+            && typeof SupabaseStories !== 'undefined'
+            && typeof SupabaseStories.rotateTurn === 'function') {
+        SupabaseStories.rotateTurn(currentStoryId).catch(() => {});
+    }
 
     await SupabaseTurnNotifications.notifyTurn({
         storyId: currentStoryId,
