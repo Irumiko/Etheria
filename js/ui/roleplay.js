@@ -800,6 +800,18 @@ function modifyAffinity(direction) {
     hasUnsavedChanges = true;
     save({ silent: true });
 
+    // ── Persistencia global de afinidad (Vínculos) ────────────────────────
+    // Escribe también en character_bonds para que el valor sea trans-tema
+    // y se vea reflejado en la sección de Vínculos del menú principal.
+    if (typeof SupabaseBonds !== 'undefined' && typeof SupabaseBonds.upsertBond === 'function') {
+        SupabaseBonds.upsertBond({
+            fromCharId: activeCharId,
+            toCharId:   targetCharId,
+            affinity:   newValue,
+            storyId:    currentTopicId || null
+        }).catch(function () {});
+    }
+
     if (typeof eventBus !== 'undefined') {
         eventBus.emit('affinity:changed', {
             direction,

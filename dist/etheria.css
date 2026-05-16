@@ -20431,6 +20431,93 @@ body.mode-rpg .vn-controls {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   SENDA DE LA PALABRA — Limpieza de elementos RPG en modo clásico
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Barras HP/EXP y botón de fijar stats: solo existen en RPG */
+body.mode-classic #vnSection .vn-info-rpg,
+body.theme-classic #vnSection .vn-info-rpg {
+    display: none !important;
+}
+
+body.mode-classic #vnSection .vn-info-pin-btn,
+body.theme-classic #vnSection .vn-info-pin-btn {
+    display: none !important;
+}
+
+/* Party panel: ocultar barras HP de miembros en clásico */
+body.mode-classic .vn-party-member-hp,
+body.theme-classic .vn-party-member-hp,
+body.mode-classic .vn-party-member-xp,
+body.theme-classic .vn-party-member-xp,
+body.mode-classic .vn-party-member-level,
+body.theme-classic .vn-party-member-level {
+    display: none !important;
+}
+
+/* Botones de afinidad +/− en el info card (Senda de la Palabra) */
+.affinity-btn-minus,
+.affinity-btn-plus {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    border: 1px solid rgba(201, 168, 108, 0.35) !important;
+    background: rgba(20, 15, 8, 0.7) !important;
+    color: rgba(201, 168, 108, 0.85) !important;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
+    padding: 0 !important;
+}
+
+.affinity-btn-minus:hover,
+.affinity-btn-plus:hover {
+    background: rgba(80, 55, 20, 0.85) !important;
+    border-color: rgba(201, 168, 108, 0.7) !important;
+    color: #f0d99a !important;
+}
+
+.affinity-btn-plus {
+    border-color: rgba(90, 180, 110, 0.38) !important;
+    color: rgba(130, 210, 140, 0.85) !important;
+}
+
+.affinity-btn-plus:hover {
+    background: rgba(20, 60, 25, 0.85) !important;
+    border-color: rgba(90, 200, 110, 0.7) !important;
+    color: #a0e8a8 !important;
+}
+
+/* Opciones de elección en el panel de respuesta — estética clásica */
+body.mode-classic .options-toggle,
+body.theme-classic .options-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.42rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(184, 144, 42, 0.25);
+    background: rgba(30, 22, 8, 0.55);
+    color: rgba(201, 168, 108, 0.85);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    user-select: none;
+}
+
+body.mode-classic .options-toggle:hover,
+body.theme-classic .options-toggle:hover {
+    border-color: rgba(184, 144, 42, 0.55);
+    background: rgba(50, 36, 12, 0.65);
+    color: #f0d99a;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    HUD VISUAL SYNCHRONIZATION
    Identidad visual por modo: info card · party panel · toolbar · HP/EXP bars
    ═══════════════════════════════════════════════════════════════════════════ */

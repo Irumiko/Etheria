@@ -4413,6 +4413,29 @@ function openReplyPanel() {
     const panel = document.getElementById('vnReplyPanel');
     if (!panel) return;
 
+    // ── Antigodmoding — Bloquear respuesta si hay elecciones pendientes ──
+    // En modo Senda de la Palabra (clásico), si el último mensaje tiene opciones
+    // sin elegir, el lector debe seleccionar antes de poder responder.
+    // Excepción: el propio autor de ese mensaje sí puede editar.
+    if (!editingMessageId && !isRpgModeMode()) {
+        const _allMsgs = getTopicMessages(currentTopicId);
+        const _lastMsg = _allMsgs[_allMsgs.length - 1];
+        if (_lastMsg && Array.isArray(_lastMsg.options) && _lastMsg.options.length > 0
+                && _lastMsg.selectedOptionIndex === undefined) {
+            // ¿Es el propio autor del mensaje?
+            const _authorChar = (appData.characters || []).find(c =>
+                String(c.id) === String(_lastMsg.characterId) && c.userIndex === currentUserIndex);
+            const _isNarratorAuthor = _lastMsg.isNarrator && _lastMsg.charName === 'Narrador'
+                && (!_lastMsg.characterId); // mensajes de narrador sin personaje asignado
+            if (!_authorChar && !_isNarratorAuthor) {
+                // Mostrar el panel de elecciones en lugar del panel de respuesta
+                showOptions(_lastMsg.options);
+                showAutosave('Elige una opción antes de responder', 'warn');
+                return;
+            }
+        }
+    }
+
     // ── Mover el panel al <body> si sigue dentro de vnSection ────────────
     // position:fixed se rompe cuando un ancestro tiene filter: o transform:.
     // Al moverlo a body se garantiza que el overlay cubre el viewport real.
