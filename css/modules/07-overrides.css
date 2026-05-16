@@ -157,35 +157,62 @@ body:not(.mode-rpg) #vnSection {
 .section-content { background: transparent !important; }
 
 /* ════════════════════════════════════════════════════════════════════
-   E. BARRA DE COMANDOS (Historias)
+   Sección 12 — TOPICS SCREEN — Rediseño místico integral
+   Cristal / tarot horizontal / constelaciones / pergamino astral
+   (sustituye las antiguas secciones E, F y G)
    ════════════════════════════════════════════════════════════════════ */
 
+/* ── 12.1  Barra superior: cristal místico ───────────────────────── */
+#topicsSection .section-header-bar {
+    background: rgba(8,5,2,0.62) !important;
+    backdrop-filter: blur(14px) saturate(1.35) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.35) !important;
+    border-bottom: 1px solid rgba(201,168,108,0.18) !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.55) !important;
+}
+[data-theme="light"] #topicsSection .section-header-bar {
+    background: rgba(240,228,200,0.72) !important;
+    border-bottom-color: rgba(160,120,60,0.22) !important;
+}
+
+/* ── 12.2  Command bar: cristal con borde fino dorado ───────────── */
 .topics-command-bar {
-    background: rgba(12,8,3,0.65) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    border: 1px solid var(--eth-border) !important;
+    background: rgba(10,6,2,0.52) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(201,168,108,0.13) !important;
     border-radius: 12px !important;
-    padding: 0.7rem 1rem !important;
-    margin-bottom: 0.5rem !important;
+    padding: 0.6rem 0.9rem !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+    margin-bottom: 0.85rem !important;
 }
 [data-theme="light"] .topics-command-bar {
-    background: rgba(228,220,202,0.75) !important;
-    border-color: rgba(140,100,40,0.15) !important;
+    background: rgba(238,224,190,0.65) !important;
+    border-color: rgba(160,120,60,0.2) !important;
 }
 
+/* ── 12.3  Botón Nueva Historia: Cinzel + destello dorado ─────── */
 .btn-create-topic {
-    background: linear-gradient(135deg, rgba(110,72,14,0.7), rgba(70,44,6,0.8)) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.77rem !important;
+    letter-spacing: 0.09em !important;
+    background: linear-gradient(135deg, rgba(115,78,18,0.8) 0%, rgba(60,38,6,0.88) 100%) !important;
     border: 1px solid rgba(201,168,108,0.5) !important;
-    color: #e8d4a0 !important;
+    color: var(--eth-gold) !important;
+    padding: 0.45rem 1.1rem !important;
     border-radius: 8px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35), inset 0 0 14px rgba(201,168,108,0.06) !important;
+    transition: box-shadow 0.22s, border-color 0.22s, background 0.22s !important;
+    white-space: nowrap !important;
 }
 .btn-create-topic:hover {
-    background: linear-gradient(135deg, rgba(140,92,18,0.8), rgba(90,56,8,0.88)) !important;
-    border-color: rgba(201,168,108,0.85) !important;
-    box-shadow: 0 0 16px rgba(201,168,108,0.2) !important;
+    background: linear-gradient(135deg, rgba(140,95,22,0.88) 0%, rgba(80,52,8,0.92) 100%) !important;
+    border-color: rgba(201,168,108,0.78) !important;
+    box-shadow: 0 0 20px rgba(201,168,108,0.28), 0 4px 14px rgba(0,0,0,0.38) !important;
 }
 
+/* Search input */
 .topics-search-input {
     background: rgba(18,12,4,0.55) !important;
     border-color: var(--eth-border) !important;
@@ -196,67 +223,355 @@ body:not(.mode-rpg) #vnSection {
 .topics-search-input:focus { border-color: var(--eth-border-h) !important; }
 [data-theme="light"] .topics-search-input { background: rgba(245,232,205,0.85) !important; color: #3a2808 !important; }
 
+/* ── 12.4  Filtros: Cinzel + ✦/⚜ ──────────────────────────────── */
 .topics-filter-group {
-    background: rgba(18,12,4,0.55) !important;
-    border: 1px solid var(--eth-border) !important;
-    border-radius: 8px !important;
+    background: rgba(10,6,2,0.42) !important;
+    border: 1px solid rgba(201,168,108,0.1) !important;
+    border-radius: 9px !important;
+    padding: 0.18rem !important;
+    gap: 0.12rem !important;
 }
-.topic-filter-btn { color: rgba(201,168,108,0.45) !important; }
-.topic-filter-btn:hover { color: rgba(201,168,108,0.82) !important; }
-.topic-filter-btn.active { background: rgba(201,168,108,0.12) !important; color: var(--eth-gold) !important; box-shadow: none !important; }
-[data-theme="light"] .topics-filter-group { background: rgba(232,212,172,0.7) !important; }
-[data-theme="light"] .topic-filter-btn { color: rgba(100,65,15,0.5) !important; }
-[data-theme="light"] .topic-filter-btn.active { color: #7a5418 !important; }
+[data-theme="light"] .topics-filter-group {
+    background: rgba(228,212,170,0.5) !important;
+    border-color: rgba(160,120,60,0.18) !important;
+}
+.topic-filter-btn {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.69rem !important;
+    letter-spacing: 0.06em !important;
+    border-radius: 6px !important;
+    padding: 0.35rem 0.9rem !important;
+    color: rgba(201,168,108,0.48) !important;
+    background: transparent !important;
+    border: none !important;
+    transition: color 0.2s, background 0.2s !important;
+}
+.topic-filter-btn:hover {
+    color: rgba(201,168,108,0.82) !important;
+    background: rgba(201,168,108,0.08) !important;
+}
+.topic-filter-btn.active {
+    background: rgba(201,168,108,0.13) !important;
+    color: var(--eth-gold) !important;
+    box-shadow: inset 0 0 8px rgba(201,168,108,0.1) !important;
+}
+[data-theme="light"] .topic-filter-btn        { color: rgba(100,65,15,0.5) !important; }
+[data-theme="light"] .topic-filter-btn:hover  { color: rgba(100,65,15,0.8) !important; }
+[data-theme="light"] .topic-filter-btn.active { color: #7a5418 !important; background: rgba(160,120,60,0.12) !important; }
 
-/* ════════════════════════════════════════════════════════════════════
-   F. CARDS DE HISTORIAS
-   ════════════════════════════════════════════════════════════════════ */
+/* ── 12.5  Grid → Lista horizontal ──────────────────────────────── */
+.topics-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.6rem !important;
+}
 
+/* ── 12.6  Tarjeta horizontal + animación de entrada ────────────── */
+.topic-card {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch !important;
+    min-height: 90px !important;
+    border-radius: 10px !important;
+    overflow: visible !important;
+    animation: eth-cardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
+}
+.topic-card:nth-child(1) { animation-delay: 0.03s; }
+.topic-card:nth-child(2) { animation-delay: 0.07s; }
+.topic-card:nth-child(3) { animation-delay: 0.11s; }
+.topic-card:nth-child(4) { animation-delay: 0.15s; }
+.topic-card:nth-child(5) { animation-delay: 0.19s; }
+.topic-card:nth-child(n+6) { animation-delay: 0.23s; }
+@keyframes eth-cardIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+.topic-card:hover { transform: translateX(4px) !important; }
+
+/* ── 12.7  Sello lateral (columna izquierda de la carta tarot) ─── */
+.topic-card-accent {
+    position: relative !important;
+    top: auto !important; bottom: auto !important; left: auto !important;
+    width: 68px !important;
+    min-width: 68px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.28rem !important;
+    border-radius: 10px 0 0 10px !important;
+    border-right: 1px solid rgba(201,168,108,0.12) !important;
+}
+.topic-card--rol .topic-card-accent {
+    background: linear-gradient(170deg,
+        rgba(100,68,18,0.72) 0%,
+        rgba(35,24,6,0.88) 100%) !important;
+}
+.topic-card--historia .topic-card-accent {
+    background: linear-gradient(170deg,
+        rgba(168,132,60,0.38) 0%,
+        rgba(100,72,25,0.52) 100%) !important;
+}
+[data-theme="dark"] .topic-card--historia .topic-card-accent {
+    background: linear-gradient(170deg,
+        rgba(100,72,25,0.55) 0%,
+        rgba(40,28,8,0.78) 100%) !important;
+}
+
+.topic-card-seal-icon {
+    font-size: 1.45rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.65));
+    display: block;
+}
+.topic-card-seal-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.44rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--eth-gold);
+    opacity: 0.52;
+    text-align: center;
+    display: block;
+}
+
+/* ── 12.8  Interior horizontal ──────────────────────────────────── */
+.topic-card-inner {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    padding: 0.65rem 2.6rem 0.55rem 1rem !important;
+    gap: 0.14rem !important;
+    min-width: 0 !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+.topic-card-top { margin-bottom: 0.15rem !important; }
+.topic-card-title {
+    font-size: 0.93rem !important;
+    margin-bottom: 0.08rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+.topic-card-excerpt {
+    -webkit-line-clamp: 1 !important;
+    font-size: 0.81rem !important;
+    margin-bottom: 0 !important;
+}
+.topic-card-excerpt--meta {
+    font-size: 0.67rem !important;
+    margin-bottom: 0 !important;
+}
+.topic-card-author {
+    font-family: 'Crimson Text', serif !important;
+    font-style: italic !important;
+    font-size: 0.76rem !important;
+    margin-bottom: 0 !important;
+}
+
+/* ── 12.9  Footer como columna derecha ───────────────────────────── */
+.topic-card-footer {
+    border-top: none !important;
+    padding: 0.55rem 0.75rem !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.4rem !important;
+    min-width: 68px !important;
+    flex-shrink: 0 !important;
+    border-left: 1px solid rgba(201,168,108,0.08) !important;
+}
+.topic-card--rol     .topic-card-footer { border-left-color: rgba(160,140,105,0.15) !important; }
+.topic-card--historia .topic-card-footer { border-left-color: rgba(160,120,60,0.12) !important; }
+[data-theme="dark"] .topic-card--historia .topic-card-footer { border-left-color: rgba(201,168,108,0.1) !important; }
+
+.topic-card-footer-msgs {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0 !important;
+    text-align: center !important;
+}
+.topic-card-footer-msgs-icon { font-size: 0.9rem !important; opacity: 1 !important; }
+.topic-card-progress {
+    flex: 0 0 auto !important;
+    width: 48px !important;
+    margin: 0 !important;
+}
+
+/* Marca de agua: más pequeña y desplazada para no chocar con el footer */
+.topic-card-watermark {
+    width: 70px !important;
+    height: 70px !important;
+    right: 82px !important;
+    opacity: 0.05 !important;
+}
+.topic-card:hover .topic-card-watermark { opacity: 0.09 !important; }
+
+/* Esquinas más sutiles en horizontal */
+.topic-card-corner          { opacity: 0.35 !important; }
+.topic-card:hover .topic-card-corner { opacity: 0.65 !important; }
+
+/* Badge de turno activo */
+.topic-badge--turn {
+    color: #e8c46a !important;
+    background: rgba(201,168,108,0.12) !important;
+    border: 1px solid rgba(201,168,108,0.28) !important;
+    border-radius: 4px !important;
+    font-size: 0.6rem !important;
+    padding: 0.1rem 0.4rem !important;
+    animation: topic-badge-turn-blink 2s ease-in-out infinite;
+}
+@keyframes topic-badge-turn-blink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.6; }
+}
+
+/* ── 12.10  Marco RPG: dorado ────────────────────────────────────── */
 .topic-card--rol {
-    background: rgba(20,14,6,0.86) !important;
+    border: 1px solid rgba(201,168,108,0.28) !important;
+    background: rgba(16,11,4,0.92) !important;
     backdrop-filter: blur(10px) !important;
     -webkit-backdrop-filter: blur(10px) !important;
-    border-color: rgba(180,150,100,0.22) !important;
 }
-.topic-card--rol:hover { border-color: rgba(201,168,108,0.52) !important; box-shadow: 0 14px 40px rgba(0,0,0,0.45) !important; }
-.topic-card--historia { background: rgba(245,232,205,0.9) !important; backdrop-filter: blur(10px) !important; }
-[data-theme="dark"] .topic-card--historia { background: rgba(36,24,8,0.87) !important; }
-
-.topic-card-author { font-family: 'Crimson Text', serif !important; font-style: italic !important; font-size: 0.78rem !important; }
-
-.topic-card {
-    animation: eth-cardIn 0.42s cubic-bezier(0.22,1,0.36,1) both;
+.topic-card--rol:hover {
+    border-color: rgba(201,168,108,0.55) !important;
+    box-shadow: 0 5px 26px rgba(0,0,0,0.48),
+                inset 0 0 28px rgba(201,168,108,0.04) !important;
 }
-.topic-card:nth-child(1) { animation-delay:0.04s; }
-.topic-card:nth-child(2) { animation-delay:0.09s; }
-.topic-card:nth-child(3) { animation-delay:0.14s; }
-.topic-card:nth-child(4) { animation-delay:0.19s; }
-.topic-card:nth-child(5) { animation-delay:0.24s; }
-.topic-card:nth-child(n+6) { animation-delay:0.28s; }
-@keyframes eth-cardIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
-/* ════════════════════════════════════════════════════════════════════
-   G. SIDEBAR STATS
-   ════════════════════════════════════════════════════════════════════ */
+/* ── 12.11  Marco Clásico: plateado ─────────────────────────────── */
+.topic-card--historia {
+    border: 1px solid rgba(192,178,155,0.28) !important;
+    background: rgba(244,237,216,0.93) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+}
+[data-theme="dark"] .topic-card--historia {
+    background: rgba(28,20,8,0.92) !important;
+    border-color: rgba(192,178,155,0.2) !important;
+}
+.topic-card--historia:hover {
+    border-color: rgba(192,178,155,0.55) !important;
+    box-shadow: 0 5px 22px rgba(120,90,50,0.18) !important;
+}
+[data-theme="dark"] .topic-card--historia:hover {
+    box-shadow: 0 5px 22px rgba(0,0,0,0.42) !important;
+}
 
-.topics-stats-card, .topics-mode-legend {
-    background: rgba(16,11,4,0.8) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    border: 1px solid var(--eth-border) !important;
+/* ── 12.12  Pulso de turno activo ────────────────────────────────── */
+@keyframes topic-turn-gold {
+    0%,100% {
+        box-shadow: 0 0  0 0   rgba(201,168,108,0);
+        border-color: rgba(201,168,108,0.32);
+    }
+    50% {
+        box-shadow: 0 0 18px 3px rgba(201,168,108,0.22),
+                    0 0 0 2px rgba(201,168,108,0.18);
+        border-color: rgba(201,168,108,0.78);
+    }
+}
+@keyframes topic-turn-silver {
+    0%,100% {
+        box-shadow: 0 0  0 0   rgba(192,186,178,0);
+        border-color: rgba(192,186,178,0.3);
+    }
+    50% {
+        box-shadow: 0 0 16px 3px rgba(192,186,178,0.2),
+                    0 0 0 2px rgba(192,186,178,0.16);
+        border-color: rgba(192,186,178,0.68);
+    }
+}
+.topic-card--rol.topic-card--my-turn {
+    animation: topic-turn-gold 2.6s ease-in-out infinite !important;
+}
+.topic-card--historia.topic-card--my-turn {
+    animation: topic-turn-silver 2.6s ease-in-out infinite !important;
+}
+
+/* ── 12.13  Sidebar: pergamino astral ───────────────────────────── */
+.topics-stats-card {
+    background: radial-gradient(ellipse at 35% 25%,
+        rgba(201,168,108,0.07) 0%,
+        rgba(10,6,2,0.93) 65%) !important;
+    border: 1px solid rgba(201,168,108,0.22) !important;
     border-radius: 14px !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    box-shadow: inset 0 0 40px rgba(201,168,108,0.04),
+                0 4px 22px rgba(0,0,0,0.42) !important;
+    padding: 1.2rem 1rem !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
-.topics-stats-title { color: rgba(201,168,108,0.6) !important; }
-.topics-stat-val    { color: var(--eth-gold) !important; }
-.topics-stat-lbl    { color: rgba(201,168,108,0.4) !important; }
-[data-theme="light"] .topics-stats-card,
+.topics-stats-card::before {
+    content: '✦';
+    position: absolute;
+    top: -10px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 3.8rem;
+    color: var(--eth-gold);
+    opacity: 0.035;
+    pointer-events: none;
+    user-select: none;
+}
+[data-theme="light"] .topics-stats-card {
+    background: radial-gradient(ellipse at 35% 25%,
+        rgba(201,168,108,0.12) 0%,
+        rgba(242,230,205,0.92) 65%) !important;
+    border-color: rgba(160,120,60,0.25) !important;
+    box-shadow: inset 0 0 24px rgba(201,168,108,0.06),
+                0 4px 16px rgba(120,90,50,0.12) !important;
+}
+
+.topics-stats-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.63rem !important;
+    letter-spacing: 0.15em !important;
+    text-transform: uppercase !important;
+    color: rgba(201,168,108,0.52) !important;
+    text-align: center !important;
+    margin-bottom: 0.85rem !important;
+}
+.topics-stat-val {
+    font-family: 'Cinzel', serif !important;
+    font-size: 2.1rem !important;
+    color: var(--eth-gold) !important;
+    line-height: 1 !important;
+}
+.topics-stat-lbl {
+    font-family: 'Crimson Text', serif !important;
+    font-size: 0.71rem !important;
+    font-style: italic !important;
+    color: rgba(201,168,108,0.42) !important;
+}
+[data-theme="light"] .topics-stat-val  { color: #7a5418 !important; }
+[data-theme="light"] .topics-stat-lbl  { color: rgba(100,65,15,0.55) !important; }
+[data-theme="light"] .topics-stats-title { color: rgba(100,65,15,0.5) !important; }
+
+.topics-mode-legend {
+    background: rgba(10,6,2,0.78) !important;
+    border: 1px solid rgba(201,168,108,0.12) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    padding: 0.85rem 0.95rem !important;
+}
 [data-theme="light"] .topics-mode-legend {
-    background: rgba(235,228,212,0.9) !important;
-    border-color: rgba(140,100,40,0.15) !important;
+    background: rgba(238,224,190,0.72) !important;
+    border-color: rgba(160,120,60,0.18) !important;
 }
-[data-theme="light"] .topics-stat-val   { color: #7a5418 !important; }
-[data-theme="light"] .topics-stats-title,
-[data-theme="light"] .topics-stat-lbl  { color: rgba(100,65,15,0.6) !important; }
+
+/* ── 12.14  Mobile ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .topic-card-accent  { width: 52px !important; min-width: 52px !important; }
+    .topic-card-seal-icon { font-size: 1.1rem !important; }
+    .topic-card-footer  { min-width: 56px !important; padding: 0.4rem 0.5rem !important; }
+    .topic-card-watermark { display: none !important; }
+    .topic-card-inner   { padding: 0.55rem 0.8rem 0.45rem 0.8rem !important; }
+}
 
 /* ════════════════════════════════════════════════════════════════════
    H. VN — BOTONES DE CONTROL (ambos modos)

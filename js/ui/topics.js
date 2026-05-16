@@ -284,9 +284,22 @@ function renderTopics() {
             const progressCurrent = Math.min(msgs.length, 10);
             const progressPct = Math.min(100, Math.round((progressCurrent / 10) * 100));
 
+            // ── Sello del modo (columna izquierda de la carta horizontal) ──
+            const sealIcon  = isRol ? '⚜' : '✦';
+            const sealLabel = isRol ? 'RPG' : 'Clásico';
+
+            // ── Pulso de turno activo: destaca si es el turno del usuario en esta historia ──
+            const isMeTurn = Array.isArray(t.turnOrder)
+                && t.turnOrder[0]
+                && String(t.turnOrder[0]) === String(window._cachedUserId);
+            const turnClass = isMeTurn ? ' topic-card--my-turn' : '';
+
             return `
-                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}" onclick="enterTopic('${_normalizeTopicId(t.id)}')">
-                    <div class="topic-card-accent"></div>
+                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}${turnClass}" onclick="enterTopic('${_normalizeTopicId(t.id)}')">
+                    <div class="topic-card-accent">
+                        <span class="topic-card-seal-icon" aria-hidden="true">${sealIcon}</span>
+                        <span class="topic-card-seal-label">${escapeHtml(sealLabel)}</span>
+                    </div>
                     <div class="topic-card-watermark">${watermarkSvg}</div>
                     <span class="topic-card-corner topic-card-corner--tl">${cornerSvg}</span>
                     <span class="topic-card-corner topic-card-corner--tr">${cornerSvg}</span>
@@ -297,6 +310,7 @@ function renderTopics() {
                             <div class="topic-card-badges">
                                 <span class="topic-badge mode">${modeLabel}</span>
                                 ${weatherBadge}
+                                ${isMeTurn ? '<span class="topic-badge topic-badge--turn">⏳ Tu turno</span>' : ''}
                             </div>
                         </div>
                         <h3 class="topic-card-title">${escapeHtml(t.title)}</h3>
@@ -306,7 +320,7 @@ function renderTopics() {
                     </div>
                     <div class="topic-card-footer">
                         <span class="topic-card-footer-msgs">
-                            <span class="topic-card-footer-msgs-icon">${isRol ? '⚔' : '✦'}</span>
+                            <span class="topic-card-footer-msgs-icon">${isRol ? '⚜' : '✦'}</span>
                             ${msgs.length > 0 ? `${msgs.length} ${msgWord}` : '—'}
                         </span>
                         <div class="topic-card-progress" title="Progreso de introducción">
