@@ -3,11 +3,13 @@
 // ============================================
 
 // ── Guardia de personajes antes de abrir el modal de creación ────────────────
-// Se llama desde el botón "Nueva Historia". Si el usuario no tiene personajes
-// creados, muestra un aviso claro sin abrir el modal de creación.
+// Se llama desde el botón "Nueva Historia". Solo bloquea si NO existe ningún
+// personaje en absoluto. Si hay personajes pero ninguno coincide con
+// currentUserIndex (posible desfase offline/Supabase), se abre el wizard
+// igualmente — el wizard mostrará el selector con todos los disponibles.
 function openNewTopicModal() {
-    const mine = (appData?.characters || []).filter(c => c.userIndex === currentUserIndex);
-    if (mine.length === 0) {
+    const allChars = appData?.characters || [];
+    if (allChars.length === 0) {
         openNoCharacterWarning();
         return;
     }
