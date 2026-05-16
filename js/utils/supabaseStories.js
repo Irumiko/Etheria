@@ -570,6 +570,41 @@
                         }
                     }
                 )
+                // ── Cambios de turno en tiempo real ───────────────────────
+                .on(
+                    'postgres_changes',
+                    {
+                        event  : 'UPDATE',
+                        schema : 'public',
+                        table  : 'stories',
+                        filter : 'id=eq.' + storyId
+                    },
+                    function (payload) {
+                        try {
+                            if (global.currentStoryId !== storyId) return;
+                            const row = payload.new;
+                            if (!row) return;
+                            // Solo procesar si cambiaron campos de turno
+                            if (row.turn_order === undefined && row.turn_mode === undefined) return;
+                            // Actualizar topic local
+                            if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+                                const local = appData.topics.find(t => String(t.storyId) === String(storyId));
+                                if (local) {
+                                    if (row.turn_order !== undefined)  local.turnOrder  = Array.isArray(row.turn_order) ? row.turn_order : null;
+                                    if (row.turn_mode  !== undefined)  local.turnMode   = row.turn_mode;
+                                    if (row.turn_last_at !== undefined) local.turnLastAt = row.turn_last_at;
+                                }
+                            }
+                            // Re-renderizar HUD para co-autores
+                            _renderStoryParticipants(global.currentStoryParticipants || []);
+                            global.dispatchEvent(new CustomEvent('etheria:turn-updated', {
+                                detail: { storyId, turnOrder: row.turn_order, turnMode: row.turn_mode }
+                            }));
+                        } catch (e) {
+                            logger?.warn('supabase:stories', 'turn realtime update error:', e?.message);
+                        }
+                    }
+                )
                 // ── Mensajes nuevos ────────────────────────────────────────
                 .on(
                     'postgres_changes',
@@ -748,11 +783,18 @@
             const avatar = char?.avatar || char?.sprite || p.profile?.avatar_url || '';
             const color  = char?.color || 'rgba(201,168,108,0.6)';
 
+            const isActiveTurn = topic?.turnMode && topic.turnMode !== 'off'
+                && Array.isArray(topic.turnOrder) && topic.turnOrder[0] === p.user_id;
+            const isRpgMode = document.body.classList.contains('mode-rpg');
+
             const wrap = document.createElement('span');
-            wrap.className = 'story-participant-wrap' + (online ? ' online' : '');
-            wrap.title = online
-                ? `${displayName} · En línea`
-                : `${displayName} · Desconectado`;
+            let wrapClass = 'story-participant-wrap';
+            if (online)       wrapClass += ' online';
+            if (isActiveTurn) wrapClass += ' turn-active';
+            wrap.className = wrapClass;
+            wrap.title = isActiveTurn
+                ? `${displayName} · Turno activo`
+                : (online ? `${displayName} · En línea` : `${displayName} · Desconectado`);
 
             // Avatar del personaje si existe, si no iniciales
             let el;
@@ -789,6 +831,16 @@
             wrap.appendChild(el);
             wrap.appendChild(dot);
             wrap.appendChild(nameEl);
+
+            // Icono de turno activo (✦ clásico / ⚜ RPG) — esquina superior izquierda
+            if (isActiveTurn) {
+                const turnIcon = document.createElement('span');
+                turnIcon.className = 'story-participant-turn-icon';
+                turnIcon.setAttribute('aria-label', 'Turno activo');
+                turnIcon.textContent = isRpgMode ? '⚜' : '✦';
+                wrap.appendChild(turnIcon);
+            }
+
             container.appendChild(wrap);
         });
     }
@@ -1157,6 +1209,11 @@
             }
 
             logger?.info('supabase:stories', `Turno rotado en ${storyId}:`, newOrder);
+            // Refrescar HUD local y notificar
+            _renderStoryParticipants(global.currentStoryParticipants || []);
+            global.dispatchEvent(new CustomEvent('etheria:turn-rotated', {
+                detail: { storyId, order: newOrder }
+            }));
             return { ok: true, rotated: !!data?.rotated, order: newOrder };
 
         } catch (e) {
@@ -1200,6 +1257,11 @@
             }
 
             logger?.info('supabase:stories', `Turno saltado en ${storyId}. Usuario omitido: ${data?.skipped_user}`);
+            // Refrescar HUD local y notificar
+            _renderStoryParticipants(global.currentStoryParticipants || []);
+            global.dispatchEvent(new CustomEvent('etheria:turn-skipped', {
+                detail: { storyId, skippedUser: data?.skipped_user, order: newOrder }
+            }));
             return { ok: true, skipped: !!data?.skipped, skippedUser: data?.skipped_user, order: newOrder };
 
         } catch (e) {

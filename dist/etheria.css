@@ -20808,6 +20808,190 @@ body:not(.mode-rpg) #vnRpgStatBar {
     z-index: var(--z-i-9999) !important;
 }
 
+/* ── 10. TURN SYSTEM UI ──────────────────────────────────────────────────────
+   HUD de turno activo en el panel de participantes y banner de skip.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── HUD: participante con turno activo ─────────────────────────────────── */
+
+/* El wrap ya tiene position:relative en components.css; solo sobrescribimos
+   la opacidad para que el usuario activo no quede atenuado aunque esté offline. */
+.story-participant-wrap.turn-active {
+    opacity: 1 !important;
+}
+
+/* Anillo plateado + pulso suave (modo clásico) */
+.story-participant-wrap.turn-active .story-participant-avatar,
+.story-participant-wrap.turn-active .story-participant-initial {
+    border-color: var(--eth-silver) !important;
+    box-shadow:
+        0 0 0 2px var(--eth-silver),
+        0 0 10px rgba(192, 176, 152, 0.35);
+    animation: turn-pulse-silver 2.6s ease-in-out infinite;
+}
+
+/* Anillo dorado + pulso (modo RPG) */
+body.mode-rpg .story-participant-wrap.turn-active .story-participant-avatar,
+body.mode-rpg .story-participant-wrap.turn-active .story-participant-initial {
+    border-color: #d4af37 !important;
+    box-shadow:
+        0 0 0 2px #d4af37,
+        0 0 12px rgba(212, 175, 55, 0.45);
+    animation: turn-pulse-gold 2.6s ease-in-out infinite;
+}
+
+@keyframes turn-pulse-silver {
+    0%,  100% { box-shadow: 0 0 0 2px var(--eth-silver), 0 0  6px rgba(192,176,152,0.25); }
+    50%        { box-shadow: 0 0 0 3px var(--eth-silver), 0 0 14px rgba(192,176,152,0.55); }
+}
+
+@keyframes turn-pulse-gold {
+    0%,  100% { box-shadow: 0 0 0 2px #d4af37, 0 0  8px rgba(212,175,55,0.30); }
+    50%        { box-shadow: 0 0 0 3px #d4af37, 0 0 18px rgba(212,175,55,0.60); }
+}
+
+/* Nombre dorado/plateado bajo el avatar cuando es el turno activo */
+.story-participant-wrap.turn-active .story-participant-name {
+    color: var(--eth-silver) !important;
+    font-weight: 600;
+}
+body.mode-rpg .story-participant-wrap.turn-active .story-participant-name {
+    color: #d4af37 !important;
+}
+
+/* Icono ✦ / ⚜ — flota en la esquina superior-izquierda del wrap */
+.story-participant-turn-icon {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    font-size: 0.62rem;
+    line-height: 1;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+    color: var(--eth-silver);
+    animation: turn-icon-float 3.2s ease-in-out infinite;
+    z-index: 2;
+}
+body.mode-rpg .story-participant-turn-icon {
+    color: #d4af37;
+    font-size: 0.68rem;
+}
+
+@keyframes turn-icon-float {
+    0%,  100% { transform: translateY(0);    opacity: 0.85; }
+    50%        { transform: translateY(-2px); opacity: 1;    }
+}
+
+/* ── Banner persistente de skip ─────────────────────────────────────────── */
+
+#turnSkipBanner {
+    position: fixed;
+    bottom: 6rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(130%);
+    z-index: 9800;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    max-width: 490px;
+    width: calc(100% - 2rem);
+    padding: 0.8rem 1rem;
+    background: linear-gradient(135deg, #1a1208 0%, #231a0d 100%);
+    border: 1px solid var(--eth-border-h);
+    border-left: 3px solid var(--eth-gold);
+    border-radius: 10px;
+    box-shadow:
+        0 10px 36px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(201,168,108,0.07);
+    transition:
+        transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity   0.25s ease;
+    pointer-events: none;
+    opacity: 0;
+}
+
+#turnSkipBanner.turn-skip-banner--visible {
+    transform: translateX(-50%) translateY(0);
+    pointer-events: all;
+    opacity: 1;
+}
+
+.turn-skip-banner__icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.turn-skip-banner__text {
+    flex: 1;
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.85);
+}
+
+.turn-skip-banner__btn {
+    flex-shrink: 0;
+    padding: 0.38rem 0.85rem;
+    font-size: 0.77rem;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+    color: #1a1208;
+    background: var(--eth-gold);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.18s, opacity 0.18s;
+    letter-spacing: 0.02em;
+}
+.turn-skip-banner__btn:hover:not(:disabled) {
+    background: #e8c47e;
+}
+.turn-skip-banner__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.turn-skip-banner__close {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.45);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s, border-color 0.2s;
+}
+.turn-skip-banner__close:hover {
+    color: rgba(255,255,255,0.88);
+    border-color: rgba(255,255,255,0.4);
+}
+
+/* Responsive — en móvil el banner ocupa el ancho completo pegado abajo */
+@media (max-width: 520px) {
+    #turnSkipBanner {
+        bottom: 0;
+        left: 0;
+        transform: translateX(0) translateY(130%);
+        max-width: 100%;
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+        border-left: 1px solid var(--eth-border-h);
+        border-top: 3px solid var(--eth-gold);
+    }
+    #turnSkipBanner.turn-skip-banner--visible {
+        transform: translateX(0) translateY(0);
+    }
+}
+
 /* -- css/modules/08-rpg-hud-hotfix.css -- */
 /* Hotfix aislado para HUD RPG.
    Objetivo: evitar conflictos con 07-overrides manteniendo cambios solo en modo RPG. */

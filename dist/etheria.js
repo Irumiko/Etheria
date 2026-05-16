@@ -15114,6 +15114,121 @@ function vrpSetWeatherBtn(clickedBtn) {
     if (clickedBtn) clickedBtn.classList.add('active');
 }
 
+// ── Turn UI: Banner persistente de skip por inactividad ──────────────────────
+// Escucha etheria:turn-inactive y muestra un banner anclado en la parte baja
+// solo si el usuario actual es el siguiente en la cola de turnos (turnOrder[1]).
+// ─────────────────────────────────────────────────────────────────────────────
+(function initTurnSkipBanner() {
+    'use strict';
+
+    /** Garantiza que el elemento #turnSkipBanner existe en el DOM. */
+    function _ensureBanner() {
+        let banner = document.getElementById('turnSkipBanner');
+        if (banner) return banner;
+
+        banner = document.createElement('div');
+        banner.id = 'turnSkipBanner';
+        banner.setAttribute('role', 'alert');
+        banner.setAttribute('aria-live', 'polite');
+        banner.innerHTML =
+            '<span class="turn-skip-banner__icon">⚠️</span>' +
+            '<p class="turn-skip-banner__text"></p>' +
+            '<button class="turn-skip-banner__btn" type="button">Pedir Turno</button>' +
+            '<button class="turn-skip-banner__close" type="button" aria-label="Cerrar">✕</button>';
+        document.body.appendChild(banner);
+
+        // Botón "Pedir Turno"
+        banner.querySelector('.turn-skip-banner__btn').addEventListener('click', async function () {
+            const storyId = global.currentStoryId;
+            if (!storyId || typeof SupabaseStories === 'undefined') return;
+            this.disabled = true;
+            this.textContent = 'Solicitando…';
+            try {
+                const result = await SupabaseStories.skipTurn(storyId);
+                if (result && result.ok) {
+                    if (typeof showAutosave === 'function') showAutosave('✅ Turno solicitado con éxito', 'success');
+                    _hideBanner();
+                } else {
+                    if (typeof showAutosave === 'function') {
+                        showAutosave('❌ Error al pedir el turno: ' + (result?.error || 'desconocido'), 'warn');
+                    }
+                    this.disabled = false;
+                    this.textContent = 'Pedir Turno';
+                }
+            } catch (err) {
+                if (typeof showAutosave === 'function') showAutosave('❌ Error al pedir el turno', 'warn');
+                this.disabled = false;
+                this.textContent = 'Pedir Turno';
+            }
+        });
+
+        // Botón de cierre manual
+        banner.querySelector('.turn-skip-banner__close').addEventListener('click', _hideBanner);
+
+        return banner;
+    }
+
+    function _hideBanner() {
+        var banner = document.getElementById('turnSkipBanner');
+        if (banner) banner.classList.remove('turn-skip-banner--visible');
+    }
+
+    /** Escucha el evento de inactividad despachado por supabaseSync.js */
+    window.addEventListener('etheria:turn-inactive', function (e) {
+        var detail = e && e.detail ? e.detail : {};
+        var topicId      = detail.topicId;
+        var storyId      = detail.storyId;
+        var inactiveUserId = detail.inactiveUserId;
+        var msInactive   = detail.msInactive || 0;
+
+        if (!storyId || !inactiveUserId) return;
+
+        // Buscar el topic para leer la cola de turnos
+        var topic = null;
+        if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+            topic = appData.topics.find(function (t) {
+                return String(t.storyId) === String(storyId) || String(t.id) === String(storyId);
+            });
+        }
+        if (!topic || !Array.isArray(topic.turnOrder) || topic.turnOrder.length < 2) return;
+        if (!topic.turnMode || topic.turnMode === 'off') return;
+
+        // Solo mostrar si el usuario actual es el siguiente en la cola (índice 1)
+        var myId = window._cachedUserId;
+        if (!myId || topic.turnOrder[1] !== myId) return;
+
+        // Calcular texto del tiempo transcurrido
+        var totalHours = Math.round(msInactive / (1000 * 60 * 60));
+        var timeStr = totalHours >= 48
+            ? Math.round(totalHours / 24) + ' días'
+            : totalHours >= 24
+                ? '1 día'
+                : totalHours + 'h';
+
+        // Nombre del usuario inactivo
+        var participants = Array.isArray(currentStoryParticipants) ? currentStoryParticipants : [];
+        var inactivePart = participants.find(function (p) { return p && p.user_id === inactiveUserId; });
+        var inactiveName = (inactivePart && inactivePart.profile && inactivePart.profile.name)
+            ? inactivePart.profile.name
+            : (inactiveUserId ? inactiveUserId.slice(0, 8) + '…' : 'El otro jugador');
+
+        var banner = _ensureBanner();
+        banner.querySelector('.turn-skip-banner__text').textContent =
+            inactiveName + ' lleva más de ' + timeStr + ' sin responder. ¿Quieres pedir el turno para que la historia continúe?';
+        // Restablecer estado del botón
+        var btn = banner.querySelector('.turn-skip-banner__btn');
+        btn.disabled = false;
+        btn.textContent = 'Pedir Turno';
+        banner.classList.add('turn-skip-banner--visible');
+    });
+
+    // Ocultar banner al cambiar de historia o cuando el turno se actualiza
+    window.addEventListener('etheria:story-entered',  _hideBanner);
+    window.addEventListener('etheria:turn-rotated',   _hideBanner);
+    window.addEventListener('etheria:turn-skipped',   _hideBanner);
+    window.addEventListener('etheria:turn-updated',   _hideBanner);
+})();
+
 /* js/ui/journal.js */
 // ============================================
 // SISTEMA DE FAVORITOS
@@ -25917,6 +26032,41 @@ window.Ethy = Ethy;
                         }
                     }
                 )
+                // ── Cambios de turno en tiempo real ───────────────────────
+                .on(
+                    'postgres_changes',
+                    {
+                        event  : 'UPDATE',
+                        schema : 'public',
+                        table  : 'stories',
+                        filter : 'id=eq.' + storyId
+                    },
+                    function (payload) {
+                        try {
+                            if (global.currentStoryId !== storyId) return;
+                            const row = payload.new;
+                            if (!row) return;
+                            // Solo procesar si cambiaron campos de turno
+                            if (row.turn_order === undefined && row.turn_mode === undefined) return;
+                            // Actualizar topic local
+                            if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+                                const local = appData.topics.find(t => String(t.storyId) === String(storyId));
+                                if (local) {
+                                    if (row.turn_order !== undefined)  local.turnOrder  = Array.isArray(row.turn_order) ? row.turn_order : null;
+                                    if (row.turn_mode  !== undefined)  local.turnMode   = row.turn_mode;
+                                    if (row.turn_last_at !== undefined) local.turnLastAt = row.turn_last_at;
+                                }
+                            }
+                            // Re-renderizar HUD para co-autores
+                            _renderStoryParticipants(global.currentStoryParticipants || []);
+                            global.dispatchEvent(new CustomEvent('etheria:turn-updated', {
+                                detail: { storyId, turnOrder: row.turn_order, turnMode: row.turn_mode }
+                            }));
+                        } catch (e) {
+                            logger?.warn('supabase:stories', 'turn realtime update error:', e?.message);
+                        }
+                    }
+                )
                 // ── Mensajes nuevos ────────────────────────────────────────
                 .on(
                     'postgres_changes',
@@ -26095,11 +26245,18 @@ window.Ethy = Ethy;
             const avatar = char?.avatar || char?.sprite || p.profile?.avatar_url || '';
             const color  = char?.color || 'rgba(201,168,108,0.6)';
 
+            const isActiveTurn = topic?.turnMode && topic.turnMode !== 'off'
+                && Array.isArray(topic.turnOrder) && topic.turnOrder[0] === p.user_id;
+            const isRpgMode = document.body.classList.contains('mode-rpg');
+
             const wrap = document.createElement('span');
-            wrap.className = 'story-participant-wrap' + (online ? ' online' : '');
-            wrap.title = online
-                ? `${displayName} · En línea`
-                : `${displayName} · Desconectado`;
+            let wrapClass = 'story-participant-wrap';
+            if (online)       wrapClass += ' online';
+            if (isActiveTurn) wrapClass += ' turn-active';
+            wrap.className = wrapClass;
+            wrap.title = isActiveTurn
+                ? `${displayName} · Turno activo`
+                : (online ? `${displayName} · En línea` : `${displayName} · Desconectado`);
 
             // Avatar del personaje si existe, si no iniciales
             let el;
@@ -26136,6 +26293,16 @@ window.Ethy = Ethy;
             wrap.appendChild(el);
             wrap.appendChild(dot);
             wrap.appendChild(nameEl);
+
+            // Icono de turno activo (✦ clásico / ⚜ RPG) — esquina superior izquierda
+            if (isActiveTurn) {
+                const turnIcon = document.createElement('span');
+                turnIcon.className = 'story-participant-turn-icon';
+                turnIcon.setAttribute('aria-label', 'Turno activo');
+                turnIcon.textContent = isRpgMode ? '⚜' : '✦';
+                wrap.appendChild(turnIcon);
+            }
+
             container.appendChild(wrap);
         });
     }
@@ -26504,6 +26671,11 @@ window.Ethy = Ethy;
             }
 
             logger?.info('supabase:stories', `Turno rotado en ${storyId}:`, newOrder);
+            // Refrescar HUD local y notificar
+            _renderStoryParticipants(global.currentStoryParticipants || []);
+            global.dispatchEvent(new CustomEvent('etheria:turn-rotated', {
+                detail: { storyId, order: newOrder }
+            }));
             return { ok: true, rotated: !!data?.rotated, order: newOrder };
 
         } catch (e) {
@@ -26547,6 +26719,11 @@ window.Ethy = Ethy;
             }
 
             logger?.info('supabase:stories', `Turno saltado en ${storyId}. Usuario omitido: ${data?.skipped_user}`);
+            // Refrescar HUD local y notificar
+            _renderStoryParticipants(global.currentStoryParticipants || []);
+            global.dispatchEvent(new CustomEvent('etheria:turn-skipped', {
+                detail: { storyId, skippedUser: data?.skipped_user, order: newOrder }
+            }));
             return { ok: true, skipped: !!data?.skipped, skippedUser: data?.skipped_user, order: newOrder };
 
         } catch (e) {

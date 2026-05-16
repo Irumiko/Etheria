@@ -5337,3 +5337,118 @@ function vrpSetWeatherBtn(clickedBtn) {
     document.querySelectorAll('.vrp-weather-btn').forEach(b => b.classList.remove('active'));
     if (clickedBtn) clickedBtn.classList.add('active');
 }
+
+// ── Turn UI: Banner persistente de skip por inactividad ──────────────────────
+// Escucha etheria:turn-inactive y muestra un banner anclado en la parte baja
+// solo si el usuario actual es el siguiente en la cola de turnos (turnOrder[1]).
+// ─────────────────────────────────────────────────────────────────────────────
+(function initTurnSkipBanner() {
+    'use strict';
+
+    /** Garantiza que el elemento #turnSkipBanner existe en el DOM. */
+    function _ensureBanner() {
+        let banner = document.getElementById('turnSkipBanner');
+        if (banner) return banner;
+
+        banner = document.createElement('div');
+        banner.id = 'turnSkipBanner';
+        banner.setAttribute('role', 'alert');
+        banner.setAttribute('aria-live', 'polite');
+        banner.innerHTML =
+            '<span class="turn-skip-banner__icon">⚠️</span>' +
+            '<p class="turn-skip-banner__text"></p>' +
+            '<button class="turn-skip-banner__btn" type="button">Pedir Turno</button>' +
+            '<button class="turn-skip-banner__close" type="button" aria-label="Cerrar">✕</button>';
+        document.body.appendChild(banner);
+
+        // Botón "Pedir Turno"
+        banner.querySelector('.turn-skip-banner__btn').addEventListener('click', async function () {
+            const storyId = global.currentStoryId;
+            if (!storyId || typeof SupabaseStories === 'undefined') return;
+            this.disabled = true;
+            this.textContent = 'Solicitando…';
+            try {
+                const result = await SupabaseStories.skipTurn(storyId);
+                if (result && result.ok) {
+                    if (typeof showAutosave === 'function') showAutosave('✅ Turno solicitado con éxito', 'success');
+                    _hideBanner();
+                } else {
+                    if (typeof showAutosave === 'function') {
+                        showAutosave('❌ Error al pedir el turno: ' + (result?.error || 'desconocido'), 'warn');
+                    }
+                    this.disabled = false;
+                    this.textContent = 'Pedir Turno';
+                }
+            } catch (err) {
+                if (typeof showAutosave === 'function') showAutosave('❌ Error al pedir el turno', 'warn');
+                this.disabled = false;
+                this.textContent = 'Pedir Turno';
+            }
+        });
+
+        // Botón de cierre manual
+        banner.querySelector('.turn-skip-banner__close').addEventListener('click', _hideBanner);
+
+        return banner;
+    }
+
+    function _hideBanner() {
+        var banner = document.getElementById('turnSkipBanner');
+        if (banner) banner.classList.remove('turn-skip-banner--visible');
+    }
+
+    /** Escucha el evento de inactividad despachado por supabaseSync.js */
+    window.addEventListener('etheria:turn-inactive', function (e) {
+        var detail = e && e.detail ? e.detail : {};
+        var topicId      = detail.topicId;
+        var storyId      = detail.storyId;
+        var inactiveUserId = detail.inactiveUserId;
+        var msInactive   = detail.msInactive || 0;
+
+        if (!storyId || !inactiveUserId) return;
+
+        // Buscar el topic para leer la cola de turnos
+        var topic = null;
+        if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+            topic = appData.topics.find(function (t) {
+                return String(t.storyId) === String(storyId) || String(t.id) === String(storyId);
+            });
+        }
+        if (!topic || !Array.isArray(topic.turnOrder) || topic.turnOrder.length < 2) return;
+        if (!topic.turnMode || topic.turnMode === 'off') return;
+
+        // Solo mostrar si el usuario actual es el siguiente en la cola (índice 1)
+        var myId = window._cachedUserId;
+        if (!myId || topic.turnOrder[1] !== myId) return;
+
+        // Calcular texto del tiempo transcurrido
+        var totalHours = Math.round(msInactive / (1000 * 60 * 60));
+        var timeStr = totalHours >= 48
+            ? Math.round(totalHours / 24) + ' días'
+            : totalHours >= 24
+                ? '1 día'
+                : totalHours + 'h';
+
+        // Nombre del usuario inactivo
+        var participants = Array.isArray(currentStoryParticipants) ? currentStoryParticipants : [];
+        var inactivePart = participants.find(function (p) { return p && p.user_id === inactiveUserId; });
+        var inactiveName = (inactivePart && inactivePart.profile && inactivePart.profile.name)
+            ? inactivePart.profile.name
+            : (inactiveUserId ? inactiveUserId.slice(0, 8) + '…' : 'El otro jugador');
+
+        var banner = _ensureBanner();
+        banner.querySelector('.turn-skip-banner__text').textContent =
+            inactiveName + ' lleva más de ' + timeStr + ' sin responder. ¿Quieres pedir el turno para que la historia continúe?';
+        // Restablecer estado del botón
+        var btn = banner.querySelector('.turn-skip-banner__btn');
+        btn.disabled = false;
+        btn.textContent = 'Pedir Turno';
+        banner.classList.add('turn-skip-banner--visible');
+    });
+
+    // Ocultar banner al cambiar de historia o cuando el turno se actualiza
+    window.addEventListener('etheria:story-entered',  _hideBanner);
+    window.addEventListener('etheria:turn-rotated',   _hideBanner);
+    window.addEventListener('etheria:turn-skipped',   _hideBanner);
+    window.addEventListener('etheria:turn-updated',   _hideBanner);
+})();
