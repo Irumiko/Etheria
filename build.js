@@ -35,6 +35,10 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/modules/affinity-atmosphere.css',
   'css/bonds.css',
   'css/features.css',
+  'css/vn-cinematic.css',
+  'css/features/vn-themes.css',
+  'css/menu-gamefeel.css',
+  'css/options-gamefeel.css',
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];

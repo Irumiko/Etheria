@@ -30,6 +30,7 @@ const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
 const preloadedBackgrounds = new Set();
 let pendingSceneChange = null;
 let pendingChapter     = null;
+var _pendingMasterRolls = []; // C.4 — tiradas de salvación pendientes [{ id, targetCharId, situation, options, resolved }]
 let oracleStat = 'STR';
 let oracleQuestionDirty = false;
 const NARRATIVE_CRITICAL_TURNS = 3;
@@ -860,15 +861,15 @@ function rollOracleMini() {
         const char = appData.characters.find(c => String(c.id) === String(selectedCharId));
         const effects = applyRpgNarrativeProgress(selectedCharId, oracleData);
         if (effects) {
+            // Leer el perfil post-aplicación una sola vez (evita doble búsqueda)
+            const _profile = typeof ensureCharacterRpgProfile === 'function' && char
+                ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+            if (effects.levelUp && _profile) effects.newLevel = _profile.level;
             const badgeText = buildConsequenceBadgeText(result, effects, char?.name);
             if (badgeText) newMsg.oracleConsequence = badgeText;
-            // Guardar el nivel nuevo en effects para el badge
-            if (effects.levelUp && char) {
-                const profile = typeof ensureCharacterRpgProfile === 'function'
-                    ? ensureCharacterRpgProfile(char, currentTopicId)
-                    : null;
-                if (profile) effects.newLevel = profile.level;
-                newMsg.oracleConsequence = buildConsequenceBadgeText(result, effects, char?.name);
+            // Pieza B: embeber snapshot para propagación Realtime a co-autores
+            if (char && _profile) {
+                newMsg.rpgEffects = _buildRpgEffectsPayload(selectedCharId, _profile, effects);
             }
         }
     }
@@ -1460,16 +1461,26 @@ function _resolveCharacterForMode(t, id, topicMode) {
 
 // Aplica las CSS classes de modo en vnSection y body.
 function _applyModeClasses(vnSection, topicMode) {
+    // Inyectar .vn-db-corners (esquinas decorativas) si no existe aún
+    const dbox = vnSection.querySelector('.vn-dialogue-box');
+    if (dbox && !dbox.querySelector('.vn-db-corners')) {
+        const corners = document.createElement('div');
+        corners.className = 'vn-db-corners';
+        corners.setAttribute('aria-hidden', 'true');
+        corners.innerHTML = '<i></i><i></i><i></i><i></i>';
+        dbox.appendChild(corners);
+    }
     if (topicMode === 'rpg') {
         vnSection.classList.remove('classic-mode', 'mode-classic');
         vnSection.classList.add('mode-rpg');
-        document.body.classList.add('mode-rpg');
+        document.body.classList.add('mode-rpg', 'theme-rpg');
+        document.body.classList.remove('mode-classic', 'theme-classic');
     } else {
         // Modo clásico: sprites desaparecen al avanzar
         vnSection.classList.add('classic-mode', 'mode-classic');
         vnSection.classList.remove('mode-rpg');
-        document.body.classList.remove('mode-rpg');
-        document.body.classList.add('mode-classic');
+        document.body.classList.remove('mode-rpg', 'theme-rpg');
+        document.body.classList.add('mode-classic', 'theme-classic');
     }
 }
 
@@ -1928,10 +1939,13 @@ function showCurrentMessage(direction = 'forward') {
         if (!charData) charExists = false;
     }
 
-    // Aplicar/quitar atributo data-garrick en la caja de diálogo
+    // Aplicar/quitar atributos de tema en la caja de diálogo
     const dialogueBox = document.querySelector('.vn-dialogue-box');
     if (dialogueBox) {
         dialogueBox.dataset.garrick = msg.isGarrick ? 'true' : 'false';
+        // isPureNarrator: solo el narrador real (no Garrick ni resultado del oráculo)
+        const isPureNarrator = !!(msg.isNarrator && !msg.isGarrick && !msg.isOracleResult);
+        dialogueBox.dataset.narrator = isPureNarrator ? 'true' : 'false';
     }
 
     if (msg.isNarrator || !msg.characterId) {
@@ -3318,6 +3332,89 @@ function buildConsequenceBadgeText(result, effects, charName) {
     return lines.join(' · ');
 }
 
+// ── Pieza B: Propagación Realtime de stats RPG ───────────────────────────────
+//
+// Cuando el Oráculo o el Master aplican efectos (HP/EXP/nivel) a un personaje,
+// el mensaje resultante lleva un campo `rpgEffects` con los valores absolutos
+// post-aplicación. El co-autor lo recibe vía _injectRealtimeMessage y llama
+// applyRpgEffectsFromMessage() para actualizar su copia local del perfil.
+//
+// Diseño: valores ABSOLUTOS (no deltas) → idempotente aunque llegue más de una vez.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Construye el payload rpgEffects con los valores actuales del perfil.
+ * Se llama justo DESPUÉS de que applyRpgNarrativeProgress() haya modificado
+ * el perfil local, capturando el estado resultante.
+ *
+ * @param {string} charId
+ * @param {object} profile — topic.rpgProfiles[charId] ya modificado
+ * @param {object} effects — devuelto por applyRpgNarrativeProgress
+ * @returns {object|null}
+ */
+function _buildRpgEffectsPayload(charId, profile, effects) {
+    if (!charId || !profile || !effects) return null;
+    return {
+        charId:          String(charId),
+        newHp:           Number(profile.hp          ?? 0),
+        newHpMax:        Number(profile.hpMax        ?? (typeof RPG_HP_MAX !== 'undefined' ? RPG_HP_MAX : 10)),
+        newExp:          Number(profile.exp          ?? 0),
+        newLevel:        Number(profile.level        ?? 1),
+        levelUp:         !!effects.levelUp,
+        knockedOut:      !!effects.knockedOut,
+        conditions:      Array.isArray(profile.conditions) ? [...profile.conditions] : [],
+        knockedOutTurns: Number(profile.knockedOutTurns ?? 0),
+        appliedAt:       new Date().toISOString()
+    };
+}
+
+/**
+ * Aplica un rpgEffects recibido vía Realtime al perfil local del personaje.
+ * Solo actúa sobre personajes que NO pertenecen al usuario actual (el autor
+ * ya aplicó los efectos al lanzar la tirada).
+ *
+ * @param {object} effects — msg.rpgEffects
+ * @param {string} [topicId]
+ */
+function applyRpgEffectsFromMessage(effects, topicId) {
+    if (!effects || !effects.charId) return;
+    var tid = topicId || currentTopicId;
+    if (!tid) return;
+
+    var char = typeof getCharacterById === 'function'
+        ? getCharacterById(effects.charId)
+        : (appData?.characters || []).find(function (c) { return String(c.id) === String(effects.charId); });
+    if (!char) return;
+    if (typeof ensureCharacterRpgProfile !== 'function') return;
+
+    // Saltar si el personaje pertenece al usuario actual: ya aplicó los efectos localmente
+    if (String(char.userIndex) === String(currentUserIndex)) return;
+
+    var profile = ensureCharacterRpgProfile(char, tid);
+
+    // Aplicar valores absolutos
+    if (typeof effects.newHp      === 'number') profile.hp             = effects.newHp;
+    if (typeof effects.newHpMax   === 'number') profile.hpMax          = effects.newHpMax;
+    if (typeof effects.newExp     === 'number') profile.exp            = effects.newExp;
+    if (typeof effects.newLevel   === 'number') profile.level          = effects.newLevel;
+    if (typeof effects.knockedOutTurns === 'number') profile.knockedOutTurns = effects.knockedOutTurns;
+    if (Array.isArray(effects.conditions))      profile.conditions     = effects.conditions;
+
+    // Guardar localmente
+    if (typeof hasUnsavedChanges !== 'undefined') hasUnsavedChanges = true;
+    if (typeof save === 'function') save({ silent: true });
+
+    // Refrescar panel de party (si está visible y estamos en modo RPG)
+    if (typeof renderVnPartyPanel === 'function') renderVnPartyPanel();
+
+    // Sincronizar con el motor RPG si está activo y el personaje es el activo
+    if (typeof RPGState !== 'undefined' && typeof RPGState.syncFromCharacter === 'function') {
+        try { RPGState.syncFromCharacter(char, tid); } catch (_e) { /* silencioso */ }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ============================================
 // ============================================
 // MODO CLÁSICO — CAPÍTULOS
@@ -3506,6 +3603,8 @@ function closeCharacterInfoPanel() {
 }
 
 function _closeCharPanelOnOutside(e) {
+    // No interceptar clicks si hay un modal activo (ej: wizard de nueva historia)
+    if (document.querySelector('.modal-overlay.active')) return;
     const panel = document.getElementById('vnCharInfoPanel');
     const btn   = document.getElementById('vnInfoClassicToggleBtn');
     if (!panel) return;
@@ -3668,7 +3767,8 @@ function _dmPopulateSelects() {
         ...chars.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
     ].join('');
 
-    ['dmTargetChar','dmItemTarget','dmRollTarget'].forEach(id => {
+    // Selects de personaje (existentes + nuevos de C.2 / C.4)
+    ['dmTargetChar','dmItemTarget','dmRollTarget','dmHpTarget','dmExpTarget','dmMrTarget'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = options;
     });
@@ -3744,18 +3844,30 @@ function dmApplyCondition() {
     const charId = document.getElementById('dmTargetChar')?.value;
     const condId = document.getElementById('dmConditionSelect')?.value;
     if (!charId || !condId) { showAutosave('Selecciona personaje y condición', 'error'); return; }
-    if (typeof applyCharCondition === 'function') {
-        applyCharCondition(charId, condId, currentTopicId);
-        _dmRenderCharacterList();
-        // Propagar en tiempo real
-        if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
-            CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'apply' });
-        }
-        // Notificar en el chat como mensaje del narrador
-        const char = appData.characters.find(c => String(c.id) === String(charId));
-        const cond = window.RPG_CONDITIONS?.[condId];
-        if (char && cond) _dmPostSystemMessage(`${cond.icon} **${escapeHtml(char.name)}** sufre la condición **${cond.label}**. ${cond.desc}`);
+    if (typeof applyCharCondition !== 'function') return;
+
+    applyCharCondition(charId, condId, currentTopicId);
+    _dmRenderCharacterList();
+    renderVnPartyPanel();
+
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    const cond = window.RPG_CONDITIONS?.[condId];
+    if (!char || !cond) return;
+
+    // Pieza C.1: propagar vía rpgEffects en el mensaje (canal persistente)
+    const profile = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+    const rpgEffects = profile
+        ? _buildRpgEffectsPayload(charId, profile, { hpDelta: 0, expDelta: 0, levelUp: false, knockedOut: profile.hp === 0 })
+        : null;
+    // Mantener CollaborativeGuard como canal secundario (usuarios online simultáneamente)
+    if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
+        CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'apply' });
     }
+    _dmPostSystemMessage(
+        `${cond.icon} **${escapeHtml(char.name)}** sufre la condición **${cond.label}**. ${cond.desc}`,
+        rpgEffects ? { rpgEffects } : undefined
+    );
 }
 
 // Quitar condición del personaje seleccionado
@@ -3763,17 +3875,28 @@ function dmRemoveCondition() {
     const charId = document.getElementById('dmTargetChar')?.value;
     const condId = document.getElementById('dmConditionSelect')?.value;
     if (!charId || !condId) { showAutosave('Selecciona personaje y condición', 'error'); return; }
-    if (typeof removeCharCondition === 'function') {
-        removeCharCondition(charId, condId, currentTopicId);
-        _dmRenderCharacterList();
-        // Propagar en tiempo real
-        if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
-            CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'remove' });
-        }
-        const char = appData.characters.find(c => String(c.id) === String(charId));
-        const cond = window.RPG_CONDITIONS?.[condId];
-        if (char && cond) _dmPostSystemMessage(`${cond.icon} La condición **${cond.label}** ha sido eliminada de **${escapeHtml(char.name)}**.`);
+    if (typeof removeCharCondition !== 'function') return;
+
+    removeCharCondition(charId, condId, currentTopicId);
+    _dmRenderCharacterList();
+    renderVnPartyPanel();
+
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    const cond = window.RPG_CONDITIONS?.[condId];
+    if (!char || !cond) return;
+
+    const profile = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+    const rpgEffects = profile
+        ? _buildRpgEffectsPayload(charId, profile, { hpDelta: 0, expDelta: 0, levelUp: false, knockedOut: false })
+        : null;
+    if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
+        CollaborativeGuard.broadcastDmEvent('dm_condition', { charId, topicId: currentTopicId, conditionId: condId, action: 'remove' });
     }
+    _dmPostSystemMessage(
+        `${cond.icon} La condición **${cond.label}** ha sido eliminada de **${escapeHtml(char.name)}**.`,
+        rpgEffects ? { rpgEffects } : undefined
+    );
 }
 
 // Dar un objeto del catálogo a un personaje
@@ -3964,9 +4087,18 @@ function acceptChallenge(stat) {
 
     if (topic?.mode === 'rpg' && typeof applyRpgNarrativeProgress === 'function') {
         const effects = applyRpgNarrativeProgress(selectedCharId, oracleData);
-        if (effects && typeof buildConsequenceBadgeText === 'function') {
-            const consequence = buildConsequenceBadgeText(result, effects, char.name);
-            if (consequence) newMsg.oracleConsequence = consequence;
+        if (effects) {
+            const _profile = typeof ensureCharacterRpgProfile === 'function'
+                ? ensureCharacterRpgProfile(char, currentTopicId) : null;
+            if (effects.levelUp && _profile) effects.newLevel = _profile.level;
+            if (typeof buildConsequenceBadgeText === 'function') {
+                const consequence = buildConsequenceBadgeText(result, effects, char.name);
+                if (consequence) newMsg.oracleConsequence = consequence;
+            }
+            // Pieza B: embeber snapshot para propagación Realtime a co-autores
+            if (_profile) {
+                newMsg.rpgEffects = _buildRpgEffectsPayload(selectedCharId, _profile, effects);
+            }
         }
     }
 
@@ -4042,8 +4174,17 @@ function dmTriggerShortRest() {
     triggerShortRest();
 }
 
-// Publica un mensaje de sistema del DM (condiciones, objetos, tiradas)
-function _dmPostSystemMessage(text) {
+/**
+ * Publica un mensaje de sistema del DM en el chat.
+ *
+ * @param {string} text       — Texto del mensaje (Markdown soportado)
+ * @param {object} [payload]  — Campos extra para propagación Realtime:
+ *   .rpgEffects      {object}   — snapshot de stats de un personaje (Pieza B)
+ *   .rpgEffectsMulti {object[]} — array de snapshots (descanso corto, etc.)
+ *   .sceneChange     {object}   — { background } — fuerza fondo para co-autores
+ *   .weatherChange   {object}   — { weather }    — fuerza clima para co-autores
+ */
+function _dmPostSystemMessage(text, payload) {
     if (!text || !currentTopicId) return;
     const topicMessages = getTopicMessages(currentTopicId);
     const newMsg = {
@@ -4059,6 +4200,16 @@ function _dmPostSystemMessage(text) {
         userIndex:   currentUserIndex,
         timestamp:   new Date().toISOString()
     };
+    // Embeber payload para propagación Realtime (Pieza C.1 / C.4)
+    if (payload) {
+        if (payload.rpgEffects)           newMsg.rpgEffects           = payload.rpgEffects;
+        if (payload.rpgEffectsMulti)      newMsg.rpgEffectsMulti      = payload.rpgEffectsMulti;
+        if (payload.sceneChange)          newMsg.sceneChange          = payload.sceneChange;
+        if (payload.weatherChange)        newMsg.weatherChange        = payload.weatherChange;
+        if (payload.isMasterRoll)         newMsg.isMasterRoll         = payload.isMasterRoll;
+        if (payload.masterRoll)           newMsg.masterRoll           = payload.masterRoll;
+        if (payload.masterRollResolution) newMsg.masterRollResolution = payload.masterRollResolution;
+    }
     topicMessages.push(newMsg);
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
@@ -4090,16 +4241,23 @@ function dmReviveCharacter(charId) {
 
     if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
 
-    _dmPostSystemMessage(
-        `✦ **${escapeHtml(char.name)}** ha sido reincorporado a la partida por intervención del DM. ` +
-        `*La historia continúa.*`
+    // Pieza C.1: propagar reincorporación vía rpgEffects (canal persistente)
+    const _reviveEffects = _buildRpgEffectsPayload(
+        charId, profile,
+        { hpDelta: 0, expDelta: 0, levelUp: false, knockedOut: false }
     );
-    // Propagar en tiempo real para que el jugador pueda volver a actuar
+    // Canal secundario para usuarios online (presencia)
     if (typeof CollaborativeGuard !== 'undefined' && CollaborativeGuard.broadcastDmEvent) {
         CollaborativeGuard.broadcastDmEvent('dm_revive', { charId, topicId: currentTopicId });
     }
+    _dmPostSystemMessage(
+        `✦ **${escapeHtml(char.name)}** ha sido reincorporado a la partida por intervención del DM. ` +
+        `*La historia continúa.*`,
+        _reviveEffects ? { rpgEffects: _reviveEffects } : undefined
+    );
     showAutosave(`${char.name} reincorporado a la partida`, 'saved');
     _dmRenderCharacterList();
+    renderVnPartyPanel();
 }
 
 // ── Uso automático de poción al ≤30% HP ─────────────────────────────────────
@@ -4215,6 +4373,391 @@ window.addEventListener('etheria:story-participants-loaded', function(e) {
     renderVnPartyPanel(true);
 });
 
+// ── C.2a — Ajuste directo de HP por el DM ────────────────────────────────────
+/**
+ * Ajusta el HP del personaje seleccionado en #dmHpTarget.
+ * @param {number} sign  +1 = curar, -1 = dañar
+ */
+function dmAdjustHp(sign) {
+    if (!_isDM()) return;
+    const charId = document.getElementById('dmHpTarget')?.value;
+    const amount = Math.max(1, Math.abs(Number(document.getElementById('dmHpAmount')?.value) || 1));
+    if (!charId) { showAutosave('Selecciona un personaje', 'error'); return; }
+
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+    const profile = ensureCharacterRpgProfile(char, currentTopicId);
+
+    const hpMax    = Math.max(1, Number(profile.hpMax) || (typeof RPG_HP_MAX !== 'undefined' ? RPG_HP_MAX : 10));
+    const hpBefore = Math.max(0, Math.min(hpMax, Number(profile.hp) || 0));
+    profile.hp     = Math.max(0, Math.min(hpMax, hpBefore + sign * amount));
+    const hpAfter  = profile.hp;
+    const delta    = hpAfter - hpBefore;
+
+    if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+    _dmRenderCharacterList();
+    renderVnPartyPanel();
+
+    const icon   = sign > 0 ? '💚' : '🩸';
+    const sign_s = delta >= 0 ? '+' : '';
+    const rpgEffects = typeof _buildRpgEffectsPayload === 'function'
+        ? _buildRpgEffectsPayload(charId, profile, { hpDelta: delta, expDelta: 0, levelUp: false, knockedOut: hpAfter === 0 })
+        : null;
+
+    _dmPostSystemMessage(
+        `${icon} El DM ajusta los PV de **${escapeHtml(char.name)}**: ${sign_s}${delta} HP → ${hpAfter}/${hpMax}.`,
+        rpgEffects ? { rpgEffects } : undefined
+    );
+}
+
+// ── C.2b — Conceder EXP manualmente ─────────────────────────────────────────
+function dmAwardExp() {
+    if (!_isDM()) return;
+    const charId = document.getElementById('dmExpTarget')?.value;
+    const amount = Math.max(1, Number(document.getElementById('dmExpAmount')?.value) || 1);
+    if (!charId) { showAutosave('Selecciona un personaje', 'error'); return; }
+
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
+    const profile = ensureCharacterRpgProfile(char, currentTopicId);
+
+    const expPerLevel = typeof RPG_EXP_PER_LEVEL !== 'undefined' ? RPG_EXP_PER_LEVEL : 10;
+    profile.exp = (profile.exp || 0) + amount;
+    let leveledUp = false;
+
+    if (profile.exp >= expPerLevel) {
+        profile.exp   = profile.exp % expPerLevel;
+        profile.level = (profile.level || 1) + 1;
+        leveledUp     = true;
+        if (typeof recalcHpMaxOnLevelUp === 'function') recalcHpMaxOnLevelUp(profile, char);
+    }
+
+    if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+    _dmRenderCharacterList();
+    renderVnPartyPanel();
+
+    const effects    = { hpDelta: 0, expDelta: amount, levelUp: leveledUp };
+    if (leveledUp) effects.newLevel = profile.level;
+    const rpgEffects = typeof _buildRpgEffectsPayload === 'function'
+        ? _buildRpgEffectsPayload(charId, profile, effects) : null;
+
+    let msgText = `✦ El DM concede **+${amount} EXP** a **${escapeHtml(char.name)}**.`;
+    if (leveledUp) {
+        msgText += ` *¡Sube al nivel ${profile.level}! Distribuye +1 punto de stat desde la ficha.*`;
+        setTimeout(() => {
+            if (typeof openLevelUpModal === 'function') openLevelUpModal(charId, profile.level);
+        }, 800);
+    }
+    _dmPostSystemMessage(msgText, rpgEffects ? { rpgEffects } : undefined);
+    showAutosave(leveledUp ? `✦ ¡${char.name} sube al nivel ${profile.level}!` : `+${amount} EXP concedidos a ${char.name}`, 'saved');
+}
+
+// ── C.2c — Forzar cambio de escena/clima para todos ─────────────────────────
+function dmForceScene() {
+    if (!_isDM()) return;
+    const background = (document.getElementById('dmSceneBackground')?.value || '').trim();
+    const weather    = document.getElementById('dmSceneWeather')?.value || 'none';
+    const narration  = (document.getElementById('dmSceneNarration')?.value || '').trim();
+
+    if (!background && weather === 'none' && !narration) {
+        showAutosave('Define un fondo, clima o narración de escena', 'error');
+        return;
+    }
+
+    const topic = getCurrentTopic();
+    if (!topic) return;
+
+    // Aplicar localmente
+    const sceneChange   = background ? { background } : null;
+    const weatherChange = weather !== 'none' ? { weather } : null;
+
+    if (background) {
+        topic.background = background;
+        const vnSection  = document.getElementById('vnSection');
+        if (typeof applyTopicBackground === 'function') applyTopicBackground(vnSection, background);
+        if (typeof playVnSceneTransition === 'function') playVnSceneTransition(vnSection);
+    }
+    if (weather !== 'none' && typeof setWeather === 'function') setWeather(weather);
+
+    // Texto de narración
+    const weatherLabels = { rain: '🌧 Lluvia', fog: '🌫 Niebla' };
+    let msgText = narration
+        ? `🎬 *${escapeHtml(narration)}*`
+        : '🎬 **El DM cambia la escena.**';
+    if (weatherChange) msgText += ` · ${weatherLabels[weather] || weather}`;
+
+    _dmPostSystemMessage(msgText, {
+        sceneChange:   sceneChange   || undefined,
+        weatherChange: weatherChange || undefined
+    });
+
+    // Limpiar campos
+    const bgEl  = document.getElementById('dmSceneBackground');
+    const narEl = document.getElementById('dmSceneNarration');
+    if (bgEl)  bgEl.value  = '';
+    if (narEl) narEl.value = '';
+
+    showAutosave('Cambio de escena enviado a todos', 'saved');
+    closeDmPanel();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// C.4 — TIRADA DE SALVACIÓN (Master Roll)
+// El DM define una situación + opciones con consecuencias para un personaje.
+// Las opciones aparecen SOLO cuando es el turno de ese personaje, y solo el
+// propietario puede elegir. El resultado se narra automáticamente.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function dmSendMasterRoll() {
+    if (!_isDM()) return;
+    const charId    = document.getElementById('dmMrTarget')?.value;
+    const situation = document.getElementById('dmMrSituation')?.value.trim();
+
+    if (!charId)    { showAutosave('Selecciona un personaje objetivo', 'warn'); return; }
+    if (!situation) { showAutosave('Describe la situación primero', 'warn'); return; }
+
+    // Recoger opciones (solo las que tienen etiqueta)
+    const rows    = document.querySelectorAll('#dmMrOptionsList .dm-mr-option-row');
+    const options = [];
+    rows.forEach(function (row) {
+        const lbl    = row.querySelector('.dm-mr-opt-label')?.value.trim();
+        const hpStr  = row.querySelector('.dm-mr-opt-hp')?.value.trim();
+        const hpNum  = hpStr !== '' ? Number(hpStr) : null;
+        if (lbl) options.push({ label: lbl, hpDelta: (hpStr === '' || isNaN(hpNum)) ? null : hpNum });
+    });
+
+    if (options.length < 2) { showAutosave('Añade al menos 2 opciones', 'warn'); return; }
+
+    const char = appData.characters.find(function (c) { return String(c.id) === String(charId); });
+    if (!char) return;
+
+    const mrId       = (globalThis.crypto?.randomUUID?.()) || ('mr_' + Date.now());
+    const masterRoll = { id: mrId, targetCharId: String(charId), situation: situation, options: options, resolved: false };
+
+    // Texto del mensaje en el chat (visible para todos)
+    const letters  = ['A','B','C','D'];
+    const optLines = options.map(function (o, i) {
+        const hpHint = o.hpDelta !== null
+            ? ' (' + (o.hpDelta >= 0 ? '+' : '') + o.hpDelta + ' HP)'
+            : '';
+        return '**' + (letters[i] || (i+1)) + '.** ' + escapeHtml(o.label) + hpHint;
+    }).join('\n');
+
+    _dmPostSystemMessage(
+        '⚔️ **Tirada de Salvación** — *' + escapeHtml(situation) + '*\n' +
+        'El personaje **' + escapeHtml(char.name) + '** debe elegir en su turno:\n' + optLines,
+        { isMasterRoll: true, masterRoll: masterRoll }
+    );
+
+    // Limpiar formulario
+    const sitEl = document.getElementById('dmMrSituation');
+    if (sitEl) sitEl.value = '';
+    document.querySelectorAll('#dmMrOptionsList .dm-mr-opt-label').forEach(function (i) { i.value = ''; });
+    document.querySelectorAll('#dmMrOptionsList .dm-mr-opt-hp').forEach(function (i) { i.value = ''; });
+
+    showAutosave('Tirada de salvación enviada para ' + char.name, 'saved');
+    closeDmPanel();
+}
+
+// Llamada desde supabaseStories cuando llega un msg.isMasterRoll vía Realtime
+function _handleIncomingMasterRoll(masterRoll) {
+    if (!masterRoll || !masterRoll.id) return;
+    if (_pendingMasterRolls.some(function (mr) { return mr.id === masterRoll.id; })) return;
+    _pendingMasterRolls.push(masterRoll);
+    _checkAndShowMasterRollBar();
+}
+
+// Llamada desde supabaseStories cuando llega un msg.masterRollResolution
+function _handleMasterRollResolution(resolution) {
+    if (!resolution || !resolution.originalMrId) return;
+    _pendingMasterRolls = _pendingMasterRolls.filter(function (mr) { return mr.id !== resolution.originalMrId; });
+    _checkAndShowMasterRollBar();
+}
+
+// Escanea los mensajes al entrar a una historia para reconstruir _pendingMasterRolls
+function _scanForPendingMasterRolls(topicId) {
+    if (!topicId) return;
+    const msgs = typeof getTopicMessages === 'function'
+        ? getTopicMessages(topicId)
+        : ((appData && appData.messages && appData.messages[topicId]) || []);
+
+    // Recoger IDs ya resueltos
+    const resolvedIds = new Set();
+    msgs.forEach(function (m) {
+        if (m.masterRollResolution && m.masterRollResolution.originalMrId) {
+            resolvedIds.add(m.masterRollResolution.originalMrId);
+        }
+    });
+
+    // Reconstruir lista de pendientes
+    _pendingMasterRolls = [];
+    msgs.forEach(function (m) {
+        if (m.isMasterRoll && m.masterRoll && !resolvedIds.has(m.masterRoll.id)) {
+            if (!_pendingMasterRolls.some(function (mr) { return mr.id === m.masterRoll.id; })) {
+                _pendingMasterRolls.push(m.masterRoll);
+            }
+        }
+    });
+    _checkAndShowMasterRollBar();
+}
+
+// Evalúa si debe mostrarse la barra de tirada de salvación para el personaje activo
+function _checkAndShowMasterRollBar() {
+    if (!selectedCharId || !currentTopicId) { _hideMasterRollBar(); return; }
+
+    const topic = getCurrentTopic();
+    if (!topic || topic.mode !== 'rpg') { _hideMasterRollBar(); return; }
+
+    // El personaje seleccionado debe pertenecer al usuario actual
+    const myChar = (appData.characters || []).find(function (c) {
+        return String(c.id) === String(selectedCharId) &&
+               String(c.userIndex) === String(currentUserIndex);
+    });
+    if (!myChar) { _hideMasterRollBar(); return; }
+
+    // Si hay turn_mode activo, solo mostrar cuando sea el turno del usuario
+    const turnMode = topic.turn_mode || topic.turnMode || 'off';
+    if (turnMode !== 'off') {
+        const activeUserId = topic.turnOrder && topic.turnOrder[0];
+        const myUserId     = window._cachedUserId;
+        if (activeUserId && myUserId && String(activeUserId) !== String(myUserId)) {
+            _hideMasterRollBar(); return;
+        }
+    }
+
+    // Buscar tirada pendiente para este personaje
+    const pending = _pendingMasterRolls.find(function (mr) {
+        return String(mr.targetCharId) === String(selectedCharId) && !mr.resolved;
+    });
+    if (!pending) { _hideMasterRollBar(); return; }
+
+    _showMasterRollBar(pending);
+}
+
+function _showMasterRollBar(mr) {
+    const bar    = document.getElementById('vnMasterRollBar');
+    const sitEl  = document.getElementById('vnMrSituation');
+    const optsEl = document.getElementById('vnMrOptions');
+    if (!bar) return;
+
+    if (sitEl) sitEl.textContent = mr.situation || '…';
+
+    if (optsEl) {
+        const letters = ['A','B','C','D'];
+        optsEl.innerHTML = mr.options.map(function (opt, i) {
+            const letter  = letters[i] || String(i + 1);
+            const hpClass = (opt.hpDelta !== null && opt.hpDelta !== undefined)
+                ? (opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg') : '';
+            const hpHtml  = (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta))
+                ? '<span class="vn-mr-opt-hp ' + hpClass + '">' +
+                  (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP</span>'
+                : '';
+            return '<button class="vn-mr-opt-btn" ' +
+                   'onclick="resolveMasterRoll(\'' + escapeHtml(mr.id) + '\',' + i + ')">' +
+                   '<span class="vn-mr-opt-letter">' + letter + '</span>' +
+                   '<span class="vn-mr-opt-text">' + escapeHtml(opt.label) + '</span>' +
+                   hpHtml +
+                   '</button>';
+        }).join('');
+    }
+
+    bar.style.display = 'flex';
+}
+
+function _hideMasterRollBar() {
+    const bar = document.getElementById('vnMasterRollBar');
+    if (bar) bar.style.display = 'none';
+}
+
+// El jugador elige una opción — aplica efectos, narra, cierra la barra
+function resolveMasterRoll(mrId, optionIndex) {
+    const mr = _pendingMasterRolls.find(function (m) { return m.id === mrId; });
+    if (!mr || mr.resolved) return;
+
+    const opt = mr.options[optionIndex];
+    if (!opt) return;
+
+    // Solo el propietario del personaje puede resolver
+    const char = (appData.characters || []).find(function (c) {
+        return String(c.id) === String(mr.targetCharId) &&
+               String(c.userIndex) === String(currentUserIndex);
+    });
+    if (!char) { showAutosave('Solo el propietario de este personaje puede elegir', 'warn'); return; }
+
+    const topicId = currentTopicId;
+    const profile  = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, topicId) : null;
+
+    let rpgEffects   = null;
+    let hpResultText = '';
+
+    // Aplicar cambio de HP si la opción lo especifica
+    if (profile && opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta)) {
+        const hpMax  = profile.hpMax || profile.hp || 10;
+        profile.hp   = Math.max(0, Math.min(hpMax, (profile.hp || 0) + opt.hpDelta));
+        if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+
+        rpgEffects = typeof _buildRpgEffectsPayload === 'function'
+            ? _buildRpgEffectsPayload(String(char.id), profile, {
+                hpDelta:   opt.hpDelta,
+                expDelta:  0,
+                levelUp:   false,
+                knockedOut: profile.hp === 0
+              })
+            : null;
+
+        const sign = opt.hpDelta >= 0 ? '+' : '';
+        hpResultText = ' *[' + sign + opt.hpDelta + ' HP → ' + profile.hp + '/' + hpMax + ']*';
+        if (typeof renderVnPartyPanel === 'function') renderVnPartyPanel();
+    }
+
+    // Marcar resuelta y ocultar barra
+    mr.resolved = true;
+    _pendingMasterRolls = _pendingMasterRolls.filter(function (m) { return m.id !== mrId; });
+    _hideMasterRollBar();
+
+    // Texto narrado automáticamente
+    const letter       = ['A','B','C','D'][optionIndex] || String(optionIndex + 1);
+    const narratorText = '⚔️ **Tirada de Salvación resuelta** — *' + escapeHtml(mr.situation) + '*\n' +
+        '**' + escapeHtml(char.name) + '** elige: **' + letter + '. ' + escapeHtml(opt.label) + '**' + hpResultText;
+
+    const resolution = {
+        originalMrId:      mrId,
+        targetCharId:      String(mr.targetCharId),
+        chosenOptionIndex: optionIndex
+    };
+
+    const topicMessages = typeof getTopicMessages === 'function' ? getTopicMessages(topicId) : [];
+    const resolveMsg    = {
+        id:          (globalThis.crypto?.randomUUID?.()) || ('mr_res_' + Date.now()),
+        characterId: null,
+        charName:    'Narrador',
+        charColor:   '#c9a86c',
+        charAvatar:  null,
+        charSprite:  null,
+        text:        narratorText,
+        isNarrator:  true,
+        isDmSystem:  false,
+        userIndex:   currentUserIndex,
+        timestamp:   new Date().toISOString(),
+        masterRollResolution: resolution
+    };
+    if (rpgEffects) resolveMsg.rpgEffects = rpgEffects;
+
+    topicMessages.push(resolveMsg);
+    if (typeof SupabaseMessages !== 'undefined' && topicId) {
+        SupabaseMessages.send(topicId, resolveMsg).catch(function () {});
+    }
+    hasUnsavedChanges = true;
+    if (typeof save === 'function') save({ silent: true });
+
+    currentMessageIndex = topicMessages.length - 1;
+    if (typeof triggerDialogueFadeIn === 'function') triggerDialogueFadeIn();
+    if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
+
+    showAutosave('¡' + char.name + ' ha elegido su destino!', 'saved');
+}
+
 window.toggleDmPanel     = toggleDmPanel;
 window.openDmPanel       = openDmPanel;
 window.closeDmPanel      = closeDmPanel;
@@ -4229,6 +4772,33 @@ window.acceptChallenge   = acceptChallenge;
 window.dismissChallenge  = dismissChallenge;
 window.dmSendAsNpc       = dmSendAsNpc;
 window.dmTriggerShortRest = dmTriggerShortRest;
+window.dmAdjustHp        = dmAdjustHp;
+window.dmAwardExp        = dmAwardExp;
+window.dmForceScene      = dmForceScene;
+window.dmSendMasterRoll  = dmSendMasterRoll;
+window.resolveMasterRoll = resolveMasterRoll;
+// Exponer para supabaseStories
+window._handleIncomingMasterRoll  = _handleIncomingMasterRoll;
+window._handleMasterRollResolution = _handleMasterRollResolution;
+window._scanForPendingMasterRolls  = _scanForPendingMasterRolls;
+
+// ── Listeners de turno y entrada a historia ──────────────────────────────────
+// Reevalúa la barra de salvación cuando el turno rota o se entra a una historia
+;(function () {
+    function _onTurnChange() {
+        if (typeof _checkAndShowMasterRollBar === 'function') _checkAndShowMasterRollBar();
+    }
+    function _onStoryEntered(e) {
+        const topicId = e?.detail?.topicId || (typeof currentTopicId !== 'undefined' ? currentTopicId : null);
+        if (topicId && typeof _scanForPendingMasterRolls === 'function') {
+            _scanForPendingMasterRolls(topicId);
+        }
+    }
+    window.addEventListener('etheria:turn-rotated', _onTurnChange);
+    window.addEventListener('etheria:turn-updated', _onTurnChange);
+    window.addEventListener('etheria:turn-skipped', _onTurnChange);
+    window.addEventListener('etheria:story-entered', _onStoryEntered);
+})();
 
 // ============================================
 // BOTÓN DE NARRACIÓN FLOTANTE (escena/capítulo)
@@ -4312,6 +4882,7 @@ function closeNarratePanel() {
 }
 
 function _closeNarratePanelOnOutside(e) {
+    if (document.querySelector('.modal-overlay.active')) return;
     const panel  = document.getElementById('vnNarratePanel');
     const trigger = document.querySelector('.vn-narrate-btn-inner');
     if (!panel) return;
@@ -4399,6 +4970,53 @@ function openReplyPanel() {
     markContinuousInteraction();
     const panel = document.getElementById('vnReplyPanel');
     if (!panel) return;
+
+    // ── Antigodmoding — Bloquear respuesta si hay elecciones pendientes ──
+    // En modo Senda de la Palabra (clásico), si el último mensaje tiene opciones
+    // sin elegir, el lector debe seleccionar antes de poder responder.
+    // Excepción: el propio autor de ese mensaje sí puede editar.
+    if (!editingMessageId && !isRpgModeMode()) {
+        const _allMsgs = getTopicMessages(currentTopicId);
+        const _lastMsg = _allMsgs[_allMsgs.length - 1];
+        if (_lastMsg && Array.isArray(_lastMsg.options) && _lastMsg.options.length > 0
+                && _lastMsg.selectedOptionIndex === undefined) {
+            // ¿Es el propio autor del mensaje?
+            const _authorChar = (appData.characters || []).find(c =>
+                String(c.id) === String(_lastMsg.characterId) && c.userIndex === currentUserIndex);
+            const _isNarratorAuthor = _lastMsg.isNarrator && _lastMsg.charName === 'Narrador'
+                && (!_lastMsg.characterId); // mensajes de narrador sin personaje asignado
+            if (!_authorChar && !_isNarratorAuthor) {
+                // Mostrar el panel de elecciones en lugar del panel de respuesta
+                showOptions(_lastMsg.options);
+                showAutosave('Elige una opción antes de responder', 'warn');
+                return;
+            }
+        }
+    }
+
+    // ── Guard de turno activo ──────────────────────────────────────────────
+    // Se evalúa DESPUÉS del bloqueo Otome (que tiene prioridad).
+    // Aplica en modo clásico y RPG si el tema tiene turn_mode ≠ 'off'.
+    // 'strict' → bloqueo duro (return). 'soft' → aviso pero continúa.
+    if (!editingMessageId) {
+        const _turnTopic = getCurrentTopic();
+        const _turnResult = _checkTurnPermission(_turnTopic);
+        if (_turnResult === 'blocked') {
+            const _next = _turnTopic?.turnOrder?.[0];
+            // Intentar mostrar el nombre del participante que tiene el turno
+            const _nextParticipant = Array.isArray(currentStoryParticipants)
+                ? currentStoryParticipants.find(p => p?.user_id === _next)
+                : null;
+            const _nextName = _nextParticipant?.profile?.name
+                || (_next ? _next.slice(0, 8) + '…' : 'el otro jugador');
+            showAutosave(`⏳ Espera — es el turno de ${_nextName}`, 'warn');
+            return;
+        }
+        if (_turnResult === 'soft-warn') {
+            showAutosave('ℹ️ Puede que no sea tu turno — responde con moderación', 'info');
+            // No hace return — modo soft solo avisa
+        }
+    }
 
     // ── Mover el panel al <body> si sigue dentro de vnSection ────────────
     // position:fixed se rompe cuando un ancestro tiene filter: o transform:.
@@ -4660,6 +5278,32 @@ function toggleNarratorMode() {
 }
 
 
+// ── Sistema de gestión de turnos ─────────────────────────────────────────────
+// Umbral de inactividad: 24 horas para rol escrito. Pasado este tiempo, cualquier
+// participante puede ofrecer el skip sin esperar al jugador inactivo.
+const TURN_SKIP_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 h
+
+/**
+ * Comprueba si el usuario actual tiene permiso para escribir en este topic.
+ *
+ * Reglas:
+ *   - turnMode 'off' o sin cola → siempre ok (comportamiento original)
+ *   - turnMode 'strict'         → bloqueo duro si no es el turno del usuario
+ *   - turnMode 'soft'           → aviso visual pero no bloquea
+ *
+ * @param {object} topic  Objeto topic de appData.topics
+ * @returns {'ok'|'blocked'|'soft-warn'|'no-queue'}
+ */
+function _checkTurnPermission(topic) {
+    if (!topic?.turnMode || topic.turnMode === 'off') return 'ok';
+    const queue = topic.turnOrder;
+    if (!Array.isArray(queue) || queue.length === 0) return 'no-queue';
+    const me = window._cachedUserId;
+    if (!me) return 'ok'; // sin auth → no bloqueamos
+    if (queue[0] === me) return 'ok';
+    return topic.turnMode === 'strict' ? 'blocked' : 'soft-warn';
+}
+
 async function notifyNextTurnIfNeeded(newMsg, topic, char) {
     if (!currentStoryId) return;
     if (typeof SupabaseTurnNotifications === 'undefined' || typeof SupabaseTurnNotifications.notifyTurn !== 'function') return;
@@ -4684,6 +5328,16 @@ async function notifyNextTurnIfNeeded(newMsg, topic, char) {
     const topicTitle = topic?.title || 'historia colaborativa';
     const speaker = newMsg?.isNarrator ? 'Narrador' : (char?.name || newMsg?.charName || 'Jugador');
     const preview = String(newMsg?.text || '').replace(/\s+/g, ' ').slice(0, 110);
+
+    // ── Rotar la cola de turnos en Supabase ──────────────────────────────────
+    // Se ejecuta ANTES de la notificación push para que el servidor ya tenga
+    // la cola actualizada si el receptor abre la app inmediatamente.
+    const _currentTopic = getCurrentTopic();
+    if (_currentTopic?.turnMode && _currentTopic.turnMode !== 'off'
+            && typeof SupabaseStories !== 'undefined'
+            && typeof SupabaseStories.rotateTurn === 'function') {
+        SupabaseStories.rotateTurn(currentStoryId).catch(() => {});
+    }
 
     await SupabaseTurnNotifications.notifyTurn({
         storyId: currentStoryId,
@@ -4828,14 +5482,15 @@ function postVNReply() {
         const _charForConseq = isNarratorMode ? null : appData.characters.find(c => String(c.id) === String(selectedCharId));
         const _effects = applyRpgNarrativeProgress(isNarratorMode ? null : selectedCharId, oracleData);
         if (_effects && oracleData) {
+            // Leer perfil post-aplicación una sola vez
+            const _p = _charForConseq && typeof ensureCharacterRpgProfile === 'function'
+                ? ensureCharacterRpgProfile(_charForConseq, currentTopicId) : null;
+            if (_effects.levelUp && _p) _effects.newLevel = _p.level;
             const _conseqText = buildConsequenceBadgeText(oracleData.result, _effects, _charForConseq?.name);
-            if (_conseqText) {
-                newMsg.oracleConsequence = _conseqText;
-                if (_effects.levelUp && _charForConseq) {
-                    const _p = typeof ensureCharacterRpgProfile === 'function'
-                        ? ensureCharacterRpgProfile(_charForConseq, currentTopicId) : null;
-                    if (_p) { _effects.newLevel = _p.level; newMsg.oracleConsequence = buildConsequenceBadgeText(oracleData.result, _effects, _charForConseq.name); }
-                }
+            if (_conseqText) newMsg.oracleConsequence = _conseqText;
+            // Pieza B: embeber snapshot para propagación Realtime a co-autores
+            if (_charForConseq && _p) {
+                newMsg.rpgEffects = _buildRpgEffectsPayload(selectedCharId, _p, _effects);
             }
         }
     }
@@ -5109,6 +5764,8 @@ function triggerShortRest() {
     let healedChars = 0;
     let totalHpRecovered = 0;
     const hpCap = Math.max(1, Number(globalThis.RPG_HP_MAX || 10));
+    // Pieza C.1: recopilar snapshots post-curación para todos los personajes
+    const rpgEffectsMulti = [];
 
     appData.characters.forEach((ch) => {
         if (typeof ensureCharacterRpgProfile !== 'function') return;
@@ -5124,6 +5781,11 @@ function triggerShortRest() {
             healedChars += 1;
             totalHpRecovered += gained;
         }
+        // Capturar snapshot absoluto para propagación Realtime
+        const eff = typeof _buildRpgEffectsPayload === 'function'
+            ? _buildRpgEffectsPayload(String(ch.id), profile, { hpDelta: gained, expDelta: 0, levelUp: false, knockedOut: false })
+            : null;
+        if (eff) rpgEffectsMulti.push(eff);
     });
 
     hasUnsavedChanges = true;
@@ -5131,9 +5793,15 @@ function triggerShortRest() {
     renderVnPartyPanel();
     if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
     if (typeof refreshDmPanelCharacterList === 'function') refreshDmPanelCharacterList();
+
+    const _restLabel = healedChars > 0
+        ? `⛺ Descanso corto — la party recupera ${Math.round(SHORT_REST_HEAL_RATIO * 100)}% de vida (+${totalHpRecovered} HP en total).`
+        : '⛺ Descanso corto — la party descansa. Nadie necesitaba curación.';
     showAutosave(healedChars > 0
         ? `⛺ Descanso corto aplicado (${Math.round(SHORT_REST_HEAL_RATIO * 100)}%): +${totalHpRecovered} HP totales`
         : '⛺ Descanso corto aplicado (sin curación necesaria)', 'saved');
+    // Enviar mensaje de sistema con los snapshots para co-autores
+    _dmPostSystemMessage(_restLabel, rpgEffectsMulti.length ? { rpgEffectsMulti } : undefined);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -5241,3 +5909,118 @@ function vrpSetWeatherBtn(clickedBtn) {
     document.querySelectorAll('.vrp-weather-btn').forEach(b => b.classList.remove('active'));
     if (clickedBtn) clickedBtn.classList.add('active');
 }
+
+// ── Turn UI: Banner persistente de skip por inactividad ──────────────────────
+// Escucha etheria:turn-inactive y muestra un banner anclado en la parte baja
+// solo si el usuario actual es el siguiente en la cola de turnos (turnOrder[1]).
+// ─────────────────────────────────────────────────────────────────────────────
+(function initTurnSkipBanner() {
+    'use strict';
+
+    /** Garantiza que el elemento #turnSkipBanner existe en el DOM. */
+    function _ensureBanner() {
+        let banner = document.getElementById('turnSkipBanner');
+        if (banner) return banner;
+
+        banner = document.createElement('div');
+        banner.id = 'turnSkipBanner';
+        banner.setAttribute('role', 'alert');
+        banner.setAttribute('aria-live', 'polite');
+        banner.innerHTML =
+            '<span class="turn-skip-banner__icon">⚠️</span>' +
+            '<p class="turn-skip-banner__text"></p>' +
+            '<button class="turn-skip-banner__btn" type="button">Pedir Turno</button>' +
+            '<button class="turn-skip-banner__close" type="button" aria-label="Cerrar">✕</button>';
+        document.body.appendChild(banner);
+
+        // Botón "Pedir Turno"
+        banner.querySelector('.turn-skip-banner__btn').addEventListener('click', async function () {
+            const storyId = global.currentStoryId;
+            if (!storyId || typeof SupabaseStories === 'undefined') return;
+            this.disabled = true;
+            this.textContent = 'Solicitando…';
+            try {
+                const result = await SupabaseStories.skipTurn(storyId);
+                if (result && result.ok) {
+                    if (typeof showAutosave === 'function') showAutosave('✅ Turno solicitado con éxito', 'success');
+                    _hideBanner();
+                } else {
+                    if (typeof showAutosave === 'function') {
+                        showAutosave('❌ Error al pedir el turno: ' + (result?.error || 'desconocido'), 'warn');
+                    }
+                    this.disabled = false;
+                    this.textContent = 'Pedir Turno';
+                }
+            } catch (err) {
+                if (typeof showAutosave === 'function') showAutosave('❌ Error al pedir el turno', 'warn');
+                this.disabled = false;
+                this.textContent = 'Pedir Turno';
+            }
+        });
+
+        // Botón de cierre manual
+        banner.querySelector('.turn-skip-banner__close').addEventListener('click', _hideBanner);
+
+        return banner;
+    }
+
+    function _hideBanner() {
+        var banner = document.getElementById('turnSkipBanner');
+        if (banner) banner.classList.remove('turn-skip-banner--visible');
+    }
+
+    /** Escucha el evento de inactividad despachado por supabaseSync.js */
+    window.addEventListener('etheria:turn-inactive', function (e) {
+        var detail = e && e.detail ? e.detail : {};
+        var topicId      = detail.topicId;
+        var storyId      = detail.storyId;
+        var inactiveUserId = detail.inactiveUserId;
+        var msInactive   = detail.msInactive || 0;
+
+        if (!storyId || !inactiveUserId) return;
+
+        // Buscar el topic para leer la cola de turnos
+        var topic = null;
+        if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+            topic = appData.topics.find(function (t) {
+                return String(t.storyId) === String(storyId) || String(t.id) === String(storyId);
+            });
+        }
+        if (!topic || !Array.isArray(topic.turnOrder) || topic.turnOrder.length < 2) return;
+        if (!topic.turnMode || topic.turnMode === 'off') return;
+
+        // Solo mostrar si el usuario actual es el siguiente en la cola (índice 1)
+        var myId = window._cachedUserId;
+        if (!myId || topic.turnOrder[1] !== myId) return;
+
+        // Calcular texto del tiempo transcurrido
+        var totalHours = Math.round(msInactive / (1000 * 60 * 60));
+        var timeStr = totalHours >= 48
+            ? Math.round(totalHours / 24) + ' días'
+            : totalHours >= 24
+                ? '1 día'
+                : totalHours + 'h';
+
+        // Nombre del usuario inactivo
+        var participants = Array.isArray(currentStoryParticipants) ? currentStoryParticipants : [];
+        var inactivePart = participants.find(function (p) { return p && p.user_id === inactiveUserId; });
+        var inactiveName = (inactivePart && inactivePart.profile && inactivePart.profile.name)
+            ? inactivePart.profile.name
+            : (inactiveUserId ? inactiveUserId.slice(0, 8) + '…' : 'El otro jugador');
+
+        var banner = _ensureBanner();
+        banner.querySelector('.turn-skip-banner__text').textContent =
+            inactiveName + ' lleva más de ' + timeStr + ' sin responder. ¿Quieres pedir el turno para que la historia continúe?';
+        // Restablecer estado del botón
+        var btn = banner.querySelector('.turn-skip-banner__btn');
+        btn.disabled = false;
+        btn.textContent = 'Pedir Turno';
+        banner.classList.add('turn-skip-banner--visible');
+    });
+
+    // Ocultar banner al cambiar de historia o cuando el turno se actualiza
+    window.addEventListener('etheria:story-entered',  _hideBanner);
+    window.addEventListener('etheria:turn-rotated',   _hideBanner);
+    window.addEventListener('etheria:turn-skipped',   _hideBanner);
+    window.addEventListener('etheria:turn-updated',   _hideBanner);
+})();

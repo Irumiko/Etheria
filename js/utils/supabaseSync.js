@@ -28,6 +28,35 @@ const SupabaseSync = (function () {
     let _pendingChanges = false;
     let _cachedUserId = null;
 
+    // ── Merge con timestamps por campo ───────────────────────────────────────
+    // Cada campo sincronizable tiene su propio timestamp local. Al descargar
+    // datos del servidor, se aplica solo el campo cuyo timestamp remoto es más
+    // reciente que el local (Last Write Wins por campo, no por blob completo).
+    // Así, cambiar el nombre en el móvil offline y el tema en el PC no se pisarán.
+    const _FIELD_TS_KEY = 'etheria_field_timestamps';
+
+    function _loadFieldTimestamps() {
+        try { return JSON.parse(localStorage.getItem(_FIELD_TS_KEY) || '{}'); }
+        catch { return {}; }
+    }
+    function _saveFieldTimestamps(ts) {
+        try { localStorage.setItem(_FIELD_TS_KEY, JSON.stringify(ts)); }
+        catch {}
+    }
+
+    /**
+     * Marca que un campo concreto fue modificado localmente ahora mismo.
+     * Llamar desde el código que muta cada campo antes de guardar en localStorage.
+     * @param {string} fieldName — 'userNames' | 'profileMeta' | 'settings' | 'rpgStateSnapshot'
+     */
+    function touchField(fieldName) {
+        if (!fieldName) return;
+        const ts = _loadFieldTimestamps();
+        ts[fieldName] = new Date().toISOString();
+        _saveFieldTimestamps(ts);
+        _pendingChanges = true;
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     function _client() {
@@ -91,62 +120,105 @@ const SupabaseSync = (function () {
                 textSpeed: typeof textSpeed !== 'undefined' ? textSpeed : 25,
                 theme:     document.documentElement.getAttribute('data-theme') || 'light',
                 fontSize:  localStorage.getItem('etheria_font_size') || '19'
-            }
+            },
+            // Timestamps por campo — usados por _applySyncedData() para merge LWW
+            _fieldTimestamps: _loadFieldTimestamps()
         };
     }
 
     /**
-     * Aplica datos sincronizados al estado local
+     * Aplica datos sincronizados al estado local usando merge Last-Write-Wins por campo.
+     *
+     * Lógica de decisión para cada campo:
+     *   - Sin timestamps en ningún lado  → aplicar (primera sincronización)
+     *   - Solo timestamp local           → conservar local (el servidor no conocía este dato)
+     *   - Solo timestamp remoto          → aplicar remoto (el dispositivo no tiene historial)
+     *   - Ambos timestamps               → gana el más reciente (LWW)
      */
     function _applySyncedData(syncedData) {
         if (!syncedData || typeof syncedData !== 'object') return false;
 
-        // Actualizar nombres de usuario si existen
+        const localTs  = _loadFieldTimestamps();
+        const remoteTs = syncedData._fieldTimestamps || {};
+
+        /**
+         * Devuelve true si el campo remoto debe aplicarse localmente.
+         * @param {string} fieldName
+         */
+        function _shouldApply(fieldName) {
+            const localMs  = localTs[fieldName]  ? new Date(localTs[fieldName]).getTime()  : 0;
+            const remoteMs = remoteTs[fieldName] ? new Date(remoteTs[fieldName]).getTime() : 0;
+            if (localMs === 0 && remoteMs === 0) return true;  // primera sync → aplicar
+            if (localMs  >  0 && remoteMs === 0) return false; // sólo dato local → conservar
+            return remoteMs >= localMs;                         // LWW: remoto gana si ≥ local
+        }
+
+        // ── userNames ────────────────────────────────────────────────────────
+        // topics/characters/messages/affinities/favorites/journals NO están en el
+        // blob — se cargan desde sus tablas propias de Supabase.
         if (Array.isArray(syncedData.userNames) && syncedData.userNames.length > 0) {
-            if (typeof userNames !== 'undefined') {
-                userNames.splice(0, userNames.length, ...syncedData.userNames);
+            if (_shouldApply('userNames')) {
+                if (typeof userNames !== 'undefined') {
+                    userNames.splice(0, userNames.length, ...syncedData.userNames);
+                }
+                try {
+                    localStorage.setItem('etheria_user_names', JSON.stringify(syncedData.userNames));
+                } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
+            } else {
+                window.EtheriaLogger?.info('[sync:merge]', 'userNames: local más reciente → conservado');
             }
-            try {
-                localStorage.setItem('etheria_user_names', JSON.stringify(syncedData.userNames));
-            } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         }
 
-        // topics NO se restaura desde el blob — se carga desde la tabla stories de Supabase.
-        // characters NO se restaura desde el blob — se carga desde la tabla characters de Supabase.
-        // messages NO se restaura desde el blob — se carga desde la tabla messages de Supabase.
-        // affinities NO se restaura desde el blob — se carga desde la tabla affinities de Supabase.
-        // favorites NO se restaura desde el blob — se carga desde la tabla favorites de Supabase.
-        // journals NO se restaura desde el blob — se carga desde la tabla journals de Supabase.
-
+        // ── profileMeta ──────────────────────────────────────────────────────
         if (syncedData.profileMeta && typeof syncedData.profileMeta === 'object') {
-            try {
-                localStorage.setItem('etheria_user_genders', JSON.stringify(Array.isArray(syncedData.profileMeta.genders) ? syncedData.profileMeta.genders : []));
-                localStorage.setItem('etheria_user_birthdays', JSON.stringify(Array.isArray(syncedData.profileMeta.birthdays) ? syncedData.profileMeta.birthdays : []));
-                localStorage.setItem('etheria_user_avatars', JSON.stringify(Array.isArray(syncedData.profileMeta.avatars) ? syncedData.profileMeta.avatars : []));
-            } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
+            if (_shouldApply('profileMeta')) {
+                try {
+                    localStorage.setItem('etheria_user_genders',   JSON.stringify(Array.isArray(syncedData.profileMeta.genders)   ? syncedData.profileMeta.genders   : []));
+                    localStorage.setItem('etheria_user_birthdays', JSON.stringify(Array.isArray(syncedData.profileMeta.birthdays) ? syncedData.profileMeta.birthdays : []));
+                    localStorage.setItem('etheria_user_avatars',   JSON.stringify(Array.isArray(syncedData.profileMeta.avatars)   ? syncedData.profileMeta.avatars   : []));
+                } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
+            } else {
+                window.EtheriaLogger?.info('[sync:merge]', 'profileMeta: local más reciente → conservado');
+            }
         }
 
-        // Guardar en localStorage
+        // Persistir datos fusionados (sólo campos que fueron aplicados)
         if (typeof persistPartitionedData === 'function') {
             persistPartitionedData(true);
         }
 
-        // Restaurar inventario y estado RPG del motor de escenas si viene en los datos sincronizados
+        // ── rpgStateSnapshot ─────────────────────────────────────────────────
         if (syncedData.rpgStateSnapshot && typeof syncedData.rpgStateSnapshot === 'object') {
-            try {
-                const profileIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
-                localStorage.setItem(
-                    `etheria_rpg_state_${profileIndex}`,
-                    JSON.stringify(syncedData.rpgStateSnapshot)
-                );
-                // Recargar en memoria si RPGState ya está inicializado
-                if (typeof RPGState !== 'undefined' && typeof RPGState.loadSnapshot === 'function') {
-                    RPGState.loadSnapshot(syncedData.rpgStateSnapshot);
+            if (_shouldApply('rpgStateSnapshot')) {
+                try {
+                    const profileIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
+                    localStorage.setItem(
+                        `etheria_rpg_state_${profileIndex}`,
+                        JSON.stringify(syncedData.rpgStateSnapshot)
+                    );
+                    if (typeof RPGState !== 'undefined' && typeof RPGState.loadSnapshot === 'function') {
+                        RPGState.loadSnapshot(syncedData.rpgStateSnapshot);
+                    }
+                } catch (e) {
+                    window.EtheriaLogger?.warn('supabaseSync', 'No se pudo restaurar rpgStateSnapshot:', e?.message);
                 }
-            } catch (e) {
-                window.EtheriaLogger?.warn('supabaseSync', 'No se pudo restaurar rpgStateSnapshot:', e?.message);
+            } else {
+                window.EtheriaLogger?.info('[sync:merge]', 'rpgStateSnapshot: local más reciente → conservado');
             }
         }
+
+        // ── Actualizar timestamps locales con el máximo de cada campo ────────
+        // Después del merge, el registro local conoce el timestamp más alto visto,
+        // ya sea del servidor o del propio dispositivo.
+        const mergedTs = { ...localTs };
+        for (const [field, remoteTime] of Object.entries(remoteTs)) {
+            if (!remoteTime) continue;
+            const localTime = localTs[field];
+            if (!localTime || new Date(remoteTime) > new Date(localTime)) {
+                mergedTs[field] = remoteTime;
+            }
+        }
+        _saveFieldTimestamps(mergedTs);
 
         return true;
     }
@@ -273,9 +345,25 @@ const SupabaseSync = (function () {
         }
 
         try {
-            // 1. Descargar datos del servidor
+            // Fix 2: si hay cambios locales pendientes, SUBIR PRIMERO.
+            // El orden anterior (descargar → subir) sobreescribía los datos locales
+            // antes de subirlos, causando pérdida silenciosa de cambios offline.
+            let didUpload = false;
+            if (_pendingChanges || force) {
+                const uploadResult = await uploadProfileData();
+                if (!uploadResult.ok) {
+                    _isOffline = true;
+                    if (!silent) {
+                        eventBus.emit('ui:show-autosave', { text: 'Error al guardar cambios locales', state: 'error' });
+                    }
+                    return { status: 'error', error: uploadResult.error };
+                }
+                didUpload = true;
+            }
+
+            // 2. Descargar datos del servidor (seguro: cambios locales ya subidos)
             const downloadResult = await downloadProfileData();
-            
+
             if (!downloadResult.ok) {
                 _isOffline = true;
                 if (!silent) {
@@ -284,7 +372,7 @@ const SupabaseSync = (function () {
                 return { status: 'error', error: downloadResult.error };
             }
 
-            // 2. Si es nuevo usuario, subir datos locales
+            // 3. Si es usuario nuevo (sin datos en la nube), subir datos locales
             if (downloadResult.isNew && _hasLocalData()) {
                 const uploadResult = await uploadProfileData();
                 if (!silent && uploadResult.ok) {
@@ -293,16 +381,10 @@ const SupabaseSync = (function () {
                 return { status: uploadResult.ok ? 'uploaded' : 'error' };
             }
 
-            // 3. Si hay cambios locales pendientes, subirlos
-            if (_pendingChanges || force) {
-                const uploadResult = await uploadProfileData();
-                if (!silent && uploadResult.ok) {
-                    eventBus.emit('ui:show-autosave', { text: 'Sincronización completada', state: 'saved' });
-                }
-                return { status: uploadResult.ok ? 'synced' : 'error' };
-            }
-
             _isOffline = false;
+            if (!silent && didUpload) {
+                eventBus.emit('ui:show-autosave', { text: 'Sincronización completada', state: 'saved' });
+            }
             return { status: 'synced' };
 
         } catch (err) {
@@ -453,6 +535,35 @@ const SupabaseSync = (function () {
             }
             // Si además había cambios pendientes, subirlos
             if (_pendingChanges) await uploadProfileData();
+
+            // ── Detección de inactividad y oferta de skip de turno ───────────
+            // Si el tema activo tiene turno activado y el jugador con turno lleva
+            // más de 24 horas sin responder, emitir un evento para que la UI
+            // ofrezca el botón de skip. No hacemos skip automático (sería intrusivo).
+            const SKIP_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 h
+            try {
+                const _activeTopic = (typeof getCurrentTopic === 'function') ? getCurrentTopic() : null;
+                if (_activeTopic?.turnMode && _activeTopic.turnMode !== 'off'
+                        && _activeTopic.turnLastAt) {
+                    const _msSinceLastMsg = Date.now() - new Date(_activeTopic.turnLastAt).getTime();
+                    const _myId = _getUserId();
+                    // Solo ofrecer skip si somos participantes (hay cola) y NO somos el que tiene el turno
+                    const _isMyTurn = Array.isArray(_activeTopic.turnOrder)
+                        && _activeTopic.turnOrder.length > 0
+                        && _activeTopic.turnOrder[0] === _myId;
+                    if (_msSinceLastMsg >= SKIP_THRESHOLD_MS && !_isMyTurn && _myId) {
+                        window.EtheriaLogger?.info?.('sync:turns', 'Inactividad ≥24h detectada — ofreciendo skip');
+                        window.dispatchEvent(new CustomEvent('etheria:turn-inactive', {
+                            detail: {
+                                topicId:       _activeTopic.id,
+                                storyId:       _activeTopic.storyId,
+                                inactiveUserId: _activeTopic.turnOrder?.[0] || null,
+                                msInactive:    _msSinceLastMsg
+                            }
+                        }));
+                    }
+                }
+            } catch (_) {}
         });
 
         // ── Sync al recuperar conexión ───────────────────────────────────────
@@ -555,6 +666,12 @@ const SupabaseSync = (function () {
         }
     });
 
+    // Auto-touch rpgStateSnapshot cuando el motor RPG cambia su estado.
+    // Esto evita tener que llamar touchField desde RPGState.js manualmente.
+    window.addEventListener('rpg:state-updated', () => {
+        touchField('rpgStateSnapshot');
+    });
+
     return {
         init,
         sync,
@@ -563,6 +680,7 @@ const SupabaseSync = (function () {
         startAutoSync,
         stopAutoSync,
         markPending: () => { _pendingChanges = true; },
+        touchField,
         get isOffline() { return _isOffline; },
         get lastSyncTime() { return _lastSyncTime; },
         get hasPendingChanges() { return _pendingChanges; }

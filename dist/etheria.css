@@ -19384,11 +19384,13 @@ body {
     background: transparent !important;
 }
 
-/* VN tiene su propio fondo de escena — restaurar (solo cuando NO es modo RPG) */
-#vnSection:not(body.mode-rpg #vnSection) {
-    background: var(--bg-primary) !important;
+/* VN: fondo base según modo.
+   Modo Clásico → azul noche profundo siempre (con o sin wallpaper).
+   Otros modos sin wallpaper → color del tema.                         */
+body.mode-classic #vnSection {
+    background: #060918 !important;
 }
-body:not(.mode-rpg) #vnSection {
+body:not(.mode-classic):not(.mode-rpg) #vnSection {
     background: var(--bg-primary) !important;
 }
 
@@ -19459,107 +19461,426 @@ body:not(.mode-rpg) #vnSection {
 
 .section-content { background: transparent !important; }
 
+/* En Topics, el área de lista necesita un panel semiopaco para que
+   el command bar y las tarjetas sean legibles contra el fondo del paisaje */
+#topicsSection .topics-main {
+    background: rgba(10,6,2,0.48) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    border: 1px solid rgba(201,168,108,0.1) !important;
+    border-radius: 14px !important;
+    padding: 1rem !important;
+}
+[data-theme="light"] #topicsSection .topics-main {
+    background: rgba(232,218,190,0.72) !important;
+    border-color: rgba(160,120,60,0.15) !important;
+}
+
+/* Estado vacío más estilizado */
+.topics-empty {
+    padding: 3rem 1rem !important;
+    text-align: center !important;
+    color: rgba(201,168,108,0.55) !important;
+    font-family: 'Crimson Text', serif !important;
+    font-size: 1.1rem !important;
+    font-style: italic !important;
+}
+.topics-empty span {
+    display: block !important;
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    font-size: 0.82rem !important;
+    color: rgba(201,168,108,0.38) !important;
+    margin-top: 0.4rem !important;
+}
+[data-theme="light"] .topics-empty       { color: rgba(100,65,15,0.6) !important; }
+[data-theme="light"] .topics-empty span  { color: rgba(100,65,15,0.42) !important; }
+
 /* ════════════════════════════════════════════════════════════════════
-   E. BARRA DE COMANDOS (Historias)
+   Sección 12 — TOPICS SCREEN — Mano de Tarot Vertical
+   Paleta siempre oscura · grid adaptativo · Cinzel · sin sidebar
    ════════════════════════════════════════════════════════════════════ */
 
-.topics-command-bar {
-    background: rgba(12,8,3,0.65) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    border: 1px solid var(--eth-border) !important;
-    border-radius: 12px !important;
-    padding: 0.7rem 1rem !important;
-    margin-bottom: 0.5rem !important;
-}
-[data-theme="light"] .topics-command-bar {
-    background: rgba(228,220,202,0.75) !important;
-    border-color: rgba(140,100,40,0.15) !important;
+/* ── 12.1  Barra superior ────────────────────────────────────────── */
+#topicsSection .section-header-bar {
+    background: rgba(8,5,2,0.62) !important;
+    backdrop-filter: blur(14px) saturate(1.35) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.35) !important;
+    border-bottom: 1px solid rgba(201,168,108,0.18) !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.55) !important;
 }
 
+/* ── 12.2  Layout sin sidebar ────────────────────────────────────── */
+.topics-layout {
+    display: block !important;
+    padding: 0.6rem !important;
+}
+#topicsSection .topics-main {
+    background: rgba(10,6,2,0.48) !important;
+    backdrop-filter: blur(6px) !important;
+    -webkit-backdrop-filter: blur(6px) !important;
+    border: 1px solid rgba(201,168,108,0.1) !important;
+    border-radius: 14px !important;
+    padding: 1rem !important;
+}
+
+/* ── 12.3  Command bar ───────────────────────────────────────────── */
+.topics-command-bar {
+    display: flex !important;
+    align-items: center !important;
+    background: rgba(10,6,2,0.52) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(201,168,108,0.13) !important;
+    border-radius: 12px !important;
+    padding: 0.6rem 0.9rem !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+    margin-bottom: 0.85rem !important;
+}
+
+/* ── 12.4  Botón Nueva Historia ──────────────────────────────────── */
 .btn-create-topic {
-    background: linear-gradient(135deg, rgba(110,72,14,0.7), rgba(70,44,6,0.8)) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.77rem !important;
+    letter-spacing: 0.09em !important;
+    background: linear-gradient(135deg, rgba(115,78,18,0.8) 0%, rgba(60,38,6,0.88) 100%) !important;
     border: 1px solid rgba(201,168,108,0.5) !important;
-    color: #e8d4a0 !important;
+    color: var(--eth-gold) !important;
+    padding: 0.45rem 1.1rem !important;
     border-radius: 8px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35), inset 0 0 14px rgba(201,168,108,0.06) !important;
+    transition: box-shadow 0.22s, border-color 0.22s, background 0.22s !important;
+    white-space: nowrap !important;
 }
 .btn-create-topic:hover {
-    background: linear-gradient(135deg, rgba(140,92,18,0.8), rgba(90,56,8,0.88)) !important;
-    border-color: rgba(201,168,108,0.85) !important;
-    box-shadow: 0 0 16px rgba(201,168,108,0.2) !important;
+    background: linear-gradient(135deg, rgba(140,95,22,0.88) 0%, rgba(80,52,8,0.92) 100%) !important;
+    border-color: rgba(201,168,108,0.78) !important;
+    box-shadow: 0 0 20px rgba(201,168,108,0.28), 0 4px 14px rgba(0,0,0,0.38) !important;
 }
 
+/* ── 12.5  Búsqueda ──────────────────────────────────────────────── */
+.topics-search-wrap { flex: 1 !important; min-width: 120px !important; }
 .topics-search-input {
     background: rgba(18,12,4,0.55) !important;
     border-color: var(--eth-border) !important;
     color: #e8d4a0 !important;
     border-radius: 8px !important;
     font-family: 'Crimson Text', serif !important;
+    width: 100% !important;
 }
 .topics-search-input:focus { border-color: var(--eth-border-h) !important; }
-[data-theme="light"] .topics-search-input { background: rgba(245,232,205,0.85) !important; color: #3a2808 !important; }
 
+/* ── 12.6  Filtros ───────────────────────────────────────────────── */
 .topics-filter-group {
-    background: rgba(18,12,4,0.55) !important;
-    border: 1px solid var(--eth-border) !important;
-    border-radius: 8px !important;
+    display: flex !important;
+    background: rgba(10,6,2,0.42) !important;
+    border: 1px solid rgba(201,168,108,0.1) !important;
+    border-radius: 9px !important;
+    padding: 0.18rem !important;
+    gap: 0.12rem !important;
 }
-.topic-filter-btn { color: rgba(201,168,108,0.45) !important; }
-.topic-filter-btn:hover { color: rgba(201,168,108,0.82) !important; }
-.topic-filter-btn.active { background: rgba(201,168,108,0.12) !important; color: var(--eth-gold) !important; box-shadow: none !important; }
-[data-theme="light"] .topics-filter-group { background: rgba(232,212,172,0.7) !important; }
-[data-theme="light"] .topic-filter-btn { color: rgba(100,65,15,0.5) !important; }
-[data-theme="light"] .topic-filter-btn.active { color: #7a5418 !important; }
-
-/* ════════════════════════════════════════════════════════════════════
-   F. CARDS DE HISTORIAS
-   ════════════════════════════════════════════════════════════════════ */
-
-.topic-card--rol {
-    background: rgba(20,14,6,0.86) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border-color: rgba(180,150,100,0.22) !important;
+.topic-filter-btn {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.69rem !important;
+    letter-spacing: 0.06em !important;
+    border-radius: 6px !important;
+    padding: 0.35rem 0.9rem !important;
+    color: rgba(201,168,108,0.48) !important;
+    background: transparent !important;
+    border: none !important;
+    transition: color 0.2s, background 0.2s !important;
 }
-.topic-card--rol:hover { border-color: rgba(201,168,108,0.52) !important; box-shadow: 0 14px 40px rgba(0,0,0,0.45) !important; }
-.topic-card--historia { background: rgba(245,232,205,0.9) !important; backdrop-filter: blur(10px) !important; }
-[data-theme="dark"] .topic-card--historia { background: rgba(36,24,8,0.87) !important; }
+.topic-filter-btn:hover { color: rgba(201,168,108,0.82) !important; background: rgba(201,168,108,0.08) !important; }
+.topic-filter-btn.active { background: rgba(201,168,108,0.13) !important; color: var(--eth-gold) !important; }
 
-.topic-card-author { font-family: 'Crimson Text', serif !important; font-style: italic !important; font-size: 0.78rem !important; }
+/* ── 12.7  Grid — mano de tarot vertical ────────────────────────── */
+.topics-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    gap: 1.1rem !important;
+    align-items: start !important;
+}
 
+/* ── 12.8  Carta base ────────────────────────────────────────────── */
 .topic-card {
-    animation: eth-cardIn 0.42s cubic-bezier(0.22,1,0.36,1) both;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    min-height: 255px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    cursor: pointer !important;
+    transition: transform 0.22s ease, box-shadow 0.22s ease,
+                border-color 0.22s ease !important;
+    animation: eth-cardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
 }
-.topic-card:nth-child(1) { animation-delay:0.04s; }
-.topic-card:nth-child(2) { animation-delay:0.09s; }
-.topic-card:nth-child(3) { animation-delay:0.14s; }
-.topic-card:nth-child(4) { animation-delay:0.19s; }
-.topic-card:nth-child(5) { animation-delay:0.24s; }
-.topic-card:nth-child(n+6) { animation-delay:0.28s; }
-@keyframes eth-cardIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.topic-card:nth-child(1) { animation-delay: 0.03s; }
+.topic-card:nth-child(2) { animation-delay: 0.07s; }
+.topic-card:nth-child(3) { animation-delay: 0.11s; }
+.topic-card:nth-child(4) { animation-delay: 0.15s; }
+.topic-card:nth-child(5) { animation-delay: 0.19s; }
+.topic-card:nth-child(n+6) { animation-delay: 0.23s; }
+@keyframes eth-cardIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.topic-card:hover { transform: translateY(-6px) !important; }
 
-/* ════════════════════════════════════════════════════════════════════
-   G. SIDEBAR STATS
-   ════════════════════════════════════════════════════════════════════ */
+/* ── 12.9  RPG: carbón oscuro + borde dorado ────────────────────── */
+.topic-card--rol {
+    background: #0f0d0a !important;
+    border: 1px solid rgba(201,168,108,0.30) !important;
+}
+.topic-card--rol:hover {
+    border-color: rgba(201,168,108,0.62) !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.65),
+                0 0 22px rgba(201,168,108,0.10) !important;
+}
 
-.topics-stats-card, .topics-mode-legend {
-    background: rgba(16,11,4,0.8) !important;
-    backdrop-filter: blur(14px) !important;
-    -webkit-backdrop-filter: blur(14px) !important;
-    border: 1px solid var(--eth-border) !important;
-    border-radius: 14px !important;
+/* ── 12.10  Clásico: azul noche profundo + borde plateado ───────── */
+.topic-card--historia {
+    background: #0b112c !important;
+    border: 1px solid rgba(170,190,230,0.26) !important;
 }
-.topics-stats-title { color: rgba(201,168,108,0.6) !important; }
-.topics-stat-val    { color: var(--eth-gold) !important; }
-.topics-stat-lbl    { color: rgba(201,168,108,0.4) !important; }
-[data-theme="light"] .topics-stats-card,
-[data-theme="light"] .topics-mode-legend {
-    background: rgba(235,228,212,0.9) !important;
-    border-color: rgba(140,100,40,0.15) !important;
+.topic-card--historia:hover {
+    border-color: rgba(170,190,230,0.55) !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.65),
+                0 0 22px rgba(140,170,230,0.10) !important;
 }
-[data-theme="light"] .topics-stat-val   { color: #7a5418 !important; }
-[data-theme="light"] .topics-stats-title,
-[data-theme="light"] .topics-stat-lbl  { color: rgba(100,65,15,0.6) !important; }
+
+/* ── 12.11  Área de sello (cabecera centrada) ────────────────────── */
+.topic-card-accent {
+    /* resetear todo lo heredado del layout horizontal */
+    position: static !important;
+    top: auto !important; left: auto !important;
+    width: 100% !important;
+    min-width: unset !important;
+    height: 90px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.3rem !important;
+    border-radius: 0 !important;
+    border-right: none !important;
+    border-bottom: 1px solid transparent !important;
+}
+.topic-card--rol .topic-card-accent {
+    background: linear-gradient(180deg,
+        rgba(45,30,6,0.95) 0%,
+        rgba(20,14,4,0.65) 100%) !important;
+    border-bottom-color: rgba(201,168,108,0.14) !important;
+}
+.topic-card--historia .topic-card-accent {
+    background: linear-gradient(180deg,
+        rgba(14,22,62,0.98) 0%,
+        rgba(11,17,44,0.55) 100%) !important;
+    border-bottom-color: rgba(140,170,230,0.14) !important;
+}
+
+.topic-card-seal-icon {
+    font-size: 2rem !important;
+    line-height: 1 !important;
+    display: block !important;
+}
+.topic-card--rol     .topic-card-seal-icon {
+    filter: drop-shadow(0 0 10px rgba(201,168,108,0.55)) !important;
+}
+.topic-card--historia .topic-card-seal-icon {
+    filter: drop-shadow(0 0 10px rgba(140,170,230,0.55)) !important;
+}
+.topic-card-seal-label {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.46rem !important;
+    letter-spacing: 0.2em !important;
+    text-transform: uppercase !important;
+    opacity: 0.55 !important;
+    text-align: center !important;
+    display: block !important;
+}
+.topic-card--rol     .topic-card-seal-label { color: #c9a86c !important; }
+.topic-card--historia .topic-card-seal-label { color: #a0b8e0 !important; }
+
+/* ── 12.12  Interior vertical ───────────────────────────────────── */
+.topic-card-inner {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 0.9rem 0.85rem 0.5rem !important;
+    gap: 0.2rem !important;
+    min-width: 0 !important;
+    position: relative !important;
+    z-index: 1 !important;
+    text-align: center !important;
+}
+.topic-card-top {
+    width: 100% !important;
+    text-align: center !important;
+    margin-bottom: 0.22rem !important;
+}
+.topic-card-badges { justify-content: center !important; flex-wrap: wrap !important; gap: 0.25rem !important; }
+.topic-card-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.86rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    text-align: center !important;
+    line-height: 1.35 !important;
+    margin-bottom: 0.1rem !important;
+    white-space: normal !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    text-overflow: ellipsis !important;
+}
+.topic-card--rol     .topic-card-title { color: #c9a86c !important; }
+.topic-card--historia .topic-card-title { color: #a8bedd !important; }
+
+.topic-card-author {
+    font-family: 'Crimson Text', serif !important;
+    font-style: italic !important;
+    font-size: 0.72rem !important;
+    text-align: center !important;
+    margin-bottom: 0.05rem !important;
+}
+.topic-card--rol     .topic-card-author { color: rgba(201,168,108,0.52) !important; }
+.topic-card--historia .topic-card-author { color: rgba(140,170,230,0.52) !important; }
+
+.topic-card-excerpt {
+    font-size: 0.73rem !important;
+    text-align: center !important;
+    opacity: 0.38 !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    margin-bottom: 0 !important;
+}
+.topic-card--rol     .topic-card-excerpt { color: rgba(220,185,130,0.9) !important; }
+.topic-card--historia .topic-card-excerpt { color: rgba(160,185,230,0.9) !important; }
+.topic-card-excerpt--meta {
+    font-size: 0.65rem !important;
+    opacity: 0.3 !important;
+    -webkit-line-clamp: 1 !important;
+    margin-bottom: 0 !important;
+}
+
+/* ── 12.13  Footer inferior ─────────────────────────────────────── */
+.topic-card-footer {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0.45rem 0.85rem !important;
+    flex-shrink: 0 !important;
+    gap: 0.5rem !important;
+    border-top: 1px solid transparent !important;
+    border-left: none !important;
+    min-width: unset !important;
+}
+.topic-card--rol     .topic-card-footer { border-top-color: rgba(201,168,108,0.10) !important; }
+.topic-card--historia .topic-card-footer { border-top-color: rgba(140,170,230,0.10) !important; }
+
+.topic-card-footer-msgs {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.28rem !important;
+    font-size: 0.7rem !important;
+    opacity: 0.55 !important;
+    text-align: left !important;
+}
+.topic-card--rol     .topic-card-footer-msgs { color: #c9a86c !important; }
+.topic-card--historia .topic-card-footer-msgs { color: #a0b8e0 !important; }
+.topic-card-footer-msgs-icon { font-size: 0.76rem !important; }
+.topic-card-progress {
+    flex: 0 0 auto !important;
+    width: 52px !important;
+    margin: 0 !important;
+}
+
+/* ── 12.14  Marca de agua centrada ──────────────────────────────── */
+.topic-card-watermark {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 88px !important;
+    height: 88px !important;
+    right: auto !important;
+    opacity: 0.025 !important;
+    pointer-events: none !important;
+}
+.topic-card:hover .topic-card-watermark { opacity: 0.055 !important; }
+
+/* ── 12.15  Esquinas decorativas ────────────────────────────────── */
+.topic-card-corner          { opacity: 0.22 !important; }
+.topic-card:hover .topic-card-corner { opacity: 0.45 !important; }
+
+/* ── 12.16  Badge de turno ───────────────────────────────────────── */
+.topic-badge--turn {
+    color: #e8c46a !important;
+    background: rgba(201,168,108,0.12) !important;
+    border: 1px solid rgba(201,168,108,0.28) !important;
+    border-radius: 4px !important;
+    font-size: 0.6rem !important;
+    padding: 0.1rem 0.4rem !important;
+    animation: topic-badge-turn-blink 2s ease-in-out infinite;
+}
+@keyframes topic-badge-turn-blink {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.55; }
+}
+
+/* ── 12.17  Pulso de turno activo ────────────────────────────────── */
+@keyframes topic-turn-gold {
+    0%,100% {
+        box-shadow: 0 0 0 0 rgba(201,168,108,0);
+        border-color: rgba(201,168,108,0.30);
+    }
+    50% {
+        box-shadow: 0 0 24px 5px rgba(201,168,108,0.18),
+                    0 0 0 2px rgba(201,168,108,0.16);
+        border-color: rgba(201,168,108,0.72);
+    }
+}
+@keyframes topic-turn-silver {
+    0%,100% {
+        box-shadow: 0 0 0 0 rgba(140,170,230,0);
+        border-color: rgba(140,170,230,0.26);
+    }
+    50% {
+        box-shadow: 0 0 22px 5px rgba(140,170,230,0.16),
+                    0 0 0 2px rgba(140,170,230,0.14);
+        border-color: rgba(140,170,230,0.65);
+    }
+}
+.topic-card--rol.topic-card--my-turn {
+    animation: topic-turn-gold 2.6s ease-in-out infinite !important;
+}
+.topic-card--historia.topic-card--my-turn {
+    animation: topic-turn-silver 2.6s ease-in-out infinite !important;
+}
+
+/* ── 12.18  Mobile ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .topics-grid {
+        grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)) !important;
+        gap: 0.75rem !important;
+    }
+    .topic-card          { min-height: 215px !important; }
+    .topic-card-accent   { height: 72px !important; }
+    .topic-card-seal-icon { font-size: 1.6rem !important; }
+    .topic-card-title    { font-size: 0.8rem !important; }
+    .topic-card-inner    { padding: 0.7rem 0.65rem 0.4rem !important; }
+    .topic-card-watermark { display: none !important; }
+}
 
 /* ════════════════════════════════════════════════════════════════════
    H. VN — BOTONES DE CONTROL (ambos modos)
@@ -19767,6 +20088,77 @@ body.mode-classic .vn-control-btn {
 body.mode-classic .vn-control-btn:hover {
     background: rgba(184,144,42,0.1) !important;
     border-color: rgba(184,144,42,0.6) !important;
+}
+
+/* ── Campo de estrellas animado — fondo nocturno ── */
+body.mode-classic #vnSection::after {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+    /* Cuatro capas de puntos con distinto tamaño y densidad */
+    background-image:
+        radial-gradient(circle, rgba(190,215,255,0.72) 1px,   transparent 1px),
+        radial-gradient(circle, rgba(160,195,255,0.50) 1px,   transparent 1px),
+        radial-gradient(circle, rgba(210,230,255,0.62) 1.5px, transparent 1.5px),
+        radial-gradient(circle, rgba(140,180,255,0.40) 1px,   transparent 1px) !important;
+    background-size:
+        115px 115px,
+        195px 195px,
+        78px  78px,
+        250px 250px !important;
+    background-position:
+        14px 20px,
+        58px 85px,
+        32px 48px,
+        105px 25px !important;
+    opacity: 0.50 !important;
+    animation: cls-stars-drift 90s linear infinite !important;
+}
+@keyframes cls-stars-drift {
+    from { background-position: 14px 20px, 58px 85px, 32px 48px, 105px 25px; }
+    to   { background-position: 129px 135px, 253px 280px, 110px 126px, 355px 275px; }
+}
+
+/* ── Líneas divisoras: azul-plata en vez de dorado ── */
+body.mode-classic #vnSection .ui-layer > .left-panel {
+    border-right-color: rgba(100,155,220,0.28) !important;
+}
+body.mode-classic #vnSection .ui-layer > .right-panel {
+    border-left-color: rgba(100,155,220,0.28) !important;
+}
+body.mode-classic #vnSection .ui-layer > .bottom-panel {
+    border-top-color: rgba(100,155,220,0.22) !important;
+}
+
+/* ── Barra de controles (columna derecha): cristal nocturno ── */
+body.mode-classic .vn-controls {
+    background: linear-gradient(180deg,
+        rgba(6,10,32,0.97) 0%,
+        rgba(4,7,22,0.99) 100%) !important;
+    border-color: rgba(90,145,210,0.32) !important;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.8),
+                0 4px 24px rgba(0,0,20,0.75) !important;
+}
+/* Botones diamante en azul-plata */
+body.mode-classic .vn-control-btn {
+    background: linear-gradient(135deg,
+        rgba(14,24,68,1),
+        rgba(8,15,44,1),
+        rgba(5,10,30,1)) !important;
+    border-color: rgba(90,145,210,0.42) !important;
+    color: rgba(140,190,245,0.72) !important;
+    box-shadow:
+        inset 1px 1px 0 rgba(140,190,255,0.10),
+        inset -1px -1px 0 rgba(0,0,0,0.5),
+        0 2px 4px rgba(0,0,0,0.6) !important;
+}
+body.mode-classic .vn-control-btn:hover {
+    background: rgba(50,100,200,0.20) !important;
+    border-color: rgba(120,185,255,0.68) !important;
+    color: rgba(190,225,255,0.95) !important;
+    box-shadow: 0 0 14px rgba(80,155,255,0.32) !important;
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -20280,9 +20672,23 @@ body.mode-rpg .vn-section::before {
     border: 0 !important;
 }
 
-/* Restaurar caja de diálogo y acciones integradas del panel inferior */
+/* Restaurar caja de diálogo y acciones integradas del panel inferior.
+   rpg-scene.css aplica position:static!important asumiendo que .bottom-panel
+   está dentro del grid .ui-layer. Como en el HTML real está fuera del grid,
+   restauramos el posicionamiento fijo original. */
 #vnSection .bottom-panel .vn-dialogue-box {
-    background: rgba(18, 12, 8, 0.78) !important;
+    /* ── Posicionamiento ── */
+    position: fixed !important;
+    left: 50% !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: 2rem !important;
+    transform: translateX(-50%) !important;
+    width: min(900px, 85%) !important;
+    max-width: calc(100vw - 2rem) !important;
+    margin: 0 !important;
+    /* ── Apariencia ── */
+    background: rgba(18, 12, 8, 0.65) !important;
     border: 1px solid rgba(201,168,108,0.35) !important;
     border-top: 1px solid rgba(255,255,255,0.06) !important;
     border-radius: 14px !important;
@@ -20385,6 +20791,959 @@ body.mode-rpg .vn-controls {
 #vnSection .ui-layer > .right-panel,
 #vnSection .ui-layer > .bottom-panel {
     border-color: transparent !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UI CLEANUP — Ajustes de percepción visual (barra vacía · speaker plate · texto)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* 1. Eliminar borde/fondo del .right-panel que aparece fuera del grid.
+      Los nav de controles usan position:fixed y son independientes del contenedor. */
+#vnSection > .right-panel {
+    border: none !important;
+    background: transparent !important;
+    width: 0 !important;
+    overflow: hidden !important;
+}
+
+/* 2. Speaker plate: posición y padding — colores los pone el tema específico */
+#vnSection .vn-speaker-plate {
+    top: -0.9rem !important;
+    left: 9rem !important;
+    padding-left: 1.1rem !important;
+    /* Sin border/border-radius aquí: los define body.theme-classic o body.theme-rpg */
+}
+
+/* 3. Texto del diálogo: más espacio respecto al avatar a la izquierda. */
+#vnSection .vn-dialogue-text {
+    padding-left: 1.8rem !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SENDA DE LA PALABRA — Limpieza de elementos RPG en modo clásico
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Barras HP/EXP y botón de fijar stats: solo existen en RPG */
+body.mode-classic #vnSection .vn-info-rpg,
+body.theme-classic #vnSection .vn-info-rpg {
+    display: none !important;
+}
+
+body.mode-classic #vnSection .vn-info-pin-btn,
+body.theme-classic #vnSection .vn-info-pin-btn {
+    display: none !important;
+}
+
+/* Party panel: ocultar barras HP de miembros en clásico */
+body.mode-classic .vn-party-member-hp,
+body.theme-classic .vn-party-member-hp,
+body.mode-classic .vn-party-member-xp,
+body.theme-classic .vn-party-member-xp,
+body.mode-classic .vn-party-member-level,
+body.theme-classic .vn-party-member-level {
+    display: none !important;
+}
+
+/* Botones de afinidad +/− en el info card (Senda de la Palabra) */
+.affinity-btn-minus,
+.affinity-btn-plus {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    border: 1px solid rgba(201, 168, 108, 0.35) !important;
+    background: rgba(20, 15, 8, 0.7) !important;
+    color: rgba(201, 168, 108, 0.85) !important;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
+    padding: 0 !important;
+}
+
+.affinity-btn-minus:hover,
+.affinity-btn-plus:hover {
+    background: rgba(80, 55, 20, 0.85) !important;
+    border-color: rgba(201, 168, 108, 0.7) !important;
+    color: #f0d99a !important;
+}
+
+.affinity-btn-plus {
+    border-color: rgba(90, 180, 110, 0.38) !important;
+    color: rgba(130, 210, 140, 0.85) !important;
+}
+
+.affinity-btn-plus:hover {
+    background: rgba(20, 60, 25, 0.85) !important;
+    border-color: rgba(90, 200, 110, 0.7) !important;
+    color: #a0e8a8 !important;
+}
+
+/* Opciones de elección en el panel de respuesta — estética clásica */
+body.mode-classic .options-toggle,
+body.theme-classic .options-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.42rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(184, 144, 42, 0.25);
+    background: rgba(30, 22, 8, 0.55);
+    color: rgba(201, 168, 108, 0.85);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    user-select: none;
+}
+
+body.mode-classic .options-toggle:hover,
+body.theme-classic .options-toggle:hover {
+    border-color: rgba(184, 144, 42, 0.55);
+    background: rgba(50, 36, 12, 0.65);
+    color: #f0d99a;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HUD VISUAL SYNCHRONIZATION
+   Identidad visual por modo: info card · party panel · toolbar · HP/EXP bars
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. INFO CARD — Modo Clásico: cristal azul-plata ───────────────────── */
+body.mode-classic #vnSection .vn-info-card,
+body:not(.mode-rpg) #vnSection .vn-info-card {
+    background: rgba(7, 11, 34, 0.78) !important;
+    backdrop-filter: blur(14px) saturate(1.15) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.15) !important;
+    border: 1px solid rgba(100, 155, 255, 0.28) !important;
+    border-top: 1px solid rgba(160, 200, 255, 0.44) !important;
+    box-shadow:
+        0 10px 30px rgba(0, 5, 35, 0.52),
+        inset 0 1px 0 rgba(140, 190, 255, 0.16),
+        inset 0 0 60px rgba(20, 50, 120, 0.08) !important;
+}
+
+body.mode-classic #vnSection .vn-info-card::before,
+body:not(.mode-rpg) #vnSection .vn-info-card::before {
+    background: linear-gradient(135deg, rgba(70, 130, 255, 0.14), transparent 48%) !important;
+}
+
+/* Estrella ✦ decorativa — esquina superior derecha (solo modo clásico) */
+body.mode-classic #vnSection .vn-info-card::after,
+body:not(.mode-rpg) #vnSection .vn-info-card::after {
+    content: '✦' !important;
+    position: absolute !important;
+    top: 0.48rem !important;
+    right: 0.58rem !important;
+    left: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 0.68rem !important;
+    color: rgba(120, 175, 255, 0.50) !important;
+    pointer-events: none !important;
+}
+
+body.mode-classic #vnSection .vn-info-name,
+body:not(.mode-rpg) #vnSection .vn-info-name {
+    color: rgba(200, 225, 255, 0.94) !important;
+}
+
+body.mode-classic #vnSection .vn-info-subtitle,
+body:not(.mode-rpg) #vnSection .vn-info-subtitle {
+    color: rgba(145, 185, 240, 0.72) !important;
+}
+
+/* ── 2. INFO CARD — Modo RPG: doble borde oro envejecido ───────────────── */
+body.mode-rpg #vnSection .vn-info-card {
+    border: 2px solid rgba(188, 151, 86, 0.62) !important;
+    box-shadow:
+        0 0 0 4px rgba(120, 85, 28, 0.14),
+        0 10px 28px rgba(0, 0, 0, 0.52),
+        inset 0 1px 0 rgba(255, 228, 172, 0.14),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.36) !important;
+}
+
+/* ── 3. HP/EXP BARS — brillo interior (solo RPG) ───────────────────────── */
+body.mode-rpg #vnSection .vn-info-hp-bar {
+    height: 6px !important;
+    background: rgba(0, 0, 0, 0.38) !important;
+    border: none !important;
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.72), inset 0 0 0 1px rgba(120, 60, 14, 0.32) !important;
+    border-radius: 3px !important;
+}
+
+body.mode-rpg #vnSection .vn-info-hp-fill {
+    background: linear-gradient(90deg, #7a3a0e, #c85c22, #e87838) !important;
+    box-shadow: 0 0 10px rgba(215, 100, 38, 0.55), inset 0 1px 0 rgba(255, 205, 130, 0.28) !important;
+}
+
+body.mode-rpg #vnSection .vn-info-exp-fill {
+    background: linear-gradient(90deg, #1a4a7a, #2878c0, #46aaee) !important;
+    box-shadow: 0 0 10px rgba(48, 138, 225, 0.50), inset 0 1px 0 rgba(140, 215, 255, 0.28) !important;
+}
+
+/* ── 4. PARTY PANEL — Modo Clásico: cristal azul-plata ─────────────────── */
+body.mode-classic #vnSection .vn-party-panel,
+body:not(.mode-rpg) #vnSection .vn-party-panel {
+    background: linear-gradient(180deg, rgba(8, 13, 42, 0.92), rgba(5, 9, 30, 0.96)) !important;
+    backdrop-filter: blur(16px) saturate(1.12) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.12) !important;
+    border: 1px solid rgba(100, 155, 255, 0.24) !important;
+    border-top: 1px solid rgba(150, 195, 255, 0.38) !important;
+    box-shadow:
+        0 18px 44px rgba(0, 5, 35, 0.60),
+        inset 0 1px 0 rgba(140, 190, 255, 0.12) !important;
+    border-radius: 16px !important;
+}
+
+body.mode-classic #vnSection .vn-party-title,
+body:not(.mode-rpg) #vnSection .vn-party-title {
+    color: rgba(180, 215, 255, 0.92) !important;
+    letter-spacing: 0.12em !important;
+}
+
+body.mode-classic #vnSection .vn-party-subtitle,
+body:not(.mode-rpg) #vnSection .vn-party-subtitle {
+    color: rgba(130, 175, 238, 0.65) !important;
+}
+
+body.mode-classic #vnSection .vn-party-header,
+body:not(.mode-rpg) #vnSection .vn-party-header {
+    border-bottom: 1px solid rgba(90, 140, 255, 0.18) !important;
+}
+
+body.mode-classic #vnSection .vn-party-member,
+body:not(.mode-rpg) #vnSection .vn-party-member {
+    border-color: rgba(100, 150, 255, 0.16) !important;
+    background: rgba(20, 40, 100, 0.12) !important;
+}
+
+body.mode-classic #vnSection .vn-party-member:hover,
+body:not(.mode-rpg) #vnSection .vn-party-member:hover {
+    border-color: rgba(120, 170, 255, 0.34) !important;
+    background: rgba(30, 60, 145, 0.20) !important;
+    box-shadow: 0 0 14px rgba(80, 140, 255, 0.20) !important;
+}
+
+/* ── 5. PARTY PANEL — Modo RPG: pergamino, borde oro doble ─────────────── */
+body.mode-rpg #vnSection .vn-party-panel {
+    background: linear-gradient(180deg, rgba(38, 26, 14, 0.96), rgba(20, 14, 8, 0.98)) !important;
+    border: 2px solid rgba(188, 151, 86, 0.52) !important;
+    border-radius: 14px !important;
+    box-shadow:
+        0 0 0 4px rgba(120, 85, 28, 0.10),
+        0 18px 44px rgba(0, 0, 0, 0.58),
+        inset 0 1px 0 rgba(255, 225, 170, 0.10) !important;
+}
+
+/* ── 6. TOOLBAR — Modo Clásico: esferas de cristal plata-azul ──────────── */
+/* Contenedor: transparente, sin scroll, botones apretados para caber en pantalla */
+body.mode-classic #vnSection .vn-classic-controls,
+body:not(.mode-rpg) #vnSection .vn-classic-controls {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    padding: 0.2rem 0 !important;
+    gap: 0.26rem !important;
+    width: auto !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+    max-height: none !important;
+}
+
+body.mode-classic #vnSection .vn-classic-control-btn,
+body:not(.mode-rpg) #vnSection .vn-classic-control-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle at 36% 33%, rgba(170, 210, 255, 0.28), rgba(14, 24, 72, 0.84)) !important;
+    border: 1px solid rgba(100, 160, 255, 0.36) !important;
+    border-top-color: rgba(190, 225, 255, 0.52) !important;
+    box-shadow:
+        0 4px 12px rgba(0, 8, 55, 0.42),
+        inset 0 1px 0 rgba(200, 230, 255, 0.20),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.20) !important;
+    color: rgba(170, 210, 255, 0.86) !important;
+    transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+                box-shadow 0.22s ease,
+                background 0.22s ease,
+                border-color 0.22s ease !important;
+}
+
+body.mode-classic #vnSection .vn-classic-control-icon,
+body:not(.mode-rpg) #vnSection .vn-classic-control-icon,
+body.mode-classic #vnSection .vn-classic-control-icon svg,
+body:not(.mode-rpg) #vnSection .vn-classic-control-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+}
+
+body.mode-classic #vnSection .vn-classic-control-btn:hover,
+body:not(.mode-rpg) #vnSection .vn-classic-control-btn:hover,
+body.mode-classic #vnSection .vn-classic-control-btn:focus-visible,
+body:not(.mode-rpg) #vnSection .vn-classic-control-btn:focus-visible {
+    transform: scale(1.13) !important;
+    background: radial-gradient(circle at 36% 33%, rgba(130, 195, 255, 0.44), rgba(22, 45, 140, 0.92)) !important;
+    border-color: rgba(140, 200, 255, 0.62) !important;
+    border-top-color: rgba(210, 240, 255, 0.78) !important;
+    box-shadow:
+        0 0 18px rgba(70, 150, 255, 0.44),
+        0 6px 18px rgba(0, 8, 55, 0.55),
+        inset 0 1px 0 rgba(220, 245, 255, 0.28) !important;
+    color: #cce8ff !important;
+    outline: none !important;
+}
+
+body.mode-classic #vnSection .vn-classic-control-divider,
+body:not(.mode-rpg) #vnSection .vn-classic-control-divider {
+    background: linear-gradient(90deg, transparent, rgba(100, 160, 255, 0.30), transparent) !important;
+    margin: 0.08rem 0 !important;
+}
+
+/* ── 7. TOOLBAR — Modo RPG: placas bronce/oro envejecido ───────────────── */
+body.mode-rpg #vnSection .vn-rpg-controls {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0.2rem 0 !important;
+    gap: 0.26rem !important;
+    width: auto !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+    max-height: none !important;
+}
+
+body.mode-rpg #vnSection .vn-rpg-control-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle at 36% 32%, rgba(255, 215, 130, 0.24), rgba(38, 24, 10, 0.92)) !important;
+    border: 1.5px solid rgba(195, 158, 85, 0.46) !important;
+    border-top-color: rgba(240, 205, 128, 0.62) !important;
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.52),
+        inset 0 1px 0 rgba(255, 220, 160, 0.18),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.26) !important;
+    color: rgba(218, 185, 120, 0.88) !important;
+    transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
+                box-shadow 0.22s ease,
+                background 0.22s ease,
+                border-color 0.22s ease !important;
+}
+
+body.mode-rpg #vnSection .vn-rpg-control-icon,
+body.mode-rpg #vnSection .vn-rpg-control-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+}
+
+body.mode-rpg #vnSection .vn-rpg-control-btn:hover,
+body.mode-rpg #vnSection .vn-rpg-control-btn:focus-visible {
+    transform: scale(1.13) !important;
+    background: radial-gradient(circle at 36% 32%, rgba(255, 205, 100, 0.40), rgba(55, 34, 12, 0.96)) !important;
+    border-color: rgba(225, 185, 108, 0.70) !important;
+    border-top-color: rgba(255, 225, 165, 0.86) !important;
+    box-shadow:
+        0 0 18px rgba(205, 162, 80, 0.44),
+        0 6px 18px rgba(0, 0, 0, 0.58),
+        inset 0 1px 0 rgba(255, 232, 175, 0.28) !important;
+    color: #f5dfaa !important;
+    outline: none !important;
+}
+
+body.mode-rpg #vnSection .vn-rpg-control-divider {
+    background: linear-gradient(90deg, transparent, rgba(188, 151, 86, 0.40), transparent) !important;
+    margin: 0.08rem 0 !important;
+}
+
+/* ── 8. FOOTER ACTIONS — espaciado entre botones inferiores ─────────────── */
+/* Oráculo · Master · Posada · Escena · Emotes necesitan aire para respirar */
+#vnSection .vn-dialogue-actions {
+    gap: 0.65rem !important;
+}
+
+#vnSection .vn-dialogue-actions-left {
+    gap: 0.75rem !important;
+}
+
+#vnSection .vn-adv-actions {
+    gap: 0.65rem !important;
+}
+
+/* ── 9. BUGFIXES ──────────────────────────────────────────────────────────── */
+
+/* Bug #1: Barra de stats RPG visible en modo clásico.
+   RPGRenderer inyecta #vnRpgStatBar y lo rellena aunque no estemos en modo RPG.
+   En modo no-RPG lo ocultamos completamente. */
+body:not(.mode-rpg) #vnRpgStatBar {
+    display: none !important;
+}
+
+/* Bug #3: El modal de confirmación aparece detrás del gestor de sesiones.
+   Ambos usan z-index: 9500, pero #confirmModal está antes en el DOM que
+   #sessionManagerModal, así que éste lo cubre. Elevamos #confirmModal. */
+#confirmModal {
+    z-index: var(--z-i-9999) !important;
+}
+
+/* ── 10. TURN SYSTEM UI ──────────────────────────────────────────────────────
+   HUD de turno activo en el panel de participantes y banner de skip.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* ── HUD: participante con turno activo ─────────────────────────────────── */
+
+/* El wrap ya tiene position:relative en components.css; solo sobrescribimos
+   la opacidad para que el usuario activo no quede atenuado aunque esté offline. */
+.story-participant-wrap.turn-active {
+    opacity: 1 !important;
+}
+
+/* Anillo plateado + pulso suave (modo clásico) */
+.story-participant-wrap.turn-active .story-participant-avatar,
+.story-participant-wrap.turn-active .story-participant-initial {
+    border-color: var(--eth-silver) !important;
+    box-shadow:
+        0 0 0 2px var(--eth-silver),
+        0 0 10px rgba(192, 176, 152, 0.35);
+    animation: turn-pulse-silver 2.6s ease-in-out infinite;
+}
+
+/* Anillo dorado + pulso (modo RPG) */
+body.mode-rpg .story-participant-wrap.turn-active .story-participant-avatar,
+body.mode-rpg .story-participant-wrap.turn-active .story-participant-initial {
+    border-color: #d4af37 !important;
+    box-shadow:
+        0 0 0 2px #d4af37,
+        0 0 12px rgba(212, 175, 55, 0.45);
+    animation: turn-pulse-gold 2.6s ease-in-out infinite;
+}
+
+@keyframes turn-pulse-silver {
+    0%,  100% { box-shadow: 0 0 0 2px var(--eth-silver), 0 0  6px rgba(192,176,152,0.25); }
+    50%        { box-shadow: 0 0 0 3px var(--eth-silver), 0 0 14px rgba(192,176,152,0.55); }
+}
+
+@keyframes turn-pulse-gold {
+    0%,  100% { box-shadow: 0 0 0 2px #d4af37, 0 0  8px rgba(212,175,55,0.30); }
+    50%        { box-shadow: 0 0 0 3px #d4af37, 0 0 18px rgba(212,175,55,0.60); }
+}
+
+/* Nombre dorado/plateado bajo el avatar cuando es el turno activo */
+.story-participant-wrap.turn-active .story-participant-name {
+    color: var(--eth-silver) !important;
+    font-weight: 600;
+}
+body.mode-rpg .story-participant-wrap.turn-active .story-participant-name {
+    color: #d4af37 !important;
+}
+
+/* Icono ✦ / ⚜ — flota en la esquina superior-izquierda del wrap */
+.story-participant-turn-icon {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    font-size: 0.62rem;
+    line-height: 1;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
+    color: var(--eth-silver);
+    animation: turn-icon-float 3.2s ease-in-out infinite;
+    z-index: 2;
+}
+body.mode-rpg .story-participant-turn-icon {
+    color: #d4af37;
+    font-size: 0.68rem;
+}
+
+@keyframes turn-icon-float {
+    0%,  100% { transform: translateY(0);    opacity: 0.85; }
+    50%        { transform: translateY(-2px); opacity: 1;    }
+}
+
+/* ── Banner persistente de skip ─────────────────────────────────────────── */
+
+#turnSkipBanner {
+    position: fixed;
+    bottom: 6rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(130%);
+    z-index: 9800;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    max-width: 490px;
+    width: calc(100% - 2rem);
+    padding: 0.8rem 1rem;
+    background: linear-gradient(135deg, #1a1208 0%, #231a0d 100%);
+    border: 1px solid var(--eth-border-h);
+    border-left: 3px solid var(--eth-gold);
+    border-radius: 10px;
+    box-shadow:
+        0 10px 36px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(201,168,108,0.07);
+    transition:
+        transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity   0.25s ease;
+    pointer-events: none;
+    opacity: 0;
+}
+
+#turnSkipBanner.turn-skip-banner--visible {
+    transform: translateX(-50%) translateY(0);
+    pointer-events: all;
+    opacity: 1;
+}
+
+.turn-skip-banner__icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.turn-skip-banner__text {
+    flex: 1;
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.85);
+}
+
+.turn-skip-banner__btn {
+    flex-shrink: 0;
+    padding: 0.38rem 0.85rem;
+    font-size: 0.77rem;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+    color: #1a1208;
+    background: var(--eth-gold);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.18s, opacity 0.18s;
+    letter-spacing: 0.02em;
+}
+.turn-skip-banner__btn:hover:not(:disabled) {
+    background: #e8c47e;
+}
+.turn-skip-banner__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.turn-skip-banner__close {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.45);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s, border-color 0.2s;
+}
+.turn-skip-banner__close:hover {
+    color: rgba(255,255,255,0.88);
+    border-color: rgba(255,255,255,0.4);
+}
+
+/* Responsive — en móvil el banner ocupa el ancho completo pegado abajo */
+@media (max-width: 520px) {
+    #turnSkipBanner {
+        bottom: 0;
+        left: 0;
+        transform: translateX(0) translateY(130%);
+        max-width: 100%;
+        width: 100%;
+        border-radius: 12px 12px 0 0;
+        border-left: 1px solid var(--eth-border-h);
+        border-top: 3px solid var(--eth-gold);
+    }
+    #turnSkipBanner.turn-skip-banner--visible {
+        transform: translateX(0) translateY(0);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Sección 11 — C.4 Tirada de Salvación (Master Roll bar + DM form)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Barra del jugador — aparece sobre la zona de diálogo ── */
+#vnMasterRollBar {
+    display: none;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.7rem 0.85rem 0.8rem;
+    background: linear-gradient(135deg,
+        rgba(20, 10, 5, 0.97) 0%,
+        rgba(90, 30, 10, 0.95) 100%);
+    border: 1px solid rgba(201, 168, 108, 0.45);
+    border-left: 3px solid #c9a86c;
+    border-radius: 8px;
+    margin: 0.5rem 0 0.25rem;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.5), inset 0 0 30px rgba(201,168,108,0.04);
+    animation: mrBarSlideIn 0.3s ease;
+}
+
+@keyframes mrBarSlideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+
+.vn-mr-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+}
+
+.vn-mr-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+}
+
+.vn-mr-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+}
+
+.vn-mr-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--eth-gold);
+    opacity: 0.8;
+}
+
+.vn-mr-situation {
+    font-size: 0.84rem;
+    color: rgba(255,245,225,0.92);
+    line-height: 1.4;
+    font-style: italic;
+}
+
+.vn-mr-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.vn-mr-opt-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    background: rgba(201,168,108,0.1);
+    border: 1px solid rgba(201,168,108,0.35);
+    border-radius: 6px;
+    color: rgba(255,245,225,0.9);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s;
+    text-align: left;
+    max-width: 100%;
+}
+.vn-mr-opt-btn:hover {
+    background: rgba(201,168,108,0.22);
+    border-color: rgba(201,168,108,0.7);
+    transform: translateY(-1px);
+}
+.vn-mr-opt-btn:active {
+    transform: translateY(0);
+}
+
+.vn-mr-opt-letter {
+    font-weight: 700;
+    color: var(--eth-gold);
+    flex-shrink: 0;
+    min-width: 1rem;
+}
+
+.vn-mr-opt-text {
+    flex: 1;
+}
+
+.vn-mr-opt-hp {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+.vn-mr-hp-pos {
+    color: #7ecb8f;
+    background: rgba(90, 148, 112, 0.18);
+    border: 1px solid rgba(90,148,112,0.3);
+}
+.vn-mr-hp-neg {
+    color: #e07070;
+    background: rgba(140, 40, 40, 0.18);
+    border: 1px solid rgba(140,40,40,0.3);
+}
+
+/* ── DM form — Tirada de Salvación (panel Utilidades) ── */
+.dm-masterroll-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.dm-mr-options-label {
+    font-size: 0.7rem;
+    color: rgba(201,168,108,0.75);
+    letter-spacing: 0.04em;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
+
+.dm-mr-option-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.dm-mr-opt-hp.dm-input {
+    width: 5.5rem;
+    text-align: center;
+}
+
+/* ── Mobile ── */
+@media (max-width: 540px) {
+    .vn-mr-options {
+        flex-direction: column;
+    }
+    .vn-mr-opt-btn {
+        width: 100%;
+    }
+    .dm-mr-option-row {
+        grid-template-columns: 1fr;
+    }
+    .dm-mr-opt-hp.dm-input {
+        width: 100%;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   14. MODO CLÁSICO — Constelación: nameplate · avatar · botones VJ
+   Usa body.theme-classic #vnSection para ganar en especificidad
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── 14.1  Caja de diálogo: borde superior estelar ───────────────── */
+body.theme-classic #vnSection .bottom-panel .vn-dialogue-box {
+    border-top: 1px solid rgba(120,175,255,0.28) !important;
+    box-shadow:
+        0 18px 40px rgba(0,0,0,0.65),
+        0 2px 0 rgba(0,0,0,0.35),
+        0 -4px 28px rgba(60,110,255,0.06),
+        inset 0 1px 0 rgba(120,175,255,0.06) !important;
+}
+
+/* Filigrana superior en azul-plata */
+body.theme-classic #vnSection .vn-dialogue-box::before {
+    border-color: rgba(90,140,210,0.12) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='10'%3E%3Cpath d='M5 5 Q15 1 25 5 Q35 9 45 5' stroke='rgba(120,175,240,0.45)' stroke-width='1' fill='none'/%3E%3Ccircle cx='50' cy='5' r='2' stroke='rgba(120,175,240,0.45)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M55 5 Q65 1 75 5 Q85 9 95 5' stroke='rgba(100,160,230,0.38)' stroke-width='1' fill='none'/%3E%3Ccircle cx='100' cy='5' r='1.5' fill='rgba(100,160,230,0.35)'/%3E%3Cline x1='105' y1='5' x2='295' y2='5' stroke='rgba(90,140,210,0.14)' stroke-width='0.5' stroke-dasharray='3 6'/%3E%3Ccircle cx='300' cy='5' r='1.5' fill='rgba(100,160,230,0.35)'/%3E%3Cpath d='M305 5 Q315 9 325 5 Q335 1 345 5' stroke='rgba(100,160,230,0.38)' stroke-width='1' fill='none'/%3E%3Ccircle cx='350' cy='5' r='2' stroke='rgba(120,175,240,0.45)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M355 5 Q365 9 375 5 Q385 1 395 5' stroke='rgba(120,175,240,0.45)' stroke-width='1' fill='none'/%3E%3C/svg%3E") !important;
+}
+
+/* Estrella pulsante en esquina inferior */
+body.theme-classic #vnSection .vn-dialogue-box::after {
+    content: '✦' !important;
+    width: auto !important; height: auto !important;
+    background-image: none !important;
+    font-size: 1.05rem !important;
+    color: rgba(130,185,245,0.38) !important;
+    bottom: 0.65rem !important; right: 0.82rem !important;
+    left: auto !important; top: auto !important;
+    transform: none !important;
+    animation: cls-star-pulse 4.5s ease-in-out infinite !important;
+}
+@keyframes cls-star-pulse {
+    0%,100% { opacity: 0.38; }
+    50%      { opacity: 0.80; filter: drop-shadow(0 0 6px rgba(120,185,255,0.55)); }
+}
+body.theme-classic #vnSection .vn-dialogue-footer {
+    border-top-color: rgba(90,140,210,0.14) !important;
+}
+
+/* ── 14.2  Nameplate: píldora cristal azul (derrota la línea 1508) ─ */
+body.theme-classic #vnSection .vn-speaker-plate {
+    background: rgba(9,15,50,0.72) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(130,178,255,0.38) !important;
+    border-radius: 999px !important;
+    color: #c8dcff !important;
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    text-shadow: 0 0 14px rgba(100,165,255,0.4), 0 1px 3px rgba(0,0,0,0.8) !important;
+    box-shadow:
+        0 0 0 1px rgba(100,155,255,0.07) inset,
+        0 0 24px rgba(70,125,255,0.14),
+        0 6px 18px rgba(0,0,35,0.5) !important;
+    padding: 0.3rem 1.1rem !important;
+    top: -0.9rem !important;
+    left: 9rem !important;
+}
+body.theme-classic #vnSection .vn-speaker-plate::before {
+    content: '✦ ' !important;
+    opacity: 0.65 !important;
+    animation: vnt-star-twinkle 2.6s ease-in-out infinite !important;
+    display: inline !important;
+    position: static !important;
+    font-size: inherit !important;
+    color: inherit !important;
+    background: none !important; border: none !important;
+}
+body.theme-classic #vnSection .vn-speaker-plate::after {
+    content: ' ✦' !important;
+    opacity: 0.65 !important;
+    animation: vnt-star-twinkle 2.6s ease-in-out infinite 1.3s !important;
+    display: inline !important;
+    position: static !important;
+    font-size: inherit !important; color: inherit !important;
+    background: none !important; border: none !important;
+    bottom: auto !important; right: auto !important; left: auto !important;
+    width: auto !important; height: auto !important;
+    box-shadow: none !important; border-radius: 0 !important;
+}
+@keyframes vnt-star-twinkle {
+    0%,100% { opacity: 0.65; }
+    50%      { opacity: 1; filter: drop-shadow(0 0 4px rgba(160,205,255,0.7)); }
+}
+
+/* ── 14.3  Avatar: anillo constelación giratorio ─────────────────── */
+body.theme-classic #vnSection .vn-speaker-avatar {
+    border-color: rgba(135,188,245,0.80) !important;
+    border-width: 2.5px !important;
+    background: rgba(6,10,30,0.88) !important;
+    box-shadow:
+        0 0 0 2px rgba(15,28,72,0.65),
+        0 0 0 4px rgba(90,150,240,0.14),
+        0 0 26px rgba(80,145,255,0.22),
+        0 12px 32px rgba(0,0,0,0.58) !important;
+}
+body.theme-classic #vnSection .vn-speaker-avatar-wrap::before {
+    border: 1.5px solid rgba(110,170,240,0.28) !important;
+    background: conic-gradient(from 0deg,
+        transparent 0deg 16deg, rgba(145,195,250,0.55) 16deg 24deg,
+        transparent 24deg 76deg, rgba(120,175,240,0.42) 76deg 84deg,
+        transparent 84deg 136deg, rgba(145,195,250,0.50) 136deg 144deg,
+        transparent 144deg 196deg, rgba(120,175,240,0.40) 196deg 204deg,
+        transparent 204deg 256deg, rgba(145,195,250,0.52) 256deg 264deg,
+        transparent 264deg 316deg, rgba(120,175,240,0.44) 316deg 324deg,
+        transparent 324deg 360deg) !important;
+    animation: cls-ring-spin 28s linear infinite !important;
+}
+@keyframes cls-ring-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ── 14.4  RESPONDER / EDITAR / BORRAR — feel de videojuego ──────── */
+/* Responder: botón primario — cristal azul luminoso, Cinzel */
+body.theme-classic #vnSection .vma-btn.vma-reply {
+    background: linear-gradient(135deg,
+        rgba(30,55,140,0.88) 0%,
+        rgba(15,30,85,0.95) 100%) !important;
+    border: 1px solid rgba(135,185,255,0.55) !important;
+    color: #d8eaff !important;
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 0.09em !important;
+    box-shadow:
+        0 0 14px rgba(80,150,255,0.20),
+        0 3px 10px rgba(0,0,35,0.55),
+        inset 0 1px 0 rgba(180,220,255,0.12) !important;
+    padding: 0.38rem 0.9rem !important;
+}
+body.theme-classic #vnSection .vma-btn.vma-reply:hover {
+    border-color: rgba(160,210,255,0.78) !important;
+    color: #eaf4ff !important;
+    box-shadow:
+        0 0 22px rgba(100,175,255,0.32),
+        0 3px 12px rgba(0,0,40,0.60),
+        inset 0 1px 0 rgba(200,235,255,0.18) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Editar: secundario — cristal azul tenue */
+body.theme-classic #vnSection .vma-btn.vma-edit {
+    background: rgba(10,18,55,0.75) !important;
+    border: 1px solid rgba(100,155,230,0.32) !important;
+    color: rgba(170,205,255,0.82) !important;
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 0.07em !important;
+}
+body.theme-classic #vnSection .vma-btn.vma-edit:hover {
+    border-color: rgba(130,185,255,0.58) !important;
+    color: #c8deff !important;
+    box-shadow: 0 0 12px rgba(80,140,255,0.16) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Borrar: peligro — violeta-púrpura estelar */
+body.theme-classic #vnSection .vma-btn.vma-delete {
+    background: rgba(35,10,55,0.72) !important;
+    border: 1px solid rgba(160,100,220,0.35) !important;
+    color: rgba(200,155,255,0.78) !important;
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 0.07em !important;
+}
+body.theme-classic #vnSection .vma-btn.vma-delete:hover {
+    border-color: rgba(190,130,255,0.60) !important;
+    color: rgba(225,185,255,0.95) !important;
+    box-shadow: 0 0 14px rgba(150,80,255,0.20) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── 14.5  Botones footer (Escena / Emotes) — runa del grimorio ──── */
+body.theme-classic #vnSection .vn-dialogue-action-btn {
+    background: rgba(8,14,45,0.70) !important;
+    border: 1px solid rgba(100,155,230,0.28) !important;
+    color: rgba(155,200,250,0.78) !important;
+    border-radius: 8px !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.66rem !important;
+    letter-spacing: 0.08em !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    transition: border-color 0.18s, color 0.18s, box-shadow 0.18s, transform 0.18s !important;
+}
+body.theme-classic #vnSection .vn-dialogue-action-btn:hover {
+    border-color: rgba(140,195,255,0.55) !important;
+    color: rgba(200,230,255,0.95) !important;
+    box-shadow: 0 0 12px rgba(80,150,255,0.18) !important;
+    transform: translateY(-2px) !important;
+}
+body.theme-classic #vnSection .action-icon {
+    filter: drop-shadow(0 0 4px rgba(120,185,255,0.4)) !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   13. AUTOSAVE INDICATOR — siempre encima de modales y overlays
+   ════════════════════════════════════════════════════════════════════ */
+.autosave-indicator {
+    z-index: 10000 !important;
 }
 
 /* -- css/modules/08-rpg-hud-hotfix.css -- */
@@ -21488,6 +22847,1718 @@ mark.msg-search-mark {
     margin-left: auto;
     font-size: 0.67rem;
     opacity: 0.55;
+}
+
+/* -- css/vn-cinematic.css -- */
+/* Visual novel presentation layer */
+:root {
+    --vn-cinematic-panel-bg: linear-gradient(180deg, rgba(7, 10, 20, 0.92) 0%, rgba(11, 16, 30, 0.88) 100%);
+    --vn-cinematic-border: rgba(246, 219, 149, 0.5);
+    --vn-cinematic-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
+    --vn-cinematic-gold: #f6db95;
+}
+
+#vnSection.vn-section.active {
+    padding: 2.6rem 1.2rem 1.4rem;
+    min-height: 100dvh;
+}
+
+#vnSection.vn-section.active::before {
+    background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.58) 0%, rgba(0, 0, 0, 0.18) 28%, rgba(0, 0, 0, 0.2) 72%, rgba(0, 0, 0, 0.68) 100%),
+        radial-gradient(circle at 50% 15%, rgba(112, 163, 255, 0.15) 0%, rgba(0, 0, 0, 0) 55%);
+    opacity: 1;
+}
+
+#vnSection .vn-dialogue-box {
+    position: absolute;
+    left: 50%;
+    bottom: max(1.35rem, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    width: min(1080px, calc(100vw - 2.2rem));
+    border: 1px solid var(--vn-cinematic-border);
+    border-radius: 20px;
+    background: var(--vn-cinematic-panel-bg);
+    box-shadow: var(--vn-cinematic-shadow);
+    backdrop-filter: blur(9px) saturate(1.1);
+    -webkit-backdrop-filter: blur(9px) saturate(1.1);
+    padding-top: 3.35rem;
+}
+
+#vnSection .vn-dialogue-box::before,
+#vnSection .vn-dialogue-box::after {
+    pointer-events: none;
+}
+
+#vnSection .vn-speaker-plate {
+    top: -1.15rem;
+    left: 1.4rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 223, 153, 0.55);
+    background: linear-gradient(180deg, rgba(40, 25, 11, 0.95), rgba(23, 15, 9, 0.9));
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+    color: #ffe8b4;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+#vnSection .vn-dialogue-text {
+    font-size: clamp(1.02rem, 1.45vw, 1.2rem);
+    line-height: 1.82;
+    letter-spacing: 0.015em;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.42);
+    color: #f6f1df;
+}
+
+#vnSection .vn-options-container {
+    left: 50%;
+    bottom: calc(max(1.35rem, env(safe-area-inset-bottom)) + 12.8rem);
+    transform: translateX(-50%);
+    width: min(980px, calc(100vw - 2.8rem));
+    padding: 0.35rem;
+    gap: 0.75rem;
+}
+
+#vnSection .vn-option-btn,
+#vnSection .vn-option {
+    border-radius: 14px;
+    border: 1px solid rgba(245, 221, 170, 0.36);
+    background: linear-gradient(180deg, rgba(26, 32, 48, 0.88), rgba(15, 18, 29, 0.92));
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.28);
+}
+
+#vnSection .vn-option-btn:hover,
+#vnSection .vn-option:hover {
+    border-color: rgba(255, 227, 168, 0.74);
+    transform: translateY(-2px);
+}
+
+body.mode-rpg #vnSection .vn-controls,
+body.mode-classic #vnSection .vn-controls {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* Controls ahora manejados por theme-menu/index.css */
+/* Se mantiene solo para asegurar posición absoluta dentro de vnSection */
+#vnSection .vn-controls {
+    position: fixed;
+}
+
+#vnSection .vn-control-divider {
+    margin: 0.3rem 0;
+    width: 100%;
+}
+
+#vnSection .vn-info-card {
+    top: max(1rem, env(safe-area-inset-top));
+    left: 1rem;
+    border-radius: 16px;
+    border: 1px solid rgba(236, 221, 185, 0.34);
+    background: rgba(10, 12, 22, 0.7);
+    backdrop-filter: blur(5px);
+}
+
+#vnSection .vn-party-panel,
+#vnSection .vn-narrate-panel,
+#vnSection .vn-dm-panel,
+#vnSection .vn-oracle-minipanel {
+    border-radius: 16px;
+    border: 1px solid rgba(255, 226, 170, 0.28);
+    background: rgba(12, 16, 27, 0.94);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* ── Responsive: desktop medio (≤ 900px) ─────────────────────────────────── */
+/* Controls responsive ahora manejado por theme-menu/index.css */
+@media (max-width: 900px) {
+    #vnSection .vn-info-card {
+        left: 0.75rem;
+        top: 0.75rem;
+        max-width: min(88vw, 380px);
+    }
+
+    #vnSection .vn-dialogue-box {
+        width: calc(100vw - 1rem);
+        bottom: max(0.5rem, env(safe-area-inset-bottom));
+        border-radius: 16px;
+        padding-top: 2.9rem;
+    }
+
+    #vnSection .vn-options-container {
+        width: calc(100vw - 1.1rem);
+        bottom: calc(max(0.5rem, env(safe-area-inset-bottom)) + 13rem);
+    }
+}
+
+/* ── Cinematic overrides — control bar y party panel ─────────────────────── */
+
+/* ── Control bar en modo expandido (pantalla grande) ─────────────────────── */
+#vnSection .vn-control-slot {
+    width: auto;
+    height: auto;
+    flex: 0 0 auto;
+}
+
+/* Control buttons ahora manejados por theme-menu/index.css con estilo rombo */
+
+/* Control icons ahora manejados por theme-menu/index.css */
+
+/* Tooltips y hover states ahora manejados por theme-menu/index.css */
+
+/* ── Info card ───────────────────────────────────────────────────────────── */
+#vnSection .vn-info-card {
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+    padding: 0.72rem 0.8rem;
+    min-width: 240px;
+    max-width: 320px;
+}
+
+#vnSection .vn-info-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(130deg, rgba(246, 221, 160, 0.13), rgba(0, 0, 0, 0) 42%);
+}
+
+#vnSection .vn-info-avatar {
+    position: relative;
+    width: 62px;
+    height: 62px;
+    border-width: 2.4px;
+    box-shadow: 0 0 0 2px rgba(246, 222, 162, 0.18), 0 8px 18px rgba(0, 0, 0, 0.4), 0 0 18px -8px var(--char-color, rgba(201, 168, 108, 0.44));
+}
+
+#vnSection .vn-info-avatar::before {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 1px solid rgba(247, 228, 183, 0.35);
+    pointer-events: none;
+}
+
+#vnSection .vn-info-name {
+    font-size: 0.93rem;
+    letter-spacing: 0.02em;
+}
+
+#vnSection .vn-info-subtitle {
+    font-size: 0.72rem;
+    opacity: 0.9;
+}
+
+#vnSection .vn-info-pill {
+    background: rgba(245, 220, 165, 0.12);
+    border: 1px solid rgba(245, 220, 165, 0.22);
+    border-radius: 999px;
+    padding: 0.04rem 0.4rem;
+}
+
+/* ── Speaker avatar ──────────────────────────────────────────────────────── */
+#vnSection .vn-speaker-avatar {
+    border-width: 2.8px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.52), 0 0 0 3px rgba(247, 225, 172, 0.12), 0 0 22px -5px var(--char-color, rgba(201, 168, 108, 0.42));
+}
+
+#vnSection .vn-speaker-avatar-wrap::before {
+    inset: -12px;
+    border-width: 2.2px;
+    border-color: rgba(237, 208, 146, 0.78);
+    background: conic-gradient(from 0deg, rgba(246, 219, 149, 0.64) 0deg 16deg, transparent 16deg 72deg, rgba(246, 219, 149, 0.38) 72deg 86deg, transparent 86deg 156deg, rgba(246, 219, 149, 0.48) 156deg 170deg, transparent 170deg 360deg);
+}
+
+/* ── Party panel ahora manejado por theme-menu/index.css ─────────────────── */
+
+/* -- css/features/vn-themes.css -- */
+/* â”€â”€ vn-themes.css â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+   Dual aesthetic for the VN dialogue textbox:
+     body.theme-classic  â†’  "Constelaciones"  (glassmorphism + animated stars)
+     body.theme-rpg      â†’  "Pergamino/Tarot" (parchment texture + gold filigrees)
+   Applied by _applyModeClasses() in vn-sprites.js alongside mode-classic/rpg.
+   â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+
+/* â”€â”€ Corner decoration container (shared, injected by JS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#vnSection .vn-db-corners {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    overflow: visible;
+    z-index: 1;
+}
+
+#vnSection .vn-db-corners i {
+    position: absolute;
+    display: block;
+    font-style: normal;
+}
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   MODO CLÃSICO â€” "Constelaciones"
+   Glassmorphism Â· Hilos de plata Â· Estrellas titilantes Â· MÃ¡gico y dulce
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+/* â”€â”€ Dialogue box: cristal estelar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+body.theme-classic #vnSection .vn-dialogue-box {
+    background: rgba(7, 11, 34, 0.58) !important;
+    backdrop-filter: blur(22px) saturate(1.35) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(1.35) !important;
+    border: 1px solid rgba(155, 195, 255, 0.26) !important;
+    border-radius: 20px;
+    box-shadow:
+        0 0 0 1px rgba(130, 175, 255, 0.07) inset,
+        0 0 70px -15px rgba(70, 115, 255, 0.14),
+        0 24px 64px rgba(0, 0, 30, 0.58) !important;
+}
+
+/* Hilo de plata interior */
+body.theme-classic #vnSection .vn-dialogue-box::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 6px !important;
+    border: 1px solid rgba(150, 195, 255, 0.13) !important;
+    border-radius: 15px !important;
+    pointer-events: none !important;
+    background: transparent !important;
+}
+
+/* Estrella ambiental esquina inferior-derecha */
+body.theme-classic #vnSection .vn-dialogue-box::after {
+    content: '✦' !important;
+    position: absolute !important;
+    bottom: 1.05rem !important;
+    right: 1.35rem !important;
+    color: rgba(165, 210, 255, 0.38) !important;
+    font-size: 0.62rem !important;
+    animation: vnt-star-twinkle 3s ease-in-out infinite 0.4s !important;
+    pointer-events: none !important;
+}
+
+/* Estrellas en las cuatro esquinas vÃ­a .vn-db-corners */
+body.theme-classic #vnSection .vn-db-corners i {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(155, 200, 255, 0.55);
+    font-size: 0.58rem;
+    animation: vnt-star-twinkle 3.2s ease-in-out infinite;
+}
+
+body.theme-classic #vnSection .vn-db-corners i::before {
+    content: '✦';
+}
+
+body.theme-classic #vnSection .vn-db-corners i:nth-child(1) { top: 9px;    left: 11px;  animation-delay: 0s;    }
+body.theme-classic #vnSection .vn-db-corners i:nth-child(2) { top: 9px;    right: 11px; animation-delay: 0.8s;  }
+body.theme-classic #vnSection .vn-db-corners i:nth-child(3) { bottom: 9px; left: 11px;  animation-delay: 1.6s;  }
+body.theme-classic #vnSection .vn-db-corners i:nth-child(4) { bottom: 9px; right: 11px; animation-delay: 2.4s;  }
+
+/* Texto del diÃ¡logo: tono frÃ­o celestial */
+body.theme-classic #vnSection .vn-dialogue-text {
+    color: #e4eeff !important;
+    text-shadow:
+        0 0 24px rgba(90, 140, 255, 0.08),
+        0 1px 2px rgba(0, 0, 25, 0.5) !important;
+}
+
+/* â”€â”€ Speaker plate: pÃ­ldora de cristal con estrellas flanqueantes â”€â”€â”€â”€â”€â”€â”€ */
+body.theme-classic #vnSection .vn-speaker-plate {
+    background: rgba(9, 15, 50, 0.70) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(135, 180, 255, 0.38) !important;
+    border-radius: 999px !important;
+    color: #c4d8ff !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    box-shadow:
+        0 0 0 1px rgba(100, 155, 255, 0.07) inset,
+        0 0 22px rgba(70, 125, 255, 0.14),
+        0 6px 18px rgba(0, 0, 35, 0.48) !important;
+}
+
+body.theme-classic #vnSection .vn-speaker-plate::before {
+    content: '✦ ' !important;
+    opacity: 0.65 !important;
+    animation: vnt-star-twinkle 2.6s ease-in-out infinite !important;
+    display: inline !important;
+}
+
+body.theme-classic #vnSection .vn-speaker-plate::after {
+    content: ' ✦' !important;
+    opacity: 0.65 !important;
+    animation: vnt-star-twinkle 2.6s ease-in-out infinite 1.3s !important;
+    display: inline !important;
+    /* Sobrescribir el â§ decorativo que pueda venir del CSS base */
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
+    font-size: inherit !important;
+    color: inherit !important;
+}
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   MODO RPG â€” "Pergamino & Tarot"
+   Papel antiguo Â· Marco dorado doble Â· Filigranas Â· Pesado y Ã©pico
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+/* â”€â”€ Dialogue box: pergamino oscuro con marco dorado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+body.theme-rpg #vnSection .vn-dialogue-box {
+    background:
+        radial-gradient(ellipse at 18% 35%, rgba(95, 62, 15, 0.20) 0%, transparent 52%),
+        radial-gradient(ellipse at 82% 68%, rgba(78, 48, 10, 0.16) 0%, transparent 52%),
+        radial-gradient(ellipse at 50% 0%,  rgba(115, 78, 18, 0.10) 0%, transparent 42%),
+        linear-gradient(158deg, rgba(28, 20, 7, 0.97) 0%, rgba(18, 13, 5, 0.98) 50%, rgba(24, 17, 6, 0.97) 100%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 2px solid rgba(201, 168, 108, 0.62) !important;
+    border-radius: 18px;
+    outline: 1px solid rgba(155, 122, 55, 0.30) !important;
+    outline-offset: 5px !important;
+    box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.78),
+        inset 0 1px 0 rgba(255, 215, 140, 0.08) !important;
+}
+
+/* Anillo dorado interior */
+body.theme-rpg #vnSection .vn-dialogue-box::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 8px !important;
+    border: 1px solid rgba(201, 168, 108, 0.25) !important;
+    border-radius: 12px !important;
+    pointer-events: none !important;
+    background: transparent !important;
+}
+
+/* Ornamento ⚜ esquina inferior-derecha */
+body.theme-rpg #vnSection .vn-dialogue-box::after {
+    content: '⚜' !important;
+    position: absolute !important;
+    bottom: 0.9rem !important;
+    right: 1.2rem !important;
+    color: rgba(201, 168, 108, 0.38) !important;
+    font-size: 0.88rem !important;
+    pointer-events: none !important;
+    animation: none !important;
+}
+
+/* Filigranas L-bracket en las cuatro esquinas */
+body.theme-rpg #vnSection .vn-db-corners i {
+    width: 18px;
+    height: 18px;
+}
+
+body.theme-rpg #vnSection .vn-db-corners i:nth-child(1) {
+    top: 9px;    left: 9px;
+    border-top:    2px solid rgba(201, 168, 108, 0.72);
+    border-left:   2px solid rgba(201, 168, 108, 0.72);
+}
+body.theme-rpg #vnSection .vn-db-corners i:nth-child(2) {
+    top: 9px;    right: 9px;
+    border-top:    2px solid rgba(201, 168, 108, 0.72);
+    border-right:  2px solid rgba(201, 168, 108, 0.72);
+}
+body.theme-rpg #vnSection .vn-db-corners i:nth-child(3) {
+    bottom: 9px; left: 9px;
+    border-bottom: 2px solid rgba(201, 168, 108, 0.72);
+    border-left:   2px solid rgba(201, 168, 108, 0.72);
+}
+body.theme-rpg #vnSection .vn-db-corners i:nth-child(4) {
+    bottom: 9px; right: 9px;
+    border-bottom: 2px solid rgba(201, 168, 108, 0.72);
+    border-right:  2px solid rgba(201, 168, 108, 0.72);
+}
+
+/* Texto del diÃ¡logo: tono parchment cÃ¡lido */
+body.theme-rpg #vnSection .vn-dialogue-text {
+    color: #f0e8d4 !important;
+    font-family: 'Crimson Text', serif !important;
+    font-size: clamp(1.06rem, 1.5vw, 1.24rem) !important;
+    line-height: 1.88 !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 22px rgba(201, 168, 108, 0.04) !important;
+}
+
+/* â”€â”€ Speaker plate: cuero dorado con ornamentos ⚜ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+body.theme-rpg #vnSection .vn-speaker-plate {
+    border: 1px solid rgba(201, 168, 108, 0.58) !important;
+    color: #f0d88a !important;
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    box-shadow:
+        0 0 0 1px rgba(155, 118, 48, 0.18) inset,
+        0 8px 22px rgba(0, 0, 0, 0.55) !important;
+}
+
+body.theme-rpg #vnSection .vn-speaker-plate::before {
+    content: '⚜ ' !important;
+    color: rgba(201, 168, 108, 0.65) !important;
+    display: inline !important;
+}
+
+body.theme-rpg #vnSection .vn-speaker-plate::after {
+    content: ' ⚜' !important;
+    color: rgba(201, 168, 108, 0.65) !important;
+    display: inline !important;
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
+    font-size: inherit !important;
+    animation: none !important;
+}
+
+
+/* â”€â”€ Keyframes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@keyframes vnt-star-twinkle {
+    0%, 100% { opacity: 0.45; transform: scale(1);    }
+    50%       { opacity: 1;    transform: scale(1.25); }
+}
+
+
+/* â”€â”€ Responsive: mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@media (max-width: 600px) {
+    body.theme-classic #vnSection .vn-db-corners i,
+    body.theme-rpg     #vnSection .vn-db-corners i {
+        display: none;
+    }
+    body.theme-rpg #vnSection .vn-dialogue-box {
+        outline: none !important;
+    }
+}
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SISTEMA DE BOTONES DE INTERACCIÃ“N
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+/* â”€â”€ Base: message action buttons (top-right of dialogue box) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#vnSection .vn-msg-actions {
+    position: absolute;
+    top: 1.05rem;
+    right: 1rem;
+    display: flex;
+    flex-direction: row;
+    gap: 0.38rem;
+    z-index: 6;
+}
+
+#vnSection .vma-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    cursor: pointer;
+    padding: 0.3rem 0.62rem;
+    border-radius: 20px;
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    border: 1px solid transparent;
+    background: transparent;
+    line-height: 1;
+}
+
+#vnSection .vma-btn.hidden { display: none !important; }
+
+#vnSection .vma-icon { font-size: 0.78rem; }
+#vnSection .vma-text { font-size: 0.63rem; }
+
+
+/* â•â• CLASSIC â€” Silver Charms â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+body.theme-classic #vnSection .vma-btn {
+    background: rgba(9, 14, 50, 0.65) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(125, 170, 255, 0.32) !important;
+    color: rgba(175, 210, 255, 0.88) !important;
+    box-shadow:
+        0 0 10px rgba(60, 110, 255, 0.07),
+        0 2px 8px rgba(0, 0, 25, 0.42),
+        inset 0 1px 0 rgba(180, 215, 255, 0.08) !important;
+}
+
+body.theme-classic #vnSection .vma-btn:hover {
+    border-color: rgba(155, 200, 255, 0.6) !important;
+    color: #dbeeff !important;
+    box-shadow:
+        0 0 18px rgba(80, 140, 255, 0.18),
+        0 2px 10px rgba(0, 0, 30, 0.52),
+        inset 0 1px 0 rgba(200, 228, 255, 0.1) !important;
+    transform: translateY(-1px);
+}
+
+/* Delete gets a subtle red-tinted border */
+body.theme-classic #vnSection .vma-delete {
+    border-color: rgba(120, 140, 200, 0.28) !important;
+    color: rgba(180, 195, 240, 0.8) !important;
+}
+body.theme-classic #vnSection .vma-delete:hover {
+    border-color: rgba(180, 140, 200, 0.55) !important;
+    color: rgba(220, 185, 255, 0.9) !important;
+}
+
+/* Hide adventure bar in Classic â€” Oracle, Master, Innkeeper have no place here */
+body.theme-classic #vnSection .vn-adv-actions,
+body.theme-classic #vnSection #vnInnkeeperBtn {
+    display: none !important;
+}
+
+
+/* â•â• RPG â€” Bronze Coins / Gold Plates â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+body.theme-rpg #vnSection .vma-btn {
+    background: radial-gradient(ellipse at 50% 0%, rgba(95, 65, 18, 0.88), rgba(28, 18, 6, 0.95)) !important;
+    border: 1px solid rgba(175, 140, 70, 0.52) !important;
+    color: rgba(238, 205, 118, 0.92) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.62rem !important;
+    letter-spacing: 0.1em !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 220, 120, 0.12),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+        0 3px 8px rgba(0, 0, 0, 0.58) !important;
+}
+
+body.theme-rpg #vnSection .vma-btn:hover {
+    border-color: rgba(201, 168, 108, 0.78) !important;
+    color: #f5e09a !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 230, 135, 0.18),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 0 14px rgba(170, 130, 50, 0.18),
+        0 3px 10px rgba(0, 0, 0, 0.65) !important;
+    transform: translateY(-1px);
+}
+
+/* Delete: slight red-gold tint */
+body.theme-rpg #vnSection .vma-delete {
+    border-color: rgba(160, 90, 55, 0.5) !important;
+    color: rgba(230, 170, 120, 0.9) !important;
+}
+body.theme-rpg #vnSection .vma-delete:hover {
+    border-color: rgba(200, 110, 70, 0.75) !important;
+    color: rgba(255, 195, 145, 0.95) !important;
+}
+
+
+/* â”€â”€ Adventure Action Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+/* Container */
+#vnSection .vn-adv-actions {
+    display: flex;
+    gap: 0.55rem;
+    align-items: center;
+}
+
+/* Base adventure button */
+#vnSection .vn-adv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 0.52rem 1.05rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    border: 2px solid transparent;
+    background: transparent;
+    line-height: 1;
+}
+
+#vnSection .vna-icon { font-size: 0.9rem; }
+#vnSection .vna-text { font-size: 0.72rem; }
+
+/* â”€â”€ Oracle button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+body.theme-rpg #vnSection .vna-oracle {
+    background: radial-gradient(ellipse at 50% 0%, rgba(78, 52, 14, 0.94), rgba(22, 15, 5, 0.97)) !important;
+    border-color: rgba(175, 138, 68, 0.68) !important;
+    color: #e8cd78 !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 220, 110, 0.14),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 4px 14px rgba(0, 0, 0, 0.68),
+        0 0 22px rgba(140, 102, 32, 0.10) !important;
+}
+
+body.theme-rpg #vnSection .vna-oracle:hover {
+    border-color: rgba(215, 175, 80, 0.88) !important;
+    color: #f2dd8c !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 228, 130, 0.22),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+        0 4px 18px rgba(0, 0, 0, 0.72),
+        0 0 28px rgba(180, 138, 45, 0.22) !important;
+    transform: translateY(-2px);
+}
+
+/* Active state (oracle panel open) */
+body.theme-rpg #vnSection .vna-oracle[data-oracle-active="true"] {
+    border-color: rgba(238, 195, 78, 0.9) !important;
+    color: #ffe89e !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 235, 145, 0.28),
+        0 0 26px rgba(200, 158, 48, 0.30),
+        0 4px 14px rgba(0, 0, 0, 0.68) !important;
+}
+
+/* â”€â”€ Master button â€” most ornamental â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+body.theme-rpg #vnSection .vna-master {
+    background: radial-gradient(ellipse at 50% 0%, rgba(108, 72, 18, 0.96), rgba(32, 20, 6, 0.98)) !important;
+    border-color: rgba(215, 175, 82, 0.80) !important;
+    outline: 1px solid rgba(155, 118, 48, 0.32) !important;
+    outline-offset: 3px !important;
+    color: #fce49a !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 230, 135, 0.22),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+        0 4px 16px rgba(0, 0, 0, 0.72),
+        0 0 26px rgba(185, 138, 42, 0.14) !important;
+}
+
+body.theme-rpg #vnSection .vna-master:hover {
+    border-color: rgba(252, 210, 95, 0.92) !important;
+    color: #ffe8a8 !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 235, 148, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
+        0 4px 20px rgba(0, 0, 0, 0.75),
+        0 0 34px rgba(210, 160, 52, 0.26) !important;
+    transform: translateY(-2px);
+}
+
+/* ⚜ prefix on master */
+body.theme-rpg #vnSection .vna-master::before {
+    content: '⚜';
+    font-family: inherit;
+    color: rgba(255, 220, 110, 0.65);
+    font-size: 0.72rem;
+    margin-right: 0.1rem;
+}
+
+
+/* â”€â”€ Otome Choice System â€” exclusive to Classic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+
+/* Hide choices in RPG (dice system handles narrative branching) */
+body.theme-rpg .options-toggle-container,
+body.theme-rpg #optionsToggleContainer {
+    display: none !important;
+}
+
+/* Style choices for Classic â€” constellation/starry aesthetic */
+body.theme-classic .options-toggle-container,
+body.theme-classic #optionsToggleContainer {
+    border: 1px solid rgba(125, 170, 255, 0.24) !important;
+    border-radius: 12px !important;
+    background: rgba(7, 12, 42, 0.55) !important;
+    backdrop-filter: blur(10px) !important;
+    padding: 0.7rem 0.85rem !important;
+    margin-top: 0.5rem !important;
+}
+
+body.theme-classic .options-toggle {
+    color: rgba(170, 205, 255, 0.88) !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 0.05em !important;
+    gap: 0.5rem !important;
+}
+
+body.theme-classic .options-toggle label {
+    cursor: pointer !important;
+}
+
+body.theme-classic .option-field-group {
+    border: 1px solid rgba(110, 155, 255, 0.2) !important;
+    border-radius: 8px !important;
+    background: rgba(8, 14, 50, 0.45) !important;
+    padding: 0.6rem 0.7rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+body.theme-classic .option-field-header {
+    color: rgba(155, 195, 255, 0.8) !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.08em !important;
+    margin-bottom: 0.3rem !important;
+}
+
+body.theme-classic .option-input,
+body.theme-classic .option-textarea {
+    background: rgba(8, 16, 56, 0.6) !important;
+    border: 1px solid rgba(115, 160, 255, 0.28) !important;
+    border-radius: 6px !important;
+    color: #c4d8ff !important;
+    font-size: 0.82rem !important;
+}
+
+body.theme-classic .option-input::placeholder,
+body.theme-classic .option-textarea::placeholder {
+    color: rgba(140, 180, 255, 0.42) !important;
+}
+
+body.theme-classic .option-input:focus,
+body.theme-classic .option-textarea:focus {
+    border-color: rgba(155, 200, 255, 0.55) !important;
+    box-shadow: 0 0 10px rgba(80, 140, 255, 0.12) !important;
+    outline: none !important;
+}
+
+/* Relabel the options toggle for Classic Otome feel */
+body.theme-classic .options-toggle label::before {
+    content: '✦ ';
+    color: rgba(155, 195, 255, 0.6);
+    animation: vnt-star-twinkle 2.8s ease-in-out infinite;
+}
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   VOZ NARRADORA â€” DiferenciaciÃ³n visual por modo
+   Activa cuando dialogueBox[data-narrator="true"]
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+/* â•â• CLÃSICO: Narrador sutil y poÃ©tico â€” plata etÃ©rea, sin peso â•â•â•â•â•â•â•â•â•â•â• */
+
+body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    color: rgba(170, 205, 255, 0.58) !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.22em !important;
+    text-transform: uppercase !important;
+    font-family: 'Cinzel', serif !important;
+    font-weight: 400 !important;
+}
+
+/* Estrellas ✦ flanqueando el nombre narrador */
+body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate::before {
+    content: '✦  ' !important;
+    color: rgba(145, 185, 255, 0.45) !important;
+    opacity: 1 !important;
+    animation: vnt-star-twinkle 2.8s ease-in-out infinite !important;
+    display: inline !important;
+}
+body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate::after {
+    content: '  ✦' !important;
+    color: rgba(145, 185, 255, 0.45) !important;
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
+    font-size: inherit !important;
+    animation: vnt-star-twinkle 2.8s ease-in-out infinite 1.4s !important;
+    display: inline !important;
+}
+
+/* Texto narrador clÃ¡sico: plata suave, cursiva, etÃ©reo */
+body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] .vn-dialogue-text {
+    color: rgba(195, 218, 255, 0.72) !important;
+    font-style: italic !important;
+    font-family: 'Crimson Text', serif !important;
+    font-size: clamp(1.06rem, 1.52vw, 1.24rem) !important;
+    line-height: 2.0 !important;
+    letter-spacing: 0.03em !important;
+    text-shadow:
+        0 0 32px rgba(90, 145, 255, 0.12),
+        0 1px 3px rgba(0, 0, 25, 0.42) !important;
+}
+
+/* DiÃ¡logo box: fondo aÃºn mÃ¡s translÃºcido cuando narra */
+body.theme-classic #vnSection .vn-dialogue-box[data-narrator="true"] {
+    background: rgba(5, 8, 25, 0.44) !important;
+}
+
+
+/* â•â• RPG: Master / Narrador â€” pergamino, autoridad, aventura â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate {
+    background: linear-gradient(135deg,
+        rgba(52, 32, 8, 0.97),
+        rgba(72, 46, 10, 0.98),
+        rgba(52, 32, 8, 0.97)) !important;
+    border: 1px solid rgba(215, 172, 70, 0.72) !important;
+    border-radius: 4px !important;
+    color: #f0d87a !important;
+    letter-spacing: 0.16em !important;
+    text-transform: uppercase !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.72rem !important;
+    box-shadow:
+        0 0 0 1px rgba(160, 120, 45, 0.2) inset,
+        0 4px 12px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* ⚜ flanqueando el nombre del Master */
+body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate::before {
+    content: '⚜  ' !important;
+    color: rgba(215, 170, 65, 0.72) !important;
+    display: inline !important;
+}
+body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-speaker-plate::after {
+    content: '  ⚜' !important;
+    color: rgba(215, 170, 65, 0.72) !important;
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
+    font-size: inherit !important;
+    animation: none !important;
+    display: inline !important;
+}
+
+/* Texto Master: ocre cÃ¡lido, cursiva solemne, peso Ã©pico */
+body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] .vn-dialogue-text {
+    color: #edddb0 !important;
+    font-style: italic !important;
+    font-family: 'Crimson Text', serif !important;
+    font-size: clamp(1.08rem, 1.56vw, 1.26rem) !important;
+    line-height: 1.94 !important;
+    letter-spacing: 0.025em !important;
+    text-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.68),
+        0 0 28px rgba(175, 125, 38, 0.06) !important;
+}
+
+/* Franja pergamino sutil en el box cuando el master narra */
+body.theme-rpg #vnSection .vn-dialogue-box[data-narrator="true"] {
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(100, 68, 16, 0.22) 0%, transparent 55%),
+        radial-gradient(ellipse at 20% 80%, rgba(85, 55, 10, 0.16) 0%, transparent 50%),
+        linear-gradient(158deg, rgba(30, 21, 7, 0.98) 0%, rgba(18, 13, 4, 0.99) 50%, rgba(26, 18, 6, 0.98) 100%) !important;
+}
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   PENSAMIENTOS â€” <em> dentro del texto de diÃ¡logo (.vn-thought)
+   formatText() ya convierte *texto* â†’ <em>texto</em>
+   Estas reglas dan color temÃ¡tico a esas cursivas
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+body.theme-classic #vnSection .vn-dialogue-text em {
+    color: rgba(155, 200, 255, 0.80) !important;
+    font-style: italic !important;
+    text-shadow: 0 0 16px rgba(75, 140, 255, 0.14) !important;
+    /* Alias de clase para poder targeting futuro */
+}
+body.theme-classic #vnSection .vn-dialogue-text em,
+body.theme-classic #vnSection .vn-dialogue-text .vn-thought {
+    color: rgba(155, 200, 255, 0.80);
+    text-shadow: 0 0 16px rgba(75, 140, 255, 0.14);
+}
+
+body.theme-rpg #vnSection .vn-dialogue-text em,
+body.theme-rpg #vnSection .vn-dialogue-text .vn-thought {
+    color: rgba(232, 192, 98, 0.85) !important;
+    font-style: italic !important;
+    text-shadow: 0 0 14px rgba(180, 132, 38, 0.14) !important;
+}
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   ELECCIONES OTOME â€” Botones de opciÃ³n (showOptions â†’ #vnOptionsContainer)
+   Solo ClÃ¡sico: RPG usa dados en lugar de elecciones narrativas
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+/* TÃ­tulo y subtÃ­tulo */
+body.theme-classic #vnSection .vn-options-title {
+    color: rgba(175, 212, 255, 0.78) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 0.2em !important;
+    text-transform: uppercase !important;
+    text-shadow: 0 0 22px rgba(100, 160, 255, 0.2) !important;
+}
+
+body.theme-classic #vnSection .vn-options-subtitle {
+    color: rgba(140, 180, 255, 0.58) !important;
+    font-style: italic !important;
+    font-family: 'Crimson Text', serif !important;
+    font-size: 0.88rem !important;
+}
+
+/* BotÃ³n de elecciÃ³n â€” cristal estelar */
+body.theme-classic #vnSection .vn-option-btn {
+    background: rgba(7, 12, 42, 0.70) !important;
+    backdrop-filter: blur(20px) saturate(1.3) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.3) !important;
+    border: 1px solid rgba(125, 172, 255, 0.34) !important;
+    border-radius: 14px !important;
+    color: rgba(178, 212, 255, 0.88) !important;
+    font-family: 'Crimson Text', serif !important;
+    font-size: clamp(0.96rem, 1.42vw, 1.12rem) !important;
+    font-style: italic !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.88rem 1.6rem !important;
+    position: relative !important;
+    overflow: hidden !important;
+    box-shadow:
+        0 0 0 1px rgba(105, 158, 255, 0.06) inset,
+        0 0 40px rgba(55, 108, 255, 0.07),
+        0 8px 24px rgba(0, 0, 30, 0.58) !important;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease !important;
+}
+
+/* Estrella esquina superior-izquierda */
+body.theme-classic #vnSection .vn-option-btn::before {
+    content: '✦' !important;
+    position: absolute !important;
+    top: 0.6rem !important;
+    left: 0.95rem !important;
+    color: rgba(130, 180, 255, 0.38) !important;
+    font-size: 0.56rem !important;
+    animation: vnt-star-twinkle 3.2s ease-in-out infinite !important;
+    pointer-events: none !important;
+}
+
+/* Estrella esquina inferior-derecha */
+body.theme-classic #vnSection .vn-option-btn::after {
+    content: '✦' !important;
+    position: absolute !important;
+    bottom: 0.6rem !important;
+    right: 0.95rem !important;
+    color: rgba(130, 180, 255, 0.38) !important;
+    font-size: 0.56rem !important;
+    animation: vnt-star-twinkle 3.2s ease-in-out infinite 1.6s !important;
+    pointer-events: none !important;
+}
+
+body.theme-classic #vnSection .vn-option-btn:hover:not(:disabled) {
+    border-color: rgba(158, 202, 255, 0.62) !important;
+    color: #daeeff !important;
+    box-shadow:
+        0 0 0 1px rgba(138, 188, 255, 0.09) inset,
+        0 0 50px rgba(75, 138, 255, 0.14),
+        0 8px 28px rgba(0, 0, 35, 0.64) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* OpciÃ³n elegida */
+body.theme-classic #vnSection .vn-option-btn.chosen {
+    background: rgba(16, 28, 78, 0.78) !important;
+    border-color: rgba(165, 208, 255, 0.62) !important;
+    color: #e4f1ff !important;
+    box-shadow:
+        0 0 0 1px rgba(155, 205, 255, 0.14) inset,
+        0 0 32px rgba(95, 162, 255, 0.20) !important;
+}
+
+/* OpciÃ³n deshabilitada (ya se eligiÃ³ otra) */
+body.theme-classic #vnSection .vn-option-btn:disabled:not(.chosen) {
+    opacity: 0.4 !important;
+    transform: none !important;
+    cursor: default !important;
+}
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SELECTOR DE VOZ (Narrador / Personaje) â€” Reply Panel
+   DiferenciaciÃ³n visual por tema en el toggle switch
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+/* Classic: cristal plateado */
+body.theme-classic .vrp-modal .vrp-narrator-switch {
+    border-color: rgba(115, 162, 255, 0.28) !important;
+    background: rgba(8, 13, 46, 0.52) !important;
+    backdrop-filter: blur(10px) !important;
+}
+body.theme-classic .vrp-modal .vrp-narrator-switch.active {
+    border-color: rgba(150, 198, 255, 0.58) !important;
+    background: rgba(10, 20, 66, 0.68) !important;
+    box-shadow: 0 0 16px rgba(75, 138, 255, 0.14) !important;
+}
+body.theme-classic .vrp-modal .vrp-switch-label {
+    color: rgba(158, 198, 255, 0.82) !important;
+    font-size: 0.78rem !important;
+    letter-spacing: 0.06em !important;
+}
+body.theme-classic .vrp-modal .vrp-narrator-switch.active .vrp-switch-label {
+    color: #c8dcff !important;
+}
+body.theme-classic .vrp-modal .vrp-switch-track {
+    background: rgba(80, 130, 255, 0.18) !important;
+    border-color: rgba(115, 165, 255, 0.32) !important;
+}
+body.theme-classic .vrp-modal .vrp-narrator-switch.active .vrp-switch-track {
+    background: rgba(90, 148, 255, 0.35) !important;
+    border-color: rgba(140, 188, 255, 0.55) !important;
+}
+
+/* RPG: Ã¡mbar dorado */
+body.theme-rpg .vrp-modal .vrp-narrator-switch {
+    border-color: rgba(175, 138, 58, 0.32) !important;
+    background: rgba(26, 16, 5, 0.72) !important;
+}
+body.theme-rpg .vrp-modal .vrp-narrator-switch.active {
+    border-color: rgba(201, 168, 108, 0.62) !important;
+    background: rgba(38, 24, 7, 0.82) !important;
+    box-shadow: 0 0 16px rgba(175, 132, 40, 0.14) !important;
+}
+body.theme-rpg .vrp-modal .vrp-switch-label {
+    color: rgba(228, 188, 102, 0.82) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.74rem !important;
+    letter-spacing: 0.1em !important;
+}
+body.theme-rpg .vrp-modal .vrp-narrator-switch.active .vrp-switch-label {
+    color: #f0d888 !important;
+}
+body.theme-rpg .vrp-modal .vrp-switch-track {
+    background: rgba(160, 115, 38, 0.18) !important;
+    border-color: rgba(175, 135, 52, 0.32) !important;
+}
+body.theme-rpg .vrp-modal .vrp-narrator-switch.active .vrp-switch-track {
+    background: rgba(180, 138, 45, 0.32) !important;
+    border-color: rgba(205, 165, 70, 0.55) !important;
+}
+
+
+/* â”€â”€ Responsive: mobile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@media (max-width: 700px) {
+    /* Message actions: show icons only */
+    #vnSection .vma-text { display: none; }
+    #vnSection .vma-btn  { padding: 0.35rem 0.5rem; border-radius: 50%; }
+    #vnSection .vma-icon { font-size: 0.88rem; }
+
+    /* Adventure bar: compress */
+    #vnSection .vna-text { font-size: 0.62rem; letter-spacing: 0.08em; }
+    #vnSection .vn-adv-btn { padding: 0.45rem 0.75rem; }
+}
+
+
+
+
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   TOPIC CREATION WIZARD â€” Asistente por pasos de nueva historia
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+
+/* â”€â”€ Modal container â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#topicModal .topic-wizard {
+    width: min(92vw, 700px) !important;
+    max-height: min(92vh, 820px) !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 2px solid rgba(201, 168, 108, 0.6) !important;
+    box-shadow:
+        0 0 0 1px rgba(201, 168, 108, 0.10) inset,
+        0 32px 80px rgba(0, 0, 0, 0.65),
+        0 0 100px -30px rgba(201, 168, 108, 0.20) !important;
+    background: rgba(12, 8, 4, 0.97) !important;
+    display: flex;
+    flex-direction: column;
+}
+
+/* â”€â”€ Steps â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#topicModal .tw-step {
+    display: none;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+}
+#topicModal .tw-step--active {
+    display: flex;
+    animation: tw-fade-in 0.26s ease;
+}
+@keyframes tw-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* â”€â”€ PASO 1: Gran Selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#topicModal .tw-step--1 {
+    padding: 2rem 2rem 1.6rem;
+    align-items: center;
+    gap: 1.4rem;
+}
+.tw-main-title {
+    font-family: 'Cinzel Decorative', 'Cinzel', serif;
+    font-size: 1.25rem;
+    letter-spacing: 0.06em;
+    background: linear-gradient(135deg, #f0d898, #c8a84a, #f0d898);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center; margin: 0;
+}
+.tw-main-sub {
+    color: rgba(220, 195, 145, 0.60); font-size: 0.87rem;
+    text-align: center; margin: 0; font-style: italic;
+}
+.tw-card-row {
+    display: flex; gap: 1.2rem; width: 100%; flex: 1;
+}
+.tw-card {
+    flex: 1; position: relative;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 2rem 1.4rem 1.8rem; border-radius: 18px;
+    border: 1.5px solid transparent; cursor: pointer;
+    text-align: center; background: none; outline: none;
+    gap: 0.65rem; min-height: 240px; overflow: hidden;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.tw-card:hover { transform: translateY(-5px); }
+
+/* Classic card */
+.tw-card--classic {
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(60,90,200,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse at 20% 100%, rgba(40,70,180,0.12) 0%, transparent 50%),
+        rgba(7, 11, 34, 0.90);
+    border-color: rgba(120, 165, 255, 0.28);
+    box-shadow: 0 8px 32px rgba(0, 0, 30, 0.50);
+}
+.tw-card--classic:hover {
+    border-color: rgba(130, 175, 255, 0.65);
+    box-shadow: 0 14px 48px rgba(50,90,255,0.18), 0 0 60px -20px rgba(100,150,255,0.30);
+}
+.tw-card--classic::before {
+    content: '✦  ✦  ✦'; position: absolute; top: 0.8rem; right: 0.9rem;
+    font-size: 0.42rem; letter-spacing: 0.3em;
+    color: rgba(155, 200, 255, 0.30); animation: vnt-star-twinkle 3.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+/* RPG card */
+.tw-card--rpg {
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(150,100,20,0.22) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(120,80,15,0.15) 0%, transparent 50%),
+        rgba(18, 12, 5, 0.95);
+    border-color: rgba(180, 140, 60, 0.30);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+}
+.tw-card--rpg:hover {
+    border-color: rgba(201, 168, 108, 0.75);
+    box-shadow: 0 14px 48px rgba(180,120,20,0.20), 0 0 60px -20px rgba(201,168,108,0.30);
+}
+.tw-card--rpg::before {
+    content: '⚜'; position: absolute; bottom: 0.8rem; left: 1rem;
+    font-size: 1.1rem; color: rgba(180,140,60,0.18); pointer-events: none;
+}
+
+.tw-card-glyph { font-size: 2.4rem; line-height: 1; display: block; }
+.tw-card--classic .tw-card-glyph { color: rgba(155, 200, 255, 0.80); }
+.tw-card--rpg     .tw-card-glyph { color: rgba(201, 168, 108, 0.88); }
+
+.tw-card-name {
+    font-family: 'Cinzel', serif; font-size: 0.98rem; font-weight: 700;
+    letter-spacing: 0.04em; margin: 0; line-height: 1.2;
+}
+.tw-card--classic .tw-card-name { color: #cce4ff; }
+.tw-card--rpg     .tw-card-name { color: #f0ddb0; }
+
+.tw-card-mode-tag {
+    font-family: 'Cinzel', serif; font-size: 0.64rem;
+    letter-spacing: 0.10em; text-transform: uppercase;
+    padding: 0.18rem 0.7rem; border-radius: 999px; border: 1px solid;
+}
+.tw-card--classic .tw-card-mode-tag { color: rgba(155,200,255,0.78); border-color: rgba(130,175,255,0.28); background: rgba(60,90,200,0.10); }
+.tw-card--rpg     .tw-card-mode-tag { color: rgba(201,168,108,0.82); border-color: rgba(180,140,60,0.28); background: rgba(140,100,20,0.10); }
+
+.tw-card-desc {
+    font-size: 0.79rem; line-height: 1.55; margin: 0; flex: 1;
+    display: flex; align-items: flex-end;
+}
+.tw-card--classic .tw-card-desc { color: rgba(180, 210, 255, 0.55); }
+.tw-card--rpg     .tw-card-desc { color: rgba(220, 185, 130, 0.50); }
+
+.tw-link-cancel {
+    background: none; border: none;
+    color: rgba(200, 170, 110, 0.38); font-size: 0.8rem;
+    cursor: pointer; padding: 0.3rem 0.6rem;
+    transition: color 0.15s ease;
+}
+.tw-link-cancel:hover { color: rgba(200, 170, 110, 0.70); }
+
+/* â”€â”€ PASOS 2 & 3: cabecera â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-step-head {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 1.1rem 1.4rem 0.85rem;
+    border-bottom: 1px solid rgba(201, 168, 108, 0.13);
+    flex-shrink: 0; flex-wrap: wrap;
+}
+.tw-back-btn {
+    background: none; border: 1px solid rgba(201, 168, 108, 0.24);
+    color: rgba(220, 190, 130, 0.65); border-radius: 8px;
+    padding: 0.26rem 0.65rem; font-size: 0.79rem; cursor: pointer;
+    transition: border-color 0.14s, color 0.14s; white-space: nowrap;
+}
+.tw-back-btn:hover { border-color: rgba(201,168,108,0.50); color: #f0d898; }
+.tw-step-title {
+    flex: 1; font-family: 'Cinzel', serif; font-size: 0.98rem; font-weight: 700;
+    letter-spacing: 0.04em; color: #e8cc88; margin: 0;
+}
+.tw-step-sub {
+    width: 100%; color: rgba(220,195,145,0.50); font-size: 0.79rem;
+    margin: 0; font-style: italic; padding-left: 0;
+    order: 10;
+}
+.tw-weather-row { display: flex; gap: 0.3rem; margin-left: auto; }
+
+/* â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-body {
+    flex: 1; overflow-y: auto; padding: 1.1rem 1.4rem;
+    display: flex; flex-direction: column; gap: 1rem; min-height: 0;
+}
+.tw-field { display: flex; flex-direction: column; gap: 0.45rem; }
+.tw-label-row { display: flex; align-items: center; gap: 0.55rem; }
+.tw-label { font-size: 0.81rem; font-weight: 600; color: rgba(220,190,130,0.78); letter-spacing: 0.02em; }
+.tw-note { font-size: 0.74rem; color: rgba(200,170,110,0.42); font-weight: 400; font-style: italic; }
+.tw-required { color: rgba(255,140,100,0.70); font-size: 0.9em; }
+.tw-input, .tw-textarea {
+    width: 100%; box-sizing: border-box;
+    background: rgba(255,255,255,0.042); border: 1px solid rgba(201,168,108,0.20);
+    border-radius: 10px; color: #e8d8b0; padding: 0.62rem 0.88rem;
+    font-size: 0.9rem; font-family: inherit; transition: border-color 0.14s; resize: vertical;
+}
+.tw-input::placeholder, .tw-textarea::placeholder { color: rgba(200,170,110,0.26); }
+.tw-input:focus, .tw-textarea:focus { outline: none; border-color: rgba(201,168,108,0.48); background: rgba(255,255,255,0.058); }
+
+/* â”€â”€ Character list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-char-list { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+.tw-no-chars { color: rgba(200,170,110,0.44); font-size: 0.82rem; font-style: italic; margin: 0; }
+.tw-char-card {
+    position: relative; display: flex; flex-direction: column;
+    align-items: center; gap: 0.32rem; padding: 0.58rem 0.65rem 0.48rem;
+    border-radius: 12px; border: 1.5px solid rgba(201,168,108,0.16);
+    background: rgba(255,255,255,0.028); cursor: pointer;
+    transition: border-color 0.14s, background 0.14s, transform 0.14s;
+    min-width: 78px; max-width: 98px; outline: none;
+}
+.tw-char-card:hover { border-color: rgba(201,168,108,0.44); background: rgba(201,168,108,0.055); transform: translateY(-2px); }
+.tw-char-card--sel { border-color: rgba(201,168,108,0.80); background: rgba(201,168,108,0.095); box-shadow: 0 0 14px -4px rgba(201,168,108,0.28); }
+.tw-char-avatar {
+    width: 50px; height: 50px; border-radius: 50%; overflow: hidden;
+    background: rgba(201,168,108,0.10); display: flex; align-items: center;
+    justify-content: center; border: 1.5px solid rgba(201,168,108,0.18); flex-shrink: 0;
+}
+.tw-char-img { width: 100%; height: 100%; object-fit: cover; }
+.tw-char-initial { font-family: 'Cinzel', serif; font-size: 1.25rem; color: rgba(201,168,108,0.68); font-weight: 700; }
+.tw-char-name {
+    font-size: 0.72rem; color: rgba(230,205,155,0.82); text-align: center;
+    line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 88px;
+}
+.tw-char-check {
+    position: absolute; top: 0.28rem; right: 0.28rem;
+    background: rgba(201,168,108,0.90); color: #1a1008; border-radius: 50%;
+    width: 15px; height: 15px; font-size: 0.60rem;
+    display: flex; align-items: center; justify-content: center; font-weight: 900;
+}
+
+/* â”€â”€ RPG Step 3: class grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-class-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.52rem; }
+.tw-class-card {
+    display: flex; flex-direction: column; align-items: center; gap: 0.28rem;
+    padding: 0.58rem 0.45rem 0.52rem; border-radius: 10px;
+    border: 1.5px solid rgba(180,140,60,0.16); background: rgba(180,120,20,0.045);
+    cursor: pointer; text-align: center; outline: none;
+    transition: border-color 0.14s, background 0.14s, transform 0.14s;
+}
+.tw-class-card:hover { border-color: rgba(201,168,108,0.44); background: rgba(180,120,20,0.095); transform: translateY(-2px); }
+.tw-class-card--sel { border-color: rgba(201,168,108,0.82); background: rgba(180,120,20,0.155); box-shadow: 0 0 12px -4px rgba(201,168,108,0.25); }
+.tw-class-glyph { font-size: 1.22rem; line-height: 1; display: block; }
+.tw-class-name { font-size: 0.74rem; font-family: 'Cinzel', serif; color: rgba(230,200,140,0.88); font-weight: 600; letter-spacing: 0.02em; }
+
+/* â”€â”€ RPG Step 3: stat grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-points-badge {
+    font-family: 'Cinzel', serif; font-size: 0.71rem; padding: 0.14rem 0.58rem;
+    border-radius: 999px; border: 1px solid rgba(180,140,60,0.28);
+    color: rgba(220,185,110,0.72); background: rgba(180,120,20,0.075); white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.tw-points-badge--done { color: rgba(120,200,120,0.85); border-color: rgba(100,180,100,0.32); background: rgba(60,130,60,0.09); }
+.tw-stat-grid { display: flex; flex-direction: column; gap: 0.42rem; }
+.tw-stat-row { display: grid; grid-template-columns: 7rem 28px 2.1rem 28px 2.4rem; align-items: center; gap: 0.32rem; }
+.tw-stat-name { font-size: 0.79rem; color: rgba(220,190,130,0.78); font-weight: 500; }
+.tw-stat-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(180,140,60,0.26);
+    background: rgba(180,120,20,0.075); color: rgba(220,185,110,0.78);
+    font-size: 1rem; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: border-color 0.11s, background 0.11s; padding: 0;
+}
+.tw-stat-btn:hover:not(:disabled) { border-color: rgba(201,168,108,0.52); background: rgba(180,120,20,0.17); color: #f0d070; }
+.tw-stat-btn:disabled { opacity: 0.26; cursor: not-allowed; }
+.tw-stat-val { font-family: 'Cinzel', serif; font-size: 1.02rem; font-weight: 700; color: #f0d898; text-align: center; }
+.tw-stat-mod { font-size: 0.74rem; color: rgba(180,200,180,0.58); font-family: 'Cinzel', serif; }
+
+/* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.tw-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 0.8rem; padding: 0.95rem 1.4rem 1.25rem;
+    border-top: 1px solid rgba(201,168,108,0.11); flex-shrink: 0;
+}
+.tw-btn-cancel {
+    background: none; border: 1px solid rgba(201,168,108,0.20);
+    color: rgba(200,170,110,0.52); border-radius: 9px;
+    padding: 0.52rem 1.05rem; font-size: 0.82rem; cursor: pointer;
+    transition: border-color 0.14s, color 0.14s;
+}
+.tw-btn-cancel:hover { border-color: rgba(201,168,108,0.42); color: rgba(200,170,110,0.82); }
+
+/* Next / Crear button (step 2) */
+.tw-btn-next {
+    padding: 0.58rem 1.4rem; border-radius: 10px;
+    border: 1.5px solid rgba(201,168,108,0.20);
+    background: rgba(201,168,108,0.06); color: rgba(201,168,108,0.40);
+    font-size: 0.86rem; font-family: 'Cinzel', serif; letter-spacing: 0.04em;
+    cursor: not-allowed; transition: all 0.2s ease;
+}
+.tw-btn-next--ready {
+    border-color: rgba(201,168,108,0.62); background: rgba(201,168,108,0.11); color: #f0d898;
+    cursor: pointer; box-shadow: 0 4px 16px -4px rgba(201,168,108,0.22);
+}
+.tw-btn-next--ready:hover { background: rgba(201,168,108,0.17); box-shadow: 0 6px 22px -4px rgba(201,168,108,0.35); }
+
+/* Forjar Historia button (step 3) */
+.tw-btn-create {
+    display: flex; align-items: center; gap: 0.65rem;
+    padding: 0.68rem 1.7rem; border-radius: 12px;
+    border: 2px solid rgba(201,168,108,0.16);
+    background: rgba(201,168,108,0.04); color: rgba(201,168,108,0.28);
+    font-family: 'Cinzel Decorative', 'Cinzel', serif; font-size: 0.87rem;
+    letter-spacing: 0.07em; cursor: not-allowed; transition: all 0.3s ease;
+}
+.tw-btn-create--ready {
+    border-color: rgba(201,168,108,0.78);
+    background: linear-gradient(135deg, rgba(201,168,108,0.14), rgba(240,210,112,0.09), rgba(201,168,108,0.14));
+    color: #f0d070; cursor: pointer;
+    box-shadow: 0 0 0 1px rgba(240,208,112,0.11) inset, 0 6px 24px -6px rgba(201,168,108,0.38), 0 0 40px -15px rgba(201,168,108,0.28);
+    animation: tw-plaque-glow 2.5s ease-in-out infinite;
+}
+.tw-btn-create--ready:hover {
+    box-shadow: 0 0 0 1px rgba(240,208,112,0.18) inset, 0 8px 32px -6px rgba(201,168,108,0.52), 0 0 60px -15px rgba(201,168,108,0.42);
+    transform: translateY(-1px);
+}
+.tw-create-gem { font-size: 0.68rem; opacity: 0.68; }
+
+@keyframes tw-plaque-glow {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(240,208,112,0.11) inset, 0 6px 24px -6px rgba(201,168,108,0.38), 0 0 40px -15px rgba(201,168,108,0.28); }
+    50%       { box-shadow: 0 0 0 1px rgba(240,208,112,0.17) inset, 0 6px 28px -4px rgba(201,168,108,0.52), 0 0 60px -10px rgba(201,168,108,0.38); }
+}
+
+@media (max-width: 540px) {
+    .tw-card-row { flex-direction: column; }
+    .tw-card { min-height: 160px; padding: 1.2rem 1rem; flex-direction: row; text-align: left; gap: 0.8rem; }
+    .tw-card-desc { display: none; }
+    .tw-class-grid { grid-template-columns: repeat(2, 1fr); }
+    .tw-stat-row { grid-template-columns: 5.5rem 28px 2.1rem 28px 2.4rem; }
+}
+
+/* -- css/menu-gamefeel.css -- */
+/* Game-like polish for menus and topic management */
+
+:root {
+    --game-ui-gold: #e8c884;
+    --game-ui-border: rgba(232, 200, 132, 0.34);
+    --game-ui-bg: linear-gradient(180deg, rgba(14, 16, 28, 0.9), rgba(9, 10, 20, 0.9));
+}
+
+.section-header-bar {
+    border-bottom: 1px solid var(--game-ui-border);
+    background:
+        linear-gradient(90deg, rgba(13, 16, 30, 0.95), rgba(22, 17, 10, 0.86)),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0 2px, rgba(0, 0, 0, 0.02) 2px 4px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.section-title {
+    letter-spacing: 0.075em;
+}
+
+.back-button {
+    border-radius: 8px;
+    border-color: rgba(232, 200, 132, 0.38);
+    background: linear-gradient(180deg, rgba(36, 26, 14, 0.5), rgba(22, 16, 10, 0.36));
+}
+
+.back-button:hover {
+    transform: translateY(-1px);
+}
+
+.topics-command-bar {
+    border-radius: 16px;
+    border: 1px solid var(--game-ui-border);
+    background: var(--game-ui-bg);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    padding: 0.62rem 0.7rem;
+}
+
+.btn-create-topic,
+.btn-manage-topics,
+.btn-global-search {
+    border-radius: 10px;
+    border: 1px solid rgba(232, 200, 132, 0.28);
+    background: linear-gradient(180deg, rgba(46, 33, 18, 0.88), rgba(25, 19, 12, 0.88));
+    color: #f4e3be;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+.btn-create-topic:hover,
+.btn-manage-topics:hover,
+.btn-global-search:hover {
+    border-color: rgba(242, 213, 156, 0.62);
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(242, 213, 156, 0.12);
+}
+
+.topics-search-wrap {
+    border-radius: 12px;
+    border: 1px solid rgba(232, 200, 132, 0.22);
+    background: rgba(8, 10, 20, 0.72);
+}
+
+.topics-search-input {
+    color: #efe4ca;
+}
+
+.topics-search-input::placeholder {
+    color: rgba(214, 193, 150, 0.62);
+}
+
+.topics-filter-group {
+    background: rgba(8, 10, 20, 0.65);
+    border: 1px solid rgba(232, 200, 132, 0.2);
+    border-radius: 11px;
+    padding: 0.18rem;
+}
+
+.topic-filter-btn {
+    border-radius: 8px;
+    color: rgba(226, 211, 176, 0.8);
+    letter-spacing: 0.02em;
+}
+
+.topic-filter-btn.active {
+    background: linear-gradient(180deg, rgba(102, 73, 35, 0.8), rgba(66, 49, 25, 0.82));
+    color: #fff1ce;
+    border-color: rgba(239, 214, 162, 0.5);
+}
+
+.topics-stats-card {
+    border-radius: 16px;
+    border: 1px solid rgba(232, 200, 132, 0.24);
+    background: linear-gradient(180deg, rgba(13, 14, 25, 0.92), rgba(12, 10, 8, 0.9));
+    box-shadow: 0 16px 28px rgba(0, 0, 0, 0.36);
+}
+
+.topic-card {
+    border-radius: 16px;
+    border-width: 1.4px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
+    transition: transform 180ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.topic-card:hover {
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 22px 36px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(245, 218, 159, 0.14);
+}
+
+.topic-card-title {
+    letter-spacing: 0.018em;
+}
+
+.session-manager-modal {
+    border-radius: 18px;
+    border: 1px solid rgba(232, 200, 132, 0.36);
+    background: linear-gradient(180deg, rgba(13, 15, 27, 0.95), rgba(11, 11, 16, 0.95));
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.46);
+}
+
+.sm-header,
+.sm-action-bar,
+.sm-footer {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.sm-item {
+    border-radius: 10px;
+    border-color: rgba(232, 200, 132, 0.12);
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.sm-item:hover {
+    border-color: rgba(232, 200, 132, 0.28);
+}
+
+.sm-item--selected {
+    border-color: rgba(240, 214, 160, 0.44);
+    box-shadow: inset 0 0 0 1px rgba(240, 214, 160, 0.2);
+}
+
+@media (max-width: 900px) {
+    .topics-command-bar {
+        border-radius: 12px;
+        padding: 0.46rem;
+    }
+
+    .btn-create-topic,
+    .btn-manage-topics,
+    .btn-global-search {
+        border-radius: 9px;
+    }
+}
+/* -- css/options-gamefeel.css -- */
+/* Game-like readability and polish for Options section */
+
+#optionsSection::before {
+    background:
+        linear-gradient(180deg, rgba(6, 6, 10, 0.54) 0%, rgba(7, 7, 12, 0.58) 100%),
+        radial-gradient(circle at 20% 18%, rgba(232, 200, 132, 0.06) 0%, transparent 48%);
+}
+
+#optionsSection .opt-tab-bar {
+    margin: 0.55rem auto 0;
+    width: min(1120px, calc(100% - 2.2rem));
+    border: 1px solid rgba(232, 200, 132, 0.28);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(13, 15, 26, 0.94), rgba(9, 10, 18, 0.92));
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.3);
+    padding: 0.2rem;
+    gap: 0.2rem;
+}
+
+#optionsSection .opt-tab {
+    border-bottom: none;
+    border-radius: 10px;
+    color: rgba(228, 210, 172, 0.64);
+    font-size: 0.76rem;
+    letter-spacing: 0.09em;
+}
+
+#optionsSection .opt-tab:hover {
+    background: rgba(232, 200, 132, 0.1);
+    color: rgba(255, 236, 199, 0.88);
+}
+
+#optionsSection .opt-tab.active {
+    background: linear-gradient(180deg, rgba(104, 73, 34, 0.92), rgba(73, 53, 27, 0.9));
+    color: #fff2cf;
+    border: 1px solid rgba(240, 214, 161, 0.45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 6px 14px rgba(0, 0, 0, 0.2);
+}
+
+#optionsSection .opt-panels {
+    padding: 0.95rem 0 1.2rem;
+}
+
+#optionsSection .opt-panel {
+    max-width: min(980px, calc(100% - 1.4rem));
+    padding: 1.2rem 1.35rem 2rem;
+    border: 1px solid rgba(232, 200, 132, 0.3);
+    border-radius: 18px;
+    background:
+        linear-gradient(180deg, rgba(12, 14, 24, 0.94), rgba(10, 10, 18, 0.95)),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0 2px, rgba(0, 0, 0, 0.02) 2px 4px);
+    box-shadow: 0 20px 46px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+#optionsSection .opt-section-title {
+    color: rgba(242, 220, 174, 0.86);
+    border-bottom-color: rgba(232, 200, 132, 0.3);
+    margin-bottom: 1rem;
+}
+
+#optionsSection .opt-rows {
+    border: 1px solid rgba(232, 200, 132, 0.14);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.015);
+    padding: 0.2rem 0.95rem;
+}
+
+#optionsSection .option-row {
+    border-bottom-color: rgba(232, 200, 132, 0.12);
+}
+
+#optionsSection .option-label {
+    color: rgba(247, 236, 210, 0.94);
+}
+
+#optionsSection .option-sublabel,
+#optionsSection .opt-avatar-hint,
+#optionsSection .opt-birthday-hint,
+#optionsSection .opt-security-status {
+    color: rgba(217, 201, 165, 0.75);
+}
+
+#optionsSection .opt-text-input,
+#optionsSection .opt-select,
+#optionsSection .opt-date-input {
+    border-color: rgba(232, 200, 132, 0.26);
+    background: rgba(6, 7, 14, 0.78);
+    color: #f4e8c9;
+}
+
+#optionsSection .opt-text-input:focus,
+#optionsSection .opt-select:focus,
+#optionsSection .opt-date-input:focus {
+    border-color: rgba(240, 214, 161, 0.66);
+    box-shadow: 0 0 0 3px rgba(240, 214, 161, 0.12);
+}
+
+#optionsSection .opt-save-btn,
+#optionsSection .opt-toggle-btn {
+    border-color: rgba(232, 200, 132, 0.42);
+    background: linear-gradient(180deg, rgba(84, 61, 31, 0.88), rgba(58, 43, 24, 0.9));
+    color: #fff1cf;
+    font-weight: 600;
+}
+
+#optionsSection .opt-save-btn:hover,
+#optionsSection .opt-toggle-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(247, 225, 179, 0.82);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.26);
+}
+
+#optionsSection .opt-avatar-preview {
+    width: 92px;
+    height: 92px;
+    border-color: rgba(240, 214, 161, 0.54);
+    box-shadow: 0 0 0 3px rgba(240, 214, 161, 0.13), 0 10px 22px rgba(0, 0, 0, 0.32);
+}
+
+#optionsSection .opt-switch .opt-slider,
+#optionsSection .opt-switch .opt-switch-slider {
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(232, 200, 132, 0.2);
+}
+
+#optionsSection .opt-switch input:checked + .opt-slider,
+#optionsSection .opt-switch input:checked + .opt-switch-slider {
+    background: rgba(201, 168, 108, 0.44);
+}
+
+@media (max-width: 700px) {
+    #optionsSection .opt-tab-bar {
+        width: calc(100% - 0.9rem);
+        margin-top: 0.35rem;
+        border-radius: 11px;
+    }
+
+    #optionsSection .opt-panel {
+        max-width: calc(100% - 0.7rem);
+        padding: 1rem 0.8rem 1.3rem;
+        border-radius: 13px;
+    }
+
+    #optionsSection .opt-rows {
+        padding: 0.1rem 0.6rem;
+    }
 }
 
 /*# sourceMappingURL=etheria.css.map */

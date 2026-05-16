@@ -133,7 +133,11 @@
             rpg_char_locks:     topic.rpgCharacterLocks  || {},
             role_character_id:  topic.roleCharacterId    || null,
             local_id:           String(topic.id),
-            updated_at:         new Date().toISOString()
+            updated_at:         new Date().toISOString(),
+            // ── Campos de gestión de turnos ──────────────────────────────────
+            turn_mode:          topic.turnMode           || 'off',
+            turn_order:         Array.isArray(topic.turnOrder) ? topic.turnOrder : null,
+            turn_last_at:       topic.turnLastAt         || null
         };
     }
 
@@ -263,7 +267,11 @@
                             if (s.weather)         local.weather           = s.weather;
                             if (s.character_locks) local.characterLocks    = s.character_locks;
                             if (s.rpg_char_locks)  local.rpgCharacterLocks = s.rpg_char_locks;
-                            local.updatedAt = s.updated_at;
+                            // Campos de turno: siempre sincronizar desde la nube (la cola la gestiona el servidor)
+                            local.turnMode    = s.turn_mode    || 'off';
+                            local.turnOrder   = Array.isArray(s.turn_order) ? s.turn_order : null;
+                            local.turnLastAt  = s.turn_last_at || null;
+                            local.updatedAt   = s.updated_at;
                         }
                     } else {
                         // Paso 1: topic existe en nube pero no localmente → añadir
@@ -311,7 +319,11 @@
             date:               story.created_at
                                     ? new Date(story.created_at).toLocaleDateString()
                                     : new Date().toLocaleDateString(),
-            updatedAt:          story.updated_at         || null
+            updatedAt:          story.updated_at         || null,
+            // ── Campos de gestión de turnos ──────────────────────────────────
+            turnMode:           story.turn_mode          || 'off',
+            turnOrder:          Array.isArray(story.turn_order) ? story.turn_order : null,
+            turnLastAt:         story.turn_last_at       || null
         };
     }
 
@@ -558,6 +570,41 @@
                         }
                     }
                 )
+                // ── Cambios de turno en tiempo real ───────────────────────
+                .on(
+                    'postgres_changes',
+                    {
+                        event  : 'UPDATE',
+                        schema : 'public',
+                        table  : 'stories',
+                        filter : 'id=eq.' + storyId
+                    },
+                    function (payload) {
+                        try {
+                            if (global.currentStoryId !== storyId) return;
+                            const row = payload.new;
+                            if (!row) return;
+                            // Solo procesar si cambiaron campos de turno
+                            if (row.turn_order === undefined && row.turn_mode === undefined) return;
+                            // Actualizar topic local
+                            if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+                                const local = appData.topics.find(t => String(t.storyId) === String(storyId));
+                                if (local) {
+                                    if (row.turn_order !== undefined)  local.turnOrder  = Array.isArray(row.turn_order) ? row.turn_order : null;
+                                    if (row.turn_mode  !== undefined)  local.turnMode   = row.turn_mode;
+                                    if (row.turn_last_at !== undefined) local.turnLastAt = row.turn_last_at;
+                                }
+                            }
+                            // Re-renderizar HUD para co-autores
+                            _renderStoryParticipants(global.currentStoryParticipants || []);
+                            global.dispatchEvent(new CustomEvent('etheria:turn-updated', {
+                                detail: { storyId, turnOrder: row.turn_order, turnMode: row.turn_mode }
+                            }));
+                        } catch (e) {
+                            logger?.warn('supabase:stories', 'turn realtime update error:', e?.message);
+                        }
+                    }
+                )
                 // ── Mensajes nuevos ────────────────────────────────────────
                 .on(
                     'postgres_changes',
@@ -651,6 +698,56 @@
             if (global.appData) global.appData.messages[global.currentTopicId] = msgs;
             if (typeof save === 'function') save({ silent: true });
 
+            // Pieza B: efectos RPG de un solo personaje (Oracle, HP directo, condiciones)
+            if (msg.rpgEffects && typeof applyRpgEffectsFromMessage === 'function') {
+                try {
+                    applyRpgEffectsFromMessage(msg.rpgEffects, global.currentTopicId);
+                } catch (_e) {
+                    logger?.warn('supabase:stories', 'rpgEffects apply error:', _e?.message);
+                }
+            }
+            // Pieza C.1: efectos RPG múltiples (descanso corto, etc.)
+            if (Array.isArray(msg.rpgEffectsMulti) && typeof applyRpgEffectsFromMessage === 'function') {
+                msg.rpgEffectsMulti.forEach(function (eff) {
+                    try {
+                        applyRpgEffectsFromMessage(eff, global.currentTopicId);
+                    } catch (_e) {
+                        logger?.warn('supabase:stories', 'rpgEffectsMulti apply error:', _e?.message);
+                    }
+                });
+            }
+            // Pieza C.2c: forzar escena/clima del DM para co-autores
+            if (msg.isDmSystem) {
+                if (msg.sceneChange && typeof applySceneChangeToTopic === 'function') {
+                    try {
+                        const _t = global.appData?.topics?.find(function (t) {
+                            return String(t.id) === String(global.currentTopicId);
+                        });
+                        if (_t) applySceneChangeToTopic(_t, msg.sceneChange);
+                    } catch (_e) {
+                        logger?.warn('supabase:stories', 'sceneChange apply error:', _e?.message);
+                    }
+                }
+                if (msg.weatherChange && msg.weatherChange.weather && typeof setWeather === 'function') {
+                    try {
+                        setWeather(msg.weatherChange.weather);
+                    } catch (_e) {
+                        logger?.warn('supabase:stories', 'weatherChange apply error:', _e?.message);
+                    }
+                }
+            }
+
+            // C.4: tiradas de salvación — propagar al jugador objetivo vía canal persistente
+            if (msg.isMasterRoll && msg.masterRoll && typeof global._handleIncomingMasterRoll === 'function') {
+                try { global._handleIncomingMasterRoll(msg.masterRoll); }
+                catch (_e) { logger?.warn('supabase:stories', 'masterRoll inject error:', _e?.message); }
+            }
+            // C.4: resolución — eliminar tirada de los pendientes del receptor
+            if (msg.masterRollResolution && typeof global._handleMasterRollResolution === 'function') {
+                try { global._handleMasterRollResolution(msg.masterRollResolution); }
+                catch (_e) { logger?.warn('supabase:stories', 'masterRollResolution error:', _e?.message); }
+            }
+
             const isAtEnd = global.currentMessageIndex >= msgs.length - 2;
             if (isAtEnd) {
                 global.currentMessageIndex = msgs.length - 1;
@@ -736,11 +833,18 @@
             const avatar = char?.avatar || char?.sprite || p.profile?.avatar_url || '';
             const color  = char?.color || 'rgba(201,168,108,0.6)';
 
+            const isActiveTurn = topic?.turnMode && topic.turnMode !== 'off'
+                && Array.isArray(topic.turnOrder) && topic.turnOrder[0] === p.user_id;
+            const isRpgMode = document.body.classList.contains('mode-rpg');
+
             const wrap = document.createElement('span');
-            wrap.className = 'story-participant-wrap' + (online ? ' online' : '');
-            wrap.title = online
-                ? `${displayName} · En línea`
-                : `${displayName} · Desconectado`;
+            let wrapClass = 'story-participant-wrap';
+            if (online)       wrapClass += ' online';
+            if (isActiveTurn) wrapClass += ' turn-active';
+            wrap.className = wrapClass;
+            wrap.title = isActiveTurn
+                ? `${displayName} · Turno activo`
+                : (online ? `${displayName} · En línea` : `${displayName} · Desconectado`);
 
             // Avatar del personaje si existe, si no iniciales
             let el;
@@ -777,6 +881,16 @@
             wrap.appendChild(el);
             wrap.appendChild(dot);
             wrap.appendChild(nameEl);
+
+            // Icono de turno activo (✦ clásico / ⚜ RPG) — esquina superior izquierda
+            if (isActiveTurn) {
+                const turnIcon = document.createElement('span');
+                turnIcon.className = 'story-participant-turn-icon';
+                turnIcon.setAttribute('aria-label', 'Turno activo');
+                turnIcon.textContent = isRpgMode ? '⚜' : '✦';
+                wrap.appendChild(turnIcon);
+            }
+
             container.appendChild(wrap);
         });
     }
@@ -1049,6 +1163,163 @@
         return window._cachedUserId || null;
     }
 
+    // ── Sistema de gestión de turnos ──────────────────────────────────────────
+
+    /**
+     * Activa o reconfigura el sistema de turnos de una historia.
+     * Solo puede llamarla el creador (usa UPDATE directo que la RLS permite).
+     *
+     * @param {string}   storyId  UUID de la historia
+     * @param {object}   opts
+     * @param {string}   opts.mode    'off' | 'strict' | 'soft'
+     * @param {string[]} opts.order   Array de user_ids en el orden inicial deseado.
+     *                                Si se omite, se construye desde los participantes actuales.
+     * @returns {{ ok: boolean, error?: string }}
+     */
+    async function setTurnConfig(storyId, { mode = 'soft', order = null } = {}) {
+        if (!storyId) return { ok: false, error: 'storyId requerido' };
+        const client = _getClient();
+        if (!client) return { ok: false, error: 'Sin conexión' };
+
+        try {
+            // Si no se pasa un orden inicial, construirlo desde los participantes reales
+            let turnOrder = order;
+            if (!turnOrder) {
+                const participants = await loadStoryParticipants(storyId);
+                turnOrder = participants
+                    .map(p => p?.user_id)
+                    .filter(Boolean)
+                    .filter((uid, i, arr) => arr.indexOf(uid) === i);
+            }
+
+            const { error } = await client
+                .from('stories')
+                .update({
+                    turn_mode:    mode,
+                    turn_order:   turnOrder.length > 0 ? turnOrder : null,
+                    turn_last_at: new Date().toISOString(),
+                    updated_at:   new Date().toISOString()
+                })
+                .eq('id', storyId);
+
+            if (error) return { ok: false, error: error.message };
+
+            // Actualizar topic local para que el guard reaccione inmediatamente
+            if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+                const local = appData.topics.find(t => String(t.storyId) === String(storyId));
+                if (local) {
+                    local.turnMode   = mode;
+                    local.turnOrder  = turnOrder.length > 0 ? turnOrder : null;
+                    local.turnLastAt = new Date().toISOString();
+                }
+            }
+
+            logger?.info('supabase:stories', `Turnos configurados en ${storyId}: modo=${mode}, cola=${JSON.stringify(turnOrder)}`);
+            return { ok: true, mode, order: turnOrder };
+
+        } catch (e) {
+            logger?.warn('supabase:stories', 'setTurnConfig error:', e?.message);
+            return { ok: false, error: e?.message || 'Error inesperado' };
+        }
+    }
+
+    /**
+     * Rota la cola de turnos: mueve el primer user_id al final.
+     * Llama a la RPC rotate_story_turn (SECURITY DEFINER — permite a cualquier participante).
+     * Actualiza el topic local inmediatamente para que el guard reaccione sin esperar loadStories.
+     *
+     * @param {string} storyId  UUID de la historia
+     * @returns {{ ok: boolean, order?: string[], error?: string }}
+     */
+    async function rotateTurn(storyId) {
+        if (!storyId) return { ok: false, error: 'storyId requerido' };
+        const client = _getClient();
+        if (!client) return { ok: false, error: 'Sin conexión' };
+
+        try {
+            const now = new Date().toISOString();
+            const { data, error } = await client.rpc('rotate_story_turn', {
+                p_story_id:     storyId,
+                p_turn_last_at: now
+            });
+
+            if (error) {
+                logger?.warn('supabase:stories', 'rotateTurn RPC error:', error.message);
+                return { ok: false, error: error.message };
+            }
+
+            // Aplicar nueva cola al topic local
+            const newOrder = data?.order ? (Array.isArray(data.order) ? data.order : JSON.parse(data.order)) : null;
+            if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+                const local = appData.topics.find(t => String(t.storyId) === String(storyId));
+                if (local && newOrder) {
+                    local.turnOrder  = newOrder;
+                    local.turnLastAt = now;
+                }
+            }
+
+            logger?.info('supabase:stories', `Turno rotado en ${storyId}:`, newOrder);
+            // Refrescar HUD local y notificar
+            _renderStoryParticipants(global.currentStoryParticipants || []);
+            global.dispatchEvent(new CustomEvent('etheria:turn-rotated', {
+                detail: { storyId, order: newOrder }
+            }));
+            return { ok: true, rotated: !!data?.rotated, order: newOrder };
+
+        } catch (e) {
+            logger?.warn('supabase:stories', 'rotateTurn error:', e?.message);
+            return { ok: false, error: e?.message || 'Error inesperado' };
+        }
+    }
+
+    /**
+     * Salta el turno del usuario activo por inactividad.
+     * Llama a skip_story_turn (SECURITY DEFINER — cualquier participante puede invocarla).
+     * Umbral recomendado: 24 horas (aplicado en el caller, no aquí).
+     *
+     * @param {string} storyId
+     * @returns {{ ok: boolean, skippedUser?: string, order?: string[], error?: string }}
+     */
+    async function skipTurn(storyId) {
+        if (!storyId) return { ok: false, error: 'storyId requerido' };
+        const client = _getClient();
+        if (!client) return { ok: false, error: 'Sin conexión' };
+
+        try {
+            const now = new Date().toISOString();
+            const { data, error } = await client.rpc('skip_story_turn', {
+                p_story_id:     storyId,
+                p_turn_last_at: now
+            });
+
+            if (error) {
+                logger?.warn('supabase:stories', 'skipTurn RPC error:', error.message);
+                return { ok: false, error: error.message };
+            }
+
+            const newOrder = data?.order ? (Array.isArray(data.order) ? data.order : JSON.parse(data.order)) : null;
+            if (typeof appData !== 'undefined' && Array.isArray(appData.topics)) {
+                const local = appData.topics.find(t => String(t.storyId) === String(storyId));
+                if (local && newOrder) {
+                    local.turnOrder  = newOrder;
+                    local.turnLastAt = now;
+                }
+            }
+
+            logger?.info('supabase:stories', `Turno saltado en ${storyId}. Usuario omitido: ${data?.skipped_user}`);
+            // Refrescar HUD local y notificar
+            _renderStoryParticipants(global.currentStoryParticipants || []);
+            global.dispatchEvent(new CustomEvent('etheria:turn-skipped', {
+                detail: { storyId, skippedUser: data?.skipped_user, order: newOrder }
+            }));
+            return { ok: true, skipped: !!data?.skipped, skippedUser: data?.skipped_user, order: newOrder };
+
+        } catch (e) {
+            logger?.warn('supabase:stories', 'skipTurn error:', e?.message);
+            return { ok: false, error: e?.message || 'Error inesperado' };
+        }
+    }
+
     // ── API pública ───────────────────────────────────────────────────────────
 
     global.SupabaseStories = {
@@ -1061,7 +1332,11 @@
         joinByInviteToken     : joinByInviteToken,
         upsertStory           : upsertStory,
         syncAllLocalTopics    : syncAllLocalTopics,
-        deleteStory           : deleteStory
+        deleteStory           : deleteStory,
+        // Gestión de turnos
+        setTurnConfig         : setTurnConfig,
+        rotateTurn            : rotateTurn,
+        skipTurn              : skipTurn
     };
 
 }(window));

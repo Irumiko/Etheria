@@ -175,6 +175,23 @@ function _clearAccountData() {
 }
 
 let _postAuthHydrationPromise = null;
+
+// ── Fix 3: flag para evitar doble ejecución desde login() y onAuthStateChange ──
+let _loginHandling = false;
+
+// ── Fix 4: overlay de carga mientras se hidratan datos de Supabase ────────────
+function _showLoadingOverlay(text) {
+    const overlay = document.getElementById('loadingOverlay');
+    if (!overlay) return;
+    const textEl = overlay.querySelector('.loading-text');
+    if (textEl && text) textEl.textContent = text;
+    overlay.style.display = 'flex';
+}
+function _hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
 async function _waitForActiveProfileId(timeoutMs = 3000) {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
@@ -202,6 +219,31 @@ async function hydrateCloudAfterAuth() {
         if (profileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
             await SupabaseCharacters.loadCharacters(profileId).catch(() => {});
         }
+        // Fix 1: mensajes de todas las historias activas (garantiza multidispositivo)
+        // Se ejecuta SIEMPRE al iniciar sesión para que un dispositivo nuevo tenga
+        // el historial completo aunque no haya entrado aún a cada historia.
+        if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.load === 'function') {
+            const topics = Array.isArray(appData?.topics) ? appData.topics : [];
+            const topicsWithStory = topics.filter(t => t && t.storyId);
+            await Promise.all(topicsWithStory.map(async (topic) => {
+                try {
+                    const cloudMsgs = await SupabaseMessages.load(topic.id, topic.storyId);
+                    if (!Array.isArray(cloudMsgs) || cloudMsgs.length === 0) return;
+                    const localMsgs = Array.isArray(appData.messages[topic.id])
+                        ? appData.messages[topic.id]
+                        : [];
+                    const localIds = new Set(localMsgs.map(m => String(m.id)));
+                    const newMsgs = cloudMsgs.filter(m => m.id && !localIds.has(String(m.id)));
+                    if (newMsgs.length > 0) {
+                        const merged = [...localMsgs, ...newMsgs]
+                            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                        appData.messages[topic.id] = merged;
+                        window.EtheriaLogger?.info('app',
+                            `${newMsgs.length} mensajes sincronizados desde la nube para topic ${topic.id}`);
+                    }
+                } catch (_) {}
+            }));
+        }
         if (typeof renderTopics === 'function') renderTopics();
         if (typeof renderGallery === 'function') renderGallery();
         if (typeof renderUserCards === 'function') renderUserCards();
@@ -228,9 +270,14 @@ async function login() {
     }
 
     setAuthStatus('Iniciando sesión...');
+
+    // Fix 3: marcar que login() gestiona el flujo completo de auth para que
+    // onAuthStateChange(SIGNED_IN) no duplique la hidratación.
+    _loginHandling = true;
     const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
 
     if (error) {
+        _loginHandling = false;
         setAuthStatus(error.message || 'No se pudo iniciar sesión.', true);
         return;
     }
@@ -243,17 +290,19 @@ async function login() {
 
     hideLoginScreen();
     initializeApp();
-    await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
-    // La nube siempre gana al iniciar sesión: descargar y reemplazar datos locales.
-    if (typeof SupabaseSync !== 'undefined') {
-        await SupabaseSync.downloadProfileData();
+
+    // Fix 4: mostrar overlay mientras hidratan los datos reales de Supabase.
+    _showLoadingOverlay('Cargando tu partida...');
+    try {
+        // Fix 3: ensureProfile + hydrateCloudAfterAuth son la única fuente de verdad
+        // post-login. Se han eliminado las llamadas directas a downloadProfileData() y
+        // loadStories() que antes causaban doble ejecución con onAuthStateChange.
+        await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
+        await hydrateCloudAfterAuth(); // descarga todo: datos, historias, personajes, mensajes
+    } finally {
+        _loginHandling = false;
+        _hideLoadingOverlay();
     }
-    // Cargar historias desde Supabase — reconstruye appData.topics si está vacío
-    // (usuario en dispositivo nuevo) o actualiza storyIds en topics existentes.
-    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
-        await SupabaseStories.loadStories().catch(() => {});
-    }
-    await hydrateCloudAfterAuth();
 }
 
 async function register() {
@@ -764,8 +813,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Sesión existente, inicializar directamente
         hideLoginScreen();
         initializeApp();
-        await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
-        await hydrateCloudAfterAuth();
+        // Fix 4: ocultar contenido obsoleto de localStorage mientras llegan datos reales
+        _showLoadingOverlay('Cargando tu partida...');
+        try {
+            await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
+            await hydrateCloudAfterAuth();
+        } finally {
+            _hideLoadingOverlay();
+        }
     } else {
         // Mostrar pantalla de autenticación
         showLoginScreen();
@@ -775,6 +830,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.supabaseClient) {
         window.supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' && session) {
+                // Fix 3: si login() ya gestiona el flujo (incluida la hidratación),
+                // no duplicar aquí. onAuthStateChange actúa solo en logins externos
+                // (OAuth, magic link, token refresh) donde login() no interviene.
+                if (_loginHandling) return;
                 ensureProfile()
                     .then(() => hydrateCloudAfterAuth())
                     .catch(() => {});

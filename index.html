@@ -379,55 +379,15 @@
                             <span class="topics-search-icon">🔍</span>
                             <input type="text" id="topicsSearch" class="topics-search-input" placeholder="Buscar historia..." oninput="filterTopics()">
                         </div>
-                        <button class="btn-global-search" onclick="openGlobalSearch()" title="Buscar en el contenido de todos los mensajes">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            Buscar mensajes
-                        </button>
                         <div class="topics-filter-group">
                             <button class="topic-filter-btn active" data-filter="all" onclick="setTopicFilter('all', this)">Todas</button>
-                            <button class="topic-filter-btn" data-filter="roleplay" onclick="setTopicFilter('roleplay', this)">Clásico</button>
-                            <button class="topic-filter-btn" data-filter="rpg" onclick="setTopicFilter('rpg', this)">RPG</button>
+                            <button class="topic-filter-btn" data-filter="roleplay" onclick="setTopicFilter('roleplay', this)">✦ Clásico</button>
+                            <button class="topic-filter-btn" data-filter="rpg" onclick="setTopicFilter('rpg', this)">⚜ RPG</button>
                         </div>
                     </div>
                     <div id="topicsList" class="topics-grid"></div>
                 </div>
 
-                <!-- Panel lateral con stats -->
-                <aside class="topics-sidebar">
-                    <div class="topics-stats-card">
-                        <h4 class="topics-stats-title">Progreso</h4>
-                        <div class="topics-stat-row">
-                            <div class="topics-stat">
-                                <span id="statTopics" class="topics-stat-val">0</span>
-                                <span class="topics-stat-lbl">Historias</span>
-                            </div>
-                            <div class="topics-stat-divider"></div>
-                            <div class="topics-stat">
-                                <span id="statMsgs" class="topics-stat-val">0</span>
-                                <span class="topics-stat-lbl">Mensajes</span>
-                            </div>
-                        </div>
-                    </div>
-
-
-
-                    <div class="topics-mode-legend">
-                        <div class="legend-item legend-rpg">
-                            <span class="legend-dot"></span>
-                            <div>
-                                <div class="legend-name">Modo RPG</div>
-                                <div class="legend-desc">Stats, dados y oráculo</div>
-                            </div>
-                        </div>
-                        <div class="legend-item legend-classic">
-                            <span class="legend-dot"></span>
-                            <div>
-                                <div class="legend-name">Modo Clásico</div>
-                                <div class="legend-desc">Roleplay libre sin mecánicas</div>
-                            </div>
-                        </div>
-                    </div>
-                </aside>
             </div>
         </div>
     </div>
@@ -783,6 +743,8 @@
                     <div class="affinity-rank-row">
                         <div class="affinity-rank-name" id="affinityRankName">Desconocidos</div>
                         <div class="affinity-controls-inline">
+                            <button class="affinity-btn-inline affinity-btn-minus" onclick="modifyAffinity(-1)" title="Disminuir afinidad" aria-label="Bajar afinidad">−</button>
+                            <button class="affinity-btn-inline affinity-btn-plus" onclick="modifyAffinity(1)" title="Aumentar afinidad" aria-label="Subir afinidad">+</button>
                             <button class="affinity-btn-inline" onclick="openRelationshipGraph()" title="Ver grafo de relaciones">✶</button>
                         </div>
                     </div>
@@ -927,15 +889,32 @@
                 <button class="vn-dm-tab" type="button" role="tab" aria-selected="false" data-tab="tools" onclick="switchDmTab('tools', this)">Utilidades</button>
             </div>
 
-            <!-- Sección: Personajes en la partida -->
+            <!-- ── Grupo: personajes + ajuste de HP ── -->
             <div class="vn-dm-tab-panel active" data-tab-panel="party">
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Personajes</div>
                 <div id="dmCharacterList" class="dm-character-list"></div>
             </div>
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Ajustar HP</div>
+                <div class="dm-hp-controls">
+                    <select id="dmHpTarget" class="dm-select">
+                        <option value="">— Personaje —</option>
+                    </select>
+                    <div class="dm-hp-adj-row">
+                        <button class="dm-btn dm-btn-dmg" onclick="dmAdjustHp(-1)" title="Dañar">−</button>
+                        <input type="number" id="dmHpAmount" class="dm-input dm-hp-input" value="1" min="1" max="99" aria-label="Cantidad de HP">
+                        <button class="dm-btn dm-btn-heal" onclick="dmAdjustHp(1)" title="Curar">+</button>
+                    </div>
+                    <div class="dm-btn-row">
+                        <button class="dm-btn dm-btn-dmg" onclick="dmAdjustHp(-1)">🩸 Dañar</button>
+                        <button class="dm-btn dm-btn-heal" onclick="dmAdjustHp(1)">💚 Curar</button>
+                    </div>
+                </div>
+            </div>
             </div>
 
-            <!-- Sección: Condiciones -->
+            <!-- ── Control: condiciones + objetos ── -->
             <div class="vn-dm-tab-panel" data-tab-panel="control">
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Aplicar condición</div>
@@ -952,8 +931,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Sección: Dar objeto -->
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Dar objeto</div>
                 <div class="dm-item-controls">
@@ -968,8 +945,21 @@
             </div>
             </div>
 
-            <!-- Sección: Desafío (tirada con opciones y DC) -->
+            <!-- ── Escena: fondo, clima, desafío, NPC ── -->
             <div class="vn-dm-tab-panel" data-tab-panel="scene">
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Forzar escena</div>
+                <div class="dm-scene-controls">
+                    <input type="url" id="dmSceneBackground" class="dm-input" placeholder="URL del fondo (dejar vacío para no cambiar)" maxlength="500">
+                    <select id="dmSceneWeather" class="dm-select" aria-label="Clima de la escena">
+                        <option value="none">☀️ Sin cambio de clima</option>
+                        <option value="rain">🌧 Lluvia</option>
+                        <option value="fog">🌫 Niebla</option>
+                    </select>
+                    <input type="text" id="dmSceneNarration" class="dm-input" placeholder="Narración del cambio (opcional)" maxlength="200">
+                    <button class="dm-btn dm-btn-roll" onclick="dmForceScene()">🎬 Aplicar a todos</button>
+                </div>
+            </div>
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Proponer desafío</div>
                 <div class="dm-challenge-controls">
@@ -1000,8 +990,6 @@
                     <button class="dm-btn dm-btn-roll" onclick="dmSendChallenge()">🎲 Lanzar propuesta</button>
                 </div>
             </div>
-
-            <!-- Sección: Narrar como NPC -->
             <div class="vn-dm-section">
                 <div class="vn-dm-section-label">Narrar como NPC</div>
                 <div class="dm-npc-controls">
@@ -1011,11 +999,50 @@
                 </div>
             </div>
             </div>
+
+            <!-- ── Utilidades: descanso + EXP manual ── -->
             <div class="vn-dm-tab-panel" data-tab-panel="tools">
             <div class="vn-dm-section">
-                <div class="vn-dm-section-label">Utilidades</div>
+                <div class="vn-dm-section-label">Descanso corto</div>
                 <div class="dm-item-controls">
                     <button class="dm-btn dm-btn-apply" onclick="dmTriggerShortRest()">⛺ Activar descanso corto (25% HP)</button>
+                </div>
+            </div>
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Conceder EXP</div>
+                <div class="dm-exp-controls">
+                    <select id="dmExpTarget" class="dm-select">
+                        <option value="">— Personaje —</option>
+                    </select>
+                    <div class="dm-hp-adj-row">
+                        <input type="number" id="dmExpAmount" class="dm-input dm-hp-input" value="1" min="1" max="999" aria-label="Cantidad de EXP">
+                    </div>
+                    <button class="dm-btn dm-btn-heal" onclick="dmAwardExp()">✦ Conceder EXP</button>
+                </div>
+            </div>
+            <div class="vn-dm-section">
+                <div class="vn-dm-section-label">Tirada de Salvación</div>
+                <div class="dm-masterroll-controls">
+                    <select id="dmMrTarget" class="dm-select">
+                        <option value="">— Personaje objetivo —</option>
+                    </select>
+                    <input type="text" id="dmMrSituation" class="dm-input" placeholder="Situación dramática que enfrenta el personaje…" maxlength="200">
+                    <div class="dm-mr-options-label">Opciones del jugador (mín. 2, con consecuencias)</div>
+                    <div id="dmMrOptionsList">
+                        <div class="dm-mr-option-row">
+                            <input type="text" class="dm-input dm-mr-opt-label" placeholder="Opción A" maxlength="80">
+                            <input type="number" class="dm-input dm-mr-opt-hp" placeholder="HP (ej: -5)" min="-99" max="99">
+                        </div>
+                        <div class="dm-mr-option-row">
+                            <input type="text" class="dm-input dm-mr-opt-label" placeholder="Opción B" maxlength="80">
+                            <input type="number" class="dm-input dm-mr-opt-hp" placeholder="HP (ej: +3)" min="-99" max="99">
+                        </div>
+                        <div class="dm-mr-option-row">
+                            <input type="text" class="dm-input dm-mr-opt-label" placeholder="Opción C (opcional)" maxlength="80">
+                            <input type="number" class="dm-input dm-mr-opt-hp" placeholder="HP (opcional)" min="-99" max="99">
+                        </div>
+                    </div>
+                    <button class="dm-btn dm-btn-roll" onclick="dmSendMasterRoll()">⚔️ Lanzar salvación</button>
                 </div>
             </div>
             </div>
@@ -1280,6 +1307,17 @@
                 </div>
                 <div class="vn-challenge-stats" id="vnChallengeStatBtns"></div>
                 <button class="vn-challenge-dismiss" onclick="dismissChallenge()" title="Ocultar propuesta">✕</button>
+            </div>
+            <!-- Tirada de Salvación — aparece al propietario del personaje cuando es su turno -->
+            <div id="vnMasterRollBar" class="vn-masterroll-bar" style="display:none;" role="dialog" aria-label="Tirada de Salvación">
+                <div class="vn-mr-header">
+                    <span class="vn-mr-icon" aria-hidden="true">⚔️</span>
+                    <div class="vn-mr-info">
+                        <span class="vn-mr-label">Tirada de Salvación</span>
+                        <span class="vn-mr-situation" id="vnMrSituation">El destino te pide elegir…</span>
+                    </div>
+                </div>
+                <div class="vn-mr-options" id="vnMrOptions"></div>
             </div>
             <div id="vnOracleConsequenceBadge" class="vn-oracle-consequence-badge" style="display:none;">🪙 Consecuencia del destino</div>
 
@@ -1724,58 +1762,104 @@
             </div>
         </div>
     </div>
-<div id="topicModal" class="modal-overlay" onclick="if(event.target === this) closeModal('topicModal')">
-        <div class="modal topic-modal">
-            <div class="topic-header-row">
-                <h3 class="topic-title">Nueva Historia</h3>
-                <div class="topic-weather-inline" role="group" aria-label="Ambientación">
-                    <button type="button" class="weather-btn topic-weather-btn active" data-tooltip="Normal" data-tooltip-delay="300" data-weather="none" onclick="setTopicWeather('none', this)" aria-label="Ambientación normal">☀️</button>
-                    <button type="button" class="weather-btn topic-weather-btn" data-tooltip="Lluvia" data-tooltip-delay="300" data-weather="rain" onclick="setTopicWeather('rain', this)" aria-label="Ambientación lluvia">☁️</button>
-                    <button type="button" class="weather-btn topic-weather-btn" data-tooltip="Niebla" data-tooltip-delay="300" data-weather="fog" onclick="setTopicWeather('fog', this)" aria-label="Ambientación niebla">🌫️</button>
-                </div>
-                <input type="hidden" id="topicWeatherInput" value="none">
-            </div>
+<div id="topicModal" class="modal-overlay" onclick="if(event.target===this)closeModal('topicModal')">
+  <div class="modal topic-modal topic-wizard">
 
-            <div class="topic-modal-body">
-
-            <!-- Selector de modo compacto -->
-            <div class="form-group">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem; display: block;">Modo de historia</label>
-                <div class="topic-mode-toggle">
-                    <label class="topic-mode-option active">
-                        <input type="radio" name="topicMode" value="roleplay" id="modeRoleplay" checked onchange="updateTopicModeUI()">
-                        <span>🎭 Modo clásico</span>
-                    </label>
-                    <label class="topic-mode-option">
-                        <input type="radio" name="topicMode" value="rpg" id="modeRpg" onchange="updateTopicModeUI()">
-                        <span>📖 Modo RPG</span>
-                    </label>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.55rem;">El inicio siempre será como <strong>Narrador</strong>. El flujo adicional del modo clásico se realiza después de crear la historia.</div>
-            </div>
-
-            <!-- Título -->
-            <div class="form-group">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Título *</label>
-                <input type="text" id="topicTitleInput" placeholder="Título de la historia...">
-            </div>
-
-            <!-- Texto inicial -->
-            <div class="form-group topic-inicio-group">
-                <label style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; display: block;">Inicio *</label>
-                <textarea id="topicFirstMsg" name="inicio" rows="3" placeholder="Primer mensaje de la historia..."></textarea>
-                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Puedes usar **negrita** y *cursiva*</div>
-            </div>
-
-            </div>
-
-            <!-- Botones de acción -->
-            <div class="topic-modal-footer">
-                <button onclick="closeModal('topicModal')" class="btn-secondary" style="padding: 0.7rem 1.5rem;">Cancelar</button>
-                <button onclick="createTopic()" class="btn-primary topic-create-btn">✨ Crear Historia</button>
-            </div>
-        </div>
+    <!-- PASO 1 — El Gran Selector -->
+    <div class="tw-step tw-step--1 tw-step--active" id="twStep1">
+      <h3 class="tw-main-title">✦ Nueva Historia ✦</h3>
+      <p class="tw-main-sub">Elige el camino que tomará tu historia</p>
+      <div class="tw-card-row">
+        <button type="button" class="tw-card tw-card--classic" onclick="topicWizardSelectMode('roleplay')">
+          <span class="tw-card-glyph">✦</span>
+          <h4 class="tw-card-name">Camino de la Palabra</h4>
+          <span class="tw-card-mode-tag">Clásico</span>
+          <p class="tw-card-desc">Narrativa libre y conversación íntima. Las constelaciones guían tu relato.</p>
+        </button>
+        <button type="button" class="tw-card tw-card--rpg" onclick="topicWizardSelectMode('rpg')">
+          <span class="tw-card-glyph">⚜</span>
+          <h4 class="tw-card-name">Senda del Azar</h4>
+          <span class="tw-card-mode-tag">RPG</span>
+          <p class="tw-card-desc">Rol de mesa, dados del destino y estadísticas. El pergamino registra tu leyenda.</p>
+        </button>
+      </div>
+      <button type="button" class="tw-link-cancel" onclick="closeModal('topicModal')">Cancelar</button>
     </div>
+
+    <!-- PASO 2 — Configuración de Historia -->
+    <div class="tw-step tw-step--2" id="twStep2">
+      <div class="tw-step-head">
+        <button type="button" class="tw-back-btn" onclick="topicWizardGoStep(1)">‹ Volver</button>
+        <h3 class="tw-step-title" id="twStep2Title">Configura tu historia</h3>
+        <div class="tw-weather-row" role="group" aria-label="Ambientación">
+          <button type="button" class="weather-btn topic-weather-btn active" data-weather="none" onclick="setTopicWeather('none',this)" aria-label="Normal">☀️</button>
+          <button type="button" class="weather-btn topic-weather-btn" data-weather="rain" onclick="setTopicWeather('rain',this)" aria-label="Lluvia">☁️</button>
+          <button type="button" class="weather-btn topic-weather-btn" data-weather="fog" onclick="setTopicWeather('fog',this)" aria-label="Niebla">🌫️</button>
+        </div>
+        <input type="hidden" id="topicWeatherInput" value="none">
+      </div>
+      <div class="tw-body">
+        <div class="tw-field">
+          <label class="tw-label" for="topicTitleInput">Título de la historia</label>
+          <input type="text" id="topicTitleInput" class="tw-input" placeholder="Un nombre que recuerde el tiempo…" oninput="topicWizardValidate()" autocomplete="off">
+        </div>
+        <div class="tw-field">
+          <label class="tw-label" for="topicFirstMsg">Apertura <span class="tw-note">— siempre como Narrador</span></label>
+          <textarea id="topicFirstMsg" class="tw-textarea" rows="3" placeholder="El relato comienza cuando…" oninput="topicWizardValidate()"></textarea>
+        </div>
+        <div class="tw-field">
+          <div class="tw-label-row">
+            <span class="tw-label">Tu personaje <span class="tw-required">*</span></span>
+          </div>
+          <div class="tw-char-list" id="twCharList"></div>
+        </div>
+      </div>
+      <div class="tw-footer">
+        <button type="button" class="tw-btn-cancel" onclick="closeModal('topicModal')">Cancelar</button>
+        <button type="button" class="tw-btn-next" id="twNextBtn" onclick="topicWizardNext()" disabled>
+          <span id="twNextLabel">Crear Historia</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- PASO 3 — Hoja de Aventura RPG -->
+    <div class="tw-step tw-step--3" id="twStep3">
+      <div class="tw-step-head">
+        <button type="button" class="tw-back-btn" onclick="topicWizardGoStep(2)">‹ Volver</button>
+        <h3 class="tw-step-title">⚜ Hoja de Aventura</h3>
+        <p class="tw-step-sub">Prepara a tu personaje antes de comenzar</p>
+      </div>
+      <div class="tw-body">
+        <div class="tw-field">
+          <label class="tw-label">Clase de aventurero</label>
+          <div class="tw-class-grid" id="twClassGrid"></div>
+        </div>
+        <div class="tw-field">
+          <div class="tw-label-row">
+            <span class="tw-label">Distribuye tus puntos</span>
+            <span class="tw-points-badge" id="twPointsBadge">27 restantes</span>
+          </div>
+          <div class="tw-stat-grid" id="twStatGrid"></div>
+        </div>
+      </div>
+      <div class="tw-footer">
+        <button type="button" class="tw-btn-cancel" onclick="closeModal('topicModal')">Cancelar</button>
+        <button type="button" class="tw-btn-create" id="twCreateBtn" onclick="createTopicFromWizard()" disabled>
+          <span class="tw-create-gem">✦</span>
+          <span class="tw-create-text">Forjar Historia</span>
+          <span class="tw-create-gem">✦</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Inputs ocultos para compatibilidad con updateTopicModeUI() -->
+    <div style="display:none" aria-hidden="true">
+      <input type="radio" name="topicMode" value="roleplay" id="modeRoleplay" checked onchange="updateTopicModeUI()">
+      <input type="radio" name="topicMode" value="rpg" id="modeRpg" onchange="updateTopicModeUI()">
+    </div>
+
+  </div>
+</div>
 <div id="roleCharacterModal" class="modal-overlay" onclick="if(event.target === this) closeModal('roleCharacterModal')">
         <div class="role-char-modal">
             <h3 id="roleCharacterTitle" style="margin:0; text-align:center; color: var(--accent-gold);">Selecciona tu personaje activo</h3>
