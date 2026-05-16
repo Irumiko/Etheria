@@ -273,9 +273,25 @@ const SupabaseSync = (function () {
         }
 
         try {
-            // 1. Descargar datos del servidor
+            // Fix 2: si hay cambios locales pendientes, SUBIR PRIMERO.
+            // El orden anterior (descargar → subir) sobreescribía los datos locales
+            // antes de subirlos, causando pérdida silenciosa de cambios offline.
+            let didUpload = false;
+            if (_pendingChanges || force) {
+                const uploadResult = await uploadProfileData();
+                if (!uploadResult.ok) {
+                    _isOffline = true;
+                    if (!silent) {
+                        eventBus.emit('ui:show-autosave', { text: 'Error al guardar cambios locales', state: 'error' });
+                    }
+                    return { status: 'error', error: uploadResult.error };
+                }
+                didUpload = true;
+            }
+
+            // 2. Descargar datos del servidor (seguro: cambios locales ya subidos)
             const downloadResult = await downloadProfileData();
-            
+
             if (!downloadResult.ok) {
                 _isOffline = true;
                 if (!silent) {
@@ -284,7 +300,7 @@ const SupabaseSync = (function () {
                 return { status: 'error', error: downloadResult.error };
             }
 
-            // 2. Si es nuevo usuario, subir datos locales
+            // 3. Si es usuario nuevo (sin datos en la nube), subir datos locales
             if (downloadResult.isNew && _hasLocalData()) {
                 const uploadResult = await uploadProfileData();
                 if (!silent && uploadResult.ok) {
@@ -293,16 +309,10 @@ const SupabaseSync = (function () {
                 return { status: uploadResult.ok ? 'uploaded' : 'error' };
             }
 
-            // 3. Si hay cambios locales pendientes, subirlos
-            if (_pendingChanges || force) {
-                const uploadResult = await uploadProfileData();
-                if (!silent && uploadResult.ok) {
-                    eventBus.emit('ui:show-autosave', { text: 'Sincronización completada', state: 'saved' });
-                }
-                return { status: uploadResult.ok ? 'synced' : 'error' };
-            }
-
             _isOffline = false;
+            if (!silent && didUpload) {
+                eventBus.emit('ui:show-autosave', { text: 'Sincronización completada', state: 'saved' });
+            }
             return { status: 'synced' };
 
         } catch (err) {
