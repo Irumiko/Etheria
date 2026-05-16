@@ -1265,6 +1265,7 @@ body.mode-rpg #vnSection .vn-party-panel {
 }
 
 /* ── 6. TOOLBAR — Modo Clásico: esferas de cristal plata-azul ──────────── */
+/* Contenedor: transparente, sin scroll, botones apretados para caber en pantalla */
 body.mode-classic #vnSection .vn-classic-controls,
 body:not(.mode-rpg) #vnSection .vn-classic-controls {
     background: transparent !important;
@@ -1272,29 +1273,40 @@ body:not(.mode-rpg) #vnSection .vn-classic-controls {
     box-shadow: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    padding: 0.3rem 0 !important;
-    gap: 0.45rem !important;
+    padding: 0.2rem 0 !important;
+    gap: 0.26rem !important;
     width: auto !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+    max-height: none !important;
 }
 
 body.mode-classic #vnSection .vn-classic-control-btn,
 body:not(.mode-rpg) #vnSection .vn-classic-control-btn {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
     border-radius: 50% !important;
     background: radial-gradient(circle at 36% 33%, rgba(170, 210, 255, 0.28), rgba(14, 24, 72, 0.84)) !important;
     border: 1px solid rgba(100, 160, 255, 0.36) !important;
     border-top-color: rgba(190, 225, 255, 0.52) !important;
     box-shadow:
-        0 5px 16px rgba(0, 8, 55, 0.45),
-        inset 0 1px 0 rgba(200, 230, 255, 0.22),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.22) !important;
+        0 4px 12px rgba(0, 8, 55, 0.42),
+        inset 0 1px 0 rgba(200, 230, 255, 0.20),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.20) !important;
     color: rgba(170, 210, 255, 0.86) !important;
     transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
                 box-shadow 0.22s ease,
                 background 0.22s ease,
                 border-color 0.22s ease !important;
+}
+
+body.mode-classic #vnSection .vn-classic-control-icon,
+body:not(.mode-rpg) #vnSection .vn-classic-control-icon,
+body.mode-classic #vnSection .vn-classic-control-icon svg,
+body:not(.mode-rpg) #vnSection .vn-classic-control-icon svg {
+    width: 15px !important;
+    height: 15px !important;
 }
 
 body.mode-classic #vnSection .vn-classic-control-btn:hover,
@@ -1306,16 +1318,17 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-btn:focus-visible {
     border-color: rgba(140, 200, 255, 0.62) !important;
     border-top-color: rgba(210, 240, 255, 0.78) !important;
     box-shadow:
-        0 0 20px rgba(70, 150, 255, 0.44),
-        0 8px 22px rgba(0, 8, 55, 0.58),
-        inset 0 1px 0 rgba(220, 245, 255, 0.30) !important;
+        0 0 18px rgba(70, 150, 255, 0.44),
+        0 6px 18px rgba(0, 8, 55, 0.55),
+        inset 0 1px 0 rgba(220, 245, 255, 0.28) !important;
     color: #cce8ff !important;
     outline: none !important;
 }
 
 body.mode-classic #vnSection .vn-classic-control-divider,
 body:not(.mode-rpg) #vnSection .vn-classic-control-divider {
-    background: linear-gradient(90deg, transparent, rgba(100, 160, 255, 0.32), transparent) !important;
+    background: linear-gradient(90deg, transparent, rgba(100, 160, 255, 0.30), transparent) !important;
+    margin: 0.08rem 0 !important;
 }
 
 /* ── 7. TOOLBAR — Modo RPG: placas bronce/oro envejecido ───────────────── */
@@ -1323,28 +1336,37 @@ body.mode-rpg #vnSection .vn-rpg-controls {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 0.3rem 0 !important;
-    gap: 0.45rem !important;
+    padding: 0.2rem 0 !important;
+    gap: 0.26rem !important;
     width: auto !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+    max-height: none !important;
 }
 
 body.mode-rpg #vnSection .vn-rpg-control-btn {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
     border-radius: 50% !important;
     background: radial-gradient(circle at 36% 32%, rgba(255, 215, 130, 0.24), rgba(38, 24, 10, 0.92)) !important;
     border: 1.5px solid rgba(195, 158, 85, 0.46) !important;
     border-top-color: rgba(240, 205, 128, 0.62) !important;
     box-shadow:
-        0 5px 16px rgba(0, 0, 0, 0.56),
-        inset 0 1px 0 rgba(255, 220, 160, 0.20),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.28) !important;
+        0 4px 12px rgba(0, 0, 0, 0.52),
+        inset 0 1px 0 rgba(255, 220, 160, 0.18),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.26) !important;
     color: rgba(218, 185, 120, 0.88) !important;
     transition: transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1),
                 box-shadow 0.22s ease,
                 background 0.22s ease,
                 border-color 0.22s ease !important;
+}
+
+body.mode-rpg #vnSection .vn-rpg-control-icon,
+body.mode-rpg #vnSection .vn-rpg-control-icon svg {
+    width: 15px !important;
+    height: 15px !important;
 }
 
 body.mode-rpg #vnSection .vn-rpg-control-btn:hover,
@@ -1354,13 +1376,28 @@ body.mode-rpg #vnSection .vn-rpg-control-btn:focus-visible {
     border-color: rgba(225, 185, 108, 0.70) !important;
     border-top-color: rgba(255, 225, 165, 0.86) !important;
     box-shadow:
-        0 0 20px rgba(205, 162, 80, 0.46),
-        0 8px 22px rgba(0, 0, 0, 0.62),
-        inset 0 1px 0 rgba(255, 232, 175, 0.30) !important;
+        0 0 18px rgba(205, 162, 80, 0.44),
+        0 6px 18px rgba(0, 0, 0, 0.58),
+        inset 0 1px 0 rgba(255, 232, 175, 0.28) !important;
     color: #f5dfaa !important;
     outline: none !important;
 }
 
 body.mode-rpg #vnSection .vn-rpg-control-divider {
-    background: linear-gradient(90deg, transparent, rgba(188, 151, 86, 0.42), transparent) !important;
+    background: linear-gradient(90deg, transparent, rgba(188, 151, 86, 0.40), transparent) !important;
+    margin: 0.08rem 0 !important;
+}
+
+/* ── 8. FOOTER ACTIONS — espaciado entre botones inferiores ─────────────── */
+/* Oráculo · Master · Posada · Escena · Emotes necesitan aire para respirar */
+#vnSection .vn-dialogue-actions {
+    gap: 0.65rem !important;
+}
+
+#vnSection .vn-dialogue-actions-left {
+    gap: 0.75rem !important;
+}
+
+#vnSection .vn-adv-actions {
+    gap: 0.65rem !important;
 }
