@@ -1213,9 +1213,9 @@ body.mode-rpg .vn-info-card {
     border-radius: 4px !important;
     border-color: rgba(200,184,144,0.22) !important;
 }
-/* ── HUD retro fantasy: marco general + perfil compacto ── */
+/* ── HUD retro fantasy: perfil compacto ── */
 body.mode-rpg #vnSection {
-    border: 1px solid rgba(188, 154, 92, 0.34);
+    /* border eliminado — creaba barra dorada visible en la esquina superior derecha */
     box-shadow:
         inset 0 0 0 2px rgba(28, 18, 7, 0.8),
         inset 0 0 0 4px rgba(139, 106, 58, 0.22),
