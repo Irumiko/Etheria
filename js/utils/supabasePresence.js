@@ -164,4 +164,11 @@
         get activeStoryId() { return _storyId; }
     };
 
+    // Limpiar canal Realtime automáticamente al cerrar sesión
+    global.addEventListener('etheria:auth-changed', function(e) {
+        if (!e.detail?.user) {
+            leaveStory().catch(function() {});
+        }
+    });
+
 })(window);

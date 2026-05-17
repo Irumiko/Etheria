@@ -372,6 +372,7 @@ function closeReactionPicker() {
 }
 
 function _closeReactionPickerOnOutsideClick(e) {
+    if (document.querySelector('.modal-overlay.active')) return;
     const picker    = document.getElementById('vnReactionPicker');
     const cornerBtn = document.getElementById('vnReactionCornerBtn');
     if (!picker) return;

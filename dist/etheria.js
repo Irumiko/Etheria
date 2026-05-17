@@ -8490,6 +8490,13 @@ window.SupabaseSync = SupabaseSync;
         get activeStoryId() { return _storyId; }
     };
 
+    // Limpiar canal Realtime automáticamente al cerrar sesión
+    global.addEventListener('etheria:auth-changed', function(e) {
+        if (!e.detail?.user) {
+            leaveStory().catch(function() {});
+        }
+    });
+
 })(window);
 
 /* js/utils/supabaseTurnNotifications.js */
@@ -9806,6 +9813,7 @@ const LEGACY_DEFAULT_TOPIC_BACKGROUNDS = [
 const preloadedBackgrounds = new Set();
 let pendingSceneChange = null;
 let pendingChapter     = null;
+var _pendingMasterRolls = []; // C.4 — tiradas de salvación pendientes [{ id, targetCharId, situation, options, resolved }]
 let oracleStat = 'STR';
 let oracleQuestionDirty = false;
 const NARRATIVE_CRITICAL_TURNS = 3;
@@ -12880,22 +12888,12 @@ function renderVirtualizedHistory(msgs, container) {
     paint();
 }
 
+// NOTA: esta implementación es el fallback legacy de openHistoryLog.
+// journal.js (cargado después) sobreescribe esta función con la versión
+// definitiva que soporta pestañas, favoritos y diario de sesión.
+// No modificar aquí — cualquier cambio debe hacerse en js/ui/journal.js.
 function openHistoryLog() {
-    // Resetear a pestaña "Todos" al abrir para consistencia
-    if (typeof currentHistoryTab !== 'undefined') {
-        currentHistoryTab = 'all';
-        document.getElementById('histTabAll')?.classList.add('active');
-        document.getElementById('histTabFav')?.classList.remove('active');
-    }
-
-    // Usar renderHistoryContent si está disponible (soporta pestañas favoritos)
-    if (typeof renderHistoryContent === 'function') {
-        openModal('historyModal');
-        renderHistoryContent();
-        return;
-    }
-
-    // Fallback: renderizado directo sin pestañas
+    // Fallback minimal: renderizado directo sin pestañas (usado solo si journal.js no carga)
     const msgs = getTopicMessages(currentTopicId);
     const container = document.getElementById('historyContent');
     if (!container) return;
@@ -13378,6 +13376,8 @@ function closeCharacterInfoPanel() {
 }
 
 function _closeCharPanelOnOutside(e) {
+    // No interceptar clicks si hay un modal activo (ej: wizard de nueva historia)
+    if (document.querySelector('.modal-overlay.active')) return;
     const panel = document.getElementById('vnCharInfoPanel');
     const btn   = document.getElementById('vnInfoClassicToggleBtn');
     if (!panel) return;
@@ -13540,8 +13540,8 @@ function _dmPopulateSelects() {
         ...chars.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
     ].join('');
 
-    // Selects de personaje (existentes + nuevos de C.2)
-    ['dmTargetChar','dmItemTarget','dmRollTarget','dmHpTarget','dmExpTarget'].forEach(id => {
+    // Selects de personaje (existentes + nuevos de C.2 / C.4)
+    ['dmTargetChar','dmItemTarget','dmRollTarget','dmHpTarget','dmExpTarget','dmMrTarget'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.innerHTML = options;
     });
@@ -13973,12 +13973,15 @@ function _dmPostSystemMessage(text, payload) {
         userIndex:   currentUserIndex,
         timestamp:   new Date().toISOString()
     };
-    // Embeber payload para propagación Realtime (Pieza C.1)
+    // Embeber payload para propagación Realtime (Pieza C.1 / C.4)
     if (payload) {
-        if (payload.rpgEffects)      newMsg.rpgEffects      = payload.rpgEffects;
-        if (payload.rpgEffectsMulti) newMsg.rpgEffectsMulti = payload.rpgEffectsMulti;
-        if (payload.sceneChange)     newMsg.sceneChange     = payload.sceneChange;
-        if (payload.weatherChange)   newMsg.weatherChange   = payload.weatherChange;
+        if (payload.rpgEffects)           newMsg.rpgEffects           = payload.rpgEffects;
+        if (payload.rpgEffectsMulti)      newMsg.rpgEffectsMulti      = payload.rpgEffectsMulti;
+        if (payload.sceneChange)          newMsg.sceneChange          = payload.sceneChange;
+        if (payload.weatherChange)        newMsg.weatherChange        = payload.weatherChange;
+        if (payload.isMasterRoll)         newMsg.isMasterRoll         = payload.isMasterRoll;
+        if (payload.masterRoll)           newMsg.masterRoll           = payload.masterRoll;
+        if (payload.masterRollResolution) newMsg.masterRollResolution = payload.masterRollResolution;
     }
     topicMessages.push(newMsg);
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
@@ -14271,6 +14274,263 @@ function dmForceScene() {
     closeDmPanel();
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// C.4 — TIRADA DE SALVACIÓN (Master Roll)
+// El DM define una situación + opciones con consecuencias para un personaje.
+// Las opciones aparecen SOLO cuando es el turno de ese personaje, y solo el
+// propietario puede elegir. El resultado se narra automáticamente.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function dmSendMasterRoll() {
+    if (!_isDM()) return;
+    const charId    = document.getElementById('dmMrTarget')?.value;
+    const situation = document.getElementById('dmMrSituation')?.value.trim();
+
+    if (!charId)    { showAutosave('Selecciona un personaje objetivo', 'warn'); return; }
+    if (!situation) { showAutosave('Describe la situación primero', 'warn'); return; }
+
+    // Recoger opciones (solo las que tienen etiqueta)
+    const rows    = document.querySelectorAll('#dmMrOptionsList .dm-mr-option-row');
+    const options = [];
+    rows.forEach(function (row) {
+        const lbl    = row.querySelector('.dm-mr-opt-label')?.value.trim();
+        const hpStr  = row.querySelector('.dm-mr-opt-hp')?.value.trim();
+        const hpNum  = hpStr !== '' ? Number(hpStr) : null;
+        if (lbl) options.push({ label: lbl, hpDelta: (hpStr === '' || isNaN(hpNum)) ? null : hpNum });
+    });
+
+    if (options.length < 2) { showAutosave('Añade al menos 2 opciones', 'warn'); return; }
+
+    const char = appData.characters.find(function (c) { return String(c.id) === String(charId); });
+    if (!char) return;
+
+    const mrId       = (globalThis.crypto?.randomUUID?.()) || ('mr_' + Date.now());
+    const masterRoll = { id: mrId, targetCharId: String(charId), situation: situation, options: options, resolved: false };
+
+    // Texto del mensaje en el chat (visible para todos)
+    const letters  = ['A','B','C','D'];
+    const optLines = options.map(function (o, i) {
+        const hpHint = o.hpDelta !== null
+            ? ' (' + (o.hpDelta >= 0 ? '+' : '') + o.hpDelta + ' HP)'
+            : '';
+        return '**' + (letters[i] || (i+1)) + '.** ' + escapeHtml(o.label) + hpHint;
+    }).join('\n');
+
+    _dmPostSystemMessage(
+        '⚔️ **Tirada de Salvación** — *' + escapeHtml(situation) + '*\n' +
+        'El personaje **' + escapeHtml(char.name) + '** debe elegir en su turno:\n' + optLines,
+        { isMasterRoll: true, masterRoll: masterRoll }
+    );
+
+    // Limpiar formulario
+    const sitEl = document.getElementById('dmMrSituation');
+    if (sitEl) sitEl.value = '';
+    document.querySelectorAll('#dmMrOptionsList .dm-mr-opt-label').forEach(function (i) { i.value = ''; });
+    document.querySelectorAll('#dmMrOptionsList .dm-mr-opt-hp').forEach(function (i) { i.value = ''; });
+
+    showAutosave('Tirada de salvación enviada para ' + char.name, 'saved');
+    closeDmPanel();
+}
+
+// Llamada desde supabaseStories cuando llega un msg.isMasterRoll vía Realtime
+function _handleIncomingMasterRoll(masterRoll) {
+    if (!masterRoll || !masterRoll.id) return;
+    if (_pendingMasterRolls.some(function (mr) { return mr.id === masterRoll.id; })) return;
+    _pendingMasterRolls.push(masterRoll);
+    _checkAndShowMasterRollBar();
+}
+
+// Llamada desde supabaseStories cuando llega un msg.masterRollResolution
+function _handleMasterRollResolution(resolution) {
+    if (!resolution || !resolution.originalMrId) return;
+    _pendingMasterRolls = _pendingMasterRolls.filter(function (mr) { return mr.id !== resolution.originalMrId; });
+    _checkAndShowMasterRollBar();
+}
+
+// Escanea los mensajes al entrar a una historia para reconstruir _pendingMasterRolls
+function _scanForPendingMasterRolls(topicId) {
+    if (!topicId) return;
+    const msgs = typeof getTopicMessages === 'function'
+        ? getTopicMessages(topicId)
+        : ((appData && appData.messages && appData.messages[topicId]) || []);
+
+    // Recoger IDs ya resueltos
+    const resolvedIds = new Set();
+    msgs.forEach(function (m) {
+        if (m.masterRollResolution && m.masterRollResolution.originalMrId) {
+            resolvedIds.add(m.masterRollResolution.originalMrId);
+        }
+    });
+
+    // Reconstruir lista de pendientes
+    _pendingMasterRolls = [];
+    msgs.forEach(function (m) {
+        if (m.isMasterRoll && m.masterRoll && !resolvedIds.has(m.masterRoll.id)) {
+            if (!_pendingMasterRolls.some(function (mr) { return mr.id === m.masterRoll.id; })) {
+                _pendingMasterRolls.push(m.masterRoll);
+            }
+        }
+    });
+    _checkAndShowMasterRollBar();
+}
+
+// Evalúa si debe mostrarse la barra de tirada de salvación para el personaje activo
+function _checkAndShowMasterRollBar() {
+    if (!selectedCharId || !currentTopicId) { _hideMasterRollBar(); return; }
+
+    const topic = getCurrentTopic();
+    if (!topic || topic.mode !== 'rpg') { _hideMasterRollBar(); return; }
+
+    // El personaje seleccionado debe pertenecer al usuario actual
+    const myChar = (appData.characters || []).find(function (c) {
+        return String(c.id) === String(selectedCharId) &&
+               String(c.userIndex) === String(currentUserIndex);
+    });
+    if (!myChar) { _hideMasterRollBar(); return; }
+
+    // Si hay turn_mode activo, solo mostrar cuando sea el turno del usuario
+    const turnMode = topic.turn_mode || topic.turnMode || 'off';
+    if (turnMode !== 'off') {
+        const activeUserId = topic.turnOrder && topic.turnOrder[0];
+        const myUserId     = window._cachedUserId;
+        if (activeUserId && myUserId && String(activeUserId) !== String(myUserId)) {
+            _hideMasterRollBar(); return;
+        }
+    }
+
+    // Buscar tirada pendiente para este personaje
+    const pending = _pendingMasterRolls.find(function (mr) {
+        return String(mr.targetCharId) === String(selectedCharId) && !mr.resolved;
+    });
+    if (!pending) { _hideMasterRollBar(); return; }
+
+    _showMasterRollBar(pending);
+}
+
+function _showMasterRollBar(mr) {
+    const bar    = document.getElementById('vnMasterRollBar');
+    const sitEl  = document.getElementById('vnMrSituation');
+    const optsEl = document.getElementById('vnMrOptions');
+    if (!bar) return;
+
+    if (sitEl) sitEl.textContent = mr.situation || '…';
+
+    if (optsEl) {
+        const letters = ['A','B','C','D'];
+        optsEl.innerHTML = mr.options.map(function (opt, i) {
+            const letter  = letters[i] || String(i + 1);
+            const hpClass = (opt.hpDelta !== null && opt.hpDelta !== undefined)
+                ? (opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg') : '';
+            const hpHtml  = (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta))
+                ? '<span class="vn-mr-opt-hp ' + hpClass + '">' +
+                  (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP</span>'
+                : '';
+            return '<button class="vn-mr-opt-btn" ' +
+                   'onclick="resolveMasterRoll(\'' + escapeHtml(mr.id) + '\',' + i + ')">' +
+                   '<span class="vn-mr-opt-letter">' + letter + '</span>' +
+                   '<span class="vn-mr-opt-text">' + escapeHtml(opt.label) + '</span>' +
+                   hpHtml +
+                   '</button>';
+        }).join('');
+    }
+
+    bar.style.display = 'flex';
+}
+
+function _hideMasterRollBar() {
+    const bar = document.getElementById('vnMasterRollBar');
+    if (bar) bar.style.display = 'none';
+}
+
+// El jugador elige una opción — aplica efectos, narra, cierra la barra
+function resolveMasterRoll(mrId, optionIndex) {
+    const mr = _pendingMasterRolls.find(function (m) { return m.id === mrId; });
+    if (!mr || mr.resolved) return;
+
+    const opt = mr.options[optionIndex];
+    if (!opt) return;
+
+    // Solo el propietario del personaje puede resolver
+    const char = (appData.characters || []).find(function (c) {
+        return String(c.id) === String(mr.targetCharId) &&
+               String(c.userIndex) === String(currentUserIndex);
+    });
+    if (!char) { showAutosave('Solo el propietario de este personaje puede elegir', 'warn'); return; }
+
+    const topicId = currentTopicId;
+    const profile  = typeof ensureCharacterRpgProfile === 'function'
+        ? ensureCharacterRpgProfile(char, topicId) : null;
+
+    let rpgEffects   = null;
+    let hpResultText = '';
+
+    // Aplicar cambio de HP si la opción lo especifica
+    if (profile && opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta)) {
+        const hpMax  = profile.hpMax || profile.hp || 10;
+        profile.hp   = Math.max(0, Math.min(hpMax, (profile.hp || 0) + opt.hpDelta));
+        if (typeof _persistRpgProfile === 'function') _persistRpgProfile(char, profile);
+
+        rpgEffects = typeof _buildRpgEffectsPayload === 'function'
+            ? _buildRpgEffectsPayload(String(char.id), profile, {
+                hpDelta:   opt.hpDelta,
+                expDelta:  0,
+                levelUp:   false,
+                knockedOut: profile.hp === 0
+              })
+            : null;
+
+        const sign = opt.hpDelta >= 0 ? '+' : '';
+        hpResultText = ' *[' + sign + opt.hpDelta + ' HP → ' + profile.hp + '/' + hpMax + ']*';
+        if (typeof renderVnPartyPanel === 'function') renderVnPartyPanel();
+    }
+
+    // Marcar resuelta y ocultar barra
+    mr.resolved = true;
+    _pendingMasterRolls = _pendingMasterRolls.filter(function (m) { return m.id !== mrId; });
+    _hideMasterRollBar();
+
+    // Texto narrado automáticamente
+    const letter       = ['A','B','C','D'][optionIndex] || String(optionIndex + 1);
+    const narratorText = '⚔️ **Tirada de Salvación resuelta** — *' + escapeHtml(mr.situation) + '*\n' +
+        '**' + escapeHtml(char.name) + '** elige: **' + letter + '. ' + escapeHtml(opt.label) + '**' + hpResultText;
+
+    const resolution = {
+        originalMrId:      mrId,
+        targetCharId:      String(mr.targetCharId),
+        chosenOptionIndex: optionIndex
+    };
+
+    const topicMessages = typeof getTopicMessages === 'function' ? getTopicMessages(topicId) : [];
+    const resolveMsg    = {
+        id:          (globalThis.crypto?.randomUUID?.()) || ('mr_res_' + Date.now()),
+        characterId: null,
+        charName:    'Narrador',
+        charColor:   '#c9a86c',
+        charAvatar:  null,
+        charSprite:  null,
+        text:        narratorText,
+        isNarrator:  true,
+        isDmSystem:  false,
+        userIndex:   currentUserIndex,
+        timestamp:   new Date().toISOString(),
+        masterRollResolution: resolution
+    };
+    if (rpgEffects) resolveMsg.rpgEffects = rpgEffects;
+
+    topicMessages.push(resolveMsg);
+    if (typeof SupabaseMessages !== 'undefined' && topicId) {
+        SupabaseMessages.send(topicId, resolveMsg).catch(function () {});
+    }
+    hasUnsavedChanges = true;
+    if (typeof save === 'function') save({ silent: true });
+
+    currentMessageIndex = topicMessages.length - 1;
+    if (typeof triggerDialogueFadeIn === 'function') triggerDialogueFadeIn();
+    if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
+
+    showAutosave('¡' + char.name + ' ha elegido su destino!', 'saved');
+}
+
 window.toggleDmPanel     = toggleDmPanel;
 window.openDmPanel       = openDmPanel;
 window.closeDmPanel      = closeDmPanel;
@@ -14288,6 +14548,30 @@ window.dmTriggerShortRest = dmTriggerShortRest;
 window.dmAdjustHp        = dmAdjustHp;
 window.dmAwardExp        = dmAwardExp;
 window.dmForceScene      = dmForceScene;
+window.dmSendMasterRoll  = dmSendMasterRoll;
+window.resolveMasterRoll = resolveMasterRoll;
+// Exponer para supabaseStories
+window._handleIncomingMasterRoll  = _handleIncomingMasterRoll;
+window._handleMasterRollResolution = _handleMasterRollResolution;
+window._scanForPendingMasterRolls  = _scanForPendingMasterRolls;
+
+// ── Listeners de turno y entrada a historia ──────────────────────────────────
+// Reevalúa la barra de salvación cuando el turno rota o se entra a una historia
+;(function () {
+    function _onTurnChange() {
+        if (typeof _checkAndShowMasterRollBar === 'function') _checkAndShowMasterRollBar();
+    }
+    function _onStoryEntered(e) {
+        const topicId = e?.detail?.topicId || (typeof currentTopicId !== 'undefined' ? currentTopicId : null);
+        if (topicId && typeof _scanForPendingMasterRolls === 'function') {
+            _scanForPendingMasterRolls(topicId);
+        }
+    }
+    window.addEventListener('etheria:turn-rotated', _onTurnChange);
+    window.addEventListener('etheria:turn-updated', _onTurnChange);
+    window.addEventListener('etheria:turn-skipped', _onTurnChange);
+    window.addEventListener('etheria:story-entered', _onStoryEntered);
+})();
 
 // ============================================
 // BOTÓN DE NARRACIÓN FLOTANTE (escena/capítulo)
@@ -14371,6 +14655,7 @@ function closeNarratePanel() {
 }
 
 function _closeNarratePanelOnOutside(e) {
+    if (document.querySelector('.modal-overlay.active')) return;
     const panel  = document.getElementById('vnNarratePanel');
     const trigger = document.querySelector('.vn-narrate-btn-inner');
     if (!panel) return;
@@ -15888,6 +16173,7 @@ function closeReactionPicker() {
 }
 
 function _closeReactionPickerOnOutsideClick(e) {
+    if (document.querySelector('.modal-overlay.active')) return;
     const picker    = document.getElementById('vnReactionPicker');
     const cornerBtn = document.getElementById('vnReactionCornerBtn');
     if (!picker) return;
@@ -16130,11 +16416,13 @@ window.loadReactionsFromSupabase   = loadReactionsFromSupabase;
 // ============================================
 
 // ── Guardia de personajes antes de abrir el modal de creación ────────────────
-// Se llama desde el botón "Nueva Historia". Si el usuario no tiene personajes
-// creados, muestra un aviso claro sin abrir el modal de creación.
+// Se llama desde el botón "Nueva Historia". Solo bloquea si NO existe ningún
+// personaje en absoluto. Si hay personajes pero ninguno coincide con
+// currentUserIndex (posible desfase offline/Supabase), se abre el wizard
+// igualmente — el wizard mostrará el selector con todos los disponibles.
 function openNewTopicModal() {
-    const mine = (appData?.characters || []).filter(c => c.userIndex === currentUserIndex);
-    if (mine.length === 0) {
+    const allChars = appData?.characters || [];
+    if (allChars.length === 0) {
         openNoCharacterWarning();
         return;
     }
@@ -16353,94 +16641,37 @@ function renderTopics() {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
     } else {
         container.innerHTML = topics.map(t => {
-            // Usar mensajes en memoria si están cargados, evitar cargar desde storage en cada render
-            const msgs = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
-            const last = msgs[msgs.length - 1];
-            const lastText = last ? stripHtml(formatText(last.text)).substring(0, 80) : '';
-            const isRol    = t.mode === 'rpg' || t.mode === 'fanfic';
-            const modeLabel = getStoryModeLabel(t.mode);
-            const weatherBadge = t.weather === 'rain'
-                ? '<span class="topic-badge weather">🌧 Lluvia</span>'
-                : t.weather === 'fog'
-                ? '<span class="topic-badge weather">🌫 Niebla</span>'
-                : '';
-
-            // SVG de ornamento de esquina — acero para RPG, tinta sepia para Clásico
-            const cornerColor = isRol ? 'rgba(190,165,120,0.6)' : 'rgba(139,100,55,0.45)';
-            const cornerSvg = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 11 L2 2 L11 2" stroke="${cornerColor}" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-                <circle cx="2" cy="2" r="1.8" fill="${cornerColor}"/>
-                <path d="M6 2 L6 4.5 M2 6 L4.5 6" stroke="${cornerColor}" stroke-width="0.9" opacity="0.6"/>
-            </svg>`;
-
-            // SVG de marca de agua — escudo para RPG, libro para Clásico
-            const watermarkColor = isRol ? 'rgba(210,185,145,1)' : 'rgba(160,115,55,1)';
-            const watermarkSvg = isRol
-                ? `<svg viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M40 5 L72 18 L72 45 C72 63 57 78 40 85 C23 78 8 63 8 45 L8 18 Z" stroke="${watermarkColor}" stroke-width="2.5" fill="none"/>
-                    <path d="M40 5 L72 18 L72 45 C72 63 57 78 40 85 C23 78 8 63 8 45 L8 18 Z" fill="${watermarkColor}" fill-opacity="0.06"/>
-                    <line x1="40" y1="18" x2="40" y2="72" stroke="${watermarkColor}" stroke-width="1.5"/>
-                    <line x1="12" y1="38" x2="68" y2="38" stroke="${watermarkColor}" stroke-width="1.5"/>
-                    <circle cx="40" cy="38" r="7" stroke="${watermarkColor}" stroke-width="1.5" fill="none"/>
-                    <path d="M26 24 L40 18 L54 24" stroke="${watermarkColor}" stroke-width="1" fill="none" opacity="0.6"/>
-                  </svg>`
-                : `<svg viewBox="0 0 90 75" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M45 10 C35 6 18 8 8 14 L8 68 C18 62 35 60 45 64 C55 60 72 62 82 68 L82 14 C72 8 55 6 45 10 Z" stroke="${watermarkColor}" stroke-width="2" fill="none"/>
-                    <line x1="45" y1="10" x2="45" y2="64" stroke="${watermarkColor}" stroke-width="1.5"/>
-                    <line x1="16" y1="28" x2="40" y2="28" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="16" y1="36" x2="40" y2="36" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="16" y1="44" x2="38" y2="44" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="50" y1="28" x2="74" y2="28" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="50" y1="36" x2="74" y2="36" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="50" y1="44" x2="72" y2="44" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                  </svg>`;
-
-            // Personaje principal si tiene roleCharacterId
-            let charAvatarHtml = '';
-            if (t.roleCharacterId) {
-                const char = appData.characters.find(c => String(c.id) === String(t.roleCharacterId));
-                if (char && char.avatar) {
-                    charAvatarHtml = `<img src="${escapeHtml(char.avatar)}" class="topic-card-char-avatar" alt="${escapeHtml(char.name)}">`;
-                }
-            }
-
-            const msgWord = msgs.length === 1 ? 'mensaje' : 'mensajes';
+            // Datos mínimos necesarios para la carta de tarot
+            const msgs        = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
+            const isRol       = t.mode === 'rpg' || t.mode === 'fanfic';
             const creatorName = normalizeCreatorName(t.createdBy);
-            const lastActivityDate = last?.timestamp || t.createdAt || t.date || null;
-            const lastActivityLabel = formatRelativeDayLabel(lastActivityDate);
-            const progressCurrent = Math.min(msgs.length, 10);
-            const progressPct = Math.min(100, Math.round((progressCurrent / 10) * 100));
+            const msgWord     = msgs.length === 1 ? 'mensaje' : 'mensajes';
+            const cardIcon    = isRol ? '⚜' : '✦';
+
+            // Pulso de turno: destaca si es el turno del usuario en esta historia
+            const isMeTurn = Array.isArray(t.turnOrder)
+                && t.turnOrder[0]
+                && String(t.turnOrder[0]) === String(window._cachedUserId);
+            const turnClass = isMeTurn ? ' topic-card--my-turn' : '';
 
             return `
-                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}" onclick="enterTopic('${_normalizeTopicId(t.id)}')">
-                    <div class="topic-card-accent"></div>
-                    <div class="topic-card-watermark">${watermarkSvg}</div>
-                    <span class="topic-card-corner topic-card-corner--tl">${cornerSvg}</span>
-                    <span class="topic-card-corner topic-card-corner--tr">${cornerSvg}</span>
-                    <span class="topic-card-corner topic-card-corner--bl">${cornerSvg}</span>
-                    <span class="topic-card-corner topic-card-corner--br">${cornerSvg}</span>
-                    <div class="topic-card-inner">
-                        <div class="topic-card-top">
-                            <div class="topic-card-badges">
-                                <span class="topic-badge mode">${modeLabel}</span>
-                                ${weatherBadge}
-                            </div>
+                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}${turnClass}"
+                     onclick="this.classList.toggle('flipped')">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="card-icon">${cardIcon}</div>
+                            <h3 class="card-title">${escapeHtml(t.title)}</h3>
                         </div>
-                        <h3 class="topic-card-title">${escapeHtml(t.title)}</h3>
-                        <p class="topic-card-author">por ${escapeHtml(creatorName)}</p>
-                        <p class="topic-card-excerpt topic-card-excerpt--meta">${escapeHtml(lastActivityLabel)}</p>
-                        ${lastText ? `<p class="topic-card-excerpt">"${escapeHtml(lastText)}${lastText.length >= 80 ? '…' : ''}"</p>` : '<p class="topic-card-excerpt topic-card-excerpt--empty">Sin mensajes aún. <strong>Escribe el primer capítulo</strong>.</p>'}
-                    </div>
-                    <div class="topic-card-footer">
-                        <span class="topic-card-footer-msgs">
-                            <span class="topic-card-footer-msgs-icon">${isRol ? '⚔' : '✦'}</span>
-                            ${msgs.length > 0 ? `${msgs.length} ${msgWord}` : '—'}
-                        </span>
-                        <div class="topic-card-progress" title="Progreso de introducción">
-                            <div class="topic-card-progress-bar" style="width:${progressPct}%"></div>
-                            <span class="topic-card-progress-text">${progressCurrent}/10</span>
+                        <div class="card-back">
+                            <h3 class="card-title-back">${escapeHtml(t.title)}</h3>
+                            <p class="card-author">por ${escapeHtml(creatorName)}</p>
+                            <div class="card-stats">💬 ${msgs.length} ${msgWord}</div>
+                            ${isMeTurn ? '<div class="card-stats" style="color:#e8c46a;opacity:1;">⏳ Tu turno</div>' : ''}
+                            <button class="btn-entrar-destino"
+                                    onclick="event.stopPropagation(); enterTopic('${_normalizeTopicId(t.id)}')">
+                                Entrar al destino
+                            </button>
                         </div>
-                        ${charAvatarHtml}
                     </div>
                 </div>
             `;
@@ -16690,7 +16921,7 @@ function createTopic() {
             SupabaseStories.upsertStory(topicRef).then(function(result) {
                 if (result.ok && result.storyId) {
                     topicRef.storyId = result.storyId;
-                    global.currentStoryId = result.storyId;
+                    window.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
                 } else {
@@ -17321,14 +17552,17 @@ function topicWizardSelectMode(mode) {
 
 function _twRenderChars() {
     var list = document.getElementById('twCharList'); if (!list) return;
-    var mine = ((appData && appData.characters) || []).filter(function(c) { return c.userIndex === currentUserIndex; });
-    if (!mine.length) { list.innerHTML = '<p class="tw-no-chars">No tienes personajes. Crea uno desde la Galeria.</p>'; return; }
-    list.innerHTML = mine.map(function(c) {
+    // Preferir personajes del usuario actual; si hay desfase offline/Supabase
+    // (userIndex no coincide) mostrar todos para no bloquear la creación.
+    var mine  = ((appData && appData.characters) || []).filter(function(c) { return c.userIndex === currentUserIndex; });
+    var chars = mine.length ? mine : ((appData && appData.characters) || []);
+    if (!chars.length) { list.innerHTML = '<p class="tw-no-chars">No tienes personajes. Crea uno desde la Galería.</p>'; return; }
+    list.innerHTML = chars.map(function(c) {
         var sel = String(c.id) === String(_tw.charId);
         var vis = c.avatar
             ? '<img src="' + escapeHtml(c.avatar) + '" alt="" class="tw-char-img">'
             : '<span class="tw-char-initial">' + escapeHtml((c.name || '?')[0].toUpperCase()) + '</span>';
-        return '<button type="button" class="tw-char-card' + (sel ? ' tw-char-card--sel' : '') + '" onclick="topicWizardSelectChar(' + escapeHtml(JSON.stringify(String(c.id))) + ')" aria-pressed="' + sel + '">'
+        return '<button type="button" class="tw-char-card' + (sel ? ' tw-char-card--sel' : '') + '" data-char-id="' + escapeHtml(String(c.id)) + '" onclick="topicWizardSelectChar(this.dataset.charId)" aria-pressed="' + sel + '">'
             + '<div class="tw-char-avatar">' + vis + '</div>'
             + '<div class="tw-char-name">' + escapeHtml(c.name) + '</div>'
             + (sel ? '<div class="tw-char-check" aria-hidden="true">✓</div>' : '')
@@ -17355,7 +17589,7 @@ function _twRenderRpgSheet() {
     if (cg) {
         cg.innerHTML = _TW_CLASSES.map(function(cls) {
             var sel = _tw.rpgClass === cls.id;
-            return '<button type="button" class="tw-class-card' + (sel ? ' tw-class-card--sel' : '') + '" onclick="topicWizardSelectClass(' + JSON.stringify(cls.id) + ')" title="' + escapeHtml(cls.desc) + '" aria-pressed="' + sel + '">'
+            return '<button type="button" class="tw-class-card' + (sel ? ' tw-class-card--sel' : '') + '" data-class-id="' + escapeHtml(cls.id) + '" onclick="topicWizardSelectClass(this.dataset.classId)" title="' + escapeHtml(cls.desc) + '" aria-pressed="' + sel + '">'
                 + '<span class="tw-class-glyph">' + cls.glyph + '</span>'
                 + '<span class="tw-class-name">' + escapeHtml(cls.name) + '</span>'
                 + '</button>';
@@ -17381,9 +17615,9 @@ function _twRenderStats() {
         var modStr  = (mod >= 0 ? '+' : '') + mod;
         return '<div class="tw-stat-row">'
             + '<span class="tw-stat-name">' + (_TW_STAT_NAME[key] || key) + '</span>'
-            + '<button type="button" class="tw-stat-btn" onclick="topicWizardAdjustStat(' + JSON.stringify(key) + ',-1)"' + (canDec ? '' : ' disabled') + '>−</button>'
+            + '<button type="button" class="tw-stat-btn" data-stat-key="' + escapeHtml(key) + '" data-stat-delta="-1" onclick="topicWizardAdjustStat(this.dataset.statKey, -1)"' + (canDec ? '' : ' disabled') + '>−</button>'
             + '<span class="tw-stat-val">' + val + '</span>'
-            + '<button type="button" class="tw-stat-btn" onclick="topicWizardAdjustStat(' + JSON.stringify(key) + ',1)"' + (canInc ? '' : ' disabled') + '>+</button>'
+            + '<button type="button" class="tw-stat-btn" data-stat-key="' + escapeHtml(key) + '" data-stat-delta="1" onclick="topicWizardAdjustStat(this.dataset.statKey, 1)"' + (canInc ? '' : ' disabled') + '>+</button>'
             + '<span class="tw-stat-mod">' + modStr + '</span>'
             + '</div>';
     }).join('');
@@ -18458,33 +18692,11 @@ function _generateStoryCode() {
     return out;
 }
 
-function _drawStoryCodeQr(code) {
-    const canvas = document.getElementById('storyCodeQrCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const size = 22;
-    const cell = Math.floor(canvas.width / size);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    let seed = 0;
-    for (let i = 0; i < code.length; i++) seed = (seed * 31 + code.charCodeAt(i)) >>> 0;
-    for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-            const v = (x * 73856093) ^ (y * 19349663) ^ seed;
-            const on = ((v >>> 2) & 1) === 1 || x < 2 || y < 2 || x > size - 3 || y > size - 3;
-            if (on) {
-                ctx.fillStyle = '#111';
-                ctx.fillRect(x * cell, y * cell, cell - 1, cell - 1);
-            }
-        }
-    }
-}
 
-function _lzCompress(str) {
-    // Compresión simple run-length para reducir tamaño del código exportado
+function _formatStoryText(str) {
+    // Prepara el texto de la historia para exportación (btoa ya gestiona la codificación)
     try {
-        // Intentar usar CompressionStream si está disponible (navegadores modernos)
-        return str; // fallback: sin compresión adicional (btoa ya es suficiente)
+        return str;
     } catch { return str; }
 }
 
@@ -18529,7 +18741,7 @@ function exportCurrentStoryAsCode() {
 
     const serialized = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const kb = Math.round(serialized.length / 1024);
-    if (kb > 4000) {
+    if (kb > 400) {
         showAutosave(`Historia muy grande (${kb}KB). Solo se exportarán los últimos 200 mensajes.`, 'error');
     }
     let code = _generateStoryCode();
@@ -18548,7 +18760,6 @@ function exportCurrentStoryAsCode() {
 
     const codeEl = document.getElementById('storyCodeValue');
     if (codeEl) codeEl.textContent = code;
-    _drawStoryCodeQr(code);
     openModal('storyCodeModal');
     showAutosave('Código de historia generado', 'saved');
 }
@@ -23254,6 +23465,7 @@ function showAuthMain() {
     document.getElementById('authMainView').classList.add('active');
     setAuthStatus('', null, 'authStatus');
     setAuthStatus('', null, 'authRegStatus');
+    setAuthStatus('', null, 'authForgotStatus'); // limpiar mensaje de "recuperar contraseña" al volver
 }
 
 function continueAsGuest() {
@@ -26481,6 +26693,17 @@ window.Ethy = Ethy;
                         logger?.warn('supabase:stories', 'weatherChange apply error:', _e?.message);
                     }
                 }
+            }
+
+            // C.4: tiradas de salvación — propagar al jugador objetivo vía canal persistente
+            if (msg.isMasterRoll && msg.masterRoll && typeof global._handleIncomingMasterRoll === 'function') {
+                try { global._handleIncomingMasterRoll(msg.masterRoll); }
+                catch (_e) { logger?.warn('supabase:stories', 'masterRoll inject error:', _e?.message); }
+            }
+            // C.4: resolución — eliminar tirada de los pendientes del receptor
+            if (msg.masterRollResolution && typeof global._handleMasterRollResolution === 'function') {
+                try { global._handleMasterRollResolution(msg.masterRollResolution); }
+                catch (_e) { logger?.warn('supabase:stories', 'masterRollResolution error:', _e?.message); }
             }
 
             const isAtEnd = global.currentMessageIndex >= msgs.length - 2;

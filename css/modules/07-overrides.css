@@ -81,11 +81,13 @@ body {
     background: transparent !important;
 }
 
-/* VN tiene su propio fondo de escena — restaurar (solo cuando NO es modo RPG) */
-#vnSection:not(body.mode-rpg #vnSection) {
-    background: var(--bg-primary) !important;
+/* VN: fondo base según modo.
+   Modo Clásico → azul noche profundo siempre (con o sin wallpaper).
+   Otros modos sin wallpaper → color del tema.                         */
+body.mode-classic #vnSection {
+    background: #060918 !important;
 }
-body:not(.mode-rpg) #vnSection {
+body:not(.mode-classic):not(.mode-rpg) #vnSection {
     background: var(--bg-primary) !important;
 }
 
@@ -192,420 +194,363 @@ body:not(.mode-rpg) #vnSection {
 [data-theme="light"] .topics-empty span  { color: rgba(100,65,15,0.42) !important; }
 
 /* ════════════════════════════════════════════════════════════════════
-   Sección 12 — TOPICS SCREEN — Rediseño místico integral
-   Cristal / tarot horizontal / constelaciones / pergamino astral
-   (sustituye las antiguas secciones E, F y G)
+   Sección 12 — TOPICS SCREEN — Mesa Mística de Adivinación
+   Cartas de tarot con volteo 3D · grid compacto · Cinzel
    ════════════════════════════════════════════════════════════════════ */
 
-/* ── 12.1  Barra superior: cristal místico ───────────────────────── */
+/* ── 12.1  Barra superior ────────────────────────────────────────── */
 #topicsSection .section-header-bar {
     background: rgba(8,5,2,0.62) !important;
     backdrop-filter: blur(14px) saturate(1.35) !important;
     -webkit-backdrop-filter: blur(14px) saturate(1.35) !important;
-    border-bottom: 1px solid rgba(201,168,108,0.18) !important;
+    border-bottom: 1px solid rgba(163,134,80,0.22) !important;
     box-shadow: 0 4px 24px rgba(0,0,0,0.55) !important;
 }
-[data-theme="light"] #topicsSection .section-header-bar {
-    background: rgba(240,228,200,0.72) !important;
-    border-bottom-color: rgba(160,120,60,0.22) !important;
+
+/* ── 12.2  Tapete oscuro — contenedor centrado ───────────────────── */
+.topics-layout {
+    display: block !important;
+    padding: 0.8rem !important;
+}
+#topicsSection .topics-main {
+    max-width: 1100px !important;
+    margin: 0 auto !important;
+    background: #0d0c12 !important;
+    border: 1px solid #a38650 !important;
+    border-radius: 14px !important;
+    padding: 1.2rem !important;
+    position: relative !important;
+    box-shadow: 0 0 0 3px rgba(13,12,18,0.9),
+                0 0 0 5px rgba(163,134,80,0.12),
+                0 24px 80px rgba(0,0,0,0.72) !important;
+}
+/* Esquinas decorativas del tapete */
+#topicsSection .topics-main::before,
+#topicsSection .topics-main::after {
+    content: '' !important;
+    position: absolute !important;
+    width: 18px !important;
+    height: 18px !important;
+    opacity: 0.52 !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+}
+#topicsSection .topics-main::before {
+    top: 7px !important;
+    left: 7px !important;
+    border-top: 1.5px solid #a38650 !important;
+    border-left: 1.5px solid #a38650 !important;
+}
+#topicsSection .topics-main::after {
+    bottom: 7px !important;
+    right: 7px !important;
+    border-bottom: 1.5px solid #a38650 !important;
+    border-right: 1.5px solid #a38650 !important;
 }
 
-/* ── 12.2  Command bar: cristal con borde fino dorado ───────────── */
+/* ── 12.3  Command bar minimalista ───────────────────────────────── */
 .topics-command-bar {
-    background: rgba(10,6,2,0.52) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-    border: 1px solid rgba(201,168,108,0.13) !important;
-    border-radius: 12px !important;
-    padding: 0.6rem 0.9rem !important;
-    gap: 0.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.6rem !important;
     flex-wrap: wrap !important;
-    margin-bottom: 0.85rem !important;
-}
-[data-theme="light"] .topics-command-bar {
-    background: rgba(238,224,190,0.65) !important;
-    border-color: rgba(160,120,60,0.2) !important;
+    margin-bottom: 1.1rem !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
-/* ── 12.3  Botón Nueva Historia: Cinzel + destello dorado ─────── */
+/* ── 12.4  Botón Nueva Historia ──────────────────────────────────── */
 .btn-create-topic {
     font-family: 'Cinzel', serif !important;
     font-size: 0.77rem !important;
     letter-spacing: 0.09em !important;
     background: linear-gradient(135deg, rgba(115,78,18,0.8) 0%, rgba(60,38,6,0.88) 100%) !important;
-    border: 1px solid rgba(201,168,108,0.5) !important;
-    color: var(--eth-gold) !important;
+    border: 1px solid rgba(163,134,80,0.5) !important;
+    color: #c9a86c !important;
     padding: 0.45rem 1.1rem !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.35), inset 0 0 14px rgba(201,168,108,0.06) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35) !important;
     transition: box-shadow 0.22s, border-color 0.22s, background 0.22s !important;
     white-space: nowrap !important;
 }
 .btn-create-topic:hover {
     background: linear-gradient(135deg, rgba(140,95,22,0.88) 0%, rgba(80,52,8,0.92) 100%) !important;
-    border-color: rgba(201,168,108,0.78) !important;
-    box-shadow: 0 0 20px rgba(201,168,108,0.28), 0 4px 14px rgba(0,0,0,0.38) !important;
+    border-color: rgba(163,134,80,0.78) !important;
+    box-shadow: 0 0 20px rgba(163,134,80,0.28), 0 4px 14px rgba(0,0,0,0.38) !important;
 }
 
-/* Search input */
+/* ── 12.5  Buscador glassmorphism ────────────────────────────────── */
+.topics-search-wrap {
+    flex: 1 !important;
+    min-width: 180px !important;
+    position: relative !important;
+}
+.topics-search-icon { display: none !important; }
 .topics-search-input {
-    background: rgba(18,12,4,0.55) !important;
-    border-color: var(--eth-border) !important;
-    color: #e8d4a0 !important;
+    width: 100% !important;
+    background: rgba(13,12,18,0.72) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(163,134,80,0.35) !important;
     border-radius: 8px !important;
+    color: #e8d4a0 !important;
     font-family: 'Crimson Text', serif !important;
+    font-size: 0.9rem !important;
+    padding: 0.52rem 0.95rem !important;
+    outline: none !important;
+    transition: border-color 0.22s, box-shadow 0.22s !important;
+    box-sizing: border-box !important;
 }
-.topics-search-input:focus { border-color: var(--eth-border-h) !important; }
-[data-theme="light"] .topics-search-input { background: rgba(245,232,205,0.85) !important; color: #3a2808 !important; }
+.topics-search-input::placeholder {
+    color: rgba(163,134,80,0.42) !important;
+    font-style: italic !important;
+}
+.topics-search-input:focus {
+    border-color: rgba(163,134,80,0.68) !important;
+    box-shadow: 0 0 0 2px rgba(163,134,80,0.10),
+                inset 0 0 20px rgba(163,134,80,0.04) !important;
+}
 
-/* ── 12.4  Filtros: Cinzel + ✦/⚜ ──────────────────────────────── */
-.topics-filter-group {
-    background: rgba(10,6,2,0.42) !important;
-    border: 1px solid rgba(201,168,108,0.1) !important;
-    border-radius: 9px !important;
-    padding: 0.18rem !important;
-    gap: 0.12rem !important;
+/* ── 12.6  Grid compacto de cartas de tarot ──────────────────────── */
+.topics-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 20px !important;
+    padding: 24px !important;
+    align-items: start !important;
 }
-[data-theme="light"] .topics-filter-group {
-    background: rgba(228,212,170,0.5) !important;
-    border-color: rgba(160,120,60,0.18) !important;
-}
-.topic-filter-btn {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.69rem !important;
-    letter-spacing: 0.06em !important;
-    border-radius: 6px !important;
-    padding: 0.35rem 0.9rem !important;
-    color: rgba(201,168,108,0.48) !important;
+
+/* ── 12.7  Carta — dimensiones, perspectiva y entrada ───────────── */
+.topic-card {
+    width: 150px !important;
+    height: 220px !important;
+    perspective: 1000px !important;
     background: transparent !important;
     border: none !important;
-    transition: color 0.2s, background 0.2s !important;
-}
-.topic-filter-btn:hover {
-    color: rgba(201,168,108,0.82) !important;
-    background: rgba(201,168,108,0.08) !important;
-}
-.topic-filter-btn.active {
-    background: rgba(201,168,108,0.13) !important;
-    color: var(--eth-gold) !important;
-    box-shadow: inset 0 0 8px rgba(201,168,108,0.1) !important;
-}
-[data-theme="light"] .topic-filter-btn        { color: rgba(100,65,15,0.5) !important; }
-[data-theme="light"] .topic-filter-btn:hover  { color: rgba(100,65,15,0.8) !important; }
-[data-theme="light"] .topic-filter-btn.active { color: #7a5418 !important; background: rgba(160,120,60,0.12) !important; }
-
-/* ── 12.5  Grid → Lista horizontal ──────────────────────────────── */
-.topics-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0.6rem !important;
-}
-
-/* ── 12.6  Tarjeta horizontal + animación de entrada ────────────── */
-.topic-card {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: stretch !important;
-    min-height: 90px !important;
-    border-radius: 10px !important;
-    overflow: visible !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+    position: relative !important;
+    justify-self: center !important;
     animation: eth-cardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
+    /* sin overflow hidden aquí — lo maneja cada cara */
+    overflow: visible !important;
 }
-.topic-card:nth-child(1) { animation-delay: 0.03s; }
-.topic-card:nth-child(2) { animation-delay: 0.07s; }
-.topic-card:nth-child(3) { animation-delay: 0.11s; }
-.topic-card:nth-child(4) { animation-delay: 0.15s; }
-.topic-card:nth-child(5) { animation-delay: 0.19s; }
-.topic-card:nth-child(n+6) { animation-delay: 0.23s; }
+.topic-card:nth-child(1)    { animation-delay: 0.03s; }
+.topic-card:nth-child(2)    { animation-delay: 0.07s; }
+.topic-card:nth-child(3)    { animation-delay: 0.11s; }
+.topic-card:nth-child(4)    { animation-delay: 0.15s; }
+.topic-card:nth-child(5)    { animation-delay: 0.19s; }
+.topic-card:nth-child(n+6)  { animation-delay: 0.23s; }
 @keyframes eth-cardIn {
-    from { opacity: 0; transform: translateX(-8px); }
-    to   { opacity: 1; transform: translateX(0); }
+    from { opacity: 0; transform: translateY(14px) scale(0.94); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
-.topic-card:hover { transform: translateX(4px) !important; }
 
-/* ── 12.7  Sello lateral (columna izquierda de la carta tarot) ─── */
-.topic-card-accent {
+/* ── 12.8  Card-inner: eje de rotación 3D ───────────────────────── */
+.card-inner {
     position: relative !important;
-    top: auto !important; bottom: auto !important; left: auto !important;
-    width: 68px !important;
-    min-width: 68px !important;
-    flex-shrink: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.28rem !important;
-    border-radius: 10px 0 0 10px !important;
-    border-right: 1px solid rgba(201,168,108,0.12) !important;
-}
-.topic-card--rol .topic-card-accent {
-    background: linear-gradient(170deg,
-        rgba(100,68,18,0.72) 0%,
-        rgba(35,24,6,0.88) 100%) !important;
-}
-.topic-card--historia .topic-card-accent {
-    background: linear-gradient(170deg,
-        rgba(168,132,60,0.38) 0%,
-        rgba(100,72,25,0.52) 100%) !important;
-}
-[data-theme="dark"] .topic-card--historia .topic-card-accent {
-    background: linear-gradient(170deg,
-        rgba(100,72,25,0.55) 0%,
-        rgba(40,28,8,0.78) 100%) !important;
+    width: 100% !important;
+    height: 100% !important;
+    transform-style: preserve-3d !important;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.22s ease !important;
 }
 
-.topic-card-seal-icon {
-    font-size: 1.45rem;
-    line-height: 1;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.65));
-    display: block;
-}
-.topic-card-seal-label {
-    font-family: 'Cinzel', serif;
-    font-size: 0.44rem;
-    letter-spacing: 0.13em;
-    text-transform: uppercase;
-    color: var(--eth-gold);
-    opacity: 0.52;
-    text-align: center;
-    display: block;
+/* Hover — reclinamiento sutil (sólo cuando no está volteada) */
+.topic-card:not(.flipped):hover .card-inner {
+    transform: translateY(-4px) !important;
 }
 
-/* ── 12.8  Interior horizontal ──────────────────────────────────── */
-.topic-card-inner {
-    flex: 1 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    padding: 0.65rem 2.6rem 0.55rem 1rem !important;
-    gap: 0.14rem !important;
-    min-width: 0 !important;
-    position: relative !important;
-    z-index: 1 !important;
+/* Volteo al activar .flipped */
+.topic-card.flipped .card-inner {
+    transform: rotateY(180deg) !important;
 }
-.topic-card-top { margin-bottom: 0.15rem !important; }
-.topic-card-title {
-    font-size: 0.93rem !important;
-    margin-bottom: 0.08rem !important;
-    white-space: nowrap !important;
+
+/* ── 12.9  Caras frontal y trasera — base compartida ────────────── */
+.card-front,
+.card-back {
+    position: absolute !important;
+    width: 100% !important;
+    height: 100% !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    border-radius: 8px !important;
     overflow: hidden !important;
-    text-overflow: ellipsis !important;
-}
-.topic-card-excerpt {
-    -webkit-line-clamp: 1 !important;
-    font-size: 0.81rem !important;
-    margin-bottom: 0 !important;
-}
-.topic-card-excerpt--meta {
-    font-size: 0.67rem !important;
-    margin-bottom: 0 !important;
-}
-.topic-card-author {
-    font-family: 'Crimson Text', serif !important;
-    font-style: italic !important;
-    font-size: 0.76rem !important;
-    margin-bottom: 0 !important;
 }
 
-/* ── 12.9  Footer como columna derecha ───────────────────────────── */
-.topic-card-footer {
-    border-top: none !important;
-    padding: 0.55rem 0.75rem !important;
+/* ── 12.10  Cara frontal: icono + título ─────────────────────────── */
+.card-front {
+    display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 0.4rem !important;
-    min-width: 68px !important;
-    flex-shrink: 0 !important;
-    border-left: 1px solid rgba(201,168,108,0.08) !important;
+    gap: 0.6rem !important;
+    padding: 1rem 0.75rem !important;
 }
-.topic-card--rol     .topic-card-footer { border-left-color: rgba(160,140,105,0.15) !important; }
-.topic-card--historia .topic-card-footer { border-left-color: rgba(160,120,60,0.12) !important; }
-[data-theme="dark"] .topic-card--historia .topic-card-footer { border-left-color: rgba(201,168,108,0.1) !important; }
-
-.topic-card-footer-msgs {
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 0 !important;
+.card-icon {
+    font-size: 2.5rem !important;
+    line-height: 1 !important;
+    display: block !important;
+}
+.card-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.77rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
     text-align: center !important;
-}
-.topic-card-footer-msgs-icon { font-size: 0.9rem !important; opacity: 1 !important; }
-.topic-card-progress {
-    flex: 0 0 auto !important;
-    width: 48px !important;
+    line-height: 1.35 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
     margin: 0 !important;
 }
 
-/* Marca de agua: más pequeña y desplazada para no chocar con el footer */
-.topic-card-watermark {
-    width: 70px !important;
-    height: 70px !important;
-    right: 82px !important;
-    opacity: 0.05 !important;
+/* ── 12.11  Cara trasera: datos + botón de entrada ───────────────── */
+.card-back {
+    transform: rotateY(180deg) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.42rem !important;
+    padding: 1rem 0.75rem !important;
+    text-align: center !important;
 }
-.topic-card:hover .topic-card-watermark { opacity: 0.09 !important; }
-
-/* Esquinas más sutiles en horizontal */
-.topic-card-corner          { opacity: 0.35 !important; }
-.topic-card:hover .topic-card-corner { opacity: 0.65 !important; }
-
-/* Badge de turno activo */
-.topic-badge--turn {
-    color: #e8c46a !important;
-    background: rgba(201,168,108,0.12) !important;
-    border: 1px solid rgba(201,168,108,0.28) !important;
-    border-radius: 4px !important;
-    font-size: 0.6rem !important;
-    padding: 0.1rem 0.4rem !important;
-    animation: topic-badge-turn-blink 2s ease-in-out infinite;
+.card-title-back {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    text-align: center !important;
+    line-height: 1.3 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    margin: 0 !important;
 }
-@keyframes topic-badge-turn-blink {
-    0%,100% { opacity: 1; }
-    50%      { opacity: 0.6; }
+.card-author {
+    font-family: 'Crimson Text', serif !important;
+    font-style: italic !important;
+    font-size: 0.68rem !important;
+    text-align: center !important;
+    margin: 0 !important;
 }
-
-/* ── 12.10  Marco RPG: dorado ────────────────────────────────────── */
-.topic-card--rol {
-    border: 1px solid rgba(201,168,108,0.28) !important;
-    background: rgba(16,11,4,0.92) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
+.card-stats {
+    font-size: 0.67rem !important;
+    text-align: center !important;
+    opacity: 0.58 !important;
+    margin: 0 !important;
 }
-.topic-card--rol:hover {
-    border-color: rgba(201,168,108,0.55) !important;
-    box-shadow: 0 5px 26px rgba(0,0,0,0.48),
-                inset 0 0 28px rgba(201,168,108,0.04) !important;
-}
-
-/* ── 12.11  Marco Clásico: plateado ─────────────────────────────── */
-.topic-card--historia {
-    border: 1px solid rgba(192,178,155,0.28) !important;
-    background: rgba(244,237,216,0.93) !important;
-    backdrop-filter: blur(10px) !important;
-    -webkit-backdrop-filter: blur(10px) !important;
-}
-[data-theme="dark"] .topic-card--historia {
-    background: rgba(28,20,8,0.92) !important;
-    border-color: rgba(192,178,155,0.2) !important;
-}
-.topic-card--historia:hover {
-    border-color: rgba(192,178,155,0.55) !important;
-    box-shadow: 0 5px 22px rgba(120,90,50,0.18) !important;
-}
-[data-theme="dark"] .topic-card--historia:hover {
-    box-shadow: 0 5px 22px rgba(0,0,0,0.42) !important;
+.btn-entrar-destino {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.63rem !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    padding: 0.38rem 0.75rem !important;
+    border-radius: 5px !important;
+    border: 1px solid !important;
+    cursor: pointer !important;
+    transition: background 0.2s, box-shadow 0.2s !important;
+    margin-top: 0.3rem !important;
+    width: 100% !important;
 }
 
-/* ── 12.12  Pulso de turno activo ────────────────────────────────── */
+/* ── 12.12  Identidad visual RPG ─────────────────────────────────── */
+.topic-card--rol .card-front,
+.topic-card--rol .card-back {
+    background: #120e0a !important;
+    border: 1px solid rgba(163,134,80,0.38) !important;
+}
+.topic-card--rol .card-icon,
+.topic-card--rol .card-title,
+.topic-card--rol .card-title-back { color: #c9a86c !important; }
+.topic-card--rol .card-icon {
+    filter: drop-shadow(0 0 12px rgba(163,134,80,0.55)) !important;
+}
+.topic-card--rol .card-author { color: rgba(163,134,80,0.55) !important; }
+.topic-card--rol .card-stats  { color: #c9a86c !important; }
+.topic-card--rol:hover .card-inner {
+    box-shadow: 0 10px 38px rgba(0,0,0,0.7),
+                0 0 22px rgba(163,134,80,0.14) !important;
+}
+.topic-card--rol.flipped .card-inner {
+    box-shadow: 0 14px 48px rgba(0,0,0,0.75),
+                0 0 28px rgba(163,134,80,0.18) !important;
+}
+.topic-card--rol .btn-entrar-destino {
+    background: linear-gradient(135deg, rgba(115,78,18,0.75), rgba(60,38,6,0.88)) !important;
+    border-color: rgba(163,134,80,0.52) !important;
+    color: #c9a86c !important;
+}
+.topic-card--rol .btn-entrar-destino:hover {
+    background: linear-gradient(135deg, rgba(140,95,22,0.88), rgba(80,52,8,0.92)) !important;
+    box-shadow: 0 0 16px rgba(163,134,80,0.28) !important;
+}
+
+/* ── 12.13  Identidad visual Clásico ─────────────────────────────── */
+.topic-card--historia .card-front,
+.topic-card--historia .card-back {
+    background: #0a0f24 !important;
+    border: 1px solid rgba(170,190,230,0.30) !important;
+}
+.topic-card--historia .card-icon,
+.topic-card--historia .card-title,
+.topic-card--historia .card-title-back { color: #a8bedd !important; }
+.topic-card--historia .card-icon {
+    filter: drop-shadow(0 0 12px rgba(140,170,230,0.55)) !important;
+}
+.topic-card--historia .card-author { color: rgba(140,170,230,0.55) !important; }
+.topic-card--historia .card-stats  { color: #a0b8e0 !important; }
+.topic-card--historia:hover .card-inner {
+    box-shadow: 0 10px 38px rgba(0,0,0,0.7),
+                0 0 22px rgba(140,170,230,0.12) !important;
+}
+.topic-card--historia.flipped .card-inner {
+    box-shadow: 0 14px 48px rgba(0,0,0,0.75),
+                0 0 28px rgba(140,170,230,0.16) !important;
+}
+.topic-card--historia .btn-entrar-destino {
+    background: linear-gradient(135deg, rgba(18,32,80,0.75), rgba(10,18,50,0.88)) !important;
+    border-color: rgba(140,170,230,0.42) !important;
+    color: #a8bedd !important;
+}
+.topic-card--historia .btn-entrar-destino:hover {
+    background: linear-gradient(135deg, rgba(24,42,100,0.88), rgba(14,24,65,0.92)) !important;
+    box-shadow: 0 0 16px rgba(140,170,230,0.22) !important;
+}
+
+/* ── 12.14  Pulso de turno activo ────────────────────────────────── */
 @keyframes topic-turn-gold {
-    0%,100% {
-        box-shadow: 0 0  0 0   rgba(201,168,108,0);
-        border-color: rgba(201,168,108,0.32);
-    }
-    50% {
-        box-shadow: 0 0 18px 3px rgba(201,168,108,0.22),
-                    0 0 0 2px rgba(201,168,108,0.18);
-        border-color: rgba(201,168,108,0.78);
-    }
+    0%,100% { box-shadow: 0 0 0 0 rgba(163,134,80,0); border-color: rgba(163,134,80,0.38); }
+    50%     { box-shadow: 0 0 24px 5px rgba(163,134,80,0.18), 0 0 0 2px rgba(163,134,80,0.16); border-color: rgba(163,134,80,0.72); }
 }
 @keyframes topic-turn-silver {
-    0%,100% {
-        box-shadow: 0 0  0 0   rgba(192,186,178,0);
-        border-color: rgba(192,186,178,0.3);
-    }
-    50% {
-        box-shadow: 0 0 16px 3px rgba(192,186,178,0.2),
-                    0 0 0 2px rgba(192,186,178,0.16);
-        border-color: rgba(192,186,178,0.68);
-    }
+    0%,100% { box-shadow: 0 0 0 0 rgba(140,170,230,0); border-color: rgba(140,170,230,0.30); }
+    50%     { box-shadow: 0 0 22px 5px rgba(140,170,230,0.16), 0 0 0 2px rgba(140,170,230,0.14); border-color: rgba(140,170,230,0.65); }
 }
-.topic-card--rol.topic-card--my-turn {
+.topic-card--rol.topic-card--my-turn .card-front {
     animation: topic-turn-gold 2.6s ease-in-out infinite !important;
 }
-.topic-card--historia.topic-card--my-turn {
+.topic-card--historia.topic-card--my-turn .card-front {
     animation: topic-turn-silver 2.6s ease-in-out infinite !important;
 }
 
-/* ── 12.13  Sidebar: pergamino astral ───────────────────────────── */
-.topics-stats-card {
-    background: radial-gradient(ellipse at 35% 25%,
-        rgba(201,168,108,0.07) 0%,
-        rgba(10,6,2,0.93) 65%) !important;
-    border: 1px solid rgba(201,168,108,0.22) !important;
-    border-radius: 14px !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-    box-shadow: inset 0 0 40px rgba(201,168,108,0.04),
-                0 4px 22px rgba(0,0,0,0.42) !important;
-    padding: 1.2rem 1rem !important;
-    position: relative !important;
-    overflow: hidden !important;
-}
-.topics-stats-card::before {
-    content: '✦';
-    position: absolute;
-    top: -10px; left: 50%;
-    transform: translateX(-50%);
-    font-size: 3.8rem;
-    color: var(--eth-gold);
-    opacity: 0.035;
-    pointer-events: none;
-    user-select: none;
-}
-[data-theme="light"] .topics-stats-card {
-    background: radial-gradient(ellipse at 35% 25%,
-        rgba(201,168,108,0.12) 0%,
-        rgba(242,230,205,0.92) 65%) !important;
-    border-color: rgba(160,120,60,0.25) !important;
-    box-shadow: inset 0 0 24px rgba(201,168,108,0.06),
-                0 4px 16px rgba(120,90,50,0.12) !important;
-}
-
-.topics-stats-title {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.63rem !important;
-    letter-spacing: 0.15em !important;
-    text-transform: uppercase !important;
-    color: rgba(201,168,108,0.52) !important;
-    text-align: center !important;
-    margin-bottom: 0.85rem !important;
-}
-.topics-stat-val {
-    font-family: 'Cinzel', serif !important;
-    font-size: 2.1rem !important;
-    color: var(--eth-gold) !important;
-    line-height: 1 !important;
-}
-.topics-stat-lbl {
-    font-family: 'Crimson Text', serif !important;
-    font-size: 0.71rem !important;
-    font-style: italic !important;
-    color: rgba(201,168,108,0.42) !important;
-}
-[data-theme="light"] .topics-stat-val  { color: #7a5418 !important; }
-[data-theme="light"] .topics-stat-lbl  { color: rgba(100,65,15,0.55) !important; }
-[data-theme="light"] .topics-stats-title { color: rgba(100,65,15,0.5) !important; }
-
-.topics-mode-legend {
-    background: rgba(10,6,2,0.78) !important;
-    border: 1px solid rgba(201,168,108,0.12) !important;
-    border-radius: 12px !important;
-    backdrop-filter: blur(6px) !important;
-    -webkit-backdrop-filter: blur(6px) !important;
-    padding: 0.85rem 0.95rem !important;
-}
-[data-theme="light"] .topics-mode-legend {
-    background: rgba(238,224,190,0.72) !important;
-    border-color: rgba(160,120,60,0.18) !important;
-}
-
-/* ── 12.14  Mobile ───────────────────────────────────────────────── */
+/* ── 12.15  Mobile ───────────────────────────────────────────────── */
 @media (max-width: 600px) {
-    .topic-card-accent  { width: 52px !important; min-width: 52px !important; }
-    .topic-card-seal-icon { font-size: 1.1rem !important; }
-    .topic-card-footer  { min-width: 56px !important; padding: 0.4rem 0.5rem !important; }
-    .topic-card-watermark { display: none !important; }
-    .topic-card-inner   { padding: 0.55rem 0.8rem 0.45rem 0.8rem !important; }
+    .topics-grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+        gap: 14px !important;
+        padding: 14px !important;
+    }
+    .topic-card { width: 130px !important; height: 195px !important; }
+    .card-icon  { font-size: 2rem !important; }
+    .card-title, .card-title-back { font-size: 0.7rem !important; }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -814,6 +759,77 @@ body.mode-classic .vn-control-btn {
 body.mode-classic .vn-control-btn:hover {
     background: rgba(184,144,42,0.1) !important;
     border-color: rgba(184,144,42,0.6) !important;
+}
+
+/* ── Campo de estrellas animado — fondo nocturno ── */
+body.mode-classic #vnSection::after {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+    /* Cuatro capas de puntos con distinto tamaño y densidad */
+    background-image:
+        radial-gradient(circle, rgba(190,215,255,0.72) 1px,   transparent 1px),
+        radial-gradient(circle, rgba(160,195,255,0.50) 1px,   transparent 1px),
+        radial-gradient(circle, rgba(210,230,255,0.62) 1.5px, transparent 1.5px),
+        radial-gradient(circle, rgba(140,180,255,0.40) 1px,   transparent 1px) !important;
+    background-size:
+        115px 115px,
+        195px 195px,
+        78px  78px,
+        250px 250px !important;
+    background-position:
+        14px 20px,
+        58px 85px,
+        32px 48px,
+        105px 25px !important;
+    opacity: 0.50 !important;
+    animation: cls-stars-drift 90s linear infinite !important;
+}
+@keyframes cls-stars-drift {
+    from { background-position: 14px 20px, 58px 85px, 32px 48px, 105px 25px; }
+    to   { background-position: 129px 135px, 253px 280px, 110px 126px, 355px 275px; }
+}
+
+/* ── Líneas divisoras: azul-plata en vez de dorado ── */
+body.mode-classic #vnSection .ui-layer > .left-panel {
+    border-right-color: rgba(100,155,220,0.28) !important;
+}
+body.mode-classic #vnSection .ui-layer > .right-panel {
+    border-left-color: rgba(100,155,220,0.28) !important;
+}
+body.mode-classic #vnSection .ui-layer > .bottom-panel {
+    border-top-color: rgba(100,155,220,0.22) !important;
+}
+
+/* ── Barra de controles (columna derecha): cristal nocturno ── */
+body.mode-classic .vn-controls {
+    background: linear-gradient(180deg,
+        rgba(6,10,32,0.97) 0%,
+        rgba(4,7,22,0.99) 100%) !important;
+    border-color: rgba(90,145,210,0.32) !important;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.8),
+                0 4px 24px rgba(0,0,20,0.75) !important;
+}
+/* Botones diamante en azul-plata */
+body.mode-classic .vn-control-btn {
+    background: linear-gradient(135deg,
+        rgba(14,24,68,1),
+        rgba(8,15,44,1),
+        rgba(5,10,30,1)) !important;
+    border-color: rgba(90,145,210,0.42) !important;
+    color: rgba(140,190,245,0.72) !important;
+    box-shadow:
+        inset 1px 1px 0 rgba(140,190,255,0.10),
+        inset -1px -1px 0 rgba(0,0,0,0.5),
+        0 2px 4px rgba(0,0,0,0.6) !important;
+}
+body.mode-classic .vn-control-btn:hover {
+    background: rgba(50,100,200,0.20) !important;
+    border-color: rgba(120,185,255,0.68) !important;
+    color: rgba(190,225,255,0.95) !important;
+    box-shadow: 0 0 14px rgba(80,155,255,0.32) !important;
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1461,15 +1477,12 @@ body.mode-rpg .vn-controls {
     overflow: hidden !important;
 }
 
-/* 2. Speaker plate: sobresale ligeramente sobre el borde superior de la caja
-      y tiene más aire interior para no parecer encajonado. */
+/* 2. Speaker plate: posición y padding — colores los pone el tema específico */
 #vnSection .vn-speaker-plate {
     top: -0.9rem !important;
     left: 9rem !important;
     padding-left: 1.1rem !important;
-    border-top: 1px solid rgba(201, 168, 108, 0.38) !important;
-    border-left: 1px solid rgba(201, 168, 108, 0.22) !important;
-    border-radius: 6px 10px 10px 0 !important;
+    /* Sin border/border-radius aquí: los define body.theme-classic o body.theme-rpg */
 }
 
 /* 3. Texto del diálogo: más espacio respecto al avatar a la izquierda. */
@@ -2200,4 +2213,607 @@ body.mode-rpg .story-participant-turn-icon {
     .dm-mr-opt-hp.dm-input {
         width: 100%;
     }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   14. MODO CLÁSICO — Constelación: nameplate · avatar · botones VJ
+   Usa body.theme-classic #vnSection para ganar en especificidad
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── 14.1  Caja de diálogo: borde superior estelar ───────────────── */
+body.theme-classic #vnSection .bottom-panel .vn-dialogue-box {
+    border-top: 1px solid rgba(120,175,255,0.28) !important;
+    box-shadow:
+        0 18px 40px rgba(0,0,0,0.65),
+        0 2px 0 rgba(0,0,0,0.35),
+        0 -4px 28px rgba(60,110,255,0.06),
+        inset 0 1px 0 rgba(120,175,255,0.06) !important;
+}
+
+/* Filigrana superior en azul-plata */
+body.theme-classic #vnSection .vn-dialogue-box::before {
+    border-color: rgba(90,140,210,0.12) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='10'%3E%3Cpath d='M5 5 Q15 1 25 5 Q35 9 45 5' stroke='rgba(120,175,240,0.45)' stroke-width='1' fill='none'/%3E%3Ccircle cx='50' cy='5' r='2' stroke='rgba(120,175,240,0.45)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M55 5 Q65 1 75 5 Q85 9 95 5' stroke='rgba(100,160,230,0.38)' stroke-width='1' fill='none'/%3E%3Ccircle cx='100' cy='5' r='1.5' fill='rgba(100,160,230,0.35)'/%3E%3Cline x1='105' y1='5' x2='295' y2='5' stroke='rgba(90,140,210,0.14)' stroke-width='0.5' stroke-dasharray='3 6'/%3E%3Ccircle cx='300' cy='5' r='1.5' fill='rgba(100,160,230,0.35)'/%3E%3Cpath d='M305 5 Q315 9 325 5 Q335 1 345 5' stroke='rgba(100,160,230,0.38)' stroke-width='1' fill='none'/%3E%3Ccircle cx='350' cy='5' r='2' stroke='rgba(120,175,240,0.45)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M355 5 Q365 9 375 5 Q385 1 395 5' stroke='rgba(120,175,240,0.45)' stroke-width='1' fill='none'/%3E%3C/svg%3E") !important;
+}
+
+/* Estrella pulsante en esquina inferior */
+body.theme-classic #vnSection .vn-dialogue-box::after {
+    content: '✦' !important;
+    width: auto !important; height: auto !important;
+    background-image: none !important;
+    font-size: 1.05rem !important;
+    color: rgba(130,185,245,0.38) !important;
+    bottom: 0.65rem !important; right: 0.82rem !important;
+    left: auto !important; top: auto !important;
+    transform: none !important;
+    animation: cls-star-pulse 4.5s ease-in-out infinite !important;
+}
+@keyframes cls-star-pulse {
+    0%,100% { opacity: 0.38; }
+    50%      { opacity: 0.80; filter: drop-shadow(0 0 6px rgba(120,185,255,0.55)); }
+}
+body.theme-classic #vnSection .vn-dialogue-footer {
+    border-top-color: rgba(90,140,210,0.14) !important;
+}
+
+/* ── 14.2  Nameplate: píldora cristal azul (derrota la línea 1508) ─ */
+body.theme-classic #vnSection .vn-speaker-plate {
+    background: rgba(9,15,50,0.72) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(130,178,255,0.38) !important;
+    border-radius: 999px !important;
+    color: #c8dcff !important;
+    font-family: 'Cinzel', serif !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    text-shadow: 0 0 14px rgba(100,165,255,0.4), 0 1px 3px rgba(0,0,0,0.8) !important;
+    box-shadow:
+        0 0 0 1px rgba(100,155,255,0.07) inset,
+        0 0 24px rgba(70,125,255,0.14),
+        0 6px 18px rgba(0,0,35,0.5) !important;
+    padding: 0.3rem 1.1rem !important;
+    top: -0.9rem !important;
+    left: 9rem !important;
+}
+body.theme-classic #vnSection .vn-speaker-plate::before {
+    content: '✦ ' !important;
+    opacity: 0.65 !important;
+    animation: vnt-star-twinkle 2.6s ease-in-out infinite !important;
+    display: inline !important;
+    position: static !important;
+    font-size: inherit !important;
+    color: inherit !important;
+    background: none !important; border: none !important;
+}
+body.theme-classic #vnSection .vn-speaker-plate::after {
+    content: ' ✦' !important;
+    opacity: 0.65 !important;
+    animation: vnt-star-twinkle 2.6s ease-in-out infinite 1.3s !important;
+    display: inline !important;
+    position: static !important;
+    font-size: inherit !important; color: inherit !important;
+    background: none !important; border: none !important;
+    bottom: auto !important; right: auto !important; left: auto !important;
+    width: auto !important; height: auto !important;
+    box-shadow: none !important; border-radius: 0 !important;
+}
+@keyframes vnt-star-twinkle {
+    0%,100% { opacity: 0.65; }
+    50%      { opacity: 1; filter: drop-shadow(0 0 4px rgba(160,205,255,0.7)); }
+}
+
+/* ── 14.3  Avatar: anillo constelación giratorio ─────────────────── */
+body.theme-classic #vnSection .vn-speaker-avatar {
+    border-color: rgba(135,188,245,0.80) !important;
+    border-width: 2.5px !important;
+    background: rgba(6,10,30,0.88) !important;
+    box-shadow:
+        0 0 0 2px rgba(15,28,72,0.65),
+        0 0 0 4px rgba(90,150,240,0.14),
+        0 0 26px rgba(80,145,255,0.22),
+        0 12px 32px rgba(0,0,0,0.58) !important;
+}
+body.theme-classic #vnSection .vn-speaker-avatar-wrap::before {
+    border: 1.5px solid rgba(110,170,240,0.28) !important;
+    background: conic-gradient(from 0deg,
+        transparent 0deg 16deg, rgba(145,195,250,0.55) 16deg 24deg,
+        transparent 24deg 76deg, rgba(120,175,240,0.42) 76deg 84deg,
+        transparent 84deg 136deg, rgba(145,195,250,0.50) 136deg 144deg,
+        transparent 144deg 196deg, rgba(120,175,240,0.40) 196deg 204deg,
+        transparent 204deg 256deg, rgba(145,195,250,0.52) 256deg 264deg,
+        transparent 264deg 316deg, rgba(120,175,240,0.44) 316deg 324deg,
+        transparent 324deg 360deg) !important;
+    animation: cls-ring-spin 28s linear infinite !important;
+}
+@keyframes cls-ring-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ── 14.4  RESPONDER / EDITAR / BORRAR — Placas de Comando Arcanas ── */
+
+/* BASE: elimina todo el lenguaje web — cero redondeados, sin píldora */
+body.theme-classic #vnSection .vma-btn {
+    border-radius: 0 !important;
+    clip-path: none !important;
+    overflow: visible !important;
+    position: relative !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.67rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    min-height: 2.0rem !important;
+    gap: 0.55rem !important;
+    transition:
+        box-shadow 0.22s ease,
+        border-color 0.22s ease,
+        color 0.22s ease,
+        text-shadow 0.22s ease,
+        transform 0.14s cubic-bezier(0.34,1.3,0.64,1) !important;
+}
+
+/* Corchete esquina sup-izq — marca de marco arcano */
+body.theme-classic #vnSection .vma-btn::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -2px !important;
+    left: -2px !important;
+    width: 9px !important;
+    height: 9px !important;
+    border-top: 2px solid currentColor !important;
+    border-left: 2px solid currentColor !important;
+    opacity: 0.85 !important;
+    pointer-events: none !important;
+    z-index: 3 !important;
+    transition: opacity 0.22s ease !important;
+}
+
+/* Corchete esquina inf-der */
+body.theme-classic #vnSection .vma-btn::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: -2px !important;
+    right: -2px !important;
+    width: 9px !important;
+    height: 9px !important;
+    border-bottom: 2px solid currentColor !important;
+    border-right: 2px solid currentColor !important;
+    opacity: 0.85 !important;
+    pointer-events: none !important;
+    z-index: 3 !important;
+    transition: opacity 0.22s ease !important;
+}
+
+body.theme-classic #vnSection .vma-btn:hover::before,
+body.theme-classic #vnSection .vma-btn:hover::after {
+    opacity: 1 !important;
+}
+
+/* ── RESPONDER: placa primaria — azul estelar saturado ── */
+body.theme-classic #vnSection .vma-btn.vma-reply {
+    background: linear-gradient(95deg,
+        rgba(45,92,215,0.96) 0%,
+        rgba(18,40,145,0.98) 45%,
+        rgba(7,16,72,0.99) 100%) !important;
+    border: 1px solid rgba(105,168,255,0.48) !important;
+    color: #dceeff !important;
+    text-shadow: 0 0 12px rgba(120,195,255,0.60) !important;
+    box-shadow:
+        inset 4px 0 0 rgba(130,205,255,0.88),
+        inset 0 0 0 1px rgba(75,142,255,0.22),
+        inset 0 1px 0 rgba(180,228,255,0.18),
+        0 4px 18px rgba(0,6,55,0.68),
+        0 0 24px rgba(42,112,255,0.16) !important;
+    padding: 0.46rem 1.1rem 0.46rem 1.35rem !important;
+}
+body.theme-classic #vnSection .vma-btn.vma-reply:hover {
+    border-color: rgba(150,212,255,0.70) !important;
+    color: #f0f8ff !important;
+    text-shadow: 0 0 20px rgba(155,225,255,0.88) !important;
+    box-shadow:
+        inset 4px 0 0 rgba(175,232,255,1.0),
+        inset 0 0 0 1px rgba(108,175,255,0.36),
+        inset 0 1px 0 rgba(215,248,255,0.28),
+        0 6px 26px rgba(0,8,65,0.72),
+        0 0 38px rgba(62,145,255,0.32) !important;
+    transform: translateY(-2px) !important;
+}
+body.theme-classic #vnSection .vma-btn.vma-reply:active {
+    transform: translateY(1px) !important;
+    box-shadow:
+        inset 4px 0 0 rgba(110,188,255,0.82),
+        inset 0 2px 6px rgba(0,4,50,0.60) !important;
+}
+
+/* ── EDITAR: placa secundaria — noche profunda ── */
+body.theme-classic #vnSection .vma-btn.vma-edit {
+    background: linear-gradient(95deg,
+        rgba(20,38,108,0.93) 0%,
+        rgba(8,15,58,0.98) 100%) !important;
+    border: 1px solid rgba(82,138,222,0.38) !important;
+    color: rgba(182,215,255,0.88) !important;
+    text-shadow: 0 0 9px rgba(100,175,255,0.38) !important;
+    box-shadow:
+        inset 3px 0 0 rgba(98,165,248,0.65),
+        inset 0 0 0 1px rgba(58,118,212,0.16),
+        inset 0 1px 0 rgba(155,210,255,0.12),
+        0 3px 14px rgba(0,4,45,0.58) !important;
+    padding: 0.46rem 0.98rem 0.46rem 1.22rem !important;
+}
+body.theme-classic #vnSection .vma-btn.vma-edit:hover {
+    border-color: rgba(118,178,255,0.60) !important;
+    color: #cce5ff !important;
+    text-shadow: 0 0 14px rgba(130,198,255,0.55) !important;
+    box-shadow:
+        inset 3px 0 0 rgba(138,202,255,0.82),
+        inset 0 0 0 1px rgba(88,155,242,0.28),
+        inset 0 1px 0 rgba(188,232,255,0.20),
+        0 4px 18px rgba(0,4,50,0.62),
+        0 0 22px rgba(58,132,255,0.20) !important;
+    transform: translateY(-1px) !important;
+}
+body.theme-classic #vnSection .vma-btn.vma-edit:active {
+    transform: translateY(1px) !important;
+}
+
+/* ── BORRAR: placa de peligro — amatista oscura ── */
+body.theme-classic #vnSection .vma-btn.vma-delete {
+    background: linear-gradient(95deg,
+        rgba(58,16,95,0.94) 0%,
+        rgba(22,6,48,0.99) 100%) !important;
+    border: 1px solid rgba(152,92,228,0.42) !important;
+    color: rgba(212,165,255,0.90) !important;
+    text-shadow: 0 0 10px rgba(162,88,252,0.42) !important;
+    box-shadow:
+        inset 3px 0 0 rgba(172,105,252,0.72),
+        inset 0 0 0 1px rgba(118,58,200,0.20),
+        inset 0 1px 0 rgba(210,165,255,0.14),
+        0 3px 14px rgba(0,0,0,0.60),
+        0 0 16px rgba(128,52,218,0.16) !important;
+    padding: 0.46rem 0.98rem 0.46rem 1.22rem !important;
+}
+body.theme-classic #vnSection .vma-btn.vma-delete:hover {
+    border-color: rgba(192,128,255,0.68) !important;
+    color: #e8caff !important;
+    text-shadow: 0 0 18px rgba(192,118,255,0.65) !important;
+    box-shadow:
+        inset 3px 0 0 rgba(208,142,255,0.92),
+        inset 0 0 0 1px rgba(152,82,238,0.30),
+        inset 0 1px 0 rgba(228,188,255,0.22),
+        0 5px 20px rgba(0,0,0,0.64),
+        0 0 30px rgba(155,68,255,0.32) !important;
+    transform: translateY(-1px) !important;
+}
+body.theme-classic #vnSection .vma-btn.vma-delete:active {
+    transform: translateY(1px) !important;
+}
+
+/* ── 14.5  Escena / Emotes — placas menores del grimorio ──────────── */
+body.theme-classic #vnSection .vn-dialogue-action-btn {
+    border-radius: 0 !important;
+    clip-path: none !important;
+    position: relative !important;
+    overflow: visible !important;
+    background: linear-gradient(95deg,
+        rgba(14,22,62,0.90) 0%,
+        rgba(5,10,38,0.96) 100%) !important;
+    border: 1px solid rgba(78,138,225,0.32) !important;
+    color: rgba(158,205,255,0.82) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.63rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    text-shadow: 0 0 8px rgba(98,175,255,0.32) !important;
+    box-shadow:
+        inset 2px 0 0 rgba(98,162,245,0.58),
+        inset 0 0 0 1px rgba(52,115,210,0.14),
+        0 2px 8px rgba(0,4,35,0.48) !important;
+    transition:
+        box-shadow 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        text-shadow 0.18s ease,
+        transform 0.14s cubic-bezier(0.34,1.3,0.64,1) !important;
+}
+body.theme-classic #vnSection .vn-dialogue-action-btn::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -2px !important; left: -2px !important;
+    width: 7px !important; height: 7px !important;
+    border-top: 1.5px solid rgba(128,195,255,0.72) !important;
+    border-left: 1.5px solid rgba(128,195,255,0.72) !important;
+    pointer-events: none !important;
+    z-index: 3 !important;
+}
+body.theme-classic #vnSection .vn-dialogue-action-btn::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: -2px !important; right: -2px !important;
+    width: 7px !important; height: 7px !important;
+    border-bottom: 1.5px solid rgba(128,195,255,0.72) !important;
+    border-right: 1.5px solid rgba(128,195,255,0.72) !important;
+    pointer-events: none !important;
+    z-index: 3 !important;
+}
+body.theme-classic #vnSection .vn-dialogue-action-btn:hover {
+    border-color: rgba(118,182,255,0.52) !important;
+    color: rgba(202,232,255,0.97) !important;
+    text-shadow: 0 0 12px rgba(128,200,255,0.52) !important;
+    box-shadow:
+        inset 2px 0 0 rgba(138,205,255,0.80),
+        inset 0 0 0 1px rgba(78,155,238,0.22),
+        0 0 16px rgba(72,145,255,0.22),
+        0 3px 12px rgba(0,4,38,0.55) !important;
+    transform: translateY(-2px) !important;
+}
+body.theme-classic #vnSection .vn-dialogue-action-btn:active {
+    transform: translateY(1px) !important;
+}
+body.theme-classic #vnSection .action-icon {
+    filter: drop-shadow(0 0 5px rgba(118,188,255,0.45)) !important;
+}
+
+/* ── 14.6  Iconos — elimina emoji color, reemplaza con símbolos Unicode ── */
+
+/* Iconos de RESPONDER / EDITAR / BORRAR */
+body.theme-classic #vnSection .vma-icon {
+    font-size: 0 !important;          /* oculta el emoji original */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 1em !important;
+    height: 1em !important;
+    line-height: 1 !important;
+}
+body.theme-classic #vnSection .vma-icon::before {
+    font-size: 0.80rem !important;
+    line-height: 1 !important;
+    display: block !important;
+    font-family: 'Inter', sans-serif !important;
+    font-style: normal !important;
+    opacity: 0.90 !important;
+}
+/* ↩  reply — flecha de retorno, no es emoji */
+body.theme-classic #vnSection .vma-reply .vma-icon::before {
+    content: '↩' !important;
+    font-size: 0.88rem !important;
+}
+/* ✐  edit — pluma/lapiz Unicode, monocromo */
+body.theme-classic #vnSection .vma-edit .vma-icon::before {
+    content: '✐' !important;
+    font-size: 0.82rem !important;
+}
+/* ✕  delete — aspa limpia, no emoji */
+body.theme-classic #vnSection .vma-delete .vma-icon::before {
+    content: '✕' !important;
+    font-size: 0.88rem !important;
+}
+
+/* Iconos de Escena / Emotes */
+body.theme-classic #vnSection .action-icon {
+    font-size: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 1em !important;
+    height: 1em !important;
+}
+body.theme-classic #vnSection .action-icon::before {
+    font-size: 0.78rem !important;
+    line-height: 1 !important;
+    display: block !important;
+    opacity: 0.88 !important;
+    filter: drop-shadow(0 0 5px rgba(118,188,255,0.45)) !important;
+}
+/* Escena / Emotes / Posada: sin icono, solo texto */
+body.theme-classic #vnSection .action-icon {
+    display: none !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   13. AUTOSAVE INDICATOR — siempre encima de modales y overlays
+   ════════════════════════════════════════════════════════════════════ */
+.autosave-indicator {
+    z-index: 10000 !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   15. TOOLBAR: nueva estructura, mini-nav y elementos de diálogo
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Botones prominentes (Ajustes + Borrar historia) — arriba del todo ── */
+body.mode-classic #vnSection .vn-classic-control-btn.vn-btn-prominent,
+body:not(.mode-rpg) #vnSection .vn-classic-control-btn.vn-btn-prominent,
+body.mode-rpg #vnSection .vn-rpg-control-btn.vn-btn-prominent {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-color: rgba(130,185,255,0.52) !important;
+    border-top-color: rgba(200,235,255,0.70) !important;
+    background: radial-gradient(circle at 36% 33%,
+        rgba(190,225,255,0.32), rgba(14,28,82,0.92)) !important;
+    box-shadow:
+        0 4px 14px rgba(0,8,55,0.52),
+        inset 0 1px 0 rgba(210,240,255,0.28),
+        inset 0 -1px 0 rgba(0,0,0,0.25) !important;
+}
+
+body.mode-classic #vnSection .vn-classic-control-btn.vn-btn-danger,
+body:not(.mode-rpg) #vnSection .vn-classic-control-btn.vn-btn-danger,
+body.mode-rpg #vnSection .vn-rpg-control-btn.vn-btn-danger {
+    background: radial-gradient(circle at 36% 33%,
+        rgba(220,130,255,0.22), rgba(30,8,55,0.92)) !important;
+    border-color: rgba(178,108,240,0.48) !important;
+    border-top-color: rgba(218,165,255,0.68) !important;
+    color: rgba(215,168,255,0.88) !important;
+    box-shadow:
+        0 4px 14px rgba(0,0,0,0.52),
+        inset 0 1px 0 rgba(228,185,255,0.24),
+        inset 0 -1px 0 rgba(0,0,0,0.30) !important;
+}
+
+body.mode-classic #vnSection .vn-classic-control-btn.vn-btn-danger:hover,
+body:not(.mode-rpg) #vnSection .vn-classic-control-btn.vn-btn-danger:hover,
+body.mode-rpg #vnSection .vn-rpg-control-btn.vn-btn-danger:hover {
+    background: radial-gradient(circle at 36% 33%,
+        rgba(220,130,255,0.40), rgba(48,12,78,0.96)) !important;
+    border-color: rgba(205,138,255,0.72) !important;
+    box-shadow:
+        0 0 20px rgba(168,72,255,0.35),
+        0 6px 18px rgba(0,0,0,0.58),
+        inset 0 1px 0 rgba(235,198,255,0.35) !important;
+}
+
+/* ── Grupo visual Historial+Diario — conectados como un bloque ──────── */
+body.mode-classic #vnSection .vn-classic-control-group,
+body:not(.mode-rpg) #vnSection .vn-classic-control-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    padding: 3px !important;
+    background: rgba(20,40,100,0.18) !important;
+    border: 1px solid rgba(80,135,230,0.22) !important;
+    border-radius: 20px !important;
+}
+
+/* ── Mini-nav vertical en la caja de diálogo ────────────────────────── */
+.vn-counter-dice-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.12rem !important;
+}
+
+.vn-nav-mini-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 26px !important;
+    height: 22px !important;
+    background: transparent !important;
+    border: none !important;
+    color: rgba(140,190,255,0.50) !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    border-radius: 3px !important;
+    transition: color 0.18s ease, background 0.18s ease !important;
+    flex-shrink: 0 !important;
+}
+.vn-nav-mini-btn svg {
+    width: 12px !important;
+    height: 12px !important;
+}
+.vn-nav-mini-btn:hover {
+    color: rgba(200,230,255,0.92) !important;
+    background: rgba(80,140,255,0.14) !important;
+}
+.vn-nav-mini-btn:active {
+    color: #fff !important;
+    background: rgba(80,140,255,0.24) !important;
+}
+
+/* ── Favorito en la esquina — estrella en lugar de corazón ─────────── */
+.vn-favorite-corner-btn svg {
+    color: rgba(180,220,255,0.72) !important;
+    stroke: rgba(180,220,255,0.72) !important;
+    transition: color 0.2s, stroke 0.2s, filter 0.2s !important;
+}
+.vn-favorite-corner-btn:hover svg {
+    color: rgba(255,230,100,0.95) !important;
+    stroke: rgba(255,230,100,0.95) !important;
+    filter: drop-shadow(0 0 6px rgba(255,220,80,0.55)) !important;
+}
+/* Estado activo (mensaje marcado como favorito) */
+.vn-favorite-corner-btn.is-active svg,
+.vn-favorite-corner-btn[data-active="true"] svg {
+    color: rgba(255,220,80,0.95) !important;
+    stroke: rgba(255,200,60,0.90) !important;
+    fill: rgba(255,220,80,0.85) !important;
+    filter: drop-shadow(0 0 8px rgba(255,210,70,0.60)) !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   16. TOOLBAR TOOLTIPS — etiquetas hover en barra de herramientas
+   ════════════════════════════════════════════════════════════════════ */
+
+/* El slot necesita contexto de posición para el tooltip */
+body.mode-classic #vnSection .vn-classic-control-slot {
+    position: relative !important;
+}
+
+/* Tooltip base: aparece a la izquierda del botón al hacer hover */
+body.mode-classic #vnSection .vn-classic-control-btn {
+    position: relative !important;
+}
+body.mode-classic #vnSection .vn-classic-control-btn::after {
+    content: attr(aria-label) !important;
+    position: absolute !important;
+    right: calc(100% + 10px) !important;
+    top: 50% !important;
+    transform: translateY(-50%) translateX(4px) !important;
+    background: rgba(4,8,32,0.94) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(90,148,228,0.38) !important;
+    color: rgba(175,218,255,0.92) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.60rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+    padding: 0.26rem 0.58rem 0.26rem 0.70rem !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.16s ease, transform 0.16s ease !important;
+    z-index: 200 !important;
+    /* Acento izquierdo: placa de comando */
+    box-shadow:
+        inset 2px 0 0 rgba(100,168,248,0.70),
+        0 4px 14px rgba(0,4,30,0.65) !important;
+}
+body.mode-classic #vnSection .vn-classic-control-btn:hover::after {
+    opacity: 1 !important;
+    transform: translateY(-50%) translateX(0) !important;
+}
+
+/* Tooltips idénticos para el toolbar RPG */
+body.mode-rpg #vnSection .vn-rpg-control-slot {
+    position: relative !important;
+}
+body.mode-rpg #vnSection .vn-rpg-control-btn {
+    position: relative !important;
+}
+body.mode-rpg #vnSection .vn-rpg-control-btn::after {
+    content: attr(aria-label) !important;
+    position: absolute !important;
+    right: calc(100% + 10px) !important;
+    top: 50% !important;
+    transform: translateY(-50%) translateX(4px) !important;
+    background: rgba(10,6,2,0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(175,138,68,0.42) !important;
+    color: rgba(238,205,118,0.92) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0.60rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    white-space: nowrap !important;
+    padding: 0.26rem 0.58rem 0.26rem 0.70rem !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.16s ease, transform 0.16s ease !important;
+    z-index: 200 !important;
+    box-shadow:
+        inset 2px 0 0 rgba(201,168,108,0.72),
+        0 4px 14px rgba(0,0,0,0.65) !important;
+}
+body.mode-rpg #vnSection .vn-rpg-control-btn:hover::after {
+    opacity: 1 !important;
+    transform: translateY(-50%) translateX(0) !important;
 }
