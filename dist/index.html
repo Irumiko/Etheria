@@ -29542,27 +29542,19 @@ window.Ethy = Ethy;
     // Devuelve { ok: true } si se borró o no existía, { ok: false, error } si hubo error real.
     async function deleteStory(storyId) {
         if (!storyId) return { ok: false, error: 'storyId requerido' };
-        const client = _getClient();
-        if (!client) return { ok: false, error: 'Cliente no disponible' };
+        if (!SB_URL || !SB_KEY) return { ok: false, error: 'Supabase no configurado' };
         try {
-            // Primero eliminar mensajes vinculados: si la FK messages.story_id no tiene
-            // ON DELETE CASCADE, borrar la historia directamente falla y luego se "resucita".
-            const { error: msgError } = await client
-                .from('messages')
-                .delete()
-                .eq('story_id', storyId);
-            if (msgError) {
-                logger?.warn('supabase:stories', 'deleteStory messages error:', msgError.message);
-                return { ok: false, error: msgError.message };
-            }
-
-            const { error } = await client
-                .from('stories')
-                .delete()
-                .eq('id', storyId);
-            if (error) {
-                logger?.warn('supabase:stories', 'deleteStory error:', error.message);
-                return { ok: false, error: error.message };
+            // Usamos fetch con _writeHeaders() para que el JWT del usuario llegue a RLS.
+            // El cliente SDK no siempre propaga la sesión en este contexto.
+            // ON DELETE CASCADE maneja la limpieza de mensajes, participantes, etc.
+            const headers = await _writeHeaders();
+            const url = `${SB_URL}/rest/v1/stories?id=eq.${encodeURIComponent(storyId)}`;
+            const res = await fetch(url, { method: 'DELETE', headers });
+            if (!res.ok) {
+                let errMsg = `HTTP ${res.status}`;
+                try { const body = await res.json(); errMsg = body?.message || body?.error || errMsg; } catch {}
+                logger?.warn('supabase:stories', 'deleteStory error:', errMsg);
+                return { ok: false, error: errMsg };
             }
             return { ok: true };
         } catch (e) {
