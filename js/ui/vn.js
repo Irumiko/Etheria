@@ -315,7 +315,22 @@ function getRelayPartyCharacterIds() {
         const normalized = String(charId || '').trim();
         if (normalized && !ids.includes(normalized)) ids.push(normalized);
     });
-    return ids.filter((charId) => appData.characters.some((c) => String(c.id) === charId));
+    const fromLocks = ids.filter((charId) => appData.characters.some((c) => String(c.id) === charId));
+    if (fromLocks.length > 0) return fromLocks;
+
+    // Fallback: si no hay characterLocks definidos, usar los personajes que han
+    // participado en los mensajes del topic (asegura que el panel siempre sea
+    // visible en modo RPG cuando hay personajes vinculados al hilo).
+    const msgs = currentTopicId ? getTopicMessages(currentTopicId) : [];
+    const fromMsgs = [];
+    for (const msg of msgs) {
+        if (!msg?.characterId) continue;
+        const charId = String(msg.characterId);
+        if (!fromMsgs.includes(charId) && appData.characters.some((c) => String(c.id) === charId)) {
+            fromMsgs.push(charId);
+        }
+    }
+    return fromMsgs;
 }
 
 function buildRelayPartyEntry(charId) {
