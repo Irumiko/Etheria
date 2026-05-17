@@ -194,8 +194,8 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 [data-theme="light"] .topics-empty span  { color: rgba(100,65,15,0.42) !important; }
 
 /* ════════════════════════════════════════════════════════════════════
-   Sección 12 — TOPICS SCREEN — Mesa Mística de Adivinación
-   Cartas de tarot con volteo 3D · grid compacto · Cinzel
+   Sección 12 — TOPICS SCREEN — Mesa Mística de Adivinación v2
+   Cartas de tarot ornamentadas · mandala SVG · numeración romana
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── 12.1  Barra superior ────────────────────────────────────────── */
@@ -283,7 +283,38 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     box-shadow: 0 0 20px rgba(163,134,80,0.28), 0 4px 14px rgba(0,0,0,0.38) !important;
 }
 
-/* ── 12.5  Buscador glassmorphism ────────────────────────────────── */
+/* ── 12.5  Pills de filtro ───────────────────────────────────────── */
+.topics-filter-group {
+    display: flex !important;
+    gap: 0.35rem !important;
+    flex-shrink: 0 !important;
+}
+.topic-filter-btn {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.63rem !important;
+    letter-spacing: 0.07em !important;
+    padding: 0.38rem 0.82rem !important;
+    border-radius: 5px !important;
+    border: 1px solid rgba(163,134,80,0.28) !important;
+    background: rgba(13,12,18,0.6) !important;
+    color: rgba(163,134,80,0.55) !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    white-space: nowrap !important;
+}
+.topic-filter-btn:hover {
+    border-color: rgba(163,134,80,0.55) !important;
+    color: #c9a86c !important;
+    background: rgba(163,134,80,0.08) !important;
+}
+.topic-filter-btn.active {
+    background: linear-gradient(135deg, rgba(115,78,18,0.65), rgba(60,38,6,0.78)) !important;
+    border-color: rgba(163,134,80,0.58) !important;
+    color: #d4ae5c !important;
+    box-shadow: 0 0 12px rgba(163,134,80,0.18) !important;
+}
+
+/* ── 12.6  Buscador glassmorphism ────────────────────────────────── */
 .topics-search-wrap {
     flex: 1 !important;
     min-width: 180px !important;
@@ -315,20 +346,19 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
                 inset 0 0 20px rgba(163,134,80,0.04) !important;
 }
 
-/* ── 12.6  Grid compacto de cartas de tarot ──────────────────────── */
+/* ── 12.7  Grid compacto de cartas de tarot ──────────────────────── */
 .topics-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
-    gap: 20px !important;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
+    gap: 22px !important;
     padding: 24px !important;
     align-items: start !important;
 }
 
-/* ── 12.7  Carta — dimensiones, perspectiva y entrada ───────────── */
+/* ── 12.8  Carta ornamentada — dimensiones y entrada ────────────── */
 .topic-card {
-    width: 150px !important;
-    height: 220px !important;
-    perspective: 1000px !important;
+    width: 160px !important;
+    height: 250px !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
@@ -336,221 +366,264 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     position: relative !important;
     justify-self: center !important;
     animation: eth-cardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
-    /* sin overflow hidden aquí — lo maneja cada cara */
+    transition: transform 0.22s ease, filter 0.22s ease !important;
     overflow: visible !important;
 }
-.topic-card:nth-child(1)    { animation-delay: 0.03s; }
-.topic-card:nth-child(2)    { animation-delay: 0.07s; }
-.topic-card:nth-child(3)    { animation-delay: 0.11s; }
-.topic-card:nth-child(4)    { animation-delay: 0.15s; }
-.topic-card:nth-child(5)    { animation-delay: 0.19s; }
-.topic-card:nth-child(n+6)  { animation-delay: 0.23s; }
+.topic-card:hover {
+    transform: translateY(-6px) !important;
+    filter: brightness(1.08) !important;
+}
+.topic-card:nth-child(1)   { animation-delay: 0.03s; }
+.topic-card:nth-child(2)   { animation-delay: 0.07s; }
+.topic-card:nth-child(3)   { animation-delay: 0.11s; }
+.topic-card:nth-child(4)   { animation-delay: 0.15s; }
+.topic-card:nth-child(5)   { animation-delay: 0.19s; }
+.topic-card:nth-child(n+6) { animation-delay: 0.23s; }
 @keyframes eth-cardIn {
-    from { opacity: 0; transform: translateY(14px) scale(0.94); }
+    from { opacity: 0; transform: translateY(16px) scale(0.93); }
     to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
-/* ── 12.8  Card-inner: eje de rotación 3D ───────────────────────── */
-.card-inner {
+/* ── 12.9  Marco exterior con borde ornamentado ─────────────────── */
+.card-outer-frame {
     position: relative !important;
     width: 100% !important;
     height: 100% !important;
-    transform-style: preserve-3d !important;
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.22s ease !important;
-}
-
-/* Hover — reclinamiento sutil (sólo cuando no está volteada) */
-.topic-card:not(.flipped):hover .card-inner {
-    transform: translateY(-4px) !important;
-}
-
-/* Volteo al activar .flipped */
-.topic-card.flipped .card-inner {
-    transform: rotateY(180deg) !important;
-}
-
-/* ── 12.9  Caras frontal y trasera — base compartida ────────────── */
-.card-front,
-.card-back {
-    position: absolute !important;
-    width: 100% !important;
-    height: 100% !important;
-    backface-visibility: hidden !important;
-    -webkit-backface-visibility: hidden !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
+    padding: 6px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
     overflow: hidden !important;
 }
 
-/* ── 12.10  Cara frontal: icono + título ─────────────────────────── */
-.card-front {
+/* ── 12.10  Marco interior (doble borde inset) ───────────────────── */
+.card-inner-frame {
+    position: relative !important;
+    flex: 1 !important;
+    border-radius: 6px !important;
+    padding: 9px 8px 7px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: center !important;
-    gap: 0.6rem !important;
-    padding: 1rem 0.75rem !important;
+    gap: 5px !important;
+    overflow: hidden !important;
+    z-index: 1 !important;
 }
-.card-icon {
-    font-size: 2.5rem !important;
-    line-height: 1 !important;
-    display: block !important;
+
+/* ── 12.11  Esquinas ornamentales (L en cada ángulo) ────────────── */
+.card-corner {
+    position: absolute !important;
+    width: 13px !important;
+    height: 13px !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+}
+.card-corner--tl { top: 3px;    left: 3px;    border-top: 1.5px solid; border-left: 1.5px solid; }
+.card-corner--tr { top: 3px;    right: 3px;   border-top: 1.5px solid; border-right: 1.5px solid; }
+.card-corner--bl { bottom: 3px; left: 3px;    border-bottom: 1.5px solid; border-left: 1.5px solid; }
+.card-corner--br { bottom: 3px; right: 3px;   border-bottom: 1.5px solid; border-right: 1.5px solid; }
+
+/* ── 12.12  Cabecera: título + autor ─────────────────────────────── */
+.card-header {
+    width: 100% !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
 }
 .card-title {
     font-family: 'Cinzel', serif !important;
-    font-size: 0.77rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.04em !important;
-    text-align: center !important;
-    line-height: 1.35 !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 3 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-    margin: 0 !important;
-}
-
-/* ── 12.11  Cara trasera: datos + botón de entrada ───────────────── */
-.card-back {
-    transform: rotateY(180deg) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.42rem !important;
-    padding: 1rem 0.75rem !important;
-    text-align: center !important;
-}
-.card-title-back {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.72rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.04em !important;
+    font-size: 0.6rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
     text-align: center !important;
     line-height: 1.3 !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
-    margin: 0 !important;
+    margin: 0 0 2px !important;
 }
 .card-author {
     font-family: 'Crimson Text', serif !important;
     font-style: italic !important;
-    font-size: 0.68rem !important;
+    font-size: 0.57rem !important;
     text-align: center !important;
     margin: 0 !important;
+    opacity: 0.7 !important;
 }
-.card-stats {
-    font-size: 0.67rem !important;
-    text-align: center !important;
-    opacity: 0.58 !important;
-    margin: 0 !important;
-}
-.btn-entrar-destino {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.63rem !important;
-    letter-spacing: 0.08em !important;
-    text-transform: uppercase !important;
-    padding: 0.38rem 0.75rem !important;
-    border-radius: 5px !important;
-    border: 1px solid !important;
-    cursor: pointer !important;
-    transition: background 0.2s, box-shadow 0.2s !important;
-    margin-top: 0.3rem !important;
+
+/* ── 12.13  Separador con diamante central ───────────────────────── */
+.card-divider {
     width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex-shrink: 0 !important;
+}
+.card-divider::before,
+.card-divider::after {
+    content: '' !important;
+    flex: 1 !important;
+    height: 1px !important;
+    opacity: 0.35 !important;
+}
+.card-divider-diamond {
+    font-size: 0.45rem !important;
+    line-height: 1 !important;
+    opacity: 0.65 !important;
+    flex-shrink: 0 !important;
 }
 
-/* ── 12.12  Identidad visual RPG ─────────────────────────────────── */
-.topic-card--rol .card-front,
-.topic-card--rol .card-back {
-    background: #120e0a !important;
-    border: 1px solid rgba(163,134,80,0.38) !important;
+/* ── 12.14  Mandala SVG con icono central ────────────────────────── */
+.card-mandala {
+    position: relative !important;
+    width: 90px !important;
+    height: 90px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 }
-.topic-card--rol .card-icon,
-.topic-card--rol .card-title,
-.topic-card--rol .card-title-back { color: #c9a86c !important; }
-.topic-card--rol .card-icon {
-    filter: drop-shadow(0 0 12px rgba(163,134,80,0.55)) !important;
+.card-mandala-svg {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    animation: eth-mandala-spin 40s linear infinite !important;
 }
-.topic-card--rol .card-author { color: rgba(163,134,80,0.55) !important; }
-.topic-card--rol .card-stats  { color: #c9a86c !important; }
-.topic-card--rol:hover .card-inner {
-    box-shadow: 0 10px 38px rgba(0,0,0,0.7),
-                0 0 22px rgba(163,134,80,0.14) !important;
+@keyframes eth-mandala-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
 }
-.topic-card--rol.flipped .card-inner {
-    box-shadow: 0 14px 48px rgba(0,0,0,0.75),
-                0 0 28px rgba(163,134,80,0.18) !important;
-}
-.topic-card--rol .btn-entrar-destino {
-    background: linear-gradient(135deg, rgba(115,78,18,0.75), rgba(60,38,6,0.88)) !important;
-    border-color: rgba(163,134,80,0.52) !important;
-    color: #c9a86c !important;
-}
-.topic-card--rol .btn-entrar-destino:hover {
-    background: linear-gradient(135deg, rgba(140,95,22,0.88), rgba(80,52,8,0.92)) !important;
-    box-shadow: 0 0 16px rgba(163,134,80,0.28) !important;
+.card-center-icon {
+    position: relative !important;
+    z-index: 2 !important;
+    font-size: 1.55rem !important;
+    line-height: 1 !important;
 }
 
-/* ── 12.13  Identidad visual Clásico ─────────────────────────────── */
-.topic-card--historia .card-front,
-.topic-card--historia .card-back {
-    background: #0a0f24 !important;
-    border: 1px solid rgba(170,190,230,0.30) !important;
+/* ── 12.15  Pie: número romano + conteo mensajes ─────────────────── */
+.card-footer-bar {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-shrink: 0 !important;
+    padding: 0 2px !important;
 }
-.topic-card--historia .card-icon,
-.topic-card--historia .card-title,
-.topic-card--historia .card-title-back { color: #a8bedd !important; }
-.topic-card--historia .card-icon {
-    filter: drop-shadow(0 0 12px rgba(140,170,230,0.55)) !important;
+.card-numeral {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.58rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+    opacity: 0.65 !important;
 }
-.topic-card--historia .card-author { color: rgba(140,170,230,0.55) !important; }
-.topic-card--historia .card-stats  { color: #a0b8e0 !important; }
-.topic-card--historia:hover .card-inner {
-    box-shadow: 0 10px 38px rgba(0,0,0,0.7),
-                0 0 22px rgba(140,170,230,0.12) !important;
+.card-msgs {
+    font-size: 0.53rem !important;
+    letter-spacing: 0.03em !important;
+    opacity: 0.6 !important;
 }
-.topic-card--historia.flipped .card-inner {
-    box-shadow: 0 14px 48px rgba(0,0,0,0.75),
-                0 0 28px rgba(140,170,230,0.16) !important;
-}
-.topic-card--historia .btn-entrar-destino {
-    background: linear-gradient(135deg, rgba(18,32,80,0.75), rgba(10,18,50,0.88)) !important;
-    border-color: rgba(140,170,230,0.42) !important;
-    color: #a8bedd !important;
-}
-.topic-card--historia .btn-entrar-destino:hover {
-    background: linear-gradient(135deg, rgba(24,42,100,0.88), rgba(14,24,65,0.92)) !important;
-    box-shadow: 0 0 16px rgba(140,170,230,0.22) !important;
+.card-turn-badge {
+    font-size: 0.53rem !important;
+    text-align: center !important;
+    width: 100% !important;
+    color: #e8c46a !important;
+    letter-spacing: 0.04em !important;
+    flex-shrink: 0 !important;
 }
 
-/* ── 12.14  Pulso de turno activo ────────────────────────────────── */
+/* ── 12.16  Identidad visual RPG ─────────────────────────────────── */
+.topic-card--rol .card-outer-frame {
+    background: #1a1008 !important;
+    border: 1px solid rgba(212,174,92,0.55) !important;
+    box-shadow: 0 0 0 2px rgba(26,16,8,0.9),
+                0 0 0 3px rgba(212,174,92,0.18),
+                0 12px 40px rgba(0,0,0,0.7),
+                inset 0 0 30px rgba(0,0,0,0.4) !important;
+}
+.topic-card--rol .card-inner-frame {
+    border: 1px solid rgba(212,174,92,0.2) !important;
+}
+.topic-card--rol .card-corner    { border-color: rgba(212,174,92,0.62) !important; }
+.topic-card--rol .card-title     { color: #d4ae5c !important; }
+.topic-card--rol .card-author    { color: rgba(212,174,92,0.62) !important; }
+.topic-card--rol .card-divider::before,
+.topic-card--rol .card-divider::after { background: rgba(212,174,92,0.55) !important; }
+.topic-card--rol .card-divider-diamond { color: #d4ae5c !important; }
+.topic-card--rol .card-numeral   { color: #d4ae5c !important; }
+.topic-card--rol .card-msgs      { color: rgba(212,174,92,0.7) !important; }
+.topic-card--rol .card-center-icon {
+    color: #d4ae5c !important;
+    filter: drop-shadow(0 0 8px rgba(212,174,92,0.5)) !important;
+}
+.topic-card--rol:hover .card-outer-frame {
+    box-shadow: 0 0 0 2px rgba(26,16,8,0.9),
+                0 0 0 3px rgba(212,174,92,0.3),
+                0 18px 52px rgba(0,0,0,0.75),
+                0 0 28px rgba(212,174,92,0.15),
+                inset 0 0 30px rgba(0,0,0,0.4) !important;
+}
+
+/* ── 12.17  Identidad visual Clásico ─────────────────────────────── */
+.topic-card--historia .card-outer-frame {
+    background: #0d1238 !important;
+    border: 1px solid rgba(154,180,224,0.45) !important;
+    box-shadow: 0 0 0 2px rgba(13,18,56,0.9),
+                0 0 0 3px rgba(154,180,224,0.14),
+                0 12px 40px rgba(0,0,0,0.7),
+                inset 0 0 30px rgba(0,0,0,0.4) !important;
+}
+.topic-card--historia .card-inner-frame {
+    border: 1px solid rgba(154,180,224,0.18) !important;
+}
+.topic-card--historia .card-corner    { border-color: rgba(154,180,224,0.55) !important; }
+.topic-card--historia .card-title     { color: #9ab4e0 !important; }
+.topic-card--historia .card-author    { color: rgba(154,180,224,0.62) !important; }
+.topic-card--historia .card-divider::before,
+.topic-card--historia .card-divider::after { background: rgba(154,180,224,0.5) !important; }
+.topic-card--historia .card-divider-diamond { color: #9ab4e0 !important; }
+.topic-card--historia .card-numeral   { color: #9ab4e0 !important; }
+.topic-card--historia .card-msgs      { color: rgba(154,180,224,0.7) !important; }
+.topic-card--historia .card-center-icon {
+    color: #9ab4e0 !important;
+    filter: drop-shadow(0 0 8px rgba(154,180,224,0.5)) !important;
+}
+.topic-card--historia:hover .card-outer-frame {
+    box-shadow: 0 0 0 2px rgba(13,18,56,0.9),
+                0 0 0 3px rgba(154,180,224,0.24),
+                0 18px 52px rgba(0,0,0,0.75),
+                0 0 22px rgba(154,180,224,0.12),
+                inset 0 0 30px rgba(0,0,0,0.4) !important;
+}
+
+/* ── 12.18  Pulso de turno activo ────────────────────────────────── */
 @keyframes topic-turn-gold {
-    0%,100% { box-shadow: 0 0 0 0 rgba(163,134,80,0); border-color: rgba(163,134,80,0.38); }
-    50%     { box-shadow: 0 0 24px 5px rgba(163,134,80,0.18), 0 0 0 2px rgba(163,134,80,0.16); border-color: rgba(163,134,80,0.72); }
+    0%,100% { box-shadow: 0 0 0 2px rgba(26,16,8,0.9), 0 0 0 3px rgba(212,174,92,0.18), 0 12px 40px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4); }
+    50%     { box-shadow: 0 0 0 2px rgba(26,16,8,0.9), 0 0 0 3px rgba(212,174,92,0.44), 0 12px 40px rgba(0,0,0,0.7), 0 0 28px rgba(212,174,92,0.26), inset 0 0 30px rgba(0,0,0,0.4); }
 }
 @keyframes topic-turn-silver {
-    0%,100% { box-shadow: 0 0 0 0 rgba(140,170,230,0); border-color: rgba(140,170,230,0.30); }
-    50%     { box-shadow: 0 0 22px 5px rgba(140,170,230,0.16), 0 0 0 2px rgba(140,170,230,0.14); border-color: rgba(140,170,230,0.65); }
+    0%,100% { box-shadow: 0 0 0 2px rgba(13,18,56,0.9), 0 0 0 3px rgba(154,180,224,0.14), 0 12px 40px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4); }
+    50%     { box-shadow: 0 0 0 2px rgba(13,18,56,0.9), 0 0 0 3px rgba(154,180,224,0.36), 0 12px 40px rgba(0,0,0,0.7), 0 0 22px rgba(154,180,224,0.2), inset 0 0 30px rgba(0,0,0,0.4); }
 }
-.topic-card--rol.topic-card--my-turn .card-front {
+.topic-card--rol.topic-card--my-turn .card-outer-frame {
     animation: topic-turn-gold 2.6s ease-in-out infinite !important;
 }
-.topic-card--historia.topic-card--my-turn .card-front {
+.topic-card--historia.topic-card--my-turn .card-outer-frame {
     animation: topic-turn-silver 2.6s ease-in-out infinite !important;
 }
 
-/* ── 12.15  Mobile ───────────────────────────────────────────────── */
+/* ── 12.19  Mobile ───────────────────────────────────────────────── */
 @media (max-width: 600px) {
     .topics-grid {
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
         gap: 14px !important;
         padding: 14px !important;
     }
-    .topic-card { width: 130px !important; height: 195px !important; }
-    .card-icon  { font-size: 2rem !important; }
-    .card-title, .card-title-back { font-size: 0.7rem !important; }
+    .topic-card     { width: 140px !important; height: 220px !important; }
+    .card-mandala   { width: 74px !important; height: 74px !important; }
+    .card-title     { font-size: 0.56rem !important; }
 }
 
 /* ════════════════════════════════════════════════════════════════════

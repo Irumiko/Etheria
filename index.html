@@ -375,6 +375,11 @@
                         <button onclick="openSessionManager()" class="btn-manage-topics" title="Seleccionar y eliminar varias historias a la vez">
                             <span>🗂 Gestionar</span>
                         </button>
+                        <div class="topics-filter-group">
+                            <button class="topic-filter-btn active" onclick="setTopicFilter('all', this)">TODAS</button>
+                            <button class="topic-filter-btn" onclick="setTopicFilter('roleplay', this)">+ CLÁSICO</button>
+                            <button class="topic-filter-btn" onclick="setTopicFilter('rpg', this)">⚜ RPG</button>
+                        </div>
                         <div class="topics-search-wrap">
                             <input type="text" id="topicsSearch" class="topics-search-input"
                                    placeholder="🔍 Interroga las estrellas..."

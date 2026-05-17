@@ -16612,6 +16612,16 @@ function filterTopics() {
     }, 180);
 }
 
+function toRoman(n) {
+    const vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
+    const syms = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+    let result = '';
+    for (let i = 0; i < vals.length; i++) {
+        while (n >= vals[i]) { result += syms[i]; n -= vals[i]; }
+    }
+    return result || 'I';
+}
+
 function renderTopics() {
     const container = document.getElementById('topicsList');
     if (!container) return;
@@ -16640,37 +16650,62 @@ function renderTopics() {
     } else if (topics.length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
     } else {
-        container.innerHTML = topics.map(t => {
-            // Datos mínimos necesarios para la carta de tarot
+        container.innerHTML = topics.map((t, idx) => {
             const msgs        = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
             const isRol       = t.mode === 'rpg' || t.mode === 'fanfic';
             const creatorName = normalizeCreatorName(t.createdBy);
-            const msgWord     = msgs.length === 1 ? 'mensaje' : 'mensajes';
+            const msgWord     = msgs.length === 1 ? 'msg' : 'msgs';
             const cardIcon    = isRol ? '⚜' : '✦';
+            const numeral     = toRoman(idx + 1);
+            const modeClass   = isRol ? 'topic-card--rol' : 'topic-card--historia';
+            const mandalaColor = isRol ? '#d4ae5c' : '#9ab4e0';
 
-            // Pulso de turno: destaca si es el turno del usuario en esta historia
             const isMeTurn = Array.isArray(t.turnOrder)
                 && t.turnOrder[0]
                 && String(t.turnOrder[0]) === String(window._cachedUserId);
             const turnClass = isMeTurn ? ' topic-card--my-turn' : '';
 
             return `
-                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}${turnClass}"
-                     onclick="this.classList.toggle('flipped')">
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <div class="card-icon">${cardIcon}</div>
-                            <h3 class="card-title">${escapeHtml(t.title)}</h3>
-                        </div>
-                        <div class="card-back">
-                            <h3 class="card-title-back">${escapeHtml(t.title)}</h3>
-                            <p class="card-author">por ${escapeHtml(creatorName)}</p>
-                            <div class="card-stats">💬 ${msgs.length} ${msgWord}</div>
-                            ${isMeTurn ? '<div class="card-stats" style="color:#e8c46a;opacity:1;">⏳ Tu turno</div>' : ''}
-                            <button class="btn-entrar-destino"
-                                    onclick="event.stopPropagation(); enterTopic('${_normalizeTopicId(t.id)}')">
-                                Entrar al destino
-                            </button>
+                <div class="topic-card ${modeClass}${turnClass}"
+                     onclick="enterTopic('${_normalizeTopicId(t.id)}')">
+                    <div class="card-outer-frame">
+                        <div class="card-corner card-corner--tl"></div>
+                        <div class="card-corner card-corner--tr"></div>
+                        <div class="card-corner card-corner--bl"></div>
+                        <div class="card-corner card-corner--br"></div>
+                        <div class="card-inner-frame">
+                            <div class="card-header">
+                                <h3 class="card-title">${escapeHtml(t.title)}</h3>
+                                <p class="card-author">por ${escapeHtml(creatorName)}</p>
+                            </div>
+                            <div class="card-divider"><span class="card-divider-diamond">◆</span></div>
+                            <div class="card-mandala" style="color:${mandalaColor}">
+                                <svg class="card-mandala-svg" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="44" cy="44" r="40" stroke="currentColor" stroke-width="0.8" opacity="0.6"/>
+                                    <circle cx="44" cy="44" r="32" stroke="currentColor" stroke-width="0.5" opacity="0.4"/>
+                                    <circle cx="44" cy="44" r="20" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
+                                    <circle cx="44" cy="44" r="4"  fill="currentColor"   opacity="0.3"/>
+                                    <line x1="44"  y1="4"    x2="44"  y2="84"   stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+                                    <line x1="4"   y1="44"   x2="84"  y2="44"   stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+                                    <line x1="15.7" y1="15.7" x2="72.3" y2="72.3" stroke="currentColor" stroke-width="0.4" opacity="0.2"/>
+                                    <line x1="72.3" y1="15.7" x2="15.7" y2="72.3" stroke="currentColor" stroke-width="0.4" opacity="0.2"/>
+                                    <circle cx="44"   cy="6"    r="2"   fill="currentColor" opacity="0.6"/>
+                                    <circle cx="44"   cy="82"   r="2"   fill="currentColor" opacity="0.6"/>
+                                    <circle cx="6"    cy="44"   r="2"   fill="currentColor" opacity="0.6"/>
+                                    <circle cx="82"   cy="44"   r="2"   fill="currentColor" opacity="0.6"/>
+                                    <circle cx="15.7" cy="15.7" r="1.5" fill="currentColor" opacity="0.35"/>
+                                    <circle cx="72.3" cy="15.7" r="1.5" fill="currentColor" opacity="0.35"/>
+                                    <circle cx="15.7" cy="72.3" r="1.5" fill="currentColor" opacity="0.35"/>
+                                    <circle cx="72.3" cy="72.3" r="1.5" fill="currentColor" opacity="0.35"/>
+                                </svg>
+                                <span class="card-center-icon">${cardIcon}</span>
+                            </div>
+                            <div class="card-divider"><span class="card-divider-diamond">◆</span></div>
+                            <div class="card-footer-bar">
+                                <span class="card-numeral">${numeral}</span>
+                                <span class="card-msgs">◆ ${msgs.length} ${msgWord}</span>
+                            </div>
+                            ${isMeTurn ? '<div class="card-turn-badge">⏳ Tu turno</div>' : ''}
                         </div>
                     </div>
                 </div>
