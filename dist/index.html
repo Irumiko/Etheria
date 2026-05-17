@@ -571,13 +571,9 @@ body,
                             <span>🗂 Gestionar</span>
                         </button>
                         <div class="topics-search-wrap">
-                            <span class="topics-search-icon">🔍</span>
-                            <input type="text" id="topicsSearch" class="topics-search-input" placeholder="Buscar historia..." oninput="filterTopics()">
-                        </div>
-                        <div class="topics-filter-group">
-                            <button class="topic-filter-btn active" data-filter="all" onclick="setTopicFilter('all', this)">Todas</button>
-                            <button class="topic-filter-btn" data-filter="roleplay" onclick="setTopicFilter('roleplay', this)">✦ Clásico</button>
-                            <button class="topic-filter-btn" data-filter="rpg" onclick="setTopicFilter('rpg', this)">⚜ RPG</button>
+                            <input type="text" id="topicsSearch" class="topics-search-input"
+                                   placeholder="🔍 Interroga las estrellas..."
+                                   oninput="filterTopics()">
                         </div>
                     </div>
                     <div id="topicsList" class="topics-grid"></div>
@@ -1246,74 +1242,36 @@ body,
         <div class="right-panel">
         <!-- Controles -->
         <nav class="vn-toolbar vn-classic-controls" aria-label="Menú VN clásico">
-            <!-- Grupo Navegación -->
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="firstMessage()" aria-label="Primer mensaje">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="3" x2="3" y2="13"/><polyline points="6,4 2,8 6,12"/><polyline points="11,4 7,8 11,12"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="previousMessage()" aria-label="Mensaje anterior">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/><line x1="10" y1="3" x2="10" y2="3"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="nextMessage()" aria-label="Mensaje siguiente">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,3 11,8 6,13"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="lastMessage()" aria-label="Último mensaje">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="13" y1="3" x2="13" y2="13"/><polyline points="5,4 9,8 5,12"/><polyline points="10,4 14,8 10,12"/></svg></span>
-                </button>
-            </div>
 
-            <div class="vn-classic-control-divider"></div>
-
-            <!-- Grupo Historial/Diario -->
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="openHistoryLog()" aria-label="Historial">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2 h7 l3 3 v9 a1 1 0 0 1-1 1 H4 a1 1 0 0 1-1-1 z"/><polyline points="10,2 10,5 13,5"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="MessageSearch.toggle()" aria-label="Buscar en historia" title="Buscar mensajes">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="9.5" y1="9.5" x2="13.5" y2="13.5"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-classic-control-slot">
-                <button data-vn-control="favorite-message" class="vn-classic-control-btn" onclick="toggleFavoriteCurrentMessage()" aria-label="Marcar favorito">
-                    <span class="vn-classic-control-icon" data-vn-control-icon="favorite-message"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="openJournal()" aria-label="Diario de sesión">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1" width="10" height="14" rx="1.5"/><line x1="2" y1="4" x2="3" y2="4"/><line x1="2" y1="8" x2="3" y2="8"/><line x1="2" y1="12" x2="3" y2="12"/><line x1="6" y1="5" x2="11" y2="5"/><line x1="6" y1="8" x2="11" y2="8"/><line x1="6" y1="11" x2="9" y2="11"/></svg></span>
-                </button>
-            </div>
-
-            <div class="vn-classic-control-divider"></div>
-
-            <!-- Grupo Herramientas -->
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="openSettings()" aria-label="Ajustes">
+            <!-- ── ZONA SUPERIOR: acciones críticas (destacadas) ──────── -->
+            <div class="vn-classic-control-slot vn-slot-prominent">
+                <button class="vn-classic-control-btn vn-btn-prominent" onclick="openSettings()" aria-label="Ajustes">
                     <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5 v1.8 M8 12.7 v1.8 M1.5 8 h1.8 M12.7 8 h1.8 M3.2 3.2 l1.3 1.3 M11.5 11.5 l1.3 1.3 M12.8 3.2 l-1.3 1.3 M4.5 11.5 l-1.3 1.3"/></svg></span>
+                </button>
+            </div>
+            <div class="vn-classic-control-slot vn-slot-prominent vn-slot-danger">
+                <button data-vn-control="delete-topic" class="vn-classic-control-btn vn-btn-prominent vn-btn-danger" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
+                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 14,4"/><path d="M5 4 V3 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 v1"/><rect x="4" y="5" width="8" height="8" rx="1"/><line x1="7" y1="7.5" x2="7" y2="11"/><line x1="9" y1="7.5" x2="9" y2="11"/></svg></span>
+                </button>
+            </div>
+
+            <div class="vn-classic-control-divider"></div>
+
+            <!-- ── ZONA MEDIA: registros (Historial, acceso al Diario desde dentro) ── -->
+            <div class="vn-classic-control-slot">
+                <button class="vn-classic-control-btn" onclick="openHistoryLog()" aria-label="Historial y notas">
+                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12" height="9" rx="1"/><path d="M2 4.5 l1.2-3 h9.6 l1.2 3"/><line x1="5.5" y1="8.5" x2="10.5" y2="8.5"/><line x1="5.5" y1="11" x2="8.5" y2="11"/></svg></span>
                 </button>
             </div>
             <div class="vn-classic-control-slot">
                 <button class="vn-classic-control-btn" onclick="openModal('shortcutsModal')" aria-label="Atajos de teclado">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M6 6.2 a2 2 0 1 1 2.5 2 c-.4.2-.5.6-.5 1.1"/><circle cx="8" cy="11.5" r="0.6" fill="currentColor" stroke="none"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-classic-control-slot">
-                <button data-vn-control="sync-now" class="vn-classic-control-btn is-synced" onclick="manualSyncFromScene()" aria-label="Sincronizar">
-                    <span class="vn-classic-control-icon" data-vn-control-icon="sync-now"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 a5 5 0 0 1 9-3"/><path d="M13 8 a5 5 0 0 1-9 3"/><polyline points="12,2 12,5 15,5"/><polyline points="4,11 4,14 1,14"/></svg></span>
+                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4" width="13" height="8.5" rx="1.5"/><circle cx="4.5" cy="7.5" r="0.65" fill="currentColor" stroke="none"/><circle cx="8" cy="7.5" r="0.65" fill="currentColor" stroke="none"/><circle cx="11.5" cy="7.5" r="0.65" fill="currentColor" stroke="none"/><line x1="5.5" y1="10.5" x2="10.5" y2="10.5"/></svg></span>
                 </button>
             </div>
 
             <div class="vn-classic-control-divider"></div>
 
-            <!-- Botón DM — gestión fuera del footer de rol -->
+            <!-- ── OPCIONALES: DM y Narrar (ocultos por defecto) ─────── -->
             <div class="vn-classic-control-slot">
                 <button data-vn-control="dm-panel" class="vn-classic-control-btn" type="button" onclick="handleActionButtonClick(event); toggleDmPanel()" style="display:none;" aria-label="Panel del Dungeon Master" title="Panel del Dungeon Master">
                     <span class="vn-classic-control-icon">
@@ -1321,10 +1279,6 @@ body,
                     </span>
                 </button>
             </div>
-
-            <div class="vn-classic-control-divider"></div>
-
-            <!-- Botón Narrar — visible en modo clásico para el owner -->
             <div data-vn-control-slot="narrate" class="vn-classic-control-slot" style="display:none;">
                 <button class="vn-classic-control-btn" onclick="openNarratePanel()" aria-label="Narrar / Nueva escena" title="Nueva escena">
                     <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 L5 10 L13 2 a1.4 1.4 0 0 1 2 2 L7 12 Z"/><path d="M11 4 l2 2"/><line x1="3" y1="14" x2="13" y2="14"/></svg></span>
@@ -1333,12 +1287,7 @@ body,
 
             <div class="vn-classic-control-divider"></div>
 
-            <!-- Grupo Salir/Borrar -->
-            <div class="vn-classic-control-slot">
-                <button data-vn-control="delete-topic" class="vn-classic-control-btn" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 14,4"/><path d="M5 4 V3 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 v1"/><rect x="4" y="5" width="8" height="8" rx="1"/><line x1="7" y1="7.5" x2="7" y2="11"/><line x1="9" y1="7.5" x2="9" y2="11"/></svg></span>
-                </button>
-            </div>
+            <!-- ── ZONA INFERIOR: salir ───────────────────────────────── -->
             <div class="vn-classic-control-slot" data-vn-control-slot="active-story" style="display:none">
                 <span data-vn-control-badge="active-story" class="vn-classic-active-story-badge" title="Historia en la nube activa" style="display:none"></span>
             </div>
@@ -1350,74 +1299,36 @@ body,
         </nav>
 
         <nav class="vn-toolbar vn-rpg-controls" aria-label="Menú VN RPG">
-            <!-- Grupo Navegación -->
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="firstMessage()" aria-label="Primer mensaje">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="3" x2="3" y2="13"/><polyline points="6,4 2,8 6,12"/><polyline points="11,4 7,8 11,12"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="previousMessage()" aria-label="Mensaje anterior">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/><line x1="10" y1="3" x2="10" y2="3"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="nextMessage()" aria-label="Mensaje siguiente">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,3 11,8 6,13"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="lastMessage()" aria-label="Último mensaje">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="13" y1="3" x2="13" y2="13"/><polyline points="5,4 9,8 5,12"/><polyline points="10,4 14,8 10,12"/></svg></span>
-                </button>
-            </div>
 
-            <div class="vn-rpg-control-divider"></div>
-
-            <!-- Grupo Historial/Diario -->
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="openHistoryLog()" aria-label="Historial">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2 h7 l3 3 v9 a1 1 0 0 1-1 1 H4 a1 1 0 0 1-1-1 z"/><polyline points="10,2 10,5 13,5"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="9" y2="10"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="MessageSearch.toggle()" aria-label="Buscar en historia" title="Buscar mensajes">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="9.5" y1="9.5" x2="13.5" y2="13.5"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-rpg-control-slot">
-                <button data-vn-control="favorite-message" class="vn-rpg-control-btn" onclick="toggleFavoriteCurrentMessage()" aria-label="Marcar favorito">
-                    <span class="vn-rpg-control-icon" data-vn-control-icon="favorite-message"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="openJournal()" aria-label="Diario de sesión">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1" width="10" height="14" rx="1.5"/><line x1="2" y1="4" x2="3" y2="4"/><line x1="2" y1="8" x2="3" y2="8"/><line x1="2" y1="12" x2="3" y2="12"/><line x1="6" y1="5" x2="11" y2="5"/><line x1="6" y1="8" x2="11" y2="8"/><line x1="6" y1="11" x2="9" y2="11"/></svg></span>
-                </button>
-            </div>
-
-            <div class="vn-rpg-control-divider"></div>
-
-            <!-- Grupo Herramientas -->
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="openSettings()" aria-label="Ajustes">
+            <!-- ── ZONA SUPERIOR: acciones críticas (destacadas) ──────── -->
+            <div class="vn-rpg-control-slot vn-slot-prominent">
+                <button class="vn-rpg-control-btn vn-btn-prominent" onclick="openSettings()" aria-label="Ajustes">
                     <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5 v1.8 M8 12.7 v1.8 M1.5 8 h1.8 M12.7 8 h1.8 M3.2 3.2 l1.3 1.3 M11.5 11.5 l1.3 1.3 M12.8 3.2 l-1.3 1.3 M4.5 11.5 l-1.3 1.3"/></svg></span>
+                </button>
+            </div>
+            <div class="vn-rpg-control-slot vn-slot-prominent vn-slot-danger">
+                <button data-vn-control="delete-topic" class="vn-rpg-control-btn vn-btn-prominent vn-btn-danger" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
+                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 14,4"/><path d="M5 4 V3 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 v1"/><rect x="4" y="5" width="8" height="8" rx="1"/><line x1="7" y1="7.5" x2="7" y2="11"/><line x1="9" y1="7.5" x2="9" y2="11"/></svg></span>
+                </button>
+            </div>
+
+            <div class="vn-rpg-control-divider"></div>
+
+            <!-- ── ZONA MEDIA: registros (Historial, acceso al Diario desde dentro) ── -->
+            <div class="vn-rpg-control-slot">
+                <button class="vn-rpg-control-btn" onclick="openHistoryLog()" aria-label="Historial y notas">
+                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12" height="9" rx="1"/><path d="M2 4.5 l1.2-3 h9.6 l1.2 3"/><line x1="5.5" y1="8.5" x2="10.5" y2="8.5"/><line x1="5.5" y1="11" x2="8.5" y2="11"/></svg></span>
                 </button>
             </div>
             <div class="vn-rpg-control-slot">
                 <button class="vn-rpg-control-btn" onclick="openModal('shortcutsModal')" aria-label="Atajos de teclado">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.5"/><path d="M6 6.2 a2 2 0 1 1 2.5 2 c-.4.2-.5.6-.5 1.1"/><circle cx="8" cy="11.5" r="0.6" fill="currentColor" stroke="none"/></svg></span>
-                </button>
-            </div>
-            <div class="vn-rpg-control-slot">
-                <button data-vn-control="sync-now" class="vn-rpg-control-btn is-synced" onclick="manualSyncFromScene()" aria-label="Sincronizar">
-                    <span class="vn-rpg-control-icon" data-vn-control-icon="sync-now"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 a5 5 0 0 1 9-3"/><path d="M13 8 a5 5 0 0 1-9 3"/><polyline points="12,2 12,5 15,5"/><polyline points="4,11 4,14 1,14"/></svg></span>
+                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4" width="13" height="8.5" rx="1.5"/><circle cx="4.5" cy="7.5" r="0.65" fill="currentColor" stroke="none"/><circle cx="8" cy="7.5" r="0.65" fill="currentColor" stroke="none"/><circle cx="11.5" cy="7.5" r="0.65" fill="currentColor" stroke="none"/><line x1="5.5" y1="10.5" x2="10.5" y2="10.5"/></svg></span>
                 </button>
             </div>
 
             <div class="vn-rpg-control-divider"></div>
 
-            <!-- Botón DM — gestión fuera del footer de rol -->
+            <!-- ── OPCIONALES: DM y Narrar (ocultos por defecto) ─────── -->
             <div class="vn-rpg-control-slot">
                 <button data-vn-control="dm-panel" class="vn-rpg-control-btn" type="button" onclick="handleActionButtonClick(event); toggleDmPanel()" style="display:none;" aria-label="Panel del Dungeon Master" title="Panel del Dungeon Master">
                     <span class="vn-rpg-control-icon">
@@ -1425,10 +1336,6 @@ body,
                     </span>
                 </button>
             </div>
-
-            <div class="vn-rpg-control-divider"></div>
-
-            <!-- Botón Narrar — visible en modo clásico para el owner -->
             <div data-vn-control-slot="narrate" class="vn-rpg-control-slot" style="display:none;">
                 <button class="vn-rpg-control-btn" onclick="openNarratePanel()" aria-label="Narrar / Nueva escena" title="Nueva escena">
                     <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 L5 10 L13 2 a1.4 1.4 0 0 1 2 2 L7 12 Z"/><path d="M11 4 l2 2"/><line x1="3" y1="14" x2="13" y2="14"/></svg></span>
@@ -1437,12 +1344,7 @@ body,
 
             <div class="vn-rpg-control-divider"></div>
 
-            <!-- Grupo Salir/Borrar -->
-            <div class="vn-rpg-control-slot">
-                <button data-vn-control="delete-topic" class="vn-rpg-control-btn" onclick="deleteCurrentTopic()" aria-label="Borrar historia">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,4 14,4"/><path d="M5 4 V3 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 v1"/><rect x="4" y="5" width="8" height="8" rx="1"/><line x1="7" y1="7.5" x2="7" y2="11"/><line x1="9" y1="7.5" x2="9" y2="11"/></svg></span>
-                </button>
-            </div>
+            <!-- ── ZONA INFERIOR: salir ───────────────────────────────── -->
             <div class="vn-rpg-control-slot" data-vn-control-slot="active-story" style="display:none">
                 <span data-vn-control-badge="active-story" class="vn-rpg-active-story-badge" title="Historia en la nube activa" style="display:none"></span>
             </div>
@@ -1476,15 +1378,16 @@ body,
         </div>
 
         <div class="vn-dialogue-box" onclick="handleDialogueClick()">
-            <!-- Botón de reacción — esquina superior derecha -->
-            <button id="vnReactionCornerBtn" class="vn-reaction-corner-btn" type="button"
-                    onclick="event.stopPropagation(); toggleReactionPicker()"
-                    aria-label="Reaccionar al mensaje" title="Reaccionar">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-  <path d="M12 5.67 L14 8 L17 9 L15 12 L16 15 L12 13.5 L8 15 L9 12 L7 9 L10 8 Z" stroke-width="0" fill="currentColor" opacity="0.25"/>
-</svg>
-                <span id="vnReactionCornerActive" class="vn-reaction-corner-active" style="display:none;"></span>
+            <!-- Favorito — esquina superior derecha (reemplaza reacción) -->
+            <button id="vnReactionCornerBtn" class="vn-reaction-corner-btn vn-favorite-corner-btn" type="button"
+                    data-vn-control="favorite-message"
+                    onclick="event.stopPropagation(); toggleFavoriteCurrentMessage()"
+                    aria-label="Marcar favorito" title="Marcar como favorito">
+                <span data-vn-control-icon="favorite-message">
+                    <svg viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="8,2 10,6 14,6.5 11,9.5 11.8,13.5 8,11.5 4.2,13.5 5,9.5 2,6.5 6,6"/>
+                    </svg>
+                </span>
             </button>
             <div id="vnSpeakerPlate" class="vn-speaker-plate">Nombre</div>
             <div id="vnSpeakerAvatar" class="vn-speaker-avatar">👤</div>
@@ -1542,8 +1445,20 @@ body,
             <div id="vnContinueIndicator" class="vn-continue-indicator"></div>
             <div class="vn-dialogue-footer">
                 <div class="vn-counter-dice-wrap">
+                    <button class="vn-nav-mini-btn" onclick="firstMessage()" aria-label="Primer mensaje" title="Primer mensaje">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="3" x2="3" y2="13"/><polyline points="6,4 2,8 6,12"/><polyline points="11,4 7,8 11,12"/></svg>
+                    </button>
+                    <button class="vn-nav-mini-btn" onclick="previousMessage()" aria-label="Mensaje anterior" title="Anterior">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="10,3 5,8 10,13"/></svg>
+                    </button>
                     <div id="vnMessageCounter" class="vn-message-counter">0 / 0</div>
                     <div id="vnDiceBadge" class="vn-dice-badge" style="display:none;"></div>
+                    <button class="vn-nav-mini-btn" onclick="nextMessage()" aria-label="Mensaje siguiente" title="Siguiente">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,3 11,8 6,13"/></svg>
+                    </button>
+                    <button class="vn-nav-mini-btn" onclick="lastMessage()" aria-label="Último mensaje" title="Último mensaje">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="13" y1="3" x2="13" y2="13"/><polyline points="5,4 9,8 5,12"/><polyline points="10,4 14,8 10,12"/></svg>
+                    </button>
                 </div>
                 <div class="vn-dialogue-actions">
                     <!-- Barra de Aventura + utilidades -->
@@ -1914,6 +1829,7 @@ body,
                     <button class="history-tab" id="histTabChapters" onclick="switchHistoryTab('chapters')">📖 Capítulos</button>
                 </div>
                 <button onclick="exportHistoryAsDocument()" class="btn-secondary" style="padding:0.35rem 0.85rem; font-size:0.82rem;" title="Exportar como documento" aria-label="Exportar historia">⬇ Exportar</button>
+                <button onclick="closeModal('historyModal'); openJournal()" class="btn-secondary" style="padding:0.35rem 0.85rem; font-size:0.82rem;" title="Abrir diario de sesión" aria-label="Diario de sesión">📓 Diario</button>
                 <button onclick="closeModal('historyModal')" class="btn-secondary" aria-label="Cerrar historial">✕ Cerrar</button>
             </div>
             <div id="historyContent" class="history-content"></div>
@@ -10864,6 +10780,13 @@ window.SupabaseSync = SupabaseSync;
         get activeStoryId() { return _storyId; }
     };
 
+    // Limpiar canal Realtime automáticamente al cerrar sesión
+    global.addEventListener('etheria:auth-changed', function(e) {
+        if (!e.detail?.user) {
+            leaveStory().catch(function() {});
+        }
+    });
+
 })(window);
 
 </script>
@@ -15265,22 +15188,12 @@ function renderVirtualizedHistory(msgs, container) {
     paint();
 }
 
+// NOTA: esta implementación es el fallback legacy de openHistoryLog.
+// journal.js (cargado después) sobreescribe esta función con la versión
+// definitiva que soporta pestañas, favoritos y diario de sesión.
+// No modificar aquí — cualquier cambio debe hacerse en js/ui/journal.js.
 function openHistoryLog() {
-    // Resetear a pestaña "Todos" al abrir para consistencia
-    if (typeof currentHistoryTab !== 'undefined') {
-        currentHistoryTab = 'all';
-        document.getElementById('histTabAll')?.classList.add('active');
-        document.getElementById('histTabFav')?.classList.remove('active');
-    }
-
-    // Usar renderHistoryContent si está disponible (soporta pestañas favoritos)
-    if (typeof renderHistoryContent === 'function') {
-        openModal('historyModal');
-        renderHistoryContent();
-        return;
-    }
-
-    // Fallback: renderizado directo sin pestañas
+    // Fallback minimal: renderizado directo sin pestañas (usado solo si journal.js no carga)
     const msgs = getTopicMessages(currentTopicId);
     const container = document.getElementById('historyContent');
     if (!container) return;
@@ -19032,108 +18945,37 @@ function renderTopics() {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
     } else {
         container.innerHTML = topics.map(t => {
-            // Usar mensajes en memoria si están cargados, evitar cargar desde storage en cada render
-            const msgs = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
-            const last = msgs[msgs.length - 1];
-            const lastText = last ? stripHtml(formatText(last.text)).substring(0, 80) : '';
-            const isRol    = t.mode === 'rpg' || t.mode === 'fanfic';
-            const modeLabel = getStoryModeLabel(t.mode);
-            const weatherBadge = t.weather === 'rain'
-                ? '<span class="topic-badge weather">🌧 Lluvia</span>'
-                : t.weather === 'fog'
-                ? '<span class="topic-badge weather">🌫 Niebla</span>'
-                : '';
-
-            // SVG de ornamento de esquina — acero para RPG, tinta sepia para Clásico
-            const cornerColor = isRol ? 'rgba(190,165,120,0.6)' : 'rgba(139,100,55,0.45)';
-            const cornerSvg = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 11 L2 2 L11 2" stroke="${cornerColor}" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-                <circle cx="2" cy="2" r="1.8" fill="${cornerColor}"/>
-                <path d="M6 2 L6 4.5 M2 6 L4.5 6" stroke="${cornerColor}" stroke-width="0.9" opacity="0.6"/>
-            </svg>`;
-
-            // SVG de marca de agua — escudo para RPG, libro para Clásico
-            const watermarkColor = isRol ? 'rgba(210,185,145,1)' : 'rgba(160,115,55,1)';
-            const watermarkSvg = isRol
-                ? `<svg viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M40 5 L72 18 L72 45 C72 63 57 78 40 85 C23 78 8 63 8 45 L8 18 Z" stroke="${watermarkColor}" stroke-width="2.5" fill="none"/>
-                    <path d="M40 5 L72 18 L72 45 C72 63 57 78 40 85 C23 78 8 63 8 45 L8 18 Z" fill="${watermarkColor}" fill-opacity="0.06"/>
-                    <line x1="40" y1="18" x2="40" y2="72" stroke="${watermarkColor}" stroke-width="1.5"/>
-                    <line x1="12" y1="38" x2="68" y2="38" stroke="${watermarkColor}" stroke-width="1.5"/>
-                    <circle cx="40" cy="38" r="7" stroke="${watermarkColor}" stroke-width="1.5" fill="none"/>
-                    <path d="M26 24 L40 18 L54 24" stroke="${watermarkColor}" stroke-width="1" fill="none" opacity="0.6"/>
-                  </svg>`
-                : `<svg viewBox="0 0 90 75" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M45 10 C35 6 18 8 8 14 L8 68 C18 62 35 60 45 64 C55 60 72 62 82 68 L82 14 C72 8 55 6 45 10 Z" stroke="${watermarkColor}" stroke-width="2" fill="none"/>
-                    <line x1="45" y1="10" x2="45" y2="64" stroke="${watermarkColor}" stroke-width="1.5"/>
-                    <line x1="16" y1="28" x2="40" y2="28" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="16" y1="36" x2="40" y2="36" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="16" y1="44" x2="38" y2="44" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="50" y1="28" x2="74" y2="28" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="50" y1="36" x2="74" y2="36" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="50" y1="44" x2="72" y2="44" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                  </svg>`;
-
-            // Personaje principal si tiene roleCharacterId
-            let charAvatarHtml = '';
-            if (t.roleCharacterId) {
-                const char = appData.characters.find(c => String(c.id) === String(t.roleCharacterId));
-                if (char && char.avatar) {
-                    charAvatarHtml = `<img src="${escapeHtml(char.avatar)}" class="topic-card-char-avatar" alt="${escapeHtml(char.name)}">`;
-                }
-            }
-
-            const msgWord = msgs.length === 1 ? 'mensaje' : 'mensajes';
+            // Datos mínimos necesarios para la carta de tarot
+            const msgs        = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
+            const isRol       = t.mode === 'rpg' || t.mode === 'fanfic';
             const creatorName = normalizeCreatorName(t.createdBy);
-            const lastActivityDate = last?.timestamp || t.createdAt || t.date || null;
-            const lastActivityLabel = formatRelativeDayLabel(lastActivityDate);
-            const progressCurrent = Math.min(msgs.length, 10);
-            const progressPct = Math.min(100, Math.round((progressCurrent / 10) * 100));
+            const msgWord     = msgs.length === 1 ? 'mensaje' : 'mensajes';
+            const cardIcon    = isRol ? '⚜' : '✦';
 
-            // ── Sello del modo (columna izquierda de la carta horizontal) ──
-            const sealIcon  = isRol ? '⚜' : '✦';
-            const sealLabel = isRol ? 'RPG' : 'Clásico';
-
-            // ── Pulso de turno activo: destaca si es el turno del usuario en esta historia ──
+            // Pulso de turno: destaca si es el turno del usuario en esta historia
             const isMeTurn = Array.isArray(t.turnOrder)
                 && t.turnOrder[0]
                 && String(t.turnOrder[0]) === String(window._cachedUserId);
             const turnClass = isMeTurn ? ' topic-card--my-turn' : '';
 
             return `
-                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}${turnClass}" onclick="enterTopic('${_normalizeTopicId(t.id)}')">
-                    <div class="topic-card-accent">
-                        <span class="topic-card-seal-icon" aria-hidden="true">${sealIcon}</span>
-                        <span class="topic-card-seal-label">${escapeHtml(sealLabel)}</span>
-                    </div>
-                    <div class="topic-card-watermark">${watermarkSvg}</div>
-                    <span class="topic-card-corner topic-card-corner--tl">${cornerSvg}</span>
-                    <span class="topic-card-corner topic-card-corner--tr">${cornerSvg}</span>
-                    <span class="topic-card-corner topic-card-corner--bl">${cornerSvg}</span>
-                    <span class="topic-card-corner topic-card-corner--br">${cornerSvg}</span>
-                    <div class="topic-card-inner">
-                        <div class="topic-card-top">
-                            <div class="topic-card-badges">
-                                <span class="topic-badge mode">${modeLabel}</span>
-                                ${weatherBadge}
-                                ${isMeTurn ? '<span class="topic-badge topic-badge--turn">⏳ Tu turno</span>' : ''}
-                            </div>
+                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}${turnClass}"
+                     onclick="this.classList.toggle('flipped')">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="card-icon">${cardIcon}</div>
+                            <h3 class="card-title">${escapeHtml(t.title)}</h3>
                         </div>
-                        <h3 class="topic-card-title">${escapeHtml(t.title)}</h3>
-                        <p class="topic-card-author">por ${escapeHtml(creatorName)}</p>
-                        <p class="topic-card-excerpt topic-card-excerpt--meta">${escapeHtml(lastActivityLabel)}</p>
-                        ${lastText ? `<p class="topic-card-excerpt">"${escapeHtml(lastText)}${lastText.length >= 80 ? '…' : ''}"</p>` : '<p class="topic-card-excerpt topic-card-excerpt--empty">Sin mensajes aún. <strong>Escribe el primer capítulo</strong>.</p>'}
-                    </div>
-                    <div class="topic-card-footer">
-                        <span class="topic-card-footer-msgs">
-                            <span class="topic-card-footer-msgs-icon">${isRol ? '⚜' : '✦'}</span>
-                            ${msgs.length > 0 ? `${msgs.length} ${msgWord}` : '—'}
-                        </span>
-                        <div class="topic-card-progress" title="Progreso de introducción">
-                            <div class="topic-card-progress-bar" style="width:${progressPct}%"></div>
-                            <span class="topic-card-progress-text">${progressCurrent}/10</span>
+                        <div class="card-back">
+                            <h3 class="card-title-back">${escapeHtml(t.title)}</h3>
+                            <p class="card-author">por ${escapeHtml(creatorName)}</p>
+                            <div class="card-stats">💬 ${msgs.length} ${msgWord}</div>
+                            ${isMeTurn ? '<div class="card-stats" style="color:#e8c46a;opacity:1;">⏳ Tu turno</div>' : ''}
+                            <button class="btn-entrar-destino"
+                                    onclick="event.stopPropagation(); enterTopic('${_normalizeTopicId(t.id)}')">
+                                Entrar al destino
+                            </button>
                         </div>
-                        ${charAvatarHtml}
                     </div>
                 </div>
             `;
@@ -19383,7 +19225,7 @@ function createTopic() {
             SupabaseStories.upsertStory(topicRef).then(function(result) {
                 if (result.ok && result.storyId) {
                     topicRef.storyId = result.storyId;
-                    global.currentStoryId = result.storyId;
+                    window.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
                 } else {
@@ -21156,33 +20998,11 @@ function _generateStoryCode() {
     return out;
 }
 
-function _drawStoryCodeQr(code) {
-    const canvas = document.getElementById('storyCodeQrCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const size = 22;
-    const cell = Math.floor(canvas.width / size);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    let seed = 0;
-    for (let i = 0; i < code.length; i++) seed = (seed * 31 + code.charCodeAt(i)) >>> 0;
-    for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-            const v = (x * 73856093) ^ (y * 19349663) ^ seed;
-            const on = ((v >>> 2) & 1) === 1 || x < 2 || y < 2 || x > size - 3 || y > size - 3;
-            if (on) {
-                ctx.fillStyle = '#111';
-                ctx.fillRect(x * cell, y * cell, cell - 1, cell - 1);
-            }
-        }
-    }
-}
 
-function _lzCompress(str) {
-    // Compresión simple run-length para reducir tamaño del código exportado
+function _formatStoryText(str) {
+    // Prepara el texto de la historia para exportación (btoa ya gestiona la codificación)
     try {
-        // Intentar usar CompressionStream si está disponible (navegadores modernos)
-        return str; // fallback: sin compresión adicional (btoa ya es suficiente)
+        return str;
     } catch { return str; }
 }
 
@@ -21227,7 +21047,7 @@ function exportCurrentStoryAsCode() {
 
     const serialized = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const kb = Math.round(serialized.length / 1024);
-    if (kb > 4000) {
+    if (kb > 400) {
         showAutosave(`Historia muy grande (${kb}KB). Solo se exportarán los últimos 200 mensajes.`, 'error');
     }
     let code = _generateStoryCode();
@@ -21246,7 +21066,6 @@ function exportCurrentStoryAsCode() {
 
     const codeEl = document.getElementById('storyCodeValue');
     if (codeEl) codeEl.textContent = code;
-    _drawStoryCodeQr(code);
     openModal('storyCodeModal');
     showAutosave('Código de historia generado', 'saved');
 }
@@ -25984,6 +25803,7 @@ function showAuthMain() {
     document.getElementById('authMainView').classList.add('active');
     setAuthStatus('', null, 'authStatus');
     setAuthStatus('', null, 'authRegStatus');
+    setAuthStatus('', null, 'authForgotStatus'); // limpiar mensaje de "recuperar contraseña" al volver
 }
 
 function continueAsGuest() {
@@ -28596,8 +28416,7 @@ window.Ethy = Ethy;
         <div class="modal" style="max-width:420px;">
             <h3 style="margin-top:0; font-family:Cinzel,serif;">🔐 Código de historia</h3>
             <div id="storyCodeValue" style="font-size:1.5rem; letter-spacing:0.2em; color:var(--accent-gold); margin-bottom:0.6rem;"></div>
-            <canvas id="storyCodeQrCanvas" width="220" height="220" style="display:block; margin:0 auto 0.7rem; background:#fff; border-radius:8px;"></canvas>
-            <p style="font-size:0.85rem; color:var(--text-muted); margin:0 0 0.8rem;">Comparte este código de 6 caracteres o el QR (escanear con otra app).</p>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin:0 0 0.8rem;">Comparte este código de 6 caracteres con otros jugadores para que puedan unirse a la historia.</p>
             <button class="btn-primary" onclick="closeModal('storyCodeModal')" style="width:100%;">Cerrar</button>
         </div>
     </div>
