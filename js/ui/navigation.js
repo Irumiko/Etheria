@@ -229,6 +229,7 @@ function backToMenu() {
             if (mainMenu) {
                 mainMenu.classList.remove('hidden');
                 generateParticles();
+                if (typeof initHub === 'function') initHub();
                 eventBus.emit('audio:start-menu-music');
                 const particles = document.getElementById('particlesContainer');
                 if (particles) particles.style.transform = '';

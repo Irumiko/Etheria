@@ -275,85 +275,306 @@
         </div>
     </div>
 
-    <!-- Main Menu -->
+    <!-- Main Menu — Hub rediseñado -->
     <div id="mainMenu" class="main-menu hidden">
-        <!-- Botón día/noche esquina superior derecha -->
-        <button class="menu-theme-toggle" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar entre modo día y noche">
-            <span class="menu-theme-toggle__icon" id="menuThemeIcon">🌙</span>
-        </button>
-        <div class="menu-parallax" id="menuParallax">
-            <div class="parallax-layer layer-bg-day"   data-speed="0.02"></div>
-            <div class="parallax-layer layer-mid-day"  data-speed="0.05"></div>
-            <div class="parallax-layer layer-fg-day"   data-speed="0.10"></div>
-            <div class="parallax-layer layer-bg-night" data-speed="0.02"></div>
-            <div class="parallax-layer layer-mid-night" data-speed="0.05"></div>
-            <div class="parallax-layer layer-fg-night" data-speed="0.10"></div>
-        </div>
-        <!-- Canvas de partículas: luciérnagas (noche) + pétalos (día) -->
+
+        <!-- Fondo pixel-art con parallax -->
+        <div class="hub-bg" aria-hidden="true"></div>
+
+        <!-- Capas atmosféricas -->
+        <div class="hub-wash"    aria-hidden="true"></div>
+        <div class="hub-rays"    aria-hidden="true"></div>
+        <div class="hub-stars"   aria-hidden="true"></div>
+        <div class="hub-vignette" aria-hidden="true"></div>
+
+        <!-- Canvas de partículas heredado (pétalos / luciérnagas) -->
         <canvas class="menu-fireflies" id="particlesContainer"></canvas>
 
-        <!-- Sidebar oculta — mantenida por compatibilidad con JS -->
-        <div class="menu-sidebar" style="display:none!important"></div>
+        <!-- Compat: parallax vacío para initMenuParallax() -->
+        <div id="menuParallax" style="display:none"></div>
 
-        <!-- Contenido central sobre el fondo -->
-        <div class="menu-center-content">
-            <div class="menu-brand">
-                <h1 class="menu-title"><span class="menu-title-animated"><span class="title-letter">E</span><span class="title-letter">T</span><span class="title-letter">H</span><span class="title-letter">E</span><span class="title-letter">R</span><span class="title-letter">I</span><span class="title-letter">A</span></span></h1>
-                <p class="menu-subtitle">Una Historia Interactiva</p>
+        <!-- Compat: menuThemeIcon actualizado por toggleTheme() -->
+        <span id="menuThemeIcon" style="display:none" aria-hidden="true">🌙</span>
+
+        <!-- ── Chip de usuario (arriba izquierda) ── -->
+        <button class="hub-user-chip" onclick="openProfileModal()" title="Editar perfil" aria-label="Perfil de usuario">
+            <div class="hub-avatar">
+                <img class="hub-avatar-img" id="menuProfileImg" src="" alt="" style="display:none">
+                <span class="hub-avatar-initial" id="menuProfileInitial">?</span>
+                <span class="hub-avatar-status" aria-hidden="true"></span>
             </div>
-
-            <div class="menu-container">
-                <button class="menu-button menu-button-console primary" onclick="showSection('topics')">
-                    <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><path d="M10 2L12.5 7.5H18L13.5 11L15.5 17L10 13.5L4.5 17L6.5 11L2 7.5H7.5L10 2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-                    <span class="menu-label">Nueva Partida</span>
-                </button>
-                <button class="menu-button menu-button-console" onclick="showSection('gallery')">
-                    <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/><path d="M3 17c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-                    <span class="menu-label">Personajes</span>
-                </button>
-                <button class="menu-button menu-button-console" onclick="showSection('bonds')">
-                    <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><path d="M10 5c0-2 3-3.5 4.5-2S16 7 14 8.5L10 12 6 8.5C4 7 4 3.5 5.5 3S10 3 10 5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M4 15.5c1-1.5 3.5-2.5 6-2.5s5 1 6 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-                    <span class="menu-label">Vínculos</span>
-                </button>
-                <button class="menu-button menu-button-console" onclick="showSection('options')">
-                    <svg class="menu-svg-icon" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-                    <span class="menu-label">Opciones</span>
-                </button>
-
+            <div class="hub-user-info">
+                <div class="hub-user-name" id="currentUserDisplay">Jugador</div>
+                <div class="hub-user-sub"  id="menuProfileHint">En línea</div>
             </div>
-        </div>
+        </button>
 
-        <!-- Footer: perfil + botón sutil de guardado -->
-        <div class="menu-footer">
-            <button class="menu-profile-btn" onclick="openProfileModal()" aria-label="Personalizar perfil">
-                <div class="menu-profile-avatar" id="menuProfileAvatar">
-                    <span class="menu-profile-initial" id="menuProfileInitial">?</span>
-                    <img class="menu-profile-img" id="menuProfileImg" src="" alt="" style="display:none">
-                </div>
-                <div class="menu-profile-info">
-                    <span class="menu-profile-name" id="currentUserDisplay">Jugador</span>
-                    <span class="menu-profile-hint" id="menuProfileHint">Toca para editar perfil</span>
-                </div>
-                <svg class="menu-profile-chevron" viewBox="0 0 12 12" fill="none"><path d="M4 2l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <!-- ── Controles (arriba derecha) ── -->
+        <div class="hub-controls">
+            <button class="hub-day-night" onclick="hubToggleTheme()" title="Cambiar tema" aria-label="Alternar día y noche">
+                <span class="hub-dn-star hub-dn-star-1" aria-hidden="true"></span>
+                <span class="hub-dn-star hub-dn-star-2" aria-hidden="true"></span>
+                <span class="hub-dn-star hub-dn-star-3" aria-hidden="true"></span>
+                <span class="hub-dn-thumb" aria-hidden="true"></span>
             </button>
-            <button class="menu-save-btn" onclick="openSaveHubModal()" title="Centro de guardado" aria-label="Centro de guardado">
-                <svg viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <div class="hub-controls-sep" aria-hidden="true"></div>
+            <button class="hub-bell" id="menuInboxBtn" onclick="openInboxModal()" style="display:none" aria-label="Notificaciones">
+                <svg viewBox="0 0 20 20" fill="none" width="16" height="16">
+                    <path d="M10 2a6 6 0 016 6v3.5l1.5 2H2.5L4 11.5V8a6 6 0 016-6z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    <path d="M8 16.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+                <span class="hub-bell-badge" id="menuInboxBadge" style="display:none">0</span>
             </button>
         </div>
 
-        <!-- Botón Salir — fixed bottom-right, solo visible en PWA -->
+        <!-- ── Bloque wordmark (abajo izquierda) ── -->
+        <div class="hub-wordmark-block" id="hubWordmarkBlock">
+
+            <!-- Crest: estrella arcana flanqueada por líneas punteadas -->
+            <div class="hub-top-crest" aria-hidden="true">
+                <span class="hub-crest-line hub-crest-line--left"></span>
+                <svg class="hub-crest-stars" width="120" height="20" viewBox="0 0 120 20" overflow="visible">
+                    <g transform="translate(14,10)"><circle r="1.5" fill="currentColor"/></g>
+                    <line x1="16" y1="10" x2="44" y2="10" stroke="currentColor" stroke-width="0.6" opacity="0.55" stroke-dasharray="2 2"/>
+                    <g transform="translate(46,10)">
+                        <path d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z" fill="none" stroke="currentColor" stroke-width="0.8"/>
+                        <circle r="1" fill="currentColor"/>
+                    </g>
+                    <g transform="translate(60,10)">
+                        <path d="M0 -9 L1.8 -2.8 L8 -1 L3 0 L8 1 L1.8 2.8 L0 9 L-1.8 2.8 L-8 1 L-3 0 L-8 -1 L-1.8 -2.8 Z" fill="var(--hub-accent-glow)" opacity="0.85"/>
+                        <path d="M0 -9 L1.8 -2.8 L8 -1 L3 0 L8 1 L1.8 2.8 L0 9 L-1.8 2.8 L-8 1 L-3 0 L-8 -1 L-1.8 -2.8 Z" fill="none" stroke="currentColor" stroke-width="0.6"/>
+                        <circle r="1.4" fill="#fff8d0"/>
+                    </g>
+                    <g transform="translate(74,10)">
+                        <path d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z" fill="none" stroke="currentColor" stroke-width="0.8"/>
+                        <circle r="1" fill="currentColor"/>
+                    </g>
+                    <line x1="76" y1="10" x2="104" y2="10" stroke="currentColor" stroke-width="0.6" opacity="0.55" stroke-dasharray="2 2"/>
+                    <g transform="translate(106,10)"><circle r="1.5" fill="currentColor"/></g>
+                </svg>
+                <span class="hub-crest-line hub-crest-line--right"></span>
+            </div>
+
+            <!-- Fila: constelación izquierda + título + constelación derecha -->
+            <div class="hub-wordmark-row">
+
+                <!-- Constelación izquierda -->
+                <svg class="hub-constellation" width="32" height="178" viewBox="0 0 32 178" overflow="visible" aria-hidden="true">
+                    <g stroke="currentColor" stroke-width="0.65" opacity="0.55" fill="none" stroke-linecap="round">
+                        <line x1="14" y1="8"  x2="22" y2="30"/>
+                        <line x1="22" y1="30" x2="7"  y2="50"/>
+                        <line x1="7"  y1="50" x2="14" y2="68"/>
+                        <line x1="14" y1="68" x2="22" y2="86"/>
+                        <line x1="22" y1="86" x2="7"  y2="108"/>
+                        <line x1="7"  y1="108" x2="14" y2="130"/>
+                        <line x1="7"  y1="50" x2="22" y2="86" opacity="0.45" stroke-dasharray="2 2"/>
+                    </g>
+                    <circle cx="14" cy="8"   r="1.3" fill="currentColor"/>
+                    <circle cx="22" cy="30"  r="1"   fill="currentColor"/>
+                    <g transform="translate(7,50)">
+                        <path d="M0 -3 L0.9 -0.9 L3 0 L0.9 0.9 L0 3 L-0.9 0.9 L-3 0 L-0.9 -0.9 Z" fill="none" stroke="currentColor" stroke-width="0.7"/>
+                        <circle r="0.9" fill="currentColor"/>
+                    </g>
+                    <g transform="translate(14,68)">
+                        <path d="M0 -7 L1.4 -2 L6 -1 L2.4 0 L6 1 L1.4 2 L0 7 L-1.4 2 L-6 1 L-2.4 0 L-6 -1 L-1.4 -2 Z" fill="var(--hub-accent-glow)" opacity="0.9"/>
+                        <path d="M0 -7 L1.4 -2 L6 -1 L2.4 0 L6 1 L1.4 2 L0 7 L-1.4 2 L-6 1 L-2.4 0 L-6 -1 L-1.4 -2 Z" fill="none" stroke="currentColor" stroke-width="0.5"/>
+                        <circle r="1.6" fill="#fff8d0"/>
+                        <line x1="-9" y1="0" x2="-5" y2="0" stroke="var(--hub-accent-glow)" stroke-width="0.5" opacity="0.6"/>
+                        <line x1="5"  y1="0" x2="9"  y2="0" stroke="var(--hub-accent-glow)" stroke-width="0.5" opacity="0.6"/>
+                    </g>
+                    <g transform="translate(22,86)">
+                        <path d="M0 -3 L0.9 -0.9 L3 0 L0.9 0.9 L0 3 L-0.9 0.9 L-3 0 L-0.9 -0.9 Z" fill="none" stroke="currentColor" stroke-width="0.7"/>
+                        <circle r="0.9" fill="currentColor"/>
+                    </g>
+                    <circle cx="7"  cy="108" r="1"   fill="currentColor"/>
+                    <circle cx="14" cy="130" r="1.3" fill="currentColor"/>
+                    <g transform="translate(2,144)">
+                        <g transform="rotate(-6 14 16)">
+                            <rect x="4" y="0" width="20" height="32" rx="1.5" fill="rgba(0,0,0,0.18)" stroke="currentColor" stroke-width="0.8"/>
+                            <rect x="6" y="2" width="16" height="28" rx="1" fill="none" stroke="currentColor" stroke-width="0.4" opacity="0.55"/>
+                            <g transform="translate(14,11)">
+                                <path d="M0 -5 L1.2 -1.5 L5 0 L1.2 1.5 L0 5 L-1.2 1.5 L-5 0 L-1.2 -1.5 Z" fill="var(--hub-accent-glow)"/>
+                                <circle r="0.8" fill="#fff8d0"/>
+                            </g>
+                            <path d="M8 20 Q11 18 14 20 T20 20" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.7"/>
+                            <path d="M8 24 Q11 22 14 24 T20 24" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.5"/>
+                            <path d="M8 28 Q11 26 14 28 T20 28" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+                        </g>
+                    </g>
+                </svg>
+
+                <!-- Texto Etheria -->
+                <div class="hub-title-wrap">
+                    <div class="hub-backing" aria-hidden="true"></div>
+                    <div class="hub-title">Etheria</div>
+                    <div class="hub-title-stroke" aria-hidden="true">Etheria</div>
+                </div>
+
+                <!-- Constelación derecha (espejo) -->
+                <svg class="hub-constellation hub-constellation--mirror" width="32" height="178" viewBox="0 0 32 178" overflow="visible" aria-hidden="true">
+                    <g stroke="currentColor" stroke-width="0.65" opacity="0.55" fill="none" stroke-linecap="round">
+                        <line x1="14" y1="8"  x2="22" y2="30"/>
+                        <line x1="22" y1="30" x2="7"  y2="50"/>
+                        <line x1="7"  y1="50" x2="14" y2="68"/>
+                        <line x1="14" y1="68" x2="22" y2="86"/>
+                        <line x1="22" y1="86" x2="7"  y2="108"/>
+                        <line x1="7"  y1="108" x2="14" y2="130"/>
+                        <line x1="7"  y1="50" x2="22" y2="86" opacity="0.45" stroke-dasharray="2 2"/>
+                    </g>
+                    <circle cx="14" cy="8"   r="1.3" fill="currentColor"/>
+                    <circle cx="22" cy="30"  r="1"   fill="currentColor"/>
+                    <g transform="translate(7,50)">
+                        <path d="M0 -3 L0.9 -0.9 L3 0 L0.9 0.9 L0 3 L-0.9 0.9 L-3 0 L-0.9 -0.9 Z" fill="none" stroke="currentColor" stroke-width="0.7"/>
+                        <circle r="0.9" fill="currentColor"/>
+                    </g>
+                    <g transform="translate(14,68)">
+                        <path d="M0 -7 L1.4 -2 L6 -1 L2.4 0 L6 1 L1.4 2 L0 7 L-1.4 2 L-6 1 L-2.4 0 L-6 -1 L-1.4 -2 Z" fill="var(--hub-accent-glow)" opacity="0.9"/>
+                        <path d="M0 -7 L1.4 -2 L6 -1 L2.4 0 L6 1 L1.4 2 L0 7 L-1.4 2 L-6 1 L-2.4 0 L-6 -1 L-1.4 -2 Z" fill="none" stroke="currentColor" stroke-width="0.5"/>
+                        <circle r="1.6" fill="#fff8d0"/>
+                        <line x1="-9" y1="0" x2="-5" y2="0" stroke="var(--hub-accent-glow)" stroke-width="0.5" opacity="0.6"/>
+                        <line x1="5"  y1="0" x2="9"  y2="0" stroke="var(--hub-accent-glow)" stroke-width="0.5" opacity="0.6"/>
+                    </g>
+                    <g transform="translate(22,86)">
+                        <path d="M0 -3 L0.9 -0.9 L3 0 L0.9 0.9 L0 3 L-0.9 0.9 L-3 0 L-0.9 -0.9 Z" fill="none" stroke="currentColor" stroke-width="0.7"/>
+                        <circle r="0.9" fill="currentColor"/>
+                    </g>
+                    <circle cx="7"  cy="108" r="1"   fill="currentColor"/>
+                    <circle cx="14" cy="130" r="1.3" fill="currentColor"/>
+                    <g transform="translate(2,144)">
+                        <g transform="rotate(-6 14 16)">
+                            <rect x="4" y="0" width="20" height="32" rx="1.5" fill="rgba(0,0,0,0.18)" stroke="currentColor" stroke-width="0.8"/>
+                            <rect x="6" y="2" width="16" height="28" rx="1" fill="none" stroke="currentColor" stroke-width="0.4" opacity="0.55"/>
+                            <g transform="translate(14,11)">
+                                <path d="M0 -5 L1.2 -1.5 L5 0 L1.2 1.5 L0 5 L-1.2 1.5 L-5 0 L-1.2 -1.5 Z" fill="var(--hub-accent-glow)"/>
+                                <circle r="0.8" fill="#fff8d0"/>
+                            </g>
+                            <path d="M8 20 Q11 18 14 20 T20 20" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.7"/>
+                            <path d="M8 24 Q11 22 14 24 T20 24" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.5"/>
+                            <path d="M8 28 Q11 26 14 28 T20 28" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+                        </g>
+                    </g>
+                </svg>
+            </div>
+
+            <!-- Divisor ornamental -->
+            <div class="hub-divider" aria-hidden="true">
+                <span class="hub-divider-line"></span>
+                <span class="hub-divider-diamond">◆</span>
+                <span class="hub-divider-line"></span>
+            </div>
+
+            <!-- Tagline -->
+            <p class="hub-tagline">«Donde las historias respiran y los destinos se entrelazan al ritmo de quien las cuenta.»</p>
+        </div>
+
+        <!-- ── Menú derecho vertical ── -->
+        <nav class="hub-menu" aria-label="Menú principal">
+            <button class="hub-menu-item hub-menu-item--primary" data-action="continuar" onclick="showSection('topics')">
+                <span class="hub-mi-rule"    aria-hidden="true"></span>
+                <span class="hub-mi-sparkle" aria-hidden="true"></span>
+                <span class="hub-mi-diamond" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" fill="none" width="14" height="14">
+                        <polygon points="10,2 18,10 10,18 2,10" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+                        <line x1="10" y1="5" x2="10" y2="15" stroke="currentColor" stroke-width="1" opacity="0.55"/>
+                    </svg>
+                </span>
+                <div class="hub-mi-text">
+                    <span class="hub-mi-label">Continuar</span>
+                    <span class="hub-mi-sub" id="hubContinueSub">Última historia activa</span>
+                </div>
+                <svg class="hub-mi-arrow" viewBox="0 0 14 14" fill="none" width="14" height="14" aria-hidden="true">
+                    <path d="M2 7h10M9 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <button class="hub-menu-item" data-action="historias" onclick="showSection('topics')">
+                <span class="hub-mi-rule"    aria-hidden="true"></span>
+                <span class="hub-mi-sparkle" aria-hidden="true"></span>
+                <span class="hub-mi-diamond" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" fill="none" width="14" height="14">
+                        <rect x="3" y="3" width="14" height="14" rx="1" stroke="currentColor" stroke-width="1.4"/>
+                        <line x1="7" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                        <line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                        <line x1="7" y1="13" x2="11" y2="13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <div class="hub-mi-text">
+                    <span class="hub-mi-label">Historias</span>
+                    <span class="hub-mi-sub" id="hubHistoriasSub">Tus narrativas</span>
+                </div>
+                <svg class="hub-mi-arrow" viewBox="0 0 14 14" fill="none" width="14" height="14" aria-hidden="true">
+                    <path d="M2 7h10M9 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <button class="hub-menu-item" data-action="personajes" onclick="showSection('gallery')">
+                <span class="hub-mi-rule"    aria-hidden="true"></span>
+                <span class="hub-mi-sparkle" aria-hidden="true"></span>
+                <span class="hub-mi-diamond" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" fill="none" width="14" height="14">
+                        <circle cx="10" cy="7" r="3.5" stroke="currentColor" stroke-width="1.4"/>
+                        <path d="M3 17c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                </span>
+                <div class="hub-mi-text">
+                    <span class="hub-mi-label">Personajes</span>
+                    <span class="hub-mi-sub" id="hubPersonajesSub">Tu galería</span>
+                </div>
+                <svg class="hub-mi-arrow" viewBox="0 0 14 14" fill="none" width="14" height="14" aria-hidden="true">
+                    <path d="M2 7h10M9 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <button class="hub-menu-item" data-action="vinculos" onclick="showSection('bonds')">
+                <span class="hub-mi-rule"    aria-hidden="true"></span>
+                <span class="hub-mi-sparkle" aria-hidden="true"></span>
+                <span class="hub-mi-diamond" aria-hidden="true">
+                    <svg viewBox="0 0 20 20" fill="none" width="14" height="14">
+                        <path d="M10 5c0-2 3-3.5 4.5-2S16 7 14 8.5L10 12 6 8.5C4 7 4 3.5 5.5 3S10 3 10 5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+                <div class="hub-mi-text">
+                    <span class="hub-mi-label">Vínculos</span>
+                    <span class="hub-mi-sub">Constelación de lazos</span>
+                </div>
+                <svg class="hub-mi-arrow" viewBox="0 0 14 14" fill="none" width="14" height="14" aria-hidden="true">
+                    <path d="M2 7h10M9 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </nav>
+
+        <!-- ── Tarjeta evento de temporada (abajo derecha) ── -->
+        <div class="hub-event-card" aria-label="Evento de temporada">
+            <div class="hub-event-corner hub-event-corner--tl" aria-hidden="true"></div>
+            <div class="hub-event-corner hub-event-corner--tr" aria-hidden="true"></div>
+            <div class="hub-event-corner hub-event-corner--br" aria-hidden="true"></div>
+            <div class="hub-event-corner hub-event-corner--bl" aria-hidden="true"></div>
+            <div class="hub-event-header">
+                <span class="hub-event-overline">Evento de temporada</span>
+                <svg class="hub-event-icon" viewBox="0 0 20 20" fill="none" width="22" height="22" aria-hidden="true">
+                    <path d="M10 3c0 0-4 4-5 8-.5 2 .5 5 5 5s5.5-3 5-5c-1-4-5-8-5-8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                </svg>
+                <span class="hub-event-title">Festival de las Lámparas</span>
+            </div>
+            <div class="hub-event-footer">
+                <span class="hub-event-ends">Termina en 4 d · 11 h</span>
+                <span class="hub-event-cta">Entrar →</span>
+            </div>
+        </div>
+
+        <!-- ── Línea de estado (abajo izquierda) ── -->
+        <div class="hub-status-line">
+            <span class="hub-status-item">
+                <span class="hub-status-dot" aria-hidden="true"></span>
+                <span>SERVIDOR ESTABLE</span>
+            </span>
+            <span class="hub-status-sep" aria-hidden="true">·</span>
+            <span id="hubNarratorCount">247 NARRADORES EN LÍNEA</span>
+            <span class="hub-status-sep" aria-hidden="true">·</span>
+            <span class="hub-status-dim">V 4.2 · EQUINOCCIO</span>
+        </div>
+
+        <!-- Botón Salir — solo visible en PWA -->
         <button class="menu-exit-btn" id="menuExitBtn" onclick="exitApp()" aria-label="Cerrar aplicación">
             <span class="menu-exit-icon">⏻</span>
             <span class="menu-exit-label">Salir</span>
-        </button>
-
-        <!-- Buzón flotante — esquina superior derecha junto al botón de tema -->
-        <button class="menu-inbox-float" id="menuInboxBtn" onclick="openInboxModal()" style="display:none" aria-label="Buzón de notificaciones">
-            <svg viewBox="0 0 20 20" fill="none" width="18" height="18">
-                <path d="M3 5h14a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z" stroke="currentColor" stroke-width="1.5"/>
-                <path d="M2 6l8 5.5L18 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-            <span class="menu-inbox-badge" id="menuInboxBadge" style="display:none">0</span>
         </button>
     </div>
 
@@ -2174,6 +2395,7 @@
 <script src="js/rpg/RPGState.js"></script>
 <script src="js/rpg/RPGEngine.js"></script>
 <script src="js/rpg/RPGRenderer.js"></script>
+<script src="js/ui/hub.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ethy.js"></script>
 

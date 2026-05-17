@@ -87,6 +87,25 @@
             --input-bg: #ffffff;
             --input-text: #3d3833;
             --menu-button-bg: rgba(255, 255, 255, 0.9);
+            /* Hub tokens — day (light) mode */
+            --hub-accent:      #b8862e;
+            --hub-accent-glow: #e8b04a;
+            --hub-accent-2:    #5b8a6a;
+            --hub-body:        #1f1809;
+            --hub-body-muted:  #3a2e18;
+            --hub-body-dim:    rgba(31, 24, 9, 0.55);
+            --hub-body-shadow: 0 1px 0 rgba(255,250,225,0.55), 0 0 14px rgba(255,248,210,0.65), 0 0 32px rgba(255,240,180,0.35);
+            --hub-text-hi:     #fff8e8;
+            --hub-text:        #f0e8d0;
+            --hub-text-muted:  rgba(255, 248, 220, 0.78);
+            --hub-text-dim:    rgba(255, 248, 220, 0.45);
+            --hub-text-shadow: 0 2px 8px rgba(20, 40, 10, 0.85), 0 0 24px rgba(20, 40, 10, 0.5);
+            --hub-divider:     rgba(184, 134, 46, 0.55);
+            --hub-online:      #4f8a52;
+            --hub-panel-bg:    rgba(245, 240, 220, 0.22);
+            --hub-panel-border:rgba(120, 90, 30, 0.4);
+            --hub-menu-hover:  rgba(255, 240, 200, 0.22);
+            --hub-bg-filter:   brightness(1.05) saturate(1.15) contrast(1.02);
         }
 
         [data-theme="dark"] {
@@ -109,4 +128,23 @@
             --input-bg: #2a2724;
             --input-text: #e8e4dc;
             --menu-button-bg: rgba(30, 28, 25, 0.95);
+            /* Hub tokens — night (dark) mode */
+            --hub-accent:      #d4ae5c;
+            --hub-accent-glow: #f4cf7f;
+            --hub-accent-2:    #7dd3c0;
+            --hub-body:        #ede2c4;
+            --hub-body-muted:  #bfb194;
+            --hub-body-dim:    #807558;
+            --hub-body-shadow: 0 2px 10px rgba(0,0,0,0.85), 0 0 22px rgba(0,0,0,0.55);
+            --hub-text-hi:     #f4ecd6;
+            --hub-text:        #dccfb0;
+            --hub-text-muted:  #a89a7a;
+            --hub-text-dim:    #5e5a4a;
+            --hub-text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+            --hub-divider:     rgba(212, 174, 92, 0.3);
+            --hub-online:      #7dd9a3;
+            --hub-panel-bg:    rgba(14, 10, 28, 0.62);
+            --hub-panel-border:rgba(212, 174, 92, 0.45);
+            --hub-menu-hover:  rgba(212, 174, 92, 0.18);
+            --hub-bg-filter:   brightness(0.55) saturate(0.85) hue-rotate(-20deg);
         }

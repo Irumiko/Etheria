@@ -515,6 +515,7 @@ function initializeApp() {
     generateProfileParticles();
     if (typeof maybeShowOnboarding === 'function') maybeShowOnboarding();
     initMenuParallax();
+    if (typeof initHub === 'function') initHub();
     updateCloudSyncIndicator('online', 'Conectado');
     updateSyncButtonState('synced', 'Sincronizar');
     
