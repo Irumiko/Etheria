@@ -19549,7 +19549,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     pointer-events: none !important;
 }
 
-/* ── 12.9  Marco exterior con borde ornamentado ─────────────────── */
+/* ── 12.9  Marco exterior ────────────────────────────────────────── */
 .card-outer-frame {
     position: relative !important;
     width: 100% !important;
@@ -19562,32 +19562,58 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     overflow: hidden !important;
 }
 
-/* ── 12.10  Marco interior (doble borde inset) ───────────────────── */
+/* ── 12.10  Marco interior ───────────────────────────────────────── */
 .card-inner-frame {
     position: relative !important;
     flex: 1 !important;
     border-radius: 6px !important;
-    padding: 9px 8px 7px !important;
+    padding: 30px 8px 6px !important; /* espacio superior para cap-bar */
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 5px !important;
+    gap: 4px !important;
     overflow: hidden !important;
     z-index: 1 !important;
 }
 
-/* ── 12.11  Esquinas ornamentales (L en cada ángulo) ────────────── */
+/* ── 12.11  Esquinas ornamentales ────────────────────────────────── */
 .card-corner {
     position: absolute !important;
     width: 13px !important;
     height: 13px !important;
-    z-index: 2 !important;
+    z-index: 3 !important;
     pointer-events: none !important;
 }
 .card-corner--tl { top: 3px;    left: 3px;    border-top: 1.5px solid; border-left: 1.5px solid; }
 .card-corner--tr { top: 3px;    right: 3px;   border-top: 1.5px solid; border-right: 1.5px solid; }
 .card-corner--bl { bottom: 3px; left: 3px;    border-bottom: 1.5px solid; border-left: 1.5px solid; }
 .card-corner--br { bottom: 3px; right: 3px;   border-bottom: 1.5px solid; border-right: 1.5px solid; }
+
+/* ── 12.11b  Capiteles + numeral en la cima de la carta ─────────── */
+.card-cap-bar {
+    position: absolute !important;
+    top: 10px !important;
+    left: 0 !important;
+    right: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    z-index: 2 !important;
+    pointer-events: none !important;
+}
+.card-column {
+    display: flex !important;
+    align-items: flex-start !important;
+    flex-shrink: 0 !important;
+}
+.card-column--flip {
+    transform: scaleX(-1) !important;
+}
+.card-col-svg {
+    width: 10px !important;
+    height: 26px !important;
+}
 
 /* ── 12.12  Cabecera: título + autor ─────────────────────────────── */
 .card-header {
@@ -19596,13 +19622,13 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     flex-shrink: 0 !important;
 }
 .card-title {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.6rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.06em !important;
+    font-family: 'EB Garamond', 'Crimson Text', serif !important;
+    font-size: 0.68rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.05em !important;
     text-transform: uppercase !important;
     text-align: center !important;
-    line-height: 1.3 !important;
+    line-height: 1.25 !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
@@ -19610,12 +19636,12 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     margin: 0 0 2px !important;
 }
 .card-author {
-    font-family: 'Crimson Text', serif !important;
+    font-family: 'EB Garamond', 'Crimson Text', serif !important;
     font-style: italic !important;
-    font-size: 0.57rem !important;
+    font-size: 0.60rem !important;
     text-align: center !important;
     margin: 0 !important;
-    opacity: 0.7 !important;
+    opacity: 0.65 !important;
 }
 
 /* ── 12.13  Separador con diamante central ───────────────────────── */
@@ -19631,45 +19657,34 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     content: '' !important;
     flex: 1 !important;
     height: 1px !important;
-    opacity: 0.35 !important;
+    opacity: 0.30 !important;
 }
 .card-divider-diamond {
-    font-size: 0.45rem !important;
+    font-size: 0.42rem !important;
     line-height: 1 !important;
-    opacity: 0.65 !important;
+    opacity: 0.60 !important;
     flex-shrink: 0 !important;
 }
 
-/* ── 12.14  Mandala SVG con icono central ────────────────────────── */
-.card-mandala {
+/* ── 12.14  Ilustración SVG por modo ────────────────────────────── */
+.card-illustration {
     position: relative !important;
-    width: 90px !important;
-    height: 90px !important;
-    flex-shrink: 0 !important;
+    flex: 1 !important;
+    width: 100% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    overflow: hidden !important;
+    min-height: 0 !important;
 }
-.card-mandala-svg {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    animation: eth-mandala-spin 40s linear infinite !important;
-}
-@keyframes eth-mandala-spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-}
-.card-center-icon {
-    position: relative !important;
-    z-index: 2 !important;
-    font-size: 1.55rem !important;
-    line-height: 1 !important;
+.card-illustration-svg {
+    width: 86px !important;
+    height: auto !important;
+    max-height: 100% !important;
+    flex-shrink: 0 !important;
 }
 
-/* ── 12.15  Pie: número romano + conteo mensajes ─────────────────── */
+/* ── 12.15  Pie: sello + conteo mensajes ────────────────────────── */
 .card-footer-bar {
     width: 100% !important;
     display: flex !important;
@@ -19680,18 +19695,26 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 }
 .card-numeral {
     font-family: 'Cinzel', serif !important;
-    font-size: 0.58rem !important;
+    font-size: 0.60rem !important;
     font-weight: 600 !important;
-    letter-spacing: 0.1em !important;
-    opacity: 0.65 !important;
+    letter-spacing: 0.18em !important;
+    opacity: 0.68 !important;
+    flex-shrink: 0 !important;
+}
+.card-seal {
+    font-size: 0.82rem !important;
+    line-height: 1 !important;
+    opacity: 0.80 !important;
+    flex-shrink: 0 !important;
 }
 .card-msgs {
-    font-size: 0.53rem !important;
-    letter-spacing: 0.03em !important;
-    opacity: 0.6 !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.50rem !important;
+    letter-spacing: 0.06em !important;
+    opacity: 0.55 !important;
 }
 .card-turn-badge {
-    font-size: 0.53rem !important;
+    font-size: 0.50rem !important;
     text-align: center !important;
     width: 100% !important;
     color: #e8c46a !important;
@@ -19699,68 +19722,77 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     flex-shrink: 0 !important;
 }
 
-/* ── 12.16  Identidad visual RPG ─────────────────────────────────── */
+/* ── 12.16  Identidad visual RPG — dorado, madera oscura ────────── */
+/* Fondo en capas: trama diagonal + resplandor radial + gradiente base */
 .topic-card--rol .card-outer-frame {
-    background: #1a1008 !important;
-    border: 1px solid rgba(212,174,92,0.55) !important;
-    box-shadow: 0 0 0 2px rgba(26,16,8,0.9),
-                0 0 0 3px rgba(212,174,92,0.18),
-                0 12px 40px rgba(0,0,0,0.7),
-                inset 0 0 30px rgba(0,0,0,0.4) !important;
+    background:
+        repeating-linear-gradient(45deg, transparent 0 14px, rgba(212,174,92,0.055) 14px 15px),
+        radial-gradient(ellipse 88% 70% at 50% 28%, rgba(212,174,92,0.13), transparent 65%),
+        linear-gradient(160deg, #1e1508 0%, #0e0a04 100%) !important;
+    border: 1px solid rgba(212,174,92,0.58) !important;
+    box-shadow:
+        0 0 0 2px rgba(20,14,4,0.92),
+        0 0 0 3.5px rgba(212,174,92,0.20),
+        0 14px 44px rgba(0,0,0,0.72),
+        inset 0 0 28px rgba(0,0,0,0.38) !important;
 }
 .topic-card--rol .card-inner-frame {
-    border: 1px solid rgba(212,174,92,0.2) !important;
+    border: 1px solid rgba(212,174,92,0.18) !important;
 }
-.topic-card--rol .card-corner    { border-color: rgba(212,174,92,0.62) !important; }
-.topic-card--rol .card-title     { color: #d4ae5c !important; }
-.topic-card--rol .card-author    { color: rgba(212,174,92,0.62) !important; }
+.topic-card--rol .card-corner         { border-color: rgba(212,174,92,0.65) !important; }
+.topic-card--rol .card-title          { color: #d4ae5c !important; }
+.topic-card--rol .card-author         { color: rgba(212,174,92,0.60) !important; }
+.topic-card--rol .card-numeral        { color: rgba(212,174,92,0.72) !important; }
+.topic-card--rol .card-seal           { color: #d4ae5c !important; filter: drop-shadow(0 0 5px rgba(212,174,92,0.45)) !important; }
+.topic-card--rol .card-msgs           { color: rgba(212,174,92,0.55) !important; }
+.topic-card--rol .card-col-svg        { color: rgba(212,174,92,0.62) !important; }
+.topic-card--rol .card-illustration-svg { color: #c8a85a !important; }
 .topic-card--rol .card-divider::before,
-.topic-card--rol .card-divider::after { background: rgba(212,174,92,0.55) !important; }
+.topic-card--rol .card-divider::after { background: rgba(212,174,92,0.48) !important; }
 .topic-card--rol .card-divider-diamond { color: #d4ae5c !important; }
-.topic-card--rol .card-numeral   { color: #d4ae5c !important; }
-.topic-card--rol .card-msgs      { color: rgba(212,174,92,0.7) !important; }
-.topic-card--rol .card-center-icon {
-    color: #d4ae5c !important;
-    filter: drop-shadow(0 0 8px rgba(212,174,92,0.5)) !important;
-}
 .topic-card--rol:hover .card-outer-frame {
-    box-shadow: 0 0 0 2px rgba(26,16,8,0.9),
-                0 0 0 3px rgba(212,174,92,0.3),
-                0 18px 52px rgba(0,0,0,0.75),
-                0 0 28px rgba(212,174,92,0.15),
-                inset 0 0 30px rgba(0,0,0,0.4) !important;
+    box-shadow:
+        0 0 0 2px rgba(20,14,4,0.92),
+        0 0 0 3.5px rgba(212,174,92,0.34),
+        0 20px 56px rgba(0,0,0,0.78),
+        0 0 32px rgba(212,174,92,0.14),
+        inset 0 0 28px rgba(0,0,0,0.38) !important;
 }
 
-/* ── 12.17  Identidad visual Clásico ─────────────────────────────── */
+/* ── 12.17  Identidad visual Clásico — azul-plata, cielo nocturno ─ */
 .topic-card--historia .card-outer-frame {
-    background: #0d1238 !important;
-    border: 1px solid rgba(154,180,224,0.45) !important;
-    box-shadow: 0 0 0 2px rgba(13,18,56,0.9),
-                0 0 0 3px rgba(154,180,224,0.14),
-                0 12px 40px rgba(0,0,0,0.7),
-                inset 0 0 30px rgba(0,0,0,0.4) !important;
+    background:
+        repeating-linear-gradient(45deg, transparent 0 14px, rgba(154,180,224,0.055) 14px 15px),
+        radial-gradient(ellipse 88% 70% at 50% 28%, rgba(154,180,224,0.11), transparent 65%),
+        linear-gradient(160deg, #0b1130 0%, #060916 100%) !important;
+    border: 1px solid rgba(154,180,224,0.48) !important;
+    box-shadow:
+        0 0 0 2px rgba(8,12,40,0.92),
+        0 0 0 3.5px rgba(154,180,224,0.16),
+        0 14px 44px rgba(0,0,0,0.72),
+        inset 0 0 28px rgba(0,0,0,0.38) !important;
 }
 .topic-card--historia .card-inner-frame {
-    border: 1px solid rgba(154,180,224,0.18) !important;
+    border: 1px solid rgba(154,180,224,0.16) !important;
 }
-.topic-card--historia .card-corner    { border-color: rgba(154,180,224,0.55) !important; }
-.topic-card--historia .card-title     { color: #9ab4e0 !important; }
-.topic-card--historia .card-author    { color: rgba(154,180,224,0.62) !important; }
+.topic-card--historia .card-corner         { border-color: rgba(154,180,224,0.58) !important; }
+.topic-card--historia .card-title          { color: #a8c4e8 !important; }
+.topic-card--historia .card-author         { color: rgba(154,180,224,0.60) !important; }
+.topic-card--historia .card-numeral        { color: rgba(154,180,224,0.72) !important; }
+.topic-card--historia .card-seal           { color: #9ab4e0 !important; filter: drop-shadow(0 0 5px rgba(154,180,224,0.42)) !important; }
+.topic-card--historia .card-msgs           { color: rgba(154,180,224,0.55) !important; }
+.topic-card--historia .card-col-svg        { color: rgba(154,180,224,0.58) !important; }
+.topic-card--historia .card-illustration-svg { color: #8aacd0 !important; }
 .topic-card--historia .card-divider::before,
-.topic-card--historia .card-divider::after { background: rgba(154,180,224,0.5) !important; }
+.topic-card--historia .card-divider::after { background: rgba(154,180,224,0.44) !important; }
 .topic-card--historia .card-divider-diamond { color: #9ab4e0 !important; }
-.topic-card--historia .card-numeral   { color: #9ab4e0 !important; }
-.topic-card--historia .card-msgs      { color: rgba(154,180,224,0.7) !important; }
-.topic-card--historia .card-center-icon {
-    color: #9ab4e0 !important;
-    filter: drop-shadow(0 0 8px rgba(154,180,224,0.5)) !important;
-}
 .topic-card--historia:hover .card-outer-frame {
-    box-shadow: 0 0 0 2px rgba(13,18,56,0.9),
-                0 0 0 3px rgba(154,180,224,0.24),
-                0 18px 52px rgba(0,0,0,0.75),
-                0 0 22px rgba(154,180,224,0.12),
-                inset 0 0 30px rgba(0,0,0,0.4) !important;
+    box-shadow:
+        0 0 0 2px rgba(8,12,40,0.92),
+        0 0 0 3.5px rgba(154,180,224,0.28),
+        0 20px 56px rgba(0,0,0,0.78),
+        0 0 26px rgba(154,180,224,0.10),
+        inset 0 0 28px rgba(0,0,0,0.38) !important;
 }
 
 /* ── 12.18  Pulso de turno activo ────────────────────────────────── */

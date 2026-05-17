@@ -18977,6 +18977,62 @@ function renderTopics() {
     } else if (topics.length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
     } else {
+        // ── SVG columna arquitectónica (capitel + fuste + basa) ────────────
+        const SVG_COLUMNA = `<svg class="card-col-svg" viewBox="0 0 10 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0"  width="10" height="2.5" rx="0.4" fill="currentColor" opacity="0.70"/>
+            <rect x="1.5" y="2.5" width="7" height="1.2" rx="0.3" fill="currentColor" opacity="0.45"/>
+            <rect x="2.5" y="3.7" width="5" height="15"  rx="0.3" fill="currentColor" opacity="0.38"/>
+            <rect x="1.5" y="18.7" width="7" height="1.2" rx="0.3" fill="currentColor" opacity="0.45"/>
+            <rect x="0" y="19.9" width="10" height="2.5" rx="0.4" fill="currentColor" opacity="0.60"/>
+            <rect x="1" y="22.4" width="8"  height="1.8" rx="0.3" fill="currentColor" opacity="0.35"/>
+        </svg>`;
+
+        // ── SVG Brújula — Modo RPG (dorado) ─────────────────────────────────
+        const SVG_ROL = `<svg class="card-illustration-svg" viewBox="0 0 96 106" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="48" cy="53" r="43" stroke="currentColor" stroke-width="0.8" opacity="0.28"/>
+            <circle cx="48" cy="53" r="29" stroke="currentColor" stroke-width="0.6" opacity="0.20"/>
+            <line x1="48" y1="10" x2="48" y2="96" stroke="currentColor" stroke-width="0.5" opacity="0.20"/>
+            <line x1="5"  y1="53" x2="91" y2="53" stroke="currentColor" stroke-width="0.5" opacity="0.20"/>
+            <polygon points="48,13 56,40 48,33 40,40" fill="currentColor" opacity="0.92"/>
+            <polygon points="48,93 52,76 48,82 44,76" fill="currentColor" opacity="0.40"/>
+            <polygon points="48,5  51.5,10 48,15 44.5,10" fill="currentColor" opacity="0.72"/>
+            <polygon points="48,91 51.5,96 48,101 44.5,96" fill="currentColor" opacity="0.30"/>
+            <polygon points="3,53  8,49.5  13,53  8,56.5"  fill="currentColor" opacity="0.42"/>
+            <polygon points="83,53 88,49.5 93,53 88,56.5"  fill="currentColor" opacity="0.42"/>
+            <circle cx="48" cy="53" r="4.5" fill="currentColor" opacity="0.60"/>
+            <circle cx="48" cy="53" r="1.8" fill="currentColor" opacity="0.92"/>
+            <line x1="24" y1="53" x2="41" y2="53" stroke="currentColor" stroke-width="1.4" opacity="0.42"/>
+            <line x1="55" y1="53" x2="72" y2="53" stroke="currentColor" stroke-width="1.4" opacity="0.42"/>
+        </svg>`;
+
+        // ── SVG Constelación — Modo Historia (azul-plata) ────────────────────
+        const SVG_HISTORIA = `<svg class="card-illustration-svg" viewBox="0 0 96 106" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="48" cy="53" r="43" stroke="currentColor" stroke-width="0.8" opacity="0.25"/>
+            <circle cx="48" cy="11" r="2.4" fill="currentColor" opacity="0.88"/>
+            <circle cx="78" cy="27" r="1.7" fill="currentColor" opacity="0.74"/>
+            <circle cx="83" cy="60" r="1.9" fill="currentColor" opacity="0.68"/>
+            <circle cx="67" cy="90" r="1.5" fill="currentColor" opacity="0.62"/>
+            <circle cx="29" cy="88" r="1.7" fill="currentColor" opacity="0.68"/>
+            <circle cx="13" cy="60" r="1.9" fill="currentColor" opacity="0.74"/>
+            <circle cx="18" cy="27" r="1.5" fill="currentColor" opacity="0.62"/>
+            <line x1="48" y1="11" x2="78" y2="27" stroke="currentColor" stroke-width="0.65" opacity="0.35"/>
+            <line x1="78" y1="27" x2="83" y2="60" stroke="currentColor" stroke-width="0.65" opacity="0.35"/>
+            <line x1="83" y1="60" x2="67" y2="90" stroke="currentColor" stroke-width="0.65" opacity="0.35"/>
+            <line x1="67" y1="90" x2="29" y2="88" stroke="currentColor" stroke-width="0.65" opacity="0.35"/>
+            <line x1="29" y1="88" x2="13" y2="60" stroke="currentColor" stroke-width="0.65" opacity="0.35"/>
+            <line x1="13" y1="60" x2="18" y2="27" stroke="currentColor" stroke-width="0.65" opacity="0.35"/>
+            <line x1="18" y1="27" x2="48" y2="11" stroke="currentColor" stroke-width="0.65" opacity="0.35"/>
+            <rect x="41" y="42" width="14" height="21" rx="2" stroke="currentColor" stroke-width="1.3" fill="none" opacity="0.80"/>
+            <polygon points="48,33 54,42 42,42" fill="currentColor" opacity="0.70"/>
+            <circle cx="48" cy="52.5" r="2.8" stroke="currentColor" stroke-width="0.9" fill="none" opacity="0.62"/>
+            <line x1="48" y1="49" x2="48" y2="56" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
+            <line x1="44.5" y1="52.5" x2="51.5" y2="52.5" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
+            <circle cx="33" cy="40" r="1.1" fill="currentColor" opacity="0.46"/>
+            <circle cx="63" cy="36" r="1.3" fill="currentColor" opacity="0.53"/>
+            <circle cx="27" cy="74" r="0.9" fill="currentColor" opacity="0.40"/>
+            <circle cx="69" cy="76" r="1.1" fill="currentColor" opacity="0.46"/>
+        </svg>`;
+
         container.innerHTML = topics.map((t, idx) => {
             const msgs        = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
             const isRol       = t.mode === 'rpg' || t.mode === 'fanfic';
@@ -18985,7 +19041,6 @@ function renderTopics() {
             const cardIcon    = isRol ? '⚜' : '✦';
             const numeral     = toRoman(idx + 1);
             const modeClass   = isRol ? 'topic-card--rol' : 'topic-card--historia';
-            const mandalaColor = isRol ? '#d4ae5c' : '#9ab4e0';
 
             const isMeTurn = Array.isArray(t.turnOrder)
                 && t.turnOrder[0]
@@ -19003,37 +19058,26 @@ function renderTopics() {
                                 <div class="card-corner card-corner--tr"></div>
                                 <div class="card-corner card-corner--bl"></div>
                                 <div class="card-corner card-corner--br"></div>
+                                <!-- Capiteles + numeral en la cima de la carta -->
+                                <div class="card-cap-bar">
+                                    <div class="card-column">${SVG_COLUMNA}</div>
+                                    <span class="card-numeral">${numeral}</span>
+                                    <div class="card-column card-column--flip">${SVG_COLUMNA}</div>
+                                </div>
                                 <div class="card-inner-frame">
                                     <div class="card-header">
                                         <h3 class="card-title">${escapeHtml(t.title)}</h3>
                                         <p class="card-author">por ${escapeHtml(creatorName)}</p>
                                     </div>
                                     <div class="card-divider"><span class="card-divider-diamond">◆</span></div>
-                                    <div class="card-mandala" style="color:${mandalaColor}">
-                                        <svg class="card-mandala-svg" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <circle cx="44" cy="44" r="40" stroke="currentColor" stroke-width="0.8" opacity="0.6"/>
-                                            <circle cx="44" cy="44" r="32" stroke="currentColor" stroke-width="0.5" opacity="0.4"/>
-                                            <circle cx="44" cy="44" r="20" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
-                                            <circle cx="44" cy="44" r="4"  fill="currentColor"   opacity="0.3"/>
-                                            <line x1="44"  y1="4"    x2="44"  y2="84"   stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
-                                            <line x1="4"   y1="44"   x2="84"  y2="44"   stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
-                                            <line x1="15.7" y1="15.7" x2="72.3" y2="72.3" stroke="currentColor" stroke-width="0.4" opacity="0.2"/>
-                                            <line x1="72.3" y1="15.7" x2="15.7" y2="72.3" stroke="currentColor" stroke-width="0.4" opacity="0.2"/>
-                                            <circle cx="44"   cy="6"    r="2"   fill="currentColor" opacity="0.6"/>
-                                            <circle cx="44"   cy="82"   r="2"   fill="currentColor" opacity="0.6"/>
-                                            <circle cx="6"    cy="44"   r="2"   fill="currentColor" opacity="0.6"/>
-                                            <circle cx="82"   cy="44"   r="2"   fill="currentColor" opacity="0.6"/>
-                                            <circle cx="15.7" cy="15.7" r="1.5" fill="currentColor" opacity="0.35"/>
-                                            <circle cx="72.3" cy="15.7" r="1.5" fill="currentColor" opacity="0.35"/>
-                                            <circle cx="15.7" cy="72.3" r="1.5" fill="currentColor" opacity="0.35"/>
-                                            <circle cx="72.3" cy="72.3" r="1.5" fill="currentColor" opacity="0.35"/>
-                                        </svg>
-                                        <span class="card-center-icon">${cardIcon}</span>
+                                    <!-- Ilustración SVG por modo -->
+                                    <div class="card-illustration">
+                                        ${isRol ? SVG_ROL : SVG_HISTORIA}
                                     </div>
                                     <div class="card-divider"><span class="card-divider-diamond">◆</span></div>
                                     <div class="card-footer-bar">
-                                        <span class="card-numeral">${numeral}</span>
-                                        <span class="card-msgs">◆ ${msgs.length} ${msgWord}</span>
+                                        <span class="card-seal">${cardIcon}</span>
+                                        <span class="card-msgs">${msgs.length} ${msgWord}</span>
                                     </div>
                                     ${isMeTurn ? '<div class="card-turn-badge">⏳ Tu turno</div>' : ''}
                                 </div>
