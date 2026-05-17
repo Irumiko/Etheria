@@ -3105,22 +3105,12 @@ function renderVirtualizedHistory(msgs, container) {
     paint();
 }
 
+// NOTA: esta implementación es el fallback legacy de openHistoryLog.
+// journal.js (cargado después) sobreescribe esta función con la versión
+// definitiva que soporta pestañas, favoritos y diario de sesión.
+// No modificar aquí — cualquier cambio debe hacerse en js/ui/journal.js.
 function openHistoryLog() {
-    // Resetear a pestaña "Todos" al abrir para consistencia
-    if (typeof currentHistoryTab !== 'undefined') {
-        currentHistoryTab = 'all';
-        document.getElementById('histTabAll')?.classList.add('active');
-        document.getElementById('histTabFav')?.classList.remove('active');
-    }
-
-    // Usar renderHistoryContent si está disponible (soporta pestañas favoritos)
-    if (typeof renderHistoryContent === 'function') {
-        openModal('historyModal');
-        renderHistoryContent();
-        return;
-    }
-
-    // Fallback: renderizado directo sin pestañas
+    // Fallback minimal: renderizado directo sin pestañas (usado solo si journal.js no carga)
     const msgs = getTopicMessages(currentTopicId);
     const container = document.getElementById('historyContent');
     if (!container) return;

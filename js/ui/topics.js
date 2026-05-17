@@ -228,108 +228,37 @@ function renderTopics() {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
     } else {
         container.innerHTML = topics.map(t => {
-            // Usar mensajes en memoria si están cargados, evitar cargar desde storage en cada render
-            const msgs = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
-            const last = msgs[msgs.length - 1];
-            const lastText = last ? stripHtml(formatText(last.text)).substring(0, 80) : '';
-            const isRol    = t.mode === 'rpg' || t.mode === 'fanfic';
-            const modeLabel = getStoryModeLabel(t.mode);
-            const weatherBadge = t.weather === 'rain'
-                ? '<span class="topic-badge weather">🌧 Lluvia</span>'
-                : t.weather === 'fog'
-                ? '<span class="topic-badge weather">🌫 Niebla</span>'
-                : '';
-
-            // SVG de ornamento de esquina — acero para RPG, tinta sepia para Clásico
-            const cornerColor = isRol ? 'rgba(190,165,120,0.6)' : 'rgba(139,100,55,0.45)';
-            const cornerSvg = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 11 L2 2 L11 2" stroke="${cornerColor}" stroke-width="1.3" fill="none" stroke-linecap="round"/>
-                <circle cx="2" cy="2" r="1.8" fill="${cornerColor}"/>
-                <path d="M6 2 L6 4.5 M2 6 L4.5 6" stroke="${cornerColor}" stroke-width="0.9" opacity="0.6"/>
-            </svg>`;
-
-            // SVG de marca de agua — escudo para RPG, libro para Clásico
-            const watermarkColor = isRol ? 'rgba(210,185,145,1)' : 'rgba(160,115,55,1)';
-            const watermarkSvg = isRol
-                ? `<svg viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M40 5 L72 18 L72 45 C72 63 57 78 40 85 C23 78 8 63 8 45 L8 18 Z" stroke="${watermarkColor}" stroke-width="2.5" fill="none"/>
-                    <path d="M40 5 L72 18 L72 45 C72 63 57 78 40 85 C23 78 8 63 8 45 L8 18 Z" fill="${watermarkColor}" fill-opacity="0.06"/>
-                    <line x1="40" y1="18" x2="40" y2="72" stroke="${watermarkColor}" stroke-width="1.5"/>
-                    <line x1="12" y1="38" x2="68" y2="38" stroke="${watermarkColor}" stroke-width="1.5"/>
-                    <circle cx="40" cy="38" r="7" stroke="${watermarkColor}" stroke-width="1.5" fill="none"/>
-                    <path d="M26 24 L40 18 L54 24" stroke="${watermarkColor}" stroke-width="1" fill="none" opacity="0.6"/>
-                  </svg>`
-                : `<svg viewBox="0 0 90 75" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M45 10 C35 6 18 8 8 14 L8 68 C18 62 35 60 45 64 C55 60 72 62 82 68 L82 14 C72 8 55 6 45 10 Z" stroke="${watermarkColor}" stroke-width="2" fill="none"/>
-                    <line x1="45" y1="10" x2="45" y2="64" stroke="${watermarkColor}" stroke-width="1.5"/>
-                    <line x1="16" y1="28" x2="40" y2="28" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="16" y1="36" x2="40" y2="36" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="16" y1="44" x2="38" y2="44" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="50" y1="28" x2="74" y2="28" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="50" y1="36" x2="74" y2="36" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                    <line x1="50" y1="44" x2="72" y2="44" stroke="${watermarkColor}" stroke-width="1" opacity="0.5"/>
-                  </svg>`;
-
-            // Personaje principal si tiene roleCharacterId
-            let charAvatarHtml = '';
-            if (t.roleCharacterId) {
-                const char = appData.characters.find(c => String(c.id) === String(t.roleCharacterId));
-                if (char && char.avatar) {
-                    charAvatarHtml = `<img src="${escapeHtml(char.avatar)}" class="topic-card-char-avatar" alt="${escapeHtml(char.name)}">`;
-                }
-            }
-
-            const msgWord = msgs.length === 1 ? 'mensaje' : 'mensajes';
+            // Datos mínimos necesarios para la carta de tarot
+            const msgs        = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
+            const isRol       = t.mode === 'rpg' || t.mode === 'fanfic';
             const creatorName = normalizeCreatorName(t.createdBy);
-            const lastActivityDate = last?.timestamp || t.createdAt || t.date || null;
-            const lastActivityLabel = formatRelativeDayLabel(lastActivityDate);
-            const progressCurrent = Math.min(msgs.length, 10);
-            const progressPct = Math.min(100, Math.round((progressCurrent / 10) * 100));
+            const msgWord     = msgs.length === 1 ? 'mensaje' : 'mensajes';
+            const cardIcon    = isRol ? '⚜' : '✦';
 
-            // ── Sello del modo (columna izquierda de la carta horizontal) ──
-            const sealIcon  = isRol ? '⚜' : '✦';
-            const sealLabel = isRol ? 'RPG' : 'Clásico';
-
-            // ── Pulso de turno activo: destaca si es el turno del usuario en esta historia ──
+            // Pulso de turno: destaca si es el turno del usuario en esta historia
             const isMeTurn = Array.isArray(t.turnOrder)
                 && t.turnOrder[0]
                 && String(t.turnOrder[0]) === String(window._cachedUserId);
             const turnClass = isMeTurn ? ' topic-card--my-turn' : '';
 
             return `
-                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}${turnClass}" onclick="enterTopic('${_normalizeTopicId(t.id)}')">
-                    <div class="topic-card-accent">
-                        <span class="topic-card-seal-icon" aria-hidden="true">${sealIcon}</span>
-                        <span class="topic-card-seal-label">${escapeHtml(sealLabel)}</span>
-                    </div>
-                    <div class="topic-card-watermark">${watermarkSvg}</div>
-                    <span class="topic-card-corner topic-card-corner--tl">${cornerSvg}</span>
-                    <span class="topic-card-corner topic-card-corner--tr">${cornerSvg}</span>
-                    <span class="topic-card-corner topic-card-corner--bl">${cornerSvg}</span>
-                    <span class="topic-card-corner topic-card-corner--br">${cornerSvg}</span>
-                    <div class="topic-card-inner">
-                        <div class="topic-card-top">
-                            <div class="topic-card-badges">
-                                <span class="topic-badge mode">${modeLabel}</span>
-                                ${weatherBadge}
-                                ${isMeTurn ? '<span class="topic-badge topic-badge--turn">⏳ Tu turno</span>' : ''}
-                            </div>
+                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}${turnClass}"
+                     onclick="this.classList.toggle('flipped')">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <div class="card-icon">${cardIcon}</div>
+                            <h3 class="card-title">${escapeHtml(t.title)}</h3>
                         </div>
-                        <h3 class="topic-card-title">${escapeHtml(t.title)}</h3>
-                        <p class="topic-card-author">por ${escapeHtml(creatorName)}</p>
-                        <p class="topic-card-excerpt topic-card-excerpt--meta">${escapeHtml(lastActivityLabel)}</p>
-                        ${lastText ? `<p class="topic-card-excerpt">"${escapeHtml(lastText)}${lastText.length >= 80 ? '…' : ''}"</p>` : '<p class="topic-card-excerpt topic-card-excerpt--empty">Sin mensajes aún. <strong>Escribe el primer capítulo</strong>.</p>'}
-                    </div>
-                    <div class="topic-card-footer">
-                        <span class="topic-card-footer-msgs">
-                            <span class="topic-card-footer-msgs-icon">${isRol ? '⚜' : '✦'}</span>
-                            ${msgs.length > 0 ? `${msgs.length} ${msgWord}` : '—'}
-                        </span>
-                        <div class="topic-card-progress" title="Progreso de introducción">
-                            <div class="topic-card-progress-bar" style="width:${progressPct}%"></div>
-                            <span class="topic-card-progress-text">${progressCurrent}/10</span>
+                        <div class="card-back">
+                            <h3 class="card-title-back">${escapeHtml(t.title)}</h3>
+                            <p class="card-author">por ${escapeHtml(creatorName)}</p>
+                            <div class="card-stats">💬 ${msgs.length} ${msgWord}</div>
+                            ${isMeTurn ? '<div class="card-stats" style="color:#e8c46a;opacity:1;">⏳ Tu turno</div>' : ''}
+                            <button class="btn-entrar-destino"
+                                    onclick="event.stopPropagation(); enterTopic('${_normalizeTopicId(t.id)}')">
+                                Entrar al destino
+                            </button>
                         </div>
-                        ${charAvatarHtml}
                     </div>
                 </div>
             `;
@@ -579,7 +508,7 @@ function createTopic() {
             SupabaseStories.upsertStory(topicRef).then(function(result) {
                 if (result.ok && result.storyId) {
                     topicRef.storyId = result.storyId;
-                    global.currentStoryId = result.storyId;
+                    window.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
                 } else {

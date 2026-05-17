@@ -69,6 +69,7 @@ function showAuthMain() {
     document.getElementById('authMainView').classList.add('active');
     setAuthStatus('', null, 'authStatus');
     setAuthStatus('', null, 'authRegStatus');
+    setAuthStatus('', null, 'authForgotStatus'); // limpiar mensaje de "recuperar contraseña" al volver
 }
 
 function continueAsGuest() {
@@ -515,7 +516,6 @@ function initializeApp() {
     generateProfileParticles();
     if (typeof maybeShowOnboarding === 'function') maybeShowOnboarding();
     initMenuParallax();
-    if (typeof initHub === 'function') initHub();
     updateCloudSyncIndicator('online', 'Conectado');
     updateSyncButtonState('synced', 'Sincronizar');
     

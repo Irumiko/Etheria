@@ -959,33 +959,11 @@ function _generateStoryCode() {
     return out;
 }
 
-function _drawStoryCodeQr(code) {
-    const canvas = document.getElementById('storyCodeQrCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const size = 22;
-    const cell = Math.floor(canvas.width / size);
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    let seed = 0;
-    for (let i = 0; i < code.length; i++) seed = (seed * 31 + code.charCodeAt(i)) >>> 0;
-    for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-            const v = (x * 73856093) ^ (y * 19349663) ^ seed;
-            const on = ((v >>> 2) & 1) === 1 || x < 2 || y < 2 || x > size - 3 || y > size - 3;
-            if (on) {
-                ctx.fillStyle = '#111';
-                ctx.fillRect(x * cell, y * cell, cell - 1, cell - 1);
-            }
-        }
-    }
-}
 
-function _lzCompress(str) {
-    // Compresión simple run-length para reducir tamaño del código exportado
+function _formatStoryText(str) {
+    // Prepara el texto de la historia para exportación (btoa ya gestiona la codificación)
     try {
-        // Intentar usar CompressionStream si está disponible (navegadores modernos)
-        return str; // fallback: sin compresión adicional (btoa ya es suficiente)
+        return str;
     } catch { return str; }
 }
 
@@ -1030,7 +1008,7 @@ function exportCurrentStoryAsCode() {
 
     const serialized = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     const kb = Math.round(serialized.length / 1024);
-    if (kb > 4000) {
+    if (kb > 400) {
         showAutosave(`Historia muy grande (${kb}KB). Solo se exportarán los últimos 200 mensajes.`, 'error');
     }
     let code = _generateStoryCode();
@@ -1049,7 +1027,6 @@ function exportCurrentStoryAsCode() {
 
     const codeEl = document.getElementById('storyCodeValue');
     if (codeEl) codeEl.textContent = code;
-    _drawStoryCodeQr(code);
     openModal('storyCodeModal');
     showAutosave('Código de historia generado', 'saved');
 }
