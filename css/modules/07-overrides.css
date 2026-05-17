@@ -349,415 +349,237 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
                 inset 0 0 20px rgba(163,134,80,0.04) !important;
 }
 
-/* ── 12.7  Grid compacto de cartas de tarot ──────────────────────── */
+/* ── 12.7  Ocultar contador de mensajes y barra de sala ────────── */
+/* El contador "N / N" no debe mostrarse en la caja de diálogo     */
+#vnMessageCounter { display: none !important; }
+
+/* El panel de código de sala aparece encima del toolbar — ocultarlo */
+#vnSection #roomCodeWrap { display: none !important; }
+
+/* ── 12.7b  Grid de tarjetas horizontales (StoryCard style) ─────── */
 .topics-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important;
-    gap: 22px !important;
-    padding: 24px !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 14px !important;
+    padding: 20px 16px !important;
     align-items: start !important;
 }
 
-/* ── 12.8  Carta ornamentada — dimensiones, perspectiva 3D y entrada ── */
-.topic-card {
-    width: 170px !important;
-    height: 260px !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+/* ── 12.8  Story Card — contenedor horizontal (estilo handoff) ───── */
+.story-card {
+    display: flex !important;
+    height: 130px !important;
+    position: relative !important;
+    overflow: hidden !important;
     cursor: pointer !important;
-    position: relative !important;
-    justify-self: center !important;
-    perspective: 1000px !important;
-    animation: eth-cardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
-    overflow: visible !important;
+    background: rgba(22, 17, 42, 0.62) !important;
+    backdrop-filter: blur(18px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
+    border: 1px solid rgba(212, 174, 92, 0.25) !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.04) inset,
+        0 0 0 1px rgba(0,0,0,0.4),
+        0 8px 32px rgba(0,0,0,0.45) !important;
+    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease !important;
+    animation: eth-cardIn 0.35s cubic-bezier(0.22,1,0.36,1) both !important;
 }
-.topic-card:nth-child(1)   { animation-delay: 0.03s; }
-.topic-card:nth-child(2)   { animation-delay: 0.07s; }
-.topic-card:nth-child(3)   { animation-delay: 0.11s; }
-.topic-card:nth-child(4)   { animation-delay: 0.15s; }
-.topic-card:nth-child(5)   { animation-delay: 0.19s; }
-.topic-card:nth-child(n+6) { animation-delay: 0.23s; }
+.story-card:nth-child(1) { animation-delay: 0.03s !important; }
+.story-card:nth-child(2) { animation-delay: 0.06s !important; }
+.story-card:nth-child(3) { animation-delay: 0.10s !important; }
+.story-card:nth-child(4) { animation-delay: 0.14s !important; }
+.story-card:nth-child(n+5) { animation-delay: 0.18s !important; }
 @keyframes eth-cardIn {
-    from { opacity: 0; transform: translateY(16px) scale(0.93); }
-    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.story-card:hover {
+    transform: translateY(-3px) !important;
 }
 
-/* ── 12.8b  Card-inner — eje de rotación 3D ─────────────────────── */
-.card-inner {
+/* ── 12.9  Modo RPG — acento dorado ──────────────────────────────── */
+.story-card--rpg {
+    border-color: rgba(212, 174, 92, 0.30) !important;
+    box-shadow:
+        0 1px 0 rgba(212,174,92,0.07) inset,
+        0 0 0 1px rgba(0,0,0,0.5),
+        0 8px 32px rgba(0,0,0,0.50) !important;
+}
+.story-card--rpg:hover {
+    border-color: rgba(212, 174, 92, 0.58) !important;
+    box-shadow:
+        0 1px 0 rgba(212,174,92,0.10) inset,
+        0 0 0 1px rgba(0,0,0,0.5),
+        0 14px 40px rgba(0,0,0,0.60),
+        0 0 20px rgba(212,174,92,0.08) !important;
+}
+
+/* ── 12.10  Modo Clásico — acento rosa ───────────────────────────── */
+.story-card--classic {
+    border-color: rgba(233, 163, 184, 0.26) !important;
+    box-shadow:
+        0 1px 0 rgba(233,163,184,0.06) inset,
+        0 0 0 1px rgba(0,0,0,0.5),
+        0 8px 32px rgba(0,0,0,0.50) !important;
+}
+.story-card--classic:hover {
+    border-color: rgba(233, 163, 184, 0.55) !important;
+    box-shadow:
+        0 1px 0 rgba(233,163,184,0.09) inset,
+        0 0 0 1px rgba(0,0,0,0.5),
+        0 14px 40px rgba(0,0,0,0.60),
+        0 0 18px rgba(233,163,184,0.07) !important;
+}
+
+/* ── 12.11  Portada izquierda ────────────────────────────────────── */
+.story-card-cover {
+    width: 120px !important;
+    flex-shrink: 0 !important;
+    align-self: stretch !important;
     position: relative !important;
-    width: 100% !important;
-    height: 100% !important;
-    transform-style: preserve-3d !important;
-    transition: transform 0.62s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-.topic-card:not(.flipped):hover .card-inner {
-    transform: translateY(-6px) !important;
-    filter: brightness(1.07) !important;
-}
-.topic-card.flipped .card-inner {
-    transform: rotateY(180deg) !important;
-}
-
-/* ── 12.8c  Caras — absolute, backface oculto ───────────────────── */
-.card-face {
-    position: absolute !important;
-    width: 100% !important;
-    height: 100% !important;
-    backface-visibility: hidden !important;
-    -webkit-backface-visibility: hidden !important;
-}
-.card-face--back {
-    transform: rotateY(180deg) !important;
-}
-
-/* ── 12.8d  Pointer-events: la cara oculta no bloquea los clics ─── */
-/* Sin esto, la cara delantera (position:absolute) sigue capturando  */
-/* eventos sobre la cara trasera aunque esté rotada y sea invisible. */
-.topic-card:not(.flipped) .card-face--back {
-    pointer-events: none !important;
-}
-.topic-card.flipped .card-face--front {
-    pointer-events: none !important;
-}
-
-/* ── 12.9  Marco exterior ────────────────────────────────────────── */
-.card-outer-frame {
-    position: relative !important;
-    width: 100% !important;
-    height: 100% !important;
-    border-radius: 10px !important;
-    padding: 6px !important;
-    box-sizing: border-box !important;
-    display: flex !important;
-    flex-direction: column !important;
     overflow: hidden !important;
 }
-
-/* ── 12.10  Marco interior ───────────────────────────────────────── */
-.card-inner-frame {
-    position: relative !important;
-    flex: 1 !important;
-    border-radius: 6px !important;
-    padding: 30px 8px 6px !important; /* espacio superior para cap-bar */
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 4px !important;
-    overflow: hidden !important;
-    z-index: 1 !important;
-}
-
-/* ── 12.11  Esquinas ornamentales ────────────────────────────────── */
-.card-corner {
+.story-card-cover-stripe {
     position: absolute !important;
-    width: 13px !important;
-    height: 13px !important;
-    z-index: 3 !important;
+    inset: 0 !important;
     pointer-events: none !important;
 }
-.card-corner--tl { top: 3px;    left: 3px;    border-top: 1.5px solid; border-left: 1.5px solid; }
-.card-corner--tr { top: 3px;    right: 3px;   border-top: 1.5px solid; border-right: 1.5px solid; }
-.card-corner--bl { bottom: 3px; left: 3px;    border-bottom: 1.5px solid; border-left: 1.5px solid; }
-.card-corner--br { bottom: 3px; right: 3px;   border-bottom: 1.5px solid; border-right: 1.5px solid; }
-
-/* ── 12.11b  Capiteles + numeral en la cima de la carta ─────────── */
-.card-cap-bar {
+.story-card-cover-glow {
     position: absolute !important;
-    top: 10px !important;
-    left: 0 !important;
-    right: 0 !important;
+    inset: 0 !important;
+    pointer-events: none !important;
+}
+.story-card-cover-icon {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 10px !important;
-    z-index: 2 !important;
     pointer-events: none !important;
 }
-.card-column {
-    display: flex !important;
-    align-items: flex-start !important;
-    flex-shrink: 0 !important;
-}
-.card-column--flip {
-    transform: scaleX(-1) !important;
-}
-.card-col-svg {
-    width: 10px !important;
-    height: 26px !important;
-}
 
-/* ── 12.12  Cabecera: título + autor ─────────────────────────────── */
-.card-header {
-    width: 100% !important;
-    text-align: center !important;
-    flex-shrink: 0 !important;
+/* ── 12.12  Cuerpo derecho ───────────────────────────────────────── */
+.story-card-body {
+    flex: 1 !important;
+    min-width: 0 !important;
+    padding: 12px 14px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    gap: 4px !important;
 }
-.card-title {
-    font-family: 'EB Garamond', 'Crimson Text', serif !important;
-    font-size: 0.68rem !important;
-    font-weight: 500 !important;
-    letter-spacing: 0.05em !important;
+.story-card-tag {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 8.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.28em !important;
     text-transform: uppercase !important;
-    text-align: center !important;
-    line-height: 1.25 !important;
+    margin-bottom: 4px !important;
+    display: block !important;
+}
+.story-card--rpg    .story-card-tag { color: #d4ae5c !important; }
+.story-card--classic .story-card-tag { color: #e9a3b8 !important; }
+
+.story-card-title {
+    font-family: 'Cormorant Garamond', 'Cormorant', 'EB Garamond', 'Crimson Text', serif !important;
+    font-size: 19px !important;
+    font-weight: 500 !important;
+    color: #f3e9d2 !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.01em !important;
+    margin: 0 0 3px !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
-    margin: 0 0 2px !important;
 }
-.card-author {
-    font-family: 'EB Garamond', 'Crimson Text', serif !important;
+.story-card-author {
+    font-family: 'Cormorant Garamond', 'EB Garamond', serif !important;
     font-style: italic !important;
-    font-size: 0.60rem !important;
-    text-align: center !important;
+    font-size: 12px !important;
+    color: #8a7f9a !important;
     margin: 0 !important;
-    opacity: 0.65 !important;
-}
-
-/* ── 12.13  Separador con diamante central ───────────────────────── */
-.card-divider {
-    width: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 4px !important;
-    flex-shrink: 0 !important;
-}
-.card-divider::before,
-.card-divider::after {
-    content: '' !important;
-    flex: 1 !important;
-    height: 1px !important;
-    opacity: 0.30 !important;
-}
-.card-divider-diamond {
-    font-size: 0.42rem !important;
-    line-height: 1 !important;
-    opacity: 0.60 !important;
-    flex-shrink: 0 !important;
-}
-
-/* ── 12.14  Ilustración SVG por modo ────────────────────────────── */
-.card-illustration {
-    position: relative !important;
-    flex: 1 !important;
-    width: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    line-height: 1.3 !important;
+    white-space: nowrap !important;
     overflow: hidden !important;
-    min-height: 0 !important;
-}
-.card-illustration-svg {
-    width: 86px !important;
-    height: auto !important;
-    max-height: 100% !important;
-    flex-shrink: 0 !important;
+    text-overflow: ellipsis !important;
 }
 
-/* ── 12.15  Pie: sello + conteo mensajes ────────────────────────── */
-.card-footer-bar {
-    width: 100% !important;
+/* ── 12.13  Pie de tarjeta ───────────────────────────────────────── */
+.story-card-footer {
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
+    gap: 6px !important;
     flex-shrink: 0 !important;
-    padding: 0 2px !important;
+    flex-wrap: wrap !important;
 }
-.card-numeral {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.60rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.18em !important;
-    opacity: 0.68 !important;
-    flex-shrink: 0 !important;
-}
-.card-seal {
-    font-size: 0.82rem !important;
-    line-height: 1 !important;
-    opacity: 0.80 !important;
-    flex-shrink: 0 !important;
-}
-.card-msgs {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.50rem !important;
-    letter-spacing: 0.06em !important;
-    opacity: 0.55 !important;
-}
-.card-turn-badge {
-    font-size: 0.50rem !important;
-    text-align: center !important;
-    width: 100% !important;
-    color: #e8c46a !important;
+.story-card-msgs {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 10px !important;
     letter-spacing: 0.04em !important;
-    flex-shrink: 0 !important;
+}
+.story-card--rpg    .story-card-msgs { color: rgba(212,174,92,0.58) !important; }
+.story-card--classic .story-card-msgs { color: rgba(233,163,184,0.58) !important; }
+
+.story-card-activity {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 9px !important;
+    color: #6b6280 !important;
+    letter-spacing: 0.04em !important;
+    white-space: nowrap !important;
+}
+.story-card-turn {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 9px !important;
+    color: #e8c46a !important;
+    letter-spacing: 0.03em !important;
+    white-space: nowrap !important;
 }
 
-/* ── 12.16  Identidad visual RPG — dorado, madera oscura ────────── */
-/* Fondo en capas: trama diagonal + resplandor radial + gradiente base */
-.topic-card--rol .card-outer-frame {
-    background:
-        repeating-linear-gradient(45deg, transparent 0 14px, rgba(212,174,92,0.055) 14px 15px),
-        radial-gradient(ellipse 88% 70% at 50% 28%, rgba(212,174,92,0.13), transparent 65%),
-        linear-gradient(160deg, #1e1508 0%, #0e0a04 100%) !important;
-    border: 1px solid rgba(212,174,92,0.58) !important;
-    box-shadow:
-        0 0 0 2px rgba(20,14,4,0.92),
-        0 0 0 3.5px rgba(212,174,92,0.20),
-        0 14px 44px rgba(0,0,0,0.72),
-        inset 0 0 28px rgba(0,0,0,0.38) !important;
+/* ── 12.14  Esquinas ornamentales (L shapes) ─────────────────────── */
+.sc-corner {
+    position: absolute !important;
+    width: 14px !important;
+    height: 14px !important;
+    z-index: 4 !important;
+    pointer-events: none !important;
+    display: block !important;
 }
-.topic-card--rol .card-inner-frame {
-    border: 1px solid rgba(212,174,92,0.18) !important;
+.sc-corner--tl { top: 4px !important;    left: 4px !important;    border-top: 1.2px solid !important; border-left: 1.2px solid !important; }
+.sc-corner--tr { top: 4px !important;    right: 4px !important;   border-top: 1.2px solid !important; border-right: 1.2px solid !important; }
+.sc-corner--bl { bottom: 4px !important; left: 4px !important;    border-bottom: 1.2px solid !important; border-left: 1.2px solid !important; }
+.sc-corner--br { bottom: 4px !important; right: 4px !important;   border-bottom: 1.2px solid !important; border-right: 1.2px solid !important; }
+.story-card--rpg    .sc-corner { border-color: rgba(212,174,92,0.52) !important; }
+.story-card--classic .sc-corner { border-color: rgba(233,163,184,0.42) !important; }
+
+/* ── 12.15  Pulso de turno activo ────────────────────────────────── */
+.story-card--my-turn.story-card--rpg {
+    animation: sc-turn-gold 2.6s ease-in-out infinite !important;
 }
-.topic-card--rol .card-corner         { border-color: rgba(212,174,92,0.65) !important; }
-.topic-card--rol .card-title          { color: #d4ae5c !important; }
-.topic-card--rol .card-author         { color: rgba(212,174,92,0.60) !important; }
-.topic-card--rol .card-numeral        { color: rgba(212,174,92,0.72) !important; }
-.topic-card--rol .card-seal           { color: #d4ae5c !important; filter: drop-shadow(0 0 5px rgba(212,174,92,0.45)) !important; }
-.topic-card--rol .card-msgs           { color: rgba(212,174,92,0.55) !important; }
-.topic-card--rol .card-col-svg        { color: rgba(212,174,92,0.62) !important; }
-.topic-card--rol .card-illustration-svg { color: #c8a85a !important; }
-.topic-card--rol .card-divider::before,
-.topic-card--rol .card-divider::after { background: rgba(212,174,92,0.48) !important; }
-.topic-card--rol .card-divider-diamond { color: #d4ae5c !important; }
-.topic-card--rol:hover .card-outer-frame {
-    box-shadow:
-        0 0 0 2px rgba(20,14,4,0.92),
-        0 0 0 3.5px rgba(212,174,92,0.34),
-        0 20px 56px rgba(0,0,0,0.78),
-        0 0 32px rgba(212,174,92,0.14),
-        inset 0 0 28px rgba(0,0,0,0.38) !important;
+.story-card--my-turn.story-card--classic {
+    animation: sc-turn-rose 2.6s ease-in-out infinite !important;
+}
+@keyframes sc-turn-gold {
+    0%,100% { border-color: rgba(212,174,92,0.30); box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.5); }
+    50%     { border-color: rgba(212,174,92,0.65); box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.5), 0 0 22px rgba(212,174,92,0.22); }
+}
+@keyframes sc-turn-rose {
+    0%,100% { border-color: rgba(233,163,184,0.26); box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.5); }
+    50%     { border-color: rgba(233,163,184,0.60); box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.5), 0 0 18px rgba(233,163,184,0.18); }
 }
 
-/* ── 12.17  Identidad visual Clásico — azul-plata, cielo nocturno ─ */
-.topic-card--historia .card-outer-frame {
-    background:
-        repeating-linear-gradient(45deg, transparent 0 14px, rgba(154,180,224,0.055) 14px 15px),
-        radial-gradient(ellipse 88% 70% at 50% 28%, rgba(154,180,224,0.11), transparent 65%),
-        linear-gradient(160deg, #0b1130 0%, #060916 100%) !important;
-    border: 1px solid rgba(154,180,224,0.48) !important;
-    box-shadow:
-        0 0 0 2px rgba(8,12,40,0.92),
-        0 0 0 3.5px rgba(154,180,224,0.16),
-        0 14px 44px rgba(0,0,0,0.72),
-        inset 0 0 28px rgba(0,0,0,0.38) !important;
-}
-.topic-card--historia .card-inner-frame {
-    border: 1px solid rgba(154,180,224,0.16) !important;
-}
-.topic-card--historia .card-corner         { border-color: rgba(154,180,224,0.58) !important; }
-.topic-card--historia .card-title          { color: #a8c4e8 !important; }
-.topic-card--historia .card-author         { color: rgba(154,180,224,0.60) !important; }
-.topic-card--historia .card-numeral        { color: rgba(154,180,224,0.72) !important; }
-.topic-card--historia .card-seal           { color: #9ab4e0 !important; filter: drop-shadow(0 0 5px rgba(154,180,224,0.42)) !important; }
-.topic-card--historia .card-msgs           { color: rgba(154,180,224,0.55) !important; }
-.topic-card--historia .card-col-svg        { color: rgba(154,180,224,0.58) !important; }
-.topic-card--historia .card-illustration-svg { color: #8aacd0 !important; }
-.topic-card--historia .card-divider::before,
-.topic-card--historia .card-divider::after { background: rgba(154,180,224,0.44) !important; }
-.topic-card--historia .card-divider-diamond { color: #9ab4e0 !important; }
-.topic-card--historia:hover .card-outer-frame {
-    box-shadow:
-        0 0 0 2px rgba(8,12,40,0.92),
-        0 0 0 3.5px rgba(154,180,224,0.28),
-        0 20px 56px rgba(0,0,0,0.78),
-        0 0 26px rgba(154,180,224,0.10),
-        inset 0 0 28px rgba(0,0,0,0.38) !important;
-}
-
-/* ── 12.18  Pulso de turno activo ────────────────────────────────── */
-@keyframes topic-turn-gold {
-    0%,100% { box-shadow: 0 0 0 2px rgba(26,16,8,0.9), 0 0 0 3px rgba(212,174,92,0.18), 0 12px 40px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4); }
-    50%     { box-shadow: 0 0 0 2px rgba(26,16,8,0.9), 0 0 0 3px rgba(212,174,92,0.44), 0 12px 40px rgba(0,0,0,0.7), 0 0 28px rgba(212,174,92,0.26), inset 0 0 30px rgba(0,0,0,0.4); }
-}
-@keyframes topic-turn-silver {
-    0%,100% { box-shadow: 0 0 0 2px rgba(13,18,56,0.9), 0 0 0 3px rgba(154,180,224,0.14), 0 12px 40px rgba(0,0,0,0.7), inset 0 0 30px rgba(0,0,0,0.4); }
-    50%     { box-shadow: 0 0 0 2px rgba(13,18,56,0.9), 0 0 0 3px rgba(154,180,224,0.36), 0 12px 40px rgba(0,0,0,0.7), 0 0 22px rgba(154,180,224,0.2), inset 0 0 30px rgba(0,0,0,0.4); }
-}
-.topic-card--rol.topic-card--my-turn .card-outer-frame {
-    animation: topic-turn-gold 2.6s ease-in-out infinite !important;
-}
-.topic-card--historia.topic-card--my-turn .card-outer-frame {
-    animation: topic-turn-silver 2.6s ease-in-out infinite !important;
-}
-
-/* ── 12.19  Mobile ───────────────────────────────────────────────── */
-@media (max-width: 600px) {
+/* ── 12.16  Mobile ───────────────────────────────────────────────── */
+@media (max-width: 700px) {
     .topics-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
-        gap: 14px !important;
-        padding: 14px !important;
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        padding: 12px !important;
     }
-    .topic-card     { width: 140px !important; height: 220px !important; }
-    .card-mandala   { width: 74px !important; height: 74px !important; }
-    .card-title     { font-size: 0.56rem !important; }
-}
-
-/* ── 12.20  Cara trasera (flip back-face) ────────────────────────── */
-.card-inner-frame--back {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 10px !important;
-    text-align: center !important;
-    height: 100% !important;
-    padding: 16px 10px !important;
-}
-
-.card-inner-frame--back .card-title {
-    font-size: 0.62rem !important;
-    line-height: 1.3 !important;
-    margin: 0 !important;
-}
-
-.card-inner-frame--back .card-author {
-    margin: 0 !important;
-}
-
-.card-inner-frame--back .card-msgs {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.56rem !important;
-    letter-spacing: 0.06em !important;
-    margin: 0 !important;
-}
-
-.btn-entrar-destino {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.58rem !important;
-    letter-spacing: 0.08em !important;
-    font-weight: 600 !important;
-    padding: 7px 14px !important;
-    border-radius: 5px !important;
-    border: 1px solid rgba(212, 174, 92, 0.55) !important;
-    background: linear-gradient(135deg, rgba(60, 38, 6, 0.85), rgba(26, 16, 8, 0.92)) !important;
-    color: #d4ae5c !important;
-    cursor: pointer !important;
-    transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease !important;
-    margin-top: 4px !important;
-}
-
-.btn-entrar-destino:hover {
-    background: linear-gradient(135deg, rgba(90, 58, 12, 0.92), rgba(40, 26, 10, 0.97)) !important;
-    border-color: rgba(212, 174, 92, 0.85) !important;
-    box-shadow: 0 0 14px rgba(212, 174, 92, 0.22) !important;
-    color: #e8cc80 !important;
-}
-
-/* Classic variant: silver/navy */
-.topic-card--historia .btn-entrar-destino {
-    border-color: rgba(154, 180, 224, 0.55) !important;
-    background: linear-gradient(135deg, rgba(18, 28, 80, 0.85), rgba(13, 18, 56, 0.92)) !important;
-    color: #9ab4e0 !important;
-}
-
-.topic-card--historia .btn-entrar-destino:hover {
-    background: linear-gradient(135deg, rgba(28, 48, 130, 0.92), rgba(20, 30, 90, 0.97)) !important;
-    border-color: rgba(154, 180, 224, 0.85) !important;
-    box-shadow: 0 0 14px rgba(154, 180, 224, 0.22) !important;
-    color: #c0d4f0 !important;
+    .story-card         { height: 110px !important; }
+    .story-card-cover   { width: 90px !important; }
+    .story-card-title   { font-size: 16px !important; }
 }
 
 /* ════════════════════════════════════════════════════════════════════
