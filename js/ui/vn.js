@@ -1362,7 +1362,7 @@ function applyTopicBackground(vnSection, backgroundPath) {
     const pendingBackgroundToken = `${sceneBackgroundPath}|${Date.now()}|${Math.random()}`;
     vnSection.dataset.pendingBackgroundToken = pendingBackgroundToken;
 
-    const gradient = 'linear-gradient(135deg, rgba(20,15,40,1) 0%, rgba(50,40,80,1) 100%)';
+    const gradient = 'linear-gradient(135deg, rgba(8,6,3,1) 0%, rgba(14,10,5,1) 100%)';
     if (!sceneBackgroundPath) {
         vnSection.style.backgroundImage = gradient;
         return;

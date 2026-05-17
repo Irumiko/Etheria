@@ -87,6 +87,9 @@ body {
 body.mode-classic #vnSection {
     background: #060918 !important;
 }
+body.mode-rpg #vnSection {
+    background-color: #0a0804 !important; /* fallback oscuro RPG — oculta cualquier hueco sobre game-frame */
+}
 body:not(.mode-classic):not(.mode-rpg) #vnSection {
     background: var(--bg-primary) !important;
 }

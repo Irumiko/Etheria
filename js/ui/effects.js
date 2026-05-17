@@ -298,7 +298,9 @@ function showEmoteOnAvatar(emoteType) {
     window._effectsListenersReady = true;
     if (typeof eventBus !== 'undefined') {
         eventBus.on('weather:changed', function(data) {
-            if (data && data.weather) setWeather(data.weather);
+            // Guard: only call setWeather if the weather is different from current
+            // (prevents infinite loop since setWeather itself emits weather:changed)
+            if (data && data.weather && data.weather !== currentWeather) setWeather(data.weather);
         });
     }
 })();
