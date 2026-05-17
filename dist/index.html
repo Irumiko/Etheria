@@ -4744,7 +4744,7 @@ function showEmoteOnAvatar(emoteType) {
 
 
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" integrity="sha512-1bkHDsNPzjpYAIBaCqLSXiDFPsyDkPO3XBxuqS48rRNM+k0GE1LBXN1k/tCOIiJmfJkv4Wt0ppRVAGsIVNw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" integrity="sha512-jB0TkTBeQC9ZSkBqDhdmfTv1qdfbWpGE72yJ/01Srq6hEzZIz2xkz1e57p9ai7IeHMwEG7HpzG6NdptChif5Pg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
 /* js/ui/utils-ui.js */
 // Utilidades de formato y validación para la UI.
@@ -8653,7 +8653,8 @@ function saveCharacter() {
     const name = nameInput?.value.trim();
     if(!name) { showAutosave('El nombre es obligatorio', 'error'); return; }
 
-    const id = document.getElementById('editCharacterId')?.value || Date.now().toString();
+    const id = document.getElementById('editCharacterId')?.value ||
+        (globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(16).slice(2)}`);
 
     const avatarUrl = document.getElementById('charAvatar')?.value.trim() || '';
     const spriteUrl = document.getElementById('charSprite')?.value.trim() || '';
