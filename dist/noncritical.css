@@ -19539,6 +19539,16 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     transform: rotateY(180deg) !important;
 }
 
+/* ── 12.8d  Pointer-events: la cara oculta no bloquea los clics ─── */
+/* Sin esto, la cara delantera (position:absolute) sigue capturando  */
+/* eventos sobre la cara trasera aunque esté rotada y sea invisible. */
+.topic-card:not(.flipped) .card-face--back {
+    pointer-events: none !important;
+}
+.topic-card.flipped .card-face--front {
+    pointer-events: none !important;
+}
+
 /* ── 12.9  Marco exterior con borde ornamentado ─────────────────── */
 .card-outer-frame {
     position: relative !important;
@@ -21972,14 +21982,32 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
     border-radius: 20px !important;
 }
 
-/* ── Mini-nav horizontal en esquina de la caja de diálogo ──────────── */
-.vn-counter-dice-wrap {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 0.06rem !important;
+/* ── Mini-nav VERTICAL en el lado derecho del footer de diálogo ─────── */
+/* El footer actúa como contexto de posicionamiento para las flechas      */
+.vn-dialogue-footer {
+    position: relative !important;
 }
 
+/* Bloque de navegación: sacado del flujo → no deforma el footer          */
+.vn-counter-dice-wrap {
+    position: absolute !important;
+    right: 4px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+    z-index: 5 !important;
+    pointer-events: auto !important;
+}
+
+/* Las acciones del footer reservan espacio para las flechas a la derecha */
+.vn-dialogue-actions {
+    padding-right: 34px !important;
+}
+
+/* ── Botones de navegación — base común ─────────────────────────────── */
 .vn-nav-mini-btn {
     display: inline-flex !important;
     align-items: center !important;
@@ -21988,7 +22016,6 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
     height: 22px !important;
     background: transparent !important;
     border: none !important;
-    color: rgba(140,190,255,0.50) !important;
     cursor: pointer !important;
     padding: 0 !important;
     border-radius: 3px !important;
@@ -21999,16 +22026,24 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
     width: 11px !important;
     height: 11px !important;
 }
-.vn-nav-mini-btn:hover {
+
+/* Modo Clásico: paleta azul-plata */
+body.mode-classic .vn-nav-mini-btn,
+body:not(.mode-rpg) .vn-nav-mini-btn {
+    color: rgba(140,190,255,0.50) !important;
+}
+body.mode-classic .vn-nav-mini-btn:hover,
+body:not(.mode-rpg) .vn-nav-mini-btn:hover {
     color: rgba(200,230,255,0.92) !important;
     background: rgba(80,140,255,0.14) !important;
 }
-.vn-nav-mini-btn:active {
+body.mode-classic .vn-nav-mini-btn:active,
+body:not(.mode-rpg) .vn-nav-mini-btn:active {
     color: #fff !important;
     background: rgba(80,140,255,0.24) !important;
 }
 
-/* Colores dorados en modo RPG */
+/* Modo RPG: paleta dorada-pergamino */
 body.mode-rpg .vn-nav-mini-btn {
     color: rgba(192,168,112,0.52) !important;
 }
@@ -22021,12 +22056,21 @@ body.mode-rpg .vn-nav-mini-btn:active {
     background: rgba(192,168,112,0.22) !important;
 }
 
-/* ── Favorito en la esquina — estrella en lugar de corazón ─────────── */
-.vn-favorite-corner-btn svg {
+/* ── Favorito en la esquina — paleta por modo ───────────────────────── */
+/* Modo Clásico: plata-azul */
+body.mode-classic .vn-favorite-corner-btn svg,
+body:not(.mode-rpg) .vn-favorite-corner-btn svg {
     color: rgba(180,220,255,0.72) !important;
     stroke: rgba(180,220,255,0.72) !important;
     transition: color 0.2s, stroke 0.2s, filter 0.2s !important;
 }
+/* Modo RPG: dorado envejecido */
+body.mode-rpg .vn-favorite-corner-btn svg {
+    color: rgba(192,168,112,0.52) !important;
+    stroke: rgba(192,168,112,0.52) !important;
+    transition: color 0.2s, stroke 0.2s, filter 0.2s !important;
+}
+/* Hover: dorado cálido (ambos modos) */
 .vn-favorite-corner-btn:hover svg {
     color: rgba(255,230,100,0.95) !important;
     stroke: rgba(255,230,100,0.95) !important;

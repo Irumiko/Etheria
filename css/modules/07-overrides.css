@@ -411,6 +411,16 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     transform: rotateY(180deg) !important;
 }
 
+/* ── 12.8d  Pointer-events: la cara oculta no bloquea los clics ─── */
+/* Sin esto, la cara delantera (position:absolute) sigue capturando  */
+/* eventos sobre la cara trasera aunque esté rotada y sea invisible. */
+.topic-card:not(.flipped) .card-face--back {
+    pointer-events: none !important;
+}
+.topic-card.flipped .card-face--front {
+    pointer-events: none !important;
+}
+
 /* ── 12.9  Marco exterior con borde ornamentado ─────────────────── */
 .card-outer-frame {
     position: relative !important;
