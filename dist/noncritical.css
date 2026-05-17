@@ -19483,23 +19483,19 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     align-items: start !important;
 }
 
-/* ── 12.8  Carta ornamentada — dimensiones y entrada ────────────── */
+/* ── 12.8  Carta ornamentada — dimensiones, perspectiva 3D y entrada ── */
 .topic-card {
-    width: 160px !important;
-    height: 250px !important;
+    width: 170px !important;
+    height: 260px !important;
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     cursor: pointer !important;
     position: relative !important;
     justify-self: center !important;
+    perspective: 1000px !important;
     animation: eth-cardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
-    transition: transform 0.22s ease, filter 0.22s ease !important;
     overflow: visible !important;
-}
-.topic-card:hover {
-    transform: translateY(-6px) !important;
-    filter: brightness(1.08) !important;
 }
 .topic-card:nth-child(1)   { animation-delay: 0.03s; }
 .topic-card:nth-child(2)   { animation-delay: 0.07s; }
@@ -19510,6 +19506,34 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 @keyframes eth-cardIn {
     from { opacity: 0; transform: translateY(16px) scale(0.93); }
     to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* ── 12.8b  Card-inner — eje de rotación 3D ─────────────────────── */
+.card-inner {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    transform-style: preserve-3d !important;
+    transition: transform 0.62s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.topic-card:not(.flipped):hover .card-inner {
+    transform: translateY(-6px) !important;
+    filter: brightness(1.07) !important;
+}
+.topic-card.flipped .card-inner {
+    transform: rotateY(180deg) !important;
+}
+
+/* ── 12.8c  Caras — absolute, backface oculto ───────────────────── */
+.card-face {
+    position: absolute !important;
+    width: 100% !important;
+    height: 100% !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+}
+.card-face--back {
+    transform: rotateY(180deg) !important;
 }
 
 /* ── 12.9  Marco exterior con borde ornamentado ─────────────────── */
@@ -19752,6 +19776,71 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     .topic-card     { width: 140px !important; height: 220px !important; }
     .card-mandala   { width: 74px !important; height: 74px !important; }
     .card-title     { font-size: 0.56rem !important; }
+}
+
+/* ── 12.20  Cara trasera (flip back-face) ────────────────────────── */
+.card-inner-frame--back {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    text-align: center !important;
+    height: 100% !important;
+    padding: 16px 10px !important;
+}
+
+.card-inner-frame--back .card-title {
+    font-size: 0.62rem !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+}
+
+.card-inner-frame--back .card-author {
+    margin: 0 !important;
+}
+
+.card-inner-frame--back .card-msgs {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.56rem !important;
+    letter-spacing: 0.06em !important;
+    margin: 0 !important;
+}
+
+.btn-entrar-destino {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.58rem !important;
+    letter-spacing: 0.08em !important;
+    font-weight: 600 !important;
+    padding: 7px 14px !important;
+    border-radius: 5px !important;
+    border: 1px solid rgba(212, 174, 92, 0.55) !important;
+    background: linear-gradient(135deg, rgba(60, 38, 6, 0.85), rgba(26, 16, 8, 0.92)) !important;
+    color: #d4ae5c !important;
+    cursor: pointer !important;
+    transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease !important;
+    margin-top: 4px !important;
+}
+
+.btn-entrar-destino:hover {
+    background: linear-gradient(135deg, rgba(90, 58, 12, 0.92), rgba(40, 26, 10, 0.97)) !important;
+    border-color: rgba(212, 174, 92, 0.85) !important;
+    box-shadow: 0 0 14px rgba(212, 174, 92, 0.22) !important;
+    color: #e8cc80 !important;
+}
+
+/* Classic variant: silver/navy */
+.topic-card--historia .btn-entrar-destino {
+    border-color: rgba(154, 180, 224, 0.55) !important;
+    background: linear-gradient(135deg, rgba(18, 28, 80, 0.85), rgba(13, 18, 56, 0.92)) !important;
+    color: #9ab4e0 !important;
+}
+
+.topic-card--historia .btn-entrar-destino:hover {
+    background: linear-gradient(135deg, rgba(28, 48, 130, 0.92), rgba(20, 30, 90, 0.97)) !important;
+    border-color: rgba(154, 180, 224, 0.85) !important;
+    box-shadow: 0 0 14px rgba(154, 180, 224, 0.22) !important;
+    color: #c0d4f0 !important;
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -20286,8 +20375,8 @@ body.mode-rpg .vn-info-rpg {
 }
 body.mode-rpg .vn-info-exp-wrap .vn-info-hp-label { color: #71b587 !important; }
 body.mode-rpg .vn-info-exp-fill {
-    background: linear-gradient(90deg, #315f80, #56a4c4) !important;
-    box-shadow: 0 0 8px rgba(85, 174, 207, 0.44) !important;
+    background: linear-gradient(90deg, #7a4b14, #c8922a) !important;
+    box-shadow: 0 0 8px rgba(200, 146, 42, 0.44) !important;
 }
 body.mode-rpg .vn-dialogue-box {
     border-radius: 12px !important;
@@ -20857,8 +20946,8 @@ body.mode-rpg #vnSection .vn-info-hp-fill {
 }
 
 body.mode-rpg #vnSection .vn-info-exp-fill {
-    background: linear-gradient(90deg, #1a4a7a, #2878c0, #46aaee) !important;
-    box-shadow: 0 0 10px rgba(48, 138, 225, 0.50), inset 0 1px 0 rgba(140, 215, 255, 0.28) !important;
+    background: linear-gradient(90deg, #7a4b14, #c8922a, #e0aa40) !important;
+    box-shadow: 0 0 10px rgba(200, 146, 42, 0.50), inset 0 1px 0 rgba(255, 215, 140, 0.28) !important;
 }
 
 /* ── 4. PARTY PANEL — Modo Clásico: cristal azul-plata ─────────────────── */
@@ -21880,19 +21969,19 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
     border-radius: 20px !important;
 }
 
-/* ── Mini-nav vertical en la caja de diálogo ────────────────────────── */
+/* ── Mini-nav horizontal en esquina de la caja de diálogo ──────────── */
 .vn-counter-dice-wrap {
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
-    gap: 0.12rem !important;
+    gap: 0.06rem !important;
 }
 
 .vn-nav-mini-btn {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 26px !important;
+    width: 22px !important;
     height: 22px !important;
     background: transparent !important;
     border: none !important;
@@ -21904,8 +21993,8 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
     flex-shrink: 0 !important;
 }
 .vn-nav-mini-btn svg {
-    width: 12px !important;
-    height: 12px !important;
+    width: 11px !important;
+    height: 11px !important;
 }
 .vn-nav-mini-btn:hover {
     color: rgba(200,230,255,0.92) !important;
@@ -21914,6 +22003,19 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
 .vn-nav-mini-btn:active {
     color: #fff !important;
     background: rgba(80,140,255,0.24) !important;
+}
+
+/* Colores dorados en modo RPG */
+body.mode-rpg .vn-nav-mini-btn {
+    color: rgba(192,168,112,0.52) !important;
+}
+body.mode-rpg .vn-nav-mini-btn:hover {
+    color: var(--rpg-parch, #c8b890) !important;
+    background: rgba(192,168,112,0.14) !important;
+}
+body.mode-rpg .vn-nav-mini-btn:active {
+    color: #e8d8b0 !important;
+    background: rgba(192,168,112,0.22) !important;
 }
 
 /* ── Favorito en la esquina — estrella en lugar de corazón ─────────── */
@@ -22042,7 +22144,8 @@ body.mode-rpg #vnSection .vn-info-card {
 body.mode-rpg #vnSection .vn-info-exp-wrap { display: flex; }
 
 body.mode-rpg #vnSection .vn-info-exp-fill {
-    background: linear-gradient(90deg, #244d5c, #3f8aa3);
+    background: linear-gradient(90deg, #7a4b14, #c8922a) !important;
+    box-shadow: 0 0 8px rgba(200, 146, 42, 0.44) !important;
 }
 
 body.mode-rpg #vnSection .vn-dialogue-box {

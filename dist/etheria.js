@@ -16665,47 +16665,69 @@ function renderTopics() {
                 && String(t.turnOrder[0]) === String(window._cachedUserId);
             const turnClass = isMeTurn ? ' topic-card--my-turn' : '';
 
+            const tid = _normalizeTopicId(t.id);
             return `
                 <div class="topic-card ${modeClass}${turnClass}"
-                     onclick="enterTopic('${_normalizeTopicId(t.id)}')">
-                    <div class="card-outer-frame">
-                        <div class="card-corner card-corner--tl"></div>
-                        <div class="card-corner card-corner--tr"></div>
-                        <div class="card-corner card-corner--bl"></div>
-                        <div class="card-corner card-corner--br"></div>
-                        <div class="card-inner-frame">
-                            <div class="card-header">
-                                <h3 class="card-title">${escapeHtml(t.title)}</h3>
-                                <p class="card-author">por ${escapeHtml(creatorName)}</p>
+                     onclick="this.classList.toggle('flipped')">
+                    <div class="card-inner">
+                        <div class="card-face card-face--front">
+                            <div class="card-outer-frame">
+                                <div class="card-corner card-corner--tl"></div>
+                                <div class="card-corner card-corner--tr"></div>
+                                <div class="card-corner card-corner--bl"></div>
+                                <div class="card-corner card-corner--br"></div>
+                                <div class="card-inner-frame">
+                                    <div class="card-header">
+                                        <h3 class="card-title">${escapeHtml(t.title)}</h3>
+                                        <p class="card-author">por ${escapeHtml(creatorName)}</p>
+                                    </div>
+                                    <div class="card-divider"><span class="card-divider-diamond">◆</span></div>
+                                    <div class="card-mandala" style="color:${mandalaColor}">
+                                        <svg class="card-mandala-svg" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="44" cy="44" r="40" stroke="currentColor" stroke-width="0.8" opacity="0.6"/>
+                                            <circle cx="44" cy="44" r="32" stroke="currentColor" stroke-width="0.5" opacity="0.4"/>
+                                            <circle cx="44" cy="44" r="20" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
+                                            <circle cx="44" cy="44" r="4"  fill="currentColor"   opacity="0.3"/>
+                                            <line x1="44"  y1="4"    x2="44"  y2="84"   stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+                                            <line x1="4"   y1="44"   x2="84"  y2="44"   stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+                                            <line x1="15.7" y1="15.7" x2="72.3" y2="72.3" stroke="currentColor" stroke-width="0.4" opacity="0.2"/>
+                                            <line x1="72.3" y1="15.7" x2="15.7" y2="72.3" stroke="currentColor" stroke-width="0.4" opacity="0.2"/>
+                                            <circle cx="44"   cy="6"    r="2"   fill="currentColor" opacity="0.6"/>
+                                            <circle cx="44"   cy="82"   r="2"   fill="currentColor" opacity="0.6"/>
+                                            <circle cx="6"    cy="44"   r="2"   fill="currentColor" opacity="0.6"/>
+                                            <circle cx="82"   cy="44"   r="2"   fill="currentColor" opacity="0.6"/>
+                                            <circle cx="15.7" cy="15.7" r="1.5" fill="currentColor" opacity="0.35"/>
+                                            <circle cx="72.3" cy="15.7" r="1.5" fill="currentColor" opacity="0.35"/>
+                                            <circle cx="15.7" cy="72.3" r="1.5" fill="currentColor" opacity="0.35"/>
+                                            <circle cx="72.3" cy="72.3" r="1.5" fill="currentColor" opacity="0.35"/>
+                                        </svg>
+                                        <span class="card-center-icon">${cardIcon}</span>
+                                    </div>
+                                    <div class="card-divider"><span class="card-divider-diamond">◆</span></div>
+                                    <div class="card-footer-bar">
+                                        <span class="card-numeral">${numeral}</span>
+                                        <span class="card-msgs">◆ ${msgs.length} ${msgWord}</span>
+                                    </div>
+                                    ${isMeTurn ? '<div class="card-turn-badge">⏳ Tu turno</div>' : ''}
+                                </div>
                             </div>
-                            <div class="card-divider"><span class="card-divider-diamond">◆</span></div>
-                            <div class="card-mandala" style="color:${mandalaColor}">
-                                <svg class="card-mandala-svg" viewBox="0 0 88 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <circle cx="44" cy="44" r="40" stroke="currentColor" stroke-width="0.8" opacity="0.6"/>
-                                    <circle cx="44" cy="44" r="32" stroke="currentColor" stroke-width="0.5" opacity="0.4"/>
-                                    <circle cx="44" cy="44" r="20" stroke="currentColor" stroke-width="0.8" opacity="0.5"/>
-                                    <circle cx="44" cy="44" r="4"  fill="currentColor"   opacity="0.3"/>
-                                    <line x1="44"  y1="4"    x2="44"  y2="84"   stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
-                                    <line x1="4"   y1="44"   x2="84"  y2="44"   stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
-                                    <line x1="15.7" y1="15.7" x2="72.3" y2="72.3" stroke="currentColor" stroke-width="0.4" opacity="0.2"/>
-                                    <line x1="72.3" y1="15.7" x2="15.7" y2="72.3" stroke="currentColor" stroke-width="0.4" opacity="0.2"/>
-                                    <circle cx="44"   cy="6"    r="2"   fill="currentColor" opacity="0.6"/>
-                                    <circle cx="44"   cy="82"   r="2"   fill="currentColor" opacity="0.6"/>
-                                    <circle cx="6"    cy="44"   r="2"   fill="currentColor" opacity="0.6"/>
-                                    <circle cx="82"   cy="44"   r="2"   fill="currentColor" opacity="0.6"/>
-                                    <circle cx="15.7" cy="15.7" r="1.5" fill="currentColor" opacity="0.35"/>
-                                    <circle cx="72.3" cy="15.7" r="1.5" fill="currentColor" opacity="0.35"/>
-                                    <circle cx="15.7" cy="72.3" r="1.5" fill="currentColor" opacity="0.35"/>
-                                    <circle cx="72.3" cy="72.3" r="1.5" fill="currentColor" opacity="0.35"/>
-                                </svg>
-                                <span class="card-center-icon">${cardIcon}</span>
+                        </div>
+                        <div class="card-face card-face--back">
+                            <div class="card-outer-frame">
+                                <div class="card-corner card-corner--tl"></div>
+                                <div class="card-corner card-corner--tr"></div>
+                                <div class="card-corner card-corner--bl"></div>
+                                <div class="card-corner card-corner--br"></div>
+                                <div class="card-inner-frame card-inner-frame--back">
+                                    <h3 class="card-title">${escapeHtml(t.title)}</h3>
+                                    <p class="card-author">por ${escapeHtml(creatorName)}</p>
+                                    <p class="card-msgs">◆ ${msgs.length} ${msgWord}</p>
+                                    <button class="btn-entrar-destino"
+                                            onclick="event.stopPropagation(); enterTopic('${tid}')">
+                                        ✦ Entrar al destino
+                                    </button>
+                                </div>
                             </div>
-                            <div class="card-divider"><span class="card-divider-diamond">◆</span></div>
-                            <div class="card-footer-bar">
-                                <span class="card-numeral">${numeral}</span>
-                                <span class="card-msgs">◆ ${msgs.length} ${msgWord}</span>
-                            </div>
-                            ${isMeTurn ? '<div class="card-turn-badge">⏳ Tu turno</div>' : ''}
                         </div>
                     </div>
                 </div>
