@@ -16891,8 +16891,9 @@ function renderTopics() {
                 +   '<p class="tc-back-author">por ' + escapeHtml(creatorName) + '</p>'
                 +   '<div class="tc-back-sep"></div>'
                 +   '<div class="tc-back-stats">'
-                +     (msgs.length > 0 ? '<span class="tc-back-stat">📜 ' + msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') + '</span>' : '')
-                +     (activity ? '<span class="tc-back-stat">🕐 ' + escapeHtml(activity) + '</span>' : '')
+                +     '<span class="tc-back-stat">📜 ' + (msgs.length > 0 ? msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') : 'Sin mensajes') + '</span>'
+                +     '<span class="tc-back-stat">🕐 ' + (activity || 'Reciente') + '</span>'
+                +     (isRol ? '<span class="tc-back-stat" style="opacity:0.6">⚜ Modo RPG</span>' : '<span class="tc-back-stat" style="opacity:0.6">✦ Modo Clásico</span>')
                 +     turnBadge
                 +   '</div>'
                 + '</div>'

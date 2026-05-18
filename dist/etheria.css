@@ -19605,18 +19605,20 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 [data-theme="light"] .tpt-line:last-child { background: linear-gradient(90deg, rgba(120,80,20,0.22), transparent) !important; }
 
 /* ── 12.2c  Layout dos columnas (grid + sidebar) ────────────────── */
-/* El contenedor limita la altura total — las cartas hacen scroll dentro */
+/* El contenedor tiene un mínimo garantizado para que la zona de cartas
+   nunca se vea pequeña, aunque haya pocas tarjetas */
 .topics-content {
     display: flex !important;
     gap: 1rem !important;
     align-items: stretch !important;
-    min-height: 200px !important;
-    max-height: clamp(320px, 62vh, 700px) !important;
-    overflow: hidden !important;
+    min-height: clamp(400px, 55vh, 560px) !important;
+    overflow: visible !important;
 }
+/* El grid-wrap sí tiene max-height + scroll para cuando hay muchos temas */
 .topics-grid-wrap {
     flex: 1 !important;
     min-width: 0 !important;
+    max-height: clamp(400px, 60vh, 580px) !important;
     overflow-y: auto !important;
     /* Scrollbar fina dorada */
     scrollbar-width: thin !important;
@@ -19854,9 +19856,6 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 article.tc {
     position: relative !important;
     width: 100% !important;
-    /* max-width capa la carta: aunque la columna sea enorme (pocas tarjetas),
-       la carta nunca supera 160px. El exceso de columna queda vacío. */
-    max-width: 160px !important;
     /* portrait forzado: altura = 1.5 × ancho */
     aspect-ratio: 2 / 3 !important;
     min-height: 170px !important;
