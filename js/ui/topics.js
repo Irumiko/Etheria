@@ -287,44 +287,55 @@ function renderTopics() {
           <circle cx="69" cy="87" r="2.2" fill="currentColor" opacity="0.68"/>
         </svg>`;
 
-        // ── SVG RPG — brújula radiante con columnas arquitectónicas ───────
+        // ── SVG RPG — espada ornamental con columnas y radios de luz ─────
         const SVG_RPG = `<svg viewBox="0 0 120 148" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Columna izquierda -->
           <rect x="4" y="8" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
           <line x1="9.5" y1="12" x2="9.5" y2="138" stroke="currentColor" stroke-width="2.8" opacity="0.22"/>
           <line x1="7" y1="12" x2="7" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
           <line x1="12" y1="12" x2="12" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
           <rect x="4" y="138" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
+          <!-- Columna derecha -->
           <rect x="105" y="8" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
           <line x1="110.5" y1="12" x2="110.5" y2="138" stroke="currentColor" stroke-width="2.8" opacity="0.22"/>
           <line x1="108" y1="12" x2="108" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
           <line x1="113" y1="12" x2="113" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
           <rect x="105" y="138" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
-          <circle cx="60" cy="74" r="46" stroke="currentColor" stroke-width="0.9" opacity="0.35"/>
-          <circle cx="60" cy="74" r="39" stroke="currentColor" stroke-width="0.45" opacity="0.20"/>
-          <line x1="60" y1="29" x2="60" y2="74" stroke="currentColor" stroke-width="0.65" opacity="0.40"/>
-          <line x1="60" y1="74" x2="60" y2="119" stroke="currentColor" stroke-width="0.65" opacity="0.40"/>
-          <line x1="15" y1="74" x2="60" y2="74" stroke="currentColor" stroke-width="0.65" opacity="0.40"/>
-          <line x1="60" y1="74" x2="105" y2="74" stroke="currentColor" stroke-width="0.65" opacity="0.40"/>
-          <line x1="28" y1="41" x2="60" y2="74" stroke="currentColor" stroke-width="0.5" opacity="0.28"/>
-          <line x1="92" y1="41" x2="60" y2="74" stroke="currentColor" stroke-width="0.5" opacity="0.28"/>
-          <line x1="28" y1="107" x2="60" y2="74" stroke="currentColor" stroke-width="0.5" opacity="0.28"/>
-          <line x1="92" y1="107" x2="60" y2="74" stroke="currentColor" stroke-width="0.5" opacity="0.28"/>
-          <path d="M60 22 L55 36 L60 32 L65 36 Z" fill="currentColor" opacity="0.90"/>
-          <path d="M60 126 L55 112 L60 116 L65 112 Z" fill="currentColor" opacity="0.75"/>
-          <path d="M107 74 L93 69 L97 74 L93 79 Z" fill="currentColor" opacity="0.75"/>
-          <path d="M13 74 L27 69 L23 74 L27 79 Z" fill="currentColor" opacity="0.75"/>
-          <circle cx="60" cy="32" r="2" fill="currentColor" opacity="0.72"/>
-          <circle cx="88" cy="46" r="1.8" fill="currentColor" opacity="0.56"/>
-          <circle cx="100" cy="74" r="1.8" fill="currentColor" opacity="0.56"/>
-          <circle cx="88" cy="102" r="1.8" fill="currentColor" opacity="0.56"/>
-          <circle cx="60" cy="116" r="2" fill="currentColor" opacity="0.72"/>
-          <circle cx="32" cy="102" r="1.8" fill="currentColor" opacity="0.56"/>
-          <circle cx="20" cy="74" r="1.8" fill="currentColor" opacity="0.56"/>
-          <circle cx="32" cy="46" r="1.8" fill="currentColor" opacity="0.56"/>
-          <circle cx="60" cy="74" r="15" stroke="currentColor" stroke-width="1.1" fill="none" opacity="0.60"/>
-          <circle cx="60" cy="74" r="9" fill="currentColor" opacity="0.28"/>
-          <circle cx="60" cy="74" r="5" fill="currentColor" opacity="0.68"/>
-          <circle cx="60" cy="74" r="2.5" fill="currentColor" opacity="0.97"/>
+          <!-- Círculo decorativo exterior -->
+          <circle cx="60" cy="70" r="46" stroke="currentColor" stroke-width="0.9" opacity="0.32"/>
+          <circle cx="60" cy="70" r="39" stroke="currentColor" stroke-width="0.4" opacity="0.16"/>
+          <!-- Radios de luz (se detienen antes de la espada) -->
+          <line x1="60" y1="25" x2="60" y2="47" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+          <line x1="60" y1="93" x2="60" y2="115" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+          <line x1="16" y1="70" x2="37" y2="70" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+          <line x1="83" y1="70" x2="104" y2="70" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+          <line x1="28" y1="38" x2="43" y2="53" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+          <line x1="92" y1="38" x2="77" y2="53" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+          <line x1="28" y1="102" x2="43" y2="87" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+          <line x1="92" y1="102" x2="77" y2="87" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+          <!-- Puntos de constelación en el anillo -->
+          <circle cx="60" cy="26" r="2" fill="currentColor" opacity="0.70"/>
+          <circle cx="87" cy="43" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="99" cy="70" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="87" cy="97" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="60" cy="114" r="2" fill="currentColor" opacity="0.70"/>
+          <circle cx="33" cy="97" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="21" cy="70" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="33" cy="43" r="1.8" fill="currentColor" opacity="0.55"/>
+          <!-- ESPADA ornamental apuntando hacia arriba -->
+          <!-- Hoja: triángulo largo afilado -->
+          <path d="M57.5 67 L60 28 L62.5 67 Z" fill="currentColor" opacity="0.88"/>
+          <!-- Ricasso (parte ancha de la hoja cerca de la guarda) -->
+          <rect x="58" y="67" width="4" height="8" rx="0.5" fill="currentColor" opacity="0.82"/>
+          <!-- Guarda cruzada (curva hacia afuera) -->
+          <path d="M43 75 Q51 71 60 75 Q69 71 77 75" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.85"/>
+          <!-- Gema central en la guarda -->
+          <circle cx="60" cy="75" r="2.2" fill="currentColor" opacity="0.95"/>
+          <!-- Empuñadura -->
+          <rect x="58.5" y="75" width="3" height="15" rx="1.5" fill="currentColor" opacity="0.75"/>
+          <!-- Pommel (remate ornamental) -->
+          <path d="M54 93 Q60 98 66 93 Q62 91 60 92 Q58 91 54 93 Z" fill="currentColor" opacity="0.80"/>
+          <ellipse cx="60" cy="91" rx="4.5" ry="3" stroke="currentColor" stroke-width="0.9" fill="none" opacity="0.78"/>
         </svg>`;
 
         container.innerHTML = topics.map(function(t, idx) {
