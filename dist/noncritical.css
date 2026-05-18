@@ -19667,9 +19667,11 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 /* ── 12.7b  Grid de tarjetas tarot (portrait) ───────────────────── */
 .topics-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)) !important;
-    gap: 18px !important;
-    padding: 8px 16px 20px !important;
+    /* auto-fill (no auto-fit) para que las tarjetas no se estiren
+       aunque haya pocas — el espacio vacío queda a la derecha */
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: 14px !important;
+    padding: 8px 14px 18px !important;
     align-items: start !important;
 }
 
@@ -19677,10 +19679,13 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 article.tc {
     position: relative !important;
     width: 100% !important;
+    /* max-width capa la carta: aunque la columna sea enorme (pocas tarjetas),
+       la carta nunca supera 160px. El exceso de columna queda vacío. */
+    max-width: 160px !important;
     /* portrait forzado: altura = 1.5 × ancho */
     aspect-ratio: 2 / 3 !important;
-    min-height: 220px !important;
-    max-height: 340px !important;
+    min-height: 170px !important;
+    max-height: 240px !important;
     cursor: pointer !important;
     box-sizing: border-box !important;
     perspective: 900px !important;
@@ -20071,15 +20076,16 @@ article.tc {
 }
 @media (max-width: 700px) {
     .topics-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px !important;
-        padding: 14px 12px !important;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+        gap: 10px !important;
+        padding: 8px 10px 14px !important;
     }
+    article.tc { max-width: 145px !important; min-height: 155px !important; }
 }
 @media (max-width: 360px) {
     .topics-grid {
-        grid-template-columns: 1fr !important;
-        gap: 10px !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
     }
 }
 
