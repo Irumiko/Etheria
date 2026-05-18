@@ -1333,7 +1333,7 @@ body.is-pwa .menu-exit-btn:active {
     align-items: center;
     justify-content: center;
     padding: 1rem;
-    background: linear-gradient(135deg, #0d0c0a 0%, #1a1815 50%, #0d0c0a 100%);
+    background: linear-gradient(135deg, #08071a 0%, #0f0e18 50%, #08071a 100%);
     overflow: hidden;
 }
 
@@ -16909,7 +16909,7 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 
 .opt-select { background: rgba(0,0,0,0.35); border: 1px solid rgba(201,168,108,0.2); border-radius: 8px; padding: 0.5rem 2rem 0.5rem 0.85rem; color: rgba(232,213,163,0.9); font-size: 0.9rem; font-family: 'EB Garamond', Georgia, serif; outline: none; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23c9a86c' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; transition: border-color 0.2s; }
 .opt-select:focus { border-color: rgba(201,168,108,0.55); }
-.opt-select option { background: #1a1815; color: #e8d5a3; }
+.opt-select option { background: #0f0e18; color: #e8d5a3; }
 
 .opt-birthday-wrap { display: flex; align-items: center; gap: 0.8rem; }
 .opt-date-input { background: rgba(0,0,0,0.35); border: 1px solid rgba(201,168,108,0.2); border-radius: 8px; padding: 0.5rem 0.85rem; color: rgba(232,213,163,0.9); font-size: 0.9rem; font-family: 'EB Garamond', Georgia, serif; outline: none; cursor: pointer; transition: border-color 0.2s; color-scheme: dark; }
