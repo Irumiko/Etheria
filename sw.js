@@ -9,7 +9,8 @@
 // ================================================================
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
-const CACHE_VERSION = '__ETHERIA_SW_VERSION__';
+// Incrementar manualmente para forzar invalidación de caché en dev.
+const CACHE_VERSION = 'dev-20260518-tarot';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
 const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];
