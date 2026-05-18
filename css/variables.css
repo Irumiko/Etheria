@@ -1,6 +1,12 @@
 /* Variables globales, tema y tipografías */
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=EB+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600&display=swap');
 
+        /* ── Paleta Etheria · tema místico / tarot / constelaciones ──
+           Modo oscuro  → cielo nocturno (índigo-negro profundo)
+           Modo claro   → pergamino antiguo (crema dorada)
+           Oro unificado → #c9a86c (el mismo que usan las cartas tarot)
+           Sin múltiples marrones/ambarinos compitiendo entre sí.
+        */
         :root {
             /* Sistema de z-index escalonado — evita guerras de especificidad */
             --z-base:     0;
@@ -64,49 +70,51 @@
             --font-body: 'Crimson Text', 'Georgia', 'Times New Roman', serif;
             --font-ui: 'Inter', 'Segoe UI', system-ui, sans-serif;
             --font-mono: 'Courier New', 'Lucida Console', monospace;
-            --char-color: rgba(139, 115, 85, 0.55);
-            --char-color-full: #8b7355;
-            --bg-primary: #f5f1e8;
-            --bg-secondary: #e8e0d0;
-            --bg-tertiary: #d4cfc7;
-            --bg-card: #faf8f3;
-            --text-primary: #3d3833;
-            --text-secondary: #5a5045;
-            --text-muted: #7a7065;
-            --accent-wood: #8b7355;
-            --accent-sage: #6b8e7d;
-            --accent-warm: #a08060;
-            --accent-gold: #8b6914;
-            --border-color: #c4b8a8;
-            --border-light: #d9d0c3;
-            --shadow: rgba(61, 56, 51, 0.08);
-            --shadow-heavy: rgba(61, 56, 51, 0.15);
-            --glass-bg: rgba(26, 24, 21, 0.85);
+            /* Modo claro — pergamino antiguo con matices dorados */
+            --char-color: rgba(160, 128, 72, 0.55);
+            --char-color-full: #a08048;
+            --bg-primary: #f4f0e2;
+            --bg-secondary: #ebe4d0;
+            --bg-tertiary: #ddd5bc;
+            --bg-card: #faf6ea;
+            --text-primary: #2c2418;
+            --text-secondary: #4a3c28;
+            --text-muted: #7a6848;
+            --accent-wood: #9a7848;
+            --accent-sage: #5a7d6e;
+            --accent-warm: #c9a86c;
+            --accent-gold: #a07830;
+            --border-color: #c8b48e;
+            --border-light: #ddd0b0;
+            --shadow: rgba(44, 36, 24, 0.08);
+            --shadow-heavy: rgba(44, 36, 24, 0.18);
+            --glass-bg: rgba(20, 16, 10, 0.86);
             --font-size-base: 1.2rem;
             --typewriter-speed: 25;
-            --input-bg: #ffffff;
-            --input-text: #3d3833;
-            --menu-button-bg: rgba(255, 255, 255, 0.9);
+            --input-bg: #fdf9f0;
+            --input-text: #2c2418;
+            --menu-button-bg: rgba(252, 247, 234, 0.92);
         }
 
         [data-theme="dark"] {
-            --bg-primary: #1a1815;
-            --bg-secondary: #2a2724;
-            --bg-tertiary: #3d3833;
-            --bg-card: #252320;
-            --text-primary: #e8e4dc;
-            --text-secondary: #d4cfc7;
-            --text-muted: #8a8075;
-            --accent-wood: #8b7355;
+            /* Modo oscuro — cielo nocturno (índigo profundo, no madera) */
+            --bg-primary: #0f0e18;
+            --bg-secondary: #17152a;
+            --bg-tertiary: #201e34;
+            --bg-card: #141220;
+            --text-primary: #ede8de;
+            --text-secondary: #cec8b8;
+            --text-muted: #8a8070;
+            --accent-wood: #c9a86c;
             --accent-sage: #6b8e7d;
-            --accent-warm: #a08060;
-            --accent-gold: #8b6914;
-            --border-color: #4a4540;
-            --border-light: #3d3833;
-            --shadow: rgba(0, 0, 0, 0.3);
-            --shadow-heavy: rgba(0, 0, 0, 0.5);
-            --glass-bg: rgba(26, 24, 21, 0.9);
-            --input-bg: #2a2724;
-            --input-text: #e8e4dc;
-            --menu-button-bg: rgba(30, 28, 25, 0.95);
+            --accent-warm: #c9a86c;
+            --accent-gold: #c9a86c;
+            --border-color: #2e2a42;
+            --border-light: #201e34;
+            --shadow: rgba(0, 0, 0, 0.45);
+            --shadow-heavy: rgba(0, 0, 0, 0.70);
+            --glass-bg: rgba(10, 9, 18, 0.92);
+            --input-bg: #17152a;
+            --input-text: #ede8de;
+            --menu-button-bg: rgba(16, 14, 26, 0.96);
         }
