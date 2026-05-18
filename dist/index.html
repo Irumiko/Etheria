@@ -562,6 +562,14 @@ body,
             <div class="topics-layout">
                 <!-- Lista de historias -->
                 <div class="topics-main">
+                    <!-- Título ornamental del panel -->
+                    <div class="topics-panel-title">
+                        <span class="tpt-line"></span>
+                        <span class="tpt-deco">◆</span>
+                        <h3 class="tpt-text">Las Crónicas</h3>
+                        <span class="tpt-deco">◆</span>
+                        <span class="tpt-line"></span>
+                    </div>
                     <div class="topics-command-bar">
                         <button onclick="openNewTopicModal()" class="btn-create-topic">
                             <span class="btn-create-icon">✦</span>
@@ -572,16 +580,56 @@ body,
                         </button>
                         <div class="topics-filter-group">
                             <button class="topic-filter-btn active" onclick="setTopicFilter('all', this)">TODAS</button>
-                            <button class="topic-filter-btn" onclick="setTopicFilter('roleplay', this)">+ CLÁSICO</button>
+                            <button class="topic-filter-btn" onclick="setTopicFilter('roleplay', this)">✦ CLÁSICO</button>
                             <button class="topic-filter-btn" onclick="setTopicFilter('rpg', this)">⚜ RPG</button>
                         </div>
                         <div class="topics-search-wrap">
                             <input type="text" id="topicsSearch" class="topics-search-input"
-                                   placeholder="🔍 Interroga las estrellas..."
+                                   placeholder="Interroga las estrellas..."
                                    oninput="filterTopics()">
                         </div>
                     </div>
-                    <div id="topicsList" class="topics-grid"></div>
+                    <!-- Layout: grid de cartas + panel lateral -->
+                    <div class="topics-content">
+                        <div class="topics-grid-wrap">
+                            <div id="topicsList" class="topics-grid"></div>
+                        </div>
+                        <aside class="topics-sidebar">
+                            <div class="tsi-block">
+                                <div class="tsi-heading">✦ El Mundo</div>
+                                <div class="tsi-stat">
+                                    <span class="tsi-val" id="sidebarTotalStories">—</span>
+                                    <span class="tsi-lbl">historias en el mundo</span>
+                                </div>
+                                <div class="tsi-stat">
+                                    <span class="tsi-val" id="sidebarMyStories">—</span>
+                                    <span class="tsi-lbl">historias creadas por ti</span>
+                                </div>
+                                <div class="tsi-stat">
+                                    <span class="tsi-val" id="sidebarMyMsgs">—</span>
+                                    <span class="tsi-lbl">mensajes tuyos</span>
+                                </div>
+                            </div>
+                            <div class="tsi-sep"></div>
+                            <div class="tsi-block">
+                                <div class="tsi-heading">◆ Por modo</div>
+                                <div class="tsi-mode-row">
+                                    <span class="tsi-mode-dot tsi-mode-dot--rpg"></span>
+                                    <span class="tsi-mode-name">RPG</span>
+                                    <span class="tsi-mode-count" id="sidebarRpgCount">—</span>
+                                </div>
+                                <div class="tsi-mode-row">
+                                    <span class="tsi-mode-dot tsi-mode-dot--classic"></span>
+                                    <span class="tsi-mode-name">Clásico</span>
+                                    <span class="tsi-mode-count" id="sidebarClassicCount">—</span>
+                                </div>
+                            </div>
+                            <div class="tsi-sep"></div>
+                            <div class="tsi-block tsi-quote-block">
+                                <p class="tsi-quote">"Los mundos no comienzan con mapas,<br>sino con relatos."</p>
+                            </div>
+                        </aside>
+                    </div>
                 </div>
 
             </div>
@@ -19218,7 +19266,8 @@ function renderTopics() {
     const statTopics = document.getElementById('statTopics');
     const statMsgs = document.getElementById('statMsgs');
 
-    if (statTopics) statTopics.textContent = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
+    const myStoriesCount = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
+    if (statTopics) statTopics.textContent = myStoriesCount;
 
     let msgCount = 0;
     appData.topics.forEach((topic) => {
@@ -19230,6 +19279,14 @@ function renderTopics() {
     try { if (typeof preloadTopicBackgrounds === 'function') preloadTopicBackgrounds(); } catch (_e) {}
 
     if (statMsgs) statMsgs.textContent = msgCount;
+
+    // ── Sidebar de estadísticas ─────────────────────────────────────
+    const _sb = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    _sb('sidebarTotalStories', appData.topics.length);
+    _sb('sidebarMyStories',    myStoriesCount);
+    _sb('sidebarMyMsgs',       msgCount);
+    _sb('sidebarRpgCount',     appData.topics.filter(t => t.mode === 'rpg' || t.mode === 'fanfic').length);
+    _sb('sidebarClassicCount', appData.topics.filter(t => t.mode !== 'rpg' && t.mode !== 'fanfic').length);
 }
 
 function generateTopicId() {

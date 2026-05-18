@@ -478,7 +478,8 @@ function renderTopics() {
     const statTopics = document.getElementById('statTopics');
     const statMsgs = document.getElementById('statMsgs');
 
-    if (statTopics) statTopics.textContent = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
+    const myStoriesCount = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
+    if (statTopics) statTopics.textContent = myStoriesCount;
 
     let msgCount = 0;
     appData.topics.forEach((topic) => {
@@ -490,6 +491,14 @@ function renderTopics() {
     try { if (typeof preloadTopicBackgrounds === 'function') preloadTopicBackgrounds(); } catch (_e) {}
 
     if (statMsgs) statMsgs.textContent = msgCount;
+
+    // ── Sidebar de estadísticas ─────────────────────────────────────
+    const _sb = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    _sb('sidebarTotalStories', appData.topics.length);
+    _sb('sidebarMyStories',    myStoriesCount);
+    _sb('sidebarMyMsgs',       msgCount);
+    _sb('sidebarRpgCount',     appData.topics.filter(t => t.mode === 'rpg' || t.mode === 'fanfic').length);
+    _sb('sidebarClassicCount', appData.topics.filter(t => t.mode !== 'rpg' && t.mode !== 'fanfic').length);
 }
 
 function generateTopicId() {
