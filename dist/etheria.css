@@ -19659,230 +19659,282 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 /* El panel de código de sala aparece encima del toolbar — ocultarlo */
 #vnSection #roomCodeWrap { display: none !important; }
 
-/* ── 12.7b  Grid de tarjetas horizontales (StoryCard style) ─────── */
+/* ── 12.7b  Grid de tarjetas tarot (portrait) ───────────────────── */
 .topics-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 14px !important;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)) !important;
+    gap: 18px !important;
     padding: 20px 16px !important;
     align-items: start !important;
 }
 
-/* ── 12.8  Story Card — contenedor horizontal (estilo handoff) ───── */
-.story-card {
-    display: flex !important;
-    height: 130px !important;
+/* ── 12.8  Tarot Card — base portrait ───────────────────────────── */
+article.tc {
     position: relative !important;
-    overflow: hidden !important;
+    width: 100% !important;
+    /* portrait forzado: altura = 1.5 × ancho */
+    aspect-ratio: 2 / 3 !important;
+    min-height: 220px !important;
+    max-height: 340px !important;
     cursor: pointer !important;
-    background: rgba(22, 17, 42, 0.62) !important;
-    backdrop-filter: blur(18px) saturate(140%) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(140%) !important;
-    border: 1px solid rgba(212, 174, 92, 0.25) !important;
-    box-shadow:
-        0 1px 0 rgba(255,255,255,0.04) inset,
-        0 0 0 1px rgba(0,0,0,0.4),
-        0 8px 32px rgba(0,0,0,0.45) !important;
-    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease !important;
-    animation: eth-cardIn 0.35s cubic-bezier(0.22,1,0.36,1) both !important;
-}
-.story-card:nth-child(1) { animation-delay: 0.03s !important; }
-.story-card:nth-child(2) { animation-delay: 0.06s !important; }
-.story-card:nth-child(3) { animation-delay: 0.10s !important; }
-.story-card:nth-child(4) { animation-delay: 0.14s !important; }
-.story-card:nth-child(n+5) { animation-delay: 0.18s !important; }
-@keyframes eth-cardIn {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-.story-card:hover {
-    transform: translateY(-3px) !important;
-}
-
-/* ── 12.9  Modo RPG — acento dorado ──────────────────────────────── */
-.story-card--rpg {
-    border-color: rgba(212, 174, 92, 0.30) !important;
-    box-shadow:
-        0 1px 0 rgba(212,174,92,0.07) inset,
-        0 0 0 1px rgba(0,0,0,0.5),
-        0 8px 32px rgba(0,0,0,0.50) !important;
-}
-.story-card--rpg:hover {
-    border-color: rgba(212, 174, 92, 0.58) !important;
-    box-shadow:
-        0 1px 0 rgba(212,174,92,0.10) inset,
-        0 0 0 1px rgba(0,0,0,0.5),
-        0 14px 40px rgba(0,0,0,0.60),
-        0 0 20px rgba(212,174,92,0.08) !important;
-}
-
-/* ── 12.10  Modo Clásico — acento rosa ───────────────────────────── */
-.story-card--classic {
-    border-color: rgba(233, 163, 184, 0.26) !important;
-    box-shadow:
-        0 1px 0 rgba(233,163,184,0.06) inset,
-        0 0 0 1px rgba(0,0,0,0.5),
-        0 8px 32px rgba(0,0,0,0.50) !important;
-}
-.story-card--classic:hover {
-    border-color: rgba(233, 163, 184, 0.55) !important;
-    box-shadow:
-        0 1px 0 rgba(233,163,184,0.09) inset,
-        0 0 0 1px rgba(0,0,0,0.5),
-        0 14px 40px rgba(0,0,0,0.60),
-        0 0 18px rgba(233,163,184,0.07) !important;
-}
-
-/* ── 12.11  Portada izquierda ────────────────────────────────────── */
-.story-card-cover {
-    width: 120px !important;
-    flex-shrink: 0 !important;
-    align-self: stretch !important;
-    position: relative !important;
-    overflow: hidden !important;
-}
-.story-card-cover-stripe {
-    position: absolute !important;
-    inset: 0 !important;
-    pointer-events: none !important;
-}
-.story-card-cover-glow {
-    position: absolute !important;
-    inset: 0 !important;
-    pointer-events: none !important;
-}
-.story-card-cover-icon {
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    pointer-events: none !important;
-}
-
-/* ── 12.12  Cuerpo derecho ───────────────────────────────────────── */
-.story-card-body {
-    flex: 1 !important;
-    min-width: 0 !important;
-    padding: 12px 14px !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
-    gap: 4px !important;
+    align-items: center !important;
+    padding: 10px 8px 8px !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    border: 1px solid transparent !important;
+    box-sizing: border-box !important;
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1),
+                box-shadow 0.25s ease,
+                border-color 0.25s ease !important;
+    animation: tc-in 0.40s cubic-bezier(0.22,1,0.36,1) both !important;
+    user-select: none !important;
 }
-.story-card-tag {
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 8.5px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.28em !important;
-    text-transform: uppercase !important;
-    margin-bottom: 4px !important;
+.tc:nth-child(1) { animation-delay: 0.03s !important; }
+.tc:nth-child(2) { animation-delay: 0.08s !important; }
+.tc:nth-child(3) { animation-delay: 0.13s !important; }
+.tc:nth-child(4) { animation-delay: 0.18s !important; }
+.tc:nth-child(n+5) { animation-delay: 0.24s !important; }
+@keyframes tc-in {
+    from { opacity: 0; transform: translateY(18px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.tc:hover {
+    transform: translateY(-5px) scale(1.02) !important;
+}
+
+/* ── 12.9  Modo RPG — ámbar profundo ─────────────────────────────── */
+.tc--rpg {
+    background: linear-gradient(170deg, #1f1408 0%, #120d04 48%, #1c1409 100%) !important;
+    border-color: rgba(212,174,92, 0.40) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(212,174,92,0.08),
+        0 8px 36px rgba(0,0,0,0.65) !important;
+}
+.tc--rpg:hover {
+    border-color: rgba(212,174,92, 0.72) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(212,174,92,0.14),
+        0 18px 52px rgba(0,0,0,0.72),
+        0 0 30px rgba(212,174,92,0.16) !important;
+}
+
+/* ── 12.10  Modo Clásico — azul marino profundo ──────────────────── */
+.tc--classic {
+    background: linear-gradient(170deg, #0b1028 0%, #070c1c 48%, #0d1330 100%) !important;
+    border-color: rgba(130,160,230, 0.30) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(130,160,230,0.06),
+        0 8px 36px rgba(0,0,0,0.65) !important;
+}
+.tc--classic:hover {
+    border-color: rgba(130,160,230, 0.62) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(130,160,230,0.12),
+        0 18px 52px rgba(0,0,0,0.72),
+        0 0 28px rgba(130,160,230,0.14) !important;
+}
+
+/* ── 12.11  Marco interior (double border) ───────────────────────── */
+.tc-frame {
+    position: absolute !important;
+    inset: 5px !important;
+    border-radius: 3px !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+    border: 1px solid !important;
     display: block !important;
 }
-.story-card--rpg    .story-card-tag { color: #d4ae5c !important; }
-.story-card--classic .story-card-tag { color: #e9a3b8 !important; }
+.tc--rpg    .tc-frame { border-color: rgba(212,174,92,0.18) !important; }
+.tc--classic .tc-frame { border-color: rgba(130,160,230,0.14) !important; }
 
-.story-card-title {
-    font-family: 'Cormorant Garamond', 'Cormorant', 'EB Garamond', 'Crimson Text', serif !important;
-    font-size: 19px !important;
-    font-weight: 500 !important;
-    color: #f3e9d2 !important;
-    line-height: 1.15 !important;
-    letter-spacing: 0.01em !important;
-    margin: 0 0 3px !important;
+/* ── 12.12  Esquinas ornamentales en L ──────────────────────────── */
+.tc-corner {
+    position: absolute !important;
+    width: 9px !important;
+    height: 9px !important;
+    z-index: 3 !important;
+    pointer-events: none !important;
+    display: block !important;
+}
+.tc-corner--tl { top: 9px !important;    left: 9px !important;    border-top: 1px solid !important; border-left: 1px solid !important; }
+.tc-corner--tr { top: 9px !important;    right: 9px !important;   border-top: 1px solid !important; border-right: 1px solid !important; }
+.tc-corner--bl { bottom: 9px !important; left: 9px !important;    border-bottom: 1px solid !important; border-left: 1px solid !important; }
+.tc-corner--br { bottom: 9px !important; right: 9px !important;   border-bottom: 1px solid !important; border-right: 1px solid !important; }
+.tc--rpg    .tc-corner { border-color: rgba(212,174,92,0.52) !important; }
+.tc--classic .tc-corner { border-color: rgba(130,160,230,0.44) !important; }
+
+/* ── 12.13  Cabecera — título y autor ───────────────────────────── */
+.tc-header {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
+    text-align: center !important;
+    padding: 4px 14px 3px !important;
+    flex-shrink: 0 !important;
+}
+.tc-title {
+    font-family: 'Cinzel', 'Trajan Pro', serif !important;
+    font-size: 9.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: #f0e6cc !important;
+    margin: 0 0 2px !important;
+    line-height: 1.30 !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
 }
-.story-card-author {
+.tc-author {
     font-family: 'Cormorant Garamond', 'EB Garamond', serif !important;
     font-style: italic !important;
-    font-size: 12px !important;
-    color: #8a7f9a !important;
+    font-size: 8px !important;
     margin: 0 !important;
-    line-height: 1.3 !important;
+    line-height: 1.2 !important;
+    opacity: 0.55 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
 }
+.tc--rpg    .tc-author { color: #d4ae5c !important; }
+.tc--classic .tc-author { color: #8aa0e6 !important; }
 
-/* ── 12.13  Pie de tarjeta ───────────────────────────────────────── */
-.story-card-footer {
+/* ── 12.14  Separador decorativo ─────────────────────────────────── */
+.tc-sep {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 55% !important;
+    height: 1px !important;
+    flex-shrink: 0 !important;
+    margin: 3px auto !important;
+}
+.tc--rpg    .tc-sep { background: linear-gradient(90deg,transparent,rgba(212,174,92,0.38),transparent) !important; }
+.tc--classic .tc-sep { background: linear-gradient(90deg,transparent,rgba(130,160,230,0.30),transparent) !important; }
+
+/* ── 12.15  Cuerpo central ──────────────────────────────────────── */
+.tc-body {
+    position: relative !important;
+    z-index: 2 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 6px !important;
+}
+.tc-numeral {
+    font-family: 'Cinzel', serif !important;
+    font-size: 8.5px !important;
+    letter-spacing: 0.28em !important;
+    text-align: center !important;
+    line-height: 1 !important;
+    flex-shrink: 0 !important;
+}
+.tc--rpg    .tc-numeral { color: rgba(212,174,92,0.52) !important; }
+.tc--classic .tc-numeral { color: rgba(130,160,230,0.50) !important; }
+
+.tc-mode {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 7px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.20em !important;
+    text-transform: uppercase !important;
+    padding: 2px 6px !important;
+    border-radius: 2px !important;
+    border: 1px solid !important;
+    flex-shrink: 0 !important;
+    line-height: 1.3 !important;
+}
+.tc--rpg    .tc-mode { color: rgba(212,174,92,0.80) !important; border-color: rgba(212,174,92,0.25) !important; background: rgba(212,174,92,0.06) !important; }
+.tc--classic .tc-mode { color: rgba(130,160,230,0.80) !important; border-color: rgba(130,160,230,0.22) !important; background: rgba(130,160,230,0.05) !important; }
+
+/* ── 12.16  Ilustración SVG mandala ────────────────────────────── */
+.tc-illus {
+    flex: 1 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 0 !important;
+    padding: 2px 4px !important;
+    overflow: hidden !important;
+}
+.tc-illus svg {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
+    overflow: visible !important;
+}
+.tc--rpg    .tc-illus { color: rgba(212,174,92,0.62) !important; }
+.tc--classic .tc-illus { color: rgba(130,160,230,0.60) !important; }
+
+/* ── 12.17  Pie con badges ───────────────────────────────────────── */
+.tc-footer {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    gap: 6px !important;
+    padding: 3px 12px 3px !important;
     flex-shrink: 0 !important;
-    flex-wrap: wrap !important;
 }
-.story-card-msgs {
-    font-family: 'Outfit', sans-serif !important;
-    font-size: 10px !important;
-    letter-spacing: 0.04em !important;
-}
-.story-card--rpg    .story-card-msgs { color: rgba(212,174,92,0.58) !important; }
-.story-card--classic .story-card-msgs { color: rgba(233,163,184,0.58) !important; }
-
-.story-card-activity {
-    font-family: 'Outfit', sans-serif !important;
+.tc-diamond {
     font-size: 9px !important;
-    color: #6b6280 !important;
-    letter-spacing: 0.04em !important;
-    white-space: nowrap !important;
+    line-height: 1 !important;
+    flex-shrink: 0 !important;
 }
-.story-card-turn {
+.tc--rpg    .tc-diamond { color: rgba(212,174,92,0.38) !important; }
+.tc--classic .tc-diamond { color: rgba(130,160,230,0.32) !important; }
+.tc-count {
     font-family: 'Outfit', sans-serif !important;
-    font-size: 9px !important;
-    color: #e8c46a !important;
+    font-size: 8.5px !important;
+    font-weight: 600 !important;
     letter-spacing: 0.03em !important;
-    white-space: nowrap !important;
+    line-height: 1 !important;
+    padding: 1px 4px !important;
+    border-radius: 2px !important;
+}
+.tc--rpg    .tc-count { color: rgba(212,174,92,0.65) !important; background: rgba(212,174,92,0.07) !important; }
+.tc--classic .tc-count { color: rgba(130,160,230,0.65) !important; background: rgba(130,160,230,0.07) !important; }
+
+/* ── 12.18  Turno activo — glow pulsante ─────────────────────────── */
+.tc--myturn.tc--rpg {
+    border-color: rgba(212,174,92,0.55) !important;
+    animation: tc-pulse-gold 2.6s ease-in-out infinite !important;
+}
+.tc--myturn.tc--classic {
+    border-color: rgba(130,160,230,0.50) !important;
+    animation: tc-pulse-blue 2.6s ease-in-out infinite !important;
+}
+@keyframes tc-pulse-gold {
+    0%,100% { box-shadow: inset 0 0 0 1px rgba(212,174,92,0.10), 0 8px 36px rgba(0,0,0,0.65); border-color: rgba(212,174,92,0.45); }
+    50%     { box-shadow: inset 0 0 0 1px rgba(212,174,92,0.18), 0 8px 36px rgba(0,0,0,0.65), 0 0 30px rgba(212,174,92,0.24); border-color: rgba(212,174,92,0.78); }
+}
+@keyframes tc-pulse-blue {
+    0%,100% { box-shadow: inset 0 0 0 1px rgba(130,160,230,0.08), 0 8px 36px rgba(0,0,0,0.65); border-color: rgba(130,160,230,0.35); }
+    50%     { box-shadow: inset 0 0 0 1px rgba(130,160,230,0.15), 0 8px 36px rgba(0,0,0,0.65), 0 0 26px rgba(130,160,230,0.22); border-color: rgba(130,160,230,0.65); }
 }
 
-/* ── 12.14  Esquinas ornamentales (L shapes) ─────────────────────── */
-.sc-corner {
-    position: absolute !important;
-    width: 14px !important;
-    height: 14px !important;
-    z-index: 4 !important;
-    pointer-events: none !important;
-    display: block !important;
-}
-.sc-corner--tl { top: 4px !important;    left: 4px !important;    border-top: 1.2px solid !important; border-left: 1.2px solid !important; }
-.sc-corner--tr { top: 4px !important;    right: 4px !important;   border-top: 1.2px solid !important; border-right: 1.2px solid !important; }
-.sc-corner--bl { bottom: 4px !important; left: 4px !important;    border-bottom: 1.2px solid !important; border-left: 1.2px solid !important; }
-.sc-corner--br { bottom: 4px !important; right: 4px !important;   border-bottom: 1.2px solid !important; border-right: 1.2px solid !important; }
-.story-card--rpg    .sc-corner { border-color: rgba(212,174,92,0.52) !important; }
-.story-card--classic .sc-corner { border-color: rgba(233,163,184,0.42) !important; }
-
-/* ── 12.15  Pulso de turno activo ────────────────────────────────── */
-.story-card--my-turn.story-card--rpg {
-    animation: sc-turn-gold 2.6s ease-in-out infinite !important;
-}
-.story-card--my-turn.story-card--classic {
-    animation: sc-turn-rose 2.6s ease-in-out infinite !important;
-}
-@keyframes sc-turn-gold {
-    0%,100% { border-color: rgba(212,174,92,0.30); box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.5); }
-    50%     { border-color: rgba(212,174,92,0.65); box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.5), 0 0 22px rgba(212,174,92,0.22); }
-}
-@keyframes sc-turn-rose {
-    0%,100% { border-color: rgba(233,163,184,0.26); box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.5); }
-    50%     { border-color: rgba(233,163,184,0.60); box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.5), 0 0 18px rgba(233,163,184,0.18); }
-}
-
-/* ── 12.16  Mobile ───────────────────────────────────────────────── */
+/* ── 12.19  Mobile ───────────────────────────────────────────────── */
 @media (max-width: 700px) {
+    .topics-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+        padding: 14px 12px !important;
+    }
+}
+@media (max-width: 360px) {
     .topics-grid {
         grid-template-columns: 1fr !important;
         gap: 10px !important;
-        padding: 12px !important;
     }
-    .story-card         { height: 110px !important; }
-    .story-card-cover   { width: 90px !important; }
-    .story-card-title   { font-size: 16px !important; }
 }
 
 /* ════════════════════════════════════════════════════════════════════
