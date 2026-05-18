@@ -237,9 +237,6 @@ function renderTopics() {
     } else if (topics.length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
     } else {
-        // ── Paleta de matices para portadas (varía por índice) ───────────
-        const COVER_HUES = [280, 340, 200, 50, 310, 160, 30, 240, 130, 0];
-
         // ── Actividad corta para el pie de tarjeta ───────────────────────
         function _scActivity(msgs, topic) {
             const lastMsg = msgs[msgs.length - 1];
@@ -258,78 +255,80 @@ function renderTopics() {
             return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
         }
 
-        // ── SVG brújula (RPG) — compacto para portada ────────────────────
-        const SVG_RPG_COVER = `<svg viewBox="0 0 40 40" fill="none" style="width:36px;height:36px">
-            <circle cx="20" cy="20" r="17" stroke="currentColor" stroke-width="0.8" opacity="0.30"/>
-            <circle cx="20" cy="20" r="9"  stroke="currentColor" stroke-width="0.5" opacity="0.20"/>
-            <polygon points="20,4 23,14 20,11 17,14" fill="currentColor" opacity="0.90"/>
-            <polygon points="20,36 22,30 20,33 18,30" fill="currentColor" opacity="0.32"/>
-            <polygon points="4,20 10,18 7,20 10,22"  fill="currentColor" opacity="0.32"/>
-            <polygon points="36,20 30,18 33,20 30,22" fill="currentColor" opacity="0.32"/>
-            <circle cx="20" cy="20" r="3"  fill="currentColor" opacity="0.55"/>
-            <circle cx="20" cy="20" r="1.2" fill="currentColor" opacity="0.90"/>
-        </svg>`;
-
-        // ── SVG libro (Clásico) — compacto para portada ──────────────────
-        const SVG_CLASSIC_COVER = `<svg viewBox="0 0 36 42" fill="none" style="width:30px;height:35px">
-            <rect x="5" y="4" width="26" height="34" rx="2" stroke="currentColor" stroke-width="0.9" opacity="0.70" fill="none"/>
-            <polygon points="18,1 24,4 12,4" fill="currentColor" opacity="0.55"/>
-            <line x1="9" y1="14" x2="27" y2="14" stroke="currentColor" stroke-width="0.65" opacity="0.50"/>
-            <line x1="9" y1="20" x2="27" y2="20" stroke="currentColor" stroke-width="0.65" opacity="0.50"/>
-            <line x1="9" y1="26" x2="20" y2="26" stroke="currentColor" stroke-width="0.65" opacity="0.44"/>
-            <circle cx="18" cy="32" r="2" stroke="currentColor" stroke-width="0.7" opacity="0.45" fill="none"/>
+        // ── SVG mandala — ilustración central (columnas + constelación + farol) ──
+        const SVG_MANDALA = `<svg viewBox="0 0 100 118" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="3" y="16" width="7" height="2.5" rx="0.5" fill="currentColor" opacity="0.22"/>
+            <line x1="6.5" y1="18.5" x2="6.5" y2="100" stroke="currentColor" stroke-width="1.2" opacity="0.16"/>
+            <rect x="2" y="100" width="9" height="2.5" rx="0.5" fill="currentColor" opacity="0.22"/>
+            <rect x="90" y="16" width="7" height="2.5" rx="0.5" fill="currentColor" opacity="0.22"/>
+            <line x1="93.5" y1="18.5" x2="93.5" y2="100" stroke="currentColor" stroke-width="1.2" opacity="0.16"/>
+            <rect x="89" y="100" width="9" height="2.5" rx="0.5" fill="currentColor" opacity="0.22"/>
+            <circle cx="50" cy="59" r="42" stroke="currentColor" stroke-width="0.5" opacity="0.20"/>
+            <circle cx="50" cy="59" r="36" stroke="currentColor" stroke-width="0.35" opacity="0.13"/>
+            <line x1="50" y1="17" x2="76" y2="34" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
+            <line x1="76" y1="34" x2="84" y2="62" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
+            <line x1="84" y1="62" x2="66" y2="90" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
+            <line x1="66" y1="90" x2="34" y2="90" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
+            <line x1="34" y1="90" x2="16" y2="62" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
+            <line x1="16" y1="62" x2="24" y2="34" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
+            <line x1="24" y1="34" x2="50" y2="17" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
+            <line x1="50" y1="17" x2="66" y2="90" stroke="currentColor" stroke-width="0.22" opacity="0.11"/>
+            <line x1="76" y1="34" x2="34" y2="90" stroke="currentColor" stroke-width="0.22" opacity="0.11"/>
+            <line x1="84" y1="62" x2="24" y2="34" stroke="currentColor" stroke-width="0.22" opacity="0.11"/>
+            <circle cx="50" cy="17" r="2.2" fill="currentColor" opacity="0.70"/>
+            <circle cx="76" cy="34" r="1.5" fill="currentColor" opacity="0.50"/>
+            <circle cx="84" cy="62" r="1.5" fill="currentColor" opacity="0.50"/>
+            <circle cx="66" cy="90" r="1.5" fill="currentColor" opacity="0.50"/>
+            <circle cx="34" cy="90" r="1.5" fill="currentColor" opacity="0.50"/>
+            <circle cx="16" cy="62" r="1.5" fill="currentColor" opacity="0.50"/>
+            <circle cx="24" cy="34" r="1.5" fill="currentColor" opacity="0.50"/>
+            <line x1="50" y1="42" x2="50" y2="48" stroke="currentColor" stroke-width="0.9" opacity="0.55"/>
+            <path d="M43 48 L57 48 L59 57 L50 65 L41 57 Z" stroke="currentColor" stroke-width="0.7" fill="none" opacity="0.55"/>
+            <path d="M45 65 L50 75 L55 65" stroke="currentColor" stroke-width="0.6" fill="none" opacity="0.40"/>
+            <circle cx="50" cy="57" r="3" stroke="currentColor" stroke-width="0.5" fill="none" opacity="0.38"/>
+            <circle cx="50" cy="57" r="1.2" fill="currentColor" opacity="0.65"/>
         </svg>`;
 
         container.innerHTML = topics.map(function(t, idx) {
             const msgs        = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
             const isRol       = t.mode === 'rpg' || t.mode === 'fanfic';
             const creatorName = normalizeCreatorName(t.createdBy);
-            const msgWord     = msgs.length === 1 ? 'msg' : 'msgs';
-            const modeClass   = isRol ? 'story-card--rpg' : 'story-card--classic';
-            const tag         = isRol ? '⚜ RPG' : '✦ Clásico';
-            const accentRgb   = isRol ? '212,174,92' : '233,163,184';
+            const modeLabel   = isRol ? '⚘ RPG' : '+ CLÁSICO';
+            const numeral     = toRoman(idx + 1);
+            const activity    = _scActivity(msgs, t);
+            const tid         = _normalizeTopicId(t.id);
 
             const isMeTurn = Array.isArray(t.turnOrder)
                 && t.turnOrder[0]
                 && String(t.turnOrder[0]) === String(window._cachedUserId);
-            const turnClass = isMeTurn ? ' story-card--my-turn' : '';
+            const turnClass = isMeTurn ? ' tc--myturn' : '';
+            const modeClass = isRol ? 'tc--rpg' : 'tc--classic';
 
-            // Portada: gradiente derivado del índice
-            const hue1 = COVER_HUES[idx % COVER_HUES.length];
-            const hue2 = (hue1 + 50) % 360;
-            const coverBg     = 'linear-gradient(135deg,hsl(' + hue1 + ',48%,15%) 0%,hsl(' + hue2 + ',38%,7%) 100%)';
-            const stripeStyle = 'background:repeating-linear-gradient(45deg,transparent 0 12px,rgba(' + accentRgb + ',0.07) 12px 13px)';
-            const glowStyle   = 'background:radial-gradient(ellipse 80% 80% at 50% 38%,rgba(' + accentRgb + ',0.18),transparent 70%)';
-            const iconColor   = 'color:rgba(' + accentRgb + ',0.72)';
+            const leftBadge  = activity || '—';
+            const rightBadge = msgs.length + (msgs.length === 1 ? ' msg' : ' msgs');
 
-            const activity = _scActivity(msgs, t);
-            const tid = _normalizeTopicId(t.id);
-
-            return '<div class="story-card ' + modeClass + turnClass + '" onclick="enterTopic(\'' + tid + '\')">'
-                + '<span class="sc-corner sc-corner--tl"></span>'
-                + '<span class="sc-corner sc-corner--tr"></span>'
-                + '<span class="sc-corner sc-corner--bl"></span>'
-                + '<span class="sc-corner sc-corner--br"></span>'
-                + '<div class="story-card-cover" style="background:' + coverBg + '">'
-                +   '<div class="story-card-cover-stripe" style="' + stripeStyle + '"></div>'
-                +   '<div class="story-card-cover-glow" style="' + glowStyle + '"></div>'
-                +   '<div class="story-card-cover-icon" style="' + iconColor + '">'
-                +     (isRol ? SVG_RPG_COVER : SVG_CLASSIC_COVER)
-                +   '</div>'
+            return '<article class="tc ' + modeClass + turnClass + '" onclick="enterTopic(\'' + tid + '\')">'
+                + '<span class="tc-frame"></span>'
+                + '<span class="tc-corner tc-corner--tl"></span>'
+                + '<span class="tc-corner tc-corner--tr"></span>'
+                + '<span class="tc-corner tc-corner--bl"></span>'
+                + '<span class="tc-corner tc-corner--br"></span>'
+                + '<header class="tc-header">'
+                +   '<h3 class="tc-title">' + escapeHtml(t.title) + '</h3>'
+                +   '<p class="tc-author">por ' + escapeHtml(creatorName) + '</p>'
+                + '</header>'
+                + '<div class="tc-sep"></div>'
+                + '<div class="tc-body">'
+                +   '<div class="tc-numeral">· ' + numeral + ' ·</div>'
+                +   '<div class="tc-mode">' + modeLabel + '</div>'
+                +   '<div class="tc-illus">' + SVG_MANDALA + '</div>'
                 + '</div>'
-                + '<div class="story-card-body">'
-                +   '<div>'
-                +     '<div class="story-card-tag">' + tag + '</div>'
-                +     '<h3 class="story-card-title">' + escapeHtml(t.title) + '</h3>'
-                +     '<p class="story-card-author">por ' + escapeHtml(creatorName) + '</p>'
-                +   '</div>'
-                +   '<div class="story-card-footer">'
-                +     '<span class="story-card-msgs">◆ ' + msgs.length + ' ' + msgWord + '</span>'
-                +     (activity ? '<span class="story-card-activity">' + escapeHtml(activity) + '</span>' : '')
-                +     (isMeTurn ? '<span class="story-card-turn">⏳ Tu turno</span>' : '')
-                +   '</div>'
-                + '</div>'
-                + '</div>';
+                + '<footer class="tc-footer">'
+                +   '<span class="tc-count">' + escapeHtml(leftBadge) + '</span>'
+                +   '<span class="tc-diamond">◆</span>'
+                +   '<span class="tc-count">' + escapeHtml(rightBadge) + '</span>'
+                + '</footer>'
+                + '</article>';
         }).join('');
     }
 
