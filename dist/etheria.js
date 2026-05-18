@@ -16849,7 +16849,14 @@ function renderTopics() {
             const leftBadge  = activity || '—';
             const rightBadge = msgs.length > 0 ? msgs.length + (msgs.length === 1 ? ' msg' : ' msgs') : '—';
 
-            return '<article class="tc ' + modeClass + turnClass + '" onclick="enterTopic(\'' + tid + '\')">'
+            const enterLabel = isRol ? '⚜ Entrar en la senda' : '✦ Abrir el relato';
+            const turnBadge  = isMeTurn ? '<span class="tc-back-turn">⏳ Tu turno</span>' : '';
+
+            return '<article class="tc ' + modeClass + turnClass + '" onclick="this.classList.toggle(\'tc--flipped\')">'
+                + '<div class="tc-inner">'
+
+                // ── FRENTE ──────────────────────────────────────────
+                + '<div class="tc-face tc-face--front">'
                 + '<span class="tc-frame"></span>'
                 + '<span class="tc-corner tc-corner--tl"></span>'
                 + '<span class="tc-corner tc-corner--tr"></span>'
@@ -16870,6 +16877,31 @@ function renderTopics() {
                 +   '<span class="tc-diamond">◆</span>'
                 +   '<span class="tc-count">' + escapeHtml(rightBadge) + '</span>'
                 + '</footer>'
+                + '</div>'
+
+                // ── DORSO ───────────────────────────────────────────
+                + '<div class="tc-face tc-face--back">'
+                + '<span class="tc-frame"></span>'
+                + '<span class="tc-corner tc-corner--tl"></span>'
+                + '<span class="tc-corner tc-corner--tr"></span>'
+                + '<span class="tc-corner tc-corner--bl"></span>'
+                + '<span class="tc-corner tc-corner--br"></span>'
+                + '<div class="tc-back-body">'
+                +   '<h3 class="tc-back-title">' + escapeHtml(t.title) + '</h3>'
+                +   '<p class="tc-back-author">por ' + escapeHtml(creatorName) + '</p>'
+                +   '<div class="tc-back-sep"></div>'
+                +   '<div class="tc-back-stats">'
+                +     (msgs.length > 0 ? '<span class="tc-back-stat">📜 ' + msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') + '</span>' : '')
+                +     (activity ? '<span class="tc-back-stat">🕐 ' + escapeHtml(activity) + '</span>' : '')
+                +     turnBadge
+                +   '</div>'
+                + '</div>'
+                + '<button class="tc-enter-btn" onclick="event.stopPropagation();enterTopic(\'' + tid + '\')">'
+                +   enterLabel
+                + '</button>'
+                + '</div>'
+
+                + '</div>'
                 + '</article>';
         }).join('');
     }

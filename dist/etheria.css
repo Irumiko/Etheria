@@ -19668,7 +19668,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     align-items: start !important;
 }
 
-/* ── 12.8  Tarot Card — base portrait ───────────────────────────── */
+/* ── 12.8  Tarot Card — base portrait (3D flip) ──────────────────── */
 article.tc {
     position: relative !important;
     width: 100% !important;
@@ -19677,17 +19677,9 @@ article.tc {
     min-height: 220px !important;
     max-height: 340px !important;
     cursor: pointer !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    padding: 10px 8px 8px !important;
-    border-radius: 6px !important;
-    overflow: hidden !important;
-    border: 1px solid transparent !important;
     box-sizing: border-box !important;
-    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1),
-                box-shadow 0.25s ease,
-                border-color 0.25s ease !important;
+    perspective: 900px !important;
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1) !important;
     animation: tc-in 0.40s cubic-bezier(0.22,1,0.36,1) both !important;
     user-select: none !important;
 }
@@ -19700,19 +19692,55 @@ article.tc {
     from { opacity: 0; transform: translateY(18px) scale(0.95); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
-.tc:hover {
+.tc:not(.tc--flipped):hover {
     transform: translateY(-5px) scale(1.02) !important;
 }
 
+/* ── 12.8b  Flip — wrapper 3D ──────────────────────────────────── */
+.tc-inner {
+    position: absolute !important;
+    inset: 0 !important;
+    transform-style: preserve-3d !important;
+    transition: transform 0.55s cubic-bezier(0.45, 0.05, 0.55, 0.95) !important;
+    border-radius: 6px !important;
+}
+.tc--flipped .tc-inner {
+    transform: rotateY(180deg) !important;
+}
+
+/* ── 12.8c  Cara base (frente y dorso) ─────────────────────────── */
+.tc-face {
+    position: absolute !important;
+    inset: 0 !important;
+    backface-visibility: hidden !important;
+    -webkit-backface-visibility: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    padding: 10px 8px 8px !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    border: 1px solid transparent !important;
+    box-sizing: border-box !important;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease !important;
+}
+.tc-face--back {
+    transform: rotateY(180deg) !important;
+    justify-content: flex-end !important;
+    padding: 14px 12px 14px !important;
+    gap: 0 !important;
+}
+
 /* ── 12.9  Modo RPG — ámbar profundo ─────────────────────────────── */
-.tc--rpg {
+.tc--rpg .tc-face {
     background: linear-gradient(170deg, #1f1408 0%, #120d04 48%, #1c1409 100%) !important;
     border-color: rgba(212,174,92, 0.40) !important;
     box-shadow:
         inset 0 0 0 1px rgba(212,174,92,0.08),
         0 8px 36px rgba(0,0,0,0.65) !important;
 }
-.tc--rpg:hover {
+.tc--rpg:not(.tc--flipped):hover .tc-face--front,
+.tc--rpg.tc--flipped:hover .tc-face--back {
     border-color: rgba(212,174,92, 0.72) !important;
     box-shadow:
         inset 0 0 0 1px rgba(212,174,92,0.14),
@@ -19721,14 +19749,15 @@ article.tc {
 }
 
 /* ── 12.10  Modo Clásico — azul marino profundo ──────────────────── */
-.tc--classic {
+.tc--classic .tc-face {
     background: linear-gradient(170deg, #0b1028 0%, #070c1c 48%, #0d1330 100%) !important;
     border-color: rgba(130,160,230, 0.30) !important;
     box-shadow:
         inset 0 0 0 1px rgba(130,160,230,0.06),
         0 8px 36px rgba(0,0,0,0.65) !important;
 }
-.tc--classic:hover {
+.tc--classic:not(.tc--flipped):hover .tc-face--front,
+.tc--classic.tc--flipped:hover .tc-face--back {
     border-color: rgba(130,160,230, 0.62) !important;
     box-shadow:
         inset 0 0 0 1px rgba(130,160,230,0.12),
@@ -19854,7 +19883,7 @@ article.tc {
 .tc--rpg    .tc-mode { color: rgba(212,174,92,0.80) !important; border-color: rgba(212,174,92,0.25) !important; background: rgba(212,174,92,0.06) !important; }
 .tc--classic .tc-mode { color: rgba(130,160,230,0.80) !important; border-color: rgba(130,160,230,0.22) !important; background: rgba(130,160,230,0.05) !important; }
 
-/* ── 12.16  Ilustración SVG mandala ────────────────────────────── */
+/* ── 12.16  Ilustración SVG ────────────────────────────────────── */
 .tc-illus {
     flex: 1 !important;
     width: 100% !important;
@@ -19904,12 +19933,120 @@ article.tc {
 .tc--rpg    .tc-count { color: rgba(212,174,92,0.65) !important; background: rgba(212,174,92,0.07) !important; }
 .tc--classic .tc-count { color: rgba(130,160,230,0.65) !important; background: rgba(130,160,230,0.07) !important; }
 
+/* ── 12.17b  Cara trasera — contenido ───────────────────────────── */
+.tc-back-body {
+    position: relative !important;
+    z-index: 2 !important;
+    flex: 1 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+}
+.tc-back-title {
+    font-family: 'Cinzel', 'Trajan Pro', serif !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: #f0e6cc !important;
+    text-align: center !important;
+    margin: 0 !important;
+    line-height: 1.30 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+.tc-back-author {
+    font-family: 'Cormorant Garamond', 'EB Garamond', serif !important;
+    font-style: italic !important;
+    font-size: 9px !important;
+    margin: 0 !important;
+    opacity: 0.55 !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+}
+.tc--rpg    .tc-back-author { color: #d4ae5c !important; }
+.tc--classic .tc-back-author { color: #8aa0e6 !important; }
+
+.tc-back-sep {
+    width: 55% !important;
+    height: 1px !important;
+    flex-shrink: 0 !important;
+    margin: 4px auto !important;
+}
+.tc--rpg    .tc-back-sep { background: linear-gradient(90deg,transparent,rgba(212,174,92,0.38),transparent) !important; }
+.tc--classic .tc-back-sep { background: linear-gradient(90deg,transparent,rgba(130,160,230,0.30),transparent) !important; }
+
+.tc-back-stats {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 4px !important;
+    width: 100% !important;
+}
+.tc-back-stat {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 8.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+    text-align: center !important;
+    padding: 2px 8px !important;
+    border-radius: 2px !important;
+    line-height: 1.4 !important;
+}
+.tc--rpg    .tc-back-stat { color: rgba(212,174,92,0.80) !important; background: rgba(212,174,92,0.07) !important; }
+.tc--classic .tc-back-stat { color: rgba(130,160,230,0.80) !important; background: rgba(130,160,230,0.07) !important; }
+
+.tc-back-turn {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 8.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.06em !important;
+    text-align: center !important;
+    animation: tc-turn-pulse 2s ease-in-out infinite !important;
+}
+.tc--rpg    .tc-back-turn { color: rgba(212,174,92,0.95) !important; }
+.tc--classic .tc-back-turn { color: rgba(130,160,230,0.95) !important; }
+@keyframes tc-turn-pulse {
+    0%,100% { opacity: 0.70; }
+    50%     { opacity: 1.00; }
+}
+
+.tc-enter-btn {
+    position: relative !important;
+    z-index: 4 !important;
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 8px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
+    padding: 7px 10px !important;
+    border-radius: 4px !important;
+    border: 1px solid !important;
+    cursor: pointer !important;
+    background: transparent !important;
+    margin-top: 8px !important;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
+    line-height: 1.3 !important;
+}
+.tc--rpg    .tc-enter-btn { color: rgba(212,174,92,0.90) !important; border-color: rgba(212,174,92,0.35) !important; }
+.tc--classic .tc-enter-btn { color: rgba(130,160,230,0.90) !important; border-color: rgba(130,160,230,0.32) !important; }
+.tc--rpg    .tc-enter-btn:hover { background: rgba(212,174,92,0.14) !important; color: rgba(212,174,92,1.00) !important; border-color: rgba(212,174,92,0.60) !important; }
+.tc--classic .tc-enter-btn:hover { background: rgba(130,160,230,0.12) !important; color: rgba(130,160,230,1.00) !important; border-color: rgba(130,160,230,0.55) !important; }
+
 /* ── 12.18  Turno activo — glow pulsante ─────────────────────────── */
-.tc--myturn.tc--rpg {
+.tc--myturn.tc--rpg .tc-face {
     border-color: rgba(212,174,92,0.55) !important;
     animation: tc-pulse-gold 2.6s ease-in-out infinite !important;
 }
-.tc--myturn.tc--classic {
+.tc--myturn.tc--classic .tc-face {
     border-color: rgba(130,160,230,0.50) !important;
     animation: tc-pulse-blue 2.6s ease-in-out infinite !important;
 }
