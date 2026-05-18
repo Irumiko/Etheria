@@ -18995,36 +18995,97 @@ function renderTopics() {
             return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
         }
 
-        // ── SVG Clásico — constelación hexagonal + farol colgante ────────
+        // ── SVG Clásico — atrapasueños + constelaciones ───────────────────
         const SVG_CLASSIC = `<svg viewBox="0 0 120 148" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="60" cy="74" r="50" stroke="currentColor" stroke-width="0.9" opacity="0.38"/>
-          <circle cx="60" cy="74" r="43" stroke="currentColor" stroke-width="0.45" opacity="0.20"/>
-          <circle cx="60" cy="24" r="3" fill="currentColor" opacity="0.90"/>
-          <circle cx="92" cy="42" r="2" fill="currentColor" opacity="0.68"/>
-          <circle cx="92" cy="106" r="2" fill="currentColor" opacity="0.68"/>
-          <circle cx="60" cy="124" r="2" fill="currentColor" opacity="0.68"/>
-          <circle cx="28" cy="106" r="2" fill="currentColor" opacity="0.68"/>
-          <circle cx="28" cy="42" r="2" fill="currentColor" opacity="0.68"/>
-          <line x1="60" y1="24" x2="92" y2="42" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
-          <line x1="92" y1="42" x2="92" y2="106" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
-          <line x1="92" y1="106" x2="60" y2="124" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
-          <line x1="60" y1="124" x2="28" y2="106" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
-          <line x1="28" y1="106" x2="28" y2="42" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
-          <line x1="28" y1="42" x2="60" y2="24" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
-          <line x1="60" y1="24" x2="92" y2="106" stroke="currentColor" stroke-width="0.35" opacity="0.18"/>
-          <line x1="92" y1="42" x2="28" y2="106" stroke="currentColor" stroke-width="0.35" opacity="0.18"/>
-          <line x1="92" y1="42" x2="60" y2="124" stroke="currentColor" stroke-width="0.35" opacity="0.18"/>
-          <path d="M60 17 L62.2 22 L67.5 21 L62.5 24.5 L60 30 L57.5 24.5 L52.5 21 L57.8 22 Z" fill="currentColor" opacity="0.95"/>
-          <line x1="60" y1="30" x2="60" y2="52" stroke="currentColor" stroke-width="0.9" opacity="0.58"/>
-          <path d="M47 52 Q47 43 60 43 Q73 43 73 52 L69 70 Q60 75 51 70 Z" stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.82"/>
-          <path d="M51 70 Q60 77 69 70" stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.78"/>
-          <path d="M60 48 L62 53.5 L67.5 52.5 L63 56.5 L64 62 L60 59 L56 62 L57 56.5 L52.5 52.5 L58 53.5 Z" fill="currentColor" opacity="0.90"/>
-          <line x1="51" y1="70" x2="51" y2="85" stroke="currentColor" stroke-width="0.65" opacity="0.50"/>
-          <line x1="60" y1="77" x2="60" y2="91" stroke="currentColor" stroke-width="0.65" opacity="0.50"/>
-          <line x1="69" y1="70" x2="69" y2="85" stroke="currentColor" stroke-width="0.65" opacity="0.50"/>
-          <circle cx="51" cy="87" r="2.2" fill="currentColor" opacity="0.68"/>
-          <circle cx="60" cy="93" r="2.2" fill="currentColor" opacity="0.68"/>
-          <circle cx="69" cy="87" r="2.2" fill="currentColor" opacity="0.68"/>
+          <!-- Estrella polar (arriba, brillante) -->
+          <path d="M60 4 L61.4 8.5 L66.5 7.5 L62.5 11 L60 16 L57.5 11 L53.5 7.5 L58.6 8.5 Z" fill="currentColor" opacity="0.95"/>
+          <!-- Hilo de la estrella al aro -->
+          <line x1="60" y1="16" x2="60" y2="24" stroke="currentColor" stroke-width="0.8" opacity="0.50"/>
+          <!-- Estrellas de constelación dispersas -->
+          <circle cx="14" cy="18" r="1.5" fill="currentColor" opacity="0.62"/>
+          <circle cx="28" cy="10" r="1.1" fill="currentColor" opacity="0.50"/>
+          <circle cx="44" cy="7"  r="1.0" fill="currentColor" opacity="0.45"/>
+          <circle cx="82" cy="8"  r="1.0" fill="currentColor" opacity="0.45"/>
+          <circle cx="97" cy="15" r="1.5" fill="currentColor" opacity="0.62"/>
+          <circle cx="108" cy="32" r="1.1" fill="currentColor" opacity="0.50"/>
+          <circle cx="110" cy="58" r="1.2" fill="currentColor" opacity="0.48"/>
+          <circle cx="10"  cy="42" r="1.1" fill="currentColor" opacity="0.50"/>
+          <circle cx="8"   cy="68" r="1.2" fill="currentColor" opacity="0.48"/>
+          <circle cx="16"  cy="92" r="1.0" fill="currentColor" opacity="0.42"/>
+          <circle cx="106" cy="90" r="1.0" fill="currentColor" opacity="0.42"/>
+          <!-- Líneas de constelación -->
+          <line x1="14" y1="18" x2="28" y2="10" stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="28" y1="10" x2="44" y2="7"  stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="82" y1="8"  x2="97" y2="15" stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="97" y1="15" x2="108" y2="32" stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="108" y1="32" x2="110" y2="58" stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="14" y1="18" x2="10" y2="42"  stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="10" y1="42" x2="8"  y2="68"  stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <!-- === ATRAPASUEÑOS === -->
+          <!-- Aro exterior (doble línea para dar grosor) -->
+          <circle cx="60" cy="57" r="33" stroke="currentColor" stroke-width="1.6" fill="none" opacity="0.88"/>
+          <circle cx="60" cy="57" r="31" stroke="currentColor" stroke-width="0.5" fill="none" opacity="0.30"/>
+          <!-- Red: capa exterior — 8 cuerdas del aro al anillo medio -->
+          <!-- Puntos aro (r=33): top(60,24) tr(83,34) r(93,57) br(83,80) b(60,90) bl(37,80) l(27,57) tl(37,34) -->
+          <!-- Puntos medio (r=18): top(60,39) tr(73,44) r(78,57) br(73,70) b(60,75) bl(47,70) l(42,57) tl(47,44) -->
+          <line x1="60" y1="24" x2="73" y2="44" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="83" y1="34" x2="78" y2="57" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="93" y1="57" x2="73" y2="70" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="83" y1="80" x2="60" y2="75" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="60" y1="90" x2="47" y2="70" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="37" y1="80" x2="42" y2="57" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="27" y1="57" x2="47" y2="44" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="37" y1="34" x2="60" y2="39" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <!-- Anillo medio -->
+          <circle cx="60" cy="57" r="18" stroke="currentColor" stroke-width="0.7" fill="none" opacity="0.58"/>
+          <!-- Cuentas en el anillo medio -->
+          <circle cx="60" cy="39" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="73" cy="44" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="78" cy="57" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="73" cy="70" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="60" cy="75" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="47" cy="70" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="42" cy="57" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="47" cy="44" r="1.4" fill="currentColor" opacity="0.65"/>
+          <!-- Red: capa interior — 8 cuerdas del anillo medio al ojo -->
+          <!-- Puntos ojo (r=8): top(60,49) tr(66,52) r(68,57) br(66,62) b(60,65) bl(54,62) l(52,57) tl(54,52) -->
+          <line x1="60" y1="39" x2="66" y2="52" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="73" y1="44" x2="68" y2="57" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="78" y1="57" x2="66" y2="62" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="73" y1="70" x2="60" y2="65" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="60" y1="75" x2="54" y2="62" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="47" y1="70" x2="52" y2="57" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="42" y1="57" x2="54" y2="52" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="47" y1="44" x2="60" y2="49" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <!-- Anillo interior (ojo) -->
+          <circle cx="60" cy="57" r="8" stroke="currentColor" stroke-width="0.6" fill="none" opacity="0.50"/>
+          <!-- Centro del ojo (estrella pequeña) -->
+          <path d="M60 53 L61 56 L64 56 L62 58 L63 61 L60 59.5 L57 61 L58 58 L56 56 L59 56 Z" fill="currentColor" opacity="0.82"/>
+          <!-- Cuerdas colgantes (3) desde la parte baja del aro -->
+          <line x1="46" y1="88" x2="40" y2="108" stroke="currentColor" stroke-width="0.75" opacity="0.58"/>
+          <line x1="60" y1="90" x2="60" y2="112" stroke="currentColor" stroke-width="0.75" opacity="0.58"/>
+          <line x1="74" y1="88" x2="80" y2="108" stroke="currentColor" stroke-width="0.75" opacity="0.58"/>
+          <!-- Cuentas en las cuerdas -->
+          <circle cx="43" cy="98"  r="1.6" fill="currentColor" opacity="0.62"/>
+          <circle cx="60" cy="101" r="1.6" fill="currentColor" opacity="0.62"/>
+          <circle cx="77" cy="98"  r="1.6" fill="currentColor" opacity="0.62"/>
+          <!-- Plumas: izquierda -->
+          <path d="M40 108 Q35 114 33 122 Q38 116 42 121 Q38 114 40 108" stroke="currentColor" stroke-width="0.65" fill="none" opacity="0.65"/>
+          <line x1="37" y1="113" x2="33" y2="122" stroke="currentColor" stroke-width="0.35" opacity="0.40"/>
+          <line x1="38" y1="117" x2="34" y2="124" stroke="currentColor" stroke-width="0.35" opacity="0.35"/>
+          <!-- Pluma: centro (más grande) -->
+          <line x1="60" y1="112" x2="60" y2="138" stroke="currentColor" stroke-width="0.6" opacity="0.50"/>
+          <path d="M60 114 Q54 119 52 128 Q58 120 60 125 Q62 120 68 128 Q66 119 60 114" stroke="currentColor" stroke-width="0.7" fill="none" opacity="0.68"/>
+          <line x1="60" y1="118" x2="54" y2="126" stroke="currentColor" stroke-width="0.38" opacity="0.40"/>
+          <line x1="60" y1="118" x2="66" y2="126" stroke="currentColor" stroke-width="0.38" opacity="0.40"/>
+          <line x1="60" y1="123" x2="53" y2="130" stroke="currentColor" stroke-width="0.35" opacity="0.34"/>
+          <line x1="60" y1="123" x2="67" y2="130" stroke="currentColor" stroke-width="0.35" opacity="0.34"/>
+          <line x1="60" y1="128" x2="54" y2="134" stroke="currentColor" stroke-width="0.32" opacity="0.28"/>
+          <line x1="60" y1="128" x2="66" y2="134" stroke="currentColor" stroke-width="0.32" opacity="0.28"/>
+          <!-- Pluma: derecha -->
+          <path d="M80 108 Q85 114 87 122 Q82 116 78 121 Q82 114 80 108" stroke="currentColor" stroke-width="0.65" fill="none" opacity="0.65"/>
+          <line x1="83" y1="113" x2="87" y2="122" stroke="currentColor" stroke-width="0.35" opacity="0.40"/>
+          <line x1="82" y1="117" x2="86" y2="124" stroke="currentColor" stroke-width="0.35" opacity="0.35"/>
         </svg>`;
 
         // ── SVG RPG — espada ornamental con columnas y radios de luz ─────
