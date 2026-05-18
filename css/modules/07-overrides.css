@@ -366,10 +366,13 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 }
 
 /* ── 12.8  Tarot Card — base portrait ───────────────────────────── */
-.tc {
+article.tc {
     position: relative !important;
     width: 100% !important;
+    /* portrait forzado: altura = 1.5 × ancho */
     aspect-ratio: 2 / 3 !important;
+    min-height: 220px !important;
+    max-height: 340px !important;
     cursor: pointer !important;
     display: flex !important;
     flex-direction: column !important;
@@ -378,6 +381,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     border-radius: 6px !important;
     overflow: hidden !important;
     border: 1px solid transparent !important;
+    box-sizing: border-box !important;
     transition: transform 0.25s cubic-bezier(0.22,1,0.36,1),
                 box-shadow 0.25s ease,
                 border-color 0.25s ease !important;

@@ -255,45 +255,83 @@ function renderTopics() {
             return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
         }
 
-        // ── SVG mandala — ilustración central (columnas + constelación + farol) ──
-        const SVG_MANDALA = `<svg viewBox="0 0 100 118" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="3" y="16" width="7" height="2.5" rx="0.5" fill="currentColor" opacity="0.22"/>
-            <line x1="6.5" y1="18.5" x2="6.5" y2="100" stroke="currentColor" stroke-width="1.2" opacity="0.16"/>
-            <rect x="2" y="100" width="9" height="2.5" rx="0.5" fill="currentColor" opacity="0.22"/>
-            <rect x="90" y="16" width="7" height="2.5" rx="0.5" fill="currentColor" opacity="0.22"/>
-            <line x1="93.5" y1="18.5" x2="93.5" y2="100" stroke="currentColor" stroke-width="1.2" opacity="0.16"/>
-            <rect x="89" y="100" width="9" height="2.5" rx="0.5" fill="currentColor" opacity="0.22"/>
-            <circle cx="50" cy="59" r="42" stroke="currentColor" stroke-width="0.5" opacity="0.20"/>
-            <circle cx="50" cy="59" r="36" stroke="currentColor" stroke-width="0.35" opacity="0.13"/>
-            <line x1="50" y1="17" x2="76" y2="34" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
-            <line x1="76" y1="34" x2="84" y2="62" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
-            <line x1="84" y1="62" x2="66" y2="90" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
-            <line x1="66" y1="90" x2="34" y2="90" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
-            <line x1="34" y1="90" x2="16" y2="62" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
-            <line x1="16" y1="62" x2="24" y2="34" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
-            <line x1="24" y1="34" x2="50" y2="17" stroke="currentColor" stroke-width="0.35" opacity="0.22"/>
-            <line x1="50" y1="17" x2="66" y2="90" stroke="currentColor" stroke-width="0.22" opacity="0.11"/>
-            <line x1="76" y1="34" x2="34" y2="90" stroke="currentColor" stroke-width="0.22" opacity="0.11"/>
-            <line x1="84" y1="62" x2="24" y2="34" stroke="currentColor" stroke-width="0.22" opacity="0.11"/>
-            <circle cx="50" cy="17" r="2.2" fill="currentColor" opacity="0.70"/>
-            <circle cx="76" cy="34" r="1.5" fill="currentColor" opacity="0.50"/>
-            <circle cx="84" cy="62" r="1.5" fill="currentColor" opacity="0.50"/>
-            <circle cx="66" cy="90" r="1.5" fill="currentColor" opacity="0.50"/>
-            <circle cx="34" cy="90" r="1.5" fill="currentColor" opacity="0.50"/>
-            <circle cx="16" cy="62" r="1.5" fill="currentColor" opacity="0.50"/>
-            <circle cx="24" cy="34" r="1.5" fill="currentColor" opacity="0.50"/>
-            <line x1="50" y1="42" x2="50" y2="48" stroke="currentColor" stroke-width="0.9" opacity="0.55"/>
-            <path d="M43 48 L57 48 L59 57 L50 65 L41 57 Z" stroke="currentColor" stroke-width="0.7" fill="none" opacity="0.55"/>
-            <path d="M45 65 L50 75 L55 65" stroke="currentColor" stroke-width="0.6" fill="none" opacity="0.40"/>
-            <circle cx="50" cy="57" r="3" stroke="currentColor" stroke-width="0.5" fill="none" opacity="0.38"/>
-            <circle cx="50" cy="57" r="1.2" fill="currentColor" opacity="0.65"/>
+        // ── SVG Clásico — constelación hexagonal + farol colgante ────────
+        const SVG_CLASSIC = `<svg viewBox="0 0 120 148" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="60" cy="74" r="50" stroke="currentColor" stroke-width="0.9" opacity="0.38"/>
+          <circle cx="60" cy="74" r="43" stroke="currentColor" stroke-width="0.45" opacity="0.20"/>
+          <circle cx="60" cy="24" r="3" fill="currentColor" opacity="0.90"/>
+          <circle cx="92" cy="42" r="2" fill="currentColor" opacity="0.68"/>
+          <circle cx="92" cy="106" r="2" fill="currentColor" opacity="0.68"/>
+          <circle cx="60" cy="124" r="2" fill="currentColor" opacity="0.68"/>
+          <circle cx="28" cy="106" r="2" fill="currentColor" opacity="0.68"/>
+          <circle cx="28" cy="42" r="2" fill="currentColor" opacity="0.68"/>
+          <line x1="60" y1="24" x2="92" y2="42" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
+          <line x1="92" y1="42" x2="92" y2="106" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
+          <line x1="92" y1="106" x2="60" y2="124" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
+          <line x1="60" y1="124" x2="28" y2="106" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
+          <line x1="28" y1="106" x2="28" y2="42" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
+          <line x1="28" y1="42" x2="60" y2="24" stroke="currentColor" stroke-width="0.6" opacity="0.45"/>
+          <line x1="60" y1="24" x2="92" y2="106" stroke="currentColor" stroke-width="0.35" opacity="0.18"/>
+          <line x1="92" y1="42" x2="28" y2="106" stroke="currentColor" stroke-width="0.35" opacity="0.18"/>
+          <line x1="92" y1="42" x2="60" y2="124" stroke="currentColor" stroke-width="0.35" opacity="0.18"/>
+          <path d="M60 17 L62.2 22 L67.5 21 L62.5 24.5 L60 30 L57.5 24.5 L52.5 21 L57.8 22 Z" fill="currentColor" opacity="0.95"/>
+          <line x1="60" y1="30" x2="60" y2="52" stroke="currentColor" stroke-width="0.9" opacity="0.58"/>
+          <path d="M47 52 Q47 43 60 43 Q73 43 73 52 L69 70 Q60 75 51 70 Z" stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.82"/>
+          <path d="M51 70 Q60 77 69 70" stroke="currentColor" stroke-width="1.2" fill="none" opacity="0.78"/>
+          <path d="M60 48 L62 53.5 L67.5 52.5 L63 56.5 L64 62 L60 59 L56 62 L57 56.5 L52.5 52.5 L58 53.5 Z" fill="currentColor" opacity="0.90"/>
+          <line x1="51" y1="70" x2="51" y2="85" stroke="currentColor" stroke-width="0.65" opacity="0.50"/>
+          <line x1="60" y1="77" x2="60" y2="91" stroke="currentColor" stroke-width="0.65" opacity="0.50"/>
+          <line x1="69" y1="70" x2="69" y2="85" stroke="currentColor" stroke-width="0.65" opacity="0.50"/>
+          <circle cx="51" cy="87" r="2.2" fill="currentColor" opacity="0.68"/>
+          <circle cx="60" cy="93" r="2.2" fill="currentColor" opacity="0.68"/>
+          <circle cx="69" cy="87" r="2.2" fill="currentColor" opacity="0.68"/>
+        </svg>`;
+
+        // ── SVG RPG — brújula radiante con columnas arquitectónicas ───────
+        const SVG_RPG = `<svg viewBox="0 0 120 148" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="4" y="8" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
+          <line x1="9.5" y1="12" x2="9.5" y2="138" stroke="currentColor" stroke-width="2.8" opacity="0.22"/>
+          <line x1="7" y1="12" x2="7" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
+          <line x1="12" y1="12" x2="12" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
+          <rect x="4" y="138" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
+          <rect x="105" y="8" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
+          <line x1="110.5" y1="12" x2="110.5" y2="138" stroke="currentColor" stroke-width="2.8" opacity="0.22"/>
+          <line x1="108" y1="12" x2="108" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
+          <line x1="113" y1="12" x2="113" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
+          <rect x="105" y="138" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
+          <circle cx="60" cy="74" r="46" stroke="currentColor" stroke-width="0.9" opacity="0.35"/>
+          <circle cx="60" cy="74" r="39" stroke="currentColor" stroke-width="0.45" opacity="0.20"/>
+          <line x1="60" y1="29" x2="60" y2="74" stroke="currentColor" stroke-width="0.65" opacity="0.40"/>
+          <line x1="60" y1="74" x2="60" y2="119" stroke="currentColor" stroke-width="0.65" opacity="0.40"/>
+          <line x1="15" y1="74" x2="60" y2="74" stroke="currentColor" stroke-width="0.65" opacity="0.40"/>
+          <line x1="60" y1="74" x2="105" y2="74" stroke="currentColor" stroke-width="0.65" opacity="0.40"/>
+          <line x1="28" y1="41" x2="60" y2="74" stroke="currentColor" stroke-width="0.5" opacity="0.28"/>
+          <line x1="92" y1="41" x2="60" y2="74" stroke="currentColor" stroke-width="0.5" opacity="0.28"/>
+          <line x1="28" y1="107" x2="60" y2="74" stroke="currentColor" stroke-width="0.5" opacity="0.28"/>
+          <line x1="92" y1="107" x2="60" y2="74" stroke="currentColor" stroke-width="0.5" opacity="0.28"/>
+          <path d="M60 22 L55 36 L60 32 L65 36 Z" fill="currentColor" opacity="0.90"/>
+          <path d="M60 126 L55 112 L60 116 L65 112 Z" fill="currentColor" opacity="0.75"/>
+          <path d="M107 74 L93 69 L97 74 L93 79 Z" fill="currentColor" opacity="0.75"/>
+          <path d="M13 74 L27 69 L23 74 L27 79 Z" fill="currentColor" opacity="0.75"/>
+          <circle cx="60" cy="32" r="2" fill="currentColor" opacity="0.72"/>
+          <circle cx="88" cy="46" r="1.8" fill="currentColor" opacity="0.56"/>
+          <circle cx="100" cy="74" r="1.8" fill="currentColor" opacity="0.56"/>
+          <circle cx="88" cy="102" r="1.8" fill="currentColor" opacity="0.56"/>
+          <circle cx="60" cy="116" r="2" fill="currentColor" opacity="0.72"/>
+          <circle cx="32" cy="102" r="1.8" fill="currentColor" opacity="0.56"/>
+          <circle cx="20" cy="74" r="1.8" fill="currentColor" opacity="0.56"/>
+          <circle cx="32" cy="46" r="1.8" fill="currentColor" opacity="0.56"/>
+          <circle cx="60" cy="74" r="15" stroke="currentColor" stroke-width="1.1" fill="none" opacity="0.60"/>
+          <circle cx="60" cy="74" r="9" fill="currentColor" opacity="0.28"/>
+          <circle cx="60" cy="74" r="5" fill="currentColor" opacity="0.68"/>
+          <circle cx="60" cy="74" r="2.5" fill="currentColor" opacity="0.97"/>
         </svg>`;
 
         container.innerHTML = topics.map(function(t, idx) {
             const msgs        = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
             const isRol       = t.mode === 'rpg' || t.mode === 'fanfic';
             const creatorName = normalizeCreatorName(t.createdBy);
-            const modeLabel   = isRol ? '⚘ RPG' : '+ CLÁSICO';
+            const modeLabel   = isRol ? '⚜ RPG' : '✦ CLÁSICO';
             const numeral     = toRoman(idx + 1);
             const activity    = _scActivity(msgs, t);
             const tid         = _normalizeTopicId(t.id);
@@ -303,9 +341,10 @@ function renderTopics() {
                 && String(t.turnOrder[0]) === String(window._cachedUserId);
             const turnClass = isMeTurn ? ' tc--myturn' : '';
             const modeClass = isRol ? 'tc--rpg' : 'tc--classic';
+            const svgIllus  = isRol ? SVG_RPG : SVG_CLASSIC;
 
             const leftBadge  = activity || '—';
-            const rightBadge = msgs.length + (msgs.length === 1 ? ' msg' : ' msgs');
+            const rightBadge = msgs.length > 0 ? msgs.length + (msgs.length === 1 ? ' msg' : ' msgs') : '—';
 
             return '<article class="tc ' + modeClass + turnClass + '" onclick="enterTopic(\'' + tid + '\')">'
                 + '<span class="tc-frame"></span>'
@@ -321,7 +360,7 @@ function renderTopics() {
                 + '<div class="tc-body">'
                 +   '<div class="tc-numeral">· ' + numeral + ' ·</div>'
                 +   '<div class="tc-mode">' + modeLabel + '</div>'
-                +   '<div class="tc-illus">' + SVG_MANDALA + '</div>'
+                +   '<div class="tc-illus">' + svgIllus + '</div>'
                 + '</div>'
                 + '<footer class="tc-footer">'
                 +   '<span class="tc-count">' + escapeHtml(leftBadge) + '</span>'
