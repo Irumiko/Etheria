@@ -161,32 +161,96 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 
 .section-content { background: transparent !important; }
 
-/* ── Fondo propio de la sección Historias ───────────────────────────
-   Cubre el paisaje del main-menu con un cielo violeta nocturno.
-   Se aplica tanto en modo oscuro como claro — la sección de historias
-   siempre vive en la noche amatista independientemente del tema global. */
+/* ── Fondo propio de la sección Historias ─────────────────────────────
+   Cielo nocturno con profundidad: nebulosidades multicolor, campo de
+   estrellas individuales colocadas a mano, textura de grano y variación
+   tonal. Siempre oscuro independientemente del tema global de la app.   ────────────────────────────────────────────────────────────────────── */
 #topicsSection {
+    position: relative !important;
     background:
-        radial-gradient(ellipse at 15% 25%, rgba(100,50,200,0.28) 0%, transparent 52%),
-        radial-gradient(ellipse at 85% 75%, rgba(60,20,140,0.24) 0%, transparent 52%),
-        radial-gradient(ellipse at 50% 10%, rgba(80,40,180,0.18) 0%, transparent 45%),
-        linear-gradient(165deg, #07051a 0%, #110830 35%, #180e3a 60%, #0c0820 100%) !important;
+        /* Nebulosas con variación de tono — no todo es el mismo violeta */
+        radial-gradient(ellipse at  8% 12%, rgba(110, 55,230,0.20) 0%, transparent 40%),
+        radial-gradient(ellipse at 88%  8%, rgba( 60, 90,200,0.16) 0%, transparent 38%),
+        radial-gradient(ellipse at 92% 82%, rgba( 80, 30,180,0.18) 0%, transparent 42%),
+        radial-gradient(ellipse at  6% 88%, rgba( 50, 20,140,0.14) 0%, transparent 36%),
+        radial-gradient(ellipse at 50% 30%, rgba( 90, 50,200,0.10) 0%, transparent 50%),
+        /* Toque de azul-índigo para no ser monocromático */
+        radial-gradient(ellipse at 70% 60%, rgba( 30, 50,160,0.12) 0%, transparent 35%),
+        radial-gradient(ellipse at 28% 55%, rgba(100, 40,220,0.08) 0%, transparent 30%),
+        /* Base: negro-violeta con variación de profundidad */
+        linear-gradient(155deg,
+            #050317  0%,
+            #0a0622 20%,
+            #0e082c 45%,
+            #090520 70%,
+            #06031a 100%) !important;
 }
-/* Puntos de "estrellas" con CSS — overlay decorativo */
+
+/* ── Estrellas individuales + campo difuso ── */
 #topicsSection::before {
     content: '' !important;
     position: absolute !important;
     inset: 0 !important;
-    background-image:
-        radial-gradient(circle, rgba(255,255,255,0.55) 1px, transparent 1px),
-        radial-gradient(circle, rgba(255,255,255,0.35) 1px, transparent 1px),
-        radial-gradient(circle, rgba(200,180,255,0.40) 1px, transparent 1px);
-    background-size: 180px 180px, 120px 120px, 260px 260px !important;
-    background-position: 20px 30px, 90px 80px, 50px 160px !important;
     pointer-events: none !important;
     z-index: 0 !important;
-    opacity: 0.6 !important;
+    background:
+        /* Estrellas brillantes — colocadas individualmente */
+        radial-gradient(circle 1.8px at  9% 14%, rgba(255,255,255,0.92) 0%, transparent 100%),
+        radial-gradient(circle 1.2px at 23%  6%, rgba(210,200,255,0.80) 0%, transparent 100%),
+        radial-gradient(circle 2.0px at 67%  4%, rgba(255,255,255,0.88) 0%, transparent 100%),
+        radial-gradient(circle 1.4px at 84% 11%, rgba(200,215,255,0.75) 0%, transparent 100%),
+        radial-gradient(circle 1.0px at 47% 17%, rgba(255,255,255,0.70) 0%, transparent 100%),
+        radial-gradient(circle 1.6px at 93% 28%, rgba(220,210,255,0.82) 0%, transparent 100%),
+        radial-gradient(circle 1.0px at 15% 38%, rgba(255,255,255,0.65) 0%, transparent 100%),
+        radial-gradient(circle 1.4px at 78% 42%, rgba(200,220,255,0.78) 0%, transparent 100%),
+        radial-gradient(circle 1.8px at 37% 52%, rgba(255,255,255,0.72) 0%, transparent 100%),
+        radial-gradient(circle 1.0px at  4% 60%, rgba(210,200,255,0.60) 0%, transparent 100%),
+        radial-gradient(circle 1.2px at 62% 58%, rgba(255,255,255,0.68) 0%, transparent 100%),
+        radial-gradient(circle 2.0px at 91% 65%, rgba(200,210,255,0.80) 0%, transparent 100%),
+        radial-gradient(circle 1.0px at 20% 72%, rgba(255,255,255,0.55) 0%, transparent 100%),
+        radial-gradient(circle 1.6px at 54% 80%, rgba(220,210,255,0.70) 0%, transparent 100%),
+        radial-gradient(circle 1.2px at 76% 88%, rgba(255,255,255,0.62) 0%, transparent 100%),
+        radial-gradient(circle 1.0px at 42% 91%, rgba(200,215,255,0.58) 0%, transparent 100%),
+        radial-gradient(circle 1.8px at  8% 92%, rgba(255,255,255,0.65) 0%, transparent 100%),
+        /* Campo de estrellas tenues — malla suelta */
+        radial-gradient(circle 0.8px, rgba(255,255,255,0.28) 0%, transparent 100%),
+        radial-gradient(circle 0.6px, rgba(200,195,255,0.22) 0%, transparent 100%),
+        radial-gradient(circle 0.7px, rgba(255,255,255,0.18) 0%, transparent 100%);
+    background-size:
+        /* Estrellas individuales: 100% = toda la pantalla, no-repeat */
+        100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%,
+        100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%,
+        100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%,
+        100% 100%, 100% 100%,
+        /* Campo tenue — tiles pequeños */
+        200px 180px, 150px 130px, 280px 240px !important;
+    background-position:
+        0 0, 0 0, 0 0, 0 0, 0 0,
+        0 0, 0 0, 0 0, 0 0, 0 0,
+        0 0, 0 0, 0 0, 0 0, 0 0,
+        0 0, 0 0,
+        40px 30px, 90px 75px, 160px 120px !important;
+    background-repeat:
+        no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
+        no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
+        no-repeat, no-repeat, no-repeat, no-repeat, no-repeat,
+        no-repeat, no-repeat,
+        repeat, repeat, repeat !important;
 }
+
+/* ── Textura de grano sutil — rompe la uniformidad plana ── */
+#topicsSection::after {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+    opacity: 0.035 !important;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") !important;
+    background-size: 256px 256px !important;
+    background-repeat: repeat !important;
+}
+
 #topicsSection .section-content,
 #topicsSection .topics-layout {
     position: relative !important;
@@ -220,11 +284,12 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 
 /* ── 12.1  Barra superior ────────────────────────────────────────── */
 #topicsSection .section-header-bar {
-    background: rgba(8,5,2,0.62) !important;
-    backdrop-filter: blur(14px) saturate(1.35) !important;
-    -webkit-backdrop-filter: blur(14px) saturate(1.35) !important;
-    border-bottom: 1px solid rgba(130,100,210,0.22) !important;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.55) !important;
+    background: rgba(6,4,18,0.75) !important;
+    backdrop-filter: blur(16px) saturate(1.4) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
+    border-bottom: 1px solid rgba(140,110,220,0.18) !important;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.60),
+                inset 0 -1px 0 rgba(140,110,220,0.08) !important;
 }
 
 /* ── 12.2  Tapete oscuro — contenedor centrado ───────────────────── */
@@ -235,18 +300,25 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 #topicsSection .topics-main {
     max-width: 1100px !important;
     margin: 0 auto !important;
-    /* ── Glassmorphism: cielo nocturno semitransparente ── */
-    background: rgba(8, 7, 22, 0.46) !important;
-    backdrop-filter: blur(24px) saturate(1.6) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
-    border: 1px solid rgba(130,100,210,0.22) !important;
+    /* Panel: cristal semitransparente con gradiente interior sutil */
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(120,80,220,0.08) 0%, transparent 60%),
+        rgba(10, 8, 26, 0.50) !important;
+    backdrop-filter: blur(20px) saturate(1.5) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.5) !important;
+    border: 1px solid rgba(140,110,220,0.28) !important;
     border-radius: 14px !important;
     padding: 1.2rem !important;
     position: relative !important;
-    box-shadow: 0 0 0 1px rgba(130,100,210,0.07),
-                inset 0 1px 0 rgba(130,100,210,0.10),
-                0 8px 40px rgba(0,0,0,0.60),
-                0 2px 8px rgba(0,0,0,0.40) !important;
+    box-shadow:
+        /* Borde luminoso exterior sutil */
+        0 0 0 1px rgba(140,110,220,0.10),
+        /* Highlight superior — efecto vidrio */
+        inset 0 1px 0 rgba(180,160,255,0.14),
+        /* Sombra de profundidad */
+        0 8px 48px rgba(0,0,0,0.65),
+        /* Glow amatista tenue alrededor del panel */
+        0 0 60px rgba(100,60,200,0.12) !important;
 }
 /* topics-main light override eliminado — fondo siempre oscuro/violeta en esta sección */
 /* Esquinas decorativas del tapete */
