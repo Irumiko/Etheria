@@ -19508,48 +19508,50 @@ body:has(#topicsSection.active) {
          4. Gradiente base del cielo nocturno
     ────────────────────────────────────────────────────────────────── */
     background:
-        /* Estrellas principales */
-        radial-gradient(1.5px 1.5px at 13%  14%, rgba(255,255,255,0.92) 0%, transparent 100%),
-        radial-gradient(2px   2px   at 72%   4%, rgba(210,200,255,0.88) 0%, transparent 100%),
-        radial-gradient(1px   1px   at 45%  19%, rgba(255,255,255,0.70) 0%, transparent 100%),
-        radial-gradient(2.5px 2.5px at 96%  11%, rgba(255,255,255,0.90) 0%, transparent 100%),
-        radial-gradient(1.2px 1.2px at 84%  28%, rgba(200,215,255,0.82) 0%, transparent 100%),
-        radial-gradient(1.8px 1.8px at 22%  38%, rgba(255,255,255,0.74) 0%, transparent 100%),
-        radial-gradient(1px   1px   at 58%  47%, rgba(255,255,255,0.65) 0%, transparent 100%),
-        radial-gradient(2px   2px   at  4%  54%, rgba(210,200,255,0.80) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 90%  58%, rgba(200,215,255,0.78) 0%, transparent 100%),
-        radial-gradient(1px   1px   at 36%  64%, rgba(255,255,255,0.60) 0%, transparent 100%),
-        radial-gradient(2px   2px   at 77%  72%, rgba(220,215,255,0.75) 0%, transparent 100%),
-        radial-gradient(1.2px 1.2px at 12%  80%, rgba(255,255,255,0.68) 0%, transparent 100%),
-        radial-gradient(1.8px 1.8px at 51%  88%, rgba(200,215,255,0.72) 0%, transparent 100%),
-        radial-gradient(1px   1px   at 88%  82%, rgba(255,255,255,0.62) 0%, transparent 100%),
-        radial-gradient(2.5px 2.5px at 29%   6%, rgba(255,255,255,0.88) 0%, transparent 100%),
-        radial-gradient(1px   1px   at 66%  16%, rgba(210,200,255,0.65) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at  8%  26%, rgba(255,255,255,0.55) 0%, transparent 100%),
-        radial-gradient(1px   1px   at 54%  33%, rgba(255,255,255,0.48) 0%, transparent 100%),
-        radial-gradient(2px   2px   at 38%  75%, rgba(220,215,255,0.62) 0%, transparent 100%),
-        radial-gradient(1px   1px   at 92%  42%, rgba(255,255,255,0.50) 0%, transparent 100%),
-        /* Micro-estrellas */
-        radial-gradient(0.8px 0.8px at 19%  52%, rgba(255,255,255,0.42) 0%, transparent 100%),
-        radial-gradient(0.7px 0.7px at 75%  61%, rgba(200,215,255,0.36) 0%, transparent 100%),
-        radial-gradient(0.8px 0.8px at 42%  90%, rgba(255,255,255,0.38) 0%, transparent 100%),
-        radial-gradient(0.7px 0.7px at 63%  77%, rgba(255,255,255,0.32) 0%, transparent 100%),
-        radial-gradient(0.8px 0.8px at 31%  44%, rgba(200,215,255,0.30) 0%, transparent 100%),
-        radial-gradient(0.6px 0.6px at 82%  35%, rgba(255,255,255,0.28) 0%, transparent 100%),
-        radial-gradient(0.7px 0.7px at 17%  68%, rgba(210,205,255,0.25) 0%, transparent 100%),
-        /* Nebulosidades — nubes de color difuminadas */
-        radial-gradient(ellipse 30% 20% at 10%  12%, rgba(110, 55,230,0.17) 0%, transparent 100%),
-        radial-gradient(ellipse 26% 17% at 89%   8%, rgba( 60, 90,200,0.14) 0%, transparent 100%),
-        radial-gradient(ellipse 34% 22% at 88%  82%, rgba( 80, 30,180,0.15) 0%, transparent 100%),
-        radial-gradient(ellipse 24% 16% at  8%  82%, rgba( 50, 20,150,0.11) 0%, transparent 100%),
-        radial-gradient(ellipse 42% 28% at 50%  30%, rgba( 90, 50,200,0.08) 0%, transparent 100%),
-        radial-gradient(ellipse 20% 14% at 68%  60%, rgba( 40, 20,160,0.09) 0%, transparent 100%),
+        /* ── Estrellas brillantes (más grandes, más visibles) ── */
+        radial-gradient(2.5px 2.5px at 13%  14%, rgba(255,255,255,1.00) 0%, rgba(255,255,255,0.15) 60%, transparent 100%),
+        radial-gradient(3px   3px   at 72%   4%, rgba(220,210,255,1.00) 0%, rgba(180,160,255,0.10) 65%, transparent 100%),
+        radial-gradient(2px   2px   at 45%  19%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.08) 60%, transparent 100%),
+        radial-gradient(3.5px 3.5px at 96%  11%, rgba(255,255,255,1.00) 0%, rgba(200,190,255,0.12) 65%, transparent 100%),
+        radial-gradient(2px   2px   at 84%  28%, rgba(210,225,255,0.92) 0%, rgba(170,190,255,0.08) 60%, transparent 100%),
+        radial-gradient(2.5px 2.5px at 22%  38%, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.10) 60%, transparent 100%),
+        radial-gradient(2px   2px   at 58%  47%, rgba(255,255,255,0.82) 0%, rgba(230,225,255,0.08) 60%, transparent 100%),
+        radial-gradient(3px   3px   at  4%  54%, rgba(210,200,255,0.95) 0%, rgba(180,160,255,0.12) 65%, transparent 100%),
+        radial-gradient(2.5px 2.5px at 90%  58%, rgba(210,225,255,0.90) 0%, rgba(190,210,255,0.10) 60%, transparent 100%),
+        radial-gradient(2px   2px   at 36%  64%, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.06) 60%, transparent 100%),
+        radial-gradient(3px   3px   at 77%  72%, rgba(230,225,255,0.92) 0%, rgba(200,195,255,0.10) 65%, transparent 100%),
+        radial-gradient(2px   2px   at 12%  80%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.08) 60%, transparent 100%),
+        radial-gradient(2.5px 2.5px at 51%  88%, rgba(210,225,255,0.88) 0%, rgba(190,210,255,0.08) 60%, transparent 100%),
+        radial-gradient(2px   2px   at 88%  82%, rgba(255,255,255,0.80) 0%, rgba(230,225,255,0.06) 60%, transparent 100%),
+        radial-gradient(3.5px 3.5px at 29%   6%, rgba(255,255,255,1.00) 0%, rgba(210,200,255,0.14) 65%, transparent 100%),
+        radial-gradient(2px   2px   at 66%  16%, rgba(215,205,255,0.82) 0%, rgba(190,180,255,0.08) 60%, transparent 100%),
+        radial-gradient(2.5px 2.5px at  8%  26%, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.06) 60%, transparent 100%),
+        radial-gradient(2px   2px   at 54%  33%, rgba(255,255,255,0.72) 0%, rgba(240,235,255,0.06) 60%, transparent 100%),
+        radial-gradient(3px   3px   at 38%  75%, rgba(225,220,255,0.85) 0%, rgba(200,195,255,0.10) 65%, transparent 100%),
+        radial-gradient(2px   2px   at 92%  42%, rgba(255,255,255,0.75) 0%, rgba(230,225,255,0.06) 60%, transparent 100%),
+        /* Estrellas medias */
+        radial-gradient(1.5px 1.5px at 19%  52%, rgba(255,255,255,0.62) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 75%  61%, rgba(210,225,255,0.55) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 42%  90%, rgba(255,255,255,0.58) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 63%  77%, rgba(255,255,255,0.52) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 31%  44%, rgba(210,220,255,0.50) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 82%  35%, rgba(255,255,255,0.48) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 17%  68%, rgba(215,208,255,0.45) 0%, transparent 100%),
+        /* ── Nebulosidades — más visibles y coloridas ── */
+        radial-gradient(ellipse 32% 22% at 10%  12%, rgba(120, 60,240,0.30) 0%, rgba(80,40,180,0.05) 70%, transparent 100%),
+        radial-gradient(ellipse 28% 18% at 89%   8%, rgba( 60, 95,215,0.25) 0%, rgba(40,70,160,0.05) 70%, transparent 100%),
+        radial-gradient(ellipse 36% 24% at 88%  82%, rgba( 90, 35,195,0.28) 0%, rgba(60,20,140,0.05) 70%, transparent 100%),
+        radial-gradient(ellipse 26% 18% at  8%  82%, rgba( 60, 25,165,0.22) 0%, rgba(40,15,120,0.05) 70%, transparent 100%),
+        radial-gradient(ellipse 45% 30% at 50%  28%, rgba(100, 55,215,0.16) 0%, rgba(70,35,160,0.03) 70%, transparent 100%),
+        radial-gradient(ellipse 22% 16% at 68%  58%, rgba( 50, 25,175,0.18) 0%, rgba(35,15,130,0.04) 70%, transparent 100%),
+        radial-gradient(ellipse 20% 14% at 42%  70%, rgba(140, 80,230,0.14) 0%, rgba(90,50,170,0.03) 70%, transparent 100%),
         /* Gradiente base del cielo nocturno */
         linear-gradient(155deg,
             #050317  0%,
-            #09061f 20%,
-            #0d0828 45%,
-            #08051e 70%,
+            #09061f 18%,
+            #0e0930 38%,
+            #0d0828 55%,
+            #08051e 75%,
             #050317 100%) !important;
 }
 /* Anular el ::before compartido de components.css */
@@ -20063,6 +20065,41 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
                 0 4px 16px rgba(0,0,0,0.50) !important;
 }
 /* btn-create-topic: la sección siempre es oscura, el violet funciona en ambos temas */
+
+/* ── 12.4b  Botón Gestionar ─────────────────────────────────────────
+   menu-gamefeel.css sobreescribe .btn-manage-topics con fondo marrón
+   y borde ámbar (viene DESPUÉS en el build). Scopeamos bajo #topicsSection
+   para ganar por especificidad sin tocar otros menús.
+   ────────────────────────────────────────────────────────────────── */
+#topicsSection .btn-manage-topics {
+    background: linear-gradient(145deg, rgba(38,26,72,0.92), rgba(20,13,46,0.96)) !important;
+    border: 1px solid rgba(185, 170, 232, 0.48) !important;
+    color: rgba(205, 195, 240, 0.90) !important;
+    border-radius: 6px !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.77rem !important;
+    letter-spacing: 0.06em !important;
+    box-shadow: 0 0 0 1px rgba(192, 178, 236, 0.08),
+                inset 0 1px 0 rgba(218, 210, 250, 0.24),
+                0 3px 10px rgba(0,0,0,0.40) !important;
+    transition: box-shadow 0.22s, border-color 0.22s, background 0.22s !important;
+}
+#topicsSection .btn-manage-topics:hover {
+    background: linear-gradient(145deg, rgba(58,40,100,0.94), rgba(30,18,62,0.97)) !important;
+    border-color: rgba(215, 205, 248, 0.72) !important;
+    color: #dcd4fc !important;
+    box-shadow: 0 0 18px rgba(160,128,220,0.28),
+                inset 0 1px 0 rgba(228, 222, 255, 0.35),
+                0 4px 14px rgba(0,0,0,0.45) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── 12.4c  Search wrap — quitar borde ámbar de menu-gamefeel.css ── */
+#topicsSection .topics-search-wrap {
+    border: none !important;
+    background: transparent !important;
+    border-radius: 8px !important;
+}
 
 /* ── 12.5  Pills de filtro ───────────────────────────────────────── */
 .topics-filter-group {
