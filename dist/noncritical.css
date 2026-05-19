@@ -19315,49 +19315,45 @@ body:has(#topicsSection.active) {
 #topicsSection {
     position: relative !important;
     will-change: contents !important;
-    /* ── Cielo nocturno estilo pixel-art ───────────────────────────────
+    /* ── Cielo nocturno con nubes y estrellas ───────────────────────────
        Capas (primera = más arriba):
-         1. Estrellas CSS (puntos con halo, sobre la imagen)
-         2. Tinte violeta oscuro (ajusta el tono de la imagen)
-         3. Imagen de parallax nocturno (nubes, montañas, árboles)
-         4. Gradiente fallback (si la imagen no carga)
+         1. Estrellas CSS — destellos extra sobre la foto
+         2. Tinte violeta muy sutil — armoniza con paleta amatista
+         3. Imagen real del cielo nocturno (posicionada arriba, zona nubes)
+         4. Gradiente fallback oscuro si la imagen tarda en cargar
     ────────────────────────────────────────────────────────────────── */
     background:
-        /* ── Estrellas CSS — brillan encima del arte ── */
-        radial-gradient(2.5px 2.5px at 13%  14%, rgba(255,255,255,1.00) 0%, rgba(255,255,255,0.15) 55%, transparent 100%),
-        radial-gradient(3px   3px   at 72%   4%, rgba(220,210,255,1.00) 0%, rgba(200,185,255,0.12) 55%, transparent 100%),
-        radial-gradient(3.5px 3.5px at 96%  11%, rgba(255,255,255,1.00) 0%, rgba(210,195,255,0.14) 55%, transparent 100%),
-        radial-gradient(2px   2px   at 45%  19%, rgba(255,255,255,0.90) 0%, rgba(240,235,255,0.08) 55%, transparent 100%),
-        radial-gradient(2.5px 2.5px at 22%  38%, rgba(255,255,255,0.92) 0%, rgba(255,255,255,0.10) 55%, transparent 100%),
-        radial-gradient(3px   3px   at  4%  54%, rgba(215,205,255,0.95) 0%, rgba(190,175,255,0.12) 55%, transparent 100%),
-        radial-gradient(3.5px 3.5px at 29%   6%, rgba(255,255,255,1.00) 0%, rgba(220,210,255,0.14) 55%, transparent 100%),
-        radial-gradient(3px   3px   at 77%  72%, rgba(230,225,255,0.94) 0%, rgba(210,200,255,0.10) 55%, transparent 100%),
-        radial-gradient(2.5px 2.5px at 51%  88%, rgba(215,225,255,0.90) 0%, rgba(195,215,255,0.08) 55%, transparent 100%),
-        radial-gradient(2px   2px   at 84%  28%, rgba(215,228,255,0.88) 0%, rgba(185,205,255,0.07) 55%, transparent 100%),
-        radial-gradient(2px   2px   at 58%  47%, rgba(255,255,255,0.82) 0%, rgba(240,235,255,0.07) 55%, transparent 100%),
-        radial-gradient(2.5px 2.5px at 90%  58%, rgba(215,228,255,0.88) 0%, rgba(200,218,255,0.08) 55%, transparent 100%),
-        radial-gradient(2px   2px   at 38%  75%, rgba(228,222,255,0.85) 0%, rgba(208,200,255,0.08) 55%, transparent 100%),
-        radial-gradient(2px   2px   at 66%  16%, rgba(218,208,255,0.82) 0%, rgba(195,182,255,0.07) 55%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 19%  52%, rgba(255,255,255,0.65) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 75%  61%, rgba(215,228,255,0.58) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 42%  90%, rgba(255,255,255,0.60) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 88%  82%, rgba(255,255,255,0.55) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 12%  80%, rgba(255,255,255,0.52) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 54%  33%, rgba(240,235,255,0.50) 0%, transparent 100%),
-        /* ── Tinte violeta-amatista (armoniza la imagen con la paleta) ── */
+        /* ── Destellos CSS extra (sparkle encima de la foto) ── */
+        radial-gradient(3px   3px   at 18%   8%, rgba(255,255,255,1.00) 0%, rgba(240,235,255,0.20) 50%, transparent 100%),
+        radial-gradient(4px   4px   at 52%   5%, rgba(255,255,255,1.00) 0%, rgba(225,218,255,0.22) 55%, transparent 100%),
+        radial-gradient(3.5px 3.5px at 83%  12%, rgba(255,255,255,1.00) 0%, rgba(235,228,255,0.18) 50%, transparent 100%),
+        radial-gradient(2.5px 2.5px at 35%  18%, rgba(255,255,255,0.95) 0%, rgba(245,240,255,0.15) 50%, transparent 100%),
+        radial-gradient(3px   3px   at 68%  22%, rgba(225,215,255,0.95) 0%, rgba(205,195,255,0.16) 50%, transparent 100%),
+        radial-gradient(2px   2px   at  7%  28%, rgba(255,255,255,0.88) 0%, rgba(240,235,255,0.12) 50%, transparent 100%),
+        radial-gradient(3.5px 3.5px at 94%  32%, rgba(255,255,255,0.95) 0%, rgba(228,220,255,0.18) 55%, transparent 100%),
+        radial-gradient(2px   2px   at 44%  38%, rgba(255,255,255,0.82) 0%, rgba(240,235,255,0.10) 50%, transparent 100%),
+        radial-gradient(3px   3px   at 76%  42%, rgba(220,212,255,0.92) 0%, rgba(200,190,255,0.14) 52%, transparent 100%),
+        radial-gradient(2.5px 2.5px at 22%  48%, rgba(255,255,255,0.88) 0%, rgba(245,240,255,0.12) 50%, transparent 100%),
+        radial-gradient(2px   2px   at 60%  15%, rgba(245,240,255,0.80) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 30%   9%, rgba(255,255,255,0.72) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 72%   6%, rgba(230,225,255,0.70) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 88%  26%, rgba(255,255,255,0.65) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 12%  42%, rgba(240,235,255,0.62) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 56%  34%, rgba(255,255,255,0.58) 0%, transparent 100%),
+        /* ── Tinte violeta muy sutil — armoniza sin tapar la imagen ── */
         linear-gradient(180deg,
-            rgba( 8,  4, 24, 0.32) 0%,
-            rgba(12,  6, 30, 0.18) 45%,
-            rgba(18, 10, 42, 0.48) 100%),
-        /* ── Imagen pixel art noche — cielo, nubes, montañas, árboles ── */
-        url('./assets/parallax/layer_bg_night.png') center bottom / cover no-repeat,
+            rgba(12,  6, 32, 0.18) 0%,
+            rgba( 8,  4, 20, 0.08) 40%,
+            rgba(16,  8, 38, 0.30) 100%),
+        /* ── Foto del cielo: zona superior (nubes + estrellas) al frente ── */
+        url('./assets/backgrounds/topics_night_sky.jpg') center top / cover no-repeat,
         /* ── Fallback si la imagen no carga ── */
         linear-gradient(180deg,
-            #0f0a2a 0%,
-            #18103c 25%,
-            #1a1040 50%,
-            #140c32 75%,
-            #0a0620 100%) !important;
+            #100828 0%,
+            #1a0e3c 30%,
+            #1c1242 55%,
+            #120a30 80%,
+            #080420 100%) !important;
 }
 /* Anular el ::before compartido de components.css */
 #topicsSection::before {

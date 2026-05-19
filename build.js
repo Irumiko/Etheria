@@ -55,6 +55,7 @@ const STATIC_ASSETS = [
   ['assets/backgrounds/menu_background.jpg', 'assets/backgrounds/menu_background.jpg'],
   ['assets/backgrounds/default_background.jpg', 'assets/backgrounds/default_background.jpg'],
   ['assets/backgrounds/rpg_background.png', 'assets/backgrounds/rpg_background.png'],
+  ['assets/backgrounds/topics_night_sky.jpg', 'assets/backgrounds/topics_night_sky.jpg'],
   ['assets/parallax/layer_bg.png', 'assets/parallax/layer_bg.png'],
   ['assets/parallax/layer_mid.png', 'assets/parallax/layer_mid.png'],
   ['assets/parallax/layer_fg.png', 'assets/parallax/layer_fg.png'],
