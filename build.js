@@ -39,6 +39,8 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/features/vn-themes.css',
   'css/menu-gamefeel.css',
   'css/options-gamefeel.css',
+  /* ── Estancias aisladas: SIEMPRE al final — ganan todos los conflictos de cascada ── */
+  'css/sections/topics.css',   /* Sección Historias: fondo, botones, filtros, buscador */
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];

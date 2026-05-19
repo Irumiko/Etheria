@@ -25543,3 +25543,297 @@ body.theme-rpg .vrp-modal .vrp-narrator-switch.active .vrp-switch-track {
     }
 }
 
+
+/* -- css/sections/topics.css -- */
+/* ═══════════════════════════════════════════════════════════════════════
+   ETHERIA — SECCIÓN HISTORIAS · Estancia Aislada
+   ───────────────────────────────────────────────────────────────────────
+   Este archivo se carga ÚLTIMO en el build (NON_CRITICAL_CSS_ORDER).
+   Todos los selectores van bajo #topicsSection para ganar por
+   especificidad (1,0,1) sobre cualquier regla genérica (0,1,0)
+   sin importar el orden de cascada.
+
+   Arquitectura "estancia": cada sección tiene su propio fondo,
+   botones y controles; ningún archivo externo puede interferir.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. BODY: quitar el landscape fijo cuando Historias está activa ──────
+   body { background: url(default_background.jpg) fixed } crea una capa
+   de compositor que backdrop-filter ve a través de isolation: isolate.
+   La única solución fiable es reemplazar el background del body.        */
+body:has(#topicsSection.active) {
+    background:
+        linear-gradient(155deg,
+            #050317  0%,
+            #09061f 20%,
+            #0d0828 45%,
+            #08051e 70%,
+            #050317 100%) !important;
+}
+
+/* ── 2. FONDO DE LA SECCIÓN: cielo nocturno ──────────────────────────────
+   Capas (primera = más arriba):
+     A. Estrellas CSS  — destellos sobre la foto (sin URL, sin problemas de encoding)
+     B. Fade inferior  — gradiente que oscurece la parte baja; oculta
+                         el bosque/montañas del borde inferior de la imagen
+     C. Tinte violeta  — armoniza la foto con la paleta amatista
+     D. Foto del cielo — posicionada arriba para mostrar nubes y estrellas
+     E. Fallback solid — visible mientras la imagen carga
+   ────────────────────────────────────────────────────────────────────── */
+#topicsSection {
+    position: relative !important;
+    isolation: isolate !important;
+    background:
+        /* A · Estrellas CSS grandes */
+        radial-gradient(3px   3px   at 18%   8%, rgba(255,255,255,1.00) 0%, rgba(240,235,255,0.22) 50%, transparent 100%),
+        radial-gradient(4px   4px   at 52%   5%, rgba(255,255,255,1.00) 0%, rgba(225,218,255,0.24) 55%, transparent 100%),
+        radial-gradient(3.5px 3.5px at 83%  12%, rgba(255,255,255,1.00) 0%, rgba(235,228,255,0.20) 50%, transparent 100%),
+        radial-gradient(2.5px 2.5px at 35%  18%, rgba(255,255,255,0.95) 0%, rgba(245,240,255,0.16) 50%, transparent 100%),
+        radial-gradient(3px   3px   at 68%  22%, rgba(225,215,255,0.95) 0%, rgba(205,195,255,0.18) 50%, transparent 100%),
+        radial-gradient(2px   2px   at  7%  28%, rgba(255,255,255,0.88) 0%, rgba(240,235,255,0.12) 50%, transparent 100%),
+        radial-gradient(3.5px 3.5px at 94%  32%, rgba(255,255,255,0.95) 0%, rgba(228,220,255,0.20) 55%, transparent 100%),
+        radial-gradient(2px   2px   at 44%  38%, rgba(255,255,255,0.82) 0%, rgba(240,235,255,0.10) 50%, transparent 100%),
+        radial-gradient(3px   3px   at 76%  42%, rgba(220,212,255,0.92) 0%, rgba(200,190,255,0.14) 52%, transparent 100%),
+        radial-gradient(2.5px 2.5px at 22%  48%, rgba(255,255,255,0.88) 0%, rgba(245,240,255,0.12) 50%, transparent 100%),
+        /* A · Estrellas CSS pequeñas */
+        radial-gradient(2px   2px   at 60%  15%, rgba(245,240,255,0.80) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 30%   9%, rgba(255,255,255,0.72) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 72%   6%, rgba(230,225,255,0.70) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 88%  26%, rgba(255,255,255,0.65) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 12%  42%, rgba(240,235,255,0.62) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 56%  34%, rgba(255,255,255,0.58) 0%, transparent 100%),
+        /* B · Fade inferior — oculta bosque/montañas de la imagen */
+        linear-gradient(180deg,
+            transparent                    0%,
+            transparent                   52%,
+            rgba(5,   2,  20, 0.70)       72%,
+            rgba(5,   2,  18, 0.92)       85%,
+            #050212                      100%),
+        /* C · Tinte violeta suave — armoniza con paleta amatista */
+        linear-gradient(180deg,
+            rgba(12,  6, 32, 0.18)  0%,
+            rgba( 8,  4, 20, 0.06) 45%,
+            rgba(16,  8, 38, 0.28) 100%),
+        /* D · Foto del cielo nocturno — posición superior para mostrar cielo, no bosque */
+        url('./assets/backgrounds/topics_night_sky.jpg') center top / cover no-repeat,
+        /* E · Fallback gradiente oscuro si la foto no carga */
+        linear-gradient(180deg,
+            #100828  0%,
+            #1a0e3c 30%,
+            #1c1242 55%,
+            #120a30 80%,
+            #080420 100%) !important;
+}
+
+/* Anular ::before/::after globales de components.css que podrían superponer fondos */
+#topicsSection::before,
+#topicsSection::after {
+    background: none !important;
+    content: none !important;
+    opacity:  0 !important;
+}
+
+/* Z-index para que el contenido quede sobre el fondo */
+#topicsSection .section-content,
+#topicsSection .topics-layout {
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* ── 3. HEADER de la sección Historias ──────────────────────────────────
+   Sobreescribe el .section-header-bar global de 07-overrides que usa
+   tonos tierra/marrón. Aquí: cristal oscuro violeta.                    */
+#topicsSection .section-header-bar {
+    background: rgba(6, 4, 18, 0.78) !important;
+    backdrop-filter: blur(16px) saturate(1.4) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
+    border-bottom: 1px solid rgba(140, 110, 220, 0.20) !important;
+    box-shadow:
+        0 4px 32px rgba(0, 0, 0, 0.60),
+        inset 0 -1px 0 rgba(140, 110, 220, 0.08) !important;
+}
+
+/* ── 4. BARRA DE COMANDOS ────────────────────────────────────────────────
+   menu-gamefeel.css usa .topics-command-bar con borde ámbar.
+   Scopeado aquí vence por especificidad.                                 */
+#topicsSection .topics-command-bar {
+    background: rgba(14, 10, 38, 0.26) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(185, 170, 228, 0.22) !important;
+    border-radius: 9px !important;
+    box-shadow: inset 0 1px 0 rgba(210, 205, 242, 0.10) !important;
+}
+
+/* ── 5. BOTÓN NUEVA HISTORIA ─────────────────────────────────────────────
+   menu-gamefeel.css usa .btn-create-topic sin !important, pero viene
+   después en el build. Scopear bajo #topicsSection eleva la especificidad.*/
+#topicsSection .btn-create-topic {
+    background: linear-gradient(145deg, #6040a0 0%, #30186a 100%) !important;
+    border: 1px solid rgba(205, 192, 245, 0.58) !important;
+    color: #d4bcfc !important;
+    border-radius: 6px !important;
+    box-shadow:
+        0 0 0 1px rgba(190, 175, 235, 0.10),
+        inset 0 1px 0 rgba(225, 218, 255, 0.28),
+        0 3px 12px rgba(0, 0, 0, 0.45) !important;
+    transition: box-shadow 0.22s, border-color 0.22s, filter 0.22s !important;
+}
+#topicsSection .btn-create-topic:hover {
+    filter: brightness(1.14) !important;
+    border-color: rgba(218, 208, 250, 0.90) !important;
+    box-shadow:
+        0 0 22px rgba(160, 128, 220, 0.38),
+        inset 0 1px 0 rgba(235, 228, 255, 0.48),
+        0 4px 16px rgba(0, 0, 0, 0.50) !important;
+}
+
+/* ── 6. BOTÓN GESTIONAR ──────────────────────────────────────────────────
+   menu-gamefeel.css → .btn-manage-topics con fondo marrón y borde ámbar. */
+#topicsSection .btn-manage-topics {
+    background: linear-gradient(145deg, rgba(38, 26, 72, 0.92), rgba(20, 13, 46, 0.96)) !important;
+    border: 1px solid rgba(185, 170, 232, 0.50) !important;
+    color: rgba(205, 195, 240, 0.92) !important;
+    border-radius: 6px !important;
+    box-shadow:
+        0 0 0 1px rgba(192, 178, 236, 0.08),
+        inset 0 1px 0 rgba(218, 210, 250, 0.26),
+        0 3px 10px rgba(0, 0, 0, 0.40) !important;
+    transition: box-shadow 0.22s, border-color 0.22s, background 0.22s !important;
+}
+#topicsSection .btn-manage-topics:hover {
+    background: linear-gradient(145deg, rgba(58, 40, 100, 0.94), rgba(30, 18, 62, 0.97)) !important;
+    border-color: rgba(215, 205, 248, 0.75) !important;
+    color: #dcd4fc !important;
+    box-shadow:
+        0 0 20px rgba(160, 128, 220, 0.30),
+        inset 0 1px 0 rgba(228, 222, 255, 0.38),
+        0 4px 14px rgba(0, 0, 0, 0.45) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── 7. BOTÓN BUSCAR GLOBAL ──────────────────────────────────────────────
+   Misma paleta que Gestionar.                                            */
+#topicsSection .btn-global-search {
+    background: linear-gradient(145deg, rgba(28, 18, 58, 0.88), rgba(16, 10, 38, 0.94)) !important;
+    border: 1px solid rgba(175, 160, 225, 0.40) !important;
+    color: rgba(195, 185, 235, 0.85) !important;
+    border-radius: 6px !important;
+    box-shadow: inset 0 1px 0 rgba(210, 205, 245, 0.18), 0 3px 10px rgba(0, 0, 0, 0.38) !important;
+}
+#topicsSection .btn-global-search:hover {
+    border-color: rgba(205, 195, 245, 0.65) !important;
+    color: #d4ccf8 !important;
+    box-shadow: 0 0 16px rgba(150, 120, 215, 0.22), inset 0 1px 0 rgba(220, 215, 252, 0.28), 0 4px 12px rgba(0, 0, 0, 0.42) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── 8. BUSCADOR ─────────────────────────────────────────────────────────
+   menu-gamefeel.css → .topics-search-wrap con borde ámbar;
+                        .topics-search-input con color: #efe4ca (ámbar).  */
+#topicsSection .topics-search-wrap {
+    border: none !important;
+    background: transparent !important;
+}
+#topicsSection .topics-search-input {
+    background: rgba(18, 12, 42, 0.44) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(185, 170, 228, 0.36) !important;
+    color: #d8d2f4 !important;      /* plata-violeta, sin tonos ámbar */
+    border-radius: 8px !important;
+    box-shadow: inset 0 1px 0 rgba(220, 215, 248, 0.08) !important;
+}
+#topicsSection .topics-search-input::placeholder {
+    color: rgba(185, 172, 228, 0.46) !important;
+    font-style: italic !important;
+}
+#topicsSection .topics-search-input:focus {
+    border-color: rgba(200, 185, 242, 0.70) !important;
+    box-shadow:
+        0 0 0 2px rgba(160, 140, 225, 0.13),
+        inset 0 0 20px rgba(130, 100, 210, 0.05),
+        inset 0 1px 0 rgba(220, 215, 248, 0.12) !important;
+}
+
+/* ── 9. FILTROS ──────────────────────────────────────────────────────────
+   menu-gamefeel.css → .topics-filter-group borde ámbar;
+                        .topic-filter-btn.active fondo marrón.            */
+#topicsSection .topics-filter-group {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+#topicsSection .topic-filter-btn {
+    border: 1px solid rgba(190, 175, 230, 0.30) !important;
+    background: rgba(22, 15, 55, 0.32) !important;
+    color: rgba(205, 195, 238, 0.74) !important;
+    border-radius: 5px !important;
+    box-shadow: inset 0 1px 0 rgba(220, 215, 248, 0.08) !important;
+    transition: all 0.22s !important;
+}
+#topicsSection .topic-filter-btn:hover {
+    background: rgba(105, 80, 175, 0.24) !important;
+    color: #dcd4fc !important;
+    border-color: rgba(210, 200, 242, 0.58) !important;
+}
+#topicsSection .topic-filter-btn.active {
+    background: linear-gradient(135deg, rgba(100, 65, 178, 0.74), rgba(50, 28, 95, 0.90)) !important;
+    border-color: rgba(215, 205, 245, 0.68) !important;
+    color: #e2daff !important;
+    box-shadow:
+        0 0 14px rgba(160, 130, 220, 0.26),
+        inset 0 1px 0 rgba(235, 228, 255, 0.24) !important;
+}
+
+/* ── 10. PANEL PRINCIPAL (tapete) ────────────────────────────────────── */
+#topicsSection .topics-main {
+    background:
+        radial-gradient(ellipse at 50%   0%, rgba(120,  80, 220, 0.10) 0%, transparent 65%),
+        radial-gradient(ellipse at 80% 100%, rgba( 80,  40, 180, 0.06) 0%, transparent 55%),
+        rgba(6, 3, 18, 0.58) !important;
+    backdrop-filter: blur(14px) saturate(1.3) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(1.3) !important;
+    border: 1px solid rgba(180, 165, 230, 0.26) !important;
+    border-radius: 14px !important;
+    box-shadow:
+        0 0 0 1px rgba(190, 178, 235, 0.10),
+        inset 0 1px 0 rgba(210, 205, 245, 0.22),
+        0 8px 48px rgba(0, 0, 0, 0.72),
+        0 0 60px rgba(100, 60, 200, 0.14) !important;
+}
+
+/* ── 11. SIDEBAR DE ESTADÍSTICAS ─────────────────────────────────────── */
+#topicsSection .topics-sidebar {
+    border: 1px solid rgba(130, 100, 210, 0.20) !important;
+    background: rgba(6, 5, 18, 0.42) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* ── 12. ESTADO VACÍO ────────────────────────────────────────────────── */
+#topicsSection .topics-empty {
+    color: rgba(160, 128, 220, 0.56) !important;
+}
+#topicsSection .topics-empty span {
+    color: rgba(160, 128, 220, 0.38) !important;
+}
+
+/* ── 13. TARJETAS TAROT — hover sin fondo ámbar ─────────────────────── */
+#topicsSection .topic-card:hover {
+    box-shadow: 0 22px 36px rgba(0, 0, 0, 0.40), 0 0 0 1px rgba(180, 160, 235, 0.16) !important;
+}
+
+/* ── 14. RESPONSIVE ──────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    #topicsSection .topics-command-bar {
+        border-radius: 8px !important;
+        padding: 0.42rem !important;
+    }
+    #topicsSection .btn-create-topic,
+    #topicsSection .btn-manage-topics,
+    #topicsSection .btn-global-search {
+        border-radius: 5px !important;
+    }
+}
+
