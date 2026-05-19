@@ -19504,6 +19504,9 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     inset: 0 !important;
     pointer-events: none !important;
     z-index: 0 !important;
+    /* Anular heredados de components.css que mataban la visibilidad */
+    opacity: 1 !important;
+    mix-blend-mode: normal !important;
     background:
         /* Estrellas brillantes — colocadas individualmente */
         radial-gradient(circle 1.8px at  9% 14%, rgba(255,255,255,0.92) 0%, transparent 100%),
@@ -19556,7 +19559,8 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     inset: 0 !important;
     pointer-events: none !important;
     z-index: 0 !important;
-    opacity: 0.035 !important;
+    mix-blend-mode: normal !important;
+    opacity: 0.05 !important;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") !important;
     background-size: 256px 256px !important;
     background-repeat: repeat !important;
