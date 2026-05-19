@@ -162,6 +162,202 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 .section-content { background: transparent !important; }
 
 /* ── Fondo propio de la sección Historias ─────────────────────────────
+   Cielo nocturno con estrellas reales (SVG inline), nebulosidades y
+   textura de profundidad. Siempre oscuro independientemente del tema.
+   SVG en background directo — evita conflictos con pseudo-elementos.   ────────────────────────────────────────────────────────────────────── */
+#topicsSection {
+    position: relative !important;
+    background:
+        /* SVG: estrellas individuales + nebulosidades con blur real */
+        url('data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%201440%20900'%20preserveAspectRatio%3D'xMidYMid%20slice'%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3Cfilter%20id%3D'nb'%20x%3D'-60%25'%20y%3D'-60%25'%20width%3D'220%25'%20height%3D'220%25'%3E%0A%20%20%20%20%20%20%3CfeGaussianBlur%20stdDeviation%3D'45'%2F%3E%0A%20%20%20%20%3C%2Ffilter%3E%0A%20%20%20%20%3Cfilter%20id%3D'sg'%20x%3D'-200%25'%20y%3D'-200%25'%20width%3D'500%25'%20height%3D'500%25'%3E%0A%20%20%20%20%20%20%3CfeGaussianBlur%20stdDeviation%3D'2.5'%20result%3D'b'%2F%3E%0A%20%20%20%20%20%20%3CfeMerge%3E%3CfeMergeNode%20in%3D'b'%2F%3E%3CfeMergeNode%20in%3D'SourceGraphic'%2F%3E%3C%2FfeMerge%3E%0A%20%20%20%20%3C%2Ffilter%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3C!--%20Nebulosas%20--%3E%0A%20%20%3Cellipse%20cx%3D'115'%20cy%3D'108'%20rx%3D'240'%20ry%3D'170'%20fill%3D'%25236e37e6'%20opacity%3D'0.18'%20filter%3D'url(%2523nb)'%2F%3E%0A%20%20%3Cellipse%20cx%3D'1300'%20cy%3D'75'%20rx%3D'200'%20ry%3D'140'%20fill%3D'%25233c5ac8'%20opacity%3D'0.15'%20filter%3D'url(%2523nb)'%2F%3E%0A%20%20%3Cellipse%20cx%3D'1320'%20cy%3D'760'%20rx%3D'210'%20ry%3D'155'%20fill%3D'%2523501eb4'%20opacity%3D'0.16'%20filter%3D'url(%2523nb)'%2F%3E%0A%20%20%3Cellipse%20cx%3D'80'%20cy%3D'800'%20rx%3D'170'%20ry%3D'125'%20fill%3D'%2523321496'%20opacity%3D'0.12'%20filter%3D'url(%2523nb)'%2F%3E%0A%20%20%3Cellipse%20cx%3D'720'%20cy%3D'280'%20rx%3D'300'%20ry%3D'210'%20fill%3D'%25235a32c8'%20opacity%3D'0.09'%20filter%3D'url(%2523nb)'%2F%3E%0A%20%20%3Cellipse%20cx%3D'1020'%20cy%3D'550'%20rx%3D'210'%20ry%3D'155'%20fill%3D'%25231e32a0'%20opacity%3D'0.11'%20filter%3D'url(%2523nb)'%2F%3E%0A%20%20%3Cellipse%20cx%3D'400'%20cy%3D'680'%20rx%3D'160'%20ry%3D'110'%20fill%3D'%25234a28d2'%20opacity%3D'0.08'%20filter%3D'url(%2523nb)'%2F%3E%0A%20%20%3C!--%20Estrellas%20brillantes%20con%20halo%20--%3E%0A%20%20%3Ccircle%20cx%3D'130'%20cy%3D'126'%20r%3D'1.8'%20fill%3D'white'%20opacity%3D'0.92'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'331'%20cy%3D'54'%20%20r%3D'1.2'%20fill%3D'%2523d2c8ff'%20opacity%3D'0.85'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'965'%20cy%3D'36'%20%20r%3D'2.0'%20fill%3D'white'%20opacity%3D'0.90'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1210'%20cy%3D'99'%20r%3D'1.4'%20fill%3D'%2523c8d7ff'%20opacity%3D'0.80'%2F%3E%0A%20%20%3Ccircle%20cx%3D'677'%20cy%3D'153'%20r%3D'1.0'%20fill%3D'white'%20opacity%3D'0.72'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1339'%20cy%3D'252'%20r%3D'1.6'%20fill%3D'%2523dcd2ff'%20opacity%3D'0.84'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'216'%20cy%3D'342'%20r%3D'1.0'%20fill%3D'white'%20opacity%3D'0.65'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1123'%20cy%3D'378'%20r%3D'1.4'%20fill%3D'%2523c8dcff'%20opacity%3D'0.78'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'533'%20cy%3D'468'%20r%3D'1.8'%20fill%3D'white'%20opacity%3D'0.74'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'58'%20%20cy%3D'540'%20r%3D'1.0'%20fill%3D'%2523d2c8ff'%20opacity%3D'0.62'%2F%3E%0A%20%20%3Ccircle%20cx%3D'893'%20cy%3D'522'%20r%3D'1.2'%20fill%3D'white'%20opacity%3D'0.68'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1310'%20cy%3D'585'%20r%3D'2.0'%20fill%3D'%2523c8d2ff'%20opacity%3D'0.82'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'288'%20cy%3D'648'%20r%3D'1.0'%20fill%3D'white'%20opacity%3D'0.58'%2F%3E%0A%20%20%3Ccircle%20cx%3D'778'%20cy%3D'720'%20r%3D'1.6'%20fill%3D'%2523dcd2ff'%20opacity%3D'0.72'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1094'%20cy%3D'792'%20r%3D'1.2'%20fill%3D'white'%20opacity%3D'0.62'%2F%3E%0A%20%20%3Ccircle%20cx%3D'605'%20cy%3D'819'%20r%3D'1.0'%20fill%3D'%2523c8d7ff'%20opacity%3D'0.58'%2F%3E%0A%20%20%3Ccircle%20cx%3D'115'%20cy%3D'828'%20r%3D'1.8'%20fill%3D'white'%20opacity%3D'0.66'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'450'%20cy%3D'180'%20r%3D'2.2'%20fill%3D'white'%20opacity%3D'0.88'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3Ccircle%20cx%3D'850'%20cy%3D'450'%20r%3D'1.5'%20fill%3D'%2523e0d8ff'%20opacity%3D'0.70'%20filter%3D'url(%2523sg)'%2F%3E%0A%20%20%3C!--%20Estrellas%20peque%C3%B1as%20de%20fondo%20--%3E%0A%20%20%3Ccircle%20cx%3D'450'%20cy%3D'90'%20%20r%3D'0.7'%20fill%3D'white'%20opacity%3D'0.42'%2F%3E%0A%20%20%3Ccircle%20cx%3D'820'%20cy%3D'180'%20r%3D'0.6'%20fill%3D'%2523c8c3ff'%20opacity%3D'0.36'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1150'%20cy%3D'45'%20r%3D'0.7'%20fill%3D'white'%20opacity%3D'0.40'%2F%3E%0A%20%20%3Ccircle%20cx%3D'200'%20cy%3D'450'%20r%3D'0.6'%20fill%3D'white'%20opacity%3D'0.32'%2F%3E%0A%20%20%3Ccircle%20cx%3D'640'%20cy%3D'360'%20r%3D'0.5'%20fill%3D'%2523c8c3ff'%20opacity%3D'0.34'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1050'%20cy%3D'630'%20r%3D'0.6'%20fill%3D'white'%20opacity%3D'0.30'%2F%3E%0A%20%20%3Ccircle%20cx%3D'380'%20cy%3D'750'%20r%3D'0.7'%20fill%3D'white'%20opacity%3D'0.36'%2F%3E%0A%20%20%3Ccircle%20cx%3D'900'%20cy%3D'810'%20r%3D'0.5'%20fill%3D'%2523c8c3ff'%20opacity%3D'0.32'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1250'%20cy%3D'450'%20r%3D'0.7'%20fill%3D'white'%20opacity%3D'0.40'%2F%3E%0A%20%20%3Ccircle%20cx%3D'75'%20%20cy%3D'225'%20r%3D'0.6'%20fill%3D'white'%20opacity%3D'0.30'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1380'%20cy%3D'720'%20r%3D'0.7'%20fill%3D'white'%20opacity%3D'0.36'%2F%3E%0A%20%20%3Ccircle%20cx%3D'520'%20cy%3D'630'%20r%3D'0.5'%20fill%3D'%2523c8c3ff'%20opacity%3D'0.28'%2F%3E%0A%20%20%3Ccircle%20cx%3D'740'%20cy%3D'90'%20%20r%3D'0.6'%20fill%3D'white'%20opacity%3D'0.34'%2F%3E%0A%20%20%3Ccircle%20cx%3D'170'%20cy%3D'630'%20r%3D'0.5'%20fill%3D'white'%20opacity%3D'0.28'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1180'%20cy%3D'270'%20r%3D'0.7'%20fill%3D'%2523c8c3ff'%20opacity%3D'0.36'%2F%3E%0A%20%20%3Ccircle%20cx%3D'990'%20cy%3D'180'%20r%3D'0.5'%20fill%3D'white'%20opacity%3D'0.30'%2F%3E%0A%20%20%3Ccircle%20cx%3D'310'%20cy%3D'270'%20r%3D'0.6'%20fill%3D'white'%20opacity%3D'0.32'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1420'%20cy%3D'360'%20r%3D'0.5'%20fill%3D'%2523c8c3ff'%20opacity%3D'0.28'%2F%3E%0A%20%20%3Ccircle%20cx%3D'580'%20cy%3D'540'%20r%3D'0.6'%20fill%3D'white'%20opacity%3D'0.30'%2F%3E%0A%20%20%3Ccircle%20cx%3D'1100'%20cy%3D'810'%20r%3D'0.5'%20fill%3D'white'%20opacity%3D'0.28'%2F%3E%0A%3C%2Fsvg%3E') center / cover no-repeat,
+        /* Gradiente base — profundidad de color */
+        linear-gradient(155deg,
+            #050317  0%,
+            #09061f 20%,
+            #0d0828 45%,
+            #08051e 70%,
+            #050317 100%) !important;
+}
+
+/* Anular el ::before de components.css (paper noise + multiply) */
+#topicsSection::before {
+    background: none !important;
+    opacity: 0 !important;
+    mix-blend-mode: normal !important;
+}
+
+/* Anular el ::after si existe */
+#topicsSection::after {
+    background: none !important;
+    opacity: 0 !important;
+}
+
+#topicsSection .section-content,
+#topicsSection .topics-layout {
+    position: relative !important;
+    z-index: 1 !important;
+}: ámbar / tinta / pergamino / crimson / jade
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── TOKENS ── */
+:root {
+    --eth-gold:      #a080e0;
+    --eth-gold-dim:  rgba(160,128,220,0.4);
+    --eth-gold-glow: rgba(160,128,220,0.15);
+    --eth-border:    rgba(160,128,220,0.2);
+    --eth-border-h:  rgba(160,128,220,0.55);
+    --eth-jade:      #5a9470;
+    --eth-crimson:   #8c2828;
+    --eth-crimson-b: #b04040;
+    --eth-silver:    #c0b098;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   A. MENÚ PRINCIPAL — cambiar verde por marrón/ámbar oscuro
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Fondo fallback del parallax: de verde a marrón oscuro */
+.menu-parallax {
+    background: #1a1208 !important;
+}
+[data-theme="light"] .menu-parallax {
+    background: #1e1a10 !important;
+}
+[data-theme="dark"] .menu-parallax {
+    background: #0e0905 !important;
+}
+
+/* Overlay día: tinte cálido ámbar en lugar de neutro */
+[data-theme="light"] .main-menu::before {
+    background: linear-gradient(
+        180deg,
+        rgba(20,12,4,0.08) 0%,
+        rgba(20,12,4,0.18) 55%,
+        rgba(20,12,4,0.38) 100%
+    ) !important;
+    backdrop-filter: none !important;
+}
+
+/* Overlay noche: tinte cálido oscuro en lugar de azulado */
+[data-theme="dark"] .main-menu::before {
+    background:
+        radial-gradient(circle at 50% -15%, rgba(160,100,20,0.15) 0%, transparent 55%),
+        linear-gradient(180deg,
+            rgba(14,9,3,0.72) 0%,
+            rgba(12,8,2,0.62) 48%,
+            rgba(10,6,2,0.84) 100%) !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   B. FONDO SECCIONES INTERNAS — pseudoelemento fixed (evita overflow bug)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Fondo global en body — única forma fiable de evitar el overflow:hidden de game-section */
+body {
+    background:
+        linear-gradient(180deg,
+            rgba(12,8,3,0.70) 0%,
+            rgba(16,11,5,0.62) 45%,
+            rgba(12,8,3,0.74) 100%),
+        url('../../assets/backgrounds/default_background.jpg')
+        center center / cover no-repeat fixed !important;
+}
+[data-theme="light"] body {
+    background:
+        linear-gradient(180deg,
+            rgba(245,240,228,0.52) 0%,
+            rgba(242,236,220,0.45) 45%,
+            rgba(238,230,212,0.55) 100%),
+        url('../../assets/backgrounds/default_background.jpg')
+        center center / cover no-repeat fixed !important;
+}
+
+/* Secciones transparentes para dejar ver el fondo del body */
+.game-section {
+    background: transparent !important;
+}
+
+/* VN: fondo base según modo.
+   Modo Clásico → azul noche profundo siempre (con o sin wallpaper).
+   Otros modos sin wallpaper → color del tema.                         */
+body.mode-classic #vnSection {
+    background: #060918 !important;
+}
+body.mode-rpg #vnSection {
+    background-color: #0a0804 !important; /* fallback oscuro RPG — oculta cualquier hueco sobre game-frame */
+}
+body:not(.mode-classic):not(.mode-rpg) #vnSection {
+    background: var(--bg-primary) !important;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   C. HEADER DE SECCIÓN
+   ════════════════════════════════════════════════════════════════════ */
+
+.section-header-bar {
+    background: linear-gradient(135deg,
+        rgba(16,11,5,0.94) 0%,
+        rgba(24,16,8,0.97) 100%) !important;
+    border-bottom: 1px solid var(--eth-border) !important;
+    box-shadow: 0 1px 0 rgba(160,128,220,0.14), 0 6px 32px rgba(0,0,0,0.55) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    position: relative !important;
+}
+.section-header-bar::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 2rem; right: 2rem; height: 1px;
+    background: linear-gradient(to right,
+        transparent, rgba(160,128,220,0.45) 20%,
+        rgba(160,128,220,0.45) 80%, transparent);
+    pointer-events: none;
+}
+[data-theme="light"] .section-header-bar {
+    background: linear-gradient(135deg,
+        rgba(225,215,195,0.96) 0%,
+        rgba(210,200,178,0.98) 100%) !important;
+    border-bottom-color: rgba(140,100,40,0.18) !important;
+}
+[data-theme="light"] .section-header-bar::after {
+    background: linear-gradient(to right,
+        transparent, rgba(140,100,40,0.35) 20%,
+        rgba(140,100,40,0.35) 80%, transparent);
+}
+
+.section-title {
+    color: var(--eth-gold) !important;
+    text-shadow: 0 0 28px rgba(160,128,220,0.45), 0 0 8px rgba(160,128,220,0.18) !important;
+}
+[data-theme="light"] .section-title {
+    color: #7a5418 !important;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4) !important;
+}
+
+.back-button {
+    background: rgba(160,128,220,0.06) !important;
+    border: 1px solid var(--eth-border) !important;
+    color: rgba(160,128,220,0.7) !important;
+    border-radius: 8px !important;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s !important;
+}
+.back-button:hover {
+    background: rgba(160,128,220,0.14) !important;
+    border-color: var(--eth-border-h) !important;
+    color: var(--eth-gold) !important;
+    transform: translateY(-1px) !important;
+}
+.back-button:active { transform: translateY(0) !important; }
+[data-theme="light"] .back-button { color: rgba(80,50,130,0.75) !important; border-color: rgba(140,100,40,0.28) !important; }
+[data-theme="light"] .back-button:hover { color: #6a4210 !important; background: rgba(90,60,140,0.12) !important; }
+
+/* ════════════════════════════════════════════════════════════════════
+   D. CONTENIDO — transparente para dejar ver el fondo
+   ════════════════════════════════════════════════════════════════════ */
+
+.section-content { background: transparent !important; }
+
+/* ── Fondo propio de la sección Historias ─────────────────────────────
    Cielo nocturno con profundidad: nebulosidades multicolor, campo de
    estrellas individuales colocadas a mano, textura de grano y variación
    tonal. Siempre oscuro independientemente del tema global de la app.   ────────────────────────────────────────────────────────────────────── */
