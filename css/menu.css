@@ -8,7 +8,7 @@
 
 /* ─── Variables del menú ─── */
 :root {
-    --menu-gold:        #c9a86c;
+    --menu-gold:        #a080e0;
     --menu-gold-light:  #f0d898;
     --menu-gold-dark:   #8b6914;
     --menu-btn-h:       64px;
@@ -292,7 +292,7 @@
 [data-theme="light"] .menu-button,
 [data-theme="light"] .menu-button-console {
     background: rgba(18, 12, 4, 0.86) !important;
-    border: 1px solid rgba(201, 168, 108, 0.5) !important;
+    border: 1px solid rgba(160,128,220, 0.5) !important;
     color: #e8d4a0 !important;
     text-shadow: 0 1px 6px rgba(0,0,0,0.8) !important;
     box-shadow:
@@ -304,12 +304,12 @@
 [data-theme="light"] .menu-button:hover,
 [data-theme="light"] .menu-button-console:hover {
     background: rgba(30, 20, 6, 0.88) !important;
-    border-color: rgba(201, 168, 108, 0.85) !important;
+    border-color: rgba(160,128,220, 0.85) !important;
     color: #f0dfa8 !important;
     transform: translateY(-2px) !important;
     box-shadow:
         0 6px 24px rgba(0,0,0,0.45),
-        0 0 20px rgba(201, 168, 108, 0.18),
+        0 0 20px rgba(160,128,220, 0.18),
         inset 0 1px 0 rgba(255,220,140,0.08) !important;
 }
 
@@ -317,7 +317,7 @@
 [data-theme="dark"] .menu-button,
 [data-theme="dark"] .menu-button-console {
     background: rgba(18, 13, 6, 0.82) !important;
-    border: 1px solid rgba(201, 168, 108, 0.35) !important;
+    border: 1px solid rgba(160,128,220, 0.35) !important;
     color: #d4b87a !important;
     text-shadow: 0 1px 4px rgba(0,0,0,0.7) !important;
     box-shadow:
@@ -329,33 +329,33 @@
 [data-theme="dark"] .menu-button:hover,
 [data-theme="dark"] .menu-button-console:hover {
     background: rgba(28, 20, 8, 0.9) !important;
-    border-color: rgba(201, 168, 108, 0.7) !important;
+    border-color: rgba(160,128,220, 0.7) !important;
     color: #e8cc88 !important;
     transform: translateY(-2px) !important;
     box-shadow:
         0 6px 24px rgba(0,0,0,0.55),
-        0 0 22px rgba(201, 168, 108, 0.15) !important;
+        0 0 22px rgba(160,128,220, 0.15) !important;
 }
 
 /* Botón primario (Nueva Partida) — dorado más intenso */
 [data-theme="light"] .menu-button.primary,
 [data-theme="light"] .menu-button-console.primary {
     background: rgba(25, 16, 4, 0.9) !important;
-    border-color: rgba(201, 168, 108, 0.7) !important;
+    border-color: rgba(160,128,220, 0.7) !important;
     color: #f0dfa8 !important;
     box-shadow:
         0 3px 18px rgba(0,0,0,0.5),
-        0 0 28px rgba(201, 168, 108, 0.15) !important;
+        0 0 28px rgba(160,128,220, 0.15) !important;
 }
 
 [data-theme="dark"] .menu-button.primary,
 [data-theme="dark"] .menu-button-console.primary {
     background: rgba(22, 14, 4, 0.9) !important;
-    border-color: rgba(201, 168, 108, 0.6) !important;
+    border-color: rgba(160,128,220, 0.6) !important;
     color: #e8cc88 !important;
     box-shadow:
         0 3px 18px rgba(0,0,0,0.6),
-        0 0 30px rgba(201, 168, 108, 0.12) !important;
+        0 0 30px rgba(160,128,220, 0.12) !important;
 }
 
 /* Shimmer sweep */
@@ -615,7 +615,7 @@
 .profile-modal-header h3 {
     font-family: 'Cinzel', serif !important;
     font-size: 1rem !important;
-    color: var(--accent-gold, #c9a86c) !important;
+    color: var(--accent-gold, #a080e0) !important;
     margin: 0 !important;
     letter-spacing: 0.08em !important;
 }

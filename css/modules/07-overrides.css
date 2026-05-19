@@ -5,11 +5,11 @@
 
 /* ── TOKENS ── */
 :root {
-    --eth-gold:      #c9a86c;
-    --eth-gold-dim:  rgba(201,168,108,0.4);
-    --eth-gold-glow: rgba(201,168,108,0.15);
-    --eth-border:    rgba(201,168,108,0.2);
-    --eth-border-h:  rgba(201,168,108,0.55);
+    --eth-gold:      #a080e0;
+    --eth-gold-dim:  rgba(160,128,220,0.4);
+    --eth-gold-glow: rgba(160,128,220,0.15);
+    --eth-border:    rgba(160,128,220,0.2);
+    --eth-border-h:  rgba(160,128,220,0.55);
     --eth-jade:      #5a9470;
     --eth-crimson:   #8c2828;
     --eth-crimson-b: #b04040;
@@ -103,7 +103,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
         rgba(16,11,5,0.94) 0%,
         rgba(24,16,8,0.97) 100%) !important;
     border-bottom: 1px solid var(--eth-border) !important;
-    box-shadow: 0 1px 0 rgba(201,168,108,0.14), 0 6px 32px rgba(0,0,0,0.55) !important;
+    box-shadow: 0 1px 0 rgba(160,128,220,0.14), 0 6px 32px rgba(0,0,0,0.55) !important;
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
     position: relative !important;
@@ -113,8 +113,8 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     position: absolute;
     bottom: -1px; left: 2rem; right: 2rem; height: 1px;
     background: linear-gradient(to right,
-        transparent, rgba(201,168,108,0.45) 20%,
-        rgba(201,168,108,0.45) 80%, transparent);
+        transparent, rgba(160,128,220,0.45) 20%,
+        rgba(160,128,220,0.45) 80%, transparent);
     pointer-events: none;
 }
 [data-theme="light"] .section-header-bar {
@@ -131,7 +131,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 
 .section-title {
     color: var(--eth-gold) !important;
-    text-shadow: 0 0 28px rgba(201,168,108,0.45), 0 0 8px rgba(201,168,108,0.18) !important;
+    text-shadow: 0 0 28px rgba(160,128,220,0.45), 0 0 8px rgba(160,128,220,0.18) !important;
 }
 [data-theme="light"] .section-title {
     color: #7a5418 !important;
@@ -139,21 +139,21 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 }
 
 .back-button {
-    background: rgba(201,168,108,0.06) !important;
+    background: rgba(160,128,220,0.06) !important;
     border: 1px solid var(--eth-border) !important;
-    color: rgba(201,168,108,0.7) !important;
+    color: rgba(160,128,220,0.7) !important;
     border-radius: 8px !important;
     transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s !important;
 }
 .back-button:hover {
-    background: rgba(201,168,108,0.14) !important;
+    background: rgba(160,128,220,0.14) !important;
     border-color: var(--eth-border-h) !important;
     color: var(--eth-gold) !important;
     transform: translateY(-1px) !important;
 }
 .back-button:active { transform: translateY(0) !important; }
-[data-theme="light"] .back-button { color: rgba(100,65,15,0.75) !important; border-color: rgba(140,100,40,0.28) !important; }
-[data-theme="light"] .back-button:hover { color: #6a4210 !important; background: rgba(120,80,20,0.12) !important; }
+[data-theme="light"] .back-button { color: rgba(80,50,130,0.75) !important; border-color: rgba(140,100,40,0.28) !important; }
+[data-theme="light"] .back-button:hover { color: #6a4210 !important; background: rgba(90,60,140,0.12) !important; }
 
 /* ════════════════════════════════════════════════════════════════════
    D. CONTENIDO — transparente para dejar ver el fondo
@@ -167,7 +167,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 .topics-empty {
     padding: 3rem 1rem !important;
     text-align: center !important;
-    color: rgba(201,168,108,0.55) !important;
+    color: rgba(160,128,220,0.55) !important;
     font-family: 'Crimson Text', serif !important;
     font-size: 1.1rem !important;
     font-style: italic !important;
@@ -177,11 +177,11 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     font-family: 'Inter', sans-serif !important;
     font-style: normal !important;
     font-size: 0.82rem !important;
-    color: rgba(201,168,108,0.38) !important;
+    color: rgba(160,128,220,0.38) !important;
     margin-top: 0.4rem !important;
 }
-[data-theme="light"] .topics-empty       { color: rgba(100,65,15,0.6) !important; }
-[data-theme="light"] .topics-empty span  { color: rgba(100,65,15,0.42) !important; }
+[data-theme="light"] .topics-empty       { color: rgba(80,50,130,0.6) !important; }
+[data-theme="light"] .topics-empty span  { color: rgba(80,50,130,0.42) !important; }
 
 /* ════════════════════════════════════════════════════════════════════
    Sección 12 — TOPICS SCREEN — Mesa Mística de Adivinación v2
@@ -193,7 +193,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     background: rgba(8,5,2,0.62) !important;
     backdrop-filter: blur(14px) saturate(1.35) !important;
     -webkit-backdrop-filter: blur(14px) saturate(1.35) !important;
-    border-bottom: 1px solid rgba(163,134,80,0.22) !important;
+    border-bottom: 1px solid rgba(130,100,210,0.22) !important;
     box-shadow: 0 4px 24px rgba(0,0,0,0.55) !important;
 }
 
@@ -209,12 +209,12 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     background: rgba(8, 7, 22, 0.46) !important;
     backdrop-filter: blur(24px) saturate(1.6) !important;
     -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
-    border: 1px solid rgba(163,134,80,0.22) !important;
+    border: 1px solid rgba(130,100,210,0.22) !important;
     border-radius: 14px !important;
     padding: 1.2rem !important;
     position: relative !important;
-    box-shadow: 0 0 0 1px rgba(163,134,80,0.07),
-                inset 0 1px 0 rgba(163,134,80,0.10),
+    box-shadow: 0 0 0 1px rgba(130,100,210,0.07),
+                inset 0 1px 0 rgba(130,100,210,0.10),
                 0 8px 40px rgba(0,0,0,0.60),
                 0 2px 8px rgba(0,0,0,0.40) !important;
 }
@@ -222,7 +222,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     background: rgba(244,240,226,0.50) !important;
     backdrop-filter: blur(24px) saturate(1.4) !important;
     -webkit-backdrop-filter: blur(24px) saturate(1.4) !important;
-    border-color: rgba(160,120,48,0.30) !important;
+    border-color: rgba(120,88,200,0.30) !important;
     box-shadow: 0 0 0 1px rgba(255,255,255,0.55),
                 inset 0 1px 0 rgba(255,255,255,0.70),
                 0 8px 32px rgba(0,0,0,0.14) !important;
@@ -241,14 +241,14 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 #topicsSection .topics-main::before {
     top: 7px !important;
     left: 7px !important;
-    border-top: 1.5px solid #a38650 !important;
-    border-left: 1.5px solid #a38650 !important;
+    border-top: 1.5px solid #7858c0 !important;
+    border-left: 1.5px solid #7858c0 !important;
 }
 #topicsSection .topics-main::after {
     bottom: 7px !important;
     right: 7px !important;
-    border-bottom: 1.5px solid #a38650 !important;
-    border-right: 1.5px solid #a38650 !important;
+    border-bottom: 1.5px solid #7858c0 !important;
+    border-right: 1.5px solid #7858c0 !important;
 }
 
 /* ── 12.2b  Título ornamental del panel ─────────────────────────── */
@@ -259,7 +259,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     gap: 10px !important;
     padding-bottom: 0.85rem !important;
     margin-bottom: 0.85rem !important;
-    border-bottom: 1px solid rgba(163,134,80,0.18) !important;
+    border-bottom: 1px solid rgba(130,100,210,0.18) !important;
 }
 .tpt-text {
     font-family: 'Cinzel', serif !important;
@@ -267,31 +267,31 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     font-weight: 600 !important;
     letter-spacing: 0.26em !important;
     text-transform: uppercase !important;
-    color: #c9a86c !important;
+    color: #a080e0 !important;
     margin: 0 !important;
     line-height: 1 !important;
     white-space: nowrap !important;
 }
 .tpt-deco {
     font-size: 0.55rem !important;
-    color: rgba(201,168,108,0.40) !important;
+    color: rgba(160,128,220,0.40) !important;
     flex-shrink: 0 !important;
 }
 .tpt-line {
     flex: 1 !important;
     height: 1px !important;
-    background: linear-gradient(90deg, transparent, rgba(163,134,80,0.28)) !important;
+    background: linear-gradient(90deg, transparent, rgba(130,100,210,0.28)) !important;
     max-width: 80px !important;
 }
 .tpt-line + .tpt-line,
 .tpt-line:last-child {
-    background: linear-gradient(90deg, rgba(163,134,80,0.28), transparent) !important;
+    background: linear-gradient(90deg, rgba(130,100,210,0.28), transparent) !important;
 }
-[data-theme="light"] .tpt-text  { color: #7a5020 !important; }
-[data-theme="light"] .tpt-deco  { color: rgba(100,65,15,0.35) !important; }
-[data-theme="light"] .topics-panel-title { border-bottom-color: rgba(120,80,20,0.16) !important; }
-[data-theme="light"] .tpt-line  { background: linear-gradient(90deg, transparent, rgba(120,80,20,0.22)) !important; }
-[data-theme="light"] .tpt-line:last-child { background: linear-gradient(90deg, rgba(120,80,20,0.22), transparent) !important; }
+[data-theme="light"] .tpt-text  { color: #5a3898 !important; }
+[data-theme="light"] .tpt-deco  { color: rgba(80,50,130,0.35) !important; }
+[data-theme="light"] .topics-panel-title { border-bottom-color: rgba(90,60,140,0.16) !important; }
+[data-theme="light"] .tpt-line  { background: linear-gradient(90deg, transparent, rgba(90,60,140,0.22)) !important; }
+[data-theme="light"] .tpt-line:last-child { background: linear-gradient(90deg, rgba(90,60,140,0.22), transparent) !important; }
 
 /* ── 12.2c  Layout dos columnas (grid + sidebar) ────────────────── */
 /* El contenedor tiene un mínimo garantizado para que la zona de cartas
@@ -312,15 +312,15 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     overflow-x: hidden !important;
     /* Scrollbar fina dorada */
     scrollbar-width: thin !important;
-    scrollbar-color: rgba(163,134,80,0.28) transparent !important;
+    scrollbar-color: rgba(130,100,210,0.28) transparent !important;
 }
 .topics-grid-wrap::-webkit-scrollbar { width: 5px !important; }
 .topics-grid-wrap::-webkit-scrollbar-track { background: transparent !important; }
 .topics-grid-wrap::-webkit-scrollbar-thumb {
-    background: rgba(163,134,80,0.28) !important;
+    background: rgba(130,100,210,0.28) !important;
     border-radius: 3px !important;
 }
-[data-theme="light"] .topics-grid-wrap::-webkit-scrollbar-thumb { background: rgba(120,80,20,0.25) !important; }
+[data-theme="light"] .topics-grid-wrap::-webkit-scrollbar-thumb { background: rgba(90,60,140,0.25) !important; }
 
 /* ── 12.2d  Panel lateral de estadísticas ────────────────────────── */
 .topics-sidebar {
@@ -329,19 +329,19 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     display: flex !important;
     flex-direction: column !important;
     border-radius: 10px !important;
-    border: 1px solid rgba(163,134,80,0.18) !important;
+    border: 1px solid rgba(130,100,210,0.18) !important;
     background: rgba(6,5,18,0.40) !important;
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
-    box-shadow: inset 0 1px 0 rgba(163,134,80,0.08),
+    box-shadow: inset 0 1px 0 rgba(130,100,210,0.08),
                 0 4px 20px rgba(0,0,0,0.30) !important;
     overflow-y: auto !important;
     scrollbar-width: thin !important;
-    scrollbar-color: rgba(163,134,80,0.20) transparent !important;
+    scrollbar-color: rgba(130,100,210,0.20) transparent !important;
 }
 [data-theme="light"] .topics-sidebar {
     background: rgba(244,240,226,0.38) !important;
-    border-color: rgba(120,80,20,0.20) !important;
+    border-color: rgba(90,60,140,0.20) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.55),
                 0 4px 16px rgba(0,0,0,0.10) !important;
 }
@@ -358,7 +358,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     font-weight: 600 !important;
     letter-spacing: 0.20em !important;
     text-transform: uppercase !important;
-    color: rgba(201,168,108,0.65) !important;
+    color: rgba(160,128,220,0.65) !important;
     margin-bottom: 0.3rem !important;
     display: flex !important;
     align-items: center !important;
@@ -370,10 +370,10 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     content: '' !important;
     flex: 1 !important;
     height: 1px !important;
-    background: linear-gradient(90deg, transparent, rgba(163,134,80,0.25)) !important;
+    background: linear-gradient(90deg, transparent, rgba(130,100,210,0.25)) !important;
 }
 .tsi-heading::after {
-    background: linear-gradient(90deg, rgba(163,134,80,0.25), transparent) !important;
+    background: linear-gradient(90deg, rgba(130,100,210,0.25), transparent) !important;
 }
 .tsi-stat {
     display: flex !important;
@@ -385,23 +385,23 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     font-family: 'Cinzel', serif !important;
     font-size: 1.05rem !important;
     font-weight: 700 !important;
-    color: #c9a86c !important;
+    color: #a080e0 !important;
     line-height: 1.2 !important;
     letter-spacing: 0.05em !important;
     flex-shrink: 0 !important;
-    text-shadow: 0 0 12px rgba(201,168,108,0.35) !important;
+    text-shadow: 0 0 12px rgba(160,128,220,0.35) !important;
 }
 .tsi-lbl {
     font-family: 'Crimson Text', serif !important;
     font-size: 0.80rem !important;
     font-style: italic !important;
-    color: rgba(201,168,108,0.45) !important;
+    color: rgba(160,128,220,0.45) !important;
     line-height: 1.3 !important;
 }
 .tsi-sep {
     height: 1px !important;
     margin: 0 0.75rem !important;
-    background: linear-gradient(90deg, transparent, rgba(163,134,80,0.22), transparent) !important;
+    background: linear-gradient(90deg, transparent, rgba(130,100,210,0.22), transparent) !important;
     flex-shrink: 0 !important;
 }
 .tsi-mode-row {
@@ -416,22 +416,22 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     flex-shrink: 0 !important;
     box-shadow: 0 0 6px currentColor !important;
 }
-.tsi-mode-dot--rpg     { background: rgba(212,174,92,0.80) !important; color: rgba(212,174,92,0.80) !important; }
+.tsi-mode-dot--rpg     { background: rgba(152,120,216,0.80) !important; color: rgba(152,120,216,0.80) !important; }
 .tsi-mode-dot--classic { background: rgba(130,160,230,0.80) !important; color: rgba(130,160,230,0.80) !important; }
 .tsi-mode-name {
     font-family: 'Outfit', sans-serif !important;
     font-size: 0.70rem !important;
     font-weight: 600 !important;
     letter-spacing: 0.06em !important;
-    color: rgba(201,168,108,0.52) !important;
+    color: rgba(160,128,220,0.52) !important;
     flex: 1 !important;
 }
 .tsi-mode-count {
     font-family: 'Cinzel', serif !important;
     font-size: 0.90rem !important;
     font-weight: 700 !important;
-    color: #c9a86c !important;
-    text-shadow: 0 0 10px rgba(201,168,108,0.30) !important;
+    color: #a080e0 !important;
+    text-shadow: 0 0 10px rgba(160,128,220,0.30) !important;
 }
 .tsi-quote-block {
     flex: 1 !important;
@@ -444,21 +444,21 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     font-style: italic !important;
     font-size: 0.82rem !important;
     line-height: 1.6 !important;
-    color: rgba(201,168,108,0.30) !important;
+    color: rgba(160,128,220,0.30) !important;
     margin: 0 !important;
     text-align: center !important;
     padding: 0.5rem 0.25rem !important;
-    border-top: 1px solid rgba(163,134,80,0.12) !important;
+    border-top: 1px solid rgba(130,100,210,0.12) !important;
     width: 100% !important;
 }
 /* Tema claro — sidebar */
-[data-theme="light"] .tsi-heading    { color: rgba(100,65,15,0.60) !important; }
-[data-theme="light"] .tsi-val        { color: #7a5020 !important; text-shadow: none !important; }
-[data-theme="light"] .tsi-lbl        { color: rgba(100,65,15,0.44) !important; }
-[data-theme="light"] .tsi-mode-name  { color: rgba(100,65,15,0.50) !important; }
-[data-theme="light"] .tsi-mode-count { color: #7a5020 !important; }
-[data-theme="light"] .tsi-quote      { color: rgba(100,65,15,0.34) !important; }
-[data-theme="light"] .tsi-sep        { background: linear-gradient(90deg, transparent, rgba(100,65,15,0.16), transparent) !important; }
+[data-theme="light"] .tsi-heading    { color: rgba(80,50,130,0.60) !important; }
+[data-theme="light"] .tsi-val        { color: #5a3898 !important; text-shadow: none !important; }
+[data-theme="light"] .tsi-lbl        { color: rgba(80,50,130,0.44) !important; }
+[data-theme="light"] .tsi-mode-name  { color: rgba(80,50,130,0.50) !important; }
+[data-theme="light"] .tsi-mode-count { color: #5a3898 !important; }
+[data-theme="light"] .tsi-quote      { color: rgba(80,50,130,0.34) !important; }
+[data-theme="light"] .tsi-sep        { background: linear-gradient(90deg, transparent, rgba(80,50,130,0.16), transparent) !important; }
 
 /* ── 12.3  Command bar ───────────────────────────────────────────── */
 .topics-command-bar {
@@ -470,14 +470,14 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     background: rgba(6,5,18,0.38) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(163,134,80,0.14) !important;
+    border: 1px solid rgba(130,100,210,0.14) !important;
     border-radius: 9px !important;
     padding: 0.6rem 0.75rem !important;
-    box-shadow: inset 0 1px 0 rgba(163,134,80,0.07) !important;
+    box-shadow: inset 0 1px 0 rgba(130,100,210,0.07) !important;
 }
 [data-theme="light"] .topics-command-bar {
     background: rgba(244,240,226,0.42) !important;
-    border-color: rgba(160,120,48,0.18) !important;
+    border-color: rgba(120,88,200,0.18) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.55) !important;
 }
 
@@ -486,12 +486,12 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     font-family: 'Cinzel', serif !important;
     font-size: 0.77rem !important;
     letter-spacing: 0.09em !important;
-    background: linear-gradient(145deg, #8b5e16 0%, #50300a 100%) !important;
-    border: 1px solid rgba(201,168,108,0.55) !important;
-    color: #e8c878 !important;
+    background: linear-gradient(145deg, #6040a0 0%, #30186a 100%) !important;
+    border: 1px solid rgba(160,128,220,0.55) !important;
+    color: #c8a8f8 !important;
     padding: 0.48rem 1.2rem !important;
     border-radius: 6px !important;
-    box-shadow: 0 0 0 1px rgba(201,168,108,0.08),
+    box-shadow: 0 0 0 1px rgba(160,128,220,0.08),
                 inset 0 1px 0 rgba(255,220,120,0.18),
                 0 3px 12px rgba(0,0,0,0.45) !important;
     transition: box-shadow 0.22s, border-color 0.22s, filter 0.22s !important;
@@ -499,8 +499,8 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 }
 .btn-create-topic:hover {
     filter: brightness(1.15) !important;
-    border-color: rgba(201,168,108,0.85) !important;
-    box-shadow: 0 0 18px rgba(201,168,108,0.32),
+    border-color: rgba(160,128,220,0.85) !important;
+    box-shadow: 0 0 18px rgba(160,128,220,0.32),
                 inset 0 1px 0 rgba(255,220,120,0.22),
                 0 4px 16px rgba(0,0,0,0.50) !important;
 }
@@ -522,32 +522,32 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     letter-spacing: 0.07em !important;
     padding: 0.38rem 0.82rem !important;
     border-radius: 5px !important;
-    border: 1px solid rgba(163,134,80,0.22) !important;
+    border: 1px solid rgba(130,100,210,0.22) !important;
     background: rgba(8,7,22,0.45) !important;
-    color: rgba(163,134,80,0.50) !important;
+    color: rgba(130,100,210,0.50) !important;
     cursor: pointer !important;
     transition: all 0.22s !important;
     white-space: nowrap !important;
 }
 .topic-filter-btn:hover {
-    border-color: rgba(163,134,80,0.55) !important;
-    color: #c9a86c !important;
-    background: rgba(163,134,80,0.10) !important;
+    border-color: rgba(130,100,210,0.55) !important;
+    color: #a080e0 !important;
+    background: rgba(130,100,210,0.10) !important;
 }
 [data-theme="light"] .topic-filter-btn {
     background: rgba(244,240,226,0.40) !important;
-    color: rgba(100,65,15,0.50) !important;
-    border-color: rgba(160,120,48,0.22) !important;
+    color: rgba(80,50,130,0.50) !important;
+    border-color: rgba(120,88,200,0.22) !important;
 }
 [data-theme="light"] .topic-filter-btn:hover {
-    background: rgba(160,120,48,0.12) !important;
-    color: #7a5020 !important;
+    background: rgba(120,88,200,0.12) !important;
+    color: #5a3898 !important;
 }
 .topic-filter-btn.active {
-    background: linear-gradient(135deg, rgba(130,88,20,0.70), rgba(70,44,8,0.82)) !important;
-    border-color: rgba(201,168,108,0.55) !important;
-    color: #d4ae5c !important;
-    box-shadow: 0 0 12px rgba(163,134,80,0.18) !important;
+    background: linear-gradient(135deg, rgba(88,52,150,0.70), rgba(44,24,88,0.82)) !important;
+    border-color: rgba(160,128,220,0.55) !important;
+    color: #b898f0 !important;
+    box-shadow: 0 0 12px rgba(130,100,210,0.18) !important;
 }
 
 /* ── 12.6  Buscador glassmorphism ────────────────────────────────── */
@@ -562,7 +562,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     background: rgba(13,12,18,0.72) !important;
     backdrop-filter: blur(12px) !important;
     -webkit-backdrop-filter: blur(12px) !important;
-    border: 1px solid rgba(163,134,80,0.35) !important;
+    border: 1px solid rgba(130,100,210,0.35) !important;
     border-radius: 8px !important;
     color: #e8d4a0 !important;
     font-family: 'Crimson Text', serif !important;
@@ -573,13 +573,13 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     box-sizing: border-box !important;
 }
 .topics-search-input::placeholder {
-    color: rgba(163,134,80,0.42) !important;
+    color: rgba(130,100,210,0.42) !important;
     font-style: italic !important;
 }
 .topics-search-input:focus {
-    border-color: rgba(163,134,80,0.68) !important;
-    box-shadow: 0 0 0 2px rgba(163,134,80,0.10),
-                inset 0 0 20px rgba(163,134,80,0.04) !important;
+    border-color: rgba(130,100,210,0.68) !important;
+    box-shadow: 0 0 0 2px rgba(130,100,210,0.10),
+                inset 0 0 20px rgba(130,100,210,0.04) !important;
 }
 
 /* ── 12.7  Ocultar contador de mensajes y barra de sala ────────── */
@@ -666,18 +666,18 @@ article.tc {
 /* ── 12.9  Modo RPG — ámbar profundo ─────────────────────────────── */
 .tc--rpg .tc-face {
     background: linear-gradient(170deg, #1f1408 0%, #120d04 48%, #1c1409 100%) !important;
-    border-color: rgba(212,174,92, 0.40) !important;
+    border-color: rgba(152,120,216, 0.40) !important;
     box-shadow:
-        inset 0 0 0 1px rgba(212,174,92,0.08),
+        inset 0 0 0 1px rgba(152,120,216,0.08),
         0 8px 36px rgba(0,0,0,0.65) !important;
 }
 .tc--rpg:not(.tc--flipped):hover .tc-face--front,
 .tc--rpg.tc--flipped:hover .tc-face--back {
-    border-color: rgba(212,174,92, 0.72) !important;
+    border-color: rgba(152,120,216, 0.72) !important;
     box-shadow:
-        inset 0 0 0 1px rgba(212,174,92,0.14),
+        inset 0 0 0 1px rgba(152,120,216,0.14),
         0 18px 52px rgba(0,0,0,0.72),
-        0 0 30px rgba(212,174,92,0.16) !important;
+        0 0 30px rgba(152,120,216,0.16) !important;
 }
 
 /* ── 12.10  Modo Clásico — azul marino profundo ──────────────────── */
@@ -975,7 +975,7 @@ article.tc {
 
 /* ── 12.18  Turno activo — glow pulsante ─────────────────────────── */
 .tc--myturn.tc--rpg .tc-face {
-    border-color: rgba(212,174,92,0.55) !important;
+    border-color: rgba(152,120,216,0.55) !important;
     animation: tc-pulse-gold 2.6s ease-in-out infinite !important;
 }
 .tc--myturn.tc--classic .tc-face {
@@ -983,8 +983,8 @@ article.tc {
     animation: tc-pulse-blue 2.6s ease-in-out infinite !important;
 }
 @keyframes tc-pulse-gold {
-    0%,100% { box-shadow: inset 0 0 0 1px rgba(212,174,92,0.10), 0 8px 36px rgba(0,0,0,0.65); border-color: rgba(212,174,92,0.45); }
-    50%     { box-shadow: inset 0 0 0 1px rgba(212,174,92,0.18), 0 8px 36px rgba(0,0,0,0.65), 0 0 30px rgba(212,174,92,0.24); border-color: rgba(212,174,92,0.78); }
+    0%,100% { box-shadow: inset 0 0 0 1px rgba(152,120,216,0.10), 0 8px 36px rgba(0,0,0,0.65); border-color: rgba(152,120,216,0.45); }
+    50%     { box-shadow: inset 0 0 0 1px rgba(152,120,216,0.18), 0 8px 36px rgba(0,0,0,0.65), 0 0 30px rgba(152,120,216,0.24); border-color: rgba(152,120,216,0.78); }
 }
 @keyframes tc-pulse-blue {
     0%,100% { box-shadow: inset 0 0 0 1px rgba(130,160,230,0.08), 0 8px 36px rgba(0,0,0,0.65); border-color: rgba(130,160,230,0.35); }
@@ -1020,13 +1020,13 @@ article.tc {
 
 .vn-control-btn {
     background: rgba(14,10,4,0.75) !important;
-    border-color: rgba(201,168,108,0.22) !important;
-    color: rgba(201,168,108,0.65) !important;
+    border-color: rgba(160,128,220,0.22) !important;
+    color: rgba(160,128,220,0.65) !important;
     border-radius: 8px !important;
 }
 .vn-control-btn:hover {
-    background: rgba(201,168,108,0.1) !important;
-    border-color: rgba(201,168,108,0.5) !important;
+    background: rgba(160,128,220,0.1) !important;
+    border-color: rgba(160,128,220,0.5) !important;
     color: var(--eth-gold) !important;
 }
 
@@ -1035,13 +1035,13 @@ article.tc {
    ════════════════════════════════════════════════════════════════════ */
 
 .vn-option-btn {
-    border-color: rgba(201,168,108,0.42) !important;
+    border-color: rgba(160,128,220,0.42) !important;
     background: rgba(18,12,5,0.9) !important;
 }
 .vn-option-btn:hover {
-    border-color: rgba(201,168,108,0.88) !important;
+    border-color: rgba(160,128,220,0.88) !important;
     background: rgba(28,18,6,0.96) !important;
-    box-shadow: 0 6px 28px rgba(0,0,0,0.5), 0 0 16px rgba(201,168,108,0.14) !important;
+    box-shadow: 0 6px 28px rgba(0,0,0,0.5), 0 0 16px rgba(160,128,220,0.14) !important;
 }
 .vn-option-btn.chosen {
     background: rgba(38,62,28,0.75) !important;
@@ -1629,12 +1629,12 @@ body.mode-classic .vn-controls {
 }
 .vn-control-btn:hover {
     background: linear-gradient(135deg, rgba(80,60,20,1), rgba(50,36,12,1), rgba(36,24,8,1)) !important;
-    border-color: rgba(201,168,108,0.75) !important;
-    color: var(--eth-gold, #c9a86c) !important;
+    border-color: rgba(160,128,220,0.75) !important;
+    color: var(--eth-gold, #a080e0) !important;
     box-shadow:
         inset 1px 1px 0 rgba(255,220,140,0.15),
         inset -1px -1px 0 rgba(0,0,0,0.5),
-        0 0 8px rgba(201,168,108,0.25),
+        0 0 8px rgba(160,128,220,0.25),
         0 2px 6px rgba(0,0,0,0.7) !important;
 }
 .vn-control-btn:active {
@@ -1821,7 +1821,7 @@ body.mode-rpg .vn-section::before {
     margin: 0 !important;
     /* ── Apariencia ── */
     background: rgba(18, 12, 8, 0.65) !important;
-    border: 1px solid rgba(201,168,108,0.35) !important;
+    border: 1px solid rgba(160,128,220,0.35) !important;
     border-top: 1px solid rgba(255,255,255,0.06) !important;
     border-radius: 14px !important;
     box-shadow:
@@ -1989,9 +1989,9 @@ body.theme-classic .vn-party-member-level {
     align-items: center !important;
     justify-content: center !important;
     cursor: pointer !important;
-    border: 1px solid rgba(201, 168, 108, 0.35) !important;
+    border: 1px solid rgba(160,128,220, 0.35) !important;
     background: rgba(20, 15, 8, 0.7) !important;
-    color: rgba(201, 168, 108, 0.85) !important;
+    color: rgba(160,128,220, 0.85) !important;
     transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease !important;
     padding: 0 !important;
 }
@@ -1999,7 +1999,7 @@ body.theme-classic .vn-party-member-level {
 .affinity-btn-minus:hover,
 .affinity-btn-plus:hover {
     background: rgba(80, 55, 20, 0.85) !important;
-    border-color: rgba(201, 168, 108, 0.7) !important;
+    border-color: rgba(160,128,220, 0.7) !important;
     color: #f0d99a !important;
 }
 
@@ -2024,7 +2024,7 @@ body.theme-classic .options-toggle {
     border-radius: 8px;
     border: 1px solid rgba(184, 144, 42, 0.25);
     background: rgba(30, 22, 8, 0.55);
-    color: rgba(201, 168, 108, 0.85);
+    color: rgba(160,128,220, 0.85);
     font-size: 0.78rem;
     cursor: pointer;
     transition: border-color 0.15s ease, background 0.15s ease;
@@ -2423,7 +2423,7 @@ body.mode-rpg .story-participant-turn-icon {
     border-radius: 10px;
     box-shadow:
         0 10px 36px rgba(0,0,0,0.6),
-        0 0 0 1px rgba(201,168,108,0.07);
+        0 0 0 1px rgba(160,128,220,0.07);
     transition:
         transform 0.38s cubic-bezier(0.34, 1.56, 0.64, 1),
         opacity   0.25s ease;
@@ -2526,11 +2526,11 @@ body.mode-rpg .story-participant-turn-icon {
     background: linear-gradient(135deg,
         rgba(20, 10, 5, 0.97) 0%,
         rgba(90, 30, 10, 0.95) 100%);
-    border: 1px solid rgba(201, 168, 108, 0.45);
-    border-left: 3px solid #c9a86c;
+    border: 1px solid rgba(160,128,220, 0.45);
+    border-left: 3px solid #a080e0;
     border-radius: 8px;
     margin: 0.5rem 0 0.25rem;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.5), inset 0 0 30px rgba(201,168,108,0.04);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.5), inset 0 0 30px rgba(160,128,220,0.04);
     animation: mrBarSlideIn 0.3s ease;
 }
 
@@ -2585,8 +2585,8 @@ body.mode-rpg .story-participant-turn-icon {
     align-items: center;
     gap: 0.4rem;
     padding: 0.4rem 0.75rem;
-    background: rgba(201,168,108,0.1);
-    border: 1px solid rgba(201,168,108,0.35);
+    background: rgba(160,128,220,0.1);
+    border: 1px solid rgba(160,128,220,0.35);
     border-radius: 6px;
     color: rgba(255,245,225,0.9);
     font-size: 0.8rem;
@@ -2596,8 +2596,8 @@ body.mode-rpg .story-participant-turn-icon {
     max-width: 100%;
 }
 .vn-mr-opt-btn:hover {
-    background: rgba(201,168,108,0.22);
-    border-color: rgba(201,168,108,0.7);
+    background: rgba(160,128,220,0.22);
+    border-color: rgba(160,128,220,0.7);
     transform: translateY(-1px);
 }
 .vn-mr-opt-btn:active {
@@ -2642,7 +2642,7 @@ body.mode-rpg .story-participant-turn-icon {
 
 .dm-mr-options-label {
     font-size: 0.7rem;
-    color: rgba(201,168,108,0.75);
+    color: rgba(160,128,220,0.75);
     letter-spacing: 0.04em;
     margin-top: 0.25rem;
     font-style: italic;
@@ -3318,7 +3318,7 @@ body.mode-rpg #vnSection .vn-rpg-control-btn::after {
     transition: opacity 0.16s ease, transform 0.16s ease !important;
     z-index: 200 !important;
     box-shadow:
-        inset 2px 0 0 rgba(201,168,108,0.72),
+        inset 2px 0 0 rgba(160,128,220,0.72),
         0 4px 14px rgba(0,0,0,0.65) !important;
 }
 body.mode-rpg #vnSection .vn-rpg-control-btn:hover::after {
