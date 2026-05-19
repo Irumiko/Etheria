@@ -19289,7 +19289,37 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 
 .section-content { background: transparent !important; }
 
-/* Regla base eliminada — el panel glassmorphism se define en sección 12.2 */
+/* ── Fondo propio de la sección Historias ───────────────────────────
+   Cubre el paisaje del main-menu con un cielo violeta nocturno.
+   Se aplica tanto en modo oscuro como claro — la sección de historias
+   siempre vive en la noche amatista independientemente del tema global. */
+#topicsSection {
+    background:
+        radial-gradient(ellipse at 15% 25%, rgba(100,50,200,0.28) 0%, transparent 52%),
+        radial-gradient(ellipse at 85% 75%, rgba(60,20,140,0.24) 0%, transparent 52%),
+        radial-gradient(ellipse at 50% 10%, rgba(80,40,180,0.18) 0%, transparent 45%),
+        linear-gradient(165deg, #07051a 0%, #110830 35%, #180e3a 60%, #0c0820 100%) !important;
+}
+/* Puntos de "estrellas" con CSS — overlay decorativo */
+#topicsSection::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background-image:
+        radial-gradient(circle, rgba(255,255,255,0.55) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,255,255,0.35) 1px, transparent 1px),
+        radial-gradient(circle, rgba(200,180,255,0.40) 1px, transparent 1px);
+    background-size: 180px 180px, 120px 120px, 260px 260px !important;
+    background-position: 20px 30px, 90px 80px, 50px 160px !important;
+    pointer-events: none !important;
+    z-index: 0 !important;
+    opacity: 0.6 !important;
+}
+#topicsSection .section-content,
+#topicsSection .topics-layout {
+    position: relative !important;
+    z-index: 1 !important;
+}
 
 /* Estado vacío más estilizado */
 .topics-empty {
@@ -19346,15 +19376,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
                 0 8px 40px rgba(0,0,0,0.60),
                 0 2px 8px rgba(0,0,0,0.40) !important;
 }
-[data-theme="light"] #topicsSection .topics-main {
-    background: rgba(244,240,226,0.50) !important;
-    backdrop-filter: blur(24px) saturate(1.4) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(1.4) !important;
-    border-color: rgba(120,88,200,0.30) !important;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.55),
-                inset 0 1px 0 rgba(255,255,255,0.70),
-                0 8px 32px rgba(0,0,0,0.14) !important;
-}
+/* topics-main light override eliminado — fondo siempre oscuro/violeta en esta sección */
 /* Esquinas decorativas del tapete */
 #topicsSection .topics-main::before,
 #topicsSection .topics-main::after {
@@ -19467,12 +19489,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     scrollbar-width: thin !important;
     scrollbar-color: rgba(130,100,210,0.20) transparent !important;
 }
-[data-theme="light"] .topics-sidebar {
-    background: rgba(244,240,226,0.38) !important;
-    border-color: rgba(90,60,140,0.20) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.55),
-                0 4px 16px rgba(0,0,0,0.10) !important;
-}
+/* topics-sidebar light override eliminado — fondo siempre oscuro/violeta */
 .tsi-block {
     padding: 0.9rem 1rem !important;
     display: flex !important;
@@ -19579,14 +19596,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     border-top: 1px solid rgba(130,100,210,0.12) !important;
     width: 100% !important;
 }
-/* Tema claro — sidebar */
-[data-theme="light"] .tsi-heading    { color: rgba(80,50,130,0.60) !important; }
-[data-theme="light"] .tsi-val        { color: #5a3898 !important; text-shadow: none !important; }
-[data-theme="light"] .tsi-lbl        { color: rgba(80,50,130,0.44) !important; }
-[data-theme="light"] .tsi-mode-name  { color: rgba(80,50,130,0.50) !important; }
-[data-theme="light"] .tsi-mode-count { color: #5a3898 !important; }
-[data-theme="light"] .tsi-quote      { color: rgba(80,50,130,0.34) !important; }
-[data-theme="light"] .tsi-sep        { background: linear-gradient(90deg, transparent, rgba(80,50,130,0.16), transparent) !important; }
+/* Sidebar overrides claro eliminados — la sección Historias siempre es oscura */
 
 /* ── 12.3  Command bar ───────────────────────────────────────────── */
 .topics-command-bar {
@@ -19603,11 +19613,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     padding: 0.6rem 0.75rem !important;
     box-shadow: inset 0 1px 0 rgba(130,100,210,0.07) !important;
 }
-[data-theme="light"] .topics-command-bar {
-    background: rgba(244,240,226,0.42) !important;
-    border-color: rgba(120,88,200,0.18) !important;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.55) !important;
-}
+/* topics-command-bar: la sección siempre es oscura, no necesita override claro */
 
 /* ── 12.4  Botón Nueva Historia ──────────────────────────────────── */
 .btn-create-topic {
@@ -19620,7 +19626,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     padding: 0.48rem 1.2rem !important;
     border-radius: 6px !important;
     box-shadow: 0 0 0 1px rgba(160,128,220,0.08),
-                inset 0 1px 0 rgba(255,220,120,0.18),
+                inset 0 1px 0 rgba(200,180,255,0.20),
                 0 3px 12px rgba(0,0,0,0.45) !important;
     transition: box-shadow 0.22s, border-color 0.22s, filter 0.22s !important;
     white-space: nowrap !important;
@@ -19632,11 +19638,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
                 inset 0 1px 0 rgba(255,220,120,0.22),
                 0 4px 16px rgba(0,0,0,0.50) !important;
 }
-[data-theme="light"] .btn-create-topic {
-    background: linear-gradient(145deg, #a07030 0%, #7a5018 100%) !important;
-    color: #fff8e8 !important;
-    border-color: rgba(160,112,40,0.65) !important;
-}
+/* btn-create-topic: la sección siempre es oscura, el violet funciona en ambos temas */
 
 /* ── 12.5  Pills de filtro ───────────────────────────────────────── */
 .topics-filter-group {
@@ -19662,15 +19664,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     color: #a080e0 !important;
     background: rgba(130,100,210,0.10) !important;
 }
-[data-theme="light"] .topic-filter-btn {
-    background: rgba(244,240,226,0.40) !important;
-    color: rgba(80,50,130,0.50) !important;
-    border-color: rgba(120,88,200,0.22) !important;
-}
-[data-theme="light"] .topic-filter-btn:hover {
-    background: rgba(120,88,200,0.12) !important;
-    color: #5a3898 !important;
-}
+/* topic-filter-btn: la sección siempre es oscura, los estilos dark valen para ambos temas */
 .topic-filter-btn.active {
     background: linear-gradient(135deg, rgba(88,52,150,0.70), rgba(44,24,88,0.82)) !important;
     border-color: rgba(160,128,220,0.55) !important;
