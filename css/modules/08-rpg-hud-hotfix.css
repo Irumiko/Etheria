@@ -19,7 +19,8 @@ body.mode-rpg #vnSection .vn-info-card {
 body.mode-rpg #vnSection .vn-info-exp-wrap { display: flex; }
 
 body.mode-rpg #vnSection .vn-info-exp-fill {
-    background: linear-gradient(90deg, #244d5c, #3f8aa3);
+    background: linear-gradient(90deg, #7a4b14, #c8922a) !important;
+    box-shadow: 0 0 8px rgba(200, 146, 42, 0.44) !important;
 }
 
 body.mode-rpg #vnSection .vn-dialogue-box {

@@ -612,7 +612,8 @@ function saveCharacter() {
     const name = nameInput?.value.trim();
     if(!name) { showAutosave('El nombre es obligatorio', 'error'); return; }
 
-    const id = document.getElementById('editCharacterId')?.value || Date.now().toString();
+    const id = document.getElementById('editCharacterId')?.value ||
+        (globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(16).slice(2)}`);
 
     const avatarUrl = document.getElementById('charAvatar')?.value.trim() || '';
     const spriteUrl = document.getElementById('charSprite')?.value.trim() || '';

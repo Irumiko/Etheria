@@ -87,6 +87,9 @@ body {
 body.mode-classic #vnSection {
     background: #060918 !important;
 }
+body.mode-rpg #vnSection {
+    background-color: #0a0804 !important; /* fallback oscuro RPG — oculta cualquier hueco sobre game-frame */
+}
 body:not(.mode-classic):not(.mode-rpg) #vnSection {
     background: var(--bg-primary) !important;
 }
@@ -169,8 +172,16 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     padding: 1rem !important;
 }
 [data-theme="light"] #topicsSection .topics-main {
-    background: rgba(232,218,190,0.72) !important;
-    border-color: rgba(160,120,60,0.15) !important;
+    background: linear-gradient(160deg, rgba(250,246,232,0.94) 0%, rgba(236,222,190,0.90) 100%) !important;
+    border-color: rgba(160,120,48,0.34) !important;
+    box-shadow: 0 0 0 3px rgba(244,238,210,0.96),
+                0 0 0 5px rgba(160,120,48,0.13),
+                0 24px 80px rgba(0,0,0,0.16) !important;
+}
+[data-theme="light"] #topicsSection .topics-main::before,
+[data-theme="light"] #topicsSection .topics-main::after {
+    opacity: 0.52 !important;
+    border-color: rgba(160,120,48,0.48) !important;
 }
 
 /* Estado vacío más estilizado */
@@ -194,8 +205,8 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 [data-theme="light"] .topics-empty span  { color: rgba(100,65,15,0.42) !important; }
 
 /* ════════════════════════════════════════════════════════════════════
-   Sección 12 — TOPICS SCREEN — Mesa Mística de Adivinación
-   Cartas de tarot con volteo 3D · grid compacto · Cinzel
+   Sección 12 — TOPICS SCREEN — Mesa Mística de Adivinación v2
+   Cartas de tarot ornamentadas · mandala SVG · numeración romana
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── 12.1  Barra superior ────────────────────────────────────────── */
@@ -248,6 +259,183 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     border-right: 1.5px solid #a38650 !important;
 }
 
+/* ── 12.2b  Título ornamental del panel ─────────────────────────── */
+.topics-panel-title {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    padding-bottom: 0.85rem !important;
+    margin-bottom: 0.85rem !important;
+    border-bottom: 1px solid rgba(163,134,80,0.18) !important;
+}
+.tpt-text {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.26em !important;
+    text-transform: uppercase !important;
+    color: #c9a86c !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+.tpt-deco {
+    font-size: 0.55rem !important;
+    color: rgba(201,168,108,0.40) !important;
+    flex-shrink: 0 !important;
+}
+.tpt-line {
+    flex: 1 !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(163,134,80,0.28)) !important;
+    max-width: 80px !important;
+}
+.tpt-line + .tpt-line,
+.tpt-line:last-child {
+    background: linear-gradient(90deg, rgba(163,134,80,0.28), transparent) !important;
+}
+[data-theme="light"] .tpt-text  { color: #7a5020 !important; }
+[data-theme="light"] .tpt-deco  { color: rgba(100,65,15,0.35) !important; }
+[data-theme="light"] .topics-panel-title { border-bottom-color: rgba(120,80,20,0.16) !important; }
+[data-theme="light"] .tpt-line  { background: linear-gradient(90deg, transparent, rgba(120,80,20,0.22)) !important; }
+[data-theme="light"] .tpt-line:last-child { background: linear-gradient(90deg, rgba(120,80,20,0.22), transparent) !important; }
+
+/* ── 12.2c  Layout dos columnas (grid + sidebar) ────────────────── */
+/* El contenedor tiene un mínimo garantizado para que la zona de cartas
+   nunca se vea pequeña, aunque haya pocas tarjetas */
+.topics-content {
+    display: flex !important;
+    gap: 1rem !important;
+    align-items: stretch !important;
+    min-height: clamp(400px, 55vh, 560px) !important;
+    overflow: visible !important;
+}
+/* El grid-wrap tiene ancho natural (5 col × 130px + gaps + padding).
+   No crece ni encoge — el panel se dimensiona por su contenido. */
+.topics-grid-wrap {
+    flex: none !important;
+    max-height: clamp(400px, 60vh, 580px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    /* Scrollbar fina dorada */
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(163,134,80,0.28) transparent !important;
+}
+.topics-grid-wrap::-webkit-scrollbar { width: 5px !important; }
+.topics-grid-wrap::-webkit-scrollbar-track { background: transparent !important; }
+.topics-grid-wrap::-webkit-scrollbar-thumb {
+    background: rgba(163,134,80,0.28) !important;
+    border-radius: 3px !important;
+}
+[data-theme="light"] .topics-grid-wrap::-webkit-scrollbar-thumb { background: rgba(120,80,20,0.25) !important; }
+
+/* ── 12.2d  Panel lateral de estadísticas ────────────────────────── */
+.topics-sidebar {
+    width: 195px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(163,134,80,0.14) !important;
+    background: rgba(255,255,255,0.025) !important;
+    overflow-y: auto !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(163,134,80,0.20) transparent !important;
+}
+[data-theme="light"] .topics-sidebar {
+    background: rgba(100,65,15,0.05) !important;
+    border-color: rgba(120,80,20,0.16) !important;
+}
+.tsi-block {
+    padding: 0.85rem 1rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+}
+.tsi-heading {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.58rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.18em !important;
+    text-transform: uppercase !important;
+    color: rgba(201,168,108,0.52) !important;
+    margin-bottom: 0.2rem !important;
+}
+.tsi-stat {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: baseline !important;
+    gap: 7px !important;
+}
+.tsi-val {
+    font-family: 'Cinzel', serif !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    color: #c9a86c !important;
+    line-height: 1.2 !important;
+    letter-spacing: 0.05em !important;
+    flex-shrink: 0 !important;
+}
+.tsi-lbl {
+    font-family: 'Crimson Text', serif !important;
+    font-size: 0.80rem !important;
+    font-style: italic !important;
+    color: rgba(201,168,108,0.48) !important;
+    line-height: 1.3 !important;
+}
+.tsi-sep {
+    height: 1px !important;
+    margin: 0 1rem !important;
+    background: linear-gradient(90deg, transparent, rgba(163,134,80,0.20), transparent) !important;
+    flex-shrink: 0 !important;
+}
+.tsi-mode-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+.tsi-mode-dot {
+    width: 7px !important;
+    height: 7px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+}
+.tsi-mode-dot--rpg     { background: rgba(212,174,92,0.70) !important; }
+.tsi-mode-dot--classic { background: rgba(130,160,230,0.70) !important; }
+.tsi-mode-name {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 0.70rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.06em !important;
+    color: rgba(201,168,108,0.52) !important;
+    flex: 1 !important;
+}
+.tsi-mode-count {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.90rem !important;
+    font-weight: 700 !important;
+    color: #c9a86c !important;
+}
+.tsi-quote-block { flex: 1 !important; }
+.tsi-quote {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-style: italic !important;
+    font-size: 0.79rem !important;
+    line-height: 1.55 !important;
+    color: rgba(201,168,108,0.36) !important;
+    margin: 0 !important;
+    text-align: center !important;
+}
+/* Tema claro — sidebar */
+[data-theme="light"] .tsi-heading    { color: rgba(100,65,15,0.52) !important; }
+[data-theme="light"] .tsi-val        { color: #7a5020 !important; }
+[data-theme="light"] .tsi-lbl        { color: rgba(100,65,15,0.44) !important; }
+[data-theme="light"] .tsi-mode-name  { color: rgba(100,65,15,0.50) !important; }
+[data-theme="light"] .tsi-mode-count { color: #7a5020 !important; }
+[data-theme="light"] .tsi-quote      { color: rgba(100,65,15,0.34) !important; }
+[data-theme="light"] .tsi-sep        { background: linear-gradient(90deg, transparent, rgba(100,65,15,0.16), transparent) !important; }
+
 /* ── 12.3  Command bar minimalista ───────────────────────────────── */
 .topics-command-bar {
     display: flex !important;
@@ -283,7 +471,38 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     box-shadow: 0 0 20px rgba(163,134,80,0.28), 0 4px 14px rgba(0,0,0,0.38) !important;
 }
 
-/* ── 12.5  Buscador glassmorphism ────────────────────────────────── */
+/* ── 12.5  Pills de filtro ───────────────────────────────────────── */
+.topics-filter-group {
+    display: flex !important;
+    gap: 0.35rem !important;
+    flex-shrink: 0 !important;
+}
+.topic-filter-btn {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.63rem !important;
+    letter-spacing: 0.07em !important;
+    padding: 0.38rem 0.82rem !important;
+    border-radius: 5px !important;
+    border: 1px solid rgba(163,134,80,0.28) !important;
+    background: rgba(13,12,18,0.6) !important;
+    color: rgba(163,134,80,0.55) !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    white-space: nowrap !important;
+}
+.topic-filter-btn:hover {
+    border-color: rgba(163,134,80,0.55) !important;
+    color: #c9a86c !important;
+    background: rgba(163,134,80,0.08) !important;
+}
+.topic-filter-btn.active {
+    background: linear-gradient(135deg, rgba(115,78,18,0.65), rgba(60,38,6,0.78)) !important;
+    border-color: rgba(163,134,80,0.58) !important;
+    color: #d4ae5c !important;
+    box-shadow: 0 0 12px rgba(163,134,80,0.18) !important;
+}
+
+/* ── 12.6  Buscador glassmorphism ────────────────────────────────── */
 .topics-search-wrap {
     flex: 1 !important;
     min-width: 180px !important;
@@ -315,242 +534,436 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
                 inset 0 0 20px rgba(163,134,80,0.04) !important;
 }
 
-/* ── 12.6  Grid compacto de cartas de tarot ──────────────────────── */
+/* ── 12.7  Ocultar contador de mensajes y barra de sala ────────── */
+/* El contador "N / N" no debe mostrarse en la caja de diálogo     */
+#vnMessageCounter { display: none !important; }
+
+/* El panel de código de sala aparece encima del toolbar — ocultarlo */
+#vnSection #roomCodeWrap { display: none !important; }
+
+/* ── 12.7b  Grid de tarjetas tarot (portrait) ───────────────────── */
 .topics-grid {
     display: grid !important;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
-    gap: 20px !important;
-    padding: 24px !important;
+    /* 5 columnas fijas: el ancho del panel nunca cambia,
+       ni con 1 tarjeta ni con 50. El scroll es siempre vertical. */
+    grid-template-columns: repeat(5, 130px) !important;
+    gap: 14px !important;
+    padding: 8px 14px 18px !important;
     align-items: start !important;
 }
 
-/* ── 12.7  Carta — dimensiones, perspectiva y entrada ───────────── */
-.topic-card {
-    width: 150px !important;
-    height: 220px !important;
-    perspective: 1000px !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    cursor: pointer !important;
-    position: relative !important;
-    justify-self: center !important;
-    animation: eth-cardIn 0.38s cubic-bezier(0.22,1,0.36,1) both;
-    /* sin overflow hidden aquí — lo maneja cada cara */
-    overflow: visible !important;
-}
-.topic-card:nth-child(1)    { animation-delay: 0.03s; }
-.topic-card:nth-child(2)    { animation-delay: 0.07s; }
-.topic-card:nth-child(3)    { animation-delay: 0.11s; }
-.topic-card:nth-child(4)    { animation-delay: 0.15s; }
-.topic-card:nth-child(5)    { animation-delay: 0.19s; }
-.topic-card:nth-child(n+6)  { animation-delay: 0.23s; }
-@keyframes eth-cardIn {
-    from { opacity: 0; transform: translateY(14px) scale(0.94); }
-    to   { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-
-/* ── 12.8  Card-inner: eje de rotación 3D ───────────────────────── */
-.card-inner {
+/* ── 12.8  Tarot Card — base portrait (3D flip) ──────────────────── */
+article.tc {
     position: relative !important;
     width: 100% !important;
-    height: 100% !important;
+    /* portrait forzado: altura = 1.5 × ancho */
+    aspect-ratio: 2 / 3 !important;
+    min-height: 170px !important;
+    max-height: 240px !important;
+    cursor: pointer !important;
+    box-sizing: border-box !important;
+    perspective: 900px !important;
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1) !important;
+    animation: tc-in 0.40s cubic-bezier(0.22,1,0.36,1) both !important;
+    user-select: none !important;
+}
+.tc:nth-child(1) { animation-delay: 0.03s !important; }
+.tc:nth-child(2) { animation-delay: 0.08s !important; }
+.tc:nth-child(3) { animation-delay: 0.13s !important; }
+.tc:nth-child(4) { animation-delay: 0.18s !important; }
+.tc:nth-child(n+5) { animation-delay: 0.24s !important; }
+@keyframes tc-in {
+    from { opacity: 0; transform: translateY(18px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.tc:not(.tc--flipped):hover {
+    transform: translateY(-5px) scale(1.02) !important;
+}
+
+/* ── 12.8b  Flip — wrapper 3D ──────────────────────────────────── */
+.tc-inner {
+    position: absolute !important;
+    inset: 0 !important;
     transform-style: preserve-3d !important;
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.22s ease !important;
+    transition: transform 0.55s cubic-bezier(0.45, 0.05, 0.55, 0.95) !important;
+    border-radius: 6px !important;
 }
-
-/* Hover — reclinamiento sutil (sólo cuando no está volteada) */
-.topic-card:not(.flipped):hover .card-inner {
-    transform: translateY(-4px) !important;
-}
-
-/* Volteo al activar .flipped */
-.topic-card.flipped .card-inner {
+.tc--flipped .tc-inner {
     transform: rotateY(180deg) !important;
 }
 
-/* ── 12.9  Caras frontal y trasera — base compartida ────────────── */
-.card-front,
-.card-back {
+/* ── 12.8c  Cara base (frente y dorso) ─────────────────────────── */
+.tc-face {
     position: absolute !important;
-    width: 100% !important;
-    height: 100% !important;
+    inset: 0 !important;
     backface-visibility: hidden !important;
     -webkit-backface-visibility: hidden !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
-}
-
-/* ── 12.10  Cara frontal: icono + título ─────────────────────────── */
-.card-front {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: center !important;
-    gap: 0.6rem !important;
-    padding: 1rem 0.75rem !important;
+    padding: 10px 8px 8px !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    border: 1px solid transparent !important;
+    box-sizing: border-box !important;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease !important;
 }
-.card-icon {
-    font-size: 2.5rem !important;
-    line-height: 1 !important;
+.tc-face--back {
+    transform: rotateY(180deg) !important;
+    justify-content: flex-end !important;
+    padding: 14px 12px 14px !important;
+    gap: 0 !important;
+}
+
+/* ── 12.9  Modo RPG — ámbar profundo ─────────────────────────────── */
+.tc--rpg .tc-face {
+    background: linear-gradient(170deg, #1f1408 0%, #120d04 48%, #1c1409 100%) !important;
+    border-color: rgba(212,174,92, 0.40) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(212,174,92,0.08),
+        0 8px 36px rgba(0,0,0,0.65) !important;
+}
+.tc--rpg:not(.tc--flipped):hover .tc-face--front,
+.tc--rpg.tc--flipped:hover .tc-face--back {
+    border-color: rgba(212,174,92, 0.72) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(212,174,92,0.14),
+        0 18px 52px rgba(0,0,0,0.72),
+        0 0 30px rgba(212,174,92,0.16) !important;
+}
+
+/* ── 12.10  Modo Clásico — azul marino profundo ──────────────────── */
+.tc--classic .tc-face {
+    background: linear-gradient(170deg, #0b1028 0%, #070c1c 48%, #0d1330 100%) !important;
+    border-color: rgba(130,160,230, 0.30) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(130,160,230,0.06),
+        0 8px 36px rgba(0,0,0,0.65) !important;
+}
+.tc--classic:not(.tc--flipped):hover .tc-face--front,
+.tc--classic.tc--flipped:hover .tc-face--back {
+    border-color: rgba(130,160,230, 0.62) !important;
+    box-shadow:
+        inset 0 0 0 1px rgba(130,160,230,0.12),
+        0 18px 52px rgba(0,0,0,0.72),
+        0 0 28px rgba(130,160,230,0.14) !important;
+}
+
+/* ── 12.11  Marco interior (double border) ───────────────────────── */
+.tc-frame {
+    position: absolute !important;
+    inset: 5px !important;
+    border-radius: 3px !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+    border: 1px solid !important;
     display: block !important;
 }
-.card-title {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.77rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.04em !important;
-    text-align: center !important;
-    line-height: 1.35 !important;
-    display: -webkit-box !important;
-    -webkit-line-clamp: 3 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-    margin: 0 !important;
-}
+.tc--rpg    .tc-frame { border-color: rgba(212,174,92,0.18) !important; }
+.tc--classic .tc-frame { border-color: rgba(130,160,230,0.14) !important; }
 
-/* ── 12.11  Cara trasera: datos + botón de entrada ───────────────── */
-.card-back {
-    transform: rotateY(180deg) !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 0.42rem !important;
-    padding: 1rem 0.75rem !important;
-    text-align: center !important;
+/* ── 12.12  Esquinas ornamentales en L ──────────────────────────── */
+.tc-corner {
+    position: absolute !important;
+    width: 9px !important;
+    height: 9px !important;
+    z-index: 3 !important;
+    pointer-events: none !important;
+    display: block !important;
 }
-.card-title-back {
-    font-family: 'Cinzel', serif !important;
-    font-size: 0.72rem !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.04em !important;
+.tc-corner--tl { top: 9px !important;    left: 9px !important;    border-top: 1px solid !important; border-left: 1px solid !important; }
+.tc-corner--tr { top: 9px !important;    right: 9px !important;   border-top: 1px solid !important; border-right: 1px solid !important; }
+.tc-corner--bl { bottom: 9px !important; left: 9px !important;    border-bottom: 1px solid !important; border-left: 1px solid !important; }
+.tc-corner--br { bottom: 9px !important; right: 9px !important;   border-bottom: 1px solid !important; border-right: 1px solid !important; }
+.tc--rpg    .tc-corner { border-color: rgba(212,174,92,0.52) !important; }
+.tc--classic .tc-corner { border-color: rgba(130,160,230,0.44) !important; }
+
+/* ── 12.13  Cabecera — título y autor ───────────────────────────── */
+.tc-header {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
     text-align: center !important;
-    line-height: 1.3 !important;
+    padding: 4px 14px 3px !important;
+    flex-shrink: 0 !important;
+}
+.tc-title {
+    font-family: 'Cinzel', 'Trajan Pro', serif !important;
+    font-size: 9.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: #f0e6cc !important;
+    margin: 0 0 2px !important;
+    line-height: 1.30 !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
-    margin: 0 !important;
 }
-.card-author {
-    font-family: 'Crimson Text', serif !important;
+.tc-author {
+    font-family: 'Cormorant Garamond', 'EB Garamond', serif !important;
     font-style: italic !important;
-    font-size: 0.68rem !important;
-    text-align: center !important;
+    font-size: 8px !important;
     margin: 0 !important;
+    line-height: 1.2 !important;
+    opacity: 0.55 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
-.card-stats {
-    font-size: 0.67rem !important;
-    text-align: center !important;
-    opacity: 0.58 !important;
-    margin: 0 !important;
+.tc--rpg    .tc-author { color: #d4ae5c !important; }
+.tc--classic .tc-author { color: #8aa0e6 !important; }
+
+/* ── 12.14  Separador decorativo ─────────────────────────────────── */
+.tc-sep {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 55% !important;
+    height: 1px !important;
+    flex-shrink: 0 !important;
+    margin: 3px auto !important;
 }
-.btn-entrar-destino {
+.tc--rpg    .tc-sep { background: linear-gradient(90deg,transparent,rgba(212,174,92,0.38),transparent) !important; }
+.tc--classic .tc-sep { background: linear-gradient(90deg,transparent,rgba(130,160,230,0.30),transparent) !important; }
+
+/* ── 12.15  Cuerpo central ──────────────────────────────────────── */
+.tc-body {
+    position: relative !important;
+    z-index: 2 !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 6px !important;
+}
+.tc-numeral {
     font-family: 'Cinzel', serif !important;
-    font-size: 0.63rem !important;
-    letter-spacing: 0.08em !important;
+    font-size: 8.5px !important;
+    letter-spacing: 0.28em !important;
+    text-align: center !important;
+    line-height: 1 !important;
+    flex-shrink: 0 !important;
+}
+.tc--rpg    .tc-numeral { color: rgba(212,174,92,0.52) !important; }
+.tc--classic .tc-numeral { color: rgba(130,160,230,0.50) !important; }
+
+.tc-mode {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 7px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.20em !important;
     text-transform: uppercase !important;
-    padding: 0.38rem 0.75rem !important;
-    border-radius: 5px !important;
+    padding: 2px 6px !important;
+    border-radius: 2px !important;
     border: 1px solid !important;
-    cursor: pointer !important;
-    transition: background 0.2s, box-shadow 0.2s !important;
-    margin-top: 0.3rem !important;
+    flex-shrink: 0 !important;
+    line-height: 1.3 !important;
+}
+.tc--rpg    .tc-mode { color: rgba(212,174,92,0.80) !important; border-color: rgba(212,174,92,0.25) !important; background: rgba(212,174,92,0.06) !important; }
+.tc--classic .tc-mode { color: rgba(130,160,230,0.80) !important; border-color: rgba(130,160,230,0.22) !important; background: rgba(130,160,230,0.05) !important; }
+
+/* ── 12.16  Ilustración SVG ────────────────────────────────────── */
+.tc-illus {
+    flex: 1 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 0 !important;
+    padding: 2px 4px !important;
+    overflow: hidden !important;
+}
+.tc-illus svg {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
+    overflow: visible !important;
+}
+.tc--rpg    .tc-illus { color: rgba(212,174,92,0.62) !important; }
+.tc--classic .tc-illus { color: rgba(130,160,230,0.60) !important; }
+
+/* ── 12.17  Pie con badges ───────────────────────────────────────── */
+.tc-footer {
+    position: relative !important;
+    z-index: 2 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 3px 12px 3px !important;
+    flex-shrink: 0 !important;
+}
+.tc-diamond {
+    font-size: 9px !important;
+    line-height: 1 !important;
+    flex-shrink: 0 !important;
+}
+.tc--rpg    .tc-diamond { color: rgba(212,174,92,0.38) !important; }
+.tc--classic .tc-diamond { color: rgba(130,160,230,0.32) !important; }
+.tc-count {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 8.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.03em !important;
+    line-height: 1 !important;
+    padding: 1px 4px !important;
+    border-radius: 2px !important;
+}
+.tc--rpg    .tc-count { color: rgba(212,174,92,0.65) !important; background: rgba(212,174,92,0.07) !important; }
+.tc--classic .tc-count { color: rgba(130,160,230,0.65) !important; background: rgba(130,160,230,0.07) !important; }
+
+/* ── 12.17b  Cara trasera — contenido ───────────────────────────── */
+.tc-back-body {
+    position: relative !important;
+    z-index: 2 !important;
+    flex: 1 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+}
+.tc-back-title {
+    font-family: 'Cinzel', 'Trajan Pro', serif !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: #f0e6cc !important;
+    text-align: center !important;
+    margin: 0 !important;
+    line-height: 1.30 !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 3 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+}
+.tc-back-author {
+    font-family: 'Cormorant Garamond', 'EB Garamond', serif !important;
+    font-style: italic !important;
+    font-size: 9px !important;
+    margin: 0 !important;
+    opacity: 0.55 !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+}
+.tc--rpg    .tc-back-author { color: #d4ae5c !important; }
+.tc--classic .tc-back-author { color: #8aa0e6 !important; }
+
+.tc-back-sep {
+    width: 55% !important;
+    height: 1px !important;
+    flex-shrink: 0 !important;
+    margin: 4px auto !important;
+}
+.tc--rpg    .tc-back-sep { background: linear-gradient(90deg,transparent,rgba(212,174,92,0.38),transparent) !important; }
+.tc--classic .tc-back-sep { background: linear-gradient(90deg,transparent,rgba(130,160,230,0.30),transparent) !important; }
+
+.tc-back-stats {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 4px !important;
     width: 100% !important;
 }
+.tc-back-stat {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 8.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.04em !important;
+    text-align: center !important;
+    padding: 2px 8px !important;
+    border-radius: 2px !important;
+    line-height: 1.4 !important;
+}
+.tc--rpg    .tc-back-stat { color: rgba(212,174,92,0.80) !important; background: rgba(212,174,92,0.07) !important; }
+.tc--classic .tc-back-stat { color: rgba(130,160,230,0.80) !important; background: rgba(130,160,230,0.07) !important; }
 
-/* ── 12.12  Identidad visual RPG ─────────────────────────────────── */
-.topic-card--rol .card-front,
-.topic-card--rol .card-back {
-    background: #120e0a !important;
-    border: 1px solid rgba(163,134,80,0.38) !important;
+.tc-back-turn {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 8.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.06em !important;
+    text-align: center !important;
+    animation: tc-turn-pulse 2s ease-in-out infinite !important;
 }
-.topic-card--rol .card-icon,
-.topic-card--rol .card-title,
-.topic-card--rol .card-title-back { color: #c9a86c !important; }
-.topic-card--rol .card-icon {
-    filter: drop-shadow(0 0 12px rgba(163,134,80,0.55)) !important;
-}
-.topic-card--rol .card-author { color: rgba(163,134,80,0.55) !important; }
-.topic-card--rol .card-stats  { color: #c9a86c !important; }
-.topic-card--rol:hover .card-inner {
-    box-shadow: 0 10px 38px rgba(0,0,0,0.7),
-                0 0 22px rgba(163,134,80,0.14) !important;
-}
-.topic-card--rol.flipped .card-inner {
-    box-shadow: 0 14px 48px rgba(0,0,0,0.75),
-                0 0 28px rgba(163,134,80,0.18) !important;
-}
-.topic-card--rol .btn-entrar-destino {
-    background: linear-gradient(135deg, rgba(115,78,18,0.75), rgba(60,38,6,0.88)) !important;
-    border-color: rgba(163,134,80,0.52) !important;
-    color: #c9a86c !important;
-}
-.topic-card--rol .btn-entrar-destino:hover {
-    background: linear-gradient(135deg, rgba(140,95,22,0.88), rgba(80,52,8,0.92)) !important;
-    box-shadow: 0 0 16px rgba(163,134,80,0.28) !important;
+.tc--rpg    .tc-back-turn { color: rgba(212,174,92,0.95) !important; }
+.tc--classic .tc-back-turn { color: rgba(130,160,230,0.95) !important; }
+@keyframes tc-turn-pulse {
+    0%,100% { opacity: 0.70; }
+    50%     { opacity: 1.00; }
 }
 
-/* ── 12.13  Identidad visual Clásico ─────────────────────────────── */
-.topic-card--historia .card-front,
-.topic-card--historia .card-back {
-    background: #0a0f24 !important;
-    border: 1px solid rgba(170,190,230,0.30) !important;
+.tc-enter-btn {
+    position: relative !important;
+    z-index: 4 !important;
+    flex-shrink: 0 !important;
+    width: 100% !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 8px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
+    padding: 7px 10px !important;
+    border-radius: 4px !important;
+    border: 1px solid !important;
+    cursor: pointer !important;
+    background: transparent !important;
+    margin-top: 8px !important;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease !important;
+    line-height: 1.3 !important;
 }
-.topic-card--historia .card-icon,
-.topic-card--historia .card-title,
-.topic-card--historia .card-title-back { color: #a8bedd !important; }
-.topic-card--historia .card-icon {
-    filter: drop-shadow(0 0 12px rgba(140,170,230,0.55)) !important;
+.tc--rpg    .tc-enter-btn { color: rgba(212,174,92,0.90) !important; border-color: rgba(212,174,92,0.35) !important; }
+.tc--classic .tc-enter-btn { color: rgba(130,160,230,0.90) !important; border-color: rgba(130,160,230,0.32) !important; }
+.tc--rpg    .tc-enter-btn:hover { background: rgba(212,174,92,0.14) !important; color: rgba(212,174,92,1.00) !important; border-color: rgba(212,174,92,0.60) !important; }
+.tc--classic .tc-enter-btn:hover { background: rgba(130,160,230,0.12) !important; color: rgba(130,160,230,1.00) !important; border-color: rgba(130,160,230,0.55) !important; }
+
+/* ── 12.18  Turno activo — glow pulsante ─────────────────────────── */
+.tc--myturn.tc--rpg .tc-face {
+    border-color: rgba(212,174,92,0.55) !important;
+    animation: tc-pulse-gold 2.6s ease-in-out infinite !important;
 }
-.topic-card--historia .card-author { color: rgba(140,170,230,0.55) !important; }
-.topic-card--historia .card-stats  { color: #a0b8e0 !important; }
-.topic-card--historia:hover .card-inner {
-    box-shadow: 0 10px 38px rgba(0,0,0,0.7),
-                0 0 22px rgba(140,170,230,0.12) !important;
+.tc--myturn.tc--classic .tc-face {
+    border-color: rgba(130,160,230,0.50) !important;
+    animation: tc-pulse-blue 2.6s ease-in-out infinite !important;
 }
-.topic-card--historia.flipped .card-inner {
-    box-shadow: 0 14px 48px rgba(0,0,0,0.75),
-                0 0 28px rgba(140,170,230,0.16) !important;
+@keyframes tc-pulse-gold {
+    0%,100% { box-shadow: inset 0 0 0 1px rgba(212,174,92,0.10), 0 8px 36px rgba(0,0,0,0.65); border-color: rgba(212,174,92,0.45); }
+    50%     { box-shadow: inset 0 0 0 1px rgba(212,174,92,0.18), 0 8px 36px rgba(0,0,0,0.65), 0 0 30px rgba(212,174,92,0.24); border-color: rgba(212,174,92,0.78); }
 }
-.topic-card--historia .btn-entrar-destino {
-    background: linear-gradient(135deg, rgba(18,32,80,0.75), rgba(10,18,50,0.88)) !important;
-    border-color: rgba(140,170,230,0.42) !important;
-    color: #a8bedd !important;
-}
-.topic-card--historia .btn-entrar-destino:hover {
-    background: linear-gradient(135deg, rgba(24,42,100,0.88), rgba(14,24,65,0.92)) !important;
-    box-shadow: 0 0 16px rgba(140,170,230,0.22) !important;
+@keyframes tc-pulse-blue {
+    0%,100% { box-shadow: inset 0 0 0 1px rgba(130,160,230,0.08), 0 8px 36px rgba(0,0,0,0.65); border-color: rgba(130,160,230,0.35); }
+    50%     { box-shadow: inset 0 0 0 1px rgba(130,160,230,0.15), 0 8px 36px rgba(0,0,0,0.65), 0 0 26px rgba(130,160,230,0.22); border-color: rgba(130,160,230,0.65); }
 }
 
-/* ── 12.14  Pulso de turno activo ────────────────────────────────── */
-@keyframes topic-turn-gold {
-    0%,100% { box-shadow: 0 0 0 0 rgba(163,134,80,0); border-color: rgba(163,134,80,0.38); }
-    50%     { box-shadow: 0 0 24px 5px rgba(163,134,80,0.18), 0 0 0 2px rgba(163,134,80,0.16); border-color: rgba(163,134,80,0.72); }
+/* ── 12.19  Mobile ───────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    /* En tablet el sidebar se oculta; el grid pasa a 4 columnas */
+    .topics-sidebar { display: none !important; }
+    .topics-grid { grid-template-columns: repeat(4, 130px) !important; }
 }
-@keyframes topic-turn-silver {
-    0%,100% { box-shadow: 0 0 0 0 rgba(140,170,230,0); border-color: rgba(140,170,230,0.30); }
-    50%     { box-shadow: 0 0 22px 5px rgba(140,170,230,0.16), 0 0 0 2px rgba(140,170,230,0.14); border-color: rgba(140,170,230,0.65); }
-}
-.topic-card--rol.topic-card--my-turn .card-front {
-    animation: topic-turn-gold 2.6s ease-in-out infinite !important;
-}
-.topic-card--historia.topic-card--my-turn .card-front {
-    animation: topic-turn-silver 2.6s ease-in-out infinite !important;
-}
-
-/* ── 12.15  Mobile ───────────────────────────────────────────────── */
-@media (max-width: 600px) {
+@media (max-width: 700px) {
+    /* Móvil: 3 columnas más estrechas */
     .topics-grid {
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
-        gap: 14px !important;
-        padding: 14px !important;
+        grid-template-columns: repeat(3, 110px) !important;
+        gap: 10px !important;
+        padding: 8px 10px 14px !important;
     }
-    .topic-card { width: 130px !important; height: 195px !important; }
-    .card-icon  { font-size: 2rem !important; }
-    .card-title, .card-title-back { font-size: 0.7rem !important; }
+    article.tc { min-height: 155px !important; }
+}
+@media (max-width: 420px) {
+    /* Móvil pequeño: 2 columnas */
+    .topics-grid {
+        grid-template-columns: repeat(2, 110px) !important;
+        gap: 8px !important;
+    }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1048,9 +1461,9 @@ body.mode-rpg .vn-info-card {
     border-radius: 4px !important;
     border-color: rgba(200,184,144,0.22) !important;
 }
-/* ── HUD retro fantasy: marco general + perfil compacto ── */
+/* ── HUD retro fantasy: perfil compacto ── */
 body.mode-rpg #vnSection {
-    border: 1px solid rgba(188, 154, 92, 0.34);
+    /* border eliminado — creaba barra dorada visible en la esquina superior derecha */
     box-shadow:
         inset 0 0 0 2px rgba(28, 18, 7, 0.8),
         inset 0 0 0 4px rgba(139, 106, 58, 0.22),
@@ -1085,8 +1498,8 @@ body.mode-rpg .vn-info-rpg {
 }
 body.mode-rpg .vn-info-exp-wrap .vn-info-hp-label { color: #71b587 !important; }
 body.mode-rpg .vn-info-exp-fill {
-    background: linear-gradient(90deg, #315f80, #56a4c4) !important;
-    box-shadow: 0 0 8px rgba(85, 174, 207, 0.44) !important;
+    background: linear-gradient(90deg, #7a4b14, #c8922a) !important;
+    box-shadow: 0 0 8px rgba(200, 146, 42, 0.44) !important;
 }
 body.mode-rpg .vn-dialogue-box {
     border-radius: 12px !important;
@@ -1656,8 +2069,8 @@ body.mode-rpg #vnSection .vn-info-hp-fill {
 }
 
 body.mode-rpg #vnSection .vn-info-exp-fill {
-    background: linear-gradient(90deg, #1a4a7a, #2878c0, #46aaee) !important;
-    box-shadow: 0 0 10px rgba(48, 138, 225, 0.50), inset 0 1px 0 rgba(140, 215, 255, 0.28) !important;
+    background: linear-gradient(90deg, #7a4b14, #c8922a, #e0aa40) !important;
+    box-shadow: 0 0 10px rgba(200, 146, 42, 0.50), inset 0 1px 0 rgba(255, 215, 140, 0.28) !important;
 }
 
 /* ── 4. PARTY PANEL — Modo Clásico: cristal azul-plata ─────────────────── */
@@ -2679,23 +3092,40 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
     border-radius: 20px !important;
 }
 
-/* ── Mini-nav vertical en la caja de diálogo ────────────────────────── */
+/* ── Mini-nav VERTICAL en el lado derecho del footer de diálogo ─────── */
+/* El footer actúa como contexto de posicionamiento para las flechas      */
+.vn-dialogue-footer {
+    position: relative !important;
+}
+
+/* Bloque de navegación: sacado del flujo → no deforma el footer          */
 .vn-counter-dice-wrap {
+    position: absolute !important;
+    right: 4px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 0.12rem !important;
+    gap: 2px !important;
+    z-index: 5 !important;
+    pointer-events: auto !important;
 }
 
+/* Las acciones del footer reservan espacio para las flechas a la derecha */
+.vn-dialogue-actions {
+    padding-right: 34px !important;
+}
+
+/* ── Botones de navegación — base común ─────────────────────────────── */
 .vn-nav-mini-btn {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 26px !important;
+    width: 22px !important;
     height: 22px !important;
     background: transparent !important;
     border: none !important;
-    color: rgba(140,190,255,0.50) !important;
     cursor: pointer !important;
     padding: 0 !important;
     border-radius: 3px !important;
@@ -2703,24 +3133,54 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
     flex-shrink: 0 !important;
 }
 .vn-nav-mini-btn svg {
-    width: 12px !important;
-    height: 12px !important;
+    width: 11px !important;
+    height: 11px !important;
 }
-.vn-nav-mini-btn:hover {
+
+/* Modo Clásico: paleta azul-plata */
+body.mode-classic .vn-nav-mini-btn,
+body:not(.mode-rpg) .vn-nav-mini-btn {
+    color: rgba(140,190,255,0.50) !important;
+}
+body.mode-classic .vn-nav-mini-btn:hover,
+body:not(.mode-rpg) .vn-nav-mini-btn:hover {
     color: rgba(200,230,255,0.92) !important;
     background: rgba(80,140,255,0.14) !important;
 }
-.vn-nav-mini-btn:active {
+body.mode-classic .vn-nav-mini-btn:active,
+body:not(.mode-rpg) .vn-nav-mini-btn:active {
     color: #fff !important;
     background: rgba(80,140,255,0.24) !important;
 }
 
-/* ── Favorito en la esquina — estrella en lugar de corazón ─────────── */
-.vn-favorite-corner-btn svg {
+/* Modo RPG: paleta dorada-pergamino */
+body.mode-rpg .vn-nav-mini-btn {
+    color: rgba(192,168,112,0.52) !important;
+}
+body.mode-rpg .vn-nav-mini-btn:hover {
+    color: var(--rpg-parch, #c8b890) !important;
+    background: rgba(192,168,112,0.14) !important;
+}
+body.mode-rpg .vn-nav-mini-btn:active {
+    color: #e8d8b0 !important;
+    background: rgba(192,168,112,0.22) !important;
+}
+
+/* ── Favorito en la esquina — paleta por modo ───────────────────────── */
+/* Modo Clásico: plata-azul */
+body.mode-classic .vn-favorite-corner-btn svg,
+body:not(.mode-rpg) .vn-favorite-corner-btn svg {
     color: rgba(180,220,255,0.72) !important;
     stroke: rgba(180,220,255,0.72) !important;
     transition: color 0.2s, stroke 0.2s, filter 0.2s !important;
 }
+/* Modo RPG: dorado envejecido */
+body.mode-rpg .vn-favorite-corner-btn svg {
+    color: rgba(192,168,112,0.52) !important;
+    stroke: rgba(192,168,112,0.52) !important;
+    transition: color 0.2s, stroke 0.2s, filter 0.2s !important;
+}
+/* Hover: dorado cálido (ambos modos) */
 .vn-favorite-corner-btn:hover svg {
     color: rgba(255,230,100,0.95) !important;
     stroke: rgba(255,230,100,0.95) !important;

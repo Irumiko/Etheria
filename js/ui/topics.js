@@ -199,6 +199,16 @@ function filterTopics() {
     }, 180);
 }
 
+function toRoman(n) {
+    const vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1];
+    const syms = ['M','CM','D','CD','C','XC','L','XL','X','IX','V','IV','I'];
+    let result = '';
+    for (let i = 0; i < vals.length; i++) {
+        while (n >= vals[i]) { result += syms[i]; n -= vals[i]; }
+    }
+    return result || 'I';
+}
+
 function renderTopics() {
     const container = document.getElementById('topicsList');
     if (!container) return;
@@ -227,48 +237,250 @@ function renderTopics() {
     } else if (topics.length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
     } else {
-        container.innerHTML = topics.map(t => {
-            // Datos mínimos necesarios para la carta de tarot
+        // ── Actividad corta para el pie de tarjeta ───────────────────────
+        function _scActivity(msgs, topic) {
+            const lastMsg = msgs[msgs.length - 1];
+            const dateVal = lastMsg && lastMsg.timestamp ? lastMsg.timestamp : topic.date;
+            if (!dateVal) return '';
+            const d = new Date(dateVal);
+            if (Number.isNaN(d.getTime())) return '';
+            const diffMs  = Date.now() - d;
+            const diffMin = Math.floor(diffMs / 60000);
+            if (diffMin < 1)  return 'ahora';
+            if (diffMin < 60) return 'hace ' + diffMin + 'm';
+            const diffH = Math.floor(diffMs / 3600000);
+            if (diffH < 24) return 'hace ' + diffH + 'h';
+            const diffD = Math.floor(diffMs / 86400000);
+            if (diffD < 7)  return 'hace ' + diffD + 'd';
+            return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+        }
+
+        // ── SVG Clásico — atrapasueños + constelaciones ───────────────────
+        const SVG_CLASSIC = `<svg viewBox="0 0 120 148" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Estrella polar (arriba, brillante) -->
+          <path d="M60 4 L61.4 8.5 L66.5 7.5 L62.5 11 L60 16 L57.5 11 L53.5 7.5 L58.6 8.5 Z" fill="currentColor" opacity="0.95"/>
+          <!-- Hilo de la estrella al aro -->
+          <line x1="60" y1="16" x2="60" y2="24" stroke="currentColor" stroke-width="0.8" opacity="0.50"/>
+          <!-- Estrellas de constelación dispersas -->
+          <circle cx="14" cy="18" r="1.5" fill="currentColor" opacity="0.62"/>
+          <circle cx="28" cy="10" r="1.1" fill="currentColor" opacity="0.50"/>
+          <circle cx="44" cy="7"  r="1.0" fill="currentColor" opacity="0.45"/>
+          <circle cx="82" cy="8"  r="1.0" fill="currentColor" opacity="0.45"/>
+          <circle cx="97" cy="15" r="1.5" fill="currentColor" opacity="0.62"/>
+          <circle cx="108" cy="32" r="1.1" fill="currentColor" opacity="0.50"/>
+          <circle cx="110" cy="58" r="1.2" fill="currentColor" opacity="0.48"/>
+          <circle cx="10"  cy="42" r="1.1" fill="currentColor" opacity="0.50"/>
+          <circle cx="8"   cy="68" r="1.2" fill="currentColor" opacity="0.48"/>
+          <circle cx="16"  cy="92" r="1.0" fill="currentColor" opacity="0.42"/>
+          <circle cx="106" cy="90" r="1.0" fill="currentColor" opacity="0.42"/>
+          <!-- Líneas de constelación -->
+          <line x1="14" y1="18" x2="28" y2="10" stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="28" y1="10" x2="44" y2="7"  stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="82" y1="8"  x2="97" y2="15" stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="97" y1="15" x2="108" y2="32" stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="108" y1="32" x2="110" y2="58" stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="14" y1="18" x2="10" y2="42"  stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <line x1="10" y1="42" x2="8"  y2="68"  stroke="currentColor" stroke-width="0.38" opacity="0.30"/>
+          <!-- === ATRAPASUEÑOS === -->
+          <!-- Aro exterior (doble línea para dar grosor) -->
+          <circle cx="60" cy="57" r="33" stroke="currentColor" stroke-width="1.6" fill="none" opacity="0.88"/>
+          <circle cx="60" cy="57" r="31" stroke="currentColor" stroke-width="0.5" fill="none" opacity="0.30"/>
+          <!-- Red: capa exterior — 8 cuerdas del aro al anillo medio -->
+          <!-- Puntos aro (r=33): top(60,24) tr(83,34) r(93,57) br(83,80) b(60,90) bl(37,80) l(27,57) tl(37,34) -->
+          <!-- Puntos medio (r=18): top(60,39) tr(73,44) r(78,57) br(73,70) b(60,75) bl(47,70) l(42,57) tl(47,44) -->
+          <line x1="60" y1="24" x2="73" y2="44" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="83" y1="34" x2="78" y2="57" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="93" y1="57" x2="73" y2="70" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="83" y1="80" x2="60" y2="75" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="60" y1="90" x2="47" y2="70" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="37" y1="80" x2="42" y2="57" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="27" y1="57" x2="47" y2="44" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <line x1="37" y1="34" x2="60" y2="39" stroke="currentColor" stroke-width="0.55" opacity="0.52"/>
+          <!-- Anillo medio -->
+          <circle cx="60" cy="57" r="18" stroke="currentColor" stroke-width="0.7" fill="none" opacity="0.58"/>
+          <!-- Cuentas en el anillo medio -->
+          <circle cx="60" cy="39" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="73" cy="44" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="78" cy="57" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="73" cy="70" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="60" cy="75" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="47" cy="70" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="42" cy="57" r="1.4" fill="currentColor" opacity="0.65"/>
+          <circle cx="47" cy="44" r="1.4" fill="currentColor" opacity="0.65"/>
+          <!-- Red: capa interior — 8 cuerdas del anillo medio al ojo -->
+          <!-- Puntos ojo (r=8): top(60,49) tr(66,52) r(68,57) br(66,62) b(60,65) bl(54,62) l(52,57) tl(54,52) -->
+          <line x1="60" y1="39" x2="66" y2="52" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="73" y1="44" x2="68" y2="57" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="78" y1="57" x2="66" y2="62" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="73" y1="70" x2="60" y2="65" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="60" y1="75" x2="54" y2="62" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="47" y1="70" x2="52" y2="57" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="42" y1="57" x2="54" y2="52" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <line x1="47" y1="44" x2="60" y2="49" stroke="currentColor" stroke-width="0.42" opacity="0.40"/>
+          <!-- Anillo interior (ojo) -->
+          <circle cx="60" cy="57" r="8" stroke="currentColor" stroke-width="0.6" fill="none" opacity="0.50"/>
+          <!-- Centro del ojo (estrella pequeña) -->
+          <path d="M60 53 L61 56 L64 56 L62 58 L63 61 L60 59.5 L57 61 L58 58 L56 56 L59 56 Z" fill="currentColor" opacity="0.82"/>
+          <!-- Cuerdas colgantes (3) desde la parte baja del aro -->
+          <line x1="46" y1="88" x2="40" y2="108" stroke="currentColor" stroke-width="0.75" opacity="0.58"/>
+          <line x1="60" y1="90" x2="60" y2="112" stroke="currentColor" stroke-width="0.75" opacity="0.58"/>
+          <line x1="74" y1="88" x2="80" y2="108" stroke="currentColor" stroke-width="0.75" opacity="0.58"/>
+          <!-- Cuentas en las cuerdas -->
+          <circle cx="43" cy="98"  r="1.6" fill="currentColor" opacity="0.62"/>
+          <circle cx="60" cy="101" r="1.6" fill="currentColor" opacity="0.62"/>
+          <circle cx="77" cy="98"  r="1.6" fill="currentColor" opacity="0.62"/>
+          <!-- Plumas: izquierda -->
+          <path d="M40 108 Q35 114 33 122 Q38 116 42 121 Q38 114 40 108" stroke="currentColor" stroke-width="0.65" fill="none" opacity="0.65"/>
+          <line x1="37" y1="113" x2="33" y2="122" stroke="currentColor" stroke-width="0.35" opacity="0.40"/>
+          <line x1="38" y1="117" x2="34" y2="124" stroke="currentColor" stroke-width="0.35" opacity="0.35"/>
+          <!-- Pluma: centro (más grande) -->
+          <line x1="60" y1="112" x2="60" y2="138" stroke="currentColor" stroke-width="0.6" opacity="0.50"/>
+          <path d="M60 114 Q54 119 52 128 Q58 120 60 125 Q62 120 68 128 Q66 119 60 114" stroke="currentColor" stroke-width="0.7" fill="none" opacity="0.68"/>
+          <line x1="60" y1="118" x2="54" y2="126" stroke="currentColor" stroke-width="0.38" opacity="0.40"/>
+          <line x1="60" y1="118" x2="66" y2="126" stroke="currentColor" stroke-width="0.38" opacity="0.40"/>
+          <line x1="60" y1="123" x2="53" y2="130" stroke="currentColor" stroke-width="0.35" opacity="0.34"/>
+          <line x1="60" y1="123" x2="67" y2="130" stroke="currentColor" stroke-width="0.35" opacity="0.34"/>
+          <line x1="60" y1="128" x2="54" y2="134" stroke="currentColor" stroke-width="0.32" opacity="0.28"/>
+          <line x1="60" y1="128" x2="66" y2="134" stroke="currentColor" stroke-width="0.32" opacity="0.28"/>
+          <!-- Pluma: derecha -->
+          <path d="M80 108 Q85 114 87 122 Q82 116 78 121 Q82 114 80 108" stroke="currentColor" stroke-width="0.65" fill="none" opacity="0.65"/>
+          <line x1="83" y1="113" x2="87" y2="122" stroke="currentColor" stroke-width="0.35" opacity="0.40"/>
+          <line x1="82" y1="117" x2="86" y2="124" stroke="currentColor" stroke-width="0.35" opacity="0.35"/>
+        </svg>`;
+
+        // ── SVG RPG — espada ornamental con columnas y radios de luz ─────
+        const SVG_RPG = `<svg viewBox="0 0 120 148" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Columna izquierda -->
+          <rect x="4" y="8" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
+          <line x1="9.5" y1="12" x2="9.5" y2="138" stroke="currentColor" stroke-width="2.8" opacity="0.22"/>
+          <line x1="7" y1="12" x2="7" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
+          <line x1="12" y1="12" x2="12" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
+          <rect x="4" y="138" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
+          <!-- Columna derecha -->
+          <rect x="105" y="8" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
+          <line x1="110.5" y1="12" x2="110.5" y2="138" stroke="currentColor" stroke-width="2.8" opacity="0.22"/>
+          <line x1="108" y1="12" x2="108" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
+          <line x1="113" y1="12" x2="113" y2="138" stroke="currentColor" stroke-width="0.5" opacity="0.14"/>
+          <rect x="105" y="138" width="11" height="4" rx="0.8" fill="currentColor" opacity="0.45"/>
+          <!-- Círculo decorativo exterior -->
+          <circle cx="60" cy="70" r="46" stroke="currentColor" stroke-width="0.9" opacity="0.32"/>
+          <circle cx="60" cy="70" r="39" stroke="currentColor" stroke-width="0.4" opacity="0.16"/>
+          <!-- Radios de luz (se detienen antes de la espada) -->
+          <line x1="60" y1="25" x2="60" y2="47" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+          <line x1="60" y1="93" x2="60" y2="115" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+          <line x1="16" y1="70" x2="37" y2="70" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+          <line x1="83" y1="70" x2="104" y2="70" stroke="currentColor" stroke-width="0.6" opacity="0.35"/>
+          <line x1="28" y1="38" x2="43" y2="53" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+          <line x1="92" y1="38" x2="77" y2="53" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+          <line x1="28" y1="102" x2="43" y2="87" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+          <line x1="92" y1="102" x2="77" y2="87" stroke="currentColor" stroke-width="0.5" opacity="0.25"/>
+          <!-- Puntos de constelación en el anillo -->
+          <circle cx="60" cy="26" r="2" fill="currentColor" opacity="0.70"/>
+          <circle cx="87" cy="43" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="99" cy="70" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="87" cy="97" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="60" cy="114" r="2" fill="currentColor" opacity="0.70"/>
+          <circle cx="33" cy="97" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="21" cy="70" r="1.8" fill="currentColor" opacity="0.55"/>
+          <circle cx="33" cy="43" r="1.8" fill="currentColor" opacity="0.55"/>
+          <!-- ESPADA ornamental apuntando hacia arriba -->
+          <!-- Hoja: triángulo largo afilado -->
+          <path d="M57.5 67 L60 28 L62.5 67 Z" fill="currentColor" opacity="0.88"/>
+          <!-- Ricasso (parte ancha de la hoja cerca de la guarda) -->
+          <rect x="58" y="67" width="4" height="8" rx="0.5" fill="currentColor" opacity="0.82"/>
+          <!-- Guarda cruzada (curva hacia afuera) -->
+          <path d="M43 75 Q51 71 60 75 Q69 71 77 75" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.85"/>
+          <!-- Gema central en la guarda -->
+          <circle cx="60" cy="75" r="2.2" fill="currentColor" opacity="0.95"/>
+          <!-- Empuñadura -->
+          <rect x="58.5" y="75" width="3" height="15" rx="1.5" fill="currentColor" opacity="0.75"/>
+          <!-- Pommel (remate ornamental) -->
+          <path d="M54 93 Q60 98 66 93 Q62 91 60 92 Q58 91 54 93 Z" fill="currentColor" opacity="0.80"/>
+          <ellipse cx="60" cy="91" rx="4.5" ry="3" stroke="currentColor" stroke-width="0.9" fill="none" opacity="0.78"/>
+        </svg>`;
+
+        container.innerHTML = topics.map(function(t, idx) {
             const msgs        = Array.isArray(appData.messages[t.id]) ? appData.messages[t.id] : [];
             const isRol       = t.mode === 'rpg' || t.mode === 'fanfic';
             const creatorName = normalizeCreatorName(t.createdBy);
-            const msgWord     = msgs.length === 1 ? 'mensaje' : 'mensajes';
-            const cardIcon    = isRol ? '⚜' : '✦';
+            const modeLabel   = isRol ? '⚜ RPG' : '✦ CLÁSICO';
+            const numeral     = toRoman(idx + 1);
+            const activity    = _scActivity(msgs, t);
+            const tid         = _normalizeTopicId(t.id);
 
-            // Pulso de turno: destaca si es el turno del usuario en esta historia
             const isMeTurn = Array.isArray(t.turnOrder)
                 && t.turnOrder[0]
                 && String(t.turnOrder[0]) === String(window._cachedUserId);
-            const turnClass = isMeTurn ? ' topic-card--my-turn' : '';
+            const turnClass = isMeTurn ? ' tc--myturn' : '';
+            const modeClass = isRol ? 'tc--rpg' : 'tc--classic';
+            const svgIllus  = isRol ? SVG_RPG : SVG_CLASSIC;
 
-            return `
-                <div class="topic-card ${isRol ? 'topic-card--rol' : 'topic-card--historia'}${turnClass}"
-                     onclick="this.classList.toggle('flipped')">
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <div class="card-icon">${cardIcon}</div>
-                            <h3 class="card-title">${escapeHtml(t.title)}</h3>
-                        </div>
-                        <div class="card-back">
-                            <h3 class="card-title-back">${escapeHtml(t.title)}</h3>
-                            <p class="card-author">por ${escapeHtml(creatorName)}</p>
-                            <div class="card-stats">💬 ${msgs.length} ${msgWord}</div>
-                            ${isMeTurn ? '<div class="card-stats" style="color:#e8c46a;opacity:1;">⏳ Tu turno</div>' : ''}
-                            <button class="btn-entrar-destino"
-                                    onclick="event.stopPropagation(); enterTopic('${_normalizeTopicId(t.id)}')">
-                                Entrar al destino
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
+            const leftBadge  = activity || '—';
+            const rightBadge = msgs.length > 0 ? msgs.length + (msgs.length === 1 ? ' msg' : ' msgs') : '—';
+
+            const enterLabel = isRol ? '⚜ Entrar en la senda' : '✦ Abrir el relato';
+            const turnBadge  = isMeTurn ? '<span class="tc-back-turn">⏳ Tu turno</span>' : '';
+
+            return '<article class="tc ' + modeClass + turnClass + '" onclick="this.classList.toggle(\'tc--flipped\')">'
+                + '<div class="tc-inner">'
+
+                // ── FRENTE ──────────────────────────────────────────
+                + '<div class="tc-face tc-face--front">'
+                + '<span class="tc-frame"></span>'
+                + '<span class="tc-corner tc-corner--tl"></span>'
+                + '<span class="tc-corner tc-corner--tr"></span>'
+                + '<span class="tc-corner tc-corner--bl"></span>'
+                + '<span class="tc-corner tc-corner--br"></span>'
+                + '<header class="tc-header">'
+                +   '<h3 class="tc-title">' + escapeHtml(t.title) + '</h3>'
+                +   '<p class="tc-author">por ' + escapeHtml(creatorName) + '</p>'
+                + '</header>'
+                + '<div class="tc-sep"></div>'
+                + '<div class="tc-body">'
+                +   '<div class="tc-numeral">· ' + numeral + ' ·</div>'
+                +   '<div class="tc-mode">' + modeLabel + '</div>'
+                +   '<div class="tc-illus">' + svgIllus + '</div>'
+                + '</div>'
+                + '<footer class="tc-footer">'
+                +   '<span class="tc-count">' + escapeHtml(leftBadge) + '</span>'
+                +   '<span class="tc-diamond">◆</span>'
+                +   '<span class="tc-count">' + escapeHtml(rightBadge) + '</span>'
+                + '</footer>'
+                + '</div>'
+
+                // ── DORSO ───────────────────────────────────────────
+                + '<div class="tc-face tc-face--back">'
+                + '<span class="tc-frame"></span>'
+                + '<span class="tc-corner tc-corner--tl"></span>'
+                + '<span class="tc-corner tc-corner--tr"></span>'
+                + '<span class="tc-corner tc-corner--bl"></span>'
+                + '<span class="tc-corner tc-corner--br"></span>'
+                + '<div class="tc-back-body">'
+                +   '<h3 class="tc-back-title">' + escapeHtml(t.title) + '</h3>'
+                +   '<p class="tc-back-author">por ' + escapeHtml(creatorName) + '</p>'
+                +   '<div class="tc-back-sep"></div>'
+                +   '<div class="tc-back-stats">'
+                +     '<span class="tc-back-stat">📜 ' + (msgs.length > 0 ? msgs.length + (msgs.length === 1 ? ' mensaje' : ' mensajes') : 'Sin mensajes') + '</span>'
+                +     '<span class="tc-back-stat">🕐 ' + (activity || 'Reciente') + '</span>'
+                +     (isRol ? '<span class="tc-back-stat" style="opacity:0.6">⚜ Modo RPG</span>' : '<span class="tc-back-stat" style="opacity:0.6">✦ Modo Clásico</span>')
+                +     turnBadge
+                +   '</div>'
+                + '</div>'
+                + '<button class="tc-enter-btn" onclick="event.stopPropagation();enterTopic(\'' + tid + '\')">'
+                +   enterLabel
+                + '</button>'
+                + '</div>'
+
+                + '</div>'
+                + '</article>';
         }).join('');
     }
 
     const statTopics = document.getElementById('statTopics');
     const statMsgs = document.getElementById('statMsgs');
 
-    if (statTopics) statTopics.textContent = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
+    const myStoriesCount = appData.topics.filter(t => t.createdByIndex === currentUserIndex).length;
+    if (statTopics) statTopics.textContent = myStoriesCount;
 
     let msgCount = 0;
     appData.topics.forEach((topic) => {
@@ -277,9 +489,17 @@ function renderTopics() {
         msgCount += topicMsgs.filter(m => m.userIndex === currentUserIndex).length;
     });
 
-    preloadTopicBackgrounds();
+    try { if (typeof preloadTopicBackgrounds === 'function') preloadTopicBackgrounds(); } catch (_e) {}
 
     if (statMsgs) statMsgs.textContent = msgCount;
+
+    // ── Sidebar de estadísticas ─────────────────────────────────────
+    const _sb = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    _sb('sidebarTotalStories', appData.topics.length);
+    _sb('sidebarMyStories',    myStoriesCount);
+    _sb('sidebarMyMsgs',       msgCount);
+    _sb('sidebarRpgCount',     appData.topics.filter(t => t.mode === 'rpg' || t.mode === 'fanfic').length);
+    _sb('sidebarClassicCount', appData.topics.filter(t => t.mode !== 'rpg' && t.mode !== 'fanfic').length);
 }
 
 function generateTopicId() {
