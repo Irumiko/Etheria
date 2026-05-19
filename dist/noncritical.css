@@ -25625,12 +25625,66 @@ body:has(#topicsSection.active) {
             #080420 100%) !important;
 }
 
-/* Anular ::before/::after globales de components.css que podrían superponer fondos */
-#topicsSection::before,
+/* ── Estrellas animadas — campo de estrellas parpadeantes ────────────────
+   Dos capas con timings distintos crean un efecto orgánico de centelleo.
+   z-index: 0 → quedan detrás del contenido (que tiene z-index: 1).        */
+#topicsSection::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    /* Capa A: estrellas medianas y pequeñas, distribución semi-aleatoria */
+    background-image:
+        radial-gradient(circle, rgba(255,255,255,0.90) 1px,   transparent 1.5px),
+        radial-gradient(circle, rgba(220,228,255,0.75) 1px,   transparent 1.5px),
+        radial-gradient(circle, rgba(240,245,255,0.70) 1.5px, transparent 2.2px),
+        radial-gradient(circle, rgba(200,215,255,0.62) 1px,   transparent 1.5px) !important;
+    background-size:
+        133px 112px,
+        214px 188px,
+        87px  74px,
+        268px 234px !important;
+    background-position:
+        18px  24px,
+        65px  88px,
+        38px  52px,
+        110px 30px !important;
+    animation: eth-stars-twinkle-a 5.2s ease-in-out infinite alternate !important;
+}
 #topicsSection::after {
-    background: none !important;
-    content: none !important;
-    opacity:  0 !important;
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 0 !important;
+    pointer-events: none !important;
+    /* Capa B: estrellas con fase desfasada — parpadeo independiente */
+    background-image:
+        radial-gradient(circle, rgba(255,255,255,0.85) 1px,   transparent 1.5px),
+        radial-gradient(circle, rgba(225,235,255,0.68) 1px,   transparent 1.5px),
+        radial-gradient(circle, rgba(210,222,255,0.62) 1.5px, transparent 2px) !important;
+    background-size:
+        158px 142px,
+        96px  84px,
+        242px 208px !important;
+    background-position:
+        55px  42px,
+        22px  72px,
+        130px 58px !important;
+    animation: eth-stars-twinkle-b 7.4s ease-in-out infinite alternate !important;
+    animation-delay: -2.8s !important;
+}
+
+@keyframes eth-stars-twinkle-a {
+    0%   { opacity: 0.28; }
+    35%  { opacity: 0.64; }
+    70%  { opacity: 0.38; }
+    100% { opacity: 0.58; }
+}
+@keyframes eth-stars-twinkle-b {
+    0%   { opacity: 0.20; }
+    50%  { opacity: 0.52; }
+    100% { opacity: 0.30; }
 }
 
 /* Z-index para que el contenido quede sobre el fondo */
@@ -25803,12 +25857,55 @@ body:has(#topicsSection.active) {
         0 0 60px rgba(100, 60, 200, 0.14) !important;
 }
 
-/* ── 11. SIDEBAR DE ESTADÍSTICAS ─────────────────────────────────────── */
+/* ── 11. SIDEBAR DE ESTADÍSTICAS — paleta plateada ──────────────────────
+   Tonos silver-blue fríos en vez de violeta puro → más legibles y místicos. */
 #topicsSection .topics-sidebar {
     border: 1px solid rgba(130, 100, 210, 0.20) !important;
     background: rgba(6, 5, 18, 0.42) !important;
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* Headings ornamentales (EL MUNDO, POR MODO) — plata tenue */
+#topicsSection .tsi-heading {
+    color: rgba(185, 198, 220, 0.68) !important;
+}
+#topicsSection .tsi-heading::before,
+#topicsSection .tsi-heading::after {
+    background: linear-gradient(90deg, transparent, rgba(170, 190, 218, 0.28)) !important;
+}
+
+/* Número grande (2, 0…) — plata brillante con halo sutil */
+#topicsSection .tsi-val {
+    color: #c2d0e8 !important;
+    text-shadow: 0 0 14px rgba(175, 205, 240, 0.42), 0 0 4px rgba(200, 220, 248, 0.18) !important;
+}
+
+/* Etiqueta de stat ("historias en el mundo") — plata media */
+#topicsSection .tsi-lbl {
+    color: rgba(178, 192, 218, 0.58) !important;
+}
+
+/* Separador horizontal */
+#topicsSection .tsi-sep {
+    background: linear-gradient(90deg, transparent, rgba(165, 185, 215, 0.22), transparent) !important;
+}
+
+/* Nombre de modo (RPG, Clásico) */
+#topicsSection .tsi-mode-name {
+    color: rgba(172, 187, 215, 0.56) !important;
+}
+
+/* Contador por modo */
+#topicsSection .tsi-mode-count {
+    color: #b8cce2 !important;
+    text-shadow: 0 0 10px rgba(165, 200, 235, 0.36) !important;
+}
+
+/* Cita final — plata muy tenue, atmosférica */
+#topicsSection .tsi-quote {
+    color: rgba(168, 185, 212, 0.40) !important;
+    border-top-color: rgba(150, 175, 210, 0.14) !important;
 }
 
 /* ── 12. ESTADO VACÍO ────────────────────────────────────────────────── */
