@@ -19472,28 +19472,7 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 
 .section-content { background: transparent !important; }
 
-/* En Topics, el área de lista necesita un panel semiopaco para que
-   el command bar y las tarjetas sean legibles contra el fondo del paisaje */
-#topicsSection .topics-main {
-    background: rgba(10,6,2,0.48) !important;
-    backdrop-filter: blur(6px) !important;
-    -webkit-backdrop-filter: blur(6px) !important;
-    border: 1px solid rgba(201,168,108,0.1) !important;
-    border-radius: 14px !important;
-    padding: 1rem !important;
-}
-[data-theme="light"] #topicsSection .topics-main {
-    background: linear-gradient(160deg, rgba(250,246,232,0.94) 0%, rgba(236,222,190,0.90) 100%) !important;
-    border-color: rgba(160,120,48,0.34) !important;
-    box-shadow: 0 0 0 3px rgba(244,238,210,0.96),
-                0 0 0 5px rgba(160,120,48,0.13),
-                0 24px 80px rgba(0,0,0,0.16) !important;
-}
-[data-theme="light"] #topicsSection .topics-main::before,
-[data-theme="light"] #topicsSection .topics-main::after {
-    opacity: 0.52 !important;
-    border-color: rgba(160,120,48,0.48) !important;
-}
+/* Regla base eliminada — el panel glassmorphism se define en sección 12.2 */
 
 /* Estado vacío más estilizado */
 .topics-empty {
@@ -19537,14 +19516,27 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
 #topicsSection .topics-main {
     max-width: 1100px !important;
     margin: 0 auto !important;
-    background: #0d0c12 !important;
-    border: 1px solid #a38650 !important;
+    /* ── Glassmorphism: cielo nocturno semitransparente ── */
+    background: rgba(8, 7, 22, 0.46) !important;
+    backdrop-filter: blur(24px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
+    border: 1px solid rgba(163,134,80,0.22) !important;
     border-radius: 14px !important;
     padding: 1.2rem !important;
     position: relative !important;
-    box-shadow: 0 0 0 3px rgba(13,12,18,0.9),
-                0 0 0 5px rgba(163,134,80,0.12),
-                0 24px 80px rgba(0,0,0,0.72) !important;
+    box-shadow: 0 0 0 1px rgba(163,134,80,0.07),
+                inset 0 1px 0 rgba(163,134,80,0.10),
+                0 8px 40px rgba(0,0,0,0.60),
+                0 2px 8px rgba(0,0,0,0.40) !important;
+}
+[data-theme="light"] #topicsSection .topics-main {
+    background: rgba(244,240,226,0.50) !important;
+    backdrop-filter: blur(24px) saturate(1.4) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.4) !important;
+    border-color: rgba(160,120,48,0.30) !important;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.55),
+                inset 0 1px 0 rgba(255,255,255,0.70),
+                0 8px 32px rgba(0,0,0,0.14) !important;
 }
 /* Esquinas decorativas del tapete */
 #topicsSection .topics-main::before,
@@ -19647,31 +19639,52 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     flex-shrink: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    border-radius: 8px !important;
-    border: 1px solid rgba(163,134,80,0.14) !important;
-    background: rgba(255,255,255,0.025) !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(163,134,80,0.18) !important;
+    background: rgba(6,5,18,0.40) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    box-shadow: inset 0 1px 0 rgba(163,134,80,0.08),
+                0 4px 20px rgba(0,0,0,0.30) !important;
     overflow-y: auto !important;
     scrollbar-width: thin !important;
     scrollbar-color: rgba(163,134,80,0.20) transparent !important;
 }
 [data-theme="light"] .topics-sidebar {
-    background: rgba(100,65,15,0.05) !important;
-    border-color: rgba(120,80,20,0.16) !important;
+    background: rgba(244,240,226,0.38) !important;
+    border-color: rgba(120,80,20,0.20) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.55),
+                0 4px 16px rgba(0,0,0,0.10) !important;
 }
 .tsi-block {
-    padding: 0.85rem 1rem !important;
+    padding: 0.9rem 1rem !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 0.5rem !important;
 }
+/* Heading ornamental con líneas laterales */
 .tsi-heading {
     font-family: 'Cinzel', serif !important;
-    font-size: 0.58rem !important;
+    font-size: 0.56rem !important;
     font-weight: 600 !important;
-    letter-spacing: 0.18em !important;
+    letter-spacing: 0.20em !important;
     text-transform: uppercase !important;
-    color: rgba(201,168,108,0.52) !important;
-    margin-bottom: 0.2rem !important;
+    color: rgba(201,168,108,0.65) !important;
+    margin-bottom: 0.3rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
+}
+.tsi-heading::before,
+.tsi-heading::after {
+    content: '' !important;
+    flex: 1 !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(163,134,80,0.25)) !important;
+}
+.tsi-heading::after {
+    background: linear-gradient(90deg, rgba(163,134,80,0.25), transparent) !important;
 }
 .tsi-stat {
     display: flex !important;
@@ -19687,18 +19700,19 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     line-height: 1.2 !important;
     letter-spacing: 0.05em !important;
     flex-shrink: 0 !important;
+    text-shadow: 0 0 12px rgba(201,168,108,0.35) !important;
 }
 .tsi-lbl {
     font-family: 'Crimson Text', serif !important;
     font-size: 0.80rem !important;
     font-style: italic !important;
-    color: rgba(201,168,108,0.48) !important;
+    color: rgba(201,168,108,0.45) !important;
     line-height: 1.3 !important;
 }
 .tsi-sep {
     height: 1px !important;
-    margin: 0 1rem !important;
-    background: linear-gradient(90deg, transparent, rgba(163,134,80,0.20), transparent) !important;
+    margin: 0 0.75rem !important;
+    background: linear-gradient(90deg, transparent, rgba(163,134,80,0.22), transparent) !important;
     flex-shrink: 0 !important;
 }
 .tsi-mode-row {
@@ -19711,9 +19725,10 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     height: 7px !important;
     border-radius: 50% !important;
     flex-shrink: 0 !important;
+    box-shadow: 0 0 6px currentColor !important;
 }
-.tsi-mode-dot--rpg     { background: rgba(212,174,92,0.70) !important; }
-.tsi-mode-dot--classic { background: rgba(130,160,230,0.70) !important; }
+.tsi-mode-dot--rpg     { background: rgba(212,174,92,0.80) !important; color: rgba(212,174,92,0.80) !important; }
+.tsi-mode-dot--classic { background: rgba(130,160,230,0.80) !important; color: rgba(130,160,230,0.80) !important; }
 .tsi-mode-name {
     font-family: 'Outfit', sans-serif !important;
     font-size: 0.70rem !important;
@@ -19727,39 +19742,54 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     font-size: 0.90rem !important;
     font-weight: 700 !important;
     color: #c9a86c !important;
+    text-shadow: 0 0 10px rgba(201,168,108,0.30) !important;
 }
-.tsi-quote-block { flex: 1 !important; }
+.tsi-quote-block {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    padding-bottom: 0.25rem !important;
+}
 .tsi-quote {
     font-family: 'Cormorant Garamond', serif !important;
     font-style: italic !important;
-    font-size: 0.79rem !important;
-    line-height: 1.55 !important;
-    color: rgba(201,168,108,0.36) !important;
+    font-size: 0.82rem !important;
+    line-height: 1.6 !important;
+    color: rgba(201,168,108,0.30) !important;
     margin: 0 !important;
     text-align: center !important;
+    padding: 0.5rem 0.25rem !important;
+    border-top: 1px solid rgba(163,134,80,0.12) !important;
+    width: 100% !important;
 }
 /* Tema claro — sidebar */
-[data-theme="light"] .tsi-heading    { color: rgba(100,65,15,0.52) !important; }
-[data-theme="light"] .tsi-val        { color: #7a5020 !important; }
+[data-theme="light"] .tsi-heading    { color: rgba(100,65,15,0.60) !important; }
+[data-theme="light"] .tsi-val        { color: #7a5020 !important; text-shadow: none !important; }
 [data-theme="light"] .tsi-lbl        { color: rgba(100,65,15,0.44) !important; }
 [data-theme="light"] .tsi-mode-name  { color: rgba(100,65,15,0.50) !important; }
 [data-theme="light"] .tsi-mode-count { color: #7a5020 !important; }
 [data-theme="light"] .tsi-quote      { color: rgba(100,65,15,0.34) !important; }
 [data-theme="light"] .tsi-sep        { background: linear-gradient(90deg, transparent, rgba(100,65,15,0.16), transparent) !important; }
 
-/* ── 12.3  Command bar minimalista ───────────────────────────────── */
+/* ── 12.3  Command bar ───────────────────────────────────────────── */
 .topics-command-bar {
     display: flex !important;
     align-items: center !important;
     gap: 0.6rem !important;
     flex-wrap: wrap !important;
     margin-bottom: 1.1rem !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+    background: rgba(6,5,18,0.38) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(163,134,80,0.14) !important;
+    border-radius: 9px !important;
+    padding: 0.6rem 0.75rem !important;
+    box-shadow: inset 0 1px 0 rgba(163,134,80,0.07) !important;
+}
+[data-theme="light"] .topics-command-bar {
+    background: rgba(244,240,226,0.42) !important;
+    border-color: rgba(160,120,48,0.18) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.55) !important;
 }
 
 /* ── 12.4  Botón Nueva Historia ──────────────────────────────────── */
@@ -19767,19 +19797,28 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     font-family: 'Cinzel', serif !important;
     font-size: 0.77rem !important;
     letter-spacing: 0.09em !important;
-    background: linear-gradient(135deg, rgba(115,78,18,0.8) 0%, rgba(60,38,6,0.88) 100%) !important;
-    border: 1px solid rgba(163,134,80,0.5) !important;
-    color: #c9a86c !important;
-    padding: 0.45rem 1.1rem !important;
+    background: linear-gradient(145deg, #8b5e16 0%, #50300a 100%) !important;
+    border: 1px solid rgba(201,168,108,0.55) !important;
+    color: #e8c878 !important;
+    padding: 0.48rem 1.2rem !important;
     border-radius: 6px !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.35) !important;
-    transition: box-shadow 0.22s, border-color 0.22s, background 0.22s !important;
+    box-shadow: 0 0 0 1px rgba(201,168,108,0.08),
+                inset 0 1px 0 rgba(255,220,120,0.18),
+                0 3px 12px rgba(0,0,0,0.45) !important;
+    transition: box-shadow 0.22s, border-color 0.22s, filter 0.22s !important;
     white-space: nowrap !important;
 }
 .btn-create-topic:hover {
-    background: linear-gradient(135deg, rgba(140,95,22,0.88) 0%, rgba(80,52,8,0.92) 100%) !important;
-    border-color: rgba(163,134,80,0.78) !important;
-    box-shadow: 0 0 20px rgba(163,134,80,0.28), 0 4px 14px rgba(0,0,0,0.38) !important;
+    filter: brightness(1.15) !important;
+    border-color: rgba(201,168,108,0.85) !important;
+    box-shadow: 0 0 18px rgba(201,168,108,0.32),
+                inset 0 1px 0 rgba(255,220,120,0.22),
+                0 4px 16px rgba(0,0,0,0.50) !important;
+}
+[data-theme="light"] .btn-create-topic {
+    background: linear-gradient(145deg, #a07030 0%, #7a5018 100%) !important;
+    color: #fff8e8 !important;
+    border-color: rgba(160,112,40,0.65) !important;
 }
 
 /* ── 12.5  Pills de filtro ───────────────────────────────────────── */
@@ -19794,21 +19833,30 @@ body:not(.mode-classic):not(.mode-rpg) #vnSection {
     letter-spacing: 0.07em !important;
     padding: 0.38rem 0.82rem !important;
     border-radius: 5px !important;
-    border: 1px solid rgba(163,134,80,0.28) !important;
-    background: rgba(13,12,18,0.6) !important;
-    color: rgba(163,134,80,0.55) !important;
+    border: 1px solid rgba(163,134,80,0.22) !important;
+    background: rgba(8,7,22,0.45) !important;
+    color: rgba(163,134,80,0.50) !important;
     cursor: pointer !important;
-    transition: all 0.2s !important;
+    transition: all 0.22s !important;
     white-space: nowrap !important;
 }
 .topic-filter-btn:hover {
     border-color: rgba(163,134,80,0.55) !important;
     color: #c9a86c !important;
-    background: rgba(163,134,80,0.08) !important;
+    background: rgba(163,134,80,0.10) !important;
+}
+[data-theme="light"] .topic-filter-btn {
+    background: rgba(244,240,226,0.40) !important;
+    color: rgba(100,65,15,0.50) !important;
+    border-color: rgba(160,120,48,0.22) !important;
+}
+[data-theme="light"] .topic-filter-btn:hover {
+    background: rgba(160,120,48,0.12) !important;
+    color: #7a5020 !important;
 }
 .topic-filter-btn.active {
-    background: linear-gradient(135deg, rgba(115,78,18,0.65), rgba(60,38,6,0.78)) !important;
-    border-color: rgba(163,134,80,0.58) !important;
+    background: linear-gradient(135deg, rgba(130,88,20,0.70), rgba(70,44,8,0.82)) !important;
+    border-color: rgba(201,168,108,0.55) !important;
     color: #d4ae5c !important;
     box-shadow: 0 0 12px rgba(163,134,80,0.18) !important;
 }
