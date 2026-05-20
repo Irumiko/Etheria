@@ -2,6 +2,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const esbuild = require('esbuild');
 
 const root = __dirname;
 const distDir = path.join(root, 'dist');
@@ -141,17 +142,19 @@ const scriptSrcRe = /<script\b([^>]*?)\bsrc=(["'])([^"']+)\2([^>]*)><\/script>/g
 const jsSegments = [];
 html = html.replace(scriptSrcRe, (full, pre, q, src, post) => {
   const rawSrc = src.trim();
-  if (!rawSrc || isExternalUrl(rawSrc)) return full;
+  if (!rawSrc || isExternalUrl(rawSrc)) return full; // CDN scripts se quedan en el HTML
   const localSrc = rawSrc.startsWith('/') ? rawSrc.slice(1) : rawSrc;
   const resolved = path.resolve(root, localSrc);
   if (!resolved.startsWith(root + path.sep)) throw new Error(`Script fuera del proyecto: ${rawSrc}`);
   if (!fs.existsSync(resolved)) throw new Error(`Script no encontrado: ${rawSrc}`);
-  const code = fs.readFileSync(resolved, 'utf8').replace(/<\/script>/gi, '<\\/script>');
-  const attrs = `${pre}${post}`.trim();
+  const code = fs.readFileSync(resolved, 'utf8');
   console.log(`  JS:  ${localSrc} (${(code.length / 1024).toFixed(1)} KB)`);
   jsSegments.push({ source: localSrc, sourceIndex: jsSegments.length, content: `/* ${localSrc} */\n${code}` });
-  return `<script${attrs ? ' ' + attrs : ''}>\n/* ${localSrc} */\n${code}\n</script>`;
+  return ''; // Eliminado del HTML; el bundle se añade al final
 });
+
+// Añadir referencia al bundle justo antes de </body>
+html = html.replace('</body>', '<script src="./etheria.bundle.js"></script>\n</body>');
 
 fs.mkdirSync(distDir, { recursive: true });
 fs.writeFileSync(path.join(distDir, 'index.html'), html, 'utf8');
@@ -168,6 +171,19 @@ console.log(`\n  dist/index.html (${(html.length / 1024).toFixed(0)} KB)`);
 
 writeBundleAndMap('etheria.css', cssSegments);
 writeBundleAndMap('etheria.js', jsSegments);
+
+// Bundle JS minificado para producción (sin inline en HTML)
+const bundleSource = jsSegments.map((seg) => seg.content).join('\n');
+const minResult = esbuild.transformSync(bundleSource, {
+  loader: 'js',
+  minify: true,
+  platform: 'browser',
+  target: ['es2018'],
+});
+fs.writeFileSync(path.join(distDir, 'etheria.bundle.js'), minResult.code, 'utf8');
+const origKb = (bundleSource.length / 1024).toFixed(0);
+const minKb = (minResult.code.length / 1024).toFixed(0);
+console.log(`  Bundle: etheria.bundle.js  ${origKb} KB → ${minKb} KB minificado`);
 
 console.log('\n  Assets:');
 STATIC_ASSETS.forEach(([src, dest]) => { if (copyFile(src, dest)) console.log(`    ${dest}`); });

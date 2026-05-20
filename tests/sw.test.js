@@ -23,7 +23,7 @@ test('service worker source keeps cache helpers and precache list coherent', () 
   assert.match(source, /const CACHE_NAME\s*=\s*`etheria-\$\{CACHE_VERSION\}`;/);
   assert.match(source, /const PRECACHE_URLS = \[/);
   assert.match(source, /Promise\.allSettled/);
-  for (const asset of ['./', './index.html', './manifest.json', './assets/icons/icon-192.png', './assets/icons/icon-512.png', './noncritical.css', './etheria.css', './etheria.js']) {
+  for (const asset of ['./', './index.html', './manifest.json', './assets/icons/icon-192.png', './assets/icons/icon-512.png', './noncritical.css', './etheria.css', './etheria.bundle.js']) {
     assert.match(source, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
   for (const helper of ['networkFirstWithTimeout', 'networkFirstHTML', 'cacheFirstImage', 'staleWhileRevalidate']) {

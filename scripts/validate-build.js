@@ -23,10 +23,21 @@ function read(p) {
 
 if (!fs.existsSync(dist)) fail('dist/ no existe. Ejecuta npm run build primero.');
 
-['dist/index.html', 'dist/noncritical.css', 'dist/etheria.css', 'dist/etheria.css.map', 'dist/etheria.js', 'dist/etheria.js.map'].forEach((f) => {
+['dist/index.html', 'dist/noncritical.css', 'dist/etheria.css', 'dist/etheria.css.map', 'dist/etheria.js', 'dist/etheria.js.map', 'dist/etheria.bundle.js'].forEach((f) => {
   if (!fs.existsSync(path.join(root, f))) fail(`Falta ${f}`);
   ok(`Existe ${f}`);
 });
+
+// El bundle minificado debe ser significativamente más pequeño que la fuente
+const bundleSize = fs.statSync(path.join(root, 'dist/etheria.bundle.js')).size;
+const sourceSize = fs.statSync(path.join(root, 'dist/etheria.js')).size;
+if (bundleSize >= sourceSize) fail(`etheria.bundle.js (${(bundleSize/1024).toFixed(0)}KB) debería ser menor que etheria.js (${(sourceSize/1024).toFixed(0)}KB)`);
+ok(`Bundle minificado: ${(bundleSize/1024).toFixed(0)} KB (vs ${(sourceSize/1024).toFixed(0)} KB sin minificar)`);
+
+// dist/index.html debe referenciar el bundle, no tener JS inline local
+const distHtml = read('dist/index.html');
+if (!distHtml.includes('etheria.bundle.js')) fail('dist/index.html no referencia etheria.bundle.js');
+ok('dist/index.html referencia etheria.bundle.js');
 
 const criticalInlineMatch = read('dist/index.html').match(/<style id="critical-inline-css">([\s\S]*?)<\/style>/i);
 if (!criticalInlineMatch) fail('dist/index.html no incluye critical inline');
