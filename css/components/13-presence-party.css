@@ -788,6 +788,55 @@
     gap: 0.3rem;
 }
 
+/* ── Avatar individual de presencia ── */
+.vn-presence-avatar {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(160, 128, 220, 0.35);
+    background: rgba(75, 50, 120, 0.65) center / cover;
+    flex-shrink: 0;
+    cursor: default;
+    transition: border-color 0.2s;
+}
+
+.vn-presence-avatar:hover {
+    border-color: rgba(190, 160, 255, 0.7);
+}
+
+/* Letra inicial (cuando no hay avatar) */
+.vn-presence-avatar-initial {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(225, 205, 255, 0.92);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.02em;
+}
+
+/* Punto verde "online" */
+.vn-presence-dot {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #5dda72;
+    border: 1.5px solid rgba(10, 6, 2, 0.88);
+    animation: eth-presence-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes eth-presence-pulse {
+    0%, 100% { box-shadow: 0 0 3px rgba(93, 218, 114, 0.4); }
+    50%       { box-shadow: 0 0 7px rgba(93, 218, 114, 0.8); }
+}
+
 /* En móvil, moverlo un poco para no solapar los controles */
 @media (max-width: 768px) {
     .vn-presence-panel {

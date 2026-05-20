@@ -6029,3 +6029,74 @@ function vrpSetWeatherBtn(clickedBtn) {
     window.addEventListener('etheria:turn-skipped',   _hideBanner);
     window.addEventListener('etheria:turn-updated',   _hideBanner);
 })();
+
+// ── Panel de presencia: jugadores online en la historia ──────────────────────
+// Escucha `etheria:story-presence-changed` (emitido por supabasePresence.js)
+// y renderiza avatares en #vnPresencePanel / #vnPresenceList.
+(function _initPresencePanel() {
+    'use strict';
+
+    var _panel = null;
+    var _list  = null;
+
+    function _getEls() {
+        if (!_panel) _panel = document.getElementById('vnPresencePanel');
+        if (!_list)  _list  = document.getElementById('vnPresenceList');
+        return !!(  _panel && _list);
+    }
+
+    function _esc(s) {
+        if (typeof escapeHtml === 'function') return escapeHtml(String(s));
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        });
+    }
+
+    function _render(detail) {
+        if (!_getEls()) return;
+        var state  = detail.state  || {};
+        var selfId = window._cachedUserId || null;
+        var others = Object.values(state).filter(function (u) {
+            return u.user_id && String(u.user_id) !== String(selfId);
+        });
+
+        if (others.length === 0) {
+            _panel.style.display = 'none';
+            _list.innerHTML = '';
+            return;
+        }
+
+        _list.innerHTML = others.map(function (u) {
+            var name      = String(u.name || 'Jugador').trim();
+            var initial   = name.charAt(0).toUpperCase();
+            var hasAvatar = u.avatar_url && String(u.avatar_url).trim();
+            var bgStyle   = hasAvatar
+                ? ' style="background-image:url(\'' + _esc(u.avatar_url) + '\')"'
+                : '';
+            var initialEl = hasAvatar
+                ? ''
+                : '<span class="vn-presence-avatar-initial" aria-hidden="true">' + _esc(initial) + '</span>';
+            return '<div class="vn-presence-avatar' + (hasAvatar ? ' vn-presence-avatar--has-img' : '') + '"'
+                + bgStyle
+                + ' title="' + _esc(name) + ' — online"'
+                + ' aria-label="' + _esc(name) + ' está online">'
+                + initialEl
+                + '<span class="vn-presence-dot" aria-hidden="true"></span>'
+                + '</div>';
+        }).join('');
+
+        _panel.style.display = 'flex';
+    }
+
+    window.addEventListener('etheria:story-presence-changed', function (e) {
+        _render(e.detail || {});
+    });
+
+    // Limpiar al salir de la historia (leaveStory emite state vacío, pero
+    // también cubrimos el evento explícito de salida de la sección VN).
+    window.addEventListener('etheria:story-left', function () {
+        if (!_getEls()) return;
+        _panel.style.display = 'none';
+        _list.innerHTML = '';
+    });
+}());

@@ -27,6 +27,7 @@ const SupabaseSync = (function () {
     let _isOffline = false;
     let _pendingChanges = false;
     let _cachedUserId = null;
+    let _quickSyncTimer = null; // timer para subir ~2 s después de un touchField
 
     // ── Merge con timestamps por campo ───────────────────────────────────────
     // Cada campo sincronizable tiene su propio timestamp local. Al descargar
@@ -55,6 +56,15 @@ const SupabaseSync = (function () {
         ts[fieldName] = new Date().toISOString();
         _saveFieldTimestamps(ts);
         _pendingChanges = true;
+        // Subir automáticamente ~2 s después sin esperar el intervalo de 30 s.
+        // Si se llama varias veces seguidas (p.ej. nombre + avatar), el timer
+        // se resetea y solo se hace una sola subida.
+        clearTimeout(_quickSyncTimer);
+        _quickSyncTimer = setTimeout(function () {
+            if (_pendingChanges && _isAvailable() && _getUserId()) {
+                uploadProfileData().catch(function () {});
+            }
+        }, 2000);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
