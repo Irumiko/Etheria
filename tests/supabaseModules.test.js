@@ -117,7 +117,6 @@ test('SupabaseStories deleteStory sends DELETE request with story ID in URL', as
     fetchCalls.push({ url, method: opts.method });
     return { ok: true, status: 200 };
   };
-  sandbox.window.fetch = sandbox.fetch;
 
   loadScript('js/utils/supabaseStories.js', sandbox);
 
@@ -125,5 +124,5 @@ test('SupabaseStories deleteStory sends DELETE request with story ID in URL', as
   assert.equal(result.ok, true);
   assert.equal(fetchCalls.length, 1, 'Debe hacer exactamente una llamada fetch');
   assert.equal(fetchCalls[0].method, 'DELETE');
-  assert.ok(fetchCalls[0].url.includes('story-1'), 'La URL debe incluir el storyId');
+  assert.match(fetchCalls[0].url, /\/rest\/v1\/stories\?id=eq\.story-1/, 'URL debe apuntar al endpoint REST correcto');
 });
