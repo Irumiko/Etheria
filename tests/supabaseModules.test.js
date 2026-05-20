@@ -98,33 +98,32 @@ test('SupabaseStories upsertStory authenticates user and falls back to basic sch
   assert.deepEqual(JSON.parse(JSON.stringify(insertedRows[1].row)), { title: 'Historia Nueva', created_by: 'user-1' });
 });
 
-test('SupabaseStories deleteStory removes story messages before the story row', async () => {
+test('SupabaseStories deleteStory sends DELETE request with story ID in URL', async () => {
+  // deleteStory usa fetch directo + ON DELETE CASCADE en BD (no SDK .from().delete())
   const sandbox = makeSandbox();
-  const calls = [];
+  const fetchCalls = [];
+
   sandbox.window.supabaseClient = {
     auth: {
-      getUser: async () => ({ data: { user: { id: 'user-1' } } }),
+      getUser:    async () => ({ data: { user: { id: 'user-1' } } }),
       getSession: async () => ({ data: { session: { access_token: 'jwt' } } }),
     },
-    from(table) {
-      return {
-        delete() {
-          return {
-            eq(column, value) {
-              calls.push({ table, column, value });
-              return Promise.resolve({ error: null });
-            },
-          };
-        },
-      };
-    },
   };
+  sandbox.window.SupabaseAuthHeaders = {
+    buildAuthHeaders: async ({ apikey, baseHeaders }) => ({ ...baseHeaders, apikey, Authorization: 'Bearer jwt' }),
+    getAccessToken:   async () => 'jwt',
+  };
+  sandbox.fetch = async (url, opts = {}) => {
+    fetchCalls.push({ url, method: opts.method });
+    return { ok: true, status: 200 };
+  };
+  sandbox.window.fetch = sandbox.fetch;
+
   loadScript('js/utils/supabaseStories.js', sandbox);
 
   const result = await sandbox.window.SupabaseStories.deleteStory('story-1');
   assert.equal(result.ok, true);
-  assert.deepEqual(calls, [
-    { table: 'messages', column: 'story_id', value: 'story-1' },
-    { table: 'stories', column: 'id', value: 'story-1' },
-  ]);
+  assert.equal(fetchCalls.length, 1, 'Debe hacer exactamente una llamada fetch');
+  assert.equal(fetchCalls[0].method, 'DELETE');
+  assert.ok(fetchCalls[0].url.includes('story-1'), 'La URL debe incluir el storyId');
 });
