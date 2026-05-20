@@ -1,0 +1,1004 @@
+/* ═══════════════════════════════════════════════════════════════
+   10-VN-CONTROLS — Botones de diálogo, save hub, options cards, rendimiento, stories panel
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
+.vn-dialogue-actions {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0;
+}
+.vn-dialogue-actions-left {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    position: relative;
+}
+.vn-dialogue-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+/* Botón Posada — acento cálido brasa */
+.innkeeper-action-btn {
+    background: rgba(140, 80, 20, 0.12) !important;
+    border-color: rgba(180, 110, 40, 0.35) !important;
+    color: rgba(220, 165, 80, 0.9) !important;
+}
+.innkeeper-action-btn:hover {
+    background: rgba(160, 100, 30, 0.22) !important;
+    border-color: rgba(200, 140, 60, 0.6) !important;
+    color: #f0c060 !important;
+}
+
+/* Botón Nueva Escena en caja de diálogo — modo clásico */
+.narrate-action-btn {
+    background: rgba(80, 60, 20, 0.10) !important;
+    border-color: rgba(190, 148, 70, 0.3) !important;
+    color: rgba(210, 175, 90, 0.85) !important;
+}
+.narrate-action-btn:hover {
+    background: rgba(100, 75, 20, 0.20) !important;
+    border-color: rgba(210, 168, 80, 0.55) !important;
+    color: #f0d070 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOTÓN DE REACCIÓN — esquina superior derecha de la caja de diálogo
+   ═══════════════════════════════════════════════════════════════════ */
+.vn-reaction-corner-btn {
+    position: absolute;
+    top: -11px;
+    right: 14px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(22, 17, 10, 0.92);
+    border: 1px solid rgba(160,128,220, 0.28);
+    color: rgba(160,128,220, 0.55);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-i-30);
+    padding: 0;
+    transition: color 0.18s, border-color 0.18s, background 0.18s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
+.vn-reaction-corner-btn:hover {
+    color: rgba(240, 190, 80, 0.9);
+    border-color: rgba(160,128,220, 0.6);
+    background: rgba(30, 22, 12, 0.98);
+    transform: scale(1.15);
+}
+/* Cuando hay reacción activa — pequeño emoji superpuesto */
+.vn-reaction-corner-active {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    font-size: 0.7rem;
+    line-height: 1;
+    pointer-events: none;
+}
+
+/* Picker de reacciones sale desde la esquina sup-der de la caja */
+.vn-reaction-picker {
+    position: absolute !important;
+    top: 14px !important;
+    right: 44px !important;
+    bottom: auto !important;
+    left: auto !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BOTÓN DE EMOTES EN EL PANEL DE RESPUESTA — SVG intuitivo
+   ═══════════════════════════════════════════════════════════════════ */
+.reply-emote-toggle svg {
+    display: block;
+    width: 18px;
+    height: 18px;
+    transition: transform 0.2s, color 0.2s;
+}
+.reply-emote-toggle:hover svg,
+.reply-emote-toggle.active svg {
+    transform: scale(1.15) rotate(-8deg);
+    color: rgba(240, 200, 100, 0.95);
+}
+/* Labels en el popover de emotes — mostrar nombre debajo del icono */
+.reply-emote-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    position: relative;
+}
+.reply-emote-btn::after {
+    content: attr(aria-label);
+    font-size: 0.55rem;
+    color: rgba(180,160,120,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    /* truncar a la clave: "Insertar emote X" → solo necesitamos X, 
+       pero attr() no puede hacer substr. Ocultamos el texto largo. */
+    display: none;
+}
+
+/* reply-emote-popover: ver bloque principal arriba */
+
+.reply-emote-btn {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.12rem !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 9px !important;
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(160,128,220, 0.15) !important;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s, border-color 0.15s;
+    padding: 0 !important;
+}
+.reply-emote-btn:hover {
+    background: rgba(160,128,220,0.15) !important;
+    border-color: rgba(160,128,220,0.45) !important;
+    transform: scale(1.08) translateY(-1px) !important;
+}
+.re-icon { font-size: 1.35rem; line-height: 1; }
+.re-label {
+    font-size: 0.47rem;
+    color: rgba(190,165,110,0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    font-family: 'Inter', sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DEBUG — Fondo transparente para depurar carga de imágenes
+   Descomentar el bloque de abajo para activar, comentar para desactivar.
+   Con esto activo: si ves la imagen → carga OK. Si ves negro → falla.
+   ═══════════════════════════════════════════════════════════════════
+.vn-section::before {
+    background: transparent !important;
+}
+*/
+
+/* ═══════════════════════════════════════════════════════════════════
+   VN CONTROLS — Panel de juego con grupos y animación de entrada
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Animación de entrada */
+@keyframes controlsFade {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+/* Override del panel completo — usa variables para adaptarse al tema */
+.vn-controls {
+    animation: controlsFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both !important;
+    background: var(--glass-bg) !important;
+    border: 1px solid rgba(var(--accent-gold-rgb, 139, 105, 20), 0.45) !important;
+    border-color: var(--border-color) !important;
+    box-shadow:
+        0 8px 32px var(--shadow-heavy),
+        inset 0 1px 0 rgba(255, 220, 140, 0.05) !important;
+    padding: 0.3rem 0.45rem !important;
+    gap: 0.2rem !important;
+    align-items: center;
+}
+
+/* Divisor más elegante — gradiente vertical */
+.vn-control-divider {
+    width: 1px !important;
+    height: 20px !important;
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(160,128,220, 0.4) 30%,
+        rgba(160,128,220, 0.4) 70%,
+        transparent
+    ) !important;
+    margin: 0 0.3rem !important;
+}
+
+/* Botones individuales — variables para adaptarse a tema */
+.vn-control-btn {
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: var(--text-secondary) !important;
+    border-radius: 7px !important;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.12s ease !important;
+}
+.vn-control-btn:hover {
+    background: rgba(139, 105, 20, 0.12) !important;
+    border-color: var(--border-color) !important;
+    color: var(--accent-gold) !important;
+    box-shadow: 0 0 10px var(--shadow) !important;
+    transform: translateY(-1px) !important;
+}
+.vn-control-btn:active {
+    transform: translateY(0) scale(0.94) !important;
+    background: rgba(139, 105, 20, 0.2) !important;
+}
+
+/* Botones de navegación — peso visual ligeramente mayor */
+.vn-control-slot:nth-child(-n+4) .vn-control-btn {
+    font-size: 1.1rem !important;
+}
+
+/* Sync button states — mantener colores de estado */
+.vn-control-btn.is-upload-pending { color: rgba(255, 180, 60, 0.9) !important; }
+.vn-control-btn.is-error { color: rgba(255, 100, 80, 0.9) !important; }
+.vn-control-btn.is-syncing { color: rgba(120, 200, 255, 0.9) !important; }
+
+/* Stats button in dialogue box */
+.stats-action-btn {
+    background: rgba(139, 105, 20, 0.12) !important;
+    border-color: rgba(160,128,220, 0.3) !important;
+}
+.stats-action-btn:hover {
+    background: rgba(139, 105, 20, 0.25) !important;
+    border-color: rgba(160,128,220, 0.6) !important;
+}
+
+/* Reply panel: strict box model to prevent border overflow */
+.vn-reply-panel,
+.vn-reply-panel * {
+    box-sizing: border-box;
+}
+.vn-reply-panel {
+    width: 100%;
+}
+
+/* IHP edit stats button */
+.ihp-stats-edit-btn {
+    margin-top: 0.4rem;
+}
+.ihp-oracle-hint {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+/* Emote button in dialogue box */
+.emote-action-btn {
+    position: relative;
+}
+
+/* Emote popover anchored to the dialogue box actions area */
+.vn-dialog-emote-popover {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 0;
+    display: none;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    background: linear-gradient(135deg, rgba(18, 13, 8, 0.97), rgba(28, 20, 12, 0.99));
+    border: 1px solid rgba(160,128,220, 0.35);
+    border-radius: 12px;
+    padding: 0.7rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 220, 140, 0.06);
+    z-index: var(--z-i-400);
+    min-width: 240px;
+    max-width: 320px;
+    animation: fadeSlideUp 0.18s ease;
+}
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Compact char selector (without avatar) */
+.char-selector-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.char-selector-main {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+.char-selected-info {
+    flex: 1;
+}
+.char-selected-name {
+    font-family: 'Cinzel', serif;
+    color: rgba(160,128,220, 0.9);
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+}
+
+.room-code-panel {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    background: linear-gradient(135deg, rgba(12, 9, 5, 0.94), rgba(20, 15, 8, 0.96));
+    border: 1px solid rgba(160,128,220, 0.38);
+    border-radius: 10px;
+    padding: 0.38rem 0.65rem;
+    box-shadow:
+        0 4px 16px rgba(0, 0, 0, 0.45),
+        inset 0 1px 0 rgba(255, 220, 140, 0.06);
+    animation: controlsFade 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.room-code-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.68rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(180, 150, 90, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+}
+.room-code-value {
+    font-size: 0.92rem;
+    font-family: 'Courier New', monospace;
+    color: rgba(235, 205, 140, 0.95);
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    user-select: all;
+    background: rgba(160,128,220, 0.07);
+    padding: 0.1rem 0.4rem;
+    border-radius: 5px;
+    border: 1px solid rgba(160,128,220, 0.18);
+}
+.room-code-copy-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    border: 1px solid rgba(160,128,220, 0.25);
+    background: rgba(160,128,220, 0.06);
+    color: rgba(200, 170, 100, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+}
+.room-code-copy-btn:hover {
+    background: rgba(160,128,220, 0.18);
+    border-color: rgba(160,128,220, 0.55);
+    color: rgba(235, 200, 130, 1);
+    transform: scale(1.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SAVE HUB — Botones con icono + texto + jerarquía visual
+   ═══════════════════════════════════════════════════════════════════ */
+.save-hub-grid {
+    display: grid;
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+}
+.save-hub-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(200, 175, 130, 0.2);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.18s, border-color 0.18s, transform 0.12s;
+    font-family: 'Inter', sans-serif;
+}
+.save-hub-btn:hover {
+    background: rgba(160,128,220, 0.1);
+    border-color: rgba(160,128,220, 0.4);
+    transform: translateX(3px);
+}
+.save-hub-btn:active { transform: translateX(1px) scale(0.99); }
+.save-hub-primary {
+    background: rgba(160,128,220, 0.12) !important;
+    border-color: rgba(160,128,220, 0.45) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 0 0 1px rgba(160,128,220, 0.08);
+    padding: 0.9rem 1rem !important;
+}
+.save-hub-primary:hover {
+    background: rgba(160,128,220, 0.2) !important;
+    box-shadow: 0 4px 20px rgba(160,128,220, 0.18) !important;
+}
+.save-hub-icon {
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    width: 2rem;
+    text-align: center;
+}
+.save-hub-primary .save-hub-icon { font-size: 1.5rem; }
+.save-hub-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    line-height: 1.3;
+}
+.save-hub-text strong {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+.save-hub-text small {
+    font-size: 0.72rem;
+    color: rgba(160, 140, 100, 0.7);
+}
+
+/* Save Hub — nuevos elementos de sección y estado nube */
+.save-hub-section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin: 0.9rem 0 0.25rem;
+}
+.save-hub-section-icon {
+    font-size: 0.9rem;
+}
+.save-hub-cloud-status {
+    margin-left: auto;
+    font-size: 0.68rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 0.18rem 0.55rem;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    transition: background 0.2s, color 0.2s;
+}
+.save-hub-cloud-status[data-state="ok"] {
+    background: rgba(80, 160, 80, 0.12);
+    border-color: rgba(80, 160, 80, 0.3);
+    color: #7acc7a;
+}
+.save-hub-cloud-status[data-state="pending"] {
+    background: rgba(200, 160, 60, 0.12);
+    border-color: rgba(200, 160, 60, 0.3);
+    color: #c8a84a;
+}
+.save-hub-cloud-status[data-state="offline"] {
+    background: rgba(180, 80, 80, 0.12);
+    border-color: rgba(180, 80, 80, 0.3);
+    color: #c07070;
+}
+.save-hub-divider {
+    height: 1px;
+    background: rgba(200, 175, 130, 0.12);
+    margin: 0.85rem 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   OPTIONS CARDS — Más profundidad y sliders mejorados
+   ═══════════════════════════════════════════════════════════════════ */
+.options-card {
+    background: linear-gradient(
+        160deg,
+        rgba(28, 22, 14, 0.95) 0%,
+        rgba(22, 17, 10, 0.98) 100%
+    ) !important;
+    border: 1px solid rgba(160,128,220, 0.22) !important;
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 220, 140, 0.04) !important;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+}
+.options-card:hover {
+    border-color: rgba(160,128,220, 0.42) !important;
+    box-shadow:
+        0 8px 36px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(160,128,220, 0.08),
+        inset 0 1px 0 rgba(255, 220, 140, 0.06) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Sliders — track con gradiente y thumb luminoso */
+.setting-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px !important;
+    border-radius: 3px !important;
+    background: rgba(160,128,220, 0.15) !important;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+}
+.setting-slider::-webkit-slider-runnable-track {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(160,128,220, 0.15);
+}
+.setting-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 50% !important;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 230, 160, 1), rgba(160,128,220, 1)) !important;
+    cursor: pointer !important;
+    box-shadow:
+        0 0 0 3px rgba(160,128,220, 0.2),
+        0 2px 8px rgba(0, 0, 0, 0.5) !important;
+    transition: box-shadow 0.18s ease, transform 0.18s ease !important;
+}
+.setting-slider::-webkit-slider-thumb:hover {
+    box-shadow:
+        0 0 0 5px rgba(160,128,220, 0.25),
+        0 2px 12px rgba(160,128,220, 0.4) !important;
+    transform: scale(1.15) !important;
+}
+.setting-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(255, 230, 160, 1), rgba(160,128,220, 1));
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 0 3px rgba(160,128,220, 0.2), 0 2px 8px rgba(0,0,0,0.5);
+}
+.setting-slider::-moz-range-track {
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(160,128,220, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REPLY TOOLBAR — barra de herramientas sobre el textarea
+   ═══════════════════════════════════════════════════════════════════ */
+.vn-reply-toolbar {
+    position: relative; /* context for popover */
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+}
+/* Emote toggle — rediseñado como pill con icono + label */
+#replyEmoteToggle.reply-emote-toggle {
+    position: static !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.65rem !important;
+    width: auto !important;
+    height: auto !important;
+    border-radius: 20px !important;
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    color: rgba(190, 162, 110, 0.8) !important;
+    background: rgba(160,128,220, 0.07) !important;
+    border: 1px solid rgba(160,128,220, 0.22) !important;
+    transition: all 0.18s ease !important;
+    cursor: pointer;
+}
+#replyEmoteToggle.reply-emote-toggle:hover,
+#replyEmoteToggle.reply-emote-toggle.active {
+    background: rgba(160,128,220, 0.16) !important;
+    border-color: rgba(160,128,220, 0.5) !important;
+    color: rgba(235, 200, 130, 1) !important;
+    box-shadow: 0 0 10px rgba(160,128,220, 0.15) !important;
+}
+#replyEmoteToggle.reply-emote-toggle span {
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+}
+#replyEmoteToggle.reply-emote-toggle svg {
+    width: 14px !important;
+    height: 14px !important;
+    flex-shrink: 0;
+}
+/* Popover sale hacia arriba desde la toolbar */
+/* reply-emote-popover: ver bloque principal arriba */
+
+/* ═══════════════════════════════════════════════════════════════════
+   PARALLAX DE FONDO AL CAMBIAR ESCENA
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes bgParallaxIn {
+    from { transform: scale(1.04) translateY(6px); filter: brightness(0.7); }
+    to   { transform: scale(1)    translateY(0);   filter: brightness(1);   }
+}
+.vn-section.scene-change-anim {
+    animation: bgParallaxIn 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SVG ICONS EN VN-CONTROL-BTN
+   ═══════════════════════════════════════════════════════════════════ */
+.vn-control-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.vn-control-icon svg {
+    width: 15px;
+    height: 15px;
+    display: block;
+    flex-shrink: 0;
+}
+/* Navegación — iconos ligeramente más grandes */
+.vn-control-slot:nth-child(-n+4) .vn-control-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+@keyframes syncSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.vn-control-btn.is-syncing .vn-control-icon {
+    animation: syncSpin 1.2s linear infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLL GLOBAL — Eliminar overflow horizontal, inputs, modales
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* 1. Sin scroll horizontal global */
+html, body {
+    overflow-x: hidden;
+}
+
+/* 2. Inputs no desbordan su contenedor */
+input,
+textarea,
+select {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* 3. Flex containers sin overflow horizontal */
+.vn-dialogue-actions,
+.vn-dialogue-actions-left,
+.vn-dialogue-actions-right,
+.vn-controls,
+.vn-reply-toolbar,
+.topic-header-row {
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+/* 4. Modales sin scroll horizontal */
+.modal-overlay,
+.shortcuts-modal,
+.save-hub-modal,
+.history-modal,
+.journal-modal,
+.char-modal,
+.charsheet-modal,
+.vn-narrate-panel,
+.sync-conflict-modal {
+    overflow-x: hidden;
+}
+
+/* 5. Scrollbar estética — fina y dorada */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(160,128,220, 0.45);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(160,128,220, 0.7);
+}
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* 6. Scrollbar gutter estable en paneles con scroll */
+.topic-modal-body,
+.history-content,
+.journal-body,
+.gallery-grid,
+.charsheet-content,
+.section-content {
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+/* 7. vn-controls nunca desborda */
+.vn-controls {
+    overflow: hidden;
+    flex-wrap: nowrap; /* botones de control no se rompen en dos líneas */
+}
+
+/* ── Performance: pausar animaciones infinitas fuera de la sección activa ── */
+/* Secciones inactivas: pausar via CSS var para control por JS */
+.game-section {
+    --section-animations: running;
+}
+.game-section:not(.active) {
+    --section-animations: paused;
+}
+.game-section:not(.active) *,
+.vn-section:not(.active) * {
+    animation-play-state: paused !important;
+}
+/* Excepción: el indicador de carga debe seguir animándose */
+#loadingOverlay *,
+.autosave-indicator * {
+    animation-play-state: running !important;
+}
+
+/* ── Sprite loading shimmer (mientras la imagen carga) ── */
+@keyframes spriteShimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
+}
+.vn-sprite img.is-loading {
+    background: linear-gradient(
+        90deg,
+        rgba(26, 21, 13, 0.8) 0%,
+        rgba(50, 40, 25, 0.6) 40%,
+        rgba(70, 55, 30, 0.5) 50%,
+        rgba(50, 40, 25, 0.6) 60%,
+        rgba(26, 21, 13, 0.8) 100%
+    );
+    background-size: 200% 100%;
+    animation: spriteShimmer 1.8s ease-in-out infinite !important;
+}
+
+/* ── Gallery blur-up loading transition ── */
+.gallery-img-loading {
+    filter: blur(8px) brightness(0.7);
+    transform: scale(0.98);
+    transition: filter 0.35s ease, transform 0.35s ease;
+}
+.gallery-img-loaded {
+    filter: none;
+    transform: scale(1);
+    transition: filter 0.35s ease, transform 0.35s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   COLLAB GUARD — Indicador "Alguien está escribiendo"
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes collabTypingDot {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30%            { opacity: 1;   transform: translateY(-3px); }
+}
+
+.collab-typing-indicator {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: rgba(14, 10, 6, 0.92);
+    border: 1px solid rgba(160,128,220, 0.3);
+    border-radius: 20px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.75rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(160,128,220, 0.75);
+    letter-spacing: 0.06em;
+    z-index: var(--z-toasts, 600);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    backdrop-filter: blur(8px);
+    white-space: nowrap;
+}
+.collab-typing-indicator.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+.collab-typing-indicator::after {
+    content: ' ···';
+    display: inline-block;
+    animation: collabTypingDot 1.4s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SILUETAS PNG — Sprites por defecto cuando el personaje no tiene imagen
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* La imagen PNG dentro del wrapper de silueta */
+.shadow-silhouette-img {
+    /* Ocupa el alto del contenedor padre, ancho proporcional */
+    height: 100%;
+    width: auto;
+    max-width: 100%;
+    display: block;
+    object-fit: contain;
+    object-position: bottom center;
+
+    /* Fondo transparente — las PNGs ya tienen fondo transparente */
+    /* Tinte oscuro para integrarse con la escena */
+    filter:
+        brightness(0.08)        /* muy oscuro, como silueta real */
+        contrast(1.2)
+        drop-shadow(0 12px 28px rgba(0, 0, 0, 0.55));
+
+    /* Fundido en pies igual que los sprites reales */
+    mask-image: linear-gradient(to bottom, black 78%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 78%, transparent 100%);
+
+    /* Transiciones suaves al cambiar estado activo/inactivo */
+    transition: filter 0.5s ease, opacity 0.5s ease;
+
+    /* Sin arrastre ni selección */
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+}
+
+/* Ajuste de tamaño por contenedor — la silueta femenina es más estrecha */
+.shadow-silhouette.shadow-fem .shadow-silhouette-img {
+    height: 96%;
+    /* La PNG femenina tiene proporciones más estrechas — ajustamos */
+    max-width: 72%;
+    margin: 0 auto;
+}
+
+.shadow-silhouette.shadow-masc .shadow-silhouette-img {
+    height: 100%;
+    max-width: 80%;
+    margin: 0 auto;
+}
+
+/* Sprite activo — ligeramente más iluminado (pero sigue siendo silueta) */
+.vn-sprite.active .shadow-silhouette-img {
+    filter:
+        brightness(0.12)
+        contrast(1.15)
+        drop-shadow(0 14px 32px rgba(0, 0, 0, 0.6));
+}
+
+/* Sprite inactivo — más oscuro y difuminado */
+.vn-sprite.inactive .shadow-silhouette-img {
+    filter:
+        brightness(0.05)
+        contrast(1.0)
+        blur(2px)
+        drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4));
+    opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CLOUD PROFILES — Tarjetas de perfiles globales de Supabase
+   ═══════════════════════════════════════════════════════════════════ */
+
+.cloud-profiles-empty {
+    color: var(--text-muted, rgba(180, 165, 130, 0.5));
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+    font-size: 0.9rem;
+}
+
+.cloud-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 12px;
+    border: 1px solid rgba(160,128,220, 0.15);
+    background: rgba(20, 15, 8, 0.6);
+    transition: border-color 0.2s ease, background 0.2s ease;
+    margin-bottom: 0.45rem;
+}
+
+.cloud-profile-card.profile-free {
+    border-color: rgba(100, 200, 130, 0.25);
+    background: rgba(20, 40, 25, 0.5);
+}
+.cloud-profile-card.profile-mine {
+    border-color: rgba(160,128,220, 0.45);
+    background: rgba(40, 30, 10, 0.7);
+    box-shadow: 0 0 0 1px rgba(160,128,220, 0.1) inset;
+}
+.cloud-profile-card.profile-taken {
+    opacity: 0.55;
+}
+
+.cloud-profile-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(160,128,220, 0.12);
+    border: 1px solid rgba(160,128,220, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: rgba(160,128,220, 0.8);
+    flex-shrink: 0;
+}
+
+.cloud-profile-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.cloud-profile-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: rgba(232, 220, 190, 0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cloud-profile-stats {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.cloud-stat {
+    font-size: 0.68rem;
+    color: rgba(180, 160, 120, 0.65);
+    background: rgba(160,128,220, 0.06);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+}
+.cloud-stat em {
+    font-style: normal;
+    color: rgba(160,128,220, 0.7);
+    margin-right: 0.2rem;
+}
+
+.cloud-profile-status-badge {
+    font-size: 0.65rem;
+    font-family: 'Cinzel', serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.cloud-profile-status-badge.profile-free  { background: rgba(100,200,130,0.12); color: rgba(120,220,150,0.85); border: 1px solid rgba(100,200,130,0.25); }
+.cloud-profile-status-badge.profile-mine  { background: rgba(160,128,220,0.12); color: rgba(230,200,140,0.9);  border: 1px solid rgba(160,128,220,0.3);  }
+.cloud-profile-status-badge.profile-taken { background: rgba(200,100,100,0.10); color: rgba(220,140,140,0.75); border: 1px solid rgba(200,100,100,0.2);  }
+
+.cloud-profile-select-btn {
+    font-size: 0.72rem;
+    font-family: 'Cinzel', serif;
+    padding: 0.3rem 0.7rem;
+    border-radius: 8px;
+    border: 1px solid rgba(160,128,220, 0.35);
+    background: rgba(160,128,220, 0.08);
+    color: rgba(160,128,220, 0.85);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+.cloud-profile-select-btn:hover {
+    background: rgba(160,128,220, 0.18);
+    border-color: rgba(160,128,220, 0.55);
+}
+.cloud-profile-select-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ============================================

@@ -2239,7 +2239,12 @@ body.is-pwa .menu-exit-btn:active {
     .menu-inbox-float  { top: 0.75rem; right: 3.8rem; width: 36px; height: 36px; }
 }
 
-/* -- css/components.css -- */
+/* -- css/components/01-base.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   01-BASE — Assets, scrollbars, lluvia, niebla, emotes, tooltips, sync, autosave
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
 
 /* ============================================================
    ASSETS — rutas centralizadas
@@ -2685,6 +2690,13 @@ body::before {
         }
         .autosave-indicator.visible .autosave-icon { animation: wax-stamp-pop 0.38s ease-out; }
         
+
+
+/* -- css/components/02-user-selection.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   02-USER-SELECTION — Pantalla de selección de perfil / usuario
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
 
         /* SELECTOR DE PERFIL */
         /* =====================================================
@@ -3997,6 +4009,13 @@ body::before {
         }
 
         /* ═══════════════════════════════════════════
+
+/* -- css/components/03-topic-cards.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   03-TOPIC-CARDS — Tarjetas de historia (estilo tarot) — identidad visual por modo
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
            TOPIC CARDS — identidad visual por modo
         ═══════════════════════════════════════════ */
         .topic-card {
@@ -5509,6 +5528,13 @@ body::before {
         .vn-section.bw { filter: grayscale(1) contrast(1.2); }
         .vn-section.cinematic { filter: contrast(1.3) saturate(1.2) brightness(0.9); }
 
+
+/* -- css/components/04-info-card.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   04-INFO-CARD — Info card con sistema de afinidad
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
         /* INFO CARD CON SISTEMA DE AFINIDAD */
         .vn-info-card {
             position: fixed;
@@ -6606,6 +6632,13 @@ body::before {
             color: var(--bg-primary);
             transform: rotate(90deg);
         }
+
+
+/* -- css/components/05-reply-panel.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   05-REPLY-PANEL — Panel Responder
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
 
         /* ── PANEL RESPONDER ── */
         .vn-reply-panel {
@@ -7991,6 +8024,13 @@ body::before {
             color: rgba(160,128,220,1);
         }
 
+
+/* -- css/components/06-vn-mobile-rpg.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   06-VN-MOBILE-RPG — Mobile VN (drawer, FAB, typing), tema RPG Fire Emblem, mini-panel oráculo, ficha desplegable
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
 /* ===== Mobile VN drawer, FAB y modo inmersivo ===== */
 .drawer-handle {
     display: none;
@@ -8719,6 +8759,13 @@ body.mode-classic .vn-dialogue-action-btn:not(.reply-btn):not(.delete-message-bt
     color: var(--cls-text);
 }
 
+
+/* -- css/components/07-tone-story.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   07-TONE-STORY — Variantes de tono, separadores de capítulo, banners, ornamentos, galería inline
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
 /* ── VARIANTES DE TONO ── */
 
 /* ══════════════════════════════════════════
@@ -9412,6 +9459,13 @@ body.mode-classic .vn-dialogue-action-btn:not(.reply-btn):not(.delete-message-bt
     font-size: 0.85em;
 }
 
+
+
+/* -- css/components/08-responsive-modals.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   08-RESPONSIVE-MODALS — Responsive patches, fichas modales compactas, galería v2, character cards
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
 
 /* ============================================================
    PATCH 21 — Correcciones de UI
@@ -10707,6 +10761,13 @@ body.mode-classic .vn-message-counter {
     .sheet-job-ribbon { position: static; clip-path: none; text-align: center; border-radius: 6px; margin-top: 0.5rem; }
 }
 
+
+/* -- css/components/09-vn-dialogue.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   09-VN-DIALOGUE — Cajas de diálogo RPG y Clásico, nameplates, avatares, HP/EXP, IHP (info hover panel), sprite sombra
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
 /* ══════════════════════════════════════════════════════════════
    MODO RPG — Piedra tallada, metal oxidado, runas
    ══════════════════════════════════════════════════════════════ */
@@ -11821,6 +11882,13 @@ body.mode-classic .shadow-glow {
 
 
 /* ── Botones de diálogo — layout izquierda/derecha ── */
+
+/* -- css/components/10-vn-controls.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   10-VN-CONTROLS — Botones de diálogo, save hub, options cards, rendimiento, stories panel
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
 .vn-dialogue-actions {
     display: flex !important;
     align-items: center;
@@ -12820,6 +12888,13 @@ select {
 }
 
 /* ============================================
+
+/* -- css/components/11-character-modal.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   11-CHARACTER-MODAL — Modal de personaje (header, body, footer, landscape, portrait), session manager, narrator
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
    STORIES PANEL
    ============================================ */
 /* Active story badge in VN bar */
@@ -13929,6 +14004,13 @@ select {
 }
 
 /* ══════════════════════════════════════════════════════════════
+
+/* -- css/components/12-rpg-system.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   12-RPG-SYSTEM — Stats D&D, selector de clase, botón pin, editor de stats, room code, DM panel, inventario
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
    MODAL AVISO SIN PERSONAJES
    ══════════════════════════════════════════════════════════════ */
 .no-char-warning-modal {
@@ -14874,6 +14956,13 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+
+/* -- css/components/13-presence-party.css -- */
+/* ═══════════════════════════════════════════════════════════════
+   13-PRESENCE-PARTY — Panel de presencia (participantes), party panel (handoff, gestión de grupo)
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
    PANEL DEL DUNGEON MASTER
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -15864,6 +15953,7 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
         max-height: min(44vh, 300px);
     }
 }
+
 
 /* -- css/menu.css -- */
 /* ══════════════════════════════════════════════════════════════════════════

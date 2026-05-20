@@ -1,0 +1,733 @@
+/* ═══════════════════════════════════════════════════════════════
+   06-VN-MOBILE-RPG — Mobile VN (drawer, FAB, typing), tema RPG Fire Emblem, mini-panel oráculo, ficha desplegable
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ===== Mobile VN drawer, FAB y modo inmersivo ===== */
+.drawer-handle {
+    display: none;
+    width: 64px;
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(160,128,220, 0.55);
+    margin: 0.5rem auto 0.2rem;
+    touch-action: pan-y;
+}
+
+.vn-mobile-fab-nav {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 0.7rem);
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    gap: 0.6rem;
+    z-index: var(--z-i-260);
+}
+
+.vn-mobile-fab-btn {
+    border: 1px solid rgba(160,128,220, 0.4);
+    background: rgba(0, 0, 0, 0.65);
+    color: #f8e6bf;
+    border-radius: 999px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.05rem;
+}
+
+.vn-mobile-fab-btn.main {
+    width: 52px;
+    height: 52px;
+    font-size: 1.2rem;
+    background: rgba(88, 64, 29, 0.8);
+}
+
+body.immersive-mode #vnSection .vn-controls,
+body.immersive-mode #vnSection #vnInfoCard,
+body.immersive-mode #vnSection #roomCodeWrap {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+}
+
+body.immersive-mode.immersive-reveal #vnSection .vn-controls,
+body.immersive-mode.immersive-reveal #vnSection #vnInfoCard,
+body.immersive-mode.immersive-reveal #vnSection #roomCodeWrap {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+    :root { --font-size-base: 1.35rem; }
+
+    .vn-dialogue-box {
+        padding: 0.95rem 0.8rem 1.8rem 4.3rem;
+    }
+
+    .vn-speaker-avatar {
+        width: 52px;
+        height: 52px;
+        font-size: 1.45rem;
+    }
+
+    .vn-reply-panel {
+        height: 35dvh;
+        height: 35vh; /* fallback */
+        max-height: 85dvh;
+        transition: height 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .vn-reply-panel.drawer-expanded {
+        height: 85dvh;
+    }
+
+    .vn-reply-panel.drawer-collapsed {
+        height: 35dvh;
+    }
+
+    .drawer-handle {
+        display: block;
+    }
+
+    .vn-reply-header {
+        padding: 0.65rem 0.9rem;
+    }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .vn-mobile-fab-nav {
+        bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+}
+
+/* ===== Typing indicator in VN info card ===== */
+.vn-typing-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+.vn-typing-indicator span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(160,128,220,0.9);
+    animation: vn-typing-dot 1s infinite ease-in-out;
+}
+.vn-typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+.vn-typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes vn-typing-dot {
+    0%, 80%, 100% { transform: translateY(0); opacity: .5; }
+    40% { transform: translateY(-3px); opacity: 1; }
+}
+
+/* ===== Sprite micro-animations ===== */
+.vn-sprite.active img {
+    animation: sprite-active-breathe var(--sprite-breathing-duration, 4s) ease-in-out infinite;
+    animation-play-state: var(--section-animations, running);
+    transform-origin: center bottom;
+}
+.vn-sprite.active:nth-child(3n) img {
+    animation-duration: calc(var(--sprite-breathing-duration, 4s) + 0.8s);
+    animation-delay: -0.7s;
+}
+.vn-sprite.active:nth-child(3n + 1) img {
+    animation-duration: calc(var(--sprite-breathing-duration, 4s) + 0.35s);
+    animation-delay: -0.3s;
+}
+.vn-sprite.active.sprite-blink img {
+    filter: brightness(1.16) saturate(1.08)
+            drop-shadow(0 25px 35px rgba(0,0,0,0.45))
+            drop-shadow(0 0 25px rgba(160,128,220, 0.16));
+}
+@keyframes sprite-active-breathe {
+    0%, 100% { transform: translateY(0) scaleY(1) rotate(0deg); }
+    25% { transform: translateY(-1.5px) scaleY(1.01) rotate(-0.25deg); }
+    50% { transform: translateY(-2.4px) scaleY(1.02) rotate(0.22deg); }
+    75% { transform: translateY(-1.1px) scaleY(1.01) rotate(-0.15deg); }
+}
+@media (hover: hover) {
+    .vn-sprite.hover-near img {
+        transform: scale(1.03);
+        transition: transform 120ms ease;
+    }
+}
+.vn-sprite.focus-pop img {
+    transform: scale(1.04);
+    transition: transform 140ms ease;
+}
+
+.oracle-consequence {
+  border-left: 3px solid var(--oracle-result-color, rgba(160,128,220,0.6));
+  padding-left: 1rem;
+  margin-bottom: 1rem;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.oracle-consequence.cara {
+  --oracle-result-color: var(--accent-gold);
+}
+
+.oracle-consequence.cruz {
+  --oracle-result-color: #c75b5b;
+}
+
+/* Botón oráculo integrado en la barra de acciones del diálogo */
+.oracle-action-btn {
+  color: var(--accent-gold, #a080e0);
+}
+.oracle-action-btn.active,
+.oracle-action-btn[data-oracle-active="true"] {
+  color: #f1c40f;
+  text-shadow: 0 0 8px rgba(241,196,15,0.5);
+}
+
+.relationship-constellation {
+  position: relative;
+  margin-top: 0.85rem;
+  min-height: 430px;
+  border: 1px solid rgba(160,128,220,0.22);
+  border-radius: 14px;
+  background: radial-gradient(circle at 30% 20%, rgba(89,73,43,0.18), rgba(0,0,0,0.32));
+  overflow: hidden;
+}
+.relationship-constellation svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.relationship-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.22rem;
+  cursor: pointer;
+}
+.relationship-node-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(160,128,220,0.55);
+  background: rgba(0,0,0,0.42);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+.relationship-node-avatar img { width:100%; height:100%; object-fit:cover; }
+.relationship-node-name {
+  font-size: 0.75rem;
+  color: #f5e9cc;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+.relationship-node-stars {
+  font-size: 0.74rem;
+  color: var(--accent-gold);
+}
+
+/* ============================================================
+   MEJORA 2 — TEMA VISUAL MODO RPG (Fire Emblem clásico)
+   Se activa añadiendo body.mode-rpg desde enterTopic
+   ============================================================ */
+
+/* Variables del tema RPG — piedra arenisca cálida oscura */
+body.mode-rpg {
+    --rpg-blue-dark:    #1a1510;
+    --rpg-blue-mid:     #231a0f;
+    --rpg-blue-light:   #2f2418;
+    --rpg-crimson:      #7a3a18;
+    --rpg-crimson-bright: #a05020;
+    --rpg-silver:       #c8b898;
+    --rpg-silver-dim:   rgba(200, 184, 152, 0.45);
+    --rpg-text:         #e8dcc8;
+    --rpg-text-cold:    #f5efe0;
+}
+
+/* Caja de diálogo — piedra oscura cálida */
+body.mode-rpg .vn-dialogue-box {
+    background: linear-gradient(135deg,
+        rgba(26, 21, 16, 0.96) 0%,
+        rgba(17, 13, 9, 0.98) 100%);
+    /* Borde usa el color del personaje activo (igual que modo base) */
+    border-color: var(--char-color, rgba(200, 184, 152, 0.35));
+    box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(200, 184, 152, 0.06),
+        0 0 22px -6px var(--char-color, rgba(122, 58, 24, 0.35)),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Icono de esquina: espada en vez de hoja */
+body.mode-rpg .vn-dialogue-box::after {
+    content: '⚔';
+    transform: none;
+    color: rgba(200, 184, 152, 0.25);
+    font-size: 1rem;
+}
+
+/* Línea interior */
+body.mode-rpg .vn-dialogue-box::before {
+    border-color: rgba(200, 184, 152, 0.08);
+}
+
+/* Texto del diálogo — blanco frío */
+body.mode-rpg .vn-dialogue-text {
+    color: var(--rpg-text-cold) !important;
+}
+
+/* Placa del personaje — piedra oscura a cobre, respeta inline style del oráculo */
+body.mode-rpg .vn-speaker-plate {
+    background: linear-gradient(135deg, #1a1510, #3a1e08);
+    border-color: var(--char-color, rgba(200, 184, 152, 0.3));
+    color: var(--rpg-text-cold);
+    top: -1px;
+    bottom: auto;
+    border-top: none;
+    border-bottom: 1px solid var(--char-color, rgba(200, 184, 152, 0.3));
+    border-left: none;
+    border-radius: 0 0 12px 0;
+}
+
+/* Panel de respuesta */
+body.mode-rpg .vn-reply-panel {
+    background: linear-gradient(180deg,
+        rgba(26, 21, 16, 0.97) 0%,
+        rgba(14, 11, 7, 0.99) 100%);
+    border-top-color: rgba(200, 184, 152, 0.25);
+}
+body.mode-rpg .vn-reply-header {
+    background: linear-gradient(90deg, rgba(122, 58, 24, 0.1) 0%, transparent 60%);
+    border-bottom-color: rgba(200, 184, 152, 0.1);
+}
+
+/* Botones de acción al hover — cobre cálido */
+body.mode-rpg .vn-dialogue-action-btn.reply-btn:hover,
+body.mode-rpg .vn-dialogue-action-btn.reply-btn {
+    background: rgba(122, 58, 24, 0.8);
+    border-color: var(--rpg-crimson-bright);
+    color: #fff;
+}
+body.mode-rpg .vn-dialogue-action-btn:not(.reply-btn):not(.delete-message-btn):hover {
+    background: rgba(122, 58, 24, 0.45);
+    border-color: rgba(160, 80, 32, 0.7);
+    color: #fff;
+}
+
+/* Opciones de elección — bordes arenisca, cobre al seleccionar */
+body.mode-rpg .vn-option-btn {
+    border-color: var(--rpg-silver-dim);
+    background: rgba(26, 21, 16, 0.88);
+    color: var(--rpg-text);
+}
+body.mode-rpg .vn-option-btn:hover {
+    border-color: var(--rpg-silver);
+    background: rgba(38, 30, 20, 0.95);
+    box-shadow: 0 6px 28px rgba(0,0,0,0.6), 0 0 14px rgba(200,184,152,0.12);
+    color: var(--rpg-text-cold);
+}
+body.mode-rpg .vn-option-btn.chosen {
+    background: rgba(122, 58, 24, 0.7);
+    border-color: var(--rpg-crimson-bright);
+    color: #fff;
+}
+
+/* Badge de dado en modo RPG */
+body.mode-rpg .vn-dice-badge {
+    border-color: var(--rpg-silver-dim);
+    color: var(--rpg-silver);
+}
+
+/* Botón flotante oráculo en modo RPG */
+body.mode-rpg .vn-oracle-float-btn {
+    background: linear-gradient(135deg, rgba(26, 21, 16, 0.96), rgba(14, 11, 7, 0.96));
+    border-color: var(--rpg-silver-dim);
+    color: var(--rpg-text);
+}
+body.mode-rpg .vn-oracle-float-btn.active {
+    border-color: var(--rpg-crimson-bright);
+    box-shadow: 0 0 0 2px rgba(160, 80, 32, 0.25), 0 10px 24px rgba(0,0,0,.42);
+}
+
+/* ============================================================
+   MINI-PANEL DEL ORÁCULO (flotante, independiente)
+   ============================================================ */
+.vn-oracle-minipanel {
+    position: fixed;
+    right: 1.3rem;
+    bottom: 16rem;
+    z-index: var(--z-i-511);
+    width: 280px;
+    background: linear-gradient(160deg, rgba(26, 21, 16, 0.98), rgba(14, 11, 7, 0.99));
+    border: 1px solid rgba(200, 184, 152, 0.35);
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(200,184,152,0.06);
+    backdrop-filter: blur(20px);
+    animation: fadeIn 0.2s ease;
+}
+@media (max-width: 768px) {
+    .vn-oracle-minipanel {
+        right: 0.8rem;
+        bottom: 12.5rem;
+        width: calc(100vw - 1.6rem);
+        max-width: 320px;
+    }
+}
+.vn-oracle-minipanel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem 0.5rem;
+    border-bottom: 1px solid rgba(200,184,152,0.1);
+}
+.vn-oracle-minipanel-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: rgba(200,184,152,0.9);
+    letter-spacing: 0.05em;
+}
+.vn-oracle-minipanel-close {
+    background: none;
+    border: none;
+    color: rgba(200,184,152,0.5);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    transition: color 0.2s;
+}
+.vn-oracle-minipanel-close:hover { color: rgba(160, 80, 32, 0.9); }
+.vn-oracle-minipanel-body {
+    padding: 0.75rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.vn-oracle-minipanel-textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(200,184,152,0.2);
+    border-radius: 8px;
+    color: #e8dcc8;
+    font-family: 'Crimson Text', serif;
+    font-size: 0.95rem;
+    padding: 0.5rem 0.65rem;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+.vn-oracle-minipanel-textarea:focus { border-color: rgba(200,184,152,0.5); }
+.vn-oracle-minipanel-textarea::placeholder { color: rgba(200,184,152,0.3); }
+.vn-oracle-minipanel-stats {
+    display: flex;
+    gap: 0.4rem;
+}
+.vn-oracle-minipanel-stats .oracle-stat-btn {
+    flex: 1;
+    padding: 0.3rem 0;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid rgba(200,184,152,0.2);
+    background: transparent;
+    color: rgba(200,184,152,0.6);
+    cursor: pointer;
+    font-family: 'Cinzel', serif;
+    transition: all 0.2s;
+}
+.vn-oracle-minipanel-stats .oracle-stat-btn.active,
+.vn-oracle-minipanel-stats .oracle-stat-btn:hover {
+    border-color: rgba(160,80,32,0.7);
+    color: #e8dcc8;
+    background: rgba(122,58,24,0.25);
+}
+.vn-oracle-minipanel-rolltype {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+.vn-oracle-rolltype-select {
+    flex: 0 0 auto;
+    min-width: 170px;
+    background: rgba(32,24,18,0.96);
+    color: #e8dcc8;
+    border: 1px solid rgba(200,184,152,0.22);
+    border-radius: 7px;
+    padding: 0.38rem 0.55rem;
+    font-size: 0.74rem;
+    font-family: 'Cinzel', serif;
+}
+.vn-oracle-minipanel-context {
+    flex: 1;
+    font-size: 0.68rem;
+    color: rgba(200,184,152,0.58);
+    letter-spacing: 0.04em;
+    text-align: right;
+    font-family: 'Cinzel', serif;
+}
+.vn-oracle-minipanel-info {
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    color: rgba(200,184,152,0.5);
+    text-align: center;
+    letter-spacing: 0.05em;
+}
+.vn-scene-relay-helper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.vn-scene-relay-toggle {
+    align-self: flex-start;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: rgba(220,210,190,0.72);
+    font-size: 0.73rem;
+    font-family: 'Cinzel', serif;
+    cursor: pointer;
+}
+.vn-scene-relay-toggle:hover {
+    color: #f0e3cc;
+}
+.vn-scene-relay-guide {
+    background: rgba(20,16,12,0.78);
+    border: 1px solid rgba(200,184,152,0.16);
+    border-radius: 10px;
+    padding: 0.65rem 0.75rem;
+    color: rgba(232,220,200,0.82);
+    font-size: 0.78rem;
+    line-height: 1.45;
+}
+.vn-scene-relay-guide strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #f0e3cc;
+    font-family: 'Cinzel', serif;
+}
+.vn-scene-relay-guide p {
+    margin: 0 0 0.45rem;
+}
+.vn-scene-relay-guide ul {
+    margin: 0;
+    padding-left: 1rem;
+}
+.vn-scene-relay-guide li + li {
+    margin-top: 0.25rem;
+}
+.vn-turn-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    align-self: flex-start;
+    max-width: min(100%, 520px);
+    margin: 0.35rem 0 0.15rem;
+    padding: 0.36rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(160,128,220,0.24);
+    background: linear-gradient(135deg, rgba(34,24,18,0.9), rgba(61,40,27,0.8));
+    color: rgba(233,220,196,0.92);
+    font-family: 'Cinzel', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    line-height: 1.35;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+.vn-turn-badge strong {
+    color: #f3e6cf;
+}
+.vn-turn-badge[data-turn-state="self"] {
+    border-color: rgba(100, 190, 124, 0.32);
+    background: linear-gradient(135deg, rgba(22,46,28,0.88), rgba(41,72,49,0.72));
+}
+.vn-turn-badge[data-turn-state="other"] {
+    border-color: rgba(160,128,220,0.24);
+}
+.vn-turn-badge[data-turn-state="waiting"] {
+    border-color: rgba(130,140,170,0.22);
+    background: linear-gradient(135deg, rgba(28,32,40,0.88), rgba(44,52,64,0.72));
+}
+.vn-oracle-minipanel-roll {
+    background: linear-gradient(135deg, rgba(122,58,24,0.85), rgba(90,38,10,0.9));
+    border: 1px solid rgba(160,80,32,0.6);
+    color: #fff;
+    border-radius: 8px;
+    padding: 0.55rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.03em;
+}
+.vn-oracle-minipanel-roll:hover {
+    background: linear-gradient(135deg, rgba(160,80,32,0.9), rgba(122,58,24,0.95));
+    box-shadow: 0 4px 14px rgba(160,80,32,0.35);
+}
+
+/* ============================================================
+   TEMA RPG — info-card y rpg-stats-modal
+   ============================================================ */
+body.mode-rpg .vn-info-card {
+    background: linear-gradient(135deg, rgba(20, 16, 11, 0.94), rgba(12, 9, 6, 0.97));
+    border-color: rgba(200, 184, 152, 0.3);
+    box-shadow:
+        0 12px 36px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(200,184,152,0.06),
+        0 0 14px -4px rgba(122,58,24,0.3);
+}
+body.mode-rpg .vn-hover-row { color: rgba(200,184,152,0.65); }
+body.mode-rpg .vn-info-hover-details {
+    background: rgba(18, 14, 9, 0.96);
+    border-color: rgba(200,184,152,0.2);
+}
+
+/* Stats RPG modal en modo RPG */
+body.mode-rpg .rpg-stats-modal {
+    background: linear-gradient(160deg, rgba(20, 16, 11, 0.98), rgba(12, 9, 6, 0.99));
+    border-color: rgba(200, 184, 152, 0.35);
+    box-shadow: 0 30px 70px rgba(0,0,0,0.65), 0 0 0 1px rgba(200,184,152,0.07);
+}
+body.mode-rpg .rpg-stats-title { color: rgba(200,184,152,0.9); }
+body.mode-rpg .rpg-stats-progress-label { color: rgba(160,80,32,0.9); }
+body.mode-rpg .rpg-stats-card {
+    border-color: rgba(200,184,152,0.15);
+    background: rgba(200,184,152,0.03);
+}
+body.mode-rpg .rpg-stats-card-key { color: rgba(160,80,32,0.85); }
+body.mode-rpg .rpg-stats-card-value { color: #e8dcc8; }
+body.mode-rpg .rpg-stats-card-desc { color: rgba(200,184,152,0.55); }
+body.mode-rpg .rpg-stats-points { color: #e8dcc8; }
+body.mode-rpg .rpg-stats-note { color: rgba(200,184,152,0.5); }
+body.mode-rpg .sheet-rpg-progress {
+    background: rgba(200,184,152,0.1);
+}
+body.mode-rpg .sheet-rpg-progress-fill.hp { background: rgba(160,80,32,0.8); }
+body.mode-rpg .sheet-rpg-progress-fill.exp { background: rgba(139,105,20,0.8); }
+
+/* ============================================================
+   MODO CLÁSICO — tema "Pergamino a la Luz de Vela"
+   Fondo oscuro cálido pero más claro que el RPG, como papel
+   envejecido en una habitación iluminada por velas.
+   El RPG es piedra fría oscura; el clásico es madera cálida
+   con más luminosidad y temperatura de color diferente.
+   ============================================================ */
+
+body.mode-classic {
+    /* Fondos: marrón cálido medio, como madera oscura o cuero */
+    --cls-bg:       rgba(38, 26, 14, 0.96);
+    --cls-bg-mid:   rgba(48, 34, 18, 0.97);
+    --cls-bg-panel: rgba(52, 38, 20, 0.99);
+    /* Acento: dorado cálido visible */
+    --cls-gold:     #c9a45a;
+    --cls-gold-dim: rgba(201, 164, 90, 0.45);
+    /* Texto: crema cálida — legible sobre el fondo oscuro cálido */
+    --cls-text:     #f0e0c0;
+    --cls-text-dim: rgba(230, 205, 155, 0.65);
+    /* Bordes: madera cálida */
+    --cls-border:   rgba(180, 140, 80, 0.45);
+}
+
+/* Overlay de fondo: tinte cálido sobre la imagen */
+.vn-section.mode-classic::before {
+    background: linear-gradient(135deg, rgba(60, 40, 16, 0.25), rgba(30, 18, 6, 0.18)) !important;
+}
+
+/* Caja de diálogo — madera oscura cálida, MÁS CÁLIDA Y MARRÓN que el RPG */
+body.mode-classic .vn-dialogue-box {
+    background: linear-gradient(150deg,
+        rgba(42, 30, 14, 0.96) 0%,
+        rgba(30, 21, 9, 0.98) 100%);
+    border-color: var(--cls-gold-dim);
+    box-shadow:
+        0 20px 56px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(201, 164, 90, 0.1),
+        0 0 28px -6px rgba(160, 110, 30, 0.3),
+        inset 0 1px 0 rgba(255, 230, 160, 0.06);
+}
+
+body.mode-classic .vn-dialogue-box::after {
+    content: '✒';
+    transform: none;
+    color: rgba(201, 164, 90, 0.28);
+    font-size: 1rem;
+}
+body.mode-classic .vn-dialogue-box::before {
+    border-color: rgba(201, 164, 90, 0.08);
+}
+
+/* Texto — crema cálida sobre fondo madera */
+body.mode-classic .vn-dialogue-text {
+    color: var(--cls-text) !important;
+    font-family: 'Crimson Text', 'EB Garamond', serif !important;
+    font-size: 1.05em !important;
+    line-height: 1.75 !important;
+}
+
+/* Contador de mensajes */
+body.mode-classic .vn-message-counter {
+    color: rgba(201, 164, 90, 0.45);
+}
+
+/* Placa del narrador/personaje — madera más oscura con borde dorado cálido */
+body.mode-classic .vn-speaker-plate {
+    background: linear-gradient(135deg, #1e1408, #3a2a10);
+    border-color: rgba(201, 164, 90, 0.45);
+    color: #f0e0c0;
+    top: -1px;
+    bottom: auto;
+    border-top: none;
+    border-bottom: 1px solid rgba(201, 164, 90, 0.45);
+    border-left: none;
+    border-radius: 0 0 12px 0;
+}
+
+/* Panel de respuesta — madera cálida */
+body.mode-classic .vn-reply-panel {
+    background: linear-gradient(180deg,
+        rgba(42, 30, 14, 0.98) 0%,
+        rgba(28, 20, 8, 0.99) 100%);
+    border-top-color: rgba(201, 164, 90, 0.35);
+    box-shadow:
+        0 -2px 0 0 rgba(160, 110, 30, 0.25),
+        0 -12px 48px rgba(0, 0, 0, 0.45);
+    color: var(--cls-text);
+}
+body.mode-classic .vn-reply-header {
+    background: linear-gradient(90deg, rgba(180, 130, 40, 0.1) 0%, transparent 60%);
+    border-bottom-color: rgba(201, 164, 90, 0.12);
+}
+body.mode-classic .vn-reply-title { color: var(--cls-text); }
+body.mode-classic .vn-reply-textarea {
+    background: rgba(55, 38, 16, 0.85);
+    border-color: rgba(180, 140, 80, 0.4);
+    color: var(--cls-text);
+}
+body.mode-classic .vn-reply-textarea:focus {
+    border-color: rgba(201, 164, 90, 0.8);
+    box-shadow: 0 0 0 2px rgba(201, 164, 90, 0.12);
+}
+body.mode-classic .vn-reply-textarea::placeholder {
+    color: rgba(201, 164, 90, 0.35);
+}
+
+/* Botón Responder — dorado cálido */
+body.mode-classic .vn-dialogue-action-btn.reply-btn,
+body.mode-classic .vn-dialogue-action-btn.reply-btn:hover {
+    background: rgba(160, 110, 30, 0.8);
+    border-color: var(--cls-gold);
+    color: #f0e0c0;
+}
+body.mode-classic .vn-dialogue-action-btn:not(.reply-btn):not(.delete-message-btn) {
+    color: var(--cls-text-dim);
+    border-color: rgba(201, 164, 90, 0.25);
+}
+body.mode-classic .vn-dialogue-action-btn:not(.reply-btn):not(.delete-message-btn):hover {
+    background: rgba(160, 110, 30, 0.2);
+    border-color: rgba(201, 164, 90, 0.6);
+    color: var(--cls-text);
+}
+

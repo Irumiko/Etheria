@@ -1,0 +1,1114 @@
+/* ═══════════════════════════════════════════════════════════════
+   11-CHARACTER-MODAL — Modal de personaje (header, body, footer, landscape, portrait), session manager, narrator
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
+   STORIES PANEL
+   ============================================ */
+/* Active story badge in VN bar */
+.active-story-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.7rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(160,128,220, 0.9);
+    background: rgba(160,128,220, 0.1);
+    border: 1px solid rgba(160,128,220, 0.3);
+    border-radius: 5px;
+    padding: 0.2rem 0.5rem;
+    white-space: nowrap;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: default;
+}
+
+/* Story participants row */
+.story-participants-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0;
+}
+.story-participants-label {
+    font-size: 0.6rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(180,150,90,0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+}
+.story-participants-list {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+/* Participante individual */
+.story-participant-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    cursor: default;
+    opacity: 0.55;
+    transition: opacity 0.2s;
+}
+.story-participant-wrap.online {
+    opacity: 1;
+}
+.story-participant-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid rgba(160,128,220,0.3);
+}
+/* Inicial cuando no hay avatar */
+.story-participant-initial {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(160,128,220,0.35);
+    background: rgba(160,128,220,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-family: 'Cinzel', serif;
+    color: rgba(220,195,140,0.85);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+/* Nombre del personaje */
+.story-participant-name {
+    font-size: 0.52rem;
+    color: rgba(200,180,130,0.55);
+    font-family: 'Cinzel', serif;
+    max-width: 44px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    letter-spacing: 0.02em;
+}
+.story-participant-wrap.online .story-participant-name {
+    color: rgba(220,195,140,0.8);
+}
+/* Punto de presencia */
+.story-participant-dot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(120,120,120,0.5);
+    border: 1.5px solid rgba(20,12,4,0.9);
+    transition: background 0.3s;
+}
+.story-participant-wrap.online .story-participant-dot {
+    background: #4ade80;
+    box-shadow: 0 0 4px rgba(74,222,128,0.6);
+}
+.story-participants-empty {
+    font-size: 0.72rem;
+    color: var(--text-muted, rgba(255,255,255,0.4));
+}
+
+/* ── Fallback portrait: ajustes si el lock falló y el usuario rota ──────────
+   Solo aplica en móviles reales en portrait mode. Desktop nunca entra aquí
+   porque su min-width es siempre mayor que su height.                        */
+@media screen and (orientation: portrait) and (max-width: 767px) {
+
+    /* Aviso visual sutil en la esquina — recuerda rotar sin bloquear la UI */
+    body.is-mobile::before {
+        content: '🔄 Mejor en horizontal';
+        position: fixed;
+        top: 0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(20, 15, 8, 0.88);
+        color: rgba(220, 190, 120, 0.9);
+        font-family: 'Cinzel', serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        padding: 0.3rem 0.9rem;
+        border-radius: 0 0 8px 8px;
+        border: 1px solid rgba(160,128,220, 0.3);
+        border-top: none;
+        z-index: var(--z-i-9999);
+        pointer-events: none;
+        white-space: nowrap;
+        /* Respeta prefers-reduced-motion */
+        animation: none;
+    }
+    body.is-mobile.prefers-reduced-motion::before {
+        animation: none;
+    }
+
+    /* La sección VN ocupa el ancho completo sin márgenes laterales */
+    .vn-section {
+        min-height: 100dvh;
+    }
+
+    /* Caja de diálogo: más compacta en portrait */
+    .vn-dialogue-box {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    /* Panel de respuesta: ocupa toda la pantalla en portrait */
+    .vn-reply-panel {
+        max-height: 100dvh;
+        width: 100%;
+    }
+
+    /* Info card: reducida para no tapar el contenido */
+    .vn-info-card {
+        max-width: 200px;
+        font-size: 0.8rem;
+    }
+
+    /* Toolbar de controles: más pequeña */
+    .vn-controls {
+        gap: 0.2rem;
+        padding: 0.3rem;
+    }
+    .vn-control-slot {
+        width: 28px;
+        height: 28px;
+        flex: 0 0 28px;
+    }
+
+    /* Room code: debajo del toolbar, centrado */
+    #roomCodeWrap {
+        top: 54px;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODAL RESPONDER v2 — overlay centrado flotante, split landscape, preview MD
+   Reemplaza el antiguo drawer anclado al fondo con un modal elevado y moderno.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Contenedor raíz: overlay de pantalla completa ─────────────────────── */
+#vnReplyPanel {
+    /* Overlay de pantalla completa — SIEMPRE en el viewport real.
+       El JS lo mueve a <body> en openReplyPanel() para que
+       position:fixed no quede atrapado por filter/transform del padre. */
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0; /* inset explícito */
+    width: 100%; height: 100%;             /* seguro en Safari */
+    display: none;            /* JS lo cambia a flex */
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-i-1200);            /* por encima de todo */
+    /* Sin fondo propio — el backdrop hijo lo maneja */
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 1.5vh 0;         /* pequeño margen vertical de seguridad */
+    /* Anular cualquier herencia de drawer */
+    max-height: none;
+    overflow: visible;
+    flex-direction: row;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-top: none;
+    border-radius: 0;
+    /* Evitar que el propio panel sea afectado por transforms */
+    transform: none;
+}
+#vnReplyPanel.active {
+    display: flex;
+}
+
+/* ── Backdrop con blur ──────────────────────────────────────────────────── */
+.vrp-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 3, 1, 0.72);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: var(--z-i-0);
+    cursor: pointer;
+}
+
+/* ── Modal elevado ──────────────────────────────────────────────────────── */
+.vrp-modal {
+    position: relative;
+    z-index: var(--z-i-1);
+    width: min(92vw, 780px);
+    /* Limitar altura para que quepa siempre en la pantalla con margen */
+    max-height: min(82vh, 680px);
+    /* Evitar que supere el viewport en pantallas pequeñas */
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+    overflow: hidden;
+    background: linear-gradient(160deg,
+        rgba(36, 25, 14, 0.99) 0%,
+        rgba(20, 14, 8, 1) 100%);
+    border: 1px solid rgba(160,128,220, 0.22);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+        0 2px 0 rgba(255, 220, 140, 0.07) inset,
+        0 32px 80px rgba(0, 0, 0, 0.75),
+        0 8px 32px rgba(0, 0, 0, 0.55),
+        0 0 60px rgba(160,128,220, 0.04);
+    animation: vrpModalIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes vrpModalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(12px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.vrp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem 0.75rem;
+    border-bottom: 1px solid rgba(160,128,220, 0.1);
+    background: linear-gradient(90deg,
+        rgba(160,128,220, 0.06) 0%,
+        transparent 55%);
+    flex-shrink: 0;
+    gap: 0.75rem;
+}
+
+.vrp-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.vrp-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.vrp-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(160,128,220, 0.9);
+    white-space: nowrap;
+}
+
+/* Badge con el nombre del personaje activo */
+.vrp-char-badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.45);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 0.1rem 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+.vrp-char-badge:empty { display: none; }
+
+.vrp-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    flex-shrink: 0;
+}
+
+/* ── Narrator switch ────────────────────────────────────────────────────── */
+.vrp-narrator-switch {
+    display: none; /* JS lo muestra cuando aplica */
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.25rem 0.4rem;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+.vrp-narrator-switch:hover { background: rgba(255,255,255,0.05); }
+
+.vrp-narrator-switch input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0; height: 0;
+}
+
+.vrp-switch-track {
+    width: 34px;
+    height: 19px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(160,128,220, 0.25);
+    border-radius: 20px;
+    position: relative;
+    transition: background 0.25s, border-color 0.25s;
+    flex-shrink: 0;
+}
+.vrp-narrator-switch.active .vrp-switch-track {
+    background: rgba(160,128,220, 0.35);
+    border-color: rgba(160,128,220, 0.7);
+}
+
+.vrp-switch-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 13px;
+    height: 13px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background 0.22s;
+}
+.vrp-narrator-switch.active .vrp-switch-thumb {
+    transform: translateX(15px);
+    background: rgba(160,128,220, 1);
+}
+
+.vrp-switch-label {
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    color: rgba(255, 255, 255, 0.45);
+    white-space: nowrap;
+    transition: color 0.2s;
+}
+.vrp-narrator-switch.active .vrp-switch-label {
+    color: rgba(160,128,220, 0.85);
+}
+
+/* Botón cerrar */
+.vrp-close-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+.vrp-close-btn:hover {
+    background: rgba(220, 80, 60, 0.2);
+    border-color: rgba(220, 80, 60, 0.4);
+    color: rgba(220, 120, 100, 0.9);
+}
+
+/* ── Body: scrollable ───────────────────────────────────────────────────── */
+.vrp-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    min-height: 0;
+    /* Scrollbar sutil */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(160,128,220, 0.2) transparent;
+}
+.vrp-body::-webkit-scrollbar { width: 4px; }
+.vrp-body::-webkit-scrollbar-track { background: transparent; }
+.vrp-body::-webkit-scrollbar-thumb {
+    background: rgba(160,128,220, 0.18);
+    border-radius: 4px;
+}
+
+/* ── Split pane ─────────────────────────────────────────────────────────── */
+.vrp-split {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.vrp-write-pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+/* Preview pane — oculto en portrait, visible solo en landscape con split activo */
+.vrp-preview-pane {
+    display: none; /* activado por media query landscape */
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+}
+.vrp-preview-pane.vrp-preview-visible {
+    display: flex;
+    flex: 1;
+}
+
+/* Labels de sección */
+.vrp-pane-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(160,128,220, 0.45);
+    padding: 0 0.1rem;
+}
+
+/* Hints de formato inline */
+.vrp-format-hints {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+.vrp-format-hints code {
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 0.62rem;
+    color: rgba(160,128,220, 0.4);
+    background: rgba(160,128,220, 0.07);
+    border: 1px solid rgba(160,128,220, 0.15);
+    border-radius: 4px;
+    padding: 0.05rem 0.3rem;
+}
+
+/* Textarea: auto-resize, nunca deforma el modal */
+#vnReplyText {
+    width: 100%;
+    min-height: 120px;
+    max-height: 260px;
+    resize: none;        /* auto-resize via JS; nunca manual */
+    overflow-y: auto;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(160,128,220, 0.18);
+    background: rgba(0, 0, 0, 0.32);
+    color: #f2e8d8;
+    font-family: 'EB Garamond', 'Crimson Text', serif;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    box-sizing: border-box;
+}
+#vnReplyText::placeholder {
+    color: rgba(160,128,220, 0.28);
+    font-style: italic;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+#vnReplyText:focus {
+    outline: none;
+    border-color: var(--char-color, rgba(160,128,220, 0.5));
+    box-shadow:
+        0 0 0 3px rgba(var(--char-color-rgb, 201,168,108), 0.08),
+        inset 0 2px 8px rgba(0,0,0,0.25);
+}
+
+/* Preview content: renderizado de Markdown */
+.vrp-preview-content {
+    flex: 1;
+    min-height: 120px;
+    padding: 0.85rem 1rem;
+    border-radius: 12px;
+    border: 1px solid rgba(160,128,220, 0.12);
+    background: rgba(0, 0, 0, 0.18);
+    color: #f2e8d8;
+    font-family: 'EB Garamond', 'Crimson Text', serif;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    overflow-y: auto;
+    word-break: break-word;
+}
+.vrp-preview-content:empty::before {
+    content: 'La vista previa aparecerá aquí…';
+    color: rgba(160,128,220, 0.25);
+    font-style: italic;
+    font-size: 0.9rem;
+}
+.vrp-preview-content strong { color: rgba(220, 195, 140, 1); font-weight: 700; }
+.vrp-preview-content em { color: rgba(200, 180, 140, 0.85); font-style: italic; }
+.vrp-preview-content .emote-tag {
+    display: inline-block;
+    font-size: 1.3rem;
+    vertical-align: middle;
+    margin: 0 0.2em;
+    animation: emote-appear 0.3s ease-out both;
+}
+
+.vrp-preview-hint {
+    font-size: 0.62rem;
+    color: rgba(160,128,220, 0.3);
+    font-style: italic;
+}
+
+/* Botón toggle preview en portrait */
+.vrp-preview-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(160,128,220, 0.15);
+    border-radius: 8px;
+    color: rgba(160,128,220, 0.55);
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    padding: 0.35rem 0.8rem;
+    cursor: pointer;
+    width: fit-content;
+    transition: background 0.2s, color 0.2s;
+}
+.vrp-preview-toggle:hover {
+    background: rgba(160,128,220, 0.08);
+    color: rgba(160,128,220, 0.8);
+}
+.vrp-preview-toggle.active {
+    background: rgba(160,128,220, 0.12);
+    color: rgba(160,128,220, 0.85);
+    border-color: rgba(160,128,220, 0.3);
+}
+
+/* ── Labels de sección ──────────────────────────────────────────────────── */
+.vrp-section-label {
+    font-size: 0.68rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(160,128,220, 0.45);
+    margin-bottom: 0.4rem;
+}
+
+/* ── Clima mejorado ─────────────────────────────────────────────────────── */
+.vrp-weather-row {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.vrp-weather-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.6rem 0.5rem;
+    border-radius: 10px;
+    border: 1px solid rgba(160,128,220, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.vrp-weather-btn:hover {
+    background: rgba(160,128,220, 0.07);
+    border-color: rgba(160,128,220, 0.3);
+    color: rgba(160,128,220, 0.7);
+}
+.vrp-weather-btn.active {
+    background: rgba(160,128,220, 0.14);
+    border-color: rgba(160,128,220, 0.5);
+    box-shadow: 0 0 12px rgba(160,128,220, 0.12), inset 0 1px 0 rgba(255,220,140,0.1);
+    color: rgba(160,128,220, 1);
+}
+.vrp-weather-icon { font-size: 1.4rem; }
+.vrp-weather-name {
+    font-size: 0.68rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+/* ── Footer fijo ────────────────────────────────────────────────────────── */
+.vrp-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid rgba(160,128,220, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+    flex-shrink: 0;
+    /* Espacio extra para teclado móvil */
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+}
+
+.vrp-btn-cancel {
+    padding: 0.55rem 1.1rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.4);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.vrp-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.vrp-btn-send {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.4rem;
+    border-radius: 10px;
+    border: 1px solid rgba(160,128,220, 0.45);
+    background: linear-gradient(135deg,
+        rgba(160,128,220, 0.22) 0%,
+        rgba(160, 120, 60, 0.25) 100%);
+    color: rgba(220, 190, 130, 1);
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 12px rgba(160,128,220, 0.1);
+}
+.vrp-btn-send:hover {
+    background: linear-gradient(135deg,
+        rgba(160,128,220, 0.38) 0%,
+        rgba(160, 120, 60, 0.42) 100%);
+    border-color: rgba(160,128,220, 0.7);
+    box-shadow: 0 4px 20px rgba(160,128,220, 0.2);
+    transform: translateY(-1px);
+}
+.vrp-btn-send:active { transform: translateY(0); }
+
+/* ── LANDSCAPE: split view 50/50 ────────────────────────────────────────── */
+@media (orientation: landscape) and (max-height: 600px) {
+    /* En landscape móvil: modal más ancho y bajo */
+    .vrp-modal {
+        width: min(96vw, 900px);
+        max-height: min(94vh, 520px);
+    }
+
+    .vrp-split {
+        flex-direction: row;
+    }
+
+    /* Activar preview pane en landscape */
+    .vrp-preview-pane {
+        display: flex;
+        flex: 1;
+    }
+
+    /* Textarea más baja en landscape para caber */
+    #vnReplyText {
+        min-height: 80px;
+        max-height: 160px;
+    }
+    .vrp-preview-content {
+        min-height: 80px;
+    }
+
+    /* Ocultar el toggle portrait en landscape */
+    .vrp-preview-toggle { display: none; }
+
+    /* Header más compacto */
+    .vrp-header { padding: 0.6rem 1rem; }
+    .vrp-body   { padding: 0.7rem 1rem; gap: 0.6rem; }
+    .vrp-footer { padding: 0.55rem 1rem; }
+}
+
+/* ── PORTRAIT MÓVIL ─────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    /* Móvil portrait: bottom sheet anclado al fondo */
+    .vrp-modal {
+        width: 100vw;
+        /* 78dvh: deja espacio para la barra del navegador y no satura */
+        max-height: 78dvh;
+        max-height: 78vh; /* fallback */
+        height: auto;     /* crecer según contenido hasta el máximo */
+        border-radius: 20px 20px 0 0;
+        margin-top: auto;
+        align-self: flex-end;
+    }
+
+    #vnReplyPanel {
+        align-items: flex-end;
+        padding: 0; /* sin padding vertical en móvil, el sheet va al fondo */
+    }
+
+    .vrp-split { flex-direction: column; }
+    .vrp-format-hints { display: none; }
+
+    /* Textarea más compacta para que quepan todos los controles */
+    #vnReplyText {
+        min-height: 80px;
+        max-height: 130px;
+        font-size: 0.95rem;
+    }
+
+    /* Reducir padding del body para ganar espacio */
+    .vrp-body {
+        padding: 0.65rem 0.9rem;
+        gap: 0.6rem;
+    }
+
+    /* Selector de clima: ocultarlo por defecto en móvil,
+       mostrarlo solo si está explícitamente expandido */
+    #weatherSelectorContainer {
+        display: none !important;
+    }
+    #weatherSelectorContainer.vrp-weather-expanded {
+        display: block !important;
+    }
+
+    /* Footer siempre visible y compacto */
+    .vrp-footer {
+        padding: 0.55rem 0.9rem;
+        padding-bottom: max(0.55rem, env(safe-area-inset-bottom, 0.55rem));
+    }
+
+    /* Header más compacto */
+    .vrp-header {
+        padding: 0.65rem 0.9rem 0.6rem;
+    }
+}
+
+/* ── Sincronización con color del personaje activo ──────────────────────── */
+.vrp-modal {
+    --vrp-accent: var(--char-color, rgba(160,128,220, 0.9));
+}
+
+
+.char-card-v2--new {
+    border: 1.4px dashed rgba(180, 170, 145, 0.55);
+    background: rgba(20, 18, 14, 0.45);
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    color: rgba(220, 206, 175, 0.9);
+}
+.char-card-v2--new:hover {
+    border-color: rgba(220, 200, 140, 0.9);
+    transform: translateY(-2px);
+}
+.char-card-new-plus {
+    font-size: 2rem;
+    line-height: 1;
+}
+.char-card-new-text {
+    font-size: 0.86rem;
+    font-family: 'Inter', sans-serif;
+}
+.gallery-sort-pill.is-disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   BOTÓN GESTIONAR (command bar de temas)
+   ══════════════════════════════════════════════════════════════ */
+.btn-manage-topics {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.04);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.6rem 1.1rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.btn-manage-topics:hover {
+    border-color: rgba(160,128,220,0.4);
+    color: var(--accent-gold);
+    background: rgba(160,128,220,0.06);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MODAL GESTOR DE SESIONES
+   ══════════════════════════════════════════════════════════════ */
+.session-manager-modal {
+    background: var(--bg-primary, #1a1815);
+    border: 1px solid rgba(160,128,220,0.2);
+    border-radius: 16px;
+    width: min(640px, 94vw);
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.55);
+}
+
+/* Header */
+.sm-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1.25rem 1.4rem 0.9rem;
+    border-bottom: 1px solid rgba(160,128,220,0.1);
+    flex-shrink: 0;
+}
+.sm-header-left { display: flex; flex-direction: column; gap: 0.15rem; }
+.sm-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: var(--accent-gold, #a080e0);
+    margin: 0;
+    font-weight: 600;
+}
+.sm-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-muted, rgba(160,128,220,0.55));
+}
+.sm-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    transition: color 0.18s, background 0.18s;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.sm-close-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
+
+/* Action bar */
+.sm-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1.4rem;
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(160,128,220,0.07);
+    flex-shrink: 0;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.sm-select-all-wrap { display: flex; align-items: center; }
+.sm-action-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Checkbox personalizado */
+.sm-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    cursor: pointer;
+    user-select: none;
+}
+.sm-checkbox-label input[type="checkbox"] { display: none; }
+.sm-checkbox-custom {
+    width: 17px;
+    height: 17px;
+    border: 1.5px solid rgba(160,128,220,0.4);
+    border-radius: 4px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s;
+    flex-shrink: 0;
+}
+.sm-checkbox-label input:checked + .sm-checkbox-custom {
+    background: rgba(160,128,220,0.85);
+    border-color: rgba(160,128,220,0.85);
+}
+.sm-checkbox-label input:checked + .sm-checkbox-custom::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: 2px solid #1a1815;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+}
+.sm-label-text { font-size: 0.8rem; color: var(--text-secondary); }
+.sm-count { font-size: 0.78rem; color: var(--accent-gold); font-weight: 500; white-space: nowrap; }
+
+/* Filtros */
+.sm-filter-btn {
+    padding: 0.28rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.18s;
+}
+.sm-filter-btn:hover { color: var(--text-primary); border-color: rgba(160,128,220,0.3); }
+.sm-filter-btn.active {
+    background: rgba(160,128,220,0.12);
+    color: var(--accent-gold);
+    border-color: rgba(160,128,220,0.45);
+}
+
+/* Lista */
+.sm-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.6rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    overscroll-behavior: contain;
+}
+.sm-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 2.5rem 1rem;
+    font-size: 0.88rem;
+}
+
+/* Item de historia */
+.sm-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+}
+.sm-item:hover { background: rgba(160,128,220,0.05); border-color: rgba(160,128,220,0.15); }
+.sm-item--selected {
+    background: rgba(160,128,220,0.1) !important;
+    border-color: rgba(160,128,220,0.35) !important;
+}
+.sm-item-cb { display: none; }
+
+/* Checkbox visual del item */
+.sm-item-check {
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid rgba(160,128,220,0.35);
+    border-radius: 4px;
+    background: transparent;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+.sm-item--selected .sm-item-check {
+    background: rgba(160,128,220,0.85);
+    border-color: rgba(160,128,220,0.85);
+}
+.sm-item--selected .sm-item-check::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: 2px solid #1a1815;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg) translateY(-1px);
+}
+
+.sm-item-body { flex: 1; min-width: 0; }
+.sm-item-title {
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.25rem;
+}
+.sm-item-meta { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.sm-meta-text { font-size: 0.72rem; color: var(--text-muted); }
+
+/* Tags */
+.sm-tag {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 4px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.sm-tag-rpg     { background: rgba(100,80,200,0.18); color: #a090e8; }
+.sm-tag-classic { background: rgba(80,140,80,0.18);  color: #80b880; }
+.sm-tag-own     { background: rgba(160,128,220,0.15); color: rgba(160,128,220,0.9); }
+
+/* Footer */
+.sm-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 0.9rem 1.4rem;
+    border-top: 1px solid rgba(160,128,220,0.1);
+    flex-shrink: 0;
+}
+.sm-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(180,60,60,0.15);
+    color: rgba(220,100,100,0.9);
+    border: 1px solid rgba(180,60,60,0.35);
+    padding: 0.6rem 1.2rem;
+    border-radius: 9px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.83rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.sm-delete-btn:hover:not(:disabled) {
+    background: rgba(180,60,60,0.28);
+    border-color: rgba(220,80,80,0.6);
+    color: #e87070;
+}
+.sm-delete-btn:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+.sm-delete-count { font-size: 0.75rem; opacity: 0.75; }
+
+/* Responsive móvil */
+@media (max-width: 480px) {
+    .session-manager-modal { border-radius: 12px; }
+    .sm-header, .sm-action-bar, .sm-footer { padding-left: 1rem; padding-right: 1rem; }
+    .sm-list { padding: 0.5rem 0.6rem; }
+    .sm-action-bar { gap: 0.5rem; }
+    .sm-item-title { font-size: 0.83rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════

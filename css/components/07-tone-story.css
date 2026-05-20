@@ -1,0 +1,699 @@
+/* ═══════════════════════════════════════════════════════════════
+   07-TONE-STORY — Variantes de tono, separadores de capítulo, banners, ornamentos, galería inline
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── VARIANTES DE TONO ── */
+
+/* ══════════════════════════════════════════
+   PANEL DE FICHA DE PERSONAJE (desplegable)
+   ══════════════════════════════════════════ */
+.vn-char-info-panel {
+    position: fixed;
+    top: calc(20px + var(--info-card-height, 160px) + 8px);
+    left: 20px;
+    z-index: var(--z-i-210);
+    width: 280px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: linear-gradient(160deg, rgba(28, 21, 13, 0.98), rgba(16, 12, 7, 0.99));
+    border: 1px solid rgba(160,128,220, 0.35);
+    border-radius: 14px;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(160,128,220,0.07);
+    backdrop-filter: blur(20px);
+    display: none;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.vn-char-info-panel.char-panel-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.vn-char-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 0.9rem 0.5rem;
+    border-bottom: 1px solid rgba(160,128,220,0.12);
+}
+.vn-char-info-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--accent-gold);
+    letter-spacing: 0.06em;
+    font-weight: 600;
+}
+.vn-char-info-close {
+    background: none;
+    border: none;
+    color: rgba(200,180,140,0.5);
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 0.1rem 0.25rem;
+    border-radius: 4px;
+    transition: color 0.15s;
+}
+.vn-char-info-close:hover { color: var(--accent-gold); }
+
+.vn-char-info-body {
+    padding: 0.7rem 0.9rem 0.3rem;
+}
+
+/* Filas de datos */
+.cip-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    padding: 0.22rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.78rem;
+}
+.cip-row:last-of-type { border-bottom: none; }
+.cip-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(200,168,108,0.5);
+    min-width: 68px;
+    flex-shrink: 0;
+}
+.cip-val {
+    color: rgba(232,220,196,0.85);
+    font-family: 'Inter', sans-serif;
+}
+.cip-basic {
+    margin-top: 0.5rem;
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: rgba(200,185,160,0.6);
+    line-height: 1.5;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(160,128,220,0.1);
+}
+
+/* Relaciones */
+.vn-char-info-relations {
+    padding: 0 0.9rem 0.8rem;
+}
+.cip-no-rel {
+    font-size: 0.75rem;
+    color: rgba(200,168,108,0.35);
+    text-align: center;
+    padding: 0.5rem 0;
+    font-style: italic;
+}
+.cip-rel-header {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(200,168,108,0.45);
+    margin-bottom: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid rgba(160,128,220,0.12);
+}
+.cip-rel-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.45rem;
+}
+.cip-rel-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1.5px solid;
+    overflow: hidden;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    color: rgba(200,168,108,0.8);
+    background: rgba(0,0,0,0.3);
+}
+.cip-rel-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.cip-rel-info { flex: 1; min-width: 0; }
+.cip-rel-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    color: rgba(200,185,160,0.8);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.cip-rel-rank {
+    font-size: 0.6rem;
+    font-family: 'Inter', sans-serif;
+    margin: 0.1rem 0;
+    opacity: 0.85;
+}
+.cip-rel-bar {
+    height: 3px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.07);
+    overflow: hidden;
+}
+.cip-rel-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+    opacity: 0.75;
+}
+
+/* ══════════════════════════════════════════
+   BOTÓN FLOTANTE DE NARRACIÓN (✒)
+   ══════════════════════════════════════════ */
+/* ── Botón Narrar: pestaña adherida a la info-card ── */
+.vn-narrate-tab {
+    /* Ocupa todo el ancho de la card y aparece pegado abajo */
+    width: 100%;
+    margin-top: 0.55rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid rgba(160,128,220, 0.15);
+}
+
+/* Versión float independiente (elemento fuera de la info-card) */
+.vn-narrate-float {
+    position: fixed;
+    top: 20px;
+    left: calc(20px + 290px + 10px); /* a la derecha de la info-card */
+    z-index: var(--z-i-199);
+    width: auto;
+}
+.vn-narrate-tab-inner {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.38rem 0.6rem;
+    border-radius: 10px;
+    background: rgba(160,128,220, 0.06);
+    border: 1px solid rgba(160,128,220, 0.2);
+    color: rgba(160,128,220, 0.75);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.05em;
+    transition: background 0.18s, border-color 0.18s, color 0.18s;
+}
+.vn-narrate-tab-inner:hover {
+    background: rgba(160,128,220, 0.14);
+    border-color: rgba(160,128,220, 0.5);
+    color: #f0d890;
+}
+.vn-narrate-icon { font-size: 0.9rem; }
+.vn-narrate-label { font-size: 0.75rem; }
+
+/* Mini-panel de narración — se abre desde la barra de controles (top) */
+.vn-narrate-panel {
+    position: fixed;
+    right: 12px;
+    top: 56px; /* justo debajo de la barra de controles */
+    z-index: var(--z-i-211);
+    width: 260px;
+    background: linear-gradient(160deg, rgba(28,21,13,0.98), rgba(16,12,7,0.99));
+    border: 1px solid rgba(160,128,220,0.3);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+    backdrop-filter: blur(20px);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: fadeIn 0.18s ease;
+}
+.vn-narrate-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.85rem 0.4rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    color: rgba(200,168,108,0.7);
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid rgba(160,128,220,0.1);
+}
+.vn-narrate-panel-header button {
+    background: none;
+    border: none;
+    color: rgba(200,168,108,0.4);
+    cursor: pointer;
+    font-size: 0.75rem;
+    padding: 0.1rem 0.2rem;
+}
+.vn-narrate-panel-body {
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+.vn-narrate-option {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(160,128,220,0.12);
+    border-radius: 10px;
+    padding: 0.65rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-align: left;
+    width: 100%;
+    color: inherit;
+}
+.vn-narrate-option:hover {
+    background: rgba(160,128,220,0.1);
+    border-color: rgba(160,128,220,0.35);
+}
+.vn-narrate-option-icon { font-size: 1.3rem; flex-shrink: 0; }
+.vn-narrate-option-text { display: flex; flex-direction: column; gap: 0.1rem; }
+.vn-narrate-option-text strong {
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    color: rgba(220,195,150,0.9);
+    letter-spacing: 0.04em;
+}
+.vn-narrate-option-text span {
+    font-size: 0.68rem;
+    color: rgba(180,160,130,0.55);
+    font-style: italic;
+}
+.vn-narrate-pending {
+    padding: 0.4rem 0.75rem 0.6rem;
+    border-top: 1px solid rgba(160,128,220,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+.narrate-pending-item {
+    font-size: 0.7rem;
+    color: rgba(160,128,220,0.7);
+    font-family: 'Cinzel', serif;
+    padding: 0.18rem 0.5rem;
+    background: rgba(160,128,220,0.07);
+    border-radius: 6px;
+    border: 1px solid rgba(160,128,220,0.15);
+}
+
+@media (max-width: 768px) {
+    .vn-narrate-panel { left: 20px; top: auto; bottom: 1rem; width: calc(100vw - 40px); max-width: 300px; }
+    .vn-char-info-panel { width: calc(100vw - 40px); max-width: 320px; top: 140px; }
+}
+
+/* ══════════════════════════════════════════
+   NAVEGADOR DE CAPÍTULOS Y ESCENAS
+   ══════════════════════════════════════════ */
+.chapter-nav-intro {
+    font-size: 0.8rem;
+    color: rgba(200,185,160,0.5);
+    font-style: italic;
+    text-align: center;
+    padding: 1rem 0 0.5rem;
+}
+.chapter-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.9rem 1.2rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: background 0.18s ease;
+}
+.chapter-nav-item:hover { background: rgba(255,255,255,0.04); }
+.chapter-nav-item:last-child { border-bottom: none; }
+.chapter-nav-chapter .chapter-nav-icon { color: rgba(196,154,60,0.9); }
+.chapter-nav-scene .chapter-nav-icon   { color: rgba(100,180,160,0.8); }
+.chapter-nav-start .chapter-nav-icon   { color: rgba(150,150,150,0.6); }
+.chapter-nav-icon { font-size: 1.3rem; flex-shrink: 0; }
+.chapter-nav-content { flex: 1; min-width: 0; }
+.chapter-nav-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.88rem;
+    color: rgba(232,215,185,0.9);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.chapter-nav-meta {
+    font-size: 0.72rem;
+    color: rgba(180,160,130,0.5);
+    margin-top: 0.2rem;
+    font-family: 'Inter', sans-serif;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.chapter-nav-badge {
+    font-size: 0.65rem;
+    padding: 0.08rem 0.4rem;
+    background: rgba(160,128,220,0.1);
+    border: 1px solid rgba(160,128,220,0.2);
+    border-radius: 10px;
+    color: rgba(160,128,220,0.6);
+}
+.chapter-nav-arrow {
+    color: rgba(200,168,108,0.3);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.chapter-nav-item:hover .chapter-nav-arrow { color: rgba(200,168,108,0.7); }
+
+
+/* ══════════════════════════════════════════
+   HITOS DE AFINIDAD — OVERLAY CINEMATOGRÁFICO
+   ══════════════════════════════════════════ */
+.vn-affinity-milestone {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-i-498);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+}
+.vn-affinity-milestone.milestone-in {
+    animation: affinityMilestoneIn 0.5s ease forwards,
+               affinityMilestoneOut 0.5s ease 2.3s forwards;
+}
+@keyframes affinityMilestoneIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes affinityMilestoneOut {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+.vn-affinity-milestone-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 2rem 3rem;
+}
+
+/* Resplandor de fondo dinámico */
+.vn-affinity-milestone-glow {
+    position: absolute;
+    inset: -40px;
+    border-radius: 50%;
+    background: radial-gradient(
+        ellipse at center,
+        color-mix(in srgb, var(--milestone-color, #c49a3c) 18%, transparent),
+        transparent 70%
+    );
+    animation: milestoneGlowPulse 1.4s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+@keyframes milestoneGlowPulse {
+    from { transform: scale(0.9); opacity: 0.7; }
+    to   { transform: scale(1.1); opacity: 1;   }
+}
+
+/* Línea ornamental encima y debajo */
+.vn-affinity-milestone-inner::before,
+.vn-affinity-milestone-inner::after {
+    content: '';
+    display: block;
+    width: 120px;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--milestone-color, #c49a3c),
+        transparent
+    );
+    opacity: 0.7;
+}
+
+.vn-affinity-milestone-icon {
+    font-size: 2.6rem;
+    line-height: 1;
+    animation: milestoneIconBounce 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.15s both;
+    filter: drop-shadow(0 0 12px var(--milestone-color, #c49a3c));
+}
+@keyframes milestoneIconBounce {
+    0%   { transform: scale(0.4) rotate(-10deg); opacity: 0; }
+    60%  { transform: scale(1.2) rotate(4deg);  opacity: 1; }
+    100% { transform: scale(1)   rotate(0deg);  opacity: 1; }
+}
+
+.vn-affinity-milestone-rank {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-shadow: 0 0 24px currentColor;
+    animation: milestoneTextIn 0.5s ease 0.3s both;
+}
+@keyframes milestoneTextIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0);   }
+}
+
+.vn-affinity-milestone-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    color: rgba(232,220,200,0.65);
+    text-transform: uppercase;
+    animation: milestoneTextIn 0.5s ease 0.45s both;
+}
+
+
+/* ── Separadores de capítulo en historial ── */
+.history-chapter-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0 0.6rem;
+    padding: 0 0.5rem;
+}
+.history-chapter-divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(158,122,46,0.5), transparent);
+}
+.history-chapter-divider-text {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    color: rgba(196,154,60,0.9);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-shadow: 0 0 12px rgba(158,122,46,0.3);
+}
+
+/* ── Banner de capítulo (overlay animado) ── */
+.vn-chapter-reveal {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-i-499);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+.vn-chapter-reveal.active { opacity: 1; }
+.vn-chapter-reveal-line {
+    width: 180px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(196,154,60,0.8), transparent);
+    margin: 0.6rem 0;
+    transform: scaleX(0);
+    transition: transform 0.6s ease 0.2s;
+}
+.vn-chapter-reveal.active .vn-chapter-reveal-line { transform: scaleX(1); }
+.vn-chapter-reveal-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: rgba(196,154,60,0.95);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-shadow: 0 0 30px rgba(158,122,46,0.5);
+    text-align: center;
+    padding: 0 2rem;
+}
+
+/* ══════════════════════════════════════════
+   SISTEMA DE REACCIONES
+   ══════════════════════════════════════════ */
+
+/* Zona de chips de reacción en la caja de diálogo */
+.vn-reaction-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0 1.2rem 0.2rem;
+    min-height: 0;
+}
+
+/* Chip de reacción individual */
+.vn-reaction-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 1.05rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 20px;
+    border: 1px solid rgba(200,184,152,0.2);
+    background: rgba(255,255,255,0.06);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    user-select: none;
+    line-height: 1;
+}
+.vn-reaction-chip:hover {
+    border-color: rgba(200,184,152,0.5);
+    background: rgba(255,255,255,0.12);
+    transform: scale(1.1);
+}
+.vn-reaction-chip.mine {
+    border-color: rgba(196,154,60,0.55);
+    background: rgba(158,122,46,0.18);
+}
+.vn-reaction-chip .reaction-count {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    color: rgba(200,184,152,0.8);
+    font-weight: 600;
+}
+
+/* Picker flotante de reacciones */
+.vn-reaction-picker {
+    position: absolute;
+    bottom: calc(100% + 0.5rem);
+    right: 1rem;
+    display: flex;
+    gap: 0.3rem;
+    background: rgba(26,21,16,0.97);
+    border: 1px solid rgba(200,184,152,0.3);
+    border-radius: 30px;
+    padding: 0.45rem 0.7rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(200,184,152,0.06);
+    backdrop-filter: blur(12px);
+    z-index: var(--z-i-520);
+    animation: reactionPickerIn 0.2s ease;
+}
+@keyframes reactionPickerIn {
+    from { opacity: 0; transform: translateY(6px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+.reaction-pick-btn {
+    font-size: 1.35rem;
+    background: none;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    width: 2.4rem;
+    height: 2.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1;
+}
+.reaction-pick-btn:hover {
+    transform: scale(1.25) translateY(-3px);
+    background: rgba(255,255,255,0.08);
+}
+.reaction-pick-btn.active {
+    border-color: rgba(196,154,60,0.7);
+    background: rgba(158,122,46,0.2);
+    transform: scale(1.15);
+}
+
+/* Reacciones en el historial */
+.history-reactions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+}
+.history-reaction-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.95rem;
+    padding: 0.12rem 0.4rem;
+    border-radius: 16px;
+    border: 1px solid rgba(200,184,152,0.18);
+    background: rgba(255,255,255,0.04);
+    line-height: 1;
+}
+.history-reaction-chip .reaction-count {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.68rem;
+    color: rgba(200,184,152,0.7);
+    font-weight: 600;
+}
+
+/* ── GALERÍA: contenedor con scroll interno (legacy marker) ── */
+#gallerySection .section-content,
+#optionsSection .section-content {
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+}
+#topicsSection .section-content {
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+}
+
+/* ── ORNAMENTO DE SECCIÓN: línea dorada animada en el header ── */
+.section-header-bar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 2rem;
+    right: 2rem;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(160,128,220,0.5), rgba(160,128,220,0.2), transparent);
+    pointer-events: none;
+}
+.section-header-bar {
+    position: relative;
+}
+
+/* ── MODAL: asegurarse de que scrollea internamente ── */
+.modal {
+    max-height: 88vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* ── SHIMMER en topic cards seleccionadas ── */
+.topic-card.active-topic {
+    border-color: rgba(160,128,220,0.7);
+    box-shadow: 0 0 0 1px rgba(160,128,220,0.3), 0 8px 32px rgba(0,0,0,0.5);
+}
+
+/* ── TRANSICIÓN de sección más suave ── */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── ORNAMENTO ▸ en el título de sección ── */
+.section-title::before {
+    content: '▸ ';
+    color: rgba(160,128,220,0.5);
+    font-size: 0.85em;
+}
+
+

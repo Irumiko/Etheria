@@ -1,0 +1,1119 @@
+/* ═══════════════════════════════════════════════════════════════
+   09-VN-DIALOGUE — Cajas de diálogo RPG y Clásico, nameplates, avatares, HP/EXP, IHP (info hover panel), sprite sombra
+   (Generado por split-components.js desde css/components.css)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════════════════════════
+   MODO RPG — Piedra tallada, metal oxidado, runas
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Caja de diálogo RPG: piedra con grietas y remates de bronce ── */
+body.mode-rpg .vn-dialogue-box {
+    background:
+        linear-gradient(135deg, rgba(22,17,11,0.97) 0%, rgba(14,10,6,0.99) 100%);
+    border-color: rgba(180,145,80,0.55);
+    border-width: 2px;
+    /* Grietas y textura de piedra tallada con box-shadow layered */
+    box-shadow:
+        0 28px 72px rgba(0,0,0,0.78),
+        0 0 0 1px rgba(200,160,80,0.12),
+        0 0 0 4px rgba(14,10,6,0.95),
+        0 0 0 5px rgba(160,120,50,0.2),
+        inset 0 1px 0 rgba(220,180,100,0.08),
+        inset 0 -1px 0 rgba(0,0,0,0.5),
+        inset 3px 0 8px rgba(0,0,0,0.25),
+        inset -3px 0 8px rgba(0,0,0,0.25),
+        0 0 28px -6px rgba(160,80,30,0.4);
+    /* Efecto de relieve interior */
+    outline: 1px solid rgba(100,70,30,0.15);
+    outline-offset: 6px;
+}
+
+/* Grietas decorativas en el borde — pseudo SVG inline con background-image */
+body.mode-rpg .vn-dialogue-box::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 16px;
+    border: 1px solid rgba(180,140,60,0.12);
+    /* Runas en el borde superior como background-image SVG */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='8'%3E%3Cpath d='M10 4 L18 1 L26 4 L34 7 L42 4' stroke='rgba(160,120,50,0.35)' stroke-width='1' fill='none'/%3E%3Cpath d='M50 4 L54 1 L58 4 L54 7 Z' stroke='rgba(160,120,50,0.3)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M66 1 L66 7 M70 1 L70 7 M68 4 L72 4' stroke='rgba(160,120,50,0.3)' stroke-width='0.8'/%3E%3Cpath d='M80 4 L88 1 L96 4 L88 7 Z' stroke='rgba(160,120,50,0.25)' stroke-width='0.8' fill='none'/%3E%3Cline x1='100' y1='4' x2='300' y2='4' stroke='rgba(160,120,50,0.1)' stroke-width='0.5' stroke-dasharray='2 8'/%3E%3Cpath d='M310 4 L318 7 L326 4 L318 1 Z' stroke='rgba(160,120,50,0.25)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M334 1 L334 7 M338 1 L338 7 M336 4 L340 4' stroke='rgba(160,120,50,0.3)' stroke-width='0.8'/%3E%3Cpath d='M350 4 L354 1 L358 4 L354 7 Z' stroke='rgba(160,120,50,0.3)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M366 4 L374 1 L382 4 L390 7 L398 4' stroke='rgba(160,120,50,0.35)' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: top center;
+    pointer-events: none;
+}
+
+/* Esquina RPG: espada SVG */
+body.mode-rpg .vn-dialogue-box::after {
+    content: '';
+    position: absolute;
+    bottom: 0.7rem;
+    right: 0.8rem;
+    width: 28px;
+    height: 28px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M4 24 L20 8' stroke='rgba(180,140,60,0.45)' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M20 8 L22 4 L24 6 L20 8Z' fill='rgba(180,140,60,0.45)'/%3E%3Cpath d='M10 18 L8 16 M7 21 L9 23' stroke='rgba(180,140,60,0.35)' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    pointer-events: none;
+}
+
+/* Remates de bronce oxidado en las 4 esquinas */
+body.mode-rpg .vn-dialogue-box .vn-corner-ornament {
+    display: block;
+}
+
+/* ── Nameplate RPG: tablilla de metal — posición SUPERIOR ── */
+body.mode-rpg .vn-speaker-plate {
+    top: -1px;
+    bottom: auto;
+    border-top: none;
+    border-bottom: 1px solid var(--char-color, rgba(160,120,50,0.55));
+    border-left: none;
+    border-radius: 0 0 12px 0;
+    box-shadow: 2px 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(220,180,80,0.12);
+    background: linear-gradient(135deg,
+        rgba(28,20,10,0.98) 0%,
+        rgba(60,38,14,0.95) 50%,
+        rgba(28,20,10,0.98) 100%);
+    border-color: var(--char-color, rgba(160,120,50,0.55));
+    color: rgba(230,200,140,0.95);
+    letter-spacing: 0.06em;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(160,80,20,0.3);
+}
+/* ── Avatar RPG: hexágono/escudo ── */
+body.mode-rpg .vn-speaker-avatar {
+    border-radius: 8px; /* Escudo: esquinas recortadas, no círculo */
+    border-color: rgba(160,120,50,0.8);
+    border-width: 3px;
+    clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%); /* Hexágono */
+    box-shadow:
+        0 0 0 2px rgba(100,70,30,0.4),
+        0 12px 36px rgba(0,0,0,0.65),
+        0 0 18px rgba(160,80,30,0.35);
+}
+
+body.mode-rpg .vn-speaker-avatar-wrap::before {
+    background:
+        conic-gradient(from 0deg, transparent 0deg 28deg, rgba(180,140,60,0.5) 28deg 38deg, transparent 38deg 88deg, rgba(180,140,60,0.4) 88deg 98deg, transparent 98deg 148deg, rgba(180,140,60,0.45) 148deg 158deg, transparent 158deg 208deg, rgba(180,140,60,0.4) 208deg 218deg, transparent 218deg 268deg, rgba(180,140,60,0.5) 268deg 278deg, transparent 278deg 328deg, rgba(180,140,60,0.45) 328deg 338deg, transparent 338deg 360deg);
+    border-color: rgba(160,120,50,0.25);
+}
+
+/* ── Info-card avatar RPG: hexágono ── */
+body.mode-rpg .vn-info-avatar {
+    clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+    border-radius: 4px;
+    border-color: rgba(160,120,50,0.75);
+}
+
+/* ── Barras HP/EXP: cristal con brillo líquido ── */
+body.mode-rpg .sheet-rpg-progress {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(160,120,50,0.35);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(255,255,255,0.04);
+    height: 10px;
+    border-radius: 3px;
+    overflow: visible;
+    position: relative;
+}
+body.mode-rpg .sheet-rpg-progress-fill {
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+}
+body.mode-rpg .sheet-rpg-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 50%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation: liquidShine 2.5s ease-in-out infinite;
+}
+@keyframes liquidShine {
+    0%   { left: -60%; }
+    100% { left: 140%; }
+}
+body.mode-rpg .sheet-rpg-progress-fill.hp {
+    background: linear-gradient(90deg, #6b3a10, #c05820, #e07030);
+    box-shadow: 0 0 8px rgba(180,80,30,0.55), inset 0 1px 0 rgba(255,200,100,0.2);
+}
+body.mode-rpg .sheet-rpg-progress-fill.exp {
+    background: linear-gradient(90deg, #5a4a10, #a08020, #c0a030);
+    box-shadow: 0 0 8px rgba(160,130,30,0.55), inset 0 1px 0 rgba(255,230,100,0.2);
+}
+
+/* ── Números de stats "tallados" en piedra ── */
+body.mode-rpg .rpg-stats-card-value {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8), 0 -1px 0 rgba(220,180,80,0.15);
+    color: rgba(230,200,140,0.97);
+}
+body.mode-rpg .rpg-stats-card {
+    background: rgba(0,0,0,0.25);
+    border-color: rgba(140,100,40,0.25);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(255,200,80,0.05);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   MODO CLÁSICO — Pergamino envejecido, madera cálida, florales
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Caja de diálogo Clásico: papel quemado + ornamentos florales ── */
+body.mode-classic .vn-dialogue-box {
+    background:
+        linear-gradient(150deg, rgba(40,28,12,0.97) 0%, rgba(26,18,8,0.99) 100%);
+    border-color: rgba(190,148,70,0.55);
+    border-width: 2px;
+    box-shadow:
+        0 24px 60px rgba(0,0,0,0.65),
+        0 0 0 1px rgba(190,148,70,0.10),
+        0 0 0 5px rgba(24,16,6,0.97),
+        0 0 0 6px rgba(160,120,50,0.18),
+        inset 0 1px 0 rgba(240,200,120,0.08),
+        inset 0 -1px 0 rgba(0,0,0,0.4),
+        0 0 24px -4px rgba(160,110,30,0.35);
+    outline: 1px solid rgba(120,90,40,0.12);
+    outline-offset: 7px;
+}
+
+/* Líneas ornamentales florales en el borde superior */
+body.mode-classic .vn-dialogue-box::before {
+    content: '';
+    position: absolute;
+    inset: 5px;
+    border-radius: 14px;
+    border: 1px solid rgba(190,148,70,0.1);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='10'%3E%3Cpath d='M5 5 Q15 1 25 5 Q35 9 45 5' stroke='rgba(190,148,70,0.4)' stroke-width='1' fill='none'/%3E%3Ccircle cx='50' cy='5' r='2' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M55 5 Q65 1 75 5 Q85 9 95 5' stroke='rgba(190,148,70,0.35)' stroke-width='1' fill='none'/%3E%3Ccircle cx='100' cy='5' r='1.5' fill='rgba(190,148,70,0.3)'/%3E%3Cline x1='105' y1='5' x2='295' y2='5' stroke='rgba(190,148,70,0.12)' stroke-width='0.5' stroke-dasharray='3 6'/%3E%3Ccircle cx='300' cy='5' r='1.5' fill='rgba(190,148,70,0.3)'/%3E%3Cpath d='M305 5 Q315 9 325 5 Q335 1 345 5' stroke='rgba(190,148,70,0.35)' stroke-width='1' fill='none'/%3E%3Ccircle cx='350' cy='5' r='2' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M355 5 Q365 9 375 5 Q385 1 395 5' stroke='rgba(190,148,70,0.4)' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: top center;
+    pointer-events: none;
+}
+
+/* Esquina clásica: rosetón floral SVG */
+body.mode-classic .vn-dialogue-box::after {
+    content: '';
+    position: absolute;
+    bottom: 0.65rem;
+    right: 0.75rem;
+    width: 30px;
+    height: 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Ccircle cx='15' cy='15' r='3' stroke='rgba(190,148,70,0.5)' stroke-width='1' fill='none'/%3E%3Cellipse cx='15' cy='8' rx='2' ry='4' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cellipse cx='15' cy='22' rx='2' ry='4' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cellipse cx='8' cy='15' rx='4' ry='2' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cellipse cx='22' cy='15' rx='4' ry='2' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cellipse cx='10' cy='10' rx='2' ry='3.5' stroke='rgba(190,148,70,0.3)' stroke-width='0.7' fill='none' transform='rotate(-45 10 10)'/%3E%3Cellipse cx='20' cy='10' rx='2' ry='3.5' stroke='rgba(190,148,70,0.3)' stroke-width='0.7' fill='none' transform='rotate(45 20 10)'/%3E%3Cellipse cx='10' cy='20' rx='2' ry='3.5' stroke='rgba(190,148,70,0.3)' stroke-width='0.7' fill='none' transform='rotate(45 10 20)'/%3E%3Cellipse cx='20' cy='20' rx='2' ry='3.5' stroke='rgba(190,148,70,0.3)' stroke-width='0.7' fill='none' transform='rotate(-45 20 20)'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    pointer-events: none;
+    transform: none;
+}
+
+/* ── Nameplate Clásico: etiqueta de pergamino — posición SUPERIOR ── */
+body.mode-classic .vn-speaker-plate {
+    top: -1px;
+    bottom: auto;
+    border-top: none;
+    border-bottom: 1px solid rgba(190,148,70,0.6);
+    border-left: none;
+    border-radius: 0 0 12px 0;
+    box-shadow: 2px 3px 12px rgba(0,0,0,0.45), inset 0 1px 0 rgba(240,200,100,0.08);
+    background: linear-gradient(135deg,
+        rgba(22,15,6,0.98) 0%,
+        rgba(50,36,14,0.95) 50%,
+        rgba(22,15,6,0.98) 100%);
+    border-color: rgba(190,148,70,0.6);
+    color: rgba(240,210,150,0.95);
+    font-style: italic;
+}
+
+/* ── Avatar Clásico: marco oval con ornamento floral ── */
+body.mode-classic .vn-speaker-avatar {
+    border-radius: 50%;
+    border-color: rgba(190,148,70,0.75);
+    border-width: 3px;
+    box-shadow:
+        0 0 0 2px rgba(90,60,20,0.5),
+        0 0 0 4px rgba(190,148,70,0.12),
+        0 12px 32px rgba(0,0,0,0.55),
+        0 0 16px rgba(190,130,30,0.3);
+}
+
+/* Ornamento floral alrededor del avatar clásico */
+body.mode-classic .vn-speaker-avatar-wrap::before {
+    background:
+        conic-gradient(from 0deg, transparent 0deg 20deg, rgba(190,148,70,0.45) 20deg 28deg, transparent 28deg 80deg, rgba(190,148,70,0.35) 80deg 88deg, transparent 88deg 140deg, rgba(190,148,70,0.4) 140deg 148deg, transparent 148deg 200deg, rgba(190,148,70,0.35) 200deg 208deg, transparent 208deg 260deg, rgba(190,148,70,0.45) 260deg 268deg, transparent 268deg 320deg, rgba(190,148,70,0.4) 320deg 328deg, transparent 328deg 360deg);
+    border: 1.5px solid rgba(190,148,70,0.28);
+}
+
+/* ── Info-card avatar clásico: circular con glow cálido ── */
+body.mode-classic .vn-info-avatar {
+    border-radius: 50%;
+    border-color: rgba(190,148,70,0.7);
+    box-shadow: 0 0 0 2px rgba(80,50,15,0.4), 0 0 10px rgba(190,130,30,0.25);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   PANEL EXPANDIBLE DE INFO-CARD (IHP — Info Hover Panel)
+   Se activa al hover sobre vn-info-card. Dos variantes visuales
+   completas según body.mode-rpg / body.mode-classic.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Base del panel ── */
+.vn-info-hover-details {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    width: 260px;
+    border-radius: 14px;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    z-index: var(--z-i-10);
+    /* transition reemplazada por animación según modo */
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    transform: translateY(-6px) scaleY(0.96);
+    transform-origin: top left;
+}
+.vn-info-card:hover .vn-info-hover-details,
+.vn-info-card:focus-within .vn-info-hover-details {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scaleY(1);
+}
+
+/* Ocultar si no hay personaje activo */
+.vn-info-hover-details:empty,
+.vn-info-hover-details[data-empty="true"] {
+    display: none;
+}
+
+/* ── Esquinas ornamentales ── */
+.ihp-corner {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    pointer-events: none;
+    z-index: var(--z-i-2);
+}
+.ihp-corner-tl { top: 6px; left: 6px; }
+.ihp-corner-tr { top: 6px; right: 6px; transform: scaleX(-1); }
+
+/* ── Emblema/sello ── */
+.ihp-emblem {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-i-2);
+}
+
+/* ── Nombre ── */
+.ihp-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.75rem 0.9rem 0.2rem;
+    letter-spacing: 0.04em;
+    position: relative;
+    z-index: var(--z-i-1);
+}
+
+/* ── Filas de datos ── */
+.ihp-data {
+    padding: 0.2rem 0.9rem 0.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    position: relative;
+    z-index: var(--z-i-1);
+}
+.ihp-row {
+    display: flex;
+    gap: 0.4rem;
+    align-items: baseline;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+.ihp-lbl {
+    font-family: 'Cinzel', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    min-width: 62px;
+    flex-shrink: 0;
+    opacity: 0.55;
+}
+.ihp-val {
+    font-family: 'Inter', sans-serif;
+    opacity: 0.85;
+}
+
+/* ── Descripción ── */
+.ihp-desc {
+    padding: 0.35rem 0.9rem 0.5rem;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    opacity: 0.65;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    z-index: var(--z-i-1);
+}
+.ihp-desc:empty { display: none; }
+
+/* ── Stats RPG (2×2 grid) ── */
+.ihp-stats {
+    padding: 0.35rem 0.9rem 0.55rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.3rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    z-index: var(--z-i-1);
+}
+.ihp-stats:empty { display: none; }
+.ihp-stat-cell {
+    text-align: center;
+    padding: 0.2rem 0.1rem;
+    border-radius: 5px;
+}
+.ihp-stat-key {
+    font-family: 'Cinzel', serif;
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    display: block;
+}
+.ihp-stat-num {
+    font-family: 'Cinzel', serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    display: block;
+    line-height: 1.2;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODO RPG — Piedra oscura cálida, runas, stats tallados
+   ═══════════════════════════════════════════════════════════════════ */
+
+@keyframes runeAppear {
+    0%   { opacity: 0; transform: translateY(-6px) scaleY(0.9);
+           filter: brightness(3) blur(2px); }
+    35%  { opacity: 0.9; filter: brightness(1.6) blur(0.5px); }
+    55%  { transform: translateY(1px) scaleY(1.01); filter: brightness(1); }
+    75%  { transform: translateY(-1px) scaleY(0.995); }
+    100% { opacity: 1; transform: translateY(0) scaleY(1); filter: none; }
+}
+
+body.mode-rpg .vn-info-card:hover .vn-info-hover-details,
+body.mode-rpg .vn-info-card:focus-within .vn-info-hover-details {
+    animation: runeAppear 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+body.mode-rpg .vn-info-hover-details {
+    background:
+        linear-gradient(160deg, rgba(22,17,11,0.98) 0%, rgba(13,9,5,0.99) 100%);
+    border: 2px solid rgba(160,120,50,0.5);
+    box-shadow:
+        0 20px 50px rgba(0,0,0,0.75),
+        0 0 0 1px rgba(100,70,30,0.2),
+        inset 0 1px 0 rgba(220,180,80,0.07),
+        inset 0 0 20px rgba(0,0,0,0.3);
+    /* Textura de piedra con noise SVG */
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='4'%3E%3Cpath d='M0 2 Q20 0.5 40 2 Q60 3.5 80 2 Q100 0.5 120 2 Q140 3.5 160 2 Q180 0.5 200 2 Q220 3.5 240 2 L260 2' stroke='rgba(160,120,50,0.2)' stroke-width='0.8' fill='none'/%3E%3C/svg%3E"),
+        linear-gradient(160deg, rgba(22,17,11,0.98) 0%, rgba(13,9,5,0.99) 100%);
+    background-repeat: no-repeat, no-repeat;
+    background-position: top center, center;
+}
+
+/* Runas SVG en esquinas */
+body.mode-rpg .ihp-corner-tl { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M4 4 L4 16 M4 4 L12 4 M4 10 L10 10' stroke='rgba(160,120,50,0.5)' stroke-width='1.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M16 4 L16 12 M20 4 L20 12 M16 8 L20 8' stroke='rgba(160,120,50,0.4)' stroke-width='1' stroke-linecap='round' fill='none'/%3E%3C/svg%3E"); }
+body.mode-rpg .ihp-corner-tr { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M4 4 L4 16 M4 4 L12 4 M4 10 L10 10' stroke='rgba(160,120,50,0.5)' stroke-width='1.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M16 4 L16 12 M20 4 L20 12 M16 8 L20 8' stroke='rgba(160,120,50,0.4)' stroke-width='1' stroke-linecap='round' fill='none'/%3E%3C/svg%3E"); }
+
+body.mode-rpg .ihp-name {
+    color: rgba(230,200,140,0.97);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 12px rgba(160,80,20,0.2);
+    padding-right: 2.8rem; /* espacio para emblema */
+    border-bottom: 1px solid rgba(160,120,50,0.2);
+    margin-bottom: 0.1rem;
+}
+body.mode-rpg .ihp-lbl  { color: rgba(160,120,50,0.7); }
+body.mode-rpg .ihp-val  { color: rgba(220,195,155,0.88); }
+body.mode-rpg .ihp-desc {
+    font-family: 'Crimson Text', serif;
+    color: rgba(200,175,135,0.6);
+    border-top-color: rgba(160,120,50,0.15);
+}
+body.mode-rpg .ihp-stats { border-top-color: rgba(160,120,50,0.2); }
+body.mode-rpg .ihp-stat-cell {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(140,100,40,0.2);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(220,180,80,0.05);
+}
+/* Números "tallados" — relieve de piedra */
+body.mode-rpg .ihp-stat-key { color: rgba(160,120,50,0.65); }
+body.mode-rpg .ihp-stat-num {
+    color: rgba(230,200,140,0.95);
+    text-shadow:
+        0 2px 4px rgba(0,0,0,0.9),
+        0 -1px 0 rgba(220,180,80,0.12);
+}
+
+/* Emblema de clase RPG — icono SVG inyectado por JS */
+body.mode-rpg .ihp-emblem {
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(160,120,50,0.4);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.6), 0 0 8px rgba(160,80,30,0.2);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODO CLÁSICO — Pergamino envejecido, sello de cera, caligrafía
+   ═══════════════════════════════════════════════════════════════════ */
+
+@keyframes unrollParchment {
+    0%   { opacity: 0; transform: translateY(-8px) scaleY(0.4);
+           transform-origin: top left;
+           filter: blur(1px); }
+    40%  { opacity: 0.85; transform: translateY(2px) scaleY(1.02);
+           filter: none; }
+    65%  { transform: translateY(-1px) scaleY(0.99); }
+    100% { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+body.mode-classic .vn-info-card:hover .vn-info-hover-details,
+body.mode-classic .vn-info-card:focus-within .vn-info-hover-details {
+    animation: unrollParchment 0.45s cubic-bezier(0.34, 1.25, 0.64, 1) both;
+}
+
+body.mode-classic .vn-info-hover-details {
+    background: linear-gradient(150deg, rgba(44,30,12,0.98) 0%, rgba(28,18,7,0.99) 100%);
+    border: 2px solid rgba(190,148,70,0.5);
+    box-shadow:
+        0 18px 48px rgba(0,0,0,0.65),
+        0 0 0 1px rgba(120,90,40,0.15),
+        inset 0 1px 0 rgba(240,200,110,0.07),
+        inset 0 0 18px rgba(0,0,0,0.2);
+    /* Textura pergamino con ruido vertical sutil */
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='100'%3E%3Cpath d='M2 0 Q1 12 2 25 Q3 38 2 50 Q1 62 2 75 Q3 88 2 100' stroke='rgba(190,148,70,0.07)' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"),
+        linear-gradient(150deg, rgba(44,30,12,0.98) 0%, rgba(28,18,7,0.99) 100%);
+    background-repeat: repeat-y, no-repeat;
+    background-size: 8px auto, cover;
+}
+
+/* Ornamentos florales en esquinas */
+body.mode-classic .ihp-corner-tl { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='8' cy='8' r='2.5' stroke='rgba(190,148,70,0.5)' stroke-width='0.9' fill='none'/%3E%3Cpath d='M8 5 Q5 3 3 5 Q1 7 3 9' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M11 8 Q13 5 11 3 Q9 1 7 3' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M5 11 Q3 13 5 15' stroke='rgba(190,148,70,0.35)' stroke-width='0.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); }
+body.mode-classic .ihp-corner-tr { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='8' cy='8' r='2.5' stroke='rgba(190,148,70,0.5)' stroke-width='0.9' fill='none'/%3E%3Cpath d='M8 5 Q5 3 3 5 Q1 7 3 9' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M11 8 Q13 5 11 3 Q9 1 7 3' stroke='rgba(190,148,70,0.4)' stroke-width='0.8' fill='none'/%3E%3Cpath d='M5 11 Q3 13 5 15' stroke='rgba(190,148,70,0.35)' stroke-width='0.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); transform: scaleX(-1); }
+
+body.mode-classic .ihp-name {
+    color: rgba(240,210,150,0.97);
+    font-style: italic;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+    padding-right: 2.8rem;
+    border-bottom: 1px solid rgba(190,148,70,0.18);
+    margin-bottom: 0.1rem;
+}
+body.mode-classic .ihp-lbl  { color: rgba(190,148,70,0.6); }
+body.mode-classic .ihp-val  { color: rgba(230,205,160,0.88); }
+
+/* Tipografía manuscrita itálica para descripciones */
+body.mode-classic .ihp-desc {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    font-size: 0.82rem;
+    color: rgba(210,180,130,0.72);
+    letter-spacing: 0.01em;
+    border-top-color: rgba(190,148,70,0.12);
+    /* Leve difuminado de tinta envejecida */
+    text-shadow: 0 0 8px rgba(190,148,70,0.08);
+}
+
+/* Sello de cera dorada — círculo con relieve en la esquina */
+body.mode-classic .ihp-emblem {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+        rgba(220,180,80,0.95) 0%,
+        rgba(180,130,40,0.9) 45%,
+        rgba(140,90,20,0.85) 100%);
+    border: 1.5px solid rgba(240,200,100,0.5);
+    box-shadow:
+        0 3px 10px rgba(0,0,0,0.55),
+        inset 0 1px 2px rgba(255,230,120,0.4),
+        inset 0 -1px 2px rgba(100,60,10,0.5);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(80,40,5,0.9);
+    text-shadow: 0 1px 1px rgba(255,200,80,0.3);
+}
+
+/* Stats en modo clásico — celdas suaves */
+body.mode-classic .ihp-stats { border-top-color: rgba(190,148,70,0.12); }
+body.mode-classic .ihp-stat-cell {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(190,148,70,0.15);
+}
+body.mode-classic .ihp-stat-key { color: rgba(190,148,70,0.55); }
+body.mode-classic .ihp-stat-num { color: rgba(230,205,155,0.92); }
+
+
+/* ── Eco del Destino — badge de consecuencia por modo ── */
+body.mode-rpg .vn-oracle-consequence-badge {
+    color: rgba(210, 170, 80, 0.9);
+    background: linear-gradient(90deg, rgba(40, 22, 3, 0.6), rgba(20, 12, 2, 0.45));
+    border-top-color: rgba(160, 110, 30, 0.35);
+    border-bottom-color: rgba(160, 110, 30, 0.2);
+    font-family: 'Cinzel', 'Crimson Text', serif;
+    font-style: normal;
+    font-size: 0.77rem;
+    letter-spacing: 0.02em;
+}
+body.mode-rpg .vn-oracle-consequence-badge::before {
+    content: '⚔ ';
+    color: rgba(160, 110, 30, 0.65);
+}
+body.mode-classic .vn-oracle-consequence-badge {
+    color: rgba(230, 195, 120, 0.88);
+    background: linear-gradient(90deg, rgba(50, 30, 5, 0.5), rgba(32, 18, 3, 0.35));
+    border-top-color: rgba(190, 148, 70, 0.25);
+    border-bottom-color: rgba(190, 148, 70, 0.15);
+}
+body.mode-classic .vn-oracle-consequence-badge::before {
+    content: '✦ ';
+    color: rgba(190, 148, 70, 0.55);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   IHP v2 — SISTEMA DE ESTADOS: hidden | peek | pinned
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Avatar clickeable (cursor pointer para indicar pin) ── */
+.vn-info-avatar {
+    cursor: pointer;
+    position: relative;
+}
+.vn-info-avatar::after {
+    content: '📌';
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    font-size: 0.6rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+.vn-info-card.ihp-pinned .vn-info-avatar::after {
+    opacity: 1;
+}
+
+/* ── Botón cerrar (solo en pinned) ── */
+.ihp-close-btn {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: rgba(200, 175, 130, 0.5);
+    font-size: 0.72rem;
+    cursor: pointer;
+    padding: 0.15rem 0.3rem;
+    border-radius: 4px;
+    z-index: var(--z-i-5);
+    transition: color 0.15s, background 0.15s;
+    display: none;
+}
+.ihp-close-btn:hover {
+    color: rgba(200, 175, 130, 0.9);
+    background: rgba(255, 255, 255, 0.06);
+}
+.vn-info-hover-details[data-state="pinned"] .ihp-close-btn {
+    display: block;
+}
+
+/* ── Indicador pin ── */
+.ihp-pin-indicator {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: 0.6rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: var(--z-i-5);
+}
+.vn-info-hover-details[data-state="pinned"] .ihp-pin-indicator {
+    opacity: 0.6;
+}
+
+/* ── IHP: estado PEEK (hover existente, igual que antes) ── */
+.vn-info-card:hover .vn-info-hover-details[data-state="hidden"],
+.vn-info-card:focus-within .vn-info-hover-details[data-state="hidden"] {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scaleY(1);
+}
+
+/* ── IHP: estado PINNED — fijo, pointer-events, sin hover needed ── */
+.vn-info-hover-details[data-state="pinned"] {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: translateY(0) scaleY(1) !important;
+    animation: none !important;
+    /* Borde más prominente para indicar que está fijado */
+    box-shadow:
+        0 20px 50px rgba(0,0,0,0.75),
+        0 0 0 2px rgba(160,128,220, 0.4),
+        inset 0 1px 0 rgba(255,255,255,0.06) !important;
+}
+
+/* ── HP bar permanente en info-card (RPG) ── */
+.vn-info-hp-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+}
+.vn-info-hp-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(160, 80, 32, 0.8);
+    flex-shrink: 0;
+}
+.vn-info-hp-bar {
+    flex: 1;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid rgba(140, 70, 20, 0.25);
+}
+.vn-info-hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6b3a10, #c05820, #e07030);
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+    position: relative;
+}
+/* Brillo de cristal sobre la barra */
+.vn-info-hp-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 50% 0;
+    background: rgba(255, 200, 100, 0.15);
+    border-radius: 3px 3px 0 0;
+}
+.vn-info-hp-val {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    color: rgba(200, 160, 100, 0.75);
+    flex-shrink: 0;
+    min-width: 28px;
+    text-align: right;
+}
+.vn-info-rpg.hidden { display: none !important; }
+
+/* ── IHP: barras HP/EXP dentro del panel ── */
+.ihp-rpg-bars {
+    padding: 0.35rem 0.9rem 0.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    z-index: var(--z-i-1);
+}
+.ihp-rpg-bars:empty { display: none; }
+.ihp-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.ihp-bar-lbl {
+    font-family: 'Cinzel', serif;
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    min-width: 22px;
+    flex-shrink: 0;
+}
+.ihp-bar-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(0,0,0,0.35);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+.ihp-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+}
+.ihp-bar-fill.hp  { background: linear-gradient(90deg, #6b3a10, #c05820, #e07030); }
+.ihp-bar-fill.exp { background: linear-gradient(90deg, #5a4a10, #a08020, #c0a030); }
+.ihp-bar-val {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    min-width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* ── IHP: sección relaciones (Clásico pinned) ── */
+.ihp-relations {
+    padding: 0.35rem 0.9rem 0.5rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    z-index: var(--z-i-1);
+}
+.ihp-relations:empty { display: none; }
+.ihp-relations-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-bottom: 0.3rem;
+    display: block;
+}
+.ihp-rel-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.18rem 0;
+    font-size: 0.75rem;
+}
+.ihp-rel-name {
+    flex: 1;
+    opacity: 0.85;
+    font-family: 'Inter', sans-serif;
+}
+.ihp-rel-stars {
+    font-size: 0.65rem;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+}
+.ihp-rel-rank {
+    font-size: 0.65rem;
+    opacity: 0.55;
+    font-style: italic;
+    font-family: 'Crimson Text', serif;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── IHP: botón oráculo (RPG pinned) ── */
+.ihp-oracle-hint {
+    padding: 0.3rem 0.9rem 0.5rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    z-index: var(--z-i-1);
+}
+.ihp-oracle-btn {
+    width: 100%;
+    background: rgba(160, 80, 32, 0.12);
+    border: 1px solid rgba(160, 80, 32, 0.3);
+    border-radius: 8px;
+    color: rgba(220, 160, 80, 0.9);
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding: 0.35rem 0.6rem;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.ihp-oracle-btn:hover {
+    background: rgba(160, 80, 32, 0.22);
+    border-color: rgba(160, 80, 32, 0.55);
+}
+
+/* ── Secciones que solo aparecen en pinned ── */
+.ihp-pinned-only {
+    display: none;
+}
+.vn-info-hover-details[data-state="pinned"] .ihp-pinned-only {
+    display: block;
+}
+
+/* ── Grafo: controles de afinidad ── */
+.graph-affinity-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.8rem;
+    background: rgba(160,128,220, 0.06);
+    border: 1px solid rgba(160,128,220, 0.15);
+    border-radius: 10px;
+    margin: 0.5rem 0;
+    flex-wrap: wrap;
+}
+.graph-affinity-controls.hidden { display: none; }
+.graph-affinity-label {
+    font-size: 0.8rem;
+    color: rgba(200, 180, 140, 0.75);
+    font-family: 'Inter', sans-serif;
+}
+.graph-affinity-rank {
+    font-family: 'Cinzel', serif;
+    font-size: 0.78rem;
+    color: var(--accent-gold);
+    flex: 1;
+}
+.graph-affinity-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid rgba(160,128,220, 0.3);
+    background: rgba(160,128,220, 0.08);
+    color: var(--accent-gold);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.graph-affinity-btn:hover {
+    background: rgba(160,128,220, 0.2);
+    border-color: rgba(160,128,220, 0.5);
+}
+
+/* ── Estilos por modo para las nuevas secciones del IHP ── */
+body.mode-rpg .ihp-bar-lbl.hp  { color: rgba(200, 80, 30, 0.8); }
+body.mode-rpg .ihp-bar-lbl.exp { color: rgba(180, 150, 30, 0.75); }
+body.mode-rpg .ihp-bar-val     { color: rgba(200, 175, 130, 0.7); }
+body.mode-rpg .ihp-oracle-hint { border-top-color: rgba(160, 120, 50, 0.2); }
+
+body.mode-classic .ihp-relations-title { color: rgba(190, 148, 70, 0.55); }
+body.mode-classic .ihp-rel-name  { color: rgba(230, 205, 160, 0.88); }
+body.mode-classic .ihp-rel-stars { color: rgba(190, 148, 70, 0.7); }
+body.mode-classic .ihp-relations { border-top-color: rgba(190, 148, 70, 0.12); }
+
+/* En modo clásico, IHP peek NO muestra stats/relaciones */
+body.mode-classic .vn-info-hover-details[data-state="hidden"] .ihp-stats,
+body.mode-classic .vn-info-hover-details[data-state="hidden"] .ihp-relations,
+body.mode-classic .vn-info-hover-details[data-state="hidden"] .ihp-rpg-bars {
+    display: none;
+}
+/* En modo clásico, IHP pinned muestra descripción y relaciones */
+body.mode-classic .vn-info-hover-details[data-state="pinned"] .ihp-desc { display: block; }
+body.mode-classic .vn-info-hover-details[data-state="pinned"] .ihp-relations { display: block; }
+
+/* En modo RPG, IHP peek muestra stats; pinned muestra todo + oráculo */
+body.mode-rpg .vn-info-hover-details[data-state="hidden"] .ihp-oracle-hint { display: none; }
+body.mode-rpg .vn-info-hover-details[data-state="pinned"] .ihp-oracle-hint { display: block; }
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   SPRITE SOMBRA — silueta cuando no hay imagen definida
+   Tres variantes: shadow-masc / shadow-fem / neutral (sin clase)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Contenedor ─────────────────────────────────────────────────── */
+.sprite-shadow {
+    width: 100%;
+    height: 95%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+    pointer-events: none;
+    mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent 100%);
+}
+
+/* SVG inline de la silueta — ocupa todo el alto del contenedor */
+.sprite-shadow svg {
+    width: auto;
+    height: 100%;
+    max-width: 100%;
+    display: block;
+}
+
+/* ── Wrapper de silueta SVG ──────────────────────────────────────── */
+.shadow-silhouette {
+    /* El color del SVG se hereda desde CSS via currentColor */
+    color: rgba(18, 12, 6, 0.97);
+    position: relative;
+    flex-shrink: 0;
+    height: 88%;
+    display: flex;
+    align-items: flex-end;
+
+    filter: blur(1.5px);
+    transform-origin: bottom center;
+    transition: filter 0.6s ease, transform 0.6s ease, opacity 0.6s ease;
+}
+
+.shadow-silhouette.shadow-masc {
+    /* Silueta masc es ligeramente más ancha */
+    filter: blur(1px);
+}
+
+.shadow-silhouette.shadow-fem {
+    filter: blur(1.8px);
+}
+
+/* ── Glow base ───────────────────────────────────────────────────── */
+.shadow-glow {
+    position: absolute;
+    inset: -8% -15% -5%;
+    background: radial-gradient(
+        ellipse 80% 50% at 50% 95%,
+        rgba(160,128,220, 0.13) 0%,
+        transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+}
+
+/* Tinte de glow según género (imperceptible conscientemente) */
+.shadow-glow.shadow-masc {
+    background: radial-gradient(
+        ellipse 80% 50% at 50% 95%,
+        rgba(160, 120, 80, 0.16) 0%,
+        transparent 70%
+    );
+}
+.shadow-glow.shadow-fem {
+    background: radial-gradient(
+        ellipse 80% 50% at 50% 95%,
+        rgba(180, 140, 120, 0.16) 0%,
+        transparent 70%
+    );
+}
+
+/* ── Hitbox dentro de la sombra (accesibilidad / emotes) ─────────── */
+.sprite-shadow .vn-sprite-hitbox {
+    position: absolute;
+    inset: 0;
+    border: none;
+    background: transparent;
+    /* Sin mask para que cubra toda la zona */
+    mask-image: none;
+    -webkit-mask-image: none;
+}
+
+/* ── ACTIVO: glow encendido + respiración ────────────────────────── */
+.vn-sprite.active .shadow-glow {
+    opacity: 1;
+}
+
+.vn-sprite.active .shadow-silhouette {
+    animation: shadow-breathe 4.8s ease-in-out infinite;
+}
+
+/* ── INACTIVO: más oscuro, más difuminado, retraído ─────────────── */
+.vn-sprite.inactive .shadow-silhouette {
+    filter: blur(5px);
+    opacity: 0.45;
+    transform: scaleX(0.94) scaleY(0.96);
+}
+.vn-sprite.inactive .shadow-glow { opacity: 0; }
+
+/* ── Modo RPG: más definido, más amenazante ─────────────────────── */
+body.mode-rpg .shadow-silhouette {
+    color: rgba(10, 7, 4, 0.99);
+    filter: blur(1px);
+}
+body.mode-rpg .shadow-silhouette.shadow-masc { filter: blur(0.6px); }
+body.mode-rpg .shadow-silhouette.shadow-fem  { filter: blur(1.2px); }
+
+body.mode-rpg .shadow-glow {
+    background: radial-gradient(
+        ellipse 80% 50% at 50% 95%,
+        rgba(160, 100, 40, 0.22) 0%,
+        transparent 70%
+    );
+}
+body.mode-rpg .shadow-glow.shadow-masc {
+    background: radial-gradient(
+        ellipse 80% 50% at 50% 95%,
+        rgba(140, 90, 30, 0.24) 0%,
+        transparent 70%
+    );
+}
+body.mode-rpg .shadow-glow.shadow-fem {
+    background: radial-gradient(
+        ellipse 80% 50% at 50% 95%,
+        rgba(170, 110, 60, 0.22) 0%,
+        transparent 70%
+    );
+}
+
+/* ── Modo Clásico: más etéreo, melancólico ──────────────────────── */
+body.mode-classic .shadow-silhouette {
+    color: rgba(28, 20, 10, 0.92);
+    filter: blur(2.5px);
+}
+body.mode-classic .shadow-silhouette.shadow-masc { filter: blur(2px); }
+body.mode-classic .shadow-silhouette.shadow-fem  { filter: blur(3px); }
+
+body.mode-classic .shadow-glow {
+    background: radial-gradient(
+        ellipse 80% 50% at 50% 95%,
+        rgba(201, 164, 90, 0.10) 0%,
+        transparent 70%
+    );
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   POSADERO GARRICK — La Chimenea Rota
+   Mensajes con isGarrick: true reciben nameplate y acento propios
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* El JS aplica charColor = rgba(160,100,40,0.9) vía --char-color,
+   así que el borde y el glow de la caja ya cambian automáticamente.
+   Solo necesitamos el nameplate especial. */
+
+/* Nameplate cálido — madera oscura y brasa */
+.vn-dialogue-box[data-garrick="true"] .vn-speaker-plate,
+.vn-speaker-plate[data-garrick="true"] {
+    background: linear-gradient(135deg, #1c0f04, #3d1e08, #1c0f04);
+    border-color: rgba(180, 110, 40, 0.6);
+    color: rgba(240, 195, 120, 0.95);
+    letter-spacing: 0.09em;
+}
+
+/* Badge de posada — pequeño icono junto al nombre */
+.vn-garrick-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    color: rgba(180, 130, 60, 0.7);
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+}
+
+/* Animación de entrada — ligeramente más lenta, más solemne */
+.vn-dialogue-box[data-garrick="true"] {
+    border-color: rgba(160, 100, 40, 0.55) !important;
+    box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.65),
+        0 0 28px -4px rgba(160, 90, 20, 0.35),
+        inset 0 1px 0 rgba(255, 200, 100, 0.06) !important;
+}
+
+
+/* ── Botones de diálogo — layout izquierda/derecha ── */
