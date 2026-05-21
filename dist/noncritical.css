@@ -22754,18 +22754,23 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
 /* El footer actúa como contexto de posicionamiento para las flechas      */
 .vn-dialogue-footer {
     position: relative !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
 }
 
-/* Bloque de navegación: sacado del flujo → no deforma el footer          */
+/* Bloque de navegación: empujado al extremo derecho con margin-left:auto */
 .vn-counter-dice-wrap {
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     gap: 2px !important;
     pointer-events: auto !important;
+    margin-left: auto !important;
+    flex-shrink: 0 !important;
 }
 
-/* Las acciones del footer ya no necesitan reservar espacio lateral */
 .vn-dialogue-actions {
     padding-right: 0 !important;
 }
