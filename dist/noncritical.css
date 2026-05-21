@@ -22750,29 +22750,35 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
     border-radius: 20px !important;
 }
 
-/* ── Mini-nav VERTICAL en el lado derecho del footer de diálogo ─────── */
-/* El footer actúa como contexto de posicionamiento para las flechas      */
+/* ── Mini-nav en el extremo derecho del footer de diálogo ─────────── */
+/* Fila única (nowrap): acciones crecen a la izquierda, nav al extremo  */
+/* derecho. Se usa `order` porque el nav está primero en el DOM.         */
 .vn-dialogue-footer {
     position: relative !important;
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
 }
 
-/* Bloque de navegación: empujado al extremo derecho con margin-left:auto */
+/* Botones de acción: visualmente primeros, crecen para llenar el hueco */
+.vn-dialogue-actions {
+    order: 1 !important;
+    flex: 1 !important;
+    width: auto !important;        /* anula el width:100% del componente base */
+    min-width: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Bloque de navegación: visualmente al final — nunca encoge */
 .vn-counter-dice-wrap {
+    order: 2 !important;
     display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
     gap: 2px !important;
     pointer-events: auto !important;
-    margin-left: auto !important;
     flex-shrink: 0 !important;
-}
-
-.vn-dialogue-actions {
-    padding-right: 0 !important;
 }
 
 /* ── Botones de navegación — base común ─────────────────────────────── */
@@ -22949,6 +22955,19 @@ body:not(.mode-rpg) #vnSection .vn-rpg-hud-quickbar {
 }
 
 body.mode-rpg #vnSection .vn-rpg-controls {
+    display: flex !important;
+}
+
+/* ── Stat bar RPG: oculta en modo VN normal, solo visible en escenas RPG activas ──
+   El #vnRpgStatBar es inyectado por RPGRenderer y se posicionaba en el
+   upper-right del VN en todo momento, generando una barra extra no deseada.
+   La ocultamos por defecto y solo la mostramos cuando hay una escena activa
+   (RPGRenderer añade .rpg-scene-active a #vnSection al iniciar una escena). */
+body.mode-rpg #vnRpgStatBar {
+    display: none !important;
+}
+
+body.mode-rpg #vnSection.rpg-scene-active #vnRpgStatBar {
     display: flex !important;
 }
 

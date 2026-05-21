@@ -12,6 +12,19 @@ body.mode-rpg #vnSection .vn-rpg-controls {
     display: flex !important;
 }
 
+/* ── Stat bar RPG: oculta en modo VN normal, solo visible en escenas RPG activas ──
+   El #vnRpgStatBar es inyectado por RPGRenderer y se posicionaba en el
+   upper-right del VN en todo momento, generando una barra extra no deseada.
+   La ocultamos por defecto y solo la mostramos cuando hay una escena activa
+   (RPGRenderer añade .rpg-scene-active a #vnSection al iniciar una escena). */
+body.mode-rpg #vnRpgStatBar {
+    display: none !important;
+}
+
+body.mode-rpg #vnSection.rpg-scene-active #vnRpgStatBar {
+    display: flex !important;
+}
+
 body.mode-rpg #vnSection .vn-info-card {
     z-index: 120;
 }
