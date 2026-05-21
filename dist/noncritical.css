@@ -22758,21 +22758,16 @@ body:not(.mode-rpg) #vnSection .vn-classic-control-group {
 
 /* Bloque de navegación: sacado del flujo → no deforma el footer          */
 .vn-counter-dice-wrap {
-    position: absolute !important;
-    right: 4px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
     display: flex !important;
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
     gap: 2px !important;
-    z-index: 5 !important;
     pointer-events: auto !important;
 }
 
-/* Las acciones del footer reservan espacio para las flechas a la derecha */
+/* Las acciones del footer ya no necesitan reservar espacio lateral */
 .vn-dialogue-actions {
-    padding-right: 34px !important;
+    padding-right: 0 !important;
 }
 
 /* ── Botones de navegación — base común ─────────────────────────────── */
