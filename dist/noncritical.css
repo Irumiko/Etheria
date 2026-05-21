@@ -22987,6 +22987,73 @@ body.mode-rpg #vnSection .vn-dialogue-box {
     border-color: rgba(192, 168, 112, 0.45);
 }
 
+/* ── Continue indicator: ámbar en RPG (el base usa morado #a080e0) ─────── */
+body.mode-rpg #vnContinueIndicator {
+    border-top-color: rgba(210, 168, 55, 0.90) !important;
+    filter: drop-shadow(0 0 5px rgba(200, 155, 45, 0.58)) !important;
+}
+
+/* ── Avatar RPG: anillo forjado giratorio + pulso brasa ─────────────────
+   Completamente independiente del clásico (azul, horario, 28s).
+   RPG: ámbar/bronce, antihorario, 16s — más rápido y con dirección opuesta.  */
+body.mode-rpg #vnSection .vn-speaker-avatar {
+    box-shadow:
+        0 0 0 2px rgba(70, 44, 12, 0.75),
+        0 0 0 5px rgba(155, 105, 25, 0.14),
+        0 0 22px rgba(185, 125, 30, 0.30),
+        0 12px 32px rgba(0, 0, 0, 0.64) !important;
+    animation: rpg-ember-pulse 3.4s ease-in-out infinite !important;
+}
+
+body.mode-rpg #vnSection .vn-speaker-avatar.is-speaking {
+    animation: rpg-ember-speak 1.9s ease-in-out infinite !important;
+}
+
+@keyframes rpg-ember-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px rgba(70, 44, 12, 0.75),
+            0 0 0 5px rgba(155, 105, 25, 0.14),
+            0 0 22px rgba(185, 125, 30, 0.30),
+            0 12px 32px rgba(0, 0, 0, 0.64);
+    }
+    50% {
+        box-shadow:
+            0 0 0 2px rgba(95, 58, 14, 0.85),
+            0 0 0 5px rgba(195, 138, 38, 0.22),
+            0 0 34px rgba(225, 150, 42, 0.50),
+            0 12px 32px rgba(0, 0, 0, 0.64);
+    }
+}
+
+@keyframes rpg-ember-speak {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px rgba(110, 55, 12, 0.88),
+            0 0 0 5px rgba(200, 110, 28, 0.24),
+            0 0 26px rgba(230, 120, 35, 0.48),
+            0 12px 32px rgba(0, 0, 0, 0.68);
+    }
+    50% {
+        box-shadow:
+            0 0 0 2px rgba(130, 65, 14, 0.92),
+            0 0 0 5px rgba(225, 130, 38, 0.32),
+            0 0 42px rgba(250, 140, 45, 0.68),
+            0 12px 32px rgba(0, 0, 0, 0.68);
+    }
+}
+
+/* Anillo exterior: segmentos escudo-rúnico girando en sentido antihorario  */
+/* El clásico gira en sentido horario con motivos de constelación azul-plata */
+body.mode-rpg #vnSection .vn-speaker-avatar-wrap::before {
+    animation: rpg-ring-forge 16s linear infinite !important;
+}
+
+@keyframes rpg-ring-forge {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(-360deg); }   /* ← antihorario: distinto del clásico */
+}
+
 
 /* -- css/modules/09-vn-mode-menus.css -- */
 /* ============================================================
