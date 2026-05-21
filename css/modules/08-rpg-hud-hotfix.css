@@ -107,3 +107,36 @@ body.mode-rpg #vnSection .vn-speaker-avatar-wrap::before {
     from { transform: rotate(0deg); }
     to   { transform: rotate(-360deg); }   /* ← antihorario: distinto del clásico */
 }
+
+/* ── RPG Party Shell: izquierda vertical, NO al fondo ─────────────────────
+   theme-menu/index.css lo mueve a bottom con !important.
+   08 viene después en el build → gana con mayor especificidad. */
+body.mode-rpg #vnPartyShell {
+    top: max(6.7rem, calc(env(safe-area-inset-top, 0px) + 5.9rem)) !important;
+    bottom: auto !important;
+    left: 0.85rem !important;
+}
+
+/* Colores del panel RPG party: ámbar/bronce en lugar del morado base */
+body.mode-rpg #vnPartyShell .vn-party-panel {
+    border-color: rgba(180, 140, 80, 0.30) !important;
+}
+body.mode-rpg #vnPartyShell .vn-party-header {
+    border-bottom-color: rgba(180, 140, 80, 0.18) !important;
+}
+body.mode-rpg #vnPartyShell .vn-party-member {
+    border-color: rgba(180, 140, 80, 0.13) !important;
+}
+body.mode-rpg #vnPartyShell .vn-party-bar-track {
+    border-color: rgba(180, 140, 80, 0.09) !important;
+}
+body.mode-rpg #vnPartyShell .vn-party-bar-fill.exp {
+    background: linear-gradient(90deg, rgba(122, 75, 14, 0.95), rgba(200, 146, 42, 0.95)) !important;
+}
+
+@media (max-width: 768px) {
+    body.mode-rpg #vnPartyShell {
+        top: max(5.8rem, calc(env(safe-area-inset-top, 0px) + 4.9rem)) !important;
+        left: 0.6rem !important;
+    }
+}

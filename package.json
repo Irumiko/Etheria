@@ -7,7 +7,8 @@
     "validate:build": "node scripts/validate-build.js",
     "validate:critical-size": "node scripts/extract-critical.js",
     "validate:pwa-e2e": "node scripts/validate-pwa-e2e.js",
-    "preview": "python3 -m http.server 8000",
+    "preview": "npx --yes serve dist -l 5173",
+    "preview:py": "python -m http.server 8000 --directory dist",
     "test": "node --test tests/*.test.js"
   },
   "devDependencies": {

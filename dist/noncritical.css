@@ -23054,6 +23054,39 @@ body.mode-rpg #vnSection .vn-speaker-avatar-wrap::before {
     to   { transform: rotate(-360deg); }   /* ← antihorario: distinto del clásico */
 }
 
+/* ── RPG Party Shell: izquierda vertical, NO al fondo ─────────────────────
+   theme-menu/index.css lo mueve a bottom con !important.
+   08 viene después en el build → gana con mayor especificidad. */
+body.mode-rpg #vnPartyShell {
+    top: max(6.7rem, calc(env(safe-area-inset-top, 0px) + 5.9rem)) !important;
+    bottom: auto !important;
+    left: 0.85rem !important;
+}
+
+/* Colores del panel RPG party: ámbar/bronce en lugar del morado base */
+body.mode-rpg #vnPartyShell .vn-party-panel {
+    border-color: rgba(180, 140, 80, 0.30) !important;
+}
+body.mode-rpg #vnPartyShell .vn-party-header {
+    border-bottom-color: rgba(180, 140, 80, 0.18) !important;
+}
+body.mode-rpg #vnPartyShell .vn-party-member {
+    border-color: rgba(180, 140, 80, 0.13) !important;
+}
+body.mode-rpg #vnPartyShell .vn-party-bar-track {
+    border-color: rgba(180, 140, 80, 0.09) !important;
+}
+body.mode-rpg #vnPartyShell .vn-party-bar-fill.exp {
+    background: linear-gradient(90deg, rgba(122, 75, 14, 0.95), rgba(200, 146, 42, 0.95)) !important;
+}
+
+@media (max-width: 768px) {
+    body.mode-rpg #vnPartyShell {
+        top: max(5.8rem, calc(env(safe-area-inset-top, 0px) + 4.9rem)) !important;
+        left: 0.6rem !important;
+    }
+}
+
 
 /* -- css/modules/09-vn-mode-menus.css -- */
 /* ============================================================
@@ -26284,10 +26317,11 @@ body:has(#topicsSection.active) {
 
 /* ── Tema RPG ─────────────────────────────────────────────── */
 .upm-card--rpg {
-    background: #111827;
-    border: 1px solid rgba(139, 92, 246, 0.5);
+    background: linear-gradient(175deg, #1c150a, #120e07);
+    border: 1px solid rgba(180, 140, 80, 0.48);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 225, 160, 0.06);
     font-family: 'Rajdhani', 'Exo 2', system-ui, sans-serif;
-    color: #e2e8f0;
+    color: #e8d5b0;
     letter-spacing: 0.02em;
 }
 
@@ -26307,8 +26341,8 @@ body:has(#topicsSection.active) {
     transition: color 0.2s, background 0.2s;
 }
 .upm-close:hover { color: #c9a86c; background: rgba(201, 168, 108, 0.12); }
-.upm-card--rpg .upm-close { color: rgba(139, 92, 246, 0.6); }
-.upm-card--rpg .upm-close:hover { color: #a78bfa; background: rgba(139, 92, 246, 0.12); }
+.upm-card--rpg .upm-close { color: rgba(180, 140, 80, 0.55); }
+.upm-card--rpg .upm-close:hover { color: #c9a86c; background: rgba(180, 140, 80, 0.12); }
 
 /* ── Cargando ─────────────────────────────────────────────── */
 .upm-loading {
@@ -26332,13 +26366,15 @@ body:has(#topicsSection.active) {
 /* ── Header RPG ───────────────────────────────────────────── */
 .upm-rpg-header {
     margin-bottom: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid rgba(180, 140, 80, 0.2);
 }
 .upm-rpg-kicker {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: #a78bfa;
-    font-weight: 600;
+    letter-spacing: 0.16em;
+    color: #c9a86c;
+    font-weight: 700;
 }
 
 /* ── Identidad (avatar + nombre) ─────────────────────────── */
@@ -26358,7 +26394,10 @@ body:has(#topicsSection.active) {
     border: 2px solid rgba(201, 168, 108, 0.4);
     flex-shrink: 0;
 }
-.upm-card--rpg .upm-avatar { border-color: rgba(139, 92, 246, 0.4); }
+.upm-card--rpg .upm-avatar {
+    border-color: rgba(180, 140, 80, 0.45);
+    box-shadow: 0 0 0 3px rgba(100, 65, 15, 0.35), 0 0 18px rgba(180, 140, 80, 0.18);
+}
 
 .upm-avatar--initials {
     display: flex;
@@ -26371,8 +26410,8 @@ body:has(#topicsSection.active) {
     font-style: normal;
 }
 .upm-card--rpg .upm-avatar--initials {
-    background: linear-gradient(135deg, #4c1d95, #7c3aed);
-    color: #f5f3ff;
+    background: linear-gradient(135deg, #5c3a0a, #b87e30);
+    color: #fdf0d8;
 }
 
 .upm-identity-text {
@@ -26388,14 +26427,14 @@ body:has(#topicsSection.active) {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.upm-card--rpg .upm-name { color: #a78bfa; }
+.upm-card--rpg .upm-name { color: #dec28f; }
 
 .upm-gender-badge {
     font-size: 0.8rem;
     color: rgba(201, 168, 108, 0.65);
     margin-top: 0.2rem;
 }
-.upm-card--rpg .upm-gender-badge { color: rgba(167, 139, 250, 0.65); }
+.upm-card--rpg .upm-gender-badge { color: rgba(200, 168, 108, 0.65); }
 
 .upm-edit-btn {
     align-self: flex-start;
@@ -26406,17 +26445,17 @@ body:has(#topicsSection.active) {
     padding: 0.3rem 0.65rem;
     border-radius: 6px;
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
     white-space: nowrap;
     flex-shrink: 0;
 }
 .upm-edit-btn:hover { background: rgba(201, 168, 108, 0.2); border-color: rgba(201, 168, 108, 0.6); }
 .upm-card--rpg .upm-edit-btn {
-    background: rgba(139, 92, 246, 0.1);
-    border-color: rgba(139, 92, 246, 0.35);
-    color: #a78bfa;
+    background: rgba(180, 140, 80, 0.1);
+    border-color: rgba(180, 140, 80, 0.35);
+    color: #c9a86c;
 }
-.upm-card--rpg .upm-edit-btn:hover { background: rgba(139, 92, 246, 0.2); border-color: rgba(139, 92, 246, 0.6); }
+.upm-card--rpg .upm-edit-btn:hover { background: rgba(180, 140, 80, 0.2); border-color: rgba(180, 140, 80, 0.6); }
 
 /* ── Divisor ──────────────────────────────────────────────── */
 .upm-divider {
@@ -26424,7 +26463,7 @@ body:has(#topicsSection.active) {
     border-top: 1px solid rgba(201, 168, 108, 0.2);
     margin: 0.9rem 0;
 }
-.upm-divider--rpg { border-top-color: rgba(139, 92, 246, 0.2); }
+.upm-divider--rpg { border-top-color: rgba(180, 140, 80, 0.22); }
 
 /* ── Stats grid ───────────────────────────────────────────── */
 .upm-stats-grid {
@@ -26449,7 +26488,7 @@ body:has(#topicsSection.active) {
     letter-spacing: 0.1em;
     color: rgba(201, 168, 108, 0.55);
 }
-.upm-card--rpg .upm-stat-label { color: rgba(167, 139, 250, 0.55); }
+.upm-card--rpg .upm-stat-label { color: rgba(200, 168, 100, 0.55); }
 
 .upm-stat-value {
     font-size: 1.4rem;
@@ -26457,7 +26496,7 @@ body:has(#topicsSection.active) {
     color: #c9a86c;
     line-height: 1.1;
 }
-.upm-card--rpg .upm-stat-value { color: #a78bfa; }
+.upm-card--rpg .upm-stat-value { color: #dec28f; }
 
 /* ── Personajes ───────────────────────────────────────────── */
 .upm-chars-row {
@@ -26473,14 +26512,14 @@ body:has(#topicsSection.active) {
     letter-spacing: 0.1em;
     color: rgba(201, 168, 108, 0.55);
 }
-.upm-card--rpg .upm-chars-label { color: rgba(167, 139, 250, 0.55); }
+.upm-card--rpg .upm-chars-label { color: rgba(200, 168, 100, 0.55); }
 
 .upm-chars-value {
     font-size: 0.88rem;
     color: #e8d5b0;
     line-height: 1.5;
 }
-.upm-card--rpg .upm-chars-value { color: #e2e8f0; }
+.upm-card--rpg .upm-chars-value { color: #e8d5b0; }
 
 .upm-extra {
     font-size: 0.78rem;
@@ -26498,7 +26537,7 @@ body:has(#topicsSection.active) {
     font-size: 0.82rem;
     color: rgba(201, 168, 108, 0.6);
 }
-.upm-card--rpg .upm-meta-item { color: rgba(167, 139, 250, 0.6); }
+.upm-card--rpg .upm-meta-item { color: rgba(200, 168, 100, 0.6); }
 
 .upm-bio {
     font-style: italic;
@@ -26507,16 +26546,20 @@ body:has(#topicsSection.active) {
     line-height: 1.5;
     margin: 0;
 }
-.upm-card--rpg .upm-bio { color: rgba(226, 232, 240, 0.65); }
+.upm-card--rpg .upm-bio { color: rgba(232, 213, 176, 0.65); }
 
-/* ── Edición de perfil ────────────────────────────────────── */
+/* ── Edición de perfil (inline — sin segundo modal) ───────── */
+.upm-edit-section {
+    /* contenedor: la animación de reveal la hace el display toggle en JS */
+}
+
 .upm-edit-title {
     font-size: 1.1rem;
     font-weight: 700;
     color: #c9a86c;
     margin: 0 0 1rem;
 }
-.upm-card--rpg .upm-edit-title { color: #a78bfa; }
+.upm-card--rpg .upm-edit-title { color: #dec28f; }
 
 .upm-edit-form {
     display: flex;
@@ -26533,7 +26576,7 @@ body:has(#topicsSection.active) {
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
-.upm-card--rpg .upm-edit-label { color: rgba(167, 139, 250, 0.7); }
+.upm-card--rpg .upm-edit-label { color: rgba(200, 168, 100, 0.7); }
 
 .upm-edit-hint {
     text-transform: none;
@@ -26565,19 +26608,20 @@ body:has(#topicsSection.active) {
 .upm-card--rpg .upm-edit-select,
 .upm-card--rpg .upm-edit-input,
 .upm-card--rpg .upm-edit-textarea {
-    border-color: rgba(139, 92, 246, 0.3);
-    color: #e2e8f0;
+    border-color: rgba(180, 140, 80, 0.3);
+    color: #e8d5b0;
+    background: rgba(0, 0, 0, 0.4);
 }
 .upm-card--rpg .upm-edit-select:focus,
 .upm-card--rpg .upm-edit-input:focus,
 .upm-card--rpg .upm-edit-textarea:focus {
-    border-color: rgba(139, 92, 246, 0.7);
+    border-color: rgba(180, 140, 80, 0.65);
 }
 .upm-edit-textarea { resize: vertical; min-height: 72px; }
 
 /* select arrow fix en dark */
 .upm-edit-select option { background: #1a1208; color: #e8d5b0; }
-.upm-card--rpg .upm-edit-select option { background: #111827; color: #e2e8f0; }
+.upm-card--rpg .upm-edit-select option { background: #1c150a; color: #e8d5b0; }
 
 .upm-edit-actions {
     display: flex;
@@ -26599,11 +26643,11 @@ body:has(#topicsSection.active) {
 }
 .upm-edit-save:hover { background: rgba(201, 168, 108, 0.28); border-color: rgba(201, 168, 108, 0.8); }
 .upm-card--rpg .upm-edit-save {
-    background: rgba(139, 92, 246, 0.15);
-    border-color: rgba(139, 92, 246, 0.5);
-    color: #a78bfa;
+    background: rgba(180, 140, 80, 0.15);
+    border-color: rgba(180, 140, 80, 0.5);
+    color: #c9a86c;
 }
-.upm-card--rpg .upm-edit-save:hover { background: rgba(139, 92, 246, 0.28); }
+.upm-card--rpg .upm-edit-save:hover { background: rgba(180, 140, 80, 0.28); border-color: rgba(180, 140, 80, 0.8); }
 
 .upm-edit-cancel {
     background: rgba(255, 255, 255, 0.05);
@@ -26616,6 +26660,104 @@ body:has(#topicsSection.active) {
     transition: background 0.2s;
 }
 .upm-edit-cancel:hover { background: rgba(255, 255, 255, 0.1); }
+
+/* ── Stats RPG inline (ficha de atributos en el modal) ─────── */
+.upm-rpg-stat-block {
+    margin-top: 0.1rem;
+}
+
+.upm-rpg-stat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+}
+
+.upm-rpg-stat-title {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #c9a86c;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.upm-rpg-free-pts {
+    font-size: 0.68rem;
+    background: rgba(180, 140, 80, 0.14);
+    border: 1px solid rgba(180, 140, 80, 0.38);
+    color: #dec28f;
+    padding: 0.14rem 0.5rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.upm-rpg-pts-done {
+    font-size: 0.68rem;
+    color: rgba(180, 140, 80, 0.38);
+}
+
+.upm-rpg-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.38rem 0.5rem;
+}
+
+.upm-rpg-stat-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(180, 140, 80, 0.12);
+    border-radius: 6px;
+    padding: 0.3rem 0.45rem;
+}
+
+.upm-rpg-stat-name {
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: rgba(200, 168, 100, 0.62);
+    letter-spacing: 0.08em;
+    min-width: 26px;
+}
+
+.upm-rpg-stat-val {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #dec28f;
+    flex: 1;
+    text-align: center;
+    line-height: 1;
+}
+
+.upm-stat-adj {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    background: rgba(180, 140, 80, 0.1);
+    border: 1px solid rgba(180, 140, 80, 0.28);
+    border-radius: 4px;
+    color: #c9a86c;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    flex-shrink: 0;
+}
+.upm-stat-adj:hover {
+    background: rgba(180, 140, 80, 0.24);
+    border-color: rgba(200, 160, 90, 0.6);
+    color: #f0d8a0;
+}
+.upm-stat-adj:active {
+    background: rgba(180, 140, 80, 0.38);
+    transform: scale(0.92);
+}
 
 /* ============================================================
    Panel de party clásico (classic-party-shell)
@@ -26796,5 +26938,6 @@ body:has(#topicsSection.active) {
     .classic-party-panel { width: 165px; }
     .upm-card { padding: 1.25rem 1rem 1rem; }
     .upm-stats-grid { grid-template-columns: 1fr; }
+    .upm-rpg-stat-grid { grid-template-columns: 1fr; }
 }
 
