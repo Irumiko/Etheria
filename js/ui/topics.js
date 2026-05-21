@@ -237,6 +237,19 @@ function renderTopics() {
     } else if (topics.length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
     } else {
+        // ── Mensajes nuevos desde la última visita ────────────────────────
+        function _getUnreadCount(topicId, msgs) {
+            try {
+                const lastVisit = localStorage.getItem('etheria_last_visit_' + topicId);
+                if (!lastVisit) return 0;
+                const lastTs = new Date(lastVisit).getTime();
+                if (isNaN(lastTs)) return 0;
+                return msgs.filter(function(m) {
+                    return m.timestamp && new Date(m.timestamp).getTime() > lastTs;
+                }).length;
+            } catch (_) { return 0; }
+        }
+
         // ── Actividad corta para el pie de tarjeta ───────────────────────
         function _scActivity(msgs, topic) {
             const lastMsg = msgs[msgs.length - 1];
@@ -415,13 +428,22 @@ function renderTopics() {
             const modeClass = isRol ? 'tc--rpg' : 'tc--classic';
             const svgIllus  = isRol ? SVG_RPG : SVG_CLASSIC;
 
+            const unread     = _getUnreadCount(t.id, msgs);
+            const unreadClass = unread > 0 ? ' tc--has-unread' : '';
+            const unreadPill  = unread > 0
+                ? '<span class="tc-unread-pill">+' + unread + ' nuevo' + (unread !== 1 ? 's' : '') + '</span>'
+                : '';
+            const unreadStat  = unread > 0
+                ? '<span class="tc-back-stat tc-back-stat--unread">📬 ' + unread + ' nuevo' + (unread !== 1 ? 's' : '') + ' desde tu visita</span>'
+                : '';
+
             const leftBadge  = activity || '—';
             const rightBadge = msgs.length > 0 ? msgs.length + (msgs.length === 1 ? ' msg' : ' msgs') : '—';
 
             const enterLabel = isRol ? '⚜ Entrar en la senda' : '✦ Abrir el relato';
             const turnBadge  = isMeTurn ? '<span class="tc-back-turn">⏳ Tu turno</span>' : '';
 
-            return '<article class="tc ' + modeClass + turnClass + '" onclick="this.classList.toggle(\'tc--flipped\')">'
+            return '<article class="tc ' + modeClass + turnClass + unreadClass + '" onclick="this.classList.toggle(\'tc--flipped\')">'
                 + '<div class="tc-inner">'
 
                 // ── FRENTE ──────────────────────────────────────────
@@ -445,6 +467,7 @@ function renderTopics() {
                 +   '<span class="tc-count">' + escapeHtml(leftBadge) + '</span>'
                 +   '<span class="tc-diamond">◆</span>'
                 +   '<span class="tc-count">' + escapeHtml(rightBadge) + '</span>'
+                +   unreadPill
                 + '</footer>'
                 + '</div>'
 
@@ -464,6 +487,7 @@ function renderTopics() {
                 +     '<span class="tc-back-stat">🕐 ' + (activity || 'Reciente') + '</span>'
                 +     (isRol ? '<span class="tc-back-stat" style="opacity:0.6">⚜ Modo RPG</span>' : '<span class="tc-back-stat" style="opacity:0.6">✦ Modo Clásico</span>')
                 +     turnBadge
+                +     unreadStat
                 +   '</div>'
                 + '</div>'
                 + '<button class="tc-enter-btn" onclick="event.stopPropagation();enterTopic(\'' + tid + '\')">'
@@ -692,6 +716,7 @@ function createTopic() {
         background: topicBackground,
         weather: weather !== 'none' ? weather : undefined,
         mode: currentTopicMode,
+        turnMode: 'relay',
         roleCharacterId: null,
         createdBy: userNames[currentUserIndex] || 'Jugador',
         createdByIndex: currentUserIndex,
@@ -731,6 +756,11 @@ function createTopic() {
                     window.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
+                    // Inicializar configuración de turnos en relay
+                    var uid = window._cachedUserId;
+                    if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
+                        SupabaseStories.setTurnConfig(result.storyId, 'relay', [uid]).catch(function() {});
+                    }
                 } else {
                     const detail = result?.error ? ': ' + result.error : '';
                     window.EtheriaLogger?.warn('topics', 'No se pudo guardar la historia en Supabase' + detail);
@@ -1467,7 +1497,7 @@ function createTopicFromWizard() {
         id: id, title: title,
         background: DEFAULT_TOPIC_BACKGROUND,
         weather: weather !== 'none' ? weather : undefined,
-        mode: mode, roleCharacterId: null,
+        mode: mode, turnMode: 'relay', roleCharacterId: null,
         createdBy: ((userNames && userNames[currentUserIndex]) || 'Jugador'),
         createdByIndex: currentUserIndex,
         date: new Date().toLocaleDateString(),
@@ -1513,6 +1543,11 @@ function createTopicFromWizard() {
             if (result.ok && result.storyId) {
                 topicRef.storyId = result.storyId;
                 hasUnsavedChanges = true; save({ silent: true });
+                // Inicializar configuración de turnos en relay
+                var uid = window._cachedUserId;
+                if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
+                    SupabaseStories.setTurnConfig(result.storyId, 'relay', [uid]).catch(function() {});
+                }
             } else {
                 var detail = (result && result.error) ? ': ' + result.error : '';
                 if (typeof showAutosave === 'function') showAutosave('Historia local; no se guardo en Supabase' + detail, 'error');

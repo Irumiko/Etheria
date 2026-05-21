@@ -28,6 +28,7 @@ const PRECACHE_URLS = [
   './noncritical.css',
   './etheria.css',
   './etheria.bundle.js',
+  './etheria-rpg.bundle.js',
   './menu-enhanced.css',
 ];
 

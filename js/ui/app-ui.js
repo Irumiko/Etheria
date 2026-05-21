@@ -135,6 +135,27 @@ function showAutosave(text, state) {
 
     // Mostrar indicador al arrancar si ya está online
     setTimeout(_showCloudIndicatorTemporarily, 1500);
+
+    // Notificación de turno: sonido + toast persistente
+    window.addEventListener('etheria:turn-notification', function (e) {
+        var row = e?.detail?.notification || {};
+        var title  = row.title || '¡Es tu turno!';
+        var topicId = row.topic_id || null;
+
+        // Sonido de llamada
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('audio:play-sfx', { sfx: 'notification' });
+        }
+
+        // Toast con acción de navegación al relato concreto
+        showSyncToast(title, 'Ir al relato', function () {
+            if (topicId && typeof enterTopic === 'function') {
+                enterTopic(topicId);
+            } else if (typeof showSection === 'function') {
+                showSection('vn');
+            }
+        });
+    });
 })();
 
 // Muestra el indicador cloud brevemente cuando el estado es online,
@@ -492,16 +513,8 @@ function _getCurrentProfileAvatar() {
 }
 
 async function _getAuthenticatedUserIdForAvatar() {
-    if (window._cachedUserId) return window._cachedUserId;
-    if (!window.supabaseClient || typeof window.supabaseClient.auth?.getUser !== 'function') return null;
-    try {
-        const { data, error } = await window.supabaseClient.auth.getUser();
-        if (error || !data?.user?.id) return null;
-        window._cachedUserId = data.user.id;
-        return data.user.id;
-    } catch {
-        return null;
-    }
+    if (typeof window.getEtheriaUserId === 'function') return window.getEtheriaUserId();
+    return window._cachedUserId || null;
 }
 
 function _saveAvatarInLocalProfile(url) {
@@ -517,13 +530,23 @@ async function _uploadProfileAvatarToCloud(file) {
     if (!window.supabaseClient) return { ok: false, error: 'Supabase no disponible.' };
 
     const extMatch = (file?.name || '').match(/\.(png|jpg|jpeg|gif|webp)$/i);
-    const ext = extMatch ? extMatch[1].toLowerCase() : 'png';
-    const contentType = file?.type || (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`);
+    if (!extMatch) return { ok: false, error: 'Formato no admitido. Usa PNG, JPG, GIF o WebP.' };
+    if (file.size > 20 * 1024 * 1024) return { ok: false, error: 'El avatar no puede superar 20 MB.' };
+
+    const compressed = window.EtheriaImageCompressor
+        ? await window.EtheriaImageCompressor.compress(file, { maxWidth: 512, maxHeight: 512 }).catch(function () { return file; })
+        : file;
+
+    if (compressed.size > 5 * 1024 * 1024) return { ok: false, error: 'El avatar no puede superar 5 MB.' };
+
+    const fileExt = (compressed.name || file.name).match(/\.(png|jpg|jpeg|gif|webp)$/i);
+    const ext = fileExt ? fileExt[1].toLowerCase() : extMatch[1].toLowerCase();
+    const contentType = compressed.type || file?.type || (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`);
     const path = `${userId}/profile.${ext}`;
 
     const { error: uploadError } = await window.supabaseClient.storage
         .from('user-avatars')
-        .upload(path, file, { upsert: true, contentType });
+        .upload(path, compressed, { upsert: true, contentType });
 
     if (uploadError) {
         return { ok: false, error: uploadError.message || 'No se pudo subir el avatar a la nube.' };
@@ -776,17 +799,11 @@ function quickSave() {
 
 function openSaveHubModal() {
     openModal('saveHubModal');
-    // Si no hay sesión cacheada, obtenerla antes de actualizar estado del hub
-    if (!window._cachedUserId && window.supabaseClient) {
-        window.supabaseClient.auth.getSession().then(({ data }) => {
-            if (data?.session?.user) {
-                window._cachedUserId = data.session.user.id;
-            }
-            _updateSaveHubCloudStatus();
-        }).catch(() => _updateSaveHubCloudStatus());
-    } else {
-        _updateSaveHubCloudStatus();
-    }
+    // Asegurar que el userId esté en caché antes de actualizar el estado
+    (typeof window.getEtheriaUserId === 'function'
+        ? window.getEtheriaUserId()
+        : Promise.resolve(window._cachedUserId || null)
+    ).then(_updateSaveHubCloudStatus).catch(_updateSaveHubCloudStatus);
     window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'saveHub' } }));
 }
 

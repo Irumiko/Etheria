@@ -1532,6 +1532,37 @@ function playSoundSave() {
     osc.stop(ctx.currentTime + 0.4);
 }
 
+// Notificación de turno: campana ascendente de dos notas (E5 → C5)
+function playSoundNotification() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    // Primera nota: E5 (659 Hz) — breve y suave
+    const osc1  = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659, ctx.currentTime);
+    gain1.gain.setValueAtTime(masterVolume * 0.45, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.25);
+
+    // Segunda nota: C5 (523 Hz) — comienza ligeramente después, más larga
+    const osc2  = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(523, ctx.currentTime + 0.18);
+    gain2.gain.setValueAtTime(0.001, ctx.currentTime + 0.18);
+    gain2.gain.linearRampToValueAtTime(masterVolume * 0.38, ctx.currentTime + 0.25);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+    osc2.start(ctx.currentTime + 0.18);
+    osc2.stop(ctx.currentTime + 0.7);
+}
+
 // ============================================
 // SONIDO AMBIENTAL: LLUVIA
 // ============================================
@@ -1866,9 +1897,10 @@ function stopMenuMusic(fadeOut) {
         // Efectos de UI
         eventBus.on('audio:play-sfx', function (data) {
             const sfx = data?.sfx;
-            if (sfx === 'save')          playSoundSave();
-            else if (sfx === 'click')    playSoundClick();
-            else if (sfx === 'tap')      playSoundTap();
+            if (sfx === 'save')               playSoundSave();
+            else if (sfx === 'click')         playSoundClick();
+            else if (sfx === 'tap')           playSoundTap();
+            else if (sfx === 'notification')  playSoundNotification();
             else if (sfx === 'affinity-up')   playSoundAffinityUp();
             else if (sfx === 'affinity-down') playSoundAffinityDown();
         });
@@ -4546,9 +4578,17 @@ const MessageSearch = (function () {
 
     // ── Init ─────────────────────────────────────────────────────────
     (function _init() {
-        // Cerrar con Escape
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && _isOpen) close();
+            // Cerrar con Escape
+            if (e.key === 'Escape' && _isOpen) { close(); return; }
+            // Ctrl+F / Cmd+F abre la búsqueda cuando el VN está activo
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                const vnSection = document.getElementById('vnSection');
+                if (vnSection && vnSection.classList.contains('active')) {
+                    e.preventDefault();
+                    toggle();
+                }
+            }
         });
     })();
 
@@ -5259,7 +5299,36 @@ function _clearFadeOverlay(overlay, delay) {
     }, delay);
 }
 
-function fadeTransition(callback, duration) {
+var _ETH_TRANSITION_TIMINGS = {
+    iris:     { close: 380, open: 320 },
+    diagonal: { close: 340, open: 300 }
+};
+
+function _vnStyleTransition(type, callback) {
+    var overlay = document.getElementById('sectionTransitionOverlay');
+    if (!overlay) {
+        try { callback(); } catch(e) { console.error('[_vnStyleTransition]', e); }
+        return;
+    }
+    var timings = _ETH_TRANSITION_TIMINGS[type];
+    if (!timings) {
+        fadeTransition(callback);
+        return;
+    }
+    _fadeTransitionInProgress = true;
+    overlay.classList.add('eth-t-active', 'eth-t-' + type + '-close');
+    setTimeout(function() {
+        try { callback(); } catch(e) { console.error('[_vnStyleTransition]', e); }
+        overlay.classList.remove('eth-t-' + type + '-close');
+        overlay.classList.add('eth-t-' + type + '-open');
+        setTimeout(function() {
+            overlay.classList.remove('eth-t-active', 'eth-t-' + type + '-open');
+            _fadeTransitionInProgress = false;
+        }, timings.open);
+    }, timings.close);
+}
+
+function fadeTransition(callback, duration, transitionType) {
     duration = duration || 280;
     if (_skipNextFadeTransition) {
         _skipNextFadeTransition = false;
@@ -5268,6 +5337,10 @@ function fadeTransition(callback, duration) {
     }
     if (_fadeTransitionInProgress) {
         try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        return;
+    }
+    if (transitionType && transitionType !== 'fade') {
+        _vnStyleTransition(transitionType, callback);
         return;
     }
     var overlay = document.getElementById('sectionTransitionOverlay');
@@ -5453,7 +5526,7 @@ function backToMenu() {
                 if (particles) particles.style.transform = '';
             }
             window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'mainMenu' } }));
-        }, 150);
+        }, 150, 'diagonal');
     });
 }
 
@@ -5476,7 +5549,7 @@ function backToTopics() {
             const topicsSection = document.getElementById('topicsSection');
             if (topicsSection) topicsSection.classList.add('active');
             renderTopics();
-        }, 150);
+        }, 150, 'diagonal');
     });
 }
 
@@ -5751,6 +5824,279 @@ window.addEventListener('etheria:presence-changed', function () {
         renderGallery();
     }
 });
+
+/* js/utils/imageCompressor.js */
+// ============================================================
+// Etheria — Image Compressor
+// Comprime imágenes en cliente antes de subirlas a Storage.
+// Usa Canvas para redimensionar y convertir a WebP/JPEG.
+// API: window.EtheriaImageCompressor.compress(file, opts?)
+// ============================================================
+(function (global) {
+    'use strict';
+
+    // Archivos por debajo de este umbral no merecen la CPU de comprimir
+    var SKIP_BELOW_BYTES = 200 * 1024; // 200 KB
+
+    /**
+     * Comprime una imagen usando Canvas.
+     *
+     * Casos donde devuelve el archivo original sin tocar:
+     *  - GIF (se perdería la animación)
+     *  - Archivos < 200 KB (no merece la pena)
+     *  - Canvas no disponible en el entorno
+     *  - El resultado comprimido pesa más que el original
+     *  - Cualquier error inesperado (fallback silencioso)
+     *
+     * @param {File}   file
+     * @param {object} [opts]
+     * @param {number} [opts.maxWidth=1200]
+     * @param {number} [opts.maxHeight=1200]
+     * @param {number} [opts.quality=0.85]   — calidad WebP/JPEG (0–1)
+     * @returns {Promise<File>}
+     */
+    function compress(file, opts) {
+        opts = Object.assign({ maxWidth: 1200, maxHeight: 1200, quality: 0.85 }, opts);
+
+        // GIF: preservar sin cambios (animación)
+        if (file.type === 'image/gif') return Promise.resolve(file);
+        // Archivos pequeños: no compensa el coste de CPU
+        if (file.size < SKIP_BELOW_BYTES) return Promise.resolve(file);
+        // Canvas no disponible (SSR, tests, etc.)
+        if (typeof document === 'undefined' || typeof document.createElement !== 'function') {
+            return Promise.resolve(file);
+        }
+
+        return new Promise(function (resolve) {
+            var url = URL.createObjectURL(file);
+            var img = new Image();
+
+            img.onload = function () {
+                URL.revokeObjectURL(url);
+
+                var w = img.naturalWidth;
+                var h = img.naturalHeight;
+
+                // Escalar si supera los límites
+                if (w > opts.maxWidth || h > opts.maxHeight) {
+                    var ratio = Math.min(opts.maxWidth / w, opts.maxHeight / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                }
+
+                var canvas = document.createElement('canvas');
+                canvas.width  = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+                canvas.toBlob(function (blob) {
+                    // Si el resultado es nulo o más pesado, usar el original
+                    if (!blob || blob.size >= file.size) {
+                        resolve(file);
+                        return;
+                    }
+                    var ext  = blob.type === 'image/webp' ? 'webp' : 'jpg';
+                    var name = file.name.replace(/\.[^.]+$/, '.' + ext);
+                    resolve(new File([blob], name, { type: blob.type }));
+                }, 'image/webp', opts.quality);
+            };
+
+            img.onerror = function () {
+                URL.revokeObjectURL(url);
+                resolve(file); // fallback silencioso
+            };
+
+            img.src = url;
+        });
+    }
+
+    global.EtheriaImageCompressor = { compress: compress };
+
+}(window));
+
+/* js/ui/storyExport.js */
+// ============================================================
+// Etheria — Story Export
+// Exporta la historia activa como .txt o HTML imprimible.
+// API: window.EtheriaExport.exportText() | .printHTML()
+// ============================================================
+(function (global) {
+    'use strict';
+
+    // ── Helpers ───────────────────────────────────────────────────────
+
+    function _esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function _fmtDate(iso, opts) {
+        if (!iso) return '';
+        try {
+            return new Date(iso).toLocaleString('es-ES', opts || {
+                day: '2-digit', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        } catch (_) { return iso; }
+    }
+
+    function _slug(title) {
+        return (title || 'historia')
+            .toLowerCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-')
+            .slice(0, 60);
+    }
+
+    function _download(blob, filename) {
+        var url = URL.createObjectURL(blob);
+        var a   = document.createElement('a');
+        a.href  = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function _topic() {
+        if (!global.currentTopicId || !global.appData) return null;
+        return (global.appData.topics || []).find(function (t) {
+            return String(t.id) === String(global.currentTopicId);
+        }) || null;
+    }
+
+    function _msgs() {
+        if (!global.currentTopicId || !global.appData) return [];
+        var raw = (global.appData.messages || {})[global.currentTopicId] || [];
+        return raw.filter(function (m) { return !m.typing; });
+    }
+
+    function _toast(txt, type) {
+        if (typeof showAutosave === 'function') showAutosave(txt, type || 'info');
+    }
+
+    // ── Exportar como texto plano ─────────────────────────────────────
+
+    function exportText() {
+        var topic = _topic();
+        var msgs  = _msgs();
+        if (!topic) { _toast('No hay historia activa para exportar', 'error'); return; }
+
+        var BAR  = '═'.repeat(58);
+        var thin = '─'.repeat(58);
+
+        var lines = [
+            BAR,
+            '  ETHERIA — EXPORTACIÓN DE HISTORIA',
+            BAR,
+            'Título:     ' + (topic.title    || 'Sin título'),
+            'Creada por: ' + (topic.createdBy || 'Desconocido'),
+            'Mensajes:   ' + msgs.length,
+            'Exportada:  ' + _fmtDate(new Date().toISOString()),
+            BAR,
+            ''
+        ];
+
+        msgs.forEach(function (m, i) {
+            var who  = m.isNarrator ? 'NARRADOR' : (m.charName || 'Desconocido').toUpperCase();
+            var when = _fmtDate(m.timestamp);
+            var sep  = '─── ' + (i + 1) + ' ';
+            lines.push(sep + thin.slice(sep.length));
+            lines.push('  ' + who + (when ? '  ·  ' + when : ''));
+            lines.push('');
+            (m.text || '').split('\n').forEach(function (l) { lines.push('  ' + l); });
+            lines.push('');
+        });
+
+        _download(
+            new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' }),
+            'etheria-' + _slug(topic.title) + '.txt'
+        );
+        _toast('✓ Historia exportada como texto', 'saved');
+    }
+
+    // ── Exportar como HTML imprimible (→ PDF desde el navegador) ─────
+
+    function printHTML() {
+        var topic = _topic();
+        var msgs  = _msgs();
+        if (!topic) { _toast('No hay historia activa para exportar', 'error'); return; }
+
+        var rows = msgs.map(function (m) {
+            var who  = m.isNarrator ? 'Narrador' : _esc(m.charName || 'Desconocido');
+            var when = _fmtDate(m.timestamp, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            var body = _esc(m.text || '').replace(/\n/g, '<br>');
+            var cls  = m.isNarrator ? ' narrator' : '';
+            return '<div class="msg' + cls + '">'
+                + '<div class="meta"><span class="who">' + who + '</span>'
+                + (when ? '<span class="when">' + when + '</span>' : '') + '</div>'
+                + '<div class="body">' + body + '</div>'
+                + '</div>';
+        }).join('\n');
+
+        var html = '<!DOCTYPE html>\n<html lang="es">\n<head>\n'
+            + '<meta charset="UTF-8">\n'
+            + '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+            + '<title>' + _esc(topic.title || 'Historia') + ' — Etheria</title>\n'
+            + '<style>\n'
+            + '  *{box-sizing:border-box;margin:0;padding:0}\n'
+            + '  body{font-family:Georgia,"Times New Roman",serif;max-width:720px;'
+            +        'margin:48px auto;padding:0 24px;color:#1a1208;line-height:1.7;'
+            +        'background:#fdfaf5}\n'
+            + '  header{border-bottom:2px solid #c9a86c;padding-bottom:16px;margin-bottom:32px}\n'
+            + '  h1{font-size:1.8rem;color:#2d1a06;margin-bottom:6px}\n'
+            + '  .subtitle{font-size:.88rem;color:#7a6040}\n'
+            + '  .msg{margin-bottom:20px;padding-bottom:20px;'
+            +        'border-bottom:1px solid #ede4d2;break-inside:avoid}\n'
+            + '  .msg:last-child{border-bottom:none}\n'
+            + '  .meta{display:flex;justify-content:space-between;'
+            +         'align-items:baseline;margin-bottom:6px}\n'
+            + '  .who{font-weight:700;font-size:.88rem;color:#3a2010;'
+            +        'text-transform:uppercase;letter-spacing:.05em}\n'
+            + '  .when{font-size:.78rem;color:#a08060}\n'
+            + '  .body{font-size:.97rem;color:#2a1e10}\n'
+            + '  .narrator .who{font-style:italic;text-transform:none;color:#6a5030}\n'
+            + '  .narrator .body{font-style:italic;color:#4a3820}\n'
+            + '  footer{margin-top:40px;padding-top:16px;border-top:1px solid #c9a86c;'
+            +          'font-size:.78rem;color:#a08060;text-align:center}\n'
+            + '  @media print{\n'
+            + '    body{margin:20px auto;background:#fff}\n'
+            + '    .msg{break-inside:avoid}\n'
+            + '  }\n'
+            + '</style>\n</head>\n<body>\n'
+            + '<header>\n'
+            + '  <h1>' + _esc(topic.title || 'Sin título') + '</h1>\n'
+            + '  <p class="subtitle">'
+            +    'por ' + _esc(topic.createdBy || 'Desconocido')
+            +    ' &nbsp;·&nbsp; ' + msgs.length + ' mensaje' + (msgs.length !== 1 ? 's' : '')
+            +    ' &nbsp;·&nbsp; Exportada el ' + _fmtDate(new Date().toISOString(), { day: 'numeric', month: 'long', year: 'numeric' })
+            +    '</p>\n'
+            + '</header>\n'
+            + rows + '\n'
+            + '<footer>Exportado desde Etheria</footer>\n'
+            + '</body>\n</html>';
+
+        var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        var url  = URL.createObjectURL(blob);
+        var win  = global.open(url, '_blank');
+        if (win) {
+            win.addEventListener('load', function () { URL.revokeObjectURL(url); }, { once: true });
+        } else {
+            // Popup bloqueado → descargar como .html
+            _download(blob, 'etheria-' + _slug(topic.title) + '.html');
+        }
+        _toast('✓ Abierto para imprimir / guardar como PDF', 'saved');
+    }
+
+    global.EtheriaExport = { exportText: exportText, printHTML: printHTML };
+
+}(window));
 
 /* js/ui/sheets.js */
 if (window.__ETHERIA_SHEETS_CANONICAL_LOADED__) {
@@ -6367,6 +6713,12 @@ function saveCharacter() {
     const name = nameInput?.value.trim();
     if(!name) { showAutosave('El nombre es obligatorio', 'error'); return; }
 
+    const ageRaw = document.getElementById('charAge')?.value.trim() || '';
+    if (ageRaw && (isNaN(Number(ageRaw)) || Number(ageRaw) < 0)) {
+        showAutosave('La edad debe ser un número positivo', 'error');
+        return;
+    }
+
     const id = document.getElementById('editCharacterId')?.value ||
         (globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(16).slice(2)}`);
 
@@ -6443,7 +6795,13 @@ async function _uploadImageToStorage(bucket, charId, file) {
     const sb = window.supabaseClient;
     if (!sb) return { ok: false, error: 'Sin conexión a Supabase.' };
 
-    const ext = (file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i)?.[1] || 'png').toLowerCase();
+    const extMatch = file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+    if (!extMatch) return { ok: false, error: 'Formato no admitido. Usa PNG, JPG, GIF o WebP.' };
+    const MAX_SIZE = bucket === 'sprites' ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    const maxLabel = bucket === 'sprites' ? '10 MB' : '5 MB';
+    if (file.size > MAX_SIZE) return { ok: false, error: `La imagen no puede superar ${maxLabel}.` };
+
+    const ext = extMatch[1].toLowerCase();
     const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
     const path = `${charId}.${ext}`;
 
@@ -6489,15 +6847,19 @@ async function uploadAvatarForChar(fileInput) {
         showAutosave('El archivo debe ser una imagen', 'error');
         return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-        showAutosave('La imagen no puede superar 5 MB', 'error');
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 20 MB', 'error');
         return;
     }
 
     showAutosave('Subiendo avatar...', 'info');
 
+    const fileToUpload = window.EtheriaImageCompressor
+        ? await window.EtheriaImageCompressor.compress(file, { maxWidth: 1024, maxHeight: 1024 }).catch(function () { return file; })
+        : file;
+
     // Subir al bucket usando el ID local como nombre de archivo
-    const result = await _uploadImageToStorage('avatars', charId, file);
+    const result = await _uploadImageToStorage('avatars', charId, fileToUpload);
     if (!result.ok) {
         showAutosave(result.error || 'Error al subir avatar', 'error');
         return;
@@ -6547,14 +6909,18 @@ async function uploadSpriteForChar(fileInput) {
         showAutosave('El archivo debe ser una imagen', 'error');
         return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-        showAutosave('La imagen no puede superar 10 MB', 'error');
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 20 MB', 'error');
         return;
     }
 
     showAutosave('Subiendo sprite...', 'info');
 
-    const result = await _uploadImageToStorage('sprites', charId, file);
+    const fileToUpload = window.EtheriaImageCompressor
+        ? await window.EtheriaImageCompressor.compress(file, { maxWidth: 1200, maxHeight: 1800 }).catch(function () { return file; })
+        : file;
+
+    const result = await _uploadImageToStorage('sprites', charId, fileToUpload);
     if (!result.ok) {
         showAutosave(result.error || 'Error al subir sprite', 'error');
         return;
@@ -7054,6 +7420,7 @@ const SupabaseSync = (function () {
     let _isOffline = false;
     let _pendingChanges = false;
     let _cachedUserId = null;
+    let _quickSyncTimer = null; // timer para subir ~2 s después de un touchField
 
     // ── Merge con timestamps por campo ───────────────────────────────────────
     // Cada campo sincronizable tiene su propio timestamp local. Al descargar
@@ -7082,6 +7449,15 @@ const SupabaseSync = (function () {
         ts[fieldName] = new Date().toISOString();
         _saveFieldTimestamps(ts);
         _pendingChanges = true;
+        // Subir automáticamente ~2 s después sin esperar el intervalo de 30 s.
+        // Si se llama varias veces seguidas (p.ej. nombre + avatar), el timer
+        // se resetea y solo se hace una sola subida.
+        clearTimeout(_quickSyncTimer);
+        _quickSyncTimer = setTimeout(function () {
+            if (_pendingChanges && _isAvailable() && _getUserId()) {
+                uploadProfileData().catch(function () {});
+            }
+        }, 2000);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -7718,6 +8094,180 @@ const SupabaseSync = (function () {
 // Exponer globalmente
 window.SupabaseSync = SupabaseSync;
 
+/* js/utils/messageCache.js */
+// ============================================================
+// Etheria — Message Cache (IndexedDB)
+// Cachea los últimos CACHE_LIMIT mensajes por historia en IDB.
+// También mantiene una cola de mensajes pendientes (outbox)
+// para enviar cuando se recupere la conexión.
+// API expuesta en window.EtheriaMessageCache
+// ============================================================
+(function (global) {
+    'use strict';
+
+    var DB_NAME     = 'etheria-offline';
+    var DB_VERSION  = 2;           // v2: añade store "outbox"
+    var STORE_NAME  = 'messages';
+    var QUEUE_STORE = 'outbox';
+    var CACHE_LIMIT = 60;          // mensajes por historia
+
+    var _db = null;
+    var _openPromise = null;
+
+    function _open() {
+        if (_db) return Promise.resolve(_db);
+        if (_openPromise) return _openPromise;
+
+        _openPromise = new Promise(function (resolve, reject) {
+            if (typeof indexedDB === 'undefined') {
+                reject(new Error('IndexedDB not available'));
+                return;
+            }
+            var req = indexedDB.open(DB_NAME, DB_VERSION);
+
+            req.onupgradeneeded = function (e) {
+                var db = e.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME, { keyPath: 'storyId' });
+                }
+                if (!db.objectStoreNames.contains(QUEUE_STORE)) {
+                    db.createObjectStore(QUEUE_STORE, { keyPath: 'id', autoIncrement: true });
+                }
+            };
+
+            req.onsuccess = function (e) {
+                _db = e.target.result;
+                _db.onclose = function () { _db = null; _openPromise = null; };
+                resolve(_db);
+            };
+
+            req.onerror = function (e) {
+                _openPromise = null;
+                reject(e.target.error);
+            };
+        });
+
+        return _openPromise;
+    }
+
+    // ── Caché de mensajes ────────────────────────────────────────────────────
+
+    /**
+     * Almacena mensajes para una historia.
+     * Guarda solo los últimos CACHE_LIMIT para no crecer sin límite.
+     */
+    function put(storyId, messages) {
+        if (!storyId || !Array.isArray(messages)) return Promise.resolve();
+        return _open().then(function (db) {
+            var slice = messages.length > CACHE_LIMIT
+                ? messages.slice(messages.length - CACHE_LIMIT)
+                : messages;
+            var tx    = db.transaction(STORE_NAME, 'readwrite');
+            var store = tx.objectStore(STORE_NAME);
+            store.put({ storyId: String(storyId), messages: slice, cachedAt: Date.now() });
+            return new Promise(function (resolve, reject) {
+                tx.oncomplete = resolve;
+                tx.onerror    = function (e) { reject(e.target.error); };
+            });
+        }).catch(function (err) {
+            if (global.EtheriaLogger) global.EtheriaLogger.warn('messageCache', 'put failed:', err && err.message);
+        });
+    }
+
+    /**
+     * Recupera los mensajes cacheados para una historia.
+     * Devuelve null si no hay caché o IDB no está disponible.
+     */
+    function get(storyId) {
+        if (!storyId) return Promise.resolve(null);
+        return _open().then(function (db) {
+            var tx    = db.transaction(STORE_NAME, 'readonly');
+            var store = tx.objectStore(STORE_NAME);
+            var req   = store.get(String(storyId));
+            return new Promise(function (resolve, reject) {
+                req.onsuccess = function () {
+                    var rec = req.result;
+                    resolve(rec && Array.isArray(rec.messages) ? rec.messages : null);
+                };
+                req.onerror = function (e) { reject(e.target.error); };
+            });
+        }).catch(function (err) {
+            if (global.EtheriaLogger) global.EtheriaLogger.warn('messageCache', 'get failed:', err && err.message);
+            return null;
+        });
+    }
+
+    /**
+     * Elimina la caché de una historia (p.ej. al borrarla).
+     */
+    function remove(storyId) {
+        if (!storyId) return Promise.resolve();
+        return _open().then(function (db) {
+            var tx    = db.transaction(STORE_NAME, 'readwrite');
+            var store = tx.objectStore(STORE_NAME);
+            store.delete(String(storyId));
+        }).catch(function () {});
+    }
+
+    // ── Cola de mensajes pendientes (outbox) ─────────────────────────────────
+
+    /**
+     * Añade un mensaje a la cola de envío pendiente.
+     * @param {{ sessionId: string, msgObj: object, storyId: string|null }} item
+     */
+    function enqueue(item) {
+        if (!item || !item.sessionId || !item.msgObj) return Promise.resolve();
+        return _open().then(function (db) {
+            var tx    = db.transaction(QUEUE_STORE, 'readwrite');
+            var store = tx.objectStore(QUEUE_STORE);
+            store.add(Object.assign({ enqueuedAt: Date.now() }, item));
+            return new Promise(function (resolve, reject) {
+                tx.oncomplete = resolve;
+                tx.onerror    = function (e) { reject(e.target.error); };
+            });
+        }).catch(function (err) {
+            if (global.EtheriaLogger) global.EtheriaLogger.warn('messageCache', 'enqueue failed:', err && err.message);
+        });
+    }
+
+    /**
+     * Devuelve todos los mensajes pendientes en orden de inserción.
+     * @returns {Promise<Array>}
+     */
+    function dequeuePending() {
+        return _open().then(function (db) {
+            var tx  = db.transaction(QUEUE_STORE, 'readonly');
+            var req = tx.objectStore(QUEUE_STORE).getAll();
+            return new Promise(function (resolve, reject) {
+                req.onsuccess = function () { resolve(req.result || []); };
+                req.onerror   = function (e) { reject(e.target.error); };
+            });
+        }).catch(function () { return []; });
+    }
+
+    /**
+     * Elimina un mensaje de la cola por su id autoincrement.
+     * @param {number} id
+     */
+    function removeFromQueue(id) {
+        if (id == null) return Promise.resolve();
+        return _open().then(function (db) {
+            var tx = db.transaction(QUEUE_STORE, 'readwrite');
+            tx.objectStore(QUEUE_STORE).delete(id);
+        }).catch(function () {});
+    }
+
+    global.EtheriaMessageCache = {
+        put:             put,
+        get:             get,
+        remove:          remove,
+        enqueue:         enqueue,
+        dequeuePending:  dequeuePending,
+        removeFromQueue: removeFromQueue
+    };
+
+}(window));
+
 /* js/utils/supabaseMessages.js */
 // ============================================
 // SUPABASE REALTIME MESSAGES
@@ -7936,6 +8486,17 @@ window.SupabaseSync = SupabaseSync;
         } catch (e) {
             logger?.error('supabase:messages', 'send error:', e.message);
             _available = false;
+            // Cola offline: solo en errores de red (timeout, abort, o sin conexión)
+            // Usamos e.name en lugar de instanceof para compatibilidad cross-realm (vm tests)
+            const isNetworkError = e.name === 'AbortError' || e.name === 'TimeoutError'
+                || (e.name === 'TypeError' && !global.navigator?.onLine);
+            if (isNetworkError && global.EtheriaMessageCache?.enqueue) {
+                global.EtheriaMessageCache.enqueue({
+                    sessionId,
+                    msgObj,
+                    storyId: global.currentStoryId || null
+                }).catch(function () {});
+            }
             return false;
         }
     }
@@ -7984,7 +8545,7 @@ window.SupabaseSync = SupabaseSync;
 
             // Fix 8: results come desc (newest first) — reverse for display order
             rows.reverse();
-            return rows.reduce(function (acc, row) {
+            const messages = rows.reduce(function (acc, row) {
                 try {
                     const msg = JSON.parse(row.content);
 
@@ -8013,9 +8574,27 @@ window.SupabaseSync = SupabaseSync;
                 return acc;
             }, []);
 
+            // Persistir en caché offline (solo carga inicial, no paginación)
+            if (!_beforeCursor && activeStoryId && global.EtheriaMessageCache) {
+                global.EtheriaMessageCache.put(activeStoryId, messages).catch(function () {});
+            }
+
+            return messages;
+
         } catch (e) {
             logger?.warn('supabase:messages', 'load error:', e.message);
             _available = false;
+
+            // Fallback offline: devolver mensajes cacheados en IDB si existen
+            const cacheKey = storyId || global.currentStoryId || null;
+            const _beforeCursorCheck = (typeof arguments[2] === 'string') ? arguments[2] : null;
+            if (!_beforeCursorCheck && cacheKey && global.EtheriaMessageCache) {
+                const cached = await global.EtheriaMessageCache.get(cacheKey).catch(function () { return null; });
+                if (cached) {
+                    logger?.info('supabase:messages', 'offline fallback: returning', cached.length, 'cached messages');
+                    return cached;
+                }
+            }
             return null;
         }
     }
@@ -8307,6 +8886,32 @@ window.SupabaseSync = SupabaseSync;
         }
     }
 
+    // ── Cola offline: reenvío automático al recuperar conexión ───────────────
+
+    async function _flushQueue() {
+        const cache = global.EtheriaMessageCache;
+        if (!cache?.dequeuePending) return;
+        const pending = await cache.dequeuePending().catch(function () { return []; });
+        if (!pending.length) return;
+        _available = true; // permitir intentos tras reconexión
+        for (var i = 0; i < pending.length; i++) {
+            var item = pending[i];
+            var ok = await send(item.sessionId, item.msgObj);
+            if (ok) {
+                await cache.removeFromQueue(item.id).catch(function () {});
+            } else {
+                break; // sigue offline — parar para no perder el orden
+            }
+        }
+    }
+
+    if (typeof global.addEventListener === 'function') {
+        global.addEventListener('online', function () {
+            _available = true;
+            _flushQueue().catch(function () {});
+        });
+    }
+
     // ── API pública ───────────────────────────────────────────────────────────
 
     global.SupabaseMessages = {
@@ -8355,17 +8960,8 @@ window.SupabaseSync = SupabaseSync;
     }
 
     async function _getCurrentUserId() {
-        if (global._cachedUserId) return global._cachedUserId;
-        const client = _getClient();
-        if (!client?.auth?.getUser) return null;
-        try {
-            const { data, error } = await client.auth.getUser();
-            if (error || !data?.user?.id) return null;
-            global._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch {
-            return null;
-        }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     function _emitPresenceChange() {
@@ -8518,7 +9114,6 @@ window.SupabaseSync = SupabaseSync;
 
     let _client = null;
     let _channel = null;
-    let _cachedUserId = null;
 
     const BASE_HEADERS = {
         apikey: SB_KEY,
@@ -8539,18 +9134,8 @@ window.SupabaseSync = SupabaseSync;
     }
 
     async function _getUserId() {
-        if (_cachedUserId || global._cachedUserId) return _cachedUserId || global._cachedUserId;
-        const c = _getClient();
-        if (!c?.auth?.getUser) return null;
-        try {
-            const { data, error } = await c.auth.getUser();
-            if (error || !data?.user?.id) return null;
-            _cachedUserId = data.user.id;
-            global._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch {
-            return null;
-        }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     async function _headers() {
@@ -8685,11 +9270,7 @@ window.SupabaseSync = SupabaseSync;
 
     if (typeof window !== 'undefined') {
         window.addEventListener('etheria:auth-changed', function (e) {
-            _cachedUserId = e.detail?.user?.id || null;
-            if (!_cachedUserId) {
-                unsubscribe();
-                return;
-            }
+            if (!e.detail?.user?.id) { unsubscribe(); return; }
             subscribe();
         });
     }
@@ -8737,15 +9318,8 @@ window.SupabaseSync = SupabaseSync;
     }
 
     async function _userId() {
-        if (global._cachedUserId) return global._cachedUserId;
-        const c = _client();
-        if (!c?.auth?.getUser) return null;
-        try {
-            const { data, error } = await c.auth.getUser();
-            if (error || !data?.user?.id) return null;
-            global._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch { return null; }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     function _myDisplayName() {
@@ -9117,13 +9691,12 @@ window.SupabaseSync = SupabaseSync;
         global.addEventListener('etheria:auth-changed', function (e) {
             const user = e.detail?.user;
             if (user?.id) {
-                global._cachedUserId = user.id;
+                // _cachedUserId ya actualizado por app.js antes de emitir este evento
                 _loadUnread();
                 _subscribeInbox();
                 const btn = document.getElementById('menuInboxBtn');
                 if (btn) btn.style.display = '';
             } else {
-                global._cachedUserId = null;
                 _unreadCount = 0;
                 _notifications = [];
                 _updateBadge();
@@ -9206,13 +9779,8 @@ window.SupabaseSync = SupabaseSync;
     function _client() { return global.supabaseClient || null; }
 
     async function _userId() {
-        if (global._cachedUserId) return global._cachedUserId;
-        const c = _client();
-        if (!c?.auth?.getUser) return null;
-        try {
-            const { data } = await c.auth.getUser();
-            return data?.user?.id || null;
-        } catch { return null; }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     // ── 1. ACTIVITY LOG ──────────────────────────────────────────────────────
@@ -9549,15 +10117,8 @@ window.SupabaseSync = SupabaseSync;
     }
 
     async function _getUserId() {
-        if (global._cachedUserId) return global._cachedUserId;
-        const c = _client();
-        if (!c?.auth?.getUser) return null;
-        try {
-            const { data, error } = await c.auth.getUser();
-            if (error || !data?.user?.id) return null;
-            global._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch { return null; }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     function _urlBase64ToUint8Array(base64String) {
@@ -10339,6 +10900,10 @@ function renderVnPartyPanel(force = false) {
     if (!shouldShow) {
         closeVnPartyPanel(true);
         list.innerHTML = '';
+        // Mostrar panel clásico si corresponde
+        if (typeof renderClassicParty === 'function' && typeof currentStoryParticipants !== 'undefined') {
+            renderClassicParty(currentStoryParticipants);
+        }
         return;
     }
 
@@ -10394,8 +10959,21 @@ function renderVnPartyPanel(force = false) {
 
         const hpPct = Math.max(0, Math.min(100, (entry.hp / entry.hpMax) * 100));
         const expPct = Math.max(0, Math.min(100, (entry.exp / entry.expMax) * 100));
+        // Buscar el propietario del personaje en currentStoryParticipants
+        const ownerParticipant = (typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [])
+            .find(p => {
+                const char = (appData?.characters || []).find(c => String(c.id) === String(charId));
+                if (!char) return false;
+                if (char.owner_user_id) return String(char.owner_user_id) === String(p.user_id);
+                return String(char.userIndex) === String(p.user_index);
+            });
+        const ownerUserId = ownerParticipant ? escapeHtml(ownerParticipant.user_id) : '';
+        const profileBtn = ownerUserId && typeof openUserProfileModal !== 'undefined'
+            ? `<button type="button" class="vn-party-profile-btn" onclick="event.stopPropagation();openUserProfileModal('${ownerUserId}')" title="Ver perfil" aria-label="Ver perfil del jugador">👤</button>`
+            : '';
+
         return `
-            <button type="button" class="vn-party-member" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
+            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
                 <div class="vn-party-main">
                     <div class="vn-party-topline">
                         <div>
@@ -10418,6 +10996,7 @@ function renderVnPartyPanel(force = false) {
                     </div>
                 </div>
                 ${turnNumber ? `<span class="vn-party-turn-order">${turnNumber}</span>` : ''}
+                ${profileBtn}
             </button>
         `;
     }).join('') || '<div class="vn-party-empty">Sin personajes vinculados todavía.</div>';
@@ -11324,8 +11903,11 @@ function enterTopic(id) {
         return;
     }
 
+    // Registrar la visita para el indicador de mensajes nuevos en la lista de historias
+    try { localStorage.setItem('etheria_last_visit_' + id, new Date().toISOString()); } catch (_) {}
+
     // transición visual absorbida de mejoras.js (Mejora 9)
-    fadeTransition(function() { _doEnterTopic(id, t, topicMode); }, 220);
+    fadeTransition(function() { _doEnterTopic(id, t, topicMode); }, 220, 'iris');
 }
 
 function _doEnterTopic(id, t, topicMode) {
@@ -11502,8 +12084,11 @@ async function _sbEnterTopic(topicId) {
             }
         }
     } catch (e) {
-        // Supabase no disponible — el sistema sigue con local
+        // Supabase no disponible — el sistema sigue con mensajes locales
         _sbEnterInProgress = false; // Fix 10: release guard on error path
+        if (typeof showSyncToast === 'function') {
+            showSyncToast('Sin conexión a la nube — mostrando datos locales', 'OK');
+        }
         return;
     }
 
@@ -15816,6 +16401,77 @@ function vrpSetWeatherBtn(clickedBtn) {
     window.addEventListener('etheria:turn-updated',   _hideBanner);
 })();
 
+// ── Panel de presencia: jugadores online en la historia ──────────────────────
+// Escucha `etheria:story-presence-changed` (emitido por supabasePresence.js)
+// y renderiza avatares en #vnPresencePanel / #vnPresenceList.
+(function _initPresencePanel() {
+    'use strict';
+
+    var _panel = null;
+    var _list  = null;
+
+    function _getEls() {
+        if (!_panel) _panel = document.getElementById('vnPresencePanel');
+        if (!_list)  _list  = document.getElementById('vnPresenceList');
+        return !!(  _panel && _list);
+    }
+
+    function _esc(s) {
+        if (typeof escapeHtml === 'function') return escapeHtml(String(s));
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        });
+    }
+
+    function _render(detail) {
+        if (!_getEls()) return;
+        var state  = detail.state  || {};
+        var selfId = window._cachedUserId || null;
+        var others = Object.values(state).filter(function (u) {
+            return u.user_id && String(u.user_id) !== String(selfId);
+        });
+
+        if (others.length === 0) {
+            _panel.style.display = 'none';
+            _list.innerHTML = '';
+            return;
+        }
+
+        _list.innerHTML = others.map(function (u) {
+            var name      = String(u.name || 'Jugador').trim();
+            var initial   = name.charAt(0).toUpperCase();
+            var hasAvatar = u.avatar_url && String(u.avatar_url).trim();
+            var bgStyle   = hasAvatar
+                ? ' style="background-image:url(\'' + _esc(u.avatar_url) + '\')"'
+                : '';
+            var initialEl = hasAvatar
+                ? ''
+                : '<span class="vn-presence-avatar-initial" aria-hidden="true">' + _esc(initial) + '</span>';
+            return '<div class="vn-presence-avatar' + (hasAvatar ? ' vn-presence-avatar--has-img' : '') + '"'
+                + bgStyle
+                + ' title="' + _esc(name) + ' — online"'
+                + ' aria-label="' + _esc(name) + ' está online">'
+                + initialEl
+                + '<span class="vn-presence-dot" aria-hidden="true"></span>'
+                + '</div>';
+        }).join('');
+
+        _panel.style.display = 'flex';
+    }
+
+    window.addEventListener('etheria:story-presence-changed', function (e) {
+        _render(e.detail || {});
+    });
+
+    // Limpiar al salir de la historia (leaveStory emite state vacío, pero
+    // también cubrimos el evento explícito de salida de la sección VN).
+    window.addEventListener('etheria:story-left', function () {
+        if (!_getEls()) return;
+        _panel.style.display = 'none';
+        _list.innerHTML = '';
+    });
+}());
+
 /* js/ui/journal.js */
 // ============================================
 // SISTEMA DE FAVORITOS
@@ -16668,6 +17324,19 @@ function renderTopics() {
     } else if (topics.length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
     } else {
+        // ── Mensajes nuevos desde la última visita ────────────────────────
+        function _getUnreadCount(topicId, msgs) {
+            try {
+                const lastVisit = localStorage.getItem('etheria_last_visit_' + topicId);
+                if (!lastVisit) return 0;
+                const lastTs = new Date(lastVisit).getTime();
+                if (isNaN(lastTs)) return 0;
+                return msgs.filter(function(m) {
+                    return m.timestamp && new Date(m.timestamp).getTime() > lastTs;
+                }).length;
+            } catch (_) { return 0; }
+        }
+
         // ── Actividad corta para el pie de tarjeta ───────────────────────
         function _scActivity(msgs, topic) {
             const lastMsg = msgs[msgs.length - 1];
@@ -16846,13 +17515,22 @@ function renderTopics() {
             const modeClass = isRol ? 'tc--rpg' : 'tc--classic';
             const svgIllus  = isRol ? SVG_RPG : SVG_CLASSIC;
 
+            const unread     = _getUnreadCount(t.id, msgs);
+            const unreadClass = unread > 0 ? ' tc--has-unread' : '';
+            const unreadPill  = unread > 0
+                ? '<span class="tc-unread-pill">+' + unread + ' nuevo' + (unread !== 1 ? 's' : '') + '</span>'
+                : '';
+            const unreadStat  = unread > 0
+                ? '<span class="tc-back-stat tc-back-stat--unread">📬 ' + unread + ' nuevo' + (unread !== 1 ? 's' : '') + ' desde tu visita</span>'
+                : '';
+
             const leftBadge  = activity || '—';
             const rightBadge = msgs.length > 0 ? msgs.length + (msgs.length === 1 ? ' msg' : ' msgs') : '—';
 
             const enterLabel = isRol ? '⚜ Entrar en la senda' : '✦ Abrir el relato';
             const turnBadge  = isMeTurn ? '<span class="tc-back-turn">⏳ Tu turno</span>' : '';
 
-            return '<article class="tc ' + modeClass + turnClass + '" onclick="this.classList.toggle(\'tc--flipped\')">'
+            return '<article class="tc ' + modeClass + turnClass + unreadClass + '" onclick="this.classList.toggle(\'tc--flipped\')">'
                 + '<div class="tc-inner">'
 
                 // ── FRENTE ──────────────────────────────────────────
@@ -16876,6 +17554,7 @@ function renderTopics() {
                 +   '<span class="tc-count">' + escapeHtml(leftBadge) + '</span>'
                 +   '<span class="tc-diamond">◆</span>'
                 +   '<span class="tc-count">' + escapeHtml(rightBadge) + '</span>'
+                +   unreadPill
                 + '</footer>'
                 + '</div>'
 
@@ -16895,6 +17574,7 @@ function renderTopics() {
                 +     '<span class="tc-back-stat">🕐 ' + (activity || 'Reciente') + '</span>'
                 +     (isRol ? '<span class="tc-back-stat" style="opacity:0.6">⚜ Modo RPG</span>' : '<span class="tc-back-stat" style="opacity:0.6">✦ Modo Clásico</span>')
                 +     turnBadge
+                +     unreadStat
                 +   '</div>'
                 + '</div>'
                 + '<button class="tc-enter-btn" onclick="event.stopPropagation();enterTopic(\'' + tid + '\')">'
@@ -17123,6 +17803,7 @@ function createTopic() {
         background: topicBackground,
         weather: weather !== 'none' ? weather : undefined,
         mode: currentTopicMode,
+        turnMode: 'relay',
         roleCharacterId: null,
         createdBy: userNames[currentUserIndex] || 'Jugador',
         createdByIndex: currentUserIndex,
@@ -17162,6 +17843,11 @@ function createTopic() {
                     window.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
+                    // Inicializar configuración de turnos en relay
+                    var uid = window._cachedUserId;
+                    if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
+                        SupabaseStories.setTurnConfig(result.storyId, 'relay', [uid]).catch(function() {});
+                    }
                 } else {
                     const detail = result?.error ? ': ' + result.error : '';
                     window.EtheriaLogger?.warn('topics', 'No se pudo guardar la historia en Supabase' + detail);
@@ -17898,7 +18584,7 @@ function createTopicFromWizard() {
         id: id, title: title,
         background: DEFAULT_TOPIC_BACKGROUND,
         weather: weather !== 'none' ? weather : undefined,
-        mode: mode, roleCharacterId: null,
+        mode: mode, turnMode: 'relay', roleCharacterId: null,
         createdBy: ((userNames && userNames[currentUserIndex]) || 'Jugador'),
         createdByIndex: currentUserIndex,
         date: new Date().toLocaleDateString(),
@@ -17944,6 +18630,11 @@ function createTopicFromWizard() {
             if (result.ok && result.storyId) {
                 topicRef.storyId = result.storyId;
                 hasUnsavedChanges = true; save({ silent: true });
+                // Inicializar configuración de turnos en relay
+                var uid = window._cachedUserId;
+                if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
+                    SupabaseStories.setTurnConfig(result.storyId, 'relay', [uid]).catch(function() {});
+                }
             } else {
                 var detail = (result && result.error) ? ': ' + result.error : '';
                 if (typeof showAutosave === 'function') showAutosave('Historia local; no se guardo en Supabase' + detail, 'error');
@@ -18106,6 +18797,27 @@ function showAutosave(text, state) {
 
     // Mostrar indicador al arrancar si ya está online
     setTimeout(_showCloudIndicatorTemporarily, 1500);
+
+    // Notificación de turno: sonido + toast persistente
+    window.addEventListener('etheria:turn-notification', function (e) {
+        var row = e?.detail?.notification || {};
+        var title  = row.title || '¡Es tu turno!';
+        var topicId = row.topic_id || null;
+
+        // Sonido de llamada
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('audio:play-sfx', { sfx: 'notification' });
+        }
+
+        // Toast con acción de navegación al relato concreto
+        showSyncToast(title, 'Ir al relato', function () {
+            if (topicId && typeof enterTopic === 'function') {
+                enterTopic(topicId);
+            } else if (typeof showSection === 'function') {
+                showSection('vn');
+            }
+        });
+    });
 })();
 
 // Muestra el indicador cloud brevemente cuando el estado es online,
@@ -18463,16 +19175,8 @@ function _getCurrentProfileAvatar() {
 }
 
 async function _getAuthenticatedUserIdForAvatar() {
-    if (window._cachedUserId) return window._cachedUserId;
-    if (!window.supabaseClient || typeof window.supabaseClient.auth?.getUser !== 'function') return null;
-    try {
-        const { data, error } = await window.supabaseClient.auth.getUser();
-        if (error || !data?.user?.id) return null;
-        window._cachedUserId = data.user.id;
-        return data.user.id;
-    } catch {
-        return null;
-    }
+    if (typeof window.getEtheriaUserId === 'function') return window.getEtheriaUserId();
+    return window._cachedUserId || null;
 }
 
 function _saveAvatarInLocalProfile(url) {
@@ -18488,13 +19192,23 @@ async function _uploadProfileAvatarToCloud(file) {
     if (!window.supabaseClient) return { ok: false, error: 'Supabase no disponible.' };
 
     const extMatch = (file?.name || '').match(/\.(png|jpg|jpeg|gif|webp)$/i);
-    const ext = extMatch ? extMatch[1].toLowerCase() : 'png';
-    const contentType = file?.type || (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`);
+    if (!extMatch) return { ok: false, error: 'Formato no admitido. Usa PNG, JPG, GIF o WebP.' };
+    if (file.size > 20 * 1024 * 1024) return { ok: false, error: 'El avatar no puede superar 20 MB.' };
+
+    const compressed = window.EtheriaImageCompressor
+        ? await window.EtheriaImageCompressor.compress(file, { maxWidth: 512, maxHeight: 512 }).catch(function () { return file; })
+        : file;
+
+    if (compressed.size > 5 * 1024 * 1024) return { ok: false, error: 'El avatar no puede superar 5 MB.' };
+
+    const fileExt = (compressed.name || file.name).match(/\.(png|jpg|jpeg|gif|webp)$/i);
+    const ext = fileExt ? fileExt[1].toLowerCase() : extMatch[1].toLowerCase();
+    const contentType = compressed.type || file?.type || (ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`);
     const path = `${userId}/profile.${ext}`;
 
     const { error: uploadError } = await window.supabaseClient.storage
         .from('user-avatars')
-        .upload(path, file, { upsert: true, contentType });
+        .upload(path, compressed, { upsert: true, contentType });
 
     if (uploadError) {
         return { ok: false, error: uploadError.message || 'No se pudo subir el avatar a la nube.' };
@@ -18747,17 +19461,11 @@ function quickSave() {
 
 function openSaveHubModal() {
     openModal('saveHubModal');
-    // Si no hay sesión cacheada, obtenerla antes de actualizar estado del hub
-    if (!window._cachedUserId && window.supabaseClient) {
-        window.supabaseClient.auth.getSession().then(({ data }) => {
-            if (data?.session?.user) {
-                window._cachedUserId = data.session.user.id;
-            }
-            _updateSaveHubCloudStatus();
-        }).catch(() => _updateSaveHubCloudStatus());
-    } else {
-        _updateSaveHubCloudStatus();
-    }
+    // Asegurar que el userId esté en caché antes de actualizar el estado
+    (typeof window.getEtheriaUserId === 'function'
+        ? window.getEtheriaUserId()
+        : Promise.resolve(window._cachedUserId || null)
+    ).then(_updateSaveHubCloudStatus).catch(_updateSaveHubCloudStatus);
     window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'saveHub' } }));
 }
 
@@ -21111,16 +21819,8 @@ const SupabaseSettings = (function () {
     function _isAvailable() { return !!_client(); }
 
     async function _getUserId() {
-        // Fix 6: use global auth cache — avoids network round-trip on every settings save
-        if (window._cachedUserId) return window._cachedUserId;
-        const sb = _client();
-        if (!sb) return null;
-        try {
-            const { data, error } = await sb.auth.getUser();
-            if (error || !data?.user) return null;
-            window._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch { return null; }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     // ── Leer desde localStorage (fuente de verdad local) ────────────────────
@@ -22134,1502 +22834,360 @@ const CollaborativeGuard = (function () {
 
 window.CollaborativeGuard = CollaborativeGuard;
 
-/* js/rpg/SceneLoader.js */
+/* js/ui/userProfile.js */
 // ============================================================
-// SCENE LOADER
-// Carga scripts JSON de forma lazy (solo cuando se necesitan),
-// los cachea en memoria y hace prefetch de las escenas enlazadas
-// en segundo plano para que las transiciones sean instantáneas.
+// Etheria — User Profile Modal + Classic Party Panel
 // ============================================================
+(function (global) {
+    'use strict';
 
-const SceneLoader = (function () {
+    // ── Helpers ──────────────────────────────────────────────
+    const GENDER_ICON = { 'Femenino': '♀', 'Masculino': '♂', 'No Binario': '⚪' };
+    const MAX_CHARS_SHOWN = 5;
 
-    const _cache   = new Map();   // sceneId → objeto parseado
-    let   _index   = null;        // contenido de _index.json
-    const _pending = new Map();   // sceneId → Promise en vuelo
+    function _esc(s) { return typeof escapeHtml === 'function' ? escapeHtml(s) : String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-    const INDEX_PATH = 'js/scenes/_index.json';
-    const SCENES_PATH = 'js/scenes/';
+    function _client() { return global.supabaseClient || null; }
 
-    // ── API pública ─────────────────────────────────────────────
+    function _isRpg() { return document.body.classList.contains('mode-rpg'); }
 
-    /**
-     * Carga una escena por ID.
-     * Primero comprueba caché, luego el índice, luego hace fetch.
-     * Lanza Error si la escena no existe o el JSON es inválido.
-     */
-    async function load(sceneId) {
-        if (_cache.has(sceneId)) {
-            return _cache.get(sceneId);
+    function _currentTopic() {
+        if (!global.currentTopicId || !global.appData) return null;
+        return (global.appData.topics || []).find(t => String(t.id) === String(global.currentTopicId)) || null;
+    }
+
+    // Devuelve true si el participante YA respondió (no es su turno)
+    function _hasResponded(userId) {
+        const topic = _currentTopic();
+        if (!topic || !topic.turnOrder || !topic.turnOrder.length) return false;
+        return String(topic.turnOrder[0]) !== String(userId);
+    }
+
+    function _isOnline(userId) {
+        return typeof SupabasePresence !== 'undefined'
+            && typeof SupabasePresence.isUserOnline === 'function'
+            && SupabasePresence.isUserOnline(userId);
+    }
+
+    // ── Modal de perfil ──────────────────────────────────────
+
+    let _currentProfileUserId = null;
+
+    async function openUserProfileModal(userId) {
+        if (!userId) return;
+        _currentProfileUserId = userId;
+
+        const overlay = document.getElementById('userProfileModal');
+        const content = document.getElementById('upmContent');
+        const card    = document.getElementById('upmCard');
+        if (!overlay || !content || !card) return;
+
+        // Modo temático
+        card.className = 'upm-card' + (_isRpg() ? ' upm-card--rpg' : ' upm-card--classic');
+
+        content.innerHTML = '<div class="upm-loading">Cargando perfil…</div>';
+        overlay.style.display = 'flex';
+
+        // Recopilar datos
+        const data = await _buildProfileData(userId);
+        content.innerHTML = _renderProfileHTML(data, userId);
+    }
+
+    function closeUserProfileModal() {
+        const overlay = document.getElementById('userProfileModal');
+        if (overlay) overlay.style.display = 'none';
+        _currentProfileUserId = null;
+    }
+
+    async function _buildProfileData(userId) {
+        const isSelf = String(userId) === String(global._cachedUserId);
+
+        // Datos del participante desde currentStoryParticipants
+        const participant = (global.currentStoryParticipants || [])
+            .find(p => String(p.user_id) === String(userId)) || {};
+        const profile = participant.profile || {};
+        const displayName = profile.name || String(userId).slice(0, 8);
+
+        // Personajes de este usuario en las historias compartidas
+        const userChars = (global.appData && global.appData.characters ? global.appData.characters : [])
+            .filter(c => {
+                if (c.owner_user_id) return String(c.owner_user_id) === String(userId);
+                return String(c.userIndex) === String(participant.user_index);
+            })
+            .map(c => ({ name: c.name, gender: c.gender || '' }));
+
+        // Temas creados (query Supabase por created_by)
+        let topicsCreated = 0;
+        let modeClassic   = 0;
+        let modeRpg       = 0;
+        const client = _client();
+        if (client) {
+            try {
+                const { data: stories } = await client
+                    .from('stories')
+                    .select('id, mode')
+                    .eq('created_by', userId)
+                    .limit(200);
+                if (stories) {
+                    topicsCreated = stories.length;
+                    stories.forEach(s => {
+                        if (s.mode === 'rpg') modeRpg++; else modeClassic++;
+                    });
+                }
+            } catch (_) {}
         }
 
-        if (_pending.has(sceneId)) {
-            return _pending.get(sceneId);
+        // user_meta (género usuario, timezone, bio)
+        let userMeta = {};
+        if (client) {
+            try {
+                const { data: meta } = await client
+                    .from('user_meta')
+                    .select('gender, timezone, bio')
+                    .eq('user_id', userId)
+                    .maybeSingle();
+                if (meta) userMeta = meta;
+            } catch (_) {}
         }
 
-        const promise = _fetchScene(sceneId);
-        _pending.set(sceneId, promise);
+        const preferredMode = modeRpg > modeClassic ? 'RPG' : (modeClassic > 0 || modeRpg > 0 ? 'Clásico' : null);
+
+        return { displayName, avatarUrl: profile.avatar_url || '', isSelf, userChars, topicsCreated, preferredMode, modeClassic, modeRpg, userMeta };
+    }
+
+    function _renderProfileHTML(d, userId) {
+        const isRpg   = _isRpg();
+        const gIcon   = GENDER_ICON[d.userMeta.gender] || '';
+        const tz      = d.userMeta.timezone || '';
+        const bio     = d.userMeta.bio      || '';
+
+        const charList = d.userChars.slice(0, MAX_CHARS_SHOWN);
+        const charExtra = d.userChars.length - charList.length;
+        const charText  = charList.length
+            ? charList.map(c => `${_esc(c.name)}${c.gender ? ' ' + (GENDER_ICON[c.gender] || '') : ''}`).join(' · ')
+              + (charExtra > 0 ? ` <span class="upm-extra">y ${charExtra} más</span>` : '')
+            : '<em>Sin personajes conocidos</em>';
+
+        const avatarEl = d.avatarUrl
+            ? `<img class="upm-avatar" src="${_esc(d.avatarUrl)}" alt="${_esc(d.displayName)}">`
+            : `<div class="upm-avatar upm-avatar--initials">${_esc((d.displayName[0] || '?').toUpperCase())}</div>`;
+
+        const editBtn = d.isSelf
+            ? `<button class="upm-edit-btn" type="button" onclick="openEditProfileModal()">Editar perfil</button>`
+            : '';
+
+        if (isRpg) {
+            // ── Tema RPG: ficha de aventurero ──────────────────────────────
+            return `
+            <div class="upm-rpg-header">
+                <span class="upm-rpg-kicker">⚔ Ficha de aventurero</span>
+            </div>
+            <div class="upm-identity">
+                ${avatarEl}
+                <div class="upm-identity-text">
+                    <div class="upm-name" id="upmName">${_esc(d.displayName)}</div>
+                    ${gIcon ? `<div class="upm-gender-badge">${gIcon} ${_esc(d.userMeta.gender || '')}</div>` : ''}
+                </div>
+                ${editBtn}
+            </div>
+            <div class="upm-divider upm-divider--rpg"></div>
+            <div class="upm-stats-grid">
+                <div class="upm-stat">
+                    <span class="upm-stat-label">Aventuras</span>
+                    <span class="upm-stat-value">${d.topicsCreated}</span>
+                </div>
+                <div class="upm-stat">
+                    <span class="upm-stat-label">Modo</span>
+                    <span class="upm-stat-value">${d.preferredMode || '—'}</span>
+                </div>
+            </div>
+            <div class="upm-chars-row">
+                <span class="upm-chars-label">Personajes</span>
+                <span class="upm-chars-value">${charText}</span>
+            </div>
+            ${tz || bio ? `<div class="upm-divider upm-divider--rpg"></div>
+            <div class="upm-meta-row">
+                ${tz ? `<span class="upm-meta-item">🕐 ${_esc(tz)}</span>` : ''}
+                ${bio ? `<p class="upm-bio">${_esc(bio)}</p>` : ''}
+            </div>` : ''}`;
+        } else {
+            // ── Tema Clásico: pergamino narrativo ──────────────────────────
+            return `
+            <div class="upm-classic-ornament upm-classic-ornament--top">✦ ─── ─── ✦</div>
+            <div class="upm-identity">
+                ${avatarEl}
+                <div class="upm-identity-text">
+                    <div class="upm-name" id="upmName">${_esc(d.displayName)}</div>
+                    ${gIcon ? `<div class="upm-gender-badge">${gIcon} ${_esc(d.userMeta.gender || '')}</div>` : ''}
+                </div>
+                ${editBtn}
+            </div>
+            <div class="upm-divider"></div>
+            <div class="upm-stats-grid">
+                <div class="upm-stat">
+                    <span class="upm-stat-label">Temas creados</span>
+                    <span class="upm-stat-value">${d.topicsCreated}</span>
+                </div>
+                <div class="upm-stat">
+                    <span class="upm-stat-label">Modo favorito</span>
+                    <span class="upm-stat-value">${d.preferredMode || '—'}</span>
+                </div>
+            </div>
+            <div class="upm-chars-row">
+                <span class="upm-chars-label">Personajes</span>
+                <span class="upm-chars-value">${charText}</span>
+            </div>
+            ${tz || bio ? `<div class="upm-divider"></div>
+            <div class="upm-meta-row">
+                ${tz ? `<span class="upm-meta-item">🕐 ${_esc(tz)}</span>` : ''}
+                ${bio ? `<p class="upm-bio">${_esc(bio)}</p>` : ''}
+            </div>` : ''}
+            <div class="upm-classic-ornament upm-classic-ornament--bottom">✦ ─── ─── ✦</div>`;
+        }
+    }
+
+    // ── Editar perfil propio ─────────────────────────────────
+
+    function openEditProfileModal() {
+        const content = document.getElementById('upmContent');
+        const card    = document.getElementById('upmCard');
+        if (!content) return;
+        card.className = 'upm-card upm-card--edit' + (_isRpg() ? ' upm-card--rpg' : ' upm-card--classic');
+        content.innerHTML = `
+        <h2 class="upm-edit-title">Mi perfil</h2>
+        <div class="upm-edit-form">
+            <label class="upm-edit-label">Género
+                <select id="upmEditGender" class="upm-edit-select">
+                    <option value="">Sin especificar</option>
+                    <option value="Femenino">♀ Femenino</option>
+                    <option value="Masculino">♂ Masculino</option>
+                    <option value="No Binario">⚪ No binario</option>
+                </select>
+            </label>
+            <label class="upm-edit-label">Zona horaria
+                <input id="upmEditTz" class="upm-edit-input" type="text" placeholder="Ej: Europe/Madrid" maxlength="60">
+            </label>
+            <label class="upm-edit-label">Bio <span class="upm-edit-hint">(máx. 160 caracteres)</span>
+                <textarea id="upmEditBio" class="upm-edit-textarea" maxlength="160" rows="3" placeholder="Algo sobre ti…"></textarea>
+            </label>
+            <div class="upm-edit-actions">
+                <button class="upm-edit-save" type="button" onclick="saveUserMeta()">Guardar</button>
+                <button class="upm-edit-cancel" type="button" onclick="openUserProfileModal('${_esc(global._cachedUserId || '')}')">Cancelar</button>
+            </div>
+        </div>`;
+
+        // Pre-rellenar con datos actuales
+        const client = _client();
+        if (client && global._cachedUserId) {
+            client.from('user_meta').select('gender,timezone,bio').eq('user_id', global._cachedUserId).maybeSingle()
+                .then(({ data }) => {
+                    if (!data) return;
+                    const g = document.getElementById('upmEditGender');
+                    const t = document.getElementById('upmEditTz');
+                    const b = document.getElementById('upmEditBio');
+                    if (g) g.value = data.gender || '';
+                    if (t) t.value = data.timezone || '';
+                    if (b) b.value = data.bio || '';
+                }).catch(() => {});
+        }
+    }
+
+    async function saveUserMeta() {
+        const userId = global._cachedUserId;
+        if (!userId) { if (typeof showAutosave === 'function') showAutosave('No estás autenticado', 'error'); return; }
+        const gender   = (document.getElementById('upmEditGender') || {}).value || '';
+        const timezone = ((document.getElementById('upmEditTz') || {}).value || '').trim();
+        const bio      = ((document.getElementById('upmEditBio') || {}).value || '').trim();
+
+        const client = _client();
+        if (!client) { if (typeof showAutosave === 'function') showAutosave('Sin conexión', 'error'); return; }
 
         try {
-            const scene = await promise;
-            _cache.set(sceneId, scene);
-            _pending.delete(sceneId);
-            _prefetchLinked(scene);
-            return scene;
-        } catch (err) {
-            _pending.delete(sceneId);
-            // No relanzar — emitir evento y devolver null para que el engine se detenga limpiamente
-            console.error('[SceneLoader]', err.message);
-            eventBus.emit('scene:error', { sceneId: sceneId, message: err.message });
-            return null;
-        }
-    }
-
-    /**
-     * Precarga una escena sin necesitarla aún.
-     * Útil para precargar antes de que el usuario llegue.
-     * No lanza errores — falla silenciosamente.
-     */
-    function prefetch(sceneId) {
-        if (!_cache.has(sceneId) && !_pending.has(sceneId)) {
-            load(sceneId).catch(() => {});
-        }
-    }
-
-    /**
-     * Comprueba si una escena ya está en caché.
-     */
-    function isCached(sceneId) {
-        return _cache.has(sceneId);
-    }
-
-    /**
-     * Limpia la caché — toda o solo una escena.
-     */
-    function clearCache(sceneId) {
-        if (sceneId) {
-            _cache.delete(sceneId);
-        } else {
-            _cache.clear();
-            _index = null;
-        }
-    }
-
-    /**
-     * Devuelve el índice completo (metadatos de todas las escenas).
-     */
-    async function getIndex() {
-        if (_index) return _index;
-        return _loadIndex();
-    }
-
-    // ── Lógica interna ──────────────────────────────────────────
-
-    async function _fetchScene(sceneId) {
-        // Obtener la ruta del archivo desde el índice
-        const index = await _loadIndex();
-        const entry = index[sceneId];
-
-        let filePath;
-        if (entry && entry.file) {
-            filePath = SCENES_PATH + entry.file;
-        } else {
-            // Fallback: asumir nombre de archivo igual al ID
-            filePath = SCENES_PATH + sceneId + '.json';
-        }
-
-        const response = await fetch(filePath);
-
-        if (!response.ok) {
-            throw new Error(
-                `[SceneLoader] No se pudo cargar "${sceneId}" desde "${filePath}" (HTTP ${response.status})`
+            const { error } = await client.from('user_meta').upsert(
+                { user_id: userId, gender, timezone, bio, updated_at: new Date().toISOString() },
+                { onConflict: 'user_id' }
             );
-        }
-
-        let scene;
-        try {
-            scene = await response.json();
+            if (error) throw error;
+            if (typeof showAutosave === 'function') showAutosave('✓ Perfil guardado', 'saved');
+            openUserProfileModal(userId); // volver a vista de lectura
         } catch (e) {
-            throw new Error(`[SceneLoader] JSON inválido en "${filePath}": ${e.message}`);
-        }
-
-        return scene;
-    }
-
-    async function _loadIndex() {
-        if (_index) return _index;
-
-        try {
-            const res = await fetch(INDEX_PATH);
-            if (!res.ok) {
-                // Si no hay índice, trabajar sin él (modo degradado)
-                console.warn('[SceneLoader] No se encontró _index.json — usando nombres de archivo directamente');
-                _index = {};
-                return _index;
-            }
-            _index = await res.json();
-        } catch (e) {
-            console.warn('[SceneLoader] Error cargando índice:', e.message);
-            _index = {};
-        }
-
-        return _index;
-    }
-
-    // Máximo de escenas a precargar en background desde una sola escena
-    const MAX_PREFETCH = 3;
-
-    // Analiza una escena ya cargada y precarga las escenas a las que
-    // puede saltar, sin bloquear la ejecución actual.
-    function _prefetchLinked(scene) {
-        const linked = new Set();
-
-        function scan(steps) {
-            if (!Array.isArray(steps)) return;
-            steps.forEach(step => {
-                if (step.type === 'goto_scene' && step.scene) {
-                    linked.add(step.scene);
-                }
-                if (step.type === 'choice' && Array.isArray(step.options)) {
-                    step.options.forEach(opt => {
-                        if (opt.goto && !scene.branches?.[opt.goto]) {
-                            linked.add(opt.goto);
-                        }
-                    });
-                }
-                if (step.type === 'stat_check') {
-                    [step.on_success, step.on_fail].forEach(target => {
-                        if (target && !scene.branches?.[target]) linked.add(target);
-                    });
-                }
-            });
-        }
-
-        scan(scene.steps);
-        Object.values(scene.branches || {}).forEach(scan);
-
-        // Limitar a MAX_PREFETCH escenas para no saturar la red
-        const candidates = Array.from(linked)
-            .filter(id => id !== scene.id)
-            .filter(id => !_cache.has(id))
-            .slice(0, MAX_PREFETCH);
-
-        candidates.forEach(id => {
-            setTimeout(() => prefetch(id), 300);
-        });
-    }
-
-    return { load, prefetch, isCached, clearCache, getIndex };
-})();
-
-/* js/rpg/SceneValidator.js */
-// ============================================================
-// SCENE VALIDATOR
-// Valida la estructura de un script JSON antes de ejecutarlo.
-// Detecta errores de formato, campos obligatorios y referencias
-// rotas — sin lanzar excepciones: devuelve { ok, errors }.
-// ============================================================
-
-const SceneValidator = (function () {
-
-    // Campos obligatorios por tipo de paso
-    const REQUIRED = {
-        background:   ['asset'],
-        dialogue:     ['character', 'text'],
-        choice:       ['options'],
-        set_variable: ['key', 'value'],
-        check_variable: ['key', 'equals', 'goto_true'],
-        goto_scene:   ['scene'],
-        goto_branch:  ['branch'],
-        modify_stat:  ['stat', 'amount'],
-        give_item:    ['item'],
-        remove_item:  ['item'],
-        stat_check:   ['stat', 'difficulty', 'on_success', 'on_fail'],
-        sound:        ['action'],
-        camera:       ['effect'],
-        wait:         ['duration'],
-        end:          []
-    };
-
-    // ── API pública ─────────────────────────────────────────────
-    function validate(scene) {
-        const errors = [];
-
-        if (!scene || typeof scene !== 'object') {
-            return { ok: false, errors: ['El script no es un objeto válido'] };
-        }
-
-        // Campos raíz obligatorios
-        if (!scene.id)    errors.push('Falta campo "id"');
-        if (!scene.steps) errors.push('Falta campo "steps"');
-        if (scene.steps && !Array.isArray(scene.steps)) {
-            errors.push('"steps" debe ser un array');
-        }
-
-        // Validar steps principales
-        if (Array.isArray(scene.steps)) {
-            _validateStepArray(scene.steps, 'steps', scene.branches || {}, errors);
-        }
-
-        // Validar branches
-        if (scene.branches && typeof scene.branches === 'object') {
-            Object.entries(scene.branches).forEach(([branchId, steps]) => {
-                if (!Array.isArray(steps)) {
-                    errors.push(`Branch "${branchId}" debe ser un array`);
-                } else {
-                    _validateStepArray(steps, `branches.${branchId}`, scene.branches, errors);
-                }
-            });
-        }
-
-        if (errors.length > 0) {
-            console.error(`[SceneValidator] "${scene.id || '?'}" tiene ${errors.length} error(es):`, errors);
-        }
-
-        return { ok: errors.length === 0, errors };
-    }
-
-    // ── Helpers internos ────────────────────────────────────────
-    function _validateStepArray(steps, path, branches, errors) {
-        steps.forEach((step, i) => {
-            const loc = `${path}[${i}]`;
-
-            if (!step.type) {
-                errors.push(`${loc}: falta "type"`);
-                return;
-            }
-
-            const requiredFields = REQUIRED[step.type];
-            if (requiredFields === undefined) {
-                // Tipo desconocido — advertencia, no error bloqueante
-                console.warn(`[SceneValidator] ${loc}: tipo desconocido "${step.type}"`);
-                return;
-            }
-
-            requiredFields.forEach(field => {
-                if (step[field] === undefined || step[field] === null) {
-                    errors.push(`${loc} (${step.type}): falta campo "${field}"`);
-                }
-            });
-
-            // Validaciones específicas por tipo
-            if (step.type === 'choice') {
-                if (!Array.isArray(step.options) || step.options.length === 0) {
-                    errors.push(`${loc}: "options" debe ser un array no vacío`);
-                } else {
-                    step.options.forEach((opt, j) => {
-                        if (!opt.text) {
-                            errors.push(`${loc}.options[${j}]: falta "text"`);
-                        }
-                        // "goto" es opcional: sin él el engine avanza al siguiente paso linealmente.
-                        // Solo advertir, no bloquear.
-                        if (!opt.goto) {
-                            console.warn(`[SceneValidator] ${loc}.options[${j}]: sin "goto" — avanzará al paso siguiente`);
-                        }
-                    });
-                }
-            }
-
-            if (step.type === 'stat_check') {
-                if (typeof step.difficulty !== 'number') {
-                    errors.push(`${loc}: "difficulty" debe ser un número`);
-                }
-            }
-
-            if (step.type === 'modify_stat') {
-                if (typeof step.amount !== 'number') {
-                    errors.push(`${loc}: "amount" debe ser un número`);
-                }
-            }
-        });
-    }
-
-    return { validate };
-})();
-
-/* js/rpg/RPGState.js */
-// ============================================================
-// RPG STATE
-// Estado local de una sesión RPG: stats, inventario y flags
-// persistentes entre escenas.
-// Completamente independiente del estado global de Etheria
-// (appData, currentUserIndex, etc.) — solo lee el profileIndex
-// para saber dónde guardar en localStorage.
-// ============================================================
-
-const RPGState = (function () {
-
-    const STORAGE_PREFIX = 'etheria_rpg_state_';
-
-    // Estado en memoria durante la sesión
-    let _profileIndex = 0;
-    let _stats        = {};  // { STR: 10, DEX: 8, ... }
-    let _inventory    = [];  // [{ id: 'sword', name: 'Espada', qty: 1, data: {} }]
-    let _flags        = {};  // variables persistentes entre escenas: { met_kazuma: true, ... }
-    let _xp           = 0;
-    let _level        = 1;
-    let _hp           = { current: 20, max: 20 };
-
-    // Stats base por defecto — sistema D&D completo (mismo que sheets.js)
-    const DEFAULT_STATS = {
-        STR: 8,  // Fuerza
-        DEX: 8,  // Destreza
-        CON: 8,  // Constitución
-        INT: 8,  // Inteligencia
-        WIS: 8,  // Sabiduría
-        CHA: 8   // Carisma
-    };
-
-    // ── Ciclo de vida ───────────────────────────────────────────
-
-    function init(profileIndex) {
-        _profileIndex = profileIndex || 0;
-        _load();
-    }
-
-    function reset() {
-        _stats     = { ...DEFAULT_STATS };
-        _inventory = [];
-        _flags     = {};
-        _xp        = 0;
-        _level     = 1;
-        _hp        = { current: 20, max: 20 };
-        _save();
-    }
-
-    // ── Stats ───────────────────────────────────────────────────
-
-    function getStat(key) {
-        return _stats[key] !== undefined ? _stats[key] : DEFAULT_STATS[key] ?? 10;
-    }
-
-    function setStat(key, value) {
-        _stats[key] = Math.max(1, Math.min(30, Number(value) || 10));
-        _save();
-        _emitChange('stats');
-    }
-
-    function modifyStat(key, delta) {
-        setStat(key, getStat(key) + delta);
-    }
-
-    function getStats() {
-        return { ...DEFAULT_STATS, ..._stats };
-    }
-
-    // Modificador D&D: (stat - 10) / 2 redondeado hacia abajo
-    function getModifier(key) {
-        return Math.floor((getStat(key) - 10) / 2);
-    }
-
-    // ── HP ──────────────────────────────────────────────────────
-
-    function getHp()    { return { ..._hp }; }
-    function getMaxHp() { return _hp.max; }
-
-    function setMaxHp(max) {
-        _hp.max = Math.max(1, max);
-        _hp.current = Math.min(_hp.current, _hp.max);
-        _save();
-        _emitChange('hp');
-    }
-
-    function modifyHp(delta) {
-        _hp.current = Math.max(0, Math.min(_hp.max, _hp.current + delta));
-        _save();
-        _emitChange('hp');
-    }
-
-    function isDead() { return _hp.current <= 0; }
-
-    // ── XP y nivel ─────────────────────────────────────────────
-
-    function getXp()    { return _xp; }
-    function getLevel() { return _level; }
-
-    function addXp(amount) {
-        _xp += amount;
-        const newLevel = _calculateLevel(_xp);
-        if (newLevel > _level) {
-            _level = newLevel;
-            _emitChange('level-up', { level: _level, xp: _xp });
-        }
-        _save();
-        _emitChange('xp');
-    }
-
-    function _calculateLevel(xp) {
-        // Curva simple: nivel = 1 + floor(xp / 100)
-        return Math.max(1, 1 + Math.floor(xp / 100));
-    }
-
-    // ── Inventario ──────────────────────────────────────────────
-
-    function hasItem(itemId) {
-        return _inventory.some(i => i.id === itemId && i.qty > 0);
-    }
-
-    function getItem(itemId) {
-        return _inventory.find(i => i.id === itemId) || null;
-    }
-
-    function getInventory() {
-        return _inventory.map(i => ({ ...i }));
-    }
-
-    function addItem(item) {
-        // item: { id, name, qty?, description?, data? }
-        if (!item || !item.id) return;
-
-        const existing = _inventory.find(i => i.id === item.id);
-        if (existing) {
-            existing.qty = (existing.qty || 1) + (item.qty || 1);
-        } else {
-            _inventory.push({
-                id:          item.id,
-                name:        item.name || item.id,
-                qty:         item.qty || 1,
-                description: item.description || '',
-                data:        item.data || {}
-            });
-        }
-        _save();
-        _emitChange('inventory');
-    }
-
-    function removeItem(itemId, qty = 1) {
-        const idx = _inventory.findIndex(i => i.id === itemId);
-        if (idx === -1) return false;
-
-        _inventory[idx].qty -= qty;
-        if (_inventory[idx].qty <= 0) {
-            _inventory.splice(idx, 1);
-        }
-        _save();
-        _emitChange('inventory');
-        return true;
-    }
-
-    // ── Flags (variables persistentes entre escenas) ─────────────
-
-    function getFlag(key)         { return _flags[key]; }
-    function setFlag(key, value)  { _flags[key] = value; _save(); }
-    function hasFlag(key)         { return _flags[key] !== undefined && _flags[key] !== false && _flags[key] !== null; }
-
-    // ── Condiciones (para evaluar en scripts) ───────────────────
-
-    /**
-     * Evalúa una condición del script.
-     * Ejemplos de condición:
-     *   { has_item: 'sword' }
-     *   { flag: 'met_kazuma' }
-     *   { flag_equals: { key: 'times_visited', value: 3 } }
-     *   { stat_gte: { stat: 'STR', value: 14 } }
-     *   { stat_lte: { stat: 'HP_current', value: 5 } }
-     *   { level_gte: 3 }
-     */
-    function evalCondition(condition) {
-        if (!condition) return true;
-
-        if (condition.has_item)    return hasItem(condition.has_item);
-        if (condition.not_item)    return !hasItem(condition.not_item);
-        if (condition.flag)        return hasFlag(condition.flag);
-        if (condition.not_flag)    return !hasFlag(condition.not_flag);
-
-        if (condition.flag_equals) {
-            return getFlag(condition.flag_equals.key) === condition.flag_equals.value;
-        }
-        if (condition.stat_gte) {
-            const val = condition.stat_gte.stat === 'HP'
-                ? _hp.current
-                : getStat(condition.stat_gte.stat);
-            return val >= condition.stat_gte.value;
-        }
-        if (condition.stat_lte) {
-            const val = condition.stat_lte.stat === 'HP'
-                ? _hp.current
-                : getStat(condition.stat_lte.stat);
-            return val <= condition.stat_lte.value;
-        }
-        if (condition.level_gte)  return _level >= condition.level_gte;
-        if (condition.xp_gte)     return _xp >= condition.xp_gte;
-
-        console.warn('[RPGState] Condición desconocida:', condition);
-        return true;
-    }
-
-    // ── Snapshot (para guardar/cargar con el topic) ─────────────
-
-    function getSnapshot() {
-        return {
-            stats:     { ..._stats },
-            inventory: _inventory.map(i => ({ ...i })),
-            flags:     { ..._flags },
-            xp:        _xp,
-            level:     _level,
-            hp:        { ..._hp }
-        };
-    }
-
-    function loadSnapshot(snapshot) {
-        if (!snapshot || typeof snapshot !== 'object') return;
-        _stats     = snapshot.stats     || {};
-        _inventory = snapshot.inventory || [];
-        _flags     = snapshot.flags     || {};
-        _xp        = snapshot.xp        || 0;
-        _level     = snapshot.level     || 1;
-        _hp        = snapshot.hp        || { current: 20, max: 20 };
-        _save();
-    }
-
-    // ── Persistencia ────────────────────────────────────────────
-
-    function _save() {
-        try {
-            localStorage.setItem(
-                STORAGE_PREFIX + _profileIndex,
-                JSON.stringify(getSnapshot())
-            );
-        } catch (e) {
-            console.warn('[RPGState] No se pudo guardar estado:', e);
+            if (typeof showAutosave === 'function') showAutosave('Error al guardar: ' + (e.message || e), 'error');
         }
     }
 
-    function _load() {
-        try {
-            const raw = localStorage.getItem(STORAGE_PREFIX + _profileIndex);
-            if (raw) {
-                loadSnapshot(JSON.parse(raw));
-            } else {
-                reset();
-            }
-        } catch (e) {
-            console.warn('[RPGState] No se pudo cargar estado:', e);
-            reset();
-        }
+    // ── Panel de party clásico ───────────────────────────────
+
+    let _classicPartyOpen = false;
+
+    function toggleClassicParty() {
+        _classicPartyOpen = !_classicPartyOpen;
+        const shell = document.getElementById('classicPartyShell');
+        const tab   = document.getElementById('classicPartyTab');
+        if (!shell) return;
+        shell.classList.toggle('open', _classicPartyOpen);
+        if (tab) tab.setAttribute('aria-expanded', String(_classicPartyOpen));
     }
 
-    // ── Emisión de eventos ───────────────────────────────────────
-    // Usa el eventBus si está disponible; si no, silencioso.
+    function renderClassicParty(participants) {
+        const shell = document.getElementById('classicPartyShell');
+        const list  = document.getElementById('classicPartyList');
+        if (!shell || !list) return;
 
-    function _emitChange(type, extra) {
-        if (!window.eventBus) return;
-        eventBus.emit('rpg:state-changed', { type, ...extra });
+        const topic = _currentTopic();
+        const isClassicMode = !_isRpg();
+        shell.style.display = isClassicMode && participants && participants.length > 0 ? '' : 'none';
+        if (!isClassicMode || !participants || !participants.length) return;
 
-        // Para cambios que afectan la barra de stats, emitir también
-        // rpg:state-updated con los valores ya calculados.
-        // Así el renderer no necesita consultar RPGState manualmente.
-        if (type === 'hp' || type === 'xp' || type === 'level-up') {
-            eventBus.emit('rpg:state-updated', {
-                hp:    { ..._hp },
-                xp:    _xp,
-                level: _level
-            });
-        }
-    }
+        const lockMap = topic
+            ? Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {})
+            : {};
 
-
-    // ── Puente con las fichas de personaje de Etheria ────────────────────────
-    //
-    // Las fichas usan directamente STR / DEX / CON / INT / WIS / CHA (base 8, rango 8-15)
-    // igual que el motor de escenas. No hay conversión de vocabulario — se copian directo.
-    // HP_max = 10 + (CON_mod × 2) + (level - 1)   (crece con nivel y CON)
-
-    // Sincroniza los stats D&D desde la ficha del personaje al motor de escenas.
-    // Los stats de la ficha YA son D&D (STR/DEX/CON/INT/WIS/CHA, rango 8-15),
-    // por lo que no hay conversión — se copian directamente.
-    function syncFromCharacter(char, topicId) {
-        if (!char) return;
-
-        try {
-            if (typeof ensureCharacterRpgProfile !== 'function') return;
-            const profile = ensureCharacterRpgProfile(char, topicId);
-            if (!profile?.stats) return;
-
-            const s = profile.stats;
-            _stats = {
-                STR: Math.max(1, Number(s.STR) || 8),
-                DEX: Math.max(1, Number(s.DEX) || 8),
-                CON: Math.max(1, Number(s.CON) || 8),
-                INT: Math.max(1, Number(s.INT) || 8),
-                WIS: Math.max(1, Number(s.WIS) || 8),
-                CHA: Math.max(1, Number(s.CHA) || 8)
-            };
-
-            // HP_max derivado de CON según reglas D&D: hp_max = 10 + (CON - 10) * 2
-            const conMod = Math.floor((_stats.CON - 10) / 2);
-            const hpMax  = Math.max(1, 10 + conMod * 2);
-            _hp.max = hpMax;
-
-            // Sincronizar HP actual, XP y nivel desde la ficha si existen
-            if (profile.hp    !== undefined) _hp.current = Math.max(0, Math.min(hpMax, Math.round((profile.hp / 10) * hpMax)));
-            if (profile.exp   !== undefined) _xp   = Math.max(0, profile.exp);
-            if (profile.level !== undefined) _level = Math.max(1, profile.level);
-
-            _save();
-            _emitChange('stats');
-
-            console.debug('[RPGState] Stats D&D sincronizados:', _stats, '| HP_max:', hpMax);
-        } catch (e) {
-            console.warn('[RPGState] syncFromCharacter error:', e?.message);
-        }
-    }
-
-    /**
-     * Escribe de vuelta a la ficha los cambios de HP/EXP/level
-     * que el motor de escenas haya producido (combate, eventos, etc.)
-     * @param {object} char     Personaje de appData.characters
-     * @param {string} topicId
-     */
-    function syncToCharacter(char, topicId) {
-        if (!char || typeof ensureCharacterRpgProfile !== 'function') return;
-        try {
-            const profile = ensureCharacterRpgProfile(char, topicId);
-            if (!profile) return;
-
-            // Convertir HP del rango D&D (0-hp.max) al rango de la ficha (0-RPG_HP_MAX).
-            // Sin esta conversion profile.hp podria valer 14, 18... fuera del rango 0-10
-            // que la UI de la ficha espera, corrompiendo la barra de vida del personaje.
-            const sheetHpMax = (typeof RPG_HP_MAX !== 'undefined') ? RPG_HP_MAX : 10;
-            const hpRatio    = _hp.max > 0 ? _hp.current / _hp.max : 1;
-            profile.hp       = Math.max(0, Math.min(sheetHpMax, Math.round(hpRatio * sheetHpMax)));
-
-            // EXP en escala de la ficha (0 a RPG_EXP_PER_LEVEL-1)
-            const expPerLevel = (typeof RPG_EXP_PER_LEVEL !== 'undefined') ? RPG_EXP_PER_LEVEL : 10;
-            profile.exp   = _xp % expPerLevel;
-            profile.level = _level;
-
-            // Persistir
-            const topic = typeof appData !== 'undefined'
-                ? appData.topics?.find(t => String(t.id) === String(topicId))
+        list.innerHTML = participants.map(p => {
+            const charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
+            const char   = charId
+                ? (global.appData && global.appData.characters ? global.appData.characters : []).find(c => String(c.id) === String(charId))
                 : null;
-            if (topic && topic.rpgProfiles) {
-                topic.rpgProfiles[char.id] = profile;
-            }
-            char.rpgProfile = profile;
 
-            if (typeof hasUnsavedChanges !== 'undefined') hasUnsavedChanges = true;
-            if (typeof save === 'function') save({ silent: true });
+            const name      = (char && char.name) || (p.profile && p.profile.name) || '?';
+            const genderKey = (char && char.gender) || '';
+            const gIcon     = GENDER_ICON[genderKey] || '';
+            const online    = _isOnline(p.user_id);
+            const responded = _hasResponded(p.user_id);
+            const uid       = _esc(p.user_id || '');
 
-            console.debug('[RPGState] Sincronizado a ficha: HP_sheet', profile.hp,
-                '/', sheetHpMax, '| HP_dnd', _hp.current, '/', _hp.max,
-                '| EXP', profile.exp, '| Level', _level);
-        } catch (e) {
-            console.warn('[RPGState] syncToCharacter error:', e?.message);
+            return `<button type="button" class="cp-member${responded ? ' cp-member--responded' : ''}"
+                        onclick="openUserProfileModal('${uid}')"
+                        title="${_esc(name)}${responded ? ' · Ya respondió' : ' · Esperando turno'}">
+                <span class="cp-dot${online ? ' cp-dot--online' : ''}"></span>
+                <span class="cp-name">${_esc(name)}</span>
+                ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
+            </button>`;
+        }).join('');
+    }
+
+    // ── Expose globals ───────────────────────────────────────
+    global.openUserProfileModal  = openUserProfileModal;
+    global.closeUserProfileModal = closeUserProfileModal;
+    global.openEditProfileModal  = openEditProfileModal;
+    global.saveUserMeta          = saveUserMeta;
+    global.toggleClassicParty    = toggleClassicParty;
+    global.renderClassicParty    = renderClassicParty;
+
+    // Cerrar con Escape
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && document.getElementById('userProfileModal') && document.getElementById('userProfileModal').style.display !== 'none') {
+            closeUserProfileModal();
         }
-    }
-
-    return {
-        // Ciclo de vida
-        init, reset,
-        // Stats
-        getStat, setStat, modifyStat, getStats, getModifier,
-        // HP
-        getHp, getMaxHp, setMaxHp, modifyHp, isDead,
-        // XP / Level
-        getXp, getLevel, addXp,
-        // Inventario
-        hasItem, getItem, getInventory, addItem, removeItem,
-        // Flags
-        getFlag, setFlag, hasFlag,
-        // Condiciones
-        evalCondition,
-        // Snapshot
-        getSnapshot, loadSnapshot,
-        // Puente con fichas de Etheria
-        syncFromCharacter, syncToCharacter
-    };
-})();
-
-/* js/rpg/RPGEngine.js */
-// ============================================================
-// RPG ENGINE
-// Intérprete de scripts narrativos JSON.
-//
-// Responsabilidades:
-//   - Cargar y validar escenas via SceneLoader + SceneValidator
-//   - Ejecutar pasos automáticos (background, sound, variables...)
-//   - Pausar en pasos con input (dialogue, choice, stat_check)
-//   - Comunicar todo al exterior SOLO via eventBus
-//   - NO toca el DOM (eso es trabajo de RPGRenderer)
-//
-// Límites de arquitectura:
-//   ✅ Puede usar: SceneLoader, SceneValidator, RPGState, eventBus
-//   ❌ No puede usar: nada de ui/, nada de classic/
-// ============================================================
-
-const RPGEngine = (function () {
-
-    // ── Estado privado ──────────────────────────────────────────
-    let _scene     = null;
-    let _stepIndex = 0;
-    let _branch    = null;   // null → _scene.steps  |  string → rama activa
-    let _variables = {};     // variables locales a esta sesión de escena
-    let _running   = false;
-    let _paused    = false;
-    let _waitTimer = null;
-
-    // Tipos de paso que el engine ejecuta solo, sin input del usuario
-    const AUTO_TYPES = new Set([
-        'background', 'sound', 'camera',
-        'set_variable', 'set_flag', 'check_variable',
-        'modify_stat', 'give_item', 'remove_item', 'add_xp',
-        'wait', 'goto_scene', 'goto_branch',
-        'stat_check', 'end'
-    ]);
-
-    // ── API pública ─────────────────────────────────────────────
-
-    async function loadScene(sceneId) {
-        if (_running) {
-            console.warn('[RPGEngine] Escena en curso. Llama stop() antes de cargar otra.');
-            return;
-        }
-        _reset();
-
-        // SceneLoader emite scene:error y devuelve null si falla —
-        // no lanza, así que no necesitamos try/catch aquí.
-        const scene = await SceneLoader.load(sceneId);
-        if (!scene) { _reset(); return; }   // el error ya fue emitido por el loader
-
-        const { ok, errors } = SceneValidator.validate(scene);
-        if (!ok) {
-            console.error('[RPGEngine] Script inválido:', errors[0]);
-            eventBus.emit('scene:error', { sceneId: sceneId, message: errors[0] });
-            _reset();
-            return;
-        }
-
-        _scene     = scene;
-        _variables = Object.assign({}, scene.variables || {});
-        _running   = true;
-
-        eventBus.emit('scene:started', {
-            sceneId:  scene.id,
-            version:  scene.version || null,
-            title:    scene.title   || scene.id,
-            requires: scene.requires || []
-        });
-
-        _tick();
-    }
-
-    function advance() {
-        if (!_running || _paused) return;
-        _stepIndex++;
-        _tick();
-    }
-
-    function choiceMade(optionIndex) {
-        if (!_running || _paused) return;
-        var step = _currentStep();
-        if (!step || step.type !== 'choice') return;
-
-        var visible = getVisibleOptions(step.options);
-        var option  = visible[optionIndex];
-        if (!option) return;
-
-        if (option.set_flag)     RPGState.setFlag(option.set_flag.key, option.set_flag.value);
-        if (option.set_variable) _variables[option.set_variable.key] = option.set_variable.value;
-        if (option.give_item)    RPGState.addItem(option.give_item);
-        if (option.add_xp)       RPGState.addXp(option.add_xp);
-
-        eventBus.emit('scene:choice-made', {
-            sceneId: _scene.id, stepIndex: _stepIndex,
-            optionIndex: optionIndex, optionText: option.text, goto: option.goto
-        });
-
-        if (option.goto) {
-            _jumpTo(option.goto);
-        } else {
-            _next();
-        }
-    }
-
-    function pause() {
-        if (!_running) return;
-        _paused = true;
-        if (_waitTimer) { clearTimeout(_waitTimer); _waitTimer = null; }
-        eventBus.emit('scene:paused', { sceneId: _scene && _scene.id });
-    }
-
-    function resume() {
-        if (!_running || !_paused) return;
-        _paused = false;
-        eventBus.emit('scene:resumed', { sceneId: _scene && _scene.id });
-        _tick();
-    }
-
-    function stop() {
-        var sceneId = _scene && _scene.id;
-        _reset();
-        eventBus.emit('scene:stopped', { sceneId: sceneId });
-    }
-
-    function getVariable(key)        { return _variables[key]; }
-    function setVariable(key, value) {
-        _variables[key] = value;
-        eventBus.emit('scene:variable-changed', { key: key, value: value });
-    }
-
-    function getVisibleOptions(options) {
-        if (!Array.isArray(options)) return [];
-        return options.filter(function(opt) {
-            return !opt.condition || RPGState.evalCondition(opt.condition);
-        });
-    }
-
-    function isRunning()      { return _running; }
-    function isPaused()       { return _paused; }
-    function currentSceneId() { return _scene ? _scene.id : null; }
-
-    // ── Motor interno ───────────────────────────────────────────
-
-    function _tick() {
-        if (!_running || _paused) return;
-
-        var steps = _activeSteps();
-        if (_stepIndex >= steps.length) { _finish(); return; }
-
-        var step = steps[_stepIndex];
-
-        eventBus.emit('scene:step', {
-            step: step, index: _stepIndex,
-            sceneId: _scene.id, branch: _branch,
-            total: steps.length
-        });
-
-        if (AUTO_TYPES.has(step.type)) {
-            _executeStep(step);
-        } else if (step.type === 'choice') {
-            // Se detiene aquí — el renderer escucha scene:input:choice para responder.
-            eventBus.emit('scene:choice-shown', {
-                sceneId:   _scene.id,
-                stepIndex: _stepIndex,
-                step:      step,
-                options:   getVisibleOptions(step.options)
-            });
-        } else if (step.type !== 'dialogue') {
-            // Tipo desconocido: advertir y avanzar para no bloquear el motor
-            console.warn('[RPGEngine] Paso no reconocido, avanzando:', step.type);
-            _next();
-        }
-        // 'dialogue' → se detiene; RPGRenderer llama advance() al hacer clic.
-    }
-
-    function _executeStep(step) {
-        switch (step.type) {
-
-            case 'background':
-                eventBus.emit('scene:background', {
-                    asset: step.asset,
-                    transition: step.transition || 'fade',
-                    duration:   step.duration   || 600
-                });
-                _next();
-                break;
-
-            case 'sound':
-                eventBus.emit('scene:sound', {
-                    action: step.action, track: step.track, volume: step.volume
-                });
-                _next();
-                break;
-
-            case 'camera':
-                eventBus.emit('scene:camera', { effect: step.effect, duration: step.duration || 400 });
-                _next();
-                break;
-
-            case 'set_variable':
-                setVariable(step.key, step.value);
-                _next();
-                break;
-
-            case 'set_flag':
-                RPGState.setFlag(step.key, step.value);
-                _next();
-                break;
-
-            case 'check_variable': {
-                var val   = _variables[step.key];
-                var match = Array.isArray(step.equals)
-                    ? step.equals.indexOf(val) !== -1
-                    : val === step.equals;
-                _jumpTo(match ? step.goto_true : (step.goto_false || null));
-                break;
-            }
-
-            case 'modify_stat':
-                RPGState.modifyStat(step.stat, step.amount);
-                _syncBackToActiveChar();
-                _next();
-                break;
-
-            case 'give_item':
-                RPGState.addItem(
-                    typeof step.item === 'string'
-                        ? { id: step.item, name: step.item }
-                        : step.item
-                );
-                _next();
-                break;
-
-            case 'remove_item':
-                RPGState.removeItem(step.item, step.qty || 1);
-                _next();
-                break;
-
-            case 'add_xp':
-                RPGState.addXp(step.amount || 0);
-                _syncBackToActiveChar();
-                _next();
-                break;
-
-            case 'wait':
-                eventBus.emit('scene:wait-start', { duration: step.duration || 1000 });
-                _waitTimer = setTimeout(function() {
-                    _waitTimer = null;
-                    _next();
-                }, step.duration || 1000);
-                break;
-
-            case 'goto_branch':
-                _jumpTo(step.branch);
-                break;
-
-            case 'goto_scene':
-                stop();
-                loadScene(step.scene);
-                break;
-
-            case 'stat_check':
-                _resolveStatCheck(step);
-                break;
-
-            case 'end':
-                _finish(step.outcome);
-                break;
-
-            default:
-                console.warn('[RPGEngine] Tipo de paso desconocido:', step.type);
-                _next();
-        }
-    }
-
-    function _resolveStatCheck(step) {
-        var roll     = Math.ceil(Math.random() * 20);
-        var modifier = RPGState.getModifier(step.stat);
-        var total    = roll + modifier;
-        var success  = roll === 20 || (roll !== 1 && total >= step.difficulty);
-        var result   = roll === 1  ? 'fumble'
-                     : roll === 20 ? 'critical'
-                     : success     ? 'success'
-                                   : 'fail';
-
-        eventBus.emit('scene:stat-check-result', {
-            sceneId: _scene.id, stat: step.stat,
-            statValue: RPGState.getStat(step.stat),
-            roll: roll, modifier: modifier, total: total,
-            difficulty: step.difficulty, result: result, success: success
-        });
-
-        var delay = step.delay || 1800;
-        _waitTimer = setTimeout(function() {
-            _waitTimer = null;
-            if (!_running) return;
-            _jumpTo(success ? step.on_success : step.on_fail);
-        }, delay);
-    }
-
-    // ── Navegación ───────────────────────────────────────────────
-
-    function _next() {
-        _stepIndex++;
-        _tick();
-    }
-
-    function _jumpTo(target) {
-        if (!_running) return;   // ignorar si el motor ya se detuvo
-        if (!target) { _finish(); return; }
-        var branches = _scene.branches || {};
-        if (branches[target]) {
-            _branch    = target;
-            _stepIndex = 0;
-            _tick();
-        } else {
-            stop();
-            loadScene(target);
-        }
-    }
-
-    function _finish(outcome) {
-        var sceneId   = _scene.id;
-        var variables = Object.assign({}, _variables);
-        _running = false;
-
-        eventBus.emit('scene:ended', {
-            sceneId:   sceneId,
-            outcome:   outcome || 'end',
-            variables: variables
-        });
-
-        _reset();   // limpiar estado residual después de emitir
-    }
-
-    function _activeSteps() {
-        var branches = _scene.branches || {};
-        return (_branch && branches[_branch]) ? branches[_branch] : (_scene.steps || []);
-    }
-
-    function _currentStep() {
-        return _activeSteps()[_stepIndex] || null;
-    }
-
-    function _reset() {
-        if (_waitTimer) { clearTimeout(_waitTimer); _waitTimer = null; }
-        _scene = null; _stepIndex = 0; _branch = null;
-        _variables = {}; _running = false; _paused = false;
-    }
-
-    // ── Listeners de input desde el renderer ─────────────────────
-    // El renderer emite estos eventos; el engine los escucha.
-    // Así el renderer nunca llama al engine directamente.
-    eventBus.on('scene:input:advance', function() {
-        if (_running && !_paused) advance();
-    });
-    eventBus.on('scene:input:choice', function(data) {
-        if (_running && !_paused) choiceMade(data.index);
     });
 
-    // ── Exports ──────────────────────────────────────────────────
-
-    // Sincroniza HP/EXP/level de vuelta a la ficha del personaje activo
-    function _syncBackToActiveChar() {
-        if (typeof RPGState === 'undefined' || typeof RPGState.syncToCharacter !== 'function') return;
-        var charId  = window.selectedCharId;
-        var topicId = window.currentTopicId;
-        if (!charId || !topicId) return;
-        var char = (typeof appData !== 'undefined' && appData.characters)
-            ? appData.characters.find(function(c) { return String(c.id) === String(charId); })
-            : null;
-        if (char) RPGState.syncToCharacter(char, topicId);
-    }
-
-    return {
-        loadScene:         loadScene,
-        advance:           advance,
-        choiceMade:        choiceMade,
-        pause:             pause,
-        resume:            resume,
-        stop:              stop,
-        reset:             _reset,          // limpia el estado sin emitir eventos
-        isRunning:         isRunning,
-        isPaused:          isPaused,
-        currentSceneId:    currentSceneId,
-        getVariable:       getVariable,
-        setVariable:       setVariable,
-        getVisibleOptions: getVisibleOptions
-    };
-})();
-
-/* js/rpg/RPGRenderer.js */
-// ============================================================
-// RPG RENDERER
-// Escucha eventos del RPGEngine y actualiza el DOM del VN.
-//
-// Es el ÚNICO módulo RPG que toca el DOM.
-// Nunca llama lógica directamente: solo emite eventos de vuelta
-// (advance, choiceMade) como respuesta al input del usuario.
-//
-// Depende de:
-//   - eventBus          (escucha scene:* y emite respuestas)
-//   - El DOM del VN     (vnSection, vnDialogue, vnBackground, etc.)
-// ============================================================
-
-const RPGRenderer = (function () {
-
-    // IDs de los elementos DOM del VN que este renderer usa
-    // Los primeros 4 son IDs existentes en index.html — no cambiar.
-    // vnChoiceArea y vnRpgStatBar son elementos nuevos inyectados por este módulo.
-    const DOM = {
-        vnSection:    'vnSection',
-        background:   'vnBackground',
-        dialogueBox:  'vnDialogBox',       // clase .vn-dialogue-box, sin ID → se busca por clase
-        charName:     'vnSpeakerPlate',    // ID real en index.html
-        dialogueText: 'vnDialogueText',    // ID real en index.html
-        choiceArea:   'vnChoiceArea',      // elemento nuevo — inyectado en init()
-        statBar:      'vnRpgStatBar'       // elemento nuevo — inyectado en init()
-    };
-
-    let _unsubs     = [];    // funciones de unsuscripción del eventBus
-    let _active     = false;
-    let _charCache  = {};    // nombre → color
-
-    // ── Inicialización ──────────────────────────────────────────
-
-    function init() {
-        if (_active) return;
-        _active = true;
-
-        // Inyectar elementos DOM nuevos si no existen aún
-        _ensureChoiceArea();
-        _ensureStatBar();
-
-        _unsubs = [
-            eventBus.on('scene:started',          _onSceneStarted),
-            eventBus.on('scene:step',              _onStep),
-            eventBus.on('scene:choice-shown',      _onChoiceShown),
-            eventBus.on('scene:background',        _onBackground),
-            eventBus.on('scene:sound',             _onSound),
-            eventBus.on('scene:camera',            _onCamera),
-            eventBus.on('scene:stat-check-result', _onStatCheckResult),
-            eventBus.on('scene:choice-made',       _onChoiceMade),
-            eventBus.on('scene:ended',             _onSceneEnded),
-            eventBus.on('scene:error',             _onError),
-            eventBus.on('rpg:state-updated',       _onStateUpdated)
-        ];
-    }
-
-    function _ensureChoiceArea() {
-        if (document.getElementById(DOM.choiceArea)) return;
-        var vnSection = document.getElementById(DOM.vnSection);
-        if (!vnSection) return;
-        var el = document.createElement('div');
-        el.id = DOM.choiceArea;
-        el.style.display = 'none';
-        vnSection.appendChild(el);
-    }
-
-    function _ensureStatBar() {
-        if (document.getElementById(DOM.statBar)) return;
-        var vnSection = document.getElementById(DOM.vnSection);
-        if (!vnSection) return;
-        var el = document.createElement('div');
-        el.id = DOM.statBar;
-        vnSection.appendChild(el);
-    }
-
-    // Obtener la caja de diálogo — tiene clase pero no ID
-    function _dialogueBox() {
-        return document.querySelector('.vn-dialogue-box') || null;
-    }
-
-    function destroy() {
-        _unsubs.forEach(function(unsub) { unsub(); });
-        _unsubs  = [];
-        _active  = false;
-        _charCache = {};
-    }
-
-    // ── Manejadores de eventos del engine ───────────────────────
-
-    function _onSceneStarted(data) {
-        _clearChoices();
-        _hideStatCheck();
-        var vnSection = document.getElementById(DOM.vnSection);
-        if (vnSection) vnSection.classList.add('rpg-scene-active');
-    }
-
-    function _onStep(data) {
-        var step = data.step;
-        if (!step) return;
-
-        // Solo renderizar diálogos aquí.
-        // Las elecciones llegan por scene:choice-shown con opciones ya filtradas.
-        if (step.type === 'dialogue') {
-            _renderDialogue(step);
+    // Escuchar cambios de participantes para actualizar el panel clásico
+    window.addEventListener('etheria:story-presence-changed', function () {
+        if (!_isRpg() && global.currentStoryParticipants) {
+            renderClassicParty(global.currentStoryParticipants);
         }
-    }
+    });
 
-    function _onChoiceShown(data) {
-        // data.options ya vienen filtradas por RPGEngine.getVisibleOptions()
-        _renderChoice(data.step || {}, data.options);
-    }
-
-    function _onBackground(data) {
-        // Emitir evento — vn.js escucha vn:background-changed y aplica el fondo.
-        // RPGRenderer nunca llama funciones de vn.js directamente.
-        eventBus.emit('vn:background-changed', {
-            asset:      data.asset,
-            transition: data.transition,
-            duration:   data.duration,
-            scene:      window.__etheriaScene || null
-        });
-    }
-
-    function _onSound(data) {
-        if (!data || !data.action) return;
-        if (data.track === 'rain') {
-            eventBus.emit(data.action === 'start' ? 'audio:start-rain' : 'audio:stop-rain');
-        }
-        // Otros tracks de escena se pueden ampliar aquí
-    }
-
-    function _onCamera(data) {
-        var vnSection = document.getElementById(DOM.vnSection);
-        if (!vnSection) return;
-
-        if (data.effect === 'shake') {
-            vnSection.classList.add('vn-shake');
-            setTimeout(function() { vnSection.classList.remove('vn-shake'); }, data.duration || 400);
-        } else if (data.effect === 'flash') {
-            vnSection.classList.add('vn-flash');
-            setTimeout(function() { vnSection.classList.remove('vn-flash'); }, data.duration || 300);
-        }
-    }
-
-    function _onStatCheckResult(data) {
-        _showStatCheck(data);
-    }
-
-    function _onChoiceMade(data) {
-        _clearChoices();
-    }
-
-    function _onSceneEnded(data) {
-        _clearChoices();
-        _hideStatCheck();
-        var vnSection = document.getElementById(DOM.vnSection);
-        if (vnSection) vnSection.classList.remove('rpg-scene-active');
-
-        // Si hay un callback registrado externamente, llamarlo
-        if (typeof window._rpgSceneEndCallback === 'function') {
-            window._rpgSceneEndCallback(data);
-        }
-    }
-
-    function _onError(data) {
-        console.error('[RPGRenderer] Error de escena:', data.error);
-        var box = _dialogueBox();
-        if (box) {
-            _setText(DOM.charName, 'Error');
-            _setText(DOM.dialogueText, 'No se pudo cargar la escena: ' + data.error);
-            box.style.display = 'flex';
-        }
-    }
-
-    function _onStateUpdated(data) {
-        _updateStatBar(data);
-    }
-
-    // ── Renderizado de diálogo ───────────────────────────────────
-
-    function _renderDialogue(step) {
-        var box = _dialogueBox();
-        if (!box) return;
-
-        _clearChoices();
-        _hideStatCheck();
-
-        // Nombre del personaje
-        var nameEl = document.getElementById(DOM.charName);
-        if (nameEl) {
-            nameEl.textContent = step.character || '';
-            nameEl.style.color = _charColor(step.character);
-        }
-
-        // Texto con typewriter si existe la función global, sino directo
-        var textEl = document.getElementById(DOM.dialogueText);
-        if (textEl) {
-            if (typeof typewriterWrite === 'function') {
-                typewriterWrite(textEl, step.text || '', { speed: window.textSpeed || 25 });
-            } else {
-                textEl.textContent = step.text || '';
-            }
-        }
-
-        // Expresión del sprite si hay personaje seleccionado
-        if (step.expression && typeof showEmoteOnSprite === 'function') {
-            showEmoteOnSprite(step.expression);
-        }
-
-        box.style.display = 'flex';
-
-        // El click en la caja avanza al siguiente paso
-        _bindAdvanceOnce(box);
-    }
-
-    // ── Renderizado de elecciones ────────────────────────────────
-
-    // step: objeto del paso (para leer .prompt)
-    // options: array ya filtrado por RPGEngine (llega desde scene:choice-shown)
-    function _renderChoice(step, options) {
-        var area = document.getElementById(DOM.choiceArea);
-        if (!area) return;
-
-        // Usar _dialogueBox() porque el elemento solo tiene clase CSS, no ID
-        var box = _dialogueBox();
-        if (box) box.style.display = 'none';
-
-        area.innerHTML = '';
-        area.style.display = 'flex';
-
-        if (step.prompt) {
-            var prompt = document.createElement('div');
-            prompt.className = 'rpg-choice-prompt';
-            prompt.textContent = step.prompt;
-            area.appendChild(prompt);
-        }
-
-        (options || []).forEach(function(opt, i) {
-            var btn = document.createElement('button');
-            btn.className = 'rpg-choice-btn';
-            btn.textContent = opt.text;
-
-            // Indicador de coste si existe
-            if (opt.cost_hp) {
-                var badge = document.createElement('span');
-                badge.className = 'rpg-choice-cost';
-                badge.textContent = '-' + opt.cost_hp + ' HP';
-                btn.appendChild(badge);
-            }
-
-            btn.addEventListener('click', function() {
-                eventBus.emit('scene:input:choice', { index: i });
-            });
-            area.appendChild(btn);
-        });
-    }
-
-    // ── Tirada de dados ──────────────────────────────────────────
-
-    function _showStatCheck(data) {
-        // Reutilizar showDiceResultOverlay si existe (ya implementado en vn.js)
-        if (typeof showDiceResultOverlay === 'function') {
-            showDiceResultOverlay(data);
-            return;
-        }
-
-        // Fallback mínimo
-        var existing = document.getElementById('rpgStatCheckOverlay');
-        if (existing) existing.remove();
-
-        var overlay = document.createElement('div');
-        overlay.id = 'rpgStatCheckOverlay';
-        overlay.className = 'rpg-stat-check-overlay';
-
-        var cssClass = { critical: 'dice-result-critical', success: 'dice-result-success',
-                         fail: 'dice-result-fail', fumble: 'dice-result-fumble' }[data.result]
-                       || 'dice-result-success';
-
-        var label = { critical: 'ÉXITO CRÍTICO', success: 'ACIERTO',
-                      fail: 'FALLO', fumble: 'FALLO CRÍTICO' }[data.result] || data.result;
-
-        var sign = data.modifier >= 0 ? '+' : '';
-        overlay.innerHTML =
-            '<div class="dice-result-box">' +
-                '<div class="dice-number ' + cssClass + '">' + data.roll + '</div>' +
-                '<div class="dice-result-label ' + cssClass + '">' + label + '</div>' +
-                '<div style="font-size:0.85rem;margin-top:0.4rem;opacity:0.75;">' +
-                    'D20 (' + data.roll + ') ' + sign + data.modifier + ' = ' + data.total +
-                    ' vs CD ' + data.difficulty +
-                '</div>' +
-            '</div>';
-
-        document.body.appendChild(overlay);
-        setTimeout(function() { if (overlay.parentNode) overlay.remove(); }, 2000);
-    }
-
-    function _hideStatCheck() {
-        var el = document.getElementById('rpgStatCheckOverlay');
-        if (el) el.remove();
-    }
-
-    // ── Barra de stats ───────────────────────────────────────────
-
-    // data: payload de rpg:state-updated  { hp: {current, max}, xp, level }
-    // Si no llega payload (p.ej. llamada directa al init) lee de RPGState como fallback.
-    function _updateStatBar(data) {
-        var bar = document.getElementById(DOM.statBar);
-        if (!bar) return;
-
-        var hp  = (data && data.hp)    || RPGState.getHp();
-        var xp  = (data && data.xp  != null) ? data.xp  : RPGState.getXp();
-        var lvl = (data && data.level != null) ? data.level : RPGState.getLevel();
-        var maxHp = Math.max(1, Number(hp.max) || 1);
-        var hpPct = Math.max(0, Math.min(100, Math.round(((Number(hp.current) || 0) / maxHp) * 100)));
-        var xpGoal = (lvl || 1) * 100;
-        var xpPct = Math.max(0, Math.min(100, Math.round(((Number(xp) || 0) / xpGoal) * 100)));
-        var avatar = _getInfoAvatarMarkup();
-
-        bar.innerHTML =
-            '<div class="rpg-stat-avatar">' + avatar + '</div>' +
-            '<div class="rpg-stat-body">' +
-                '<div class="rpg-stat-row">' +
-                    '<span class="rpg-stat-label">HP</span>' +
-                    '<div class="rpg-stat-track"><span class="rpg-stat-fill rpg-stat-fill--hp" style="width:' + hpPct + '%"></span></div>' +
-                    '<span class="rpg-stat-value">' + hp.current + '/' + hp.max + '</span>' +
-                '</div>' +
-                '<div class="rpg-stat-row">' +
-                    '<span class="rpg-stat-label">EXP</span>' +
-                    '<div class="rpg-stat-track"><span class="rpg-stat-fill rpg-stat-fill--xp" style="width:' + xpPct + '%"></span></div>' +
-                    '<span class="rpg-stat-value">Nv.' + lvl + '</span>' +
-                '</div>' +
-            '</div>';
-    }
-
-    function _getInfoAvatarMarkup() {
-        var infoAvatar = document.getElementById('vnInfoAvatar');
-        if (!infoAvatar) return '<span>👤</span>';
-        var img = infoAvatar.querySelector('img');
-        if (img && img.src) {
-            var safeSrc = String(img.src).replace(/"/g, '&quot;');
-            return '<img src="' + safeSrc + '" alt="">';
-        }
-        return infoAvatar.innerHTML || '<span>👤</span>';
-    }
-
-    // ── Helpers ──────────────────────────────────────────────────
-
-    function _bindAdvanceOnce(element) {
-        // Quitar listeners anteriores clonando el nodo
-        var fresh = element.cloneNode(true);
-        element.parentNode.replaceChild(fresh, element);
-
-        function handler(e) {
-            // No disparar si se ha hecho clic en un botón interno
-            if (e.target.closest && e.target.closest('button')) return;
-            fresh.removeEventListener('click', handler);
-            eventBus.emit('scene:input:advance');
-        }
-        fresh.addEventListener('click', handler);
-    }
-
-    function _clearChoices() {
-        var area = document.getElementById(DOM.choiceArea);
-        if (area) { area.innerHTML = ''; area.style.display = 'none'; }
-    }
-
-    function _setText(domId, text) {
-        var el = document.getElementById(domId);
-        if (el) el.textContent = text;
-    }
-
-    function _resolveAsset(asset) {
-        if (!asset) return '';
-        if (asset.startsWith('http') || asset.startsWith('/') || asset.startsWith('./')) return asset;
-        return 'assets/backgrounds/' + asset + '.jpg';
-    }
-
-    // Asignar un color consistente por nombre de personaje
-    var CHAR_COLORS = [
-        '#e8c97a', '#7ab8e8', '#e87a7a', '#7ae8b8',
-        '#c87ae8', '#e8a87a', '#7ae8e8', '#e87ab8'
-    ];
-
-    function _charColor(name) {
-        if (!name) return '#e8dcc8';
-        if (!_charCache[name]) {
-            var hash = 0;
-            for (var i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) | 0;
-            _charCache[name] = CHAR_COLORS[Math.abs(hash) % CHAR_COLORS.length];
-        }
-        return _charCache[name];
-    }
-
-    return { init: init, destroy: destroy, updateStatBar: _updateStatBar };
-})();
+}(window));
 
 /* js/app.js */
 if (window.__ETHERIA_APP_CANONICAL_LOADED__) {
@@ -23649,6 +23207,36 @@ window.__ETHERIA_APP_CANONICAL_LOADED__ = true;
 // ============================================
 
 const logger = window.EtheriaLogger;
+
+// ── API canónica de userId ────────────────────────────────────────────────
+// window._cachedUserId  — backing store. Solo app.js debe escribirlo.
+//                         Los módulos solo deben leerlo.
+// window.getEtheriaUserId() — getter async compartido. Usa la caché cuando
+//                         está disponible; llama a getUser() una sola vez si no.
+//                         Deduplica llamadas concurrentes con una promesa pendiente.
+//
+// NUEVO CÓDIGO: llamar siempre a getEtheriaUserId() en vez de acceder a
+// window._cachedUserId directamente o re-implementar la lógica de caché.
+// ─────────────────────────────────────────────────────────────────────────
+let _getUserIdPromise = null;
+
+async function getEtheriaUserId() {
+    if (window._cachedUserId) return window._cachedUserId;
+    if (_getUserIdPromise) return _getUserIdPromise;
+    if (!window.supabaseClient) return null;
+
+    _getUserIdPromise = window.supabaseClient.auth.getUser()
+        .then(({ data }) => {
+            const id = data?.user?.id || null;
+            if (id) window._cachedUserId = id;
+            return id;
+        })
+        .catch(() => null)
+        .finally(() => { _getUserIdPromise = null; });
+
+    return _getUserIdPromise;
+}
+window.getEtheriaUserId = getEtheriaUserId;
 
 // Verificar si hay una sesión existente
 async function checkExistingSession() {
@@ -24159,7 +23747,10 @@ function initializeApp() {
     }
     startCloudSync();
 
-    // Inicializar motor RPG de escenas narrativas
+    // Inicializar motor RPG de escenas narrativas.
+    // Si el bundle RPG ya está cargado (caché SW), lo inicializamos aquí.
+    // Si llega después (carga diferida), el bundle se auto-inicializa con este flag.
+    window._etheriaAppReady = { userIndex: currentUserIndex };
     if (typeof RPGState !== 'undefined')    RPGState.init(currentUserIndex);
     if (typeof RPGRenderer !== 'undefined') RPGRenderer.init();
 
@@ -26243,13 +25834,16 @@ window.Ethy = Ethy;
     }
 
     async function _getUser() {
-        const cached = global._cachedUserId || null;
-        if (cached) return { id: cached };
+        if (typeof global.getEtheriaUserId === 'function') {
+            const id = await global.getEtheriaUserId();
+            return id ? { id } : null;
+        }
+        // Fallback para entornos sin getEtheriaUserId (tests, carga parcial)
+        if (global._cachedUserId) return { id: global._cachedUserId };
         try {
             const client = _getClient();
             if (!client || typeof client.auth?.getUser !== 'function') return null;
             const { data: { user } } = await client.auth.getUser();
-            if (user?.id) global._cachedUserId = user.id;
             return user || null;
         } catch (error) {
             logger?.warn('supabase:stories', 'getUser failed:', error?.message || error);
@@ -27325,6 +26919,8 @@ window.Ethy = Ethy;
                 logger?.warn('supabase:stories', 'deleteStory error:', errMsg);
                 return { ok: false, error: errMsg };
             }
+            // Limpiar caché IDB de mensajes de esta historia
+            if (global.EtheriaMessageCache) global.EtheriaMessageCache.remove(storyId).catch(function () {});
             return { ok: true };
         } catch (e) {
             logger?.warn('supabase:stories', 'deleteStory exception:', e?.message);

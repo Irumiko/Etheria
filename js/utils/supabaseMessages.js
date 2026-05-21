@@ -215,6 +215,17 @@
         } catch (e) {
             logger?.error('supabase:messages', 'send error:', e.message);
             _available = false;
+            // Cola offline: solo en errores de red (timeout, abort, o sin conexión)
+            // Usamos e.name en lugar de instanceof para compatibilidad cross-realm (vm tests)
+            const isNetworkError = e.name === 'AbortError' || e.name === 'TimeoutError'
+                || (e.name === 'TypeError' && !global.navigator?.onLine);
+            if (isNetworkError && global.EtheriaMessageCache?.enqueue) {
+                global.EtheriaMessageCache.enqueue({
+                    sessionId,
+                    msgObj,
+                    storyId: global.currentStoryId || null
+                }).catch(function () {});
+            }
             return false;
         }
     }
@@ -263,7 +274,7 @@
 
             // Fix 8: results come desc (newest first) — reverse for display order
             rows.reverse();
-            return rows.reduce(function (acc, row) {
+            const messages = rows.reduce(function (acc, row) {
                 try {
                     const msg = JSON.parse(row.content);
 
@@ -292,9 +303,27 @@
                 return acc;
             }, []);
 
+            // Persistir en caché offline (solo carga inicial, no paginación)
+            if (!_beforeCursor && activeStoryId && global.EtheriaMessageCache) {
+                global.EtheriaMessageCache.put(activeStoryId, messages).catch(function () {});
+            }
+
+            return messages;
+
         } catch (e) {
             logger?.warn('supabase:messages', 'load error:', e.message);
             _available = false;
+
+            // Fallback offline: devolver mensajes cacheados en IDB si existen
+            const cacheKey = storyId || global.currentStoryId || null;
+            const _beforeCursorCheck = (typeof arguments[2] === 'string') ? arguments[2] : null;
+            if (!_beforeCursorCheck && cacheKey && global.EtheriaMessageCache) {
+                const cached = await global.EtheriaMessageCache.get(cacheKey).catch(function () { return null; });
+                if (cached) {
+                    logger?.info('supabase:messages', 'offline fallback: returning', cached.length, 'cached messages');
+                    return cached;
+                }
+            }
             return null;
         }
     }
@@ -584,6 +613,32 @@
             logger?.warn('supabase:messages', 'deleteMessage failed:', e?.message);
             return false;
         }
+    }
+
+    // ── Cola offline: reenvío automático al recuperar conexión ───────────────
+
+    async function _flushQueue() {
+        const cache = global.EtheriaMessageCache;
+        if (!cache?.dequeuePending) return;
+        const pending = await cache.dequeuePending().catch(function () { return []; });
+        if (!pending.length) return;
+        _available = true; // permitir intentos tras reconexión
+        for (var i = 0; i < pending.length; i++) {
+            var item = pending[i];
+            var ok = await send(item.sessionId, item.msgObj);
+            if (ok) {
+                await cache.removeFromQueue(item.id).catch(function () {});
+            } else {
+                break; // sigue offline — parar para no perder el orden
+            }
+        }
+    }
+
+    if (typeof global.addEventListener === 'function') {
+        global.addEventListener('online', function () {
+            _available = true;
+            _flushQueue().catch(function () {});
+        });
     }
 
     // ── API pública ───────────────────────────────────────────────────────────

@@ -136,6 +136,37 @@ function playSoundSave() {
     osc.stop(ctx.currentTime + 0.4);
 }
 
+// Notificación de turno: campana ascendente de dos notas (E5 → C5)
+function playSoundNotification() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    // Primera nota: E5 (659 Hz) — breve y suave
+    const osc1  = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659, ctx.currentTime);
+    gain1.gain.setValueAtTime(masterVolume * 0.45, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc1.start(ctx.currentTime);
+    osc1.stop(ctx.currentTime + 0.25);
+
+    // Segunda nota: C5 (523 Hz) — comienza ligeramente después, más larga
+    const osc2  = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(523, ctx.currentTime + 0.18);
+    gain2.gain.setValueAtTime(0.001, ctx.currentTime + 0.18);
+    gain2.gain.linearRampToValueAtTime(masterVolume * 0.38, ctx.currentTime + 0.25);
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+    osc2.start(ctx.currentTime + 0.18);
+    osc2.stop(ctx.currentTime + 0.7);
+}
+
 // ============================================
 // SONIDO AMBIENTAL: LLUVIA
 // ============================================
@@ -470,9 +501,10 @@ function stopMenuMusic(fadeOut) {
         // Efectos de UI
         eventBus.on('audio:play-sfx', function (data) {
             const sfx = data?.sfx;
-            if (sfx === 'save')          playSoundSave();
-            else if (sfx === 'click')    playSoundClick();
-            else if (sfx === 'tap')      playSoundTap();
+            if (sfx === 'save')               playSoundSave();
+            else if (sfx === 'click')         playSoundClick();
+            else if (sfx === 'tap')           playSoundTap();
+            else if (sfx === 'notification')  playSoundNotification();
             else if (sfx === 'affinity-up')   playSoundAffinityUp();
             else if (sfx === 'affinity-down') playSoundAffinityDown();
         });

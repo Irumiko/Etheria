@@ -905,6 +905,14 @@ article.tc {
 }
 
 /* ── 12.8c  Cara base (frente y dorso) ─────────────────────────── */
+/* Por defecto: solo la cara frontal es interactiva.
+   backface-visibility: hidden es insuficiente en algunos navegadores
+   (p.ej. iOS Safari) para suprimir pointer-events en la cara oculta,
+   así que lo controlamos explícitamente según el estado del flip. */
+.tc-face--back            { pointer-events: none !important; }   /* dorso oculto → sin eventos  */
+.tc--flipped .tc-face--back  { pointer-events: auto !important; }  /* dorso visible → con eventos */
+.tc--flipped .tc-face--front { pointer-events: none !important; }  /* frente oculto → sin eventos */
+
 .tc-face {
     position: absolute !important;
     inset: 0 !important;
@@ -1210,6 +1218,36 @@ article.tc {
 @keyframes tc-turn-pulse {
     0%,100% { opacity: 0.70; }
     50%     { opacity: 1.00; }
+}
+
+/* ── 12.18  Indicador de mensajes nuevos ─────────────────────────── */
+.tc-unread-pill {
+    font-family: 'Outfit', sans-serif !important;
+    font-size: 7.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.06em !important;
+    padding: 2px 6px !important;
+    border-radius: 10px !important;
+    margin-left: 6px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    background: rgba(212,174,92,0.14) !important;
+    color: rgba(212,174,92,1.00) !important;
+    border: 1px solid rgba(212,174,92,0.38) !important;
+    animation: tc-unread-pulse 2.8s ease-in-out infinite !important;
+}
+@keyframes tc-unread-pulse {
+    0%,100% { opacity: 0.72; }
+    50%      { opacity: 1.00; }
+}
+.tc-back-stat--unread {
+    color: rgba(212,174,92,1.00) !important;
+    background: rgba(212,174,92,0.13) !important;
+    border: 1px solid rgba(212,174,92,0.25) !important;
+    font-weight: 600 !important;
+}
+.tc--has-unread .tc-face--front {
+    box-shadow: 0 0 18px rgba(212,174,92,0.14), inset 0 0 16px rgba(212,174,92,0.04) !important;
 }
 
 .tc-enter-btn {

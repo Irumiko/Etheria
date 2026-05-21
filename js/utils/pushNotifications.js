@@ -35,15 +35,8 @@
     }
 
     async function _getUserId() {
-        if (global._cachedUserId) return global._cachedUserId;
-        const c = _client();
-        if (!c?.auth?.getUser) return null;
-        try {
-            const { data, error } = await c.auth.getUser();
-            if (error || !data?.user?.id) return null;
-            global._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch { return null; }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     function _urlBase64ToUint8Array(base64String) {

@@ -553,6 +553,10 @@ function renderVnPartyPanel(force = false) {
     if (!shouldShow) {
         closeVnPartyPanel(true);
         list.innerHTML = '';
+        // Mostrar panel clásico si corresponde
+        if (typeof renderClassicParty === 'function' && typeof currentStoryParticipants !== 'undefined') {
+            renderClassicParty(currentStoryParticipants);
+        }
         return;
     }
 
@@ -608,8 +612,21 @@ function renderVnPartyPanel(force = false) {
 
         const hpPct = Math.max(0, Math.min(100, (entry.hp / entry.hpMax) * 100));
         const expPct = Math.max(0, Math.min(100, (entry.exp / entry.expMax) * 100));
+        // Buscar el propietario del personaje en currentStoryParticipants
+        const ownerParticipant = (typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [])
+            .find(p => {
+                const char = (appData?.characters || []).find(c => String(c.id) === String(charId));
+                if (!char) return false;
+                if (char.owner_user_id) return String(char.owner_user_id) === String(p.user_id);
+                return String(char.userIndex) === String(p.user_index);
+            });
+        const ownerUserId = ownerParticipant ? escapeHtml(ownerParticipant.user_id) : '';
+        const profileBtn = ownerUserId && typeof openUserProfileModal !== 'undefined'
+            ? `<button type="button" class="vn-party-profile-btn" onclick="event.stopPropagation();openUserProfileModal('${ownerUserId}')" title="Ver perfil" aria-label="Ver perfil del jugador">👤</button>`
+            : '';
+
         return `
-            <button type="button" class="vn-party-member" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
+            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
                 <div class="vn-party-main">
                     <div class="vn-party-topline">
                         <div>
@@ -632,6 +649,7 @@ function renderVnPartyPanel(force = false) {
                     </div>
                 </div>
                 ${turnNumber ? `<span class="vn-party-turn-order">${turnNumber}</span>` : ''}
+                ${profileBtn}
             </button>
         `;
     }).join('') || '<div class="vn-party-empty">Sin personajes vinculados todavía.</div>';
@@ -1538,8 +1556,11 @@ function enterTopic(id) {
         return;
     }
 
+    // Registrar la visita para el indicador de mensajes nuevos en la lista de historias
+    try { localStorage.setItem('etheria_last_visit_' + id, new Date().toISOString()); } catch (_) {}
+
     // transición visual absorbida de mejoras.js (Mejora 9)
-    fadeTransition(function() { _doEnterTopic(id, t, topicMode); }, 220);
+    fadeTransition(function() { _doEnterTopic(id, t, topicMode); }, 220, 'iris');
 }
 
 function _doEnterTopic(id, t, topicMode) {
@@ -1716,8 +1737,11 @@ async function _sbEnterTopic(topicId) {
             }
         }
     } catch (e) {
-        // Supabase no disponible — el sistema sigue con local
+        // Supabase no disponible — el sistema sigue con mensajes locales
         _sbEnterInProgress = false; // Fix 10: release guard on error path
+        if (typeof showSyncToast === 'function') {
+            showSyncToast('Sin conexión a la nube — mostrando datos locales', 'OK');
+        }
         return;
     }
 

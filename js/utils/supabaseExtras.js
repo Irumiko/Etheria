@@ -8,13 +8,8 @@
     function _client() { return global.supabaseClient || null; }
 
     async function _userId() {
-        if (global._cachedUserId) return global._cachedUserId;
-        const c = _client();
-        if (!c?.auth?.getUser) return null;
-        try {
-            const { data } = await c.auth.getUser();
-            return data?.user?.id || null;
-        } catch { return null; }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     // ── 1. ACTIVITY LOG ──────────────────────────────────────────────────────

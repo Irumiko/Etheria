@@ -13,7 +13,6 @@
 
     let _client = null;
     let _channel = null;
-    let _cachedUserId = null;
 
     const BASE_HEADERS = {
         apikey: SB_KEY,
@@ -34,18 +33,8 @@
     }
 
     async function _getUserId() {
-        if (_cachedUserId || global._cachedUserId) return _cachedUserId || global._cachedUserId;
-        const c = _getClient();
-        if (!c?.auth?.getUser) return null;
-        try {
-            const { data, error } = await c.auth.getUser();
-            if (error || !data?.user?.id) return null;
-            _cachedUserId = data.user.id;
-            global._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch {
-            return null;
-        }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     async function _headers() {
@@ -180,11 +169,7 @@
 
     if (typeof window !== 'undefined') {
         window.addEventListener('etheria:auth-changed', function (e) {
-            _cachedUserId = e.detail?.user?.id || null;
-            if (!_cachedUserId) {
-                unsubscribe();
-                return;
-            }
+            if (!e.detail?.user?.id) { unsubscribe(); return; }
             subscribe();
         });
     }

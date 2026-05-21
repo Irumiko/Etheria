@@ -190,6 +190,46 @@
     opacity: 1;
 }
 
+/* ── Transiciones tipo VN: estado activo común ──────────────────────────── */
+#sectionTransitionOverlay.eth-t-active {
+    background: rgb(10, 8, 5);
+    opacity: 1;
+    pointer-events: auto;
+    transition: none;
+}
+
+/* ── Iris (círculo que crece / encoge) ──────────────────────────────────── */
+@keyframes eth-iris-close {
+    from { clip-path: circle(0%   at 50% 50%); }
+    to   { clip-path: circle(150% at 50% 50%); }
+}
+@keyframes eth-iris-open {
+    from { clip-path: circle(150% at 50% 50%); }
+    to   { clip-path: circle(0%   at 50% 50%); }
+}
+#sectionTransitionOverlay.eth-t-iris-close {
+    animation: eth-iris-close 380ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+#sectionTransitionOverlay.eth-t-iris-open {
+    animation: eth-iris-open 320ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ── Diagonal (cortinilla de derecha a izquierda) ───────────────────────── */
+@keyframes eth-diag-close {
+    from { clip-path: polygon(140% 0%, 180% 0%, 160% 100%, 120% 100%); }
+    to   { clip-path: polygon(-20% 0%, 180% 0%, 160% 100%, -60% 100%); }
+}
+@keyframes eth-diag-open {
+    from { clip-path: polygon(-20% 0%, 180% 0%, 160% 100%, -60% 100%); }
+    to   { clip-path: polygon(-180% 0%, -140% 0%, -160% 100%, -200% 100%); }
+}
+#sectionTransitionOverlay.eth-t-diagonal-close {
+    animation: eth-diag-close 340ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+#sectionTransitionOverlay.eth-t-diagonal-open {
+    animation: eth-diag-open 300ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
 /* ============================================
    MEJORA 11: LOGO ANIMADO ETHERIA
    ============================================ */

@@ -31,15 +31,8 @@
     }
 
     async function _userId() {
-        if (global._cachedUserId) return global._cachedUserId;
-        const c = _client();
-        if (!c?.auth?.getUser) return null;
-        try {
-            const { data, error } = await c.auth.getUser();
-            if (error || !data?.user?.id) return null;
-            global._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch { return null; }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     function _myDisplayName() {
@@ -411,13 +404,12 @@
         global.addEventListener('etheria:auth-changed', function (e) {
             const user = e.detail?.user;
             if (user?.id) {
-                global._cachedUserId = user.id;
+                // _cachedUserId ya actualizado por app.js antes de emitir este evento
                 _loadUnread();
                 _subscribeInbox();
                 const btn = document.getElementById('menuInboxBtn');
                 if (btn) btn.style.display = '';
             } else {
-                global._cachedUserId = null;
                 _unreadCount = 0;
                 _notifications = [];
                 _updateBadge();

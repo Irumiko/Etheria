@@ -131,9 +131,17 @@ const MessageSearch = (function () {
 
     // ── Init ─────────────────────────────────────────────────────────
     (function _init() {
-        // Cerrar con Escape
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && _isOpen) close();
+            // Cerrar con Escape
+            if (e.key === 'Escape' && _isOpen) { close(); return; }
+            // Ctrl+F / Cmd+F abre la búsqueda cuando el VN está activo
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                const vnSection = document.getElementById('vnSection');
+                if (vnSection && vnSection.classList.contains('active')) {
+                    e.preventDefault();
+                    toggle();
+                }
+            }
         });
     })();
 

@@ -5,7 +5,7 @@
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "landscape",
   "background_color": "#0f0f1a",
   "theme_color": "#1a1a2e",
   "lang": "es",
@@ -19,25 +19,25 @@
       "src": "assets/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "assets/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     },
     {
       "src": "assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
@@ -45,13 +45,15 @@
       "src": "assets/backgrounds/menu_background.jpg",
       "sizes": "1920x1080",
       "type": "image/jpeg",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "Menú principal de Etheria"
     },
     {
       "src": "assets/backgrounds/default_background.jpg",
       "sizes": "750x1334",
       "type": "image/jpeg",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "Historia visual novel"
     }
   ],
   "shortcuts": [

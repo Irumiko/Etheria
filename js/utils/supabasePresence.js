@@ -26,17 +26,8 @@
     }
 
     async function _getCurrentUserId() {
-        if (global._cachedUserId) return global._cachedUserId;
-        const client = _getClient();
-        if (!client?.auth?.getUser) return null;
-        try {
-            const { data, error } = await client.auth.getUser();
-            if (error || !data?.user?.id) return null;
-            global._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch {
-            return null;
-        }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     function _emitPresenceChange() {

@@ -98,6 +98,69 @@ test('SupabaseStories upsertStory authenticates user and falls back to basic sch
   assert.deepEqual(JSON.parse(JSON.stringify(insertedRows[1].row)), { title: 'Historia Nueva', created_by: 'user-1' });
 });
 
+test('SupabaseMessages.send encola el mensaje en IDB cuando la red falla', async () => {
+  const sandbox = makeSandbox();
+  const queued = [];
+
+  sandbox.window.supabaseClient = {
+    auth: {
+      getUser:    async () => ({ data: { user: { id: 'u1' } } }),
+      getSession: async () => ({ data: { session: { access_token: 'jwt' } } })
+    }
+  };
+  sandbox.window.SupabaseAuthHeaders = {
+    buildAuthHeaders: async ({ apikey, baseHeaders }) => ({ ...baseHeaders, apikey, Authorization: 'Bearer jwt' }),
+    getAccessToken: async () => 'jwt'
+  };
+  // Red caída: fetch lanza TypeError (sin conexión)
+  const netErr = new TypeError('Failed to fetch');
+  sandbox.fetch = async () => { throw netErr; };
+  sandbox.window.fetch = sandbox.fetch;
+  sandbox.window.navigator = { onLine: false };
+  sandbox.navigator = sandbox.window.navigator;
+  sandbox.window.EtheriaMessageCache = {
+    enqueue: async (item) => { queued.push(item); }
+  };
+
+  loadScript('js/utils/supabaseMessages.js', sandbox);
+
+  const ok = await sandbox.window.SupabaseMessages.send('session-1', { id: 'msg-1', text: 'offline msg', userIndex: 0 });
+  assert.equal(ok, false, 'send debe devolver false cuando la red falla');
+  assert.equal(queued.length, 1, 'debe encolar el mensaje en IDB');
+  assert.equal(queued[0].sessionId, 'session-1');
+  assert.equal(queued[0].msgObj.id, 'msg-1');
+});
+
+test('SupabaseMessages.send NO encola cuando el servidor responde con error (no es red)', async () => {
+  const sandbox = makeSandbox();
+  const queued = [];
+
+  sandbox.window.supabaseClient = {
+    auth: {
+      getUser:    async () => ({ data: { user: { id: 'u1' } } }),
+      getSession: async () => ({ data: { session: { access_token: 'jwt' } } })
+    }
+  };
+  sandbox.window.SupabaseAuthHeaders = {
+    buildAuthHeaders: async ({ apikey, baseHeaders }) => ({ ...baseHeaders, apikey, Authorization: 'Bearer jwt' }),
+    getAccessToken: async () => 'jwt'
+  };
+  // Servidor responde 403 (error de auth, no red)
+  sandbox.fetch = async () => ({ ok: false, status: 403, text: async () => 'Forbidden' });
+  sandbox.window.fetch = sandbox.fetch;
+  sandbox.window.navigator = { onLine: true };
+  sandbox.navigator = sandbox.window.navigator;
+  sandbox.window.EtheriaMessageCache = {
+    enqueue: async (item) => { queued.push(item); }
+  };
+
+  loadScript('js/utils/supabaseMessages.js', sandbox);
+
+  const ok = await sandbox.window.SupabaseMessages.send('session-1', { id: 'msg-2', text: 'server error', userIndex: 0 });
+  assert.equal(ok, false, 'send debe devolver false con error 403');
+  assert.equal(queued.length, 0, 'NO debe encolar en errores de servidor');
+});
+
 test('SupabaseStories deleteStory sends DELETE request with story ID in URL', async () => {
   // deleteStory usa fetch directo + ON DELETE CASCADE en BD (no SDK .from().delete())
   const sandbox = makeSandbox();

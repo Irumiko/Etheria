@@ -40,7 +40,36 @@ function _clearFadeOverlay(overlay, delay) {
     }, delay);
 }
 
-function fadeTransition(callback, duration) {
+var _ETH_TRANSITION_TIMINGS = {
+    iris:     { close: 380, open: 320 },
+    diagonal: { close: 340, open: 300 }
+};
+
+function _vnStyleTransition(type, callback) {
+    var overlay = document.getElementById('sectionTransitionOverlay');
+    if (!overlay) {
+        try { callback(); } catch(e) { console.error('[_vnStyleTransition]', e); }
+        return;
+    }
+    var timings = _ETH_TRANSITION_TIMINGS[type];
+    if (!timings) {
+        fadeTransition(callback);
+        return;
+    }
+    _fadeTransitionInProgress = true;
+    overlay.classList.add('eth-t-active', 'eth-t-' + type + '-close');
+    setTimeout(function() {
+        try { callback(); } catch(e) { console.error('[_vnStyleTransition]', e); }
+        overlay.classList.remove('eth-t-' + type + '-close');
+        overlay.classList.add('eth-t-' + type + '-open');
+        setTimeout(function() {
+            overlay.classList.remove('eth-t-active', 'eth-t-' + type + '-open');
+            _fadeTransitionInProgress = false;
+        }, timings.open);
+    }, timings.close);
+}
+
+function fadeTransition(callback, duration, transitionType) {
     duration = duration || 280;
     if (_skipNextFadeTransition) {
         _skipNextFadeTransition = false;
@@ -49,6 +78,10 @@ function fadeTransition(callback, duration) {
     }
     if (_fadeTransitionInProgress) {
         try { callback(); } catch(e) { console.error('[fadeTransition]', e); }
+        return;
+    }
+    if (transitionType && transitionType !== 'fade') {
+        _vnStyleTransition(transitionType, callback);
         return;
     }
     var overlay = document.getElementById('sectionTransitionOverlay');
@@ -234,7 +267,7 @@ function backToMenu() {
                 if (particles) particles.style.transform = '';
             }
             window.dispatchEvent(new CustomEvent('etheria:section-changed', { detail: { section: 'mainMenu' } }));
-        }, 150);
+        }, 150, 'diagonal');
     });
 }
 
@@ -257,7 +290,7 @@ function backToTopics() {
             const topicsSection = document.getElementById('topicsSection');
             if (topicsSection) topicsSection.classList.add('active');
             renderTopics();
-        }, 150);
+        }, 150, 'diagonal');
     });
 }
 

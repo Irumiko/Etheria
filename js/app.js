@@ -16,6 +16,36 @@ window.__ETHERIA_APP_CANONICAL_LOADED__ = true;
 
 const logger = window.EtheriaLogger;
 
+// ── API canónica de userId ────────────────────────────────────────────────
+// window._cachedUserId  — backing store. Solo app.js debe escribirlo.
+//                         Los módulos solo deben leerlo.
+// window.getEtheriaUserId() — getter async compartido. Usa la caché cuando
+//                         está disponible; llama a getUser() una sola vez si no.
+//                         Deduplica llamadas concurrentes con una promesa pendiente.
+//
+// NUEVO CÓDIGO: llamar siempre a getEtheriaUserId() en vez de acceder a
+// window._cachedUserId directamente o re-implementar la lógica de caché.
+// ─────────────────────────────────────────────────────────────────────────
+let _getUserIdPromise = null;
+
+async function getEtheriaUserId() {
+    if (window._cachedUserId) return window._cachedUserId;
+    if (_getUserIdPromise) return _getUserIdPromise;
+    if (!window.supabaseClient) return null;
+
+    _getUserIdPromise = window.supabaseClient.auth.getUser()
+        .then(({ data }) => {
+            const id = data?.user?.id || null;
+            if (id) window._cachedUserId = id;
+            return id;
+        })
+        .catch(() => null)
+        .finally(() => { _getUserIdPromise = null; });
+
+    return _getUserIdPromise;
+}
+window.getEtheriaUserId = getEtheriaUserId;
+
 // Verificar si hay una sesión existente
 async function checkExistingSession() {
     if (!window.supabaseClient) return false;
@@ -525,7 +555,10 @@ function initializeApp() {
     }
     startCloudSync();
 
-    // Inicializar motor RPG de escenas narrativas
+    // Inicializar motor RPG de escenas narrativas.
+    // Si el bundle RPG ya está cargado (caché SW), lo inicializamos aquí.
+    // Si llega después (carga diferida), el bundle se auto-inicializa con este flag.
+    window._etheriaAppReady = { userIndex: currentUserIndex };
     if (typeof RPGState !== 'undefined')    RPGState.init(currentUserIndex);
     if (typeof RPGRenderer !== 'undefined') RPGRenderer.init();
 

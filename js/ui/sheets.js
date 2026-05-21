@@ -612,6 +612,12 @@ function saveCharacter() {
     const name = nameInput?.value.trim();
     if(!name) { showAutosave('El nombre es obligatorio', 'error'); return; }
 
+    const ageRaw = document.getElementById('charAge')?.value.trim() || '';
+    if (ageRaw && (isNaN(Number(ageRaw)) || Number(ageRaw) < 0)) {
+        showAutosave('La edad debe ser un número positivo', 'error');
+        return;
+    }
+
     const id = document.getElementById('editCharacterId')?.value ||
         (globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(16).slice(2)}`);
 
@@ -688,7 +694,13 @@ async function _uploadImageToStorage(bucket, charId, file) {
     const sb = window.supabaseClient;
     if (!sb) return { ok: false, error: 'Sin conexión a Supabase.' };
 
-    const ext = (file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i)?.[1] || 'png').toLowerCase();
+    const extMatch = file.name.match(/\.(png|jpg|jpeg|gif|webp)$/i);
+    if (!extMatch) return { ok: false, error: 'Formato no admitido. Usa PNG, JPG, GIF o WebP.' };
+    const MAX_SIZE = bucket === 'sprites' ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    const maxLabel = bucket === 'sprites' ? '10 MB' : '5 MB';
+    if (file.size > MAX_SIZE) return { ok: false, error: `La imagen no puede superar ${maxLabel}.` };
+
+    const ext = extMatch[1].toLowerCase();
     const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
     const path = `${charId}.${ext}`;
 
@@ -734,15 +746,19 @@ async function uploadAvatarForChar(fileInput) {
         showAutosave('El archivo debe ser una imagen', 'error');
         return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-        showAutosave('La imagen no puede superar 5 MB', 'error');
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 20 MB', 'error');
         return;
     }
 
     showAutosave('Subiendo avatar...', 'info');
 
+    const fileToUpload = window.EtheriaImageCompressor
+        ? await window.EtheriaImageCompressor.compress(file, { maxWidth: 1024, maxHeight: 1024 }).catch(function () { return file; })
+        : file;
+
     // Subir al bucket usando el ID local como nombre de archivo
-    const result = await _uploadImageToStorage('avatars', charId, file);
+    const result = await _uploadImageToStorage('avatars', charId, fileToUpload);
     if (!result.ok) {
         showAutosave(result.error || 'Error al subir avatar', 'error');
         return;
@@ -792,14 +808,18 @@ async function uploadSpriteForChar(fileInput) {
         showAutosave('El archivo debe ser una imagen', 'error');
         return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-        showAutosave('La imagen no puede superar 10 MB', 'error');
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 20 MB', 'error');
         return;
     }
 
     showAutosave('Subiendo sprite...', 'info');
 
-    const result = await _uploadImageToStorage('sprites', charId, file);
+    const fileToUpload = window.EtheriaImageCompressor
+        ? await window.EtheriaImageCompressor.compress(file, { maxWidth: 1200, maxHeight: 1800 }).catch(function () { return file; })
+        : file;
+
+    const result = await _uploadImageToStorage('sprites', charId, fileToUpload);
     if (!result.ok) {
         showAutosave(result.error || 'Error al subir sprite', 'error');
         return;

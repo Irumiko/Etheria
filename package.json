@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "node build.js",
+    "build:dev": "node build.js --dev",
     "validate:build": "node scripts/validate-build.js",
     "validate:critical-size": "node scripts/extract-critical.js",
     "validate:pwa-e2e": "node scripts/validate-pwa-e2e.js",

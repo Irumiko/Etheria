@@ -47,13 +47,16 @@
     }
 
     async function _getUser() {
-        const cached = global._cachedUserId || null;
-        if (cached) return { id: cached };
+        if (typeof global.getEtheriaUserId === 'function') {
+            const id = await global.getEtheriaUserId();
+            return id ? { id } : null;
+        }
+        // Fallback para entornos sin getEtheriaUserId (tests, carga parcial)
+        if (global._cachedUserId) return { id: global._cachedUserId };
         try {
             const client = _getClient();
             if (!client || typeof client.auth?.getUser !== 'function') return null;
             const { data: { user } } = await client.auth.getUser();
-            if (user?.id) global._cachedUserId = user.id;
             return user || null;
         } catch (error) {
             logger?.warn('supabase:stories', 'getUser failed:', error?.message || error);
@@ -1129,6 +1132,8 @@
                 logger?.warn('supabase:stories', 'deleteStory error:', errMsg);
                 return { ok: false, error: errMsg };
             }
+            // Limpiar caché IDB de mensajes de esta historia
+            if (global.EtheriaMessageCache) global.EtheriaMessageCache.remove(storyId).catch(function () {});
             return { ok: true };
         } catch (e) {
             logger?.warn('supabase:stories', 'deleteStory exception:', e?.message);

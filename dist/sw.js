@@ -10,7 +10,7 @@
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
 // Incrementar manualmente para forzar invalidación de caché en dev.
-const CACHE_VERSION = 'mpe84wi1';
+const CACHE_VERSION = 'mpfv9p0o';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
 const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];
@@ -24,22 +24,11 @@ const PRECACHE_URLS = [
   './assets/icons/icon-512.png',
   './assets/backgrounds/default_background.jpg',
   './assets/backgrounds/menu_background.jpg',
-  // Scripts críticos para funcionamiento offline
-  './js/core/events.js',
-  './js/utils/state.js',
-  './js/utils/storage.js',
-  './js/utils/logger.js',
-  './js/ui/sounds.js',
-  './js/ui/vn.js',
-  './js/ui/roleplay.js',
-  './js/ui/sheets.js',
-  './js/app.js',
-  './css/main.css',
-  './css/components.css',
-  // Build standalone (dist/) assets. Missing entries are tolerated by install.
+  // Build dist/ assets (generados por build.js)
   './noncritical.css',
   './etheria.css',
-  './etheria.js',
+  './etheria.bundle.js',
+  './etheria-rpg.bundle.js',
   './menu-enhanced.css',
 ];
 

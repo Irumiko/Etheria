@@ -31,16 +31,8 @@ const SupabaseSettings = (function () {
     function _isAvailable() { return !!_client(); }
 
     async function _getUserId() {
-        // Fix 6: use global auth cache — avoids network round-trip on every settings save
-        if (window._cachedUserId) return window._cachedUserId;
-        const sb = _client();
-        if (!sb) return null;
-        try {
-            const { data, error } = await sb.auth.getUser();
-            if (error || !data?.user) return null;
-            window._cachedUserId = data.user.id;
-            return data.user.id;
-        } catch { return null; }
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
     }
 
     // ── Leer desde localStorage (fuente de verdad local) ────────────────────

@@ -7,6 +7,11 @@ const esbuild = require('esbuild');
 const root = __dirname;
 const distDir = path.join(root, 'dist');
 
+// ── Modo de build ────────────────────────────────────────────────────────────
+// --dev  →  sin minificar, console.log activos, banner "[DEV]" en el bundle
+// (default) → minificado, console.log/debug eliminados, debugger eliminado
+const isDev = process.argv.includes('--dev') || process.env.NODE_ENV === 'development';
+
 const CRITICAL_CSS_ORDER = [
   'css/variables.css',
   'css/critical/02-fonts-base.css',
@@ -55,6 +60,7 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/options-gamefeel.css',
   /* ── Estancias aisladas: SIEMPRE al final — ganan todos los conflictos de cascada ── */
   'css/sections/topics.css',   /* Sección Historias: fondo, botones, filtros, buscador */
+  'css/sections/user-profile.css', /* Modal de perfil de usuario + panel party clásico */
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];
@@ -121,7 +127,7 @@ function writeBundleAndMap(bundleName, segments) {
   console.log(`  Sourcemap: ${bundleName} + ${mapName}`);
 }
 
-console.log('\n Etheria Build\n');
+console.log(`\n Etheria Build  [${isDev ? 'DEV — sin minificar' : 'PROD — minificado'}]\n`);
 let html = readFile('index.html');
 
 const cssSegments = CSS_ORDER.map((f, i) => {
@@ -138,8 +144,19 @@ html = html.replace(/<link\s+rel="preload"\s+href="css\/non-critical\.css"[^>]*>
 html = html.replace(/<noscript><link\s+rel="stylesheet"\s+href="css\/non-critical\.css"\s*><\/noscript>/i, '<noscript><link rel="stylesheet" href="./noncritical.css"></noscript>');
 html = html.replace('</head>', `<style id="critical-inline-css">\n${criticalCss}\n</style>\n</head>`);
 
+// Scripts RPG: se extraen a un bundle separado (etheria-rpg.bundle.js)
+// y se cargan de forma diferida tras el primer render.
+const RPG_SCRIPT_PATHS = new Set([
+  'js/rpg/SceneLoader.js',
+  'js/rpg/SceneValidator.js',
+  'js/rpg/RPGState.js',
+  'js/rpg/RPGEngine.js',
+  'js/rpg/RPGRenderer.js',
+]);
+
 const scriptSrcRe = /<script\b([^>]*?)\bsrc=(["'])([^"']+)\2([^>]*)><\/script>/gi;
-const jsSegments = [];
+const jsSegments  = [];
+const rpgSegments = [];
 html = html.replace(scriptSrcRe, (full, pre, q, src, post) => {
   const rawSrc = src.trim();
   if (!rawSrc || isExternalUrl(rawSrc)) return full; // CDN scripts se quedan en el HTML
@@ -148,13 +165,53 @@ html = html.replace(scriptSrcRe, (full, pre, q, src, post) => {
   if (!resolved.startsWith(root + path.sep)) throw new Error(`Script fuera del proyecto: ${rawSrc}`);
   if (!fs.existsSync(resolved)) throw new Error(`Script no encontrado: ${rawSrc}`);
   const code = fs.readFileSync(resolved, 'utf8');
-  console.log(`  JS:  ${localSrc} (${(code.length / 1024).toFixed(1)} KB)`);
-  jsSegments.push({ source: localSrc, sourceIndex: jsSegments.length, content: `/* ${localSrc} */\n${code}` });
-  return ''; // Eliminado del HTML; el bundle se añade al final
+  if (RPG_SCRIPT_PATHS.has(localSrc)) {
+    console.log(`  JS (RPG): ${localSrc} (${(code.length / 1024).toFixed(1)} KB)`);
+    rpgSegments.push({ source: localSrc, sourceIndex: rpgSegments.length, content: `/* ${localSrc} */\n${code}` });
+  } else {
+    console.log(`  JS:  ${localSrc} (${(code.length / 1024).toFixed(1)} KB)`);
+    jsSegments.push({ source: localSrc, sourceIndex: jsSegments.length, content: `/* ${localSrc} */\n${code}` });
+  }
+  return ''; // Eliminado del HTML; bundles se añaden al final
 });
 
-// Añadir referencia al bundle justo antes de </body>
-html = html.replace('</body>', '<script src="./etheria.bundle.js"></script>\n</body>');
+// Auto-init al final del bundle RPG: si la app ya está lista, inicializa los módulos.
+// Si la app aún no ha terminado de arrancar, window._etheriaAppReady lo hará después.
+const RPG_AUTO_INIT = `
+(function(){
+  if(window._rpgBundleInited)return;
+  window._rpgBundleInited=true;
+  var r=window._etheriaAppReady;
+  if(r){
+    if(typeof RPGState!=='undefined')RPGState.init(r.userIndex);
+    if(typeof RPGRenderer!=='undefined')RPGRenderer.init();
+  }
+}());
+`;
+
+// Lazy-loader: inyectado en el HTML — carga el bundle RPG durante el tiempo de inactividad
+// del navegador (requestIdleCallback) o como máximo 2s después del bundle principal.
+const RPG_LAZY_LOADER = `<script>
+(function(){
+  var _l=false;
+  function load(){
+    if(_l)return;_l=true;
+    var s=document.createElement('script');
+    s.src='./etheria-rpg.bundle.js';
+    document.head.appendChild(s);
+  }
+  if(typeof requestIdleCallback!=='undefined'){
+    requestIdleCallback(load,{timeout:2000});
+  } else {
+    setTimeout(load,1500);
+  }
+  // Carga inmediata si el usuario navega a una escena RPG antes del idle
+  window.addEventListener('etheria:entering-rpg',function(){load();},{once:true});
+}());
+</script>`;
+
+// Añadir bundles justo antes de </body>
+html = html.replace('</body>', `<script src="./etheria.bundle.js"></script>\n${RPG_LAZY_LOADER}\n</body>`);
 
 fs.mkdirSync(distDir, { recursive: true });
 fs.writeFileSync(path.join(distDir, 'index.html'), html, 'utf8');
@@ -172,18 +229,33 @@ console.log(`\n  dist/index.html (${(html.length / 1024).toFixed(0)} KB)`);
 writeBundleAndMap('etheria.css', cssSegments);
 writeBundleAndMap('etheria.js', jsSegments);
 
-// Bundle JS minificado para producción (sin inline en HTML)
+// Bundle JS principal (minificado en prod, legible en dev)
 const bundleSource = jsSegments.map((seg) => seg.content).join('\n');
-const minResult = esbuild.transformSync(bundleSource, {
+const esbuildOpts = {
   loader: 'js',
-  minify: true,
+  minify: !isDev,
   platform: 'browser',
   target: ['es2018'],
-});
+  ...(isDev
+    ? { banner: '/* [ETHERIA DEV BUILD] */' }
+    : { pure: ['console.log', 'console.debug'], drop: ['debugger'] }
+  ),
+};
+const minResult = esbuild.transformSync(bundleSource, esbuildOpts);
 fs.writeFileSync(path.join(distDir, 'etheria.bundle.js'), minResult.code, 'utf8');
 const origKb = (bundleSource.length / 1024).toFixed(0);
-const minKb = (minResult.code.length / 1024).toFixed(0);
-console.log(`  Bundle: etheria.bundle.js  ${origKb} KB → ${minKb} KB minificado`);
+const outKb  = (minResult.code.length / 1024).toFixed(0);
+console.log(`  Bundle: etheria.bundle.js  ${origKb} KB → ${outKb} KB${isDev ? ' (dev, sin minificar)' : ' minificado'}`);
+
+// Bundle RPG separado (carga diferida)
+if (rpgSegments.length > 0) {
+  const rpgSource = rpgSegments.map((seg) => seg.content).join('\n') + '\n' + RPG_AUTO_INIT;
+  const rpgResult = esbuild.transformSync(rpgSource, esbuildOpts);
+  fs.writeFileSync(path.join(distDir, 'etheria-rpg.bundle.js'), rpgResult.code, 'utf8');
+  const rpgOrigKb = (rpgSource.length / 1024).toFixed(0);
+  const rpgOutKb  = (rpgResult.code.length / 1024).toFixed(0);
+  console.log(`  Bundle: etheria-rpg.bundle.js  ${rpgOrigKb} KB → ${rpgOutKb} KB (diferido)${isDev ? ' (dev)' : ' minificado'}`);
+}
 
 console.log('\n  Assets:');
 STATIC_ASSETS.forEach(([src, dest]) => { if (copyFile(src, dest)) console.log(`    ${dest}`); });
