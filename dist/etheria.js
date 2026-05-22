@@ -10941,39 +10941,45 @@ function renderVnPartyPanel(force = false) {
         return;
     }
 
-    // Calcular orden de turno basado en quién ha respondido
-    const turnOrder = [];
-    const responded = [];
-    const waiting = [];
-    
-    charIds.forEach((charId) => {
-        const hasResponded = respondedThisCycle.has(String(charId));
-        if (hasResponded) {
-            responded.push(charId);
-        } else {
-            waiting.push(charId);
-        }
-    });
-    
-    // El orden de turno: primero los que han respondido (en orden), luego los que esperan
-    [...responded, ...waiting].forEach((charId, idx) => {
-        turnOrder.push({ charId, order: idx + 1 });
+    // ── Ordenar personajes según topic.turnOrder (user_id queue) ─────────────
+    // Para cada charId buscamos el user_id de su propietario y lo ubicamos en
+    // la cola de turno. El que está en posición 0 es a quien le toca ahora.
+    const topicTurnQueue = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
+    const _rpgParticipants = typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [];
+    const _rpgLocks = Object.assign({}, topic?.characterLocks || {}, topic?.rpgCharacterLocks || {});
+
+    function _charOwnerUid(cid) {
+        const ch = (appData?.characters || []).find(c => String(c.id) === String(cid));
+        if (!ch) return null;
+        if (ch.owner_user_id) return ch.owner_user_id;
+        // Fallback: buscar vía characterLocks (userIndex → charId, invertido)
+        const lockEntry = Object.entries(_rpgLocks).find(([, v]) => String(v) === String(cid));
+        if (!lockEntry) return null;
+        return (_rpgParticipants.find(p => String(p.user_index) === String(lockEntry[0])) || {}).user_id || null;
+    }
+
+    const sortedCharIds = [...charIds].sort((a, b) => {
+        const aPos = topicTurnQueue.indexOf(_charOwnerUid(a) || '');
+        const bPos = topicTurnQueue.indexOf(_charOwnerUid(b) || '');
+        return (aPos === -1 ? Infinity : aPos) - (bPos === -1 ? Infinity : bPos);
     });
 
-    list.innerHTML = charIds.map((charId) => {
+    list.innerHTML = sortedCharIds.map((charId, idx) => {
         const entry = snapshot[charId];
         if (!entry) return '';
 
+        const hasResponded   = respondedThisCycle.has(String(charId));
+        const ownerUid       = _charOwnerUid(charId);
+        const isCurrentTurn  = topicTurnQueue.length > 0 && ownerUid && String(topicTurnQueue[0]) === String(ownerUid);
+
         let state = '';
         let stateText = '';
-        const hasResponded = respondedThisCycle.has(String(charId));
-        
         if (entry.critical) {
             state = 'critical';
             stateText = '💀 Reincorporación';
-        } else if (String(activeCharId) === String(charId)) {
+        } else if (isCurrentTurn) {
             state = 'active';
-            stateText = '⭐ Activo';
+            stateText = '⭐ Su turno';
         } else if (hasResponded) {
             state = 'responded';
             stateText = '✓ Respondió';
@@ -10981,21 +10987,12 @@ function renderVnPartyPanel(force = false) {
             state = 'waiting';
             stateText = '⏳ Esperando';
         }
-        
-        // Obtener número de turno
-        const turnInfo = turnOrder.find(t => t.charId === charId);
-        const turnNumber = turnInfo ? turnInfo.order : '';
 
-        const hpPct = Math.max(0, Math.min(100, (entry.hp / entry.hpMax) * 100));
+        const turnNumber = idx + 1;   // posición real en el queue de turno
+        const hpPct  = Math.max(0, Math.min(100, (entry.hp  / entry.hpMax)  * 100));
         const expPct = Math.max(0, Math.min(100, (entry.exp / entry.expMax) * 100));
-        // Buscar el propietario del personaje en currentStoryParticipants
-        const ownerParticipant = (typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [])
-            .find(p => {
-                const char = (appData?.characters || []).find(c => String(c.id) === String(charId));
-                if (!char) return false;
-                if (char.owner_user_id) return String(char.owner_user_id) === String(p.user_id);
-                return String(char.userIndex) === String(p.user_index);
-            });
+
+        const ownerParticipant = _rpgParticipants.find(p => String(p.user_id) === String(ownerUid || ''));
         const ownerUserId = ownerParticipant ? escapeHtml(ownerParticipant.user_id) : '';
         const profileBtn = ownerUserId && typeof openUserProfileModal !== 'undefined'
             ? `<button type="button" class="vn-party-profile-btn" onclick="event.stopPropagation();openUserProfileModal('${ownerUserId}')" title="Ver perfil" aria-label="Ver perfil del jugador">👤</button>`
@@ -11024,7 +11021,7 @@ function renderVnPartyPanel(force = false) {
                         </div>
                     </div>
                 </div>
-                ${turnNumber ? `<span class="vn-party-turn-order">${turnNumber}</span>` : ''}
+                <span class="vn-party-turn-order">${turnNumber}</span>
                 ${profileBtn}
             </button>
         `;
@@ -15192,6 +15189,11 @@ window._scanForPendingMasterRolls  = _scanForPendingMasterRolls;
 ;(function () {
     function _onTurnChange() {
         if (typeof _checkAndShowMasterRollBar === 'function') _checkAndShowMasterRollBar();
+        // Re-renderizar paneles de party con el nuevo orden de turno
+        renderVnPartyPanel(true);
+        if (typeof renderClassicParty === 'function' && typeof currentStoryParticipants !== 'undefined') {
+            renderClassicParty(currentStoryParticipants);
+        }
     }
     function _onStoryEntered(e) {
         const topicId = e?.detail?.topicId || (typeof currentTopicId !== 'undefined' ? currentTopicId : null);
@@ -23259,24 +23261,34 @@ window.CollaborativeGuard = CollaborativeGuard;
         shell.style.display = isClassicMode && participants && participants.length > 0 ? '' : 'none';
         if (!isClassicMode || !participants || !participants.length) return;
 
-        const lockMap = topic
+        const lockMap   = topic
             ? Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {})
             : {};
+        const turnQueue = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
 
-        list.innerHTML = participants.map(p => {
+        // Ordenar participantes por su posición en el queue de turno:
+        // turnQueue[0] = le toca ahora, turnQueue[1] = siguiente, etc.
+        const sorted = [...participants].sort((a, b) => {
+            const ai = turnQueue.indexOf(a.user_id);
+            const bi = turnQueue.indexOf(b.user_id);
+            return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+        });
+
+        list.innerHTML = sorted.map(p => {
             const charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
             const char   = charId ? _allChars().find(c => String(c.id) === String(charId)) : null;
 
-            const name      = (char && char.name) || (p.profile && p.profile.name) || '?';
-            const genderKey = (char && char.gender) || '';
-            const gIcon     = GENDER_ICON[genderKey] || '';
-            const online    = _isOnline(p.user_id);
-            const responded = _hasResponded(p.user_id);
-            const uid       = _esc(p.user_id || '');
+            const name          = (char && char.name) || (p.profile && p.profile.name) || '?';
+            const genderKey     = (char && char.gender) || '';
+            const gIcon         = GENDER_ICON[genderKey] || '';
+            const online        = _isOnline(p.user_id);
+            // El primero en turnQueue es a quien le toca; el resto aparece como "esperando"
+            const isCurrentTurn = turnQueue.length > 0 && String(turnQueue[0]) === String(p.user_id);
+            const uid           = _esc(p.user_id || '');
 
-            return `<button type="button" class="cp-member${responded ? ' cp-member--responded' : ''}"
+            return `<button type="button" class="cp-member${!isCurrentTurn && turnQueue.length > 0 ? ' cp-member--responded' : ''}"
                         onclick="openUserProfileModal('${uid}')"
-                        title="${_esc(name)}${responded ? ' · Ya respondió' : ' · Esperando turno'}">
+                        title="${_esc(name)}${isCurrentTurn ? ' \xB7 Su turno' : ' \xB7 Esperando'}">
                 <span class="cp-dot${online ? ' cp-dot--online' : ''}"></span>
                 <span class="cp-name">${_esc(name)}</span>
                 ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}

@@ -380,24 +380,34 @@
         shell.style.display = isClassicMode && participants && participants.length > 0 ? '' : 'none';
         if (!isClassicMode || !participants || !participants.length) return;
 
-        const lockMap = topic
+        const lockMap   = topic
             ? Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {})
             : {};
+        const turnQueue = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
 
-        list.innerHTML = participants.map(p => {
+        // Ordenar participantes por su posición en el queue de turno:
+        // turnQueue[0] = le toca ahora, turnQueue[1] = siguiente, etc.
+        const sorted = [...participants].sort((a, b) => {
+            const ai = turnQueue.indexOf(a.user_id);
+            const bi = turnQueue.indexOf(b.user_id);
+            return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
+        });
+
+        list.innerHTML = sorted.map(p => {
             const charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
             const char   = charId ? _allChars().find(c => String(c.id) === String(charId)) : null;
 
-            const name      = (char && char.name) || (p.profile && p.profile.name) || '?';
-            const genderKey = (char && char.gender) || '';
-            const gIcon     = GENDER_ICON[genderKey] || '';
-            const online    = _isOnline(p.user_id);
-            const responded = _hasResponded(p.user_id);
-            const uid       = _esc(p.user_id || '');
+            const name          = (char && char.name) || (p.profile && p.profile.name) || '?';
+            const genderKey     = (char && char.gender) || '';
+            const gIcon         = GENDER_ICON[genderKey] || '';
+            const online        = _isOnline(p.user_id);
+            // El primero en turnQueue es a quien le toca; el resto aparece como "esperando"
+            const isCurrentTurn = turnQueue.length > 0 && String(turnQueue[0]) === String(p.user_id);
+            const uid           = _esc(p.user_id || '');
 
-            return `<button type="button" class="cp-member${responded ? ' cp-member--responded' : ''}"
+            return `<button type="button" class="cp-member${!isCurrentTurn && turnQueue.length > 0 ? ' cp-member--responded' : ''}"
                         onclick="openUserProfileModal('${uid}')"
-                        title="${_esc(name)}${responded ? ' · Ya respondió' : ' · Esperando turno'}">
+                        title="${_esc(name)}${isCurrentTurn ? ' \xB7 Su turno' : ' \xB7 Esperando'}">
                 <span class="cp-dot${online ? ' cp-dot--online' : ''}"></span>
                 <span class="cp-name">${_esc(name)}</span>
                 ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
