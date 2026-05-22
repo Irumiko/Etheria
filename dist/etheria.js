@@ -26393,6 +26393,22 @@ window.Ethy = Ethy;
         // 5. Cargar participantes en paralelo
         loadStoryParticipants(storyId).then(function (participants) {
             global.currentStoryParticipants = participants;
+
+            // Si el usuario actual no está en turnOrder, añadirlo al final.
+            // Ocurre cuando alguien se une por primera vez a una historia ajena.
+            const myUid = global._cachedUserId;
+            if (myUid) {
+                const topic = (appData?.topics || []).find(t => String(t.storyId) === String(storyId));
+                if (topic && topic.turnMode && topic.turnMode !== 'off') {
+                    const queue = Array.isArray(topic.turnOrder) ? topic.turnOrder : [];
+                    if (!queue.includes(myUid)) {
+                        const newOrder = [...queue, myUid];
+                        setTurnConfig(storyId, { mode: topic.turnMode, order: newOrder })
+                            .catch(() => {});
+                    }
+                }
+            }
+
             global.dispatchEvent(new CustomEvent('etheria:story-participants-loaded', {
                 detail: { storyId, participants }
             }));
@@ -26945,7 +26961,7 @@ window.Ethy = Ethy;
             // Buscar la historia por token
             const { data: story, error: storyErr } = await c
                 .from('stories')
-                .select('id, title, created_by, created_at, invite_token')
+                .select('id, title, created_by, created_at, invite_token, turn_mode, turn_order')
                 .eq('invite_token', token)
                 .single();
 
@@ -26978,7 +26994,10 @@ window.Ethy = Ethy;
                 createdBy:      story.created_by || 'Desconocido',
                 createdByIndex: -1,  // -1 = otro usuario
                 date:           new Date(story.created_at).toLocaleDateString('es-ES'),
-                _fromInvite:    true
+                _fromInvite:    true,
+                // Sincronizar control de turnos desde Supabase
+                turnMode:       story.turn_mode  || 'off',
+                turnOrder:      Array.isArray(story.turn_order) ? story.turn_order : null
             };
 
             if (typeof appData !== 'undefined') {

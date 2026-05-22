@@ -10,7 +10,7 @@
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
 // Incrementar manualmente para forzar invalidación de caché en dev.
-const CACHE_VERSION = 'mphbi1w8';
+const CACHE_VERSION = 'mphbo8s8';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
 const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];
