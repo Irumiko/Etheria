@@ -30,6 +30,8 @@
     let _available = null;   // null = sin verificar | true | false
     let _cachedUserId = null; // Fix 6: cached auth user ID — avoids getUser() on every send
 
+    function _isAvailable() { return _available !== false && !!SB_URL && !!SB_KEY && !!_client; }
+
     // ── Init (lazy) ───────────────────────────────────────────────────────────
 
     function _init() {
@@ -500,6 +502,8 @@
 
     function subscribeGlobal(onMessage, onTyping, sessionId) {
         if (!_init()) return;
+        // Bug 3: do not subscribe without any filter — would receive all project messages
+        if (!global.currentStoryId && !sessionId) return;
         // Allow re-subscribe when story or session context changes
         // (stale channel would filter wrong story_id after enterStory)
         const _newActiveId = global.currentStoryId || sessionId || null;
@@ -570,13 +574,37 @@
         if (!_isAvailable() || !messageId) return false;
         try {
             const headers = await _restHeaders();
+
+            // Fetch current content to preserve all metadata fields
+            let updatedContent;
+            try {
+                const selectRes = await fetch(
+                    SB_URL + '/rest/v1/messages?id=eq.' + encodeURIComponent(messageId) + '&select=content',
+                    { headers: { ...headers, 'Accept': 'application/json' }, signal: AbortSignal.timeout(5000) }
+                );
+                if (selectRes.ok) {
+                    const rows = await selectRes.json();
+                    if (rows && rows.length > 0) {
+                        const existing = JSON.parse(rows[0].content);
+                        existing.text = newText;
+                        updatedContent = JSON.stringify(existing);
+                    }
+                }
+            } catch (selectErr) {
+                logger?.warn('supabase:messages', 'editMessage select failed, using fallback:', selectErr?.message);
+            }
+            // Fallback: if SELECT failed or content was unparseable, patch only text
+            if (!updatedContent) {
+                updatedContent = JSON.stringify({ text: newText });
+            }
+
             const res = await fetch(
                 SB_URL + '/rest/v1/messages?id=eq.' + encodeURIComponent(messageId),
                 {
                     method: 'PATCH',
                     headers: { ...headers, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
                     body: JSON.stringify({
-                        content:   JSON.stringify({ text: newText }),
+                        content:   updatedContent,
                         edited_at: new Date().toISOString()
                     }),
                     signal: AbortSignal.timeout(5000)

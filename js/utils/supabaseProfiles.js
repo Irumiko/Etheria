@@ -415,7 +415,7 @@ const SupabaseProfiles = (function () {
             const displayName = user.email?.split('@')[0] || 'Jugador';
             const { data, error } = await _client()
                 .from('profiles')
-                .insert({ user_id: user.id, name: displayName, owner_user_id: user.id })
+                .insert({ name: displayName, owner_user_id: user.id })
                 .select()
                 .single();
 

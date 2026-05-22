@@ -483,6 +483,10 @@
     background: rgba(180, 140, 80, 0.38);
     transform: scale(0.92);
 }
+.upm-stat-adj--minus { border-color: rgba(220, 100, 80, 0.35); color: #e08070; }
+.upm-stat-adj--minus:hover { background: rgba(220, 100, 80, 0.2); border-color: rgba(220, 100, 80, 0.6); color: #f0a090; }
+.upm-stat-adj--plus  { border-color: rgba(100, 200, 120, 0.35); color: #80c890; }
+.upm-stat-adj--plus:hover  { background: rgba(100, 200, 120, 0.2); border-color: rgba(100, 200, 120, 0.6); color: #a0e0b0; }
 
 /* ============================================================
    Panel de party clásico (classic-party-shell)

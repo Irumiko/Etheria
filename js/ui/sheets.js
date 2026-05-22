@@ -619,7 +619,8 @@ function saveCharacter() {
     }
 
     const id = document.getElementById('editCharacterId')?.value ||
-        (globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(16).slice(2)}`);
+        (typeof generateTopicId === 'function' ? generateTopicId() : globalThis.crypto?.randomUUID?.() ||
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); }));
 
     const avatarUrl = document.getElementById('charAvatar')?.value.trim() || '';
     const spriteUrl = document.getElementById('charSprite')?.value.trim() || '';

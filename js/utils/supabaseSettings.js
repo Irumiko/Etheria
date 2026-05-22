@@ -157,11 +157,11 @@ const SupabaseSettings = (function () {
 
         const row = {
             user_id    : userId,
-            font_size  : Number(merged.font_size)   || DEFAULTS.font_size,
-            text_speed : Number(merged.text_speed)  || DEFAULTS.text_speed,
+            font_size  : Number(merged.font_size)   ?? DEFAULTS.font_size,
+            text_speed : Number(merged.text_speed)  ?? DEFAULTS.text_speed,
             theme      : String(merged.theme        || DEFAULTS.theme),
-            ui_volume  : Number(merged.ui_volume)   || DEFAULTS.ui_volume,
-            rain_volume: Number(merged.rain_volume) || DEFAULTS.rain_volume,
+            ui_volume  : Number(merged.ui_volume)   ?? DEFAULTS.ui_volume,
+            rain_volume: Number(merged.rain_volume) ?? DEFAULTS.rain_volume,
             avatar_url : String(merged.avatar_url || '')
         };
 

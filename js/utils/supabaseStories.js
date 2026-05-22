@@ -244,12 +244,17 @@
 
                 const cloudIds = new Set(stories.map(s => String(s.id)));
 
-                // Paso 4: eliminar topics cuyo storyId ya no existe en la nube
-                const beforeCount = appData.topics.length;
-                appData.topics = appData.topics.filter(t =>
-                    !t.storyId || cloudIds.has(String(t.storyId))
-                );
-                const removedCount = beforeCount - appData.topics.length;
+                // Paso 4: eliminar topics cuyo storyId ya no existe en la nube.
+                // Solo ejecutar si Supabase devolvió al menos 1 historia (guard contra
+                // borrado masivo por error de red o respuesta vacía inesperada).
+                let removedCount = 0;
+                if (stories.length > 0) {
+                    const beforeCount = appData.topics.length;
+                    appData.topics = appData.topics.filter(t =>
+                        !t.storyId || cloudIds.has(String(t.storyId))
+                    );
+                    removedCount = beforeCount - appData.topics.length;
+                }
                 if (removedCount > 0) {
                     logger?.info('supabase:stories', `Eliminados ${removedCount} topics borrados en otro dispositivo`);
                 }
@@ -436,7 +441,7 @@
                     global.currentMessageIndex = localMsgs.length - 1;
                     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                     if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                    eventBus.emit('ui:show-toast', {
+                    eventBus?.emit('ui:show-toast', {
                         text: newRemote.length + ' mensaje(s) cargado(s) desde la historia',
                         action: 'OK'
                     });
@@ -756,12 +761,12 @@
                 global.currentMessageIndex = msgs.length - 1;
                 if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                 if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                eventBus.emit('ui:show-toast', {
+                eventBus?.emit('ui:show-toast', {
                     text: 'Nuevo mensaje en la historia',
                     action: 'OK'
                 });
             } else {
-                eventBus.emit('ui:show-toast', {
+                eventBus?.emit('ui:show-toast', {
                     text: 'Nuevo mensaje recibido',
                     action: 'Ver ahora',
                     onAction: function () {

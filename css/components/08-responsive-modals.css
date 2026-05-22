@@ -1070,8 +1070,8 @@ body.mode-classic .vn-message-counter {
     font-family: 'Inter', sans-serif;
 }
 .quick-stat-v2.qs-align {
-    background: rgba(var(--align-color), 0.15);
-    border-color: rgba(var(--align-color), 0.4);
+    background: rgba(var(--align-color, 160,128,220), 0.15);
+    border-color: rgba(var(--align-color, 160,128,220), 0.4);
     color: var(--align-color, var(--text-secondary));
 }
 /* Cinta de ocupación */

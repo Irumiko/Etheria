@@ -132,7 +132,8 @@ body { font-family: var(--font-body); background: var(--bg-primary); color: var(
 #vnSection,
 #topicsSection,
 #gallerySection,
-#optionsSection { min-height: 100vh; }
+#optionsSection,
+#bondsSection { min-height: 100vh; }
 
 /* -- css/pwa.css -- */
 /* PWA safe-area + viewport guards
@@ -10563,8 +10564,8 @@ body.mode-classic .vn-message-counter {
     font-family: 'Inter', sans-serif;
 }
 .quick-stat-v2.qs-align {
-    background: rgba(var(--align-color), 0.15);
-    border-color: rgba(var(--align-color), 0.4);
+    background: rgba(var(--align-color, 160,128,220), 0.15);
+    border-color: rgba(var(--align-color, 160,128,220), 0.4);
     color: var(--align-color, var(--text-secondary));
 }
 /* Cinta de ocupación */
@@ -18658,6 +18659,7 @@ body.mode-rpg #vnSection .vn-controls {
     --tm-bg-glass: rgba(10, 12, 22, 0.85);
     --tm-text-cream: #f0e3cc;
     --tm-text-muted: rgba(214, 196, 168, 0.7);
+    --tm-text: var(--tm-text-cream);
     
     /* Toolbar específicos */
     --tm-toolbar-width: 52px;
@@ -26918,6 +26920,10 @@ body:has(#topicsSection.active) {
     background: rgba(180, 140, 80, 0.38);
     transform: scale(0.92);
 }
+.upm-stat-adj--minus { border-color: rgba(220, 100, 80, 0.35); color: #e08070; }
+.upm-stat-adj--minus:hover { background: rgba(220, 100, 80, 0.2); border-color: rgba(220, 100, 80, 0.6); color: #f0a090; }
+.upm-stat-adj--plus  { border-color: rgba(100, 200, 120, 0.35); color: #80c890; }
+.upm-stat-adj--plus:hover  { background: rgba(100, 200, 120, 0.2); border-color: rgba(100, 200, 120, 0.6); color: #a0e0b0; }
 
 /* ============================================================
    Panel de party clásico (classic-party-shell)

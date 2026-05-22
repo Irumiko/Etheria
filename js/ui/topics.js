@@ -215,7 +215,7 @@ function renderTopics() {
 
     _dedupeTopicsInPlace();
 
-    let topics = appData.topics;
+    let topics = appData?.topics || [];
 
     // Aplicar filtro de modo
     if (_topicsFilter === 'rpg') {
@@ -232,7 +232,7 @@ function renderTopics() {
         );
     }
 
-    if (appData.topics.length === 0) {
+    if ((appData?.topics || []).length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias todavía.<br><span>Crea la primera con el botón de arriba.</span></div>';
     } else if (topics.length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
@@ -530,7 +530,19 @@ function generateTopicId() {
     if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
         return globalThis.crypto.randomUUID();
     }
-    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    // Fallback UUID v4 válido (compatible con columnas uuid de Supabase)
+    if (globalThis.crypto && globalThis.crypto.getRandomValues) {
+        const b = new Uint8Array(16);
+        globalThis.crypto.getRandomValues(b);
+        b[6] = (b[6] & 0x0f) | 0x40;
+        b[8] = (b[8] & 0x3f) | 0x80;
+        const h = Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
+        return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
 }
 
 function normalizeRoomId(value) {
@@ -717,6 +729,7 @@ function createTopic() {
         weather: weather !== 'none' ? weather : undefined,
         mode: currentTopicMode,
         turnMode: 'strict',
+        turnOrder: null,
         roleCharacterId: null,
         createdBy: userNames[currentUserIndex] || 'Jugador',
         createdByIndex: currentUserIndex,
@@ -756,10 +769,10 @@ function createTopic() {
                     window.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
-                    // Inicializar configuración de turnos en relay
+                    // Inicializar configuración de turnos en strict
                     var uid = window._cachedUserId;
                     if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
-                        SupabaseStories.setTurnConfig(result.storyId, 'relay', [uid]).catch(function() {});
+                        SupabaseStories.setTurnConfig(result.storyId, { mode: 'strict', order: [uid] }).catch(function() {});
                     }
                 } else {
                     const detail = result?.error ? ': ' + result.error : '';
@@ -1497,7 +1510,7 @@ function createTopicFromWizard() {
         id: id, title: title,
         background: DEFAULT_TOPIC_BACKGROUND,
         weather: weather !== 'none' ? weather : undefined,
-        mode: mode, turnMode: 'strict', roleCharacterId: null,
+        mode: mode, turnMode: 'strict', turnOrder: null, roleCharacterId: null,
         createdBy: ((userNames && userNames[currentUserIndex]) || 'Jugador'),
         createdByIndex: currentUserIndex,
         date: new Date().toLocaleDateString(),
@@ -1543,10 +1556,10 @@ function createTopicFromWizard() {
             if (result.ok && result.storyId) {
                 topicRef.storyId = result.storyId;
                 hasUnsavedChanges = true; save({ silent: true });
-                // Inicializar configuración de turnos en relay
+                // Inicializar configuración de turnos en strict
                 var uid = window._cachedUserId;
                 if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
-                    SupabaseStories.setTurnConfig(result.storyId, 'relay', [uid]).catch(function() {});
+                    SupabaseStories.setTurnConfig(result.storyId, { mode: 'strict', order: [uid] }).catch(function() {});
                 }
             } else {
                 var detail = (result && result.error) ? ': ' + result.error : '';

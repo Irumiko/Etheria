@@ -88,7 +88,7 @@ const SupabaseBonds = (function () {
         if (myParticipants.length === 0) return;
 
         // Para cada uno de mis personajes, crear vínculo hacia todos los demás
-        const others = participantCharIds.map(String).filter(id => !myChars.includes(id) || myParticipants.includes(id));
+        const others = participantCharIds.map(String).filter(id => !myChars.includes(id));
 
         const tasks = [];
         for (const fromId of myParticipants) {

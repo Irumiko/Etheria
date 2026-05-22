@@ -302,6 +302,7 @@
 
     function _renderRpgStatBlock(d) {
         const { char, profile, freePoints } = d.rpgSheet;
+        if (!char || !profile) return '';
         const stats   = (profile && profile.stats) || {};
         const canEdit = freePoints > 0;
 

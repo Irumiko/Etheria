@@ -6720,7 +6720,8 @@ function saveCharacter() {
     }
 
     const id = document.getElementById('editCharacterId')?.value ||
-        (globalThis.crypto?.randomUUID?.() || `${Date.now()}_${Math.random().toString(16).slice(2)}`);
+        (typeof generateTopicId === 'function' ? generateTopicId() : globalThis.crypto?.randomUUID?.() ||
+        'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; return (c==='x'?r:(r&0x3|0x8)).toString(16); }));
 
     const avatarUrl = document.getElementById('charAvatar')?.value.trim() || '';
     const spriteUrl = document.getElementById('charSprite')?.value.trim() || '';
@@ -8301,6 +8302,8 @@ window.SupabaseSync = SupabaseSync;
     let _available = null;   // null = sin verificar | true | false
     let _cachedUserId = null; // Fix 6: cached auth user ID — avoids getUser() on every send
 
+    function _isAvailable() { return _available !== false && !!SB_URL && !!SB_KEY && !!_client; }
+
     // ── Init (lazy) ───────────────────────────────────────────────────────────
 
     function _init() {
@@ -8771,6 +8774,8 @@ window.SupabaseSync = SupabaseSync;
 
     function subscribeGlobal(onMessage, onTyping, sessionId) {
         if (!_init()) return;
+        // Bug 3: do not subscribe without any filter — would receive all project messages
+        if (!global.currentStoryId && !sessionId) return;
         // Allow re-subscribe when story or session context changes
         // (stale channel would filter wrong story_id after enterStory)
         const _newActiveId = global.currentStoryId || sessionId || null;
@@ -8841,13 +8846,37 @@ window.SupabaseSync = SupabaseSync;
         if (!_isAvailable() || !messageId) return false;
         try {
             const headers = await _restHeaders();
+
+            // Fetch current content to preserve all metadata fields
+            let updatedContent;
+            try {
+                const selectRes = await fetch(
+                    SB_URL + '/rest/v1/messages?id=eq.' + encodeURIComponent(messageId) + '&select=content',
+                    { headers: { ...headers, 'Accept': 'application/json' }, signal: AbortSignal.timeout(5000) }
+                );
+                if (selectRes.ok) {
+                    const rows = await selectRes.json();
+                    if (rows && rows.length > 0) {
+                        const existing = JSON.parse(rows[0].content);
+                        existing.text = newText;
+                        updatedContent = JSON.stringify(existing);
+                    }
+                }
+            } catch (selectErr) {
+                logger?.warn('supabase:messages', 'editMessage select failed, using fallback:', selectErr?.message);
+            }
+            // Fallback: if SELECT failed or content was unparseable, patch only text
+            if (!updatedContent) {
+                updatedContent = JSON.stringify({ text: newText });
+            }
+
             const res = await fetch(
                 SB_URL + '/rest/v1/messages?id=eq.' + encodeURIComponent(messageId),
                 {
                     method: 'PATCH',
                     headers: { ...headers, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
                     body: JSON.stringify({
-                        content:   JSON.stringify({ text: newText }),
+                        content:   updatedContent,
                         edited_at: new Date().toISOString()
                     }),
                     signal: AbortSignal.timeout(5000)
@@ -17302,7 +17331,7 @@ function renderTopics() {
 
     _dedupeTopicsInPlace();
 
-    let topics = appData.topics;
+    let topics = appData?.topics || [];
 
     // Aplicar filtro de modo
     if (_topicsFilter === 'rpg') {
@@ -17319,7 +17348,7 @@ function renderTopics() {
         );
     }
 
-    if (appData.topics.length === 0) {
+    if ((appData?.topics || []).length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias todavía.<br><span>Crea la primera con el botón de arriba.</span></div>';
     } else if (topics.length === 0) {
         container.innerHTML = '<div class="topics-empty">No hay historias que coincidan.<br><span>Prueba con otro filtro o búsqueda.</span></div>';
@@ -17617,7 +17646,19 @@ function generateTopicId() {
     if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
         return globalThis.crypto.randomUUID();
     }
-    return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    // Fallback UUID v4 válido (compatible con columnas uuid de Supabase)
+    if (globalThis.crypto && globalThis.crypto.getRandomValues) {
+        const b = new Uint8Array(16);
+        globalThis.crypto.getRandomValues(b);
+        b[6] = (b[6] & 0x0f) | 0x40;
+        b[8] = (b[8] & 0x3f) | 0x80;
+        const h = Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('');
+        return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
 }
 
 function normalizeRoomId(value) {
@@ -17804,6 +17845,7 @@ function createTopic() {
         weather: weather !== 'none' ? weather : undefined,
         mode: currentTopicMode,
         turnMode: 'strict',
+        turnOrder: null,
         roleCharacterId: null,
         createdBy: userNames[currentUserIndex] || 'Jugador',
         createdByIndex: currentUserIndex,
@@ -17843,10 +17885,10 @@ function createTopic() {
                     window.currentStoryId = result.storyId;
                     hasUnsavedChanges = true;
                     save({ silent: true });
-                    // Inicializar configuración de turnos en relay
+                    // Inicializar configuración de turnos en strict
                     var uid = window._cachedUserId;
                     if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
-                        SupabaseStories.setTurnConfig(result.storyId, 'relay', [uid]).catch(function() {});
+                        SupabaseStories.setTurnConfig(result.storyId, { mode: 'strict', order: [uid] }).catch(function() {});
                     }
                 } else {
                     const detail = result?.error ? ': ' + result.error : '';
@@ -18584,7 +18626,7 @@ function createTopicFromWizard() {
         id: id, title: title,
         background: DEFAULT_TOPIC_BACKGROUND,
         weather: weather !== 'none' ? weather : undefined,
-        mode: mode, turnMode: 'strict', roleCharacterId: null,
+        mode: mode, turnMode: 'strict', turnOrder: null, roleCharacterId: null,
         createdBy: ((userNames && userNames[currentUserIndex]) || 'Jugador'),
         createdByIndex: currentUserIndex,
         date: new Date().toLocaleDateString(),
@@ -18630,10 +18672,10 @@ function createTopicFromWizard() {
             if (result.ok && result.storyId) {
                 topicRef.storyId = result.storyId;
                 hasUnsavedChanges = true; save({ silent: true });
-                // Inicializar configuración de turnos en relay
+                // Inicializar configuración de turnos en strict
                 var uid = window._cachedUserId;
                 if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
-                    SupabaseStories.setTurnConfig(result.storyId, 'relay', [uid]).catch(function() {});
+                    SupabaseStories.setTurnConfig(result.storyId, { mode: 'strict', order: [uid] }).catch(function() {});
                 }
             } else {
                 var detail = (result && result.error) ? ': ' + result.error : '';
@@ -20490,7 +20532,7 @@ const SupabaseProfiles = (function () {
             const displayName = user.email?.split('@')[0] || 'Jugador';
             const { data, error } = await _client()
                 .from('profiles')
-                .insert({ user_id: user.id, name: displayName, owner_user_id: user.id })
+                .insert({ name: displayName, owner_user_id: user.id })
                 .select()
                 .single();
 
@@ -21034,7 +21076,7 @@ const SupabaseBonds = (function () {
         if (myParticipants.length === 0) return;
 
         // Para cada uno de mis personajes, crear vínculo hacia todos los demás
-        const others = participantCharIds.map(String).filter(id => !myChars.includes(id) || myParticipants.includes(id));
+        const others = participantCharIds.map(String).filter(id => !myChars.includes(id));
 
         const tasks = [];
         for (const fromId of myParticipants) {
@@ -21945,11 +21987,11 @@ const SupabaseSettings = (function () {
 
         const row = {
             user_id    : userId,
-            font_size  : Number(merged.font_size)   || DEFAULTS.font_size,
-            text_speed : Number(merged.text_speed)  || DEFAULTS.text_speed,
+            font_size  : Number(merged.font_size)   ?? DEFAULTS.font_size,
+            text_speed : Number(merged.text_speed)  ?? DEFAULTS.text_speed,
             theme      : String(merged.theme        || DEFAULTS.theme),
-            ui_volume  : Number(merged.ui_volume)   || DEFAULTS.ui_volume,
-            rain_volume: Number(merged.rain_volume) || DEFAULTS.rain_volume,
+            ui_volume  : Number(merged.ui_volume)   ?? DEFAULTS.ui_volume,
+            rain_volume: Number(merged.rain_volume) ?? DEFAULTS.rain_volume,
             avatar_url : String(merged.avatar_url || '')
         };
 
@@ -23139,6 +23181,7 @@ window.CollaborativeGuard = CollaborativeGuard;
 
     function _renderRpgStatBlock(d) {
         const { char, profile, freePoints } = d.rpgSheet;
+        if (!char || !profile) return '';
         const stats   = (profile && profile.stats) || {};
         const canEdit = freePoints > 0;
 
@@ -26110,12 +26153,17 @@ window.Ethy = Ethy;
 
                 const cloudIds = new Set(stories.map(s => String(s.id)));
 
-                // Paso 4: eliminar topics cuyo storyId ya no existe en la nube
-                const beforeCount = appData.topics.length;
-                appData.topics = appData.topics.filter(t =>
-                    !t.storyId || cloudIds.has(String(t.storyId))
-                );
-                const removedCount = beforeCount - appData.topics.length;
+                // Paso 4: eliminar topics cuyo storyId ya no existe en la nube.
+                // Solo ejecutar si Supabase devolvió al menos 1 historia (guard contra
+                // borrado masivo por error de red o respuesta vacía inesperada).
+                let removedCount = 0;
+                if (stories.length > 0) {
+                    const beforeCount = appData.topics.length;
+                    appData.topics = appData.topics.filter(t =>
+                        !t.storyId || cloudIds.has(String(t.storyId))
+                    );
+                    removedCount = beforeCount - appData.topics.length;
+                }
                 if (removedCount > 0) {
                     logger?.info('supabase:stories', `Eliminados ${removedCount} topics borrados en otro dispositivo`);
                 }
@@ -26302,7 +26350,7 @@ window.Ethy = Ethy;
                     global.currentMessageIndex = localMsgs.length - 1;
                     if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                     if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                    eventBus.emit('ui:show-toast', {
+                    eventBus?.emit('ui:show-toast', {
                         text: newRemote.length + ' mensaje(s) cargado(s) desde la historia',
                         action: 'OK'
                     });
@@ -26622,12 +26670,12 @@ window.Ethy = Ethy;
                 global.currentMessageIndex = msgs.length - 1;
                 if (typeof syncVnStore === 'function') syncVnStore({ messageIndex: global.currentMessageIndex });
                 if (typeof showCurrentMessage === 'function') showCurrentMessage('forward');
-                eventBus.emit('ui:show-toast', {
+                eventBus?.emit('ui:show-toast', {
                     text: 'Nuevo mensaje en la historia',
                     action: 'OK'
                 });
             } else {
-                eventBus.emit('ui:show-toast', {
+                eventBus?.emit('ui:show-toast', {
                     text: 'Nuevo mensaje recibido',
                     action: 'Ver ahora',
                     onAction: function () {
