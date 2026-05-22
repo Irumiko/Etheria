@@ -565,45 +565,40 @@ function renderVnPartyPanel(force = false) {
         return;
     }
 
-    // ── Ordenar personajes según topic.turnOrder (user_id queue) ─────────────
-    // Para cada charId buscamos el user_id de su propietario y lo ubicamos en
-    // la cola de turno. El que está en posición 0 es a quien le toca ahora.
-    const topicTurnQueue = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
-    const _rpgParticipants = typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [];
+    // ── Orden estable por slot (userIndex en characterLocks) ─────────────────
+    // El orden NO cambia según quién haya respondido; es fijo desde que entras.
+    // Ordenamos por el userIndex numérico del slot (0, 1, 2…) para consistencia.
     const _rpgLocks = Object.assign({}, topic?.characterLocks || {}, topic?.rpgCharacterLocks || {});
+    const _rpgParticipants = typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [];
 
+    function _charUserIndex(cid) {
+        const entry = Object.entries(_rpgLocks).find(([, v]) => String(v) === String(cid));
+        return entry ? parseInt(entry[0], 10) : Infinity;
+    }
     function _charOwnerUid(cid) {
         const ch = (appData?.characters || []).find(c => String(c.id) === String(cid));
         if (!ch) return null;
         if (ch.owner_user_id) return ch.owner_user_id;
-        // Fallback: buscar vía characterLocks (userIndex → charId, invertido)
         const lockEntry = Object.entries(_rpgLocks).find(([, v]) => String(v) === String(cid));
         if (!lockEntry) return null;
         return (_rpgParticipants.find(p => String(p.user_index) === String(lockEntry[0])) || {}).user_id || null;
     }
 
-    const sortedCharIds = [...charIds].sort((a, b) => {
-        const aPos = topicTurnQueue.indexOf(_charOwnerUid(a) || '');
-        const bPos = topicTurnQueue.indexOf(_charOwnerUid(b) || '');
-        return (aPos === -1 ? Infinity : aPos) - (bPos === -1 ? Infinity : bPos);
-    });
+    // Orden estable: slot 0 primero, slot 1 segundo, etc.
+    const sortedCharIds = [...charIds].sort((a, b) => _charUserIndex(a) - _charUserIndex(b));
 
     list.innerHTML = sortedCharIds.map((charId, idx) => {
         const entry = snapshot[charId];
         if (!entry) return '';
 
-        const hasResponded   = respondedThisCycle.has(String(charId));
-        const ownerUid       = _charOwnerUid(charId);
-        const isCurrentTurn  = topicTurnQueue.length > 0 && ownerUid && String(topicTurnQueue[0]) === String(ownerUid);
+        const hasResponded = respondedThisCycle.has(String(charId));
+        const ownerUid     = _charOwnerUid(charId);
 
         let state = '';
         let stateText = '';
         if (entry.critical) {
             state = 'critical';
             stateText = '💀 Reincorporación';
-        } else if (isCurrentTurn) {
-            state = 'active';
-            stateText = '⭐ Su turno';
         } else if (hasResponded) {
             state = 'responded';
             stateText = '✓ Respondió';
@@ -612,7 +607,7 @@ function renderVnPartyPanel(force = false) {
             stateText = '⏳ Esperando';
         }
 
-        const turnNumber = idx + 1;   // posición real en el queue de turno
+        const turnNumber = idx + 1;   // slot fijo: posición de entrada
         const hpPct  = Math.max(0, Math.min(100, (entry.hp  / entry.hpMax)  * 100));
         const expPct = Math.max(0, Math.min(100, (entry.exp / entry.expMax) * 100));
 

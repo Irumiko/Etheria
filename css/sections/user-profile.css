@@ -617,7 +617,7 @@
     border: 1px solid rgba(201, 168, 108, 0.15);
     border-radius: 6px;
     cursor: pointer;
-    transition: background 0.18s, border-color 0.18s;
+    transition: background 0.25s, border-color 0.25s, opacity 0.4s, filter 0.4s, box-shadow 0.4s;
     text-align: left;
     color: #e8d5b0;
     font-family: 'Crimson Text', Georgia, serif;
@@ -628,24 +628,37 @@
     border-color: rgba(201, 168, 108, 0.4);
 }
 
-.cp-member--responded {
-    opacity: 0.45;
-    cursor: default;
+/* Online: halo pulsante en el borde — estilo HUD de videojuego, sin punto */
+.cp-member--online {
+    border-color: rgba(201, 168, 108, 0.42);
+    animation: cp-halo-pulse 2.8s ease-in-out infinite;
 }
-.cp-member--responded:hover {
-    background: rgba(201, 168, 108, 0.06);
-    border-color: rgba(201, 168, 108, 0.15);
+@keyframes cp-halo-pulse {
+    0%,  100% { box-shadow: 0 0 5px rgba(201, 168, 108, 0.08), inset 0 0 4px rgba(201, 168, 108, 0.05); }
+    50%        { box-shadow: 0 0 14px rgba(201, 168, 108, 0.22), inset 0 0 8px rgba(201, 168, 108, 0.10); }
 }
 
-.cp-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #6b7280;
-    flex-shrink: 0;
-    transition: background 0.3s;
+/* Respondió: "luz apagada" — oscuro, desaturado, sin hover visible */
+.cp-member--responded {
+    opacity: 0.3;
+    filter: saturate(0.3) brightness(0.7);
+    background: rgba(8, 5, 2, 0.55);
+    border-color: rgba(201, 168, 108, 0.08);
+    cursor: default;
+    animation: none;   /* silenciar el halo si también era online */
 }
-.cp-dot--online { background: #4ade80; }
+.cp-member--responded:hover {
+    background: rgba(8, 5, 2, 0.55);
+    border-color: rgba(201, 168, 108, 0.08);
+}
+/* Online + ya respondió: halo muy tenue para saber que sigue conectado */
+.cp-member--online.cp-member--responded {
+    animation: cp-halo-responded 3.5s ease-in-out infinite;
+}
+@keyframes cp-halo-responded {
+    0%,  100% { box-shadow: 0 0 3px rgba(201, 168, 108, 0.04); }
+    50%        { box-shadow: 0 0 7px rgba(201, 168, 108, 0.10); }
+}
 
 .cp-name {
     flex: 1;

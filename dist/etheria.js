@@ -10941,45 +10941,40 @@ function renderVnPartyPanel(force = false) {
         return;
     }
 
-    // ── Ordenar personajes según topic.turnOrder (user_id queue) ─────────────
-    // Para cada charId buscamos el user_id de su propietario y lo ubicamos en
-    // la cola de turno. El que está en posición 0 es a quien le toca ahora.
-    const topicTurnQueue = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
-    const _rpgParticipants = typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [];
+    // ── Orden estable por slot (userIndex en characterLocks) ─────────────────
+    // El orden NO cambia según quién haya respondido; es fijo desde que entras.
+    // Ordenamos por el userIndex numérico del slot (0, 1, 2…) para consistencia.
     const _rpgLocks = Object.assign({}, topic?.characterLocks || {}, topic?.rpgCharacterLocks || {});
+    const _rpgParticipants = typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [];
 
+    function _charUserIndex(cid) {
+        const entry = Object.entries(_rpgLocks).find(([, v]) => String(v) === String(cid));
+        return entry ? parseInt(entry[0], 10) : Infinity;
+    }
     function _charOwnerUid(cid) {
         const ch = (appData?.characters || []).find(c => String(c.id) === String(cid));
         if (!ch) return null;
         if (ch.owner_user_id) return ch.owner_user_id;
-        // Fallback: buscar vía characterLocks (userIndex → charId, invertido)
         const lockEntry = Object.entries(_rpgLocks).find(([, v]) => String(v) === String(cid));
         if (!lockEntry) return null;
         return (_rpgParticipants.find(p => String(p.user_index) === String(lockEntry[0])) || {}).user_id || null;
     }
 
-    const sortedCharIds = [...charIds].sort((a, b) => {
-        const aPos = topicTurnQueue.indexOf(_charOwnerUid(a) || '');
-        const bPos = topicTurnQueue.indexOf(_charOwnerUid(b) || '');
-        return (aPos === -1 ? Infinity : aPos) - (bPos === -1 ? Infinity : bPos);
-    });
+    // Orden estable: slot 0 primero, slot 1 segundo, etc.
+    const sortedCharIds = [...charIds].sort((a, b) => _charUserIndex(a) - _charUserIndex(b));
 
     list.innerHTML = sortedCharIds.map((charId, idx) => {
         const entry = snapshot[charId];
         if (!entry) return '';
 
-        const hasResponded   = respondedThisCycle.has(String(charId));
-        const ownerUid       = _charOwnerUid(charId);
-        const isCurrentTurn  = topicTurnQueue.length > 0 && ownerUid && String(topicTurnQueue[0]) === String(ownerUid);
+        const hasResponded = respondedThisCycle.has(String(charId));
+        const ownerUid     = _charOwnerUid(charId);
 
         let state = '';
         let stateText = '';
         if (entry.critical) {
             state = 'critical';
             stateText = '💀 Reincorporación';
-        } else if (isCurrentTurn) {
-            state = 'active';
-            stateText = '⭐ Su turno';
         } else if (hasResponded) {
             state = 'responded';
             stateText = '✓ Respondió';
@@ -10988,7 +10983,7 @@ function renderVnPartyPanel(force = false) {
             stateText = '⏳ Esperando';
         }
 
-        const turnNumber = idx + 1;   // posición real en el queue de turno
+        const turnNumber = idx + 1;   // slot fijo: posición de entrada
         const hpPct  = Math.max(0, Math.min(100, (entry.hp  / entry.hpMax)  * 100));
         const expPct = Math.max(0, Math.min(100, (entry.exp / entry.expMax) * 100));
 
@@ -22902,15 +22897,36 @@ window.CollaborativeGuard = CollaborativeGuard;
         if (!global.currentTopicId || !global.appData) return null;
         return (global.appData.topics || []).find(t => String(t.id) === String(global.currentTopicId)) || null;
     }
-    function _hasResponded(userId) {
-        const topic = _currentTopic();
-        if (!topic || !topic.turnOrder || !topic.turnOrder.length) return false;
-        return String(topic.turnOrder[0]) !== String(userId);
-    }
     function _isOnline(userId) {
         return typeof SupabasePresence !== 'undefined'
             && typeof SupabasePresence.isUserOnline === 'function'
             && SupabasePresence.isUserOnline(userId);
+    }
+
+    /**
+     * Detecta qué participantes ya respondieron en el ciclo actual.
+     * Recorre los mensajes hacia atrás y acumula user_ids únicos.
+     * - Si ve un user_id repetido antes de completar el conjunto → corta (entramos en ciclo anterior).
+     * - Si completa el conjunto completo → ciclo terminado, nadie sigue "oscurecido".
+     * @param {Array} participants  Array de { user_id }
+     * @returns {Set<string>}       user_ids que ya respondieron este ciclo
+     */
+    function _respondedThisCycle(participants) {
+        const pIds = participants.map(p => p.user_id).filter(Boolean);
+        if (!pIds.length) return new Set();
+        const msgs = (global.appData?.messages?.[global.currentTopicId] || []);
+        const responded = new Set();
+        for (let i = msgs.length - 1; i >= 0; i--) {
+            const uid = msgs[i]?.userId || msgs[i]?.user_id;
+            if (!uid || !pIds.includes(uid)) continue;
+            if (responded.has(uid)) break;          // repetición → ciclo anterior
+            responded.add(uid);
+            if (responded.size === pIds.length) {   // ciclo completo → reset
+                responded.clear();
+                break;
+            }
+        }
+        return responded;
     }
     function _allChars() {
         return global.appData && global.appData.characters ? global.appData.characters : [];
@@ -23261,35 +23277,30 @@ window.CollaborativeGuard = CollaborativeGuard;
         shell.style.display = isClassicMode && participants && participants.length > 0 ? '' : 'none';
         if (!isClassicMode || !participants || !participants.length) return;
 
-        const lockMap   = topic
+        const lockMap    = topic
             ? Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {})
             : {};
-        const turnQueue = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
+        // Quién ha respondido en el ciclo actual (detección por historial de mensajes)
+        const respondedSet = _respondedThisCycle(participants);
 
-        // Ordenar participantes por su posición en el queue de turno:
-        // turnQueue[0] = le toca ahora, turnQueue[1] = siguiente, etc.
-        const sorted = [...participants].sort((a, b) => {
-            const ai = turnQueue.indexOf(a.user_id);
-            const bi = turnQueue.indexOf(b.user_id);
-            return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
-        });
+        // El orden NO cambia: participants ya viene ordenado por primer-mensaje (llegada)
+        list.innerHTML = participants.map(p => {
+            const charId    = lockMap[p.user_index] || lockMap[String(p.user_index)];
+            const char      = charId ? _allChars().find(c => String(c.id) === String(charId)) : null;
+            const name      = (char && char.name) || (p.profile && p.profile.name) || '?';
+            const genderKey = (char && char.gender) || '';
+            const gIcon     = GENDER_ICON[genderKey] || '';
+            const online    = _isOnline(p.user_id);
+            const responded = respondedSet.has(p.user_id);
+            const uid       = _esc(p.user_id || '');
 
-        list.innerHTML = sorted.map(p => {
-            const charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
-            const char   = charId ? _allChars().find(c => String(c.id) === String(charId)) : null;
+            const classes = ['cp-member'];
+            if (online)    classes.push('cp-member--online');
+            if (responded) classes.push('cp-member--responded');
 
-            const name          = (char && char.name) || (p.profile && p.profile.name) || '?';
-            const genderKey     = (char && char.gender) || '';
-            const gIcon         = GENDER_ICON[genderKey] || '';
-            const online        = _isOnline(p.user_id);
-            // El primero en turnQueue es a quien le toca; el resto aparece como "esperando"
-            const isCurrentTurn = turnQueue.length > 0 && String(turnQueue[0]) === String(p.user_id);
-            const uid           = _esc(p.user_id || '');
-
-            return `<button type="button" class="cp-member${!isCurrentTurn && turnQueue.length > 0 ? ' cp-member--responded' : ''}"
+            return `<button type="button" class="${classes.join(' ')}"
                         onclick="openUserProfileModal('${uid}')"
-                        title="${_esc(name)}${isCurrentTurn ? ' \xB7 Su turno' : ' \xB7 Esperando'}">
-                <span class="cp-dot${online ? ' cp-dot--online' : ''}"></span>
+                        title="${_esc(name)}${responded ? ' \xB7 Ya respondi\xF3' : ' \xB7 Esperando'}">
                 <span class="cp-name">${_esc(name)}</span>
                 ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
             </button>`;
