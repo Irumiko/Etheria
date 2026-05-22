@@ -23226,11 +23226,13 @@ body.mode-rpg #vnSection .vn-speaker-avatar-wrap::before {
     to   { transform: rotate(-360deg); }   /* ← antihorario: distinto del clásico */
 }
 
-/* ── RPG Party Shell: izquierda vertical, NO al fondo ─────────────────────
-   theme-menu/index.css lo mueve a bottom con !important.
-   08 viene después en el build → gana con mayor especificidad. */
+/* ── RPG Party Shell: izquierda vertical, debajo de la info card ───────────
+   La .vn-info-card ocupa top:20px + ~130px de alto ≈ 150px / 9.4rem.
+   Usamos 10.5rem para dejar ~20px de margen cómodo.
+   theme-menu/index.css lo mueve a bottom con !important; 08 gana porque
+   viene después en el build y añadimos especificidad + !important. */
 body.mode-rpg #vnPartyShell {
-    top: max(6.7rem, calc(env(safe-area-inset-top, 0px) + 5.9rem)) !important;
+    top: max(10.5rem, calc(env(safe-area-inset-top, 0px) + 9.7rem)) !important;
     bottom: auto !important;
     left: 0.85rem !important;
 }
@@ -23254,7 +23256,7 @@ body.mode-rpg #vnPartyShell .vn-party-bar-fill.exp {
 
 @media (max-width: 768px) {
     body.mode-rpg #vnPartyShell {
-        top: max(5.8rem, calc(env(safe-area-inset-top, 0px) + 4.9rem)) !important;
+        top: max(9rem, calc(env(safe-area-inset-top, 0px) + 8.2rem)) !important;
         left: 0.6rem !important;
     }
 }

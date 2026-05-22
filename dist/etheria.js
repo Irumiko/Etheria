@@ -23302,7 +23302,16 @@ window.CollaborativeGuard = CollaborativeGuard;
         }
     });
 
-    // Actualizar party clásico cuando cambian los participantes
+    // Render inicial del party clásico cuando se cargan los participantes de la historia
+    // (etheria:story-participants-loaded se emite en supabaseStories.js de forma async,
+    //  antes de que renderVnPartyPanel se llame con la lista rellena)
+    window.addEventListener('etheria:story-participants-loaded', function (e) {
+        if (!_isRpg() && e.detail && e.detail.participants) {
+            renderClassicParty(e.detail.participants);
+        }
+    });
+
+    // Actualizar party clásico cuando cambia la presencia online (usuarios entran/salen)
     window.addEventListener('etheria:story-presence-changed', function () {
         if (!_isRpg() && global.currentStoryParticipants) {
             renderClassicParty(global.currentStoryParticipants);
