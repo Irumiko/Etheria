@@ -1,10 +1,51 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" fill="none">
-  <ellipse cx="40" cy="68" rx="22" ry="6" fill="#c4b49a" opacity="0.35"/>
-  <rect x="14" y="18" width="52" height="42" rx="4" fill="none" stroke="#9c8870" stroke-width="1.5"/>
-  <path d="M28 34 Q40 20 52 34" stroke="#9c8870" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-  <path d="M35 42 Q37 38 40 42 Q43 38 45 42" stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-  <circle cx="33" cy="38" r="1.5" fill="#9c8870"/>
-  <circle cx="47" cy="38" r="1.5" fill="#9c8870"/>
-  <path d="M58 10 C58 10 62 22 55 24" stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-  <path d="M56 10 L60 8 L58 12" fill="#9c8870"/>
+  <defs>
+    <radialGradient id="eg-body" cx="50%" cy="30%" r="75%">
+      <stop offset="0%"   stop-color="#2a1c0e"/>
+      <stop offset="100%" stop-color="#0c0702"/>
+    </radialGradient>
+    <linearGradient id="eg-border" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="rgba(245,210,115,0.95)"/>
+      <stop offset="52%"  stop-color="rgba(200,160,65,0.80)"/>
+      <stop offset="100%" stop-color="rgba(155,115,40,0.90)"/>
+    </linearGradient>
+    <radialGradient id="eg-iris" cx="32%" cy="28%" r="68%">
+      <stop offset="0%"   stop-color="#f5e878"/>
+      <stop offset="45%"  stop-color="#c8920e"/>
+      <stop offset="100%" stop-color="#6a4802"/>
+    </radialGradient>
+    <radialGradient id="eg-screen" cx="50%" cy="42%" r="56%">
+      <stop offset="0%"   stop-color="rgba(190,150,65,0.07)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+  </defs>
+
+  <ellipse cx="40" cy="73" rx="19" ry="4.5" fill="#0e0904" opacity="0.45"/>
+  <rect x="6"  y="10" width="68" height="58" rx="18" fill="rgba(195,155,55,0.045)"/>
+  <rect x="11" y="13" width="58" height="52" rx="15" fill="url(#eg-body)"/>
+  <rect x="11" y="13" width="58" height="52" rx="15" stroke="url(#eg-border)" stroke-width="1.6" fill="none"/>
+  <rect x="19" y="13.5" width="30" height="1.1" rx="0.55" fill="rgba(255,240,165,0.30)"/>
+  <rect x="15" y="17"   width="50" height="44" rx="12"    fill="url(#eg-screen)"/>
+
+  <circle cx="14" cy="16" r="2" fill="rgba(220,178,85,0.55)"/>
+  <circle cx="66" cy="16" r="2" fill="rgba(220,178,85,0.55)"/>
+  <circle cx="14" cy="62" r="2" fill="rgba(220,178,85,0.38)"/>
+  <circle cx="66" cy="62" r="2" fill="rgba(220,178,85,0.38)"/>
+
+  <line x1="55" y1="22" x2="60" y2="8" stroke="rgba(208,172,82,0.82)" stroke-width="1.4" stroke-linecap="round"/>
+  <polygon points="60,4 57.5,9 62.5,9" fill="rgba(238,200,102,0.95)"/>
+  <circle cx="60" cy="6.5" r="4"   fill="rgba(225,188,80,0.12)"/>
+  <circle cx="60" cy="6.5" r="2"   fill="rgba(238,205,110,0.20)"/>
+  <circle cx="60" cy="6.5" r="0.9" fill="rgba(255,238,165,0.75)"/>
+
+  <!-- Ojos neutrales -->
+  <circle cx="30" cy="34" r="5.5" fill="url(#eg-iris)"/>
+  <circle cx="50" cy="34" r="5.5" fill="url(#eg-iris)"/>
+  <circle cx="30" cy="34" r="2.2" fill="#040302"/>
+  <circle cx="50" cy="34" r="2.2" fill="#040302"/>
+  <circle cx="27.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
+  <circle cx="47.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
+
+  <!-- Boca neutral -->
+  <path d="M34 49.5 Q40 52 46 49.5" stroke="rgba(210,175,90,0.92)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
 </svg>

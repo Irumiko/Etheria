@@ -3,21 +3,22 @@
    (Generado por split-components.js desde css/components.css)
    ═══════════════════════════════════════════════════════════════ */
 
-   PANEL DEL DUNGEON MASTER
-   ═══════════════════════════════════════════════════════════════════ */
+/* ── PANEL DEL DUNGEON MASTER ──────────────────────────────────── */
 
 .vn-dm-panel {
     position: fixed;
     right: 12px;
     top: 56px;
     z-index: var(--z-i-211);
-    width: 344px;
+    width: 320px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
     background: linear-gradient(160deg, rgba(20,12,5,0.99), rgba(12,8,3,0.99));
     border: 1px solid rgba(160,128,220,0.4);
     border-radius: 14px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,220,140,0.06);
     backdrop-filter: blur(20px);
-    flex-direction: column;
     overflow: hidden;
     animation: fadeIn 0.18s ease;
 }
@@ -79,7 +80,8 @@
     border-color: rgba(160,128,220,0.5);
     color: rgba(255,228,170,0.96);
 }
-.vn-dm-tab-panel { display: none; }
+/* Área scrollable: el header y tabbar quedan sticky, el contenido hace scroll */
+.vn-dm-tab-panel { display: none; overflow-y: auto; max-height: calc(80vh - 6.5rem); scrollbar-width: thin; scrollbar-color: rgba(160,128,220,0.2) transparent; }
 .vn-dm-tab-panel.active { display: block; }
 
 .vn-dm-section {
@@ -87,6 +89,20 @@
     border-bottom: 1px solid rgba(160,128,220,0.08);
 }
 .vn-dm-section:last-child { border-bottom: none; }
+
+/* Controles de HP — faltaban en el CSS original */
+.dm-hp-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.dm-hp-adj-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.dm-hp-adj-row .dm-btn { flex: 0 0 auto; min-width: 2.2rem; }
+.dm-hp-adj-row .dm-input { flex: 1; text-align: center; }
 
 .vn-dm-section-label {
     font-size: 0.6rem;

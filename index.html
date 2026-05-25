@@ -36,7 +36,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <!-- Preload de imagen de fondo del menú (recurso más pesado del first paint) -->
-    <link rel="preload" href="https://raw.githubusercontent.com/Irumiko/Etheria/main/assets/backgrounds/default_background.jpg" as="image" fetchpriority="low">
+    <link rel="preload" href="assets/backgrounds/default_background.jpg" as="image" fetchpriority="low">
     <link rel="stylesheet" href="css/critical.css">
     <link rel="preload" href="css/non-critical.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="css/non-critical.css"></noscript>
@@ -186,20 +186,15 @@
             </div>
 
     <!-- Panel de party modo clásico -->
-    <div id="classicPartyShell" class="classic-party-shell" style="display:none;">
-        <button id="classicPartyTab" class="classic-party-tab" type="button"
-                aria-label="Personajes en escena" aria-expanded="false"
-                onclick="toggleClassicParty()">
-            <span class="classic-party-tab-icon">✦</span>
-            <span class="classic-party-tab-label">En escena</span>
-        </button>
-        <aside id="classicPartyPanel" class="classic-party-panel" aria-label="Personajes en escena">
+    <div id="classicPartyShell" class="classic-party-shell" style="display:none;" aria-label="Personajes en escena">
+        <div class="classic-party-panel">
             <div class="classic-party-header">
+                <span class="classic-party-ornament">✦</span>
                 <span class="classic-party-title">En escena</span>
-                <button class="classic-party-close" type="button" onclick="toggleClassicParty()" aria-label="Cerrar">✕</button>
+                <span class="classic-party-ornament">✦</span>
             </div>
             <div id="classicPartyList" class="classic-party-list"></div>
-        </aside>
+        </div>
     </div>
 
     <!-- Modal de perfil de usuario -->
@@ -881,13 +876,8 @@
                 <div class="ihp-relations" id="ihpRelations"></div>
                 <!-- Condiciones activas (RPG) -->
                 <div class="ihp-conditions" id="ihpConditions" style="display:none;"></div>
-                <!-- Botón editar stats (solo RPG, visible en pinned) -->
+                <!-- Botón inventario — solo visible en RPG + pinned + dueño del personaje -->
                 <div class="ihp-oracle-hint" id="ihpOracleHint" style="display:none;">
-                    <button class="ihp-stats-edit-btn" onclick="openSelectedCharacterStats()" title="Ver y editar stats del personaje">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        Editar stats
-                    </button>
-                    <!-- Botón inventario — solo visible en RPG + pinned + dueño del personaje -->
                     <button class="ihp-inventory-btn" id="ihpInventoryBtn" onclick="toggleIhpInventory()" title="Inventario" style="display:none;">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
                         Inventario
@@ -982,12 +972,8 @@
                         <option value="">— Personaje —</option>
                     </select>
                     <div class="dm-hp-adj-row">
-                        <button class="dm-btn dm-btn-dmg" onclick="dmAdjustHp(-1)" title="Dañar">−</button>
-                        <input type="number" id="dmHpAmount" class="dm-input dm-hp-input" value="1" min="1" max="99" aria-label="Cantidad de HP">
-                        <button class="dm-btn dm-btn-heal" onclick="dmAdjustHp(1)" title="Curar">+</button>
-                    </div>
-                    <div class="dm-btn-row">
                         <button class="dm-btn dm-btn-dmg" onclick="dmAdjustHp(-1)">🩸 Dañar</button>
+                        <input type="number" id="dmHpAmount" class="dm-input dm-hp-input" value="1" min="1" max="99" aria-label="Cantidad de HP">
                         <button class="dm-btn dm-btn-heal" onclick="dmAdjustHp(1)">💚 Curar</button>
                     </div>
                 </div>

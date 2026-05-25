@@ -161,6 +161,28 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     const oracleMini = document.getElementById('vnOracleMiniPanel');
     if (oracleMini) oracleMini.style.display = 'none';
 
+    // Cerrar panel del Dungeon Master
+    const dmPanel = document.getElementById('vnDmPanel');
+    if (dmPanel) dmPanel.style.display = 'none';
+
+    // Cerrar panel de narración
+    const narratePanel = document.getElementById('vnNarratePanel');
+    if (narratePanel) narratePanel.style.display = 'none';
+
+    // Cerrar y ocultar party panel completamente
+    if (typeof closeVnPartyPanel === 'function') closeVnPartyPanel(true);
+    const partyShell = document.getElementById('vnPartyShell');
+    if (partyShell) partyShell.style.display = 'none';
+    const partyBackdrop = document.getElementById('vnPartyBackdrop');
+    if (partyBackdrop) partyBackdrop.style.display = 'none';
+    // Ocultar también presencia de sala
+    const presencePanel = document.getElementById('vnPresencePanel');
+    if (presencePanel) presencePanel.style.display = 'none';
+
+    // Ocultar panel de personajes del modo clásico
+    const classicPartyShell = document.getElementById('classicPartyShell');
+    if (classicPartyShell) classicPartyShell.style.display = 'none';
+
     if (clearTopic) {
         // Cancelar suscripción realtime al salir de una historia
         if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribe === 'function') {

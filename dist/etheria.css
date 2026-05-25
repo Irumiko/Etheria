@@ -14993,21 +14993,22 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
    (Generado por split-components.js desde css/components.css)
    ═══════════════════════════════════════════════════════════════ */
 
-   PANEL DEL DUNGEON MASTER
-   ═══════════════════════════════════════════════════════════════════ */
+/* ── PANEL DEL DUNGEON MASTER ──────────────────────────────────── */
 
 .vn-dm-panel {
     position: fixed;
     right: 12px;
     top: 56px;
     z-index: var(--z-i-211);
-    width: 344px;
+    width: 320px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
     background: linear-gradient(160deg, rgba(20,12,5,0.99), rgba(12,8,3,0.99));
     border: 1px solid rgba(160,128,220,0.4);
     border-radius: 14px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,220,140,0.06);
     backdrop-filter: blur(20px);
-    flex-direction: column;
     overflow: hidden;
     animation: fadeIn 0.18s ease;
 }
@@ -15069,7 +15070,8 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     border-color: rgba(160,128,220,0.5);
     color: rgba(255,228,170,0.96);
 }
-.vn-dm-tab-panel { display: none; }
+/* Área scrollable: el header y tabbar quedan sticky, el contenido hace scroll */
+.vn-dm-tab-panel { display: none; overflow-y: auto; max-height: calc(80vh - 6.5rem); scrollbar-width: thin; scrollbar-color: rgba(160,128,220,0.2) transparent; }
 .vn-dm-tab-panel.active { display: block; }
 
 .vn-dm-section {
@@ -15077,6 +15079,20 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     border-bottom: 1px solid rgba(160,128,220,0.08);
 }
 .vn-dm-section:last-child { border-bottom: none; }
+
+/* Controles de HP — faltaban en el CSS original */
+.dm-hp-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.dm-hp-adj-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+.dm-hp-adj-row .dm-btn { flex: 0 0 auto; min-width: 2.2rem; }
+.dm-hp-adj-row .dm-input { flex: 1; text-align: center; }
 
 .vn-dm-section-label {
     font-size: 0.6rem;
@@ -17377,20 +17393,20 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     cursor: grab;
     transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease,
                 filter 0.3s ease;
-    /* Sin background-image — cara renderizada con SVG inline */
+    filter: drop-shadow(0 4px 18px rgba(180, 130, 30, 0.28))
+            drop-shadow(0 0 8px rgba(201, 168, 60, 0.14));
 }
 [data-theme="light"] .ethy-body {
-    filter: contrast(1.18) saturate(1.12) drop-shadow(0 4px 10px rgba(95, 60, 18, 0.22));
-}
-[data-theme="light"] .ethy-svg .ethy-part-outline,
-[data-theme="light"] .ethy-svg .ethy-part-outline-soft {
-    stroke: rgba(82, 48, 12, 0.92);
-}
-[data-theme="light"] .ethy-svg .ethy-part-face-main {
-    filter: saturate(1.05) contrast(1.08);
+    filter: drop-shadow(0 4px 14px rgba(120, 80, 10, 0.32))
+            drop-shadow(0 0 10px rgba(180, 140, 40, 0.18))
+            contrast(1.08) saturate(1.12);
 }
 
-.ethy-body:hover  { transform: scale(1.1); }
+.ethy-body:hover {
+    transform: scale(1.1);
+    filter: drop-shadow(0 6px 22px rgba(200, 155, 40, 0.45))
+            drop-shadow(0 0 14px rgba(220, 175, 60, 0.25));
+}
 .ethy-body:active { transform: scale(0.95); }
 
 /* SVG inline de Ethy */
@@ -17400,31 +17416,22 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     overflow: visible;
 }
 
-/* Transiciones suaves en partes de la cara */
+/* Transiciones de grupos de ojos y boca */
+.ethy-svg [class^="ethy-eyes-"],
 .ethy-svg [class^="ethy-mouth-"],
 .ethy-svg .ethy-part-cheeks {
-    transition: opacity 0.25s ease;
+    transition: opacity 0.28s ease;
 }
+
+/* Blink sigue usando ethy-eye-left/right dentro del grupo activo */
 .ethy-svg .ethy-eye-left,
-.ethy-svg .ethy-eye-right,
-.ethy-svg .ethy-pupil-left,
-.ethy-svg .ethy-pupil-right {
-    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+.ethy-svg .ethy-eye-right {
     transform-box: fill-box;
     transform-origin: center;
 }
 
-/* Antena vibra en excited */
-@keyframes ethyAntennaExcited {
-    0%, 100% { transform: rotate(0deg); }
-    25%       { transform: rotate(14deg); }
-    75%       { transform: rotate(-14deg); }
-}
-.ethy-antenna-excited {
-    animation: ethyAntennaExcited 0.28s ease-in-out infinite !important;
-    transform-box: fill-box;
-    transform-origin: 55% 90%;
-}
+/* Antena — estática, sin rotación.
+   La vibración causaba artefactos visuales. El glow del filtro excited la anima. */
 
 /* Parpadeo automático */
 @keyframes ethyBlink {
@@ -17446,19 +17453,49 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     75%       { transform: translateY(-10px) rotate(2deg); }
 }
 
-/* Expresiones — filter global de apoyo */
-.ethy-expression-neutral    { /* sin filtro */ }
-.ethy-expression-happy      { filter: brightness(1.15) saturate(1.2); }
-.ethy-expression-excited    { filter: brightness(1.2) saturate(1.5); animation: ethyExcitedBounce 0.35s ease-in-out infinite; }
-.ethy-expression-sad        { filter: brightness(0.75) saturate(0.5); }
-.ethy-expression-surprised  { filter: brightness(1.1); }
-.ethy-expression-thoughtful { filter: brightness(0.9) sepia(0.15); }
-.ethy-expression-wink       { filter: brightness(1.1) saturate(1.2); }
-.ethy-expression-love       { filter: brightness(1.15) sepia(0.3) saturate(1.8) hue-rotate(-10deg); }
+/* Expresiones — solo filtros de color, sin transforms en el body
+   (los transforms en .ethy-body rompían las animaciones de cara y causaban
+   rotaciones que daban aspecto uncanny; el JS ya anima las partes del SVG) */
+.ethy-expression-neutral    { /* base */ }
 
+.ethy-expression-happy {
+    filter: drop-shadow(0 0 10px rgba(220, 185, 80, 0.35))
+            brightness(1.12) saturate(1.20);
+}
+
+.ethy-expression-excited {
+    filter: drop-shadow(0 0 14px rgba(230, 190, 60, 0.50))
+            brightness(1.18) saturate(1.45);
+    animation: ethyExcitedBounce 0.55s ease-in-out infinite;
+}
+
+.ethy-expression-sad {
+    filter: brightness(0.80) saturate(0.50);
+}
+
+.ethy-expression-surprised {
+    filter: drop-shadow(0 0 12px rgba(240, 215, 90, 0.42))
+            brightness(1.12);
+}
+
+.ethy-expression-thoughtful {
+    filter: brightness(0.90) saturate(0.80) sepia(0.15);
+}
+
+.ethy-expression-wink {
+    filter: drop-shadow(0 0 8px rgba(210, 178, 80, 0.30))
+            brightness(1.10) saturate(1.15);
+}
+
+.ethy-expression-love {
+    filter: drop-shadow(0 0 12px rgba(210, 145, 155, 0.38))
+            brightness(1.10) saturate(1.50) hue-rotate(-10deg);
+}
+
+/* Bounce suave sin rotaciones */
 @keyframes ethyExcitedBounce {
-    0%, 100% { transform: scale(1.05) translateY(0); }
-    50%       { transform: scale(1.1)  translateY(-5px); }
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-5px); }
 }
 
 /* Burbuja de diálogo */
@@ -17466,23 +17503,25 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     position: absolute;
     bottom: 100%;
     right: 0;
-    margin-bottom: 15px;
-    background: linear-gradient(145deg, #2a2520 0%, #1a1815 100%);
-    border: 2px solid #c9a86c;
-    border-radius: 20px;
-    padding: 15px 20px;
-    min-width: 250px;
-    max-width: 350px;
-    color: #e8d5a3;
+    margin-bottom: 12px;
+    background: linear-gradient(150deg, rgba(28, 20, 10, 0.98) 0%, rgba(14, 10, 4, 0.98) 100%);
+    border: 1px solid rgba(210, 175, 85, 0.55);
+    border-radius: 16px;
+    padding: 14px 18px;
+    min-width: 240px;
+    max-width: 340px;
+    color: #ecdcb0;
     font-family: 'Cinzel', serif;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    box-shadow: 
-        0 10px 40px rgba(0, 0, 0, 0.4),
-        0 0 20px rgba(201, 168, 108, 0.1);
+    font-size: 0.88rem;
+    line-height: 1.65;
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(201, 168, 60, 0.08) inset,
+        0 0 24px rgba(180, 140, 40, 0.10);
+    backdrop-filter: blur(12px);
     opacity: 0;
-    transform: translateY(20px) scale(0.9);
-    transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transform: translateY(18px) scale(0.92);
+    transition: all 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
     pointer-events: auto;
 }
 
@@ -17495,37 +17534,44 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 .ethy-speech-bubble::after {
     content: '';
     position: absolute;
-    bottom: -12px;
-    right: 30px;
+    bottom: -10px;
+    right: 28px;
     width: 0;
     height: 0;
-    border-left: 12px solid transparent;
-    border-right: 12px solid transparent;
-    border-top: 12px solid #c9a86c;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid rgba(210, 175, 85, 0.55);
 }
 
 .ethy-speech-bubble::before {
     content: '';
     position: absolute;
-    bottom: -8px;
-    right: 32px;
+    bottom: -7px;
+    right: 30px;
     width: 0;
     height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 10px solid #2a2520;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid rgba(14, 10, 4, 0.98);
     z-index: var(--z-i-1);
 }
 
 /* Título en la burbuja */
 .ethy-speech-bubble .ethy-title {
-    font-size: 1.1rem;
-    font-weight: bold;
-    color: #c9a86c;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(220, 185, 95, 0.90);
     margin-bottom: 8px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+}
+.ethy-title-gem {
+    font-size: 0.55rem;
+    color: rgba(240, 200, 100, 0.70);
+    line-height: 1;
 }
 
 /* Botones de acción en la burbuja */
@@ -17537,29 +17583,33 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 }
 
 .ethy-btn {
-    padding: 8px 16px;
-    border: 1px solid #c9a86c;
-    background: transparent;
-    color: #c9a86c;
+    padding: 6px 14px;
+    border: 1px solid rgba(201, 168, 80, 0.45);
+    background: rgba(201, 168, 80, 0.07);
+    color: rgba(220, 185, 95, 0.9);
     border-radius: 8px;
     cursor: pointer;
     font-family: 'Cinzel', serif;
-    font-size: 0.85rem;
-    transition: all 0.2s ease;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    transition: background 0.18s, border-color 0.18s, color 0.18s;
 }
 
 .ethy-btn:hover {
-    background: #c9a86c;
-    color: #1a1815;
+    background: rgba(201, 168, 80, 0.20);
+    border-color: rgba(220, 185, 95, 0.75);
+    color: rgba(245, 215, 120, 1);
 }
 
 .ethy-btn.primary {
-    background: #c9a86c;
-    color: #1a1815;
+    background: rgba(201, 168, 80, 0.20);
+    border-color: rgba(220, 185, 95, 0.70);
+    color: rgba(240, 210, 110, 1);
 }
 
 .ethy-btn.primary:hover {
-    background: #e8d5a3;
+    background: rgba(201, 168, 80, 0.32);
+    border-color: rgba(240, 200, 100, 0.90);
 }
 
 /* Indicador de pasos */
@@ -17686,23 +17736,24 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     }
 }
 
-/* Modo oscuro ajustes */
+/* Modo oscuro — el diseño nuevo ya es dark-native, ajustes mínimos */
 [data-theme="dark"] .ethy-body {
-    filter: brightness(1.12) saturate(1.08) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.44));
+    filter: drop-shadow(0 5px 22px rgba(190, 145, 35, 0.35))
+            drop-shadow(0 0 10px rgba(201, 168, 60, 0.18));
 }
 
 [data-theme="dark"] .ethy-speech-bubble {
-    background: linear-gradient(145deg, #1a1815 0%, #0d0c0a 100%);
-    border-color: #d4b87a;
-    color: #f0e6cc;
+    background: linear-gradient(150deg, rgba(20, 14, 6, 0.99) 0%, rgba(10, 7, 2, 0.99) 100%);
+    border-color: rgba(210, 175, 85, 0.60);
+    color: #f2e4c0;
 }
 
 [data-theme="dark"] .ethy-speech-bubble::before {
-    border-top-color: #1a1815;
+    border-top-color: rgba(10, 7, 2, 0.99);
 }
 
 [data-theme="dark"] .ethy-speech-bubble::after {
-    border-top-color: #d4b87a;
+    border-top-color: rgba(210, 175, 85, 0.60);
 }
 
 /* Tooltip de ayuda contextual */
@@ -23226,15 +23277,17 @@ body.mode-rpg #vnSection .vn-speaker-avatar-wrap::before {
     to   { transform: rotate(-360deg); }   /* ← antihorario: distinto del clásico */
 }
 
-/* ── RPG Party Shell: izquierda vertical, debajo de la info card ───────────
-   La .vn-info-card ocupa top:20px + ~130px de alto ≈ 150px / 9.4rem.
-   Usamos 10.5rem para dejar ~20px de margen cómodo.
-   theme-menu/index.css lo mueve a bottom con !important; 08 gana porque
-   viene después en el build y añadimos especificidad + !important. */
+/* ── RPG Party Shell: lado DERECHO, bajo la barra de herramientas ──────────
+   .vn-controls está pegado al right:0.8rem con ~48px de ancho.
+   Usamos right:4.2rem para dejar margen entre panel y barra.
+   top:1.4rem lo aleja del borde superior sin chocar con la toolbar.
+   theme-menu/index.css lo mueve a bottom/left con !important;
+   08 gana porque viene después y añadimos especificidad + !important. */
 body.mode-rpg #vnPartyShell {
-    top: max(10.5rem, calc(env(safe-area-inset-top, 0px) + 9.7rem)) !important;
+    top: 1.4rem !important;
+    right: 4.2rem !important;
     bottom: auto !important;
-    left: 0.85rem !important;
+    left: auto !important;
 }
 
 /* Colores del panel RPG party: ámbar/bronce en lugar del morado base */
@@ -23256,8 +23309,89 @@ body.mode-rpg #vnPartyShell .vn-party-bar-fill.exp {
 
 @media (max-width: 768px) {
     body.mode-rpg #vnPartyShell {
-        top: max(9rem, calc(env(safe-area-inset-top, 0px) + 8.2rem)) !important;
-        left: 0.6rem !important;
+        top: 1.2rem !important;
+        right: 3.8rem !important;
+        left: auto !important;
+    }
+}
+
+/* ── DM Panel en modo RPG: esquina inferior-IZQUIERDA ───────────────────────
+   Pegado a la pared izquierda, por encima del suelo. El dialogue box
+   está centrado y no llega al borde izquierdo, así el panel cabe sin chocar. */
+body.mode-rpg .vn-dm-panel {
+    left: 8px !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 1rem !important;
+    max-height: 50vh !important;
+    border-color: rgba(180, 140, 80, 0.40) !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.65), inset 0 1px 0 rgba(200,165,80,0.08) !important;
+}
+body.mode-rpg .vn-dm-panel-header {
+    border-bottom-color: rgba(180, 140, 80, 0.18) !important;
+    background: rgba(18, 11, 4, 0.98) !important;
+}
+body.mode-rpg .vn-dm-panel-title {
+    color: rgba(220, 182, 100, 0.85) !important;
+}
+body.mode-rpg .vn-dm-panel-header button {
+    color: rgba(180, 140, 80, 0.4) !important;
+}
+body.mode-rpg .vn-dm-panel-header button:hover {
+    color: rgba(225, 185, 100, 0.85) !important;
+}
+body.mode-rpg .vn-dm-tabbar {
+    border-bottom-color: rgba(180, 140, 80, 0.12) !important;
+}
+body.mode-rpg .vn-dm-tab {
+    border-color: rgba(180, 140, 80, 0.20) !important;
+    background: rgba(180, 140, 80, 0.05) !important;
+    color: rgba(180, 140, 80, 0.60) !important;
+}
+body.mode-rpg .vn-dm-tab:hover {
+    border-color: rgba(180, 140, 80, 0.45) !important;
+    color: rgba(225, 194, 135, 0.90) !important;
+}
+body.mode-rpg .vn-dm-tab.active {
+    background: rgba(180, 140, 80, 0.20) !important;
+    border-color: rgba(180, 140, 80, 0.50) !important;
+    color: rgba(255, 228, 170, 0.96) !important;
+}
+body.mode-rpg .vn-dm-section {
+    border-bottom-color: rgba(180, 140, 80, 0.08) !important;
+}
+body.mode-rpg .dm-char-row {
+    border-color: rgba(180, 140, 80, 0.10) !important;
+}
+body.mode-rpg .dm-cond-tag {
+    border-color: rgba(180, 140, 80, 0.20) !important;
+}
+body.mode-rpg .dm-select {
+    border-color: rgba(180, 140, 80, 0.20) !important;
+    color: rgba(220, 190, 130, 0.85) !important;
+}
+body.mode-rpg .dm-select:focus {
+    border-color: rgba(180, 140, 80, 0.50) !important;
+}
+body.mode-rpg .dm-btn,
+body.mode-rpg .dm-btn-primary {
+    border-color: rgba(180, 140, 80, 0.30) !important;
+    color: rgba(220, 185, 110, 0.85) !important;
+}
+body.mode-rpg .dm-btn:hover,
+body.mode-rpg .dm-btn-primary:hover {
+    background: rgba(180, 140, 80, 0.15) !important;
+    border-color: rgba(180, 140, 80, 0.55) !important;
+}
+
+@media (max-width: 768px) {
+    body.mode-rpg .vn-dm-panel {
+        left: 4px !important;
+        right: auto !important;
+        bottom: 0.75rem !important;
+        top: auto !important;
+        max-height: 40vh !important;
+        width: 290px !important;
     }
 }
 
@@ -26927,176 +27061,136 @@ body:has(#topicsSection.active) {
 .upm-stat-adj--plus  { border-color: rgba(100, 200, 120, 0.35); color: #80c890; }
 .upm-stat-adj--plus:hover  { background: rgba(100, 200, 120, 0.2); border-color: rgba(100, 200, 120, 0.6); color: #a0e0b0; }
 
+/* Valor de stat en staging (aún no confirmado) */
+.upm-rpg-stat-val--up {
+    color: #a8e090;
+    text-shadow: 0 0 8px rgba(120, 220, 100, 0.45);
+}
+
+/* Barra confirmar/cancelar cambios de stats */
+.upm-rpg-confirm-bar {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding: 0.55rem 0 0.1rem;
+    margin-top: 0.3rem;
+    border-top: 1px solid rgba(180, 140, 80, 0.15);
+}
+.upm-rpg-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.upm-rpg-btn--cancel {
+    background: rgba(180, 140, 80, 0.06);
+    border-color: rgba(180, 140, 80, 0.22);
+    color: rgba(200, 165, 110, 0.65);
+}
+.upm-rpg-btn--cancel:hover {
+    background: rgba(180, 140, 80, 0.14);
+    border-color: rgba(180, 140, 80, 0.45);
+    color: rgba(220, 185, 130, 0.90);
+}
+.upm-rpg-btn--confirm {
+    background: rgba(100, 175, 80, 0.12);
+    border-color: rgba(100, 200, 90, 0.35);
+    color: #90d878;
+}
+.upm-rpg-btn--confirm:hover {
+    background: rgba(100, 175, 80, 0.24);
+    border-color: rgba(100, 200, 90, 0.60);
+    color: #b0f090;
+}
+
 /* ============================================================
-   Panel de party clásico (classic-party-shell)
+   Panel de party clásico — estética otome/constelaciones
+   Posición idéntica al panel RPG (top-right), diseño independiente.
    ============================================================ */
 
 .classic-party-shell {
     position: fixed;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 4.2rem;
+    top: 1.4rem;
     z-index: 800;
-    display: flex;
-    align-items: stretch;
-    pointer-events: none;
+    width: 172px;
 }
 
-.classic-party-shell.open .classic-party-panel {
-    transform: translateX(0);
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.classic-party-tab {
-    pointer-events: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
-    background: rgba(42, 30, 15, 0.9);
-    border: 1px solid rgba(201, 168, 108, 0.4);
-    border-right: none;
-    border-radius: 8px 0 0 8px;
-    padding: 0.75rem 0.45rem;
-    cursor: pointer;
-    color: #c9a86c;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    min-width: 32px;
-    backdrop-filter: blur(6px);
-    transition: background 0.2s, border-color 0.2s;
-    align-self: center;
-    height: 80px;
-}
-.classic-party-tab:hover {
-    background: rgba(60, 42, 18, 0.95);
-    border-color: rgba(201, 168, 108, 0.7);
-}
-
-.classic-party-tab-icon {
-    font-size: 0.95rem;
-}
-.classic-party-tab-label {
-    font-family: 'Cinzel', Georgia, serif;
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-/* Panel lateral */
 .classic-party-panel {
-    pointer-events: auto;
-    width: 200px;
-    background: rgba(30, 20, 8, 0.97);
-    border: 1px solid rgba(201, 168, 108, 0.3);
-    border-right: none;
-    border-radius: 10px 0 0 10px;
-    display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    opacity: 0;
-    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
-    backdrop-filter: blur(10px);
+    background: rgba(7, 5, 18, 0.93);
+    border: 1px solid rgba(155, 135, 200, 0.22);
+    border-radius: 12px;
+    backdrop-filter: blur(18px);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.60),
+        0 0 0 1px rgba(120, 100, 180, 0.06),
+        inset 0 1px 0 rgba(200, 185, 245, 0.05);
     overflow: hidden;
 }
 
 .classic-party-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.65rem 0.75rem 0.55rem;
-    border-bottom: 1px solid rgba(201, 168, 108, 0.15);
-    flex-shrink: 0;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.48rem 0.7rem 0.42rem;
+    border-bottom: 1px solid rgba(155, 135, 200, 0.12);
+    background: rgba(120, 100, 180, 0.04);
+}
+
+.classic-party-ornament {
+    font-size: 0.5rem;
+    color: rgba(180, 162, 225, 0.35);
+    line-height: 1;
 }
 
 .classic-party-title {
     font-family: 'Cinzel', Georgia, serif;
-    font-size: 0.75rem;
-    letter-spacing: 0.12em;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(201, 168, 108, 0.8);
+    color: rgba(195, 178, 238, 0.60);
 }
-
-.classic-party-close {
-    background: transparent;
-    border: none;
-    color: rgba(201, 168, 108, 0.45);
-    font-size: 0.85rem;
-    cursor: pointer;
-    padding: 0.15rem 0.3rem;
-    border-radius: 4px;
-    line-height: 1;
-    transition: color 0.2s, background 0.2s;
-}
-.classic-party-close:hover { color: #c9a86c; background: rgba(201, 168, 108, 0.1); }
 
 .classic-party-list {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.5rem;
+    gap: 0.08rem;
+    padding: 0.35rem 0.4rem;
+    max-height: 55vh;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(201, 168, 108, 0.2) transparent;
+    scrollbar-color: rgba(155, 135, 200, 0.15) transparent;
 }
-.classic-party-list::-webkit-scrollbar { width: 4px; }
-.classic-party-list::-webkit-scrollbar-thumb { background: rgba(201, 168, 108, 0.2); border-radius: 2px; }
+.classic-party-list::-webkit-scrollbar { width: 3px; }
+.classic-party-list::-webkit-scrollbar-thumb { background: rgba(155, 135, 200, 0.18); border-radius: 2px; }
 
-/* ── Miembro de party (clásico) ───────────────────────────── */
+/* ── Tarjeta de miembro ───────────────────────────────────── */
 .cp-member {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: space-between;
+    gap: 0.35rem;
     width: 100%;
-    padding: 0.45rem 0.55rem;
-    background: rgba(201, 168, 108, 0.06);
-    border: 1px solid rgba(201, 168, 108, 0.15);
-    border-radius: 6px;
+    padding: 0.36rem 0.48rem;
+    background: rgba(255, 255, 255, 0.018);
+    border: 1px solid rgba(155, 135, 200, 0.10);
+    border-radius: 7px;
     cursor: pointer;
-    transition: background 0.25s, border-color 0.25s, opacity 0.4s, filter 0.4s, box-shadow 0.4s;
     text-align: left;
-    color: #e8d5b0;
+    color: rgba(215, 205, 245, 0.82);
     font-family: 'Crimson Text', Georgia, serif;
-    font-size: 0.9rem;
+    transition: background 0.22s, border-color 0.22s, opacity 0.35s, filter 0.35s, box-shadow 0.35s;
 }
 .cp-member:hover {
-    background: rgba(201, 168, 108, 0.13);
-    border-color: rgba(201, 168, 108, 0.4);
-}
-
-/* Online: halo pulsante en el borde — estilo HUD de videojuego, sin punto */
-.cp-member--online {
-    border-color: rgba(201, 168, 108, 0.42);
-    animation: cp-halo-pulse 2.8s ease-in-out infinite;
-}
-@keyframes cp-halo-pulse {
-    0%,  100% { box-shadow: 0 0 5px rgba(201, 168, 108, 0.08), inset 0 0 4px rgba(201, 168, 108, 0.05); }
-    50%        { box-shadow: 0 0 14px rgba(201, 168, 108, 0.22), inset 0 0 8px rgba(201, 168, 108, 0.10); }
-}
-
-/* Respondió: "luz apagada" — oscuro, desaturado, sin hover visible */
-.cp-member--responded {
-    opacity: 0.3;
-    filter: saturate(0.3) brightness(0.7);
-    background: rgba(8, 5, 2, 0.55);
-    border-color: rgba(201, 168, 108, 0.08);
-    cursor: default;
-    animation: none;   /* silenciar el halo si también era online */
-}
-.cp-member--responded:hover {
-    background: rgba(8, 5, 2, 0.55);
-    border-color: rgba(201, 168, 108, 0.08);
-}
-/* Online + ya respondió: halo muy tenue para saber que sigue conectado */
-.cp-member--online.cp-member--responded {
-    animation: cp-halo-responded 3.5s ease-in-out infinite;
-}
-@keyframes cp-halo-responded {
-    0%,  100% { box-shadow: 0 0 3px rgba(201, 168, 108, 0.04); }
-    50%        { box-shadow: 0 0 7px rgba(201, 168, 108, 0.10); }
+    background: rgba(155, 135, 200, 0.08);
+    border-color: rgba(155, 135, 200, 0.30);
+    color: rgba(235, 225, 255, 0.96);
 }
 
 .cp-name {
@@ -27105,18 +27199,63 @@ body:has(#topicsSection.active) {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 0.88rem;
+    font-size: 0.82rem;
+    letter-spacing: 0.01em;
 }
 
 .cp-gender {
-    font-size: 0.75rem;
-    color: rgba(201, 168, 108, 0.5);
+    font-size: 0.72rem;
     flex-shrink: 0;
+    opacity: 0.65;
 }
 
-/* ── Responsive: ocultar en pantallas muy pequeñas ────────── */
+/* ── Online: destello suave de constelación ───────────────── */
+.cp-member--online {
+    border-color: rgba(155, 135, 200, 0.26);
+    animation: cp-star-pulse 3.2s ease-in-out infinite;
+}
+@keyframes cp-star-pulse {
+    0%,  100% {
+        box-shadow: 0 0 5px rgba(150, 130, 210, 0.06),
+                    inset 0 0 3px rgba(150, 130, 210, 0.04);
+    }
+    50% {
+        box-shadow: 0 0 14px rgba(150, 130, 210, 0.18),
+                    inset 0 0 7px rgba(150, 130, 210, 0.08);
+    }
+}
+
+/* ── Respondió: "estrella apagada" ───────────────────────── */
+.cp-member--responded {
+    opacity: 0.25;
+    filter: saturate(0.2) brightness(0.55);
+    background: rgba(4, 3, 12, 0.55);
+    border-color: rgba(155, 135, 200, 0.06);
+    cursor: default;
+    animation: none;
+}
+.cp-member--responded:hover {
+    background: rgba(4, 3, 12, 0.55);
+    border-color: rgba(155, 135, 200, 0.06);
+}
+/* Conectado pero ya respondió: pulso muy tenue, como una estrella lejana */
+.cp-member--online.cp-member--responded {
+    animation: cp-star-dim 4.5s ease-in-out infinite;
+}
+@keyframes cp-star-dim {
+    0%,  100% { opacity: 0.25; }
+    50%        { opacity: 0.32; }
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .classic-party-shell {
+        right: 3.8rem;
+        top: 1.2rem;
+        width: 150px;
+    }
+}
 @media (max-width: 400px) {
-    .classic-party-panel { width: 165px; }
     .upm-card { padding: 1.25rem 1rem 1rem; }
     .upm-stats-grid { grid-template-columns: 1fr; }
     .upm-rpg-stat-grid { grid-template-columns: 1fr; }

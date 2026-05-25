@@ -488,176 +488,136 @@
 .upm-stat-adj--plus  { border-color: rgba(100, 200, 120, 0.35); color: #80c890; }
 .upm-stat-adj--plus:hover  { background: rgba(100, 200, 120, 0.2); border-color: rgba(100, 200, 120, 0.6); color: #a0e0b0; }
 
+/* Valor de stat en staging (aún no confirmado) */
+.upm-rpg-stat-val--up {
+    color: #a8e090;
+    text-shadow: 0 0 8px rgba(120, 220, 100, 0.45);
+}
+
+/* Barra confirmar/cancelar cambios de stats */
+.upm-rpg-confirm-bar {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    padding: 0.55rem 0 0.1rem;
+    margin-top: 0.3rem;
+    border-top: 1px solid rgba(180, 140, 80, 0.15);
+}
+.upm-rpg-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.upm-rpg-btn--cancel {
+    background: rgba(180, 140, 80, 0.06);
+    border-color: rgba(180, 140, 80, 0.22);
+    color: rgba(200, 165, 110, 0.65);
+}
+.upm-rpg-btn--cancel:hover {
+    background: rgba(180, 140, 80, 0.14);
+    border-color: rgba(180, 140, 80, 0.45);
+    color: rgba(220, 185, 130, 0.90);
+}
+.upm-rpg-btn--confirm {
+    background: rgba(100, 175, 80, 0.12);
+    border-color: rgba(100, 200, 90, 0.35);
+    color: #90d878;
+}
+.upm-rpg-btn--confirm:hover {
+    background: rgba(100, 175, 80, 0.24);
+    border-color: rgba(100, 200, 90, 0.60);
+    color: #b0f090;
+}
+
 /* ============================================================
-   Panel de party clásico (classic-party-shell)
+   Panel de party clásico — estética otome/constelaciones
+   Posición idéntica al panel RPG (top-right), diseño independiente.
    ============================================================ */
 
 .classic-party-shell {
     position: fixed;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 4.2rem;
+    top: 1.4rem;
     z-index: 800;
-    display: flex;
-    align-items: stretch;
-    pointer-events: none;
+    width: 172px;
 }
 
-.classic-party-shell.open .classic-party-panel {
-    transform: translateX(0);
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.classic-party-tab {
-    pointer-events: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
-    background: rgba(42, 30, 15, 0.9);
-    border: 1px solid rgba(201, 168, 108, 0.4);
-    border-right: none;
-    border-radius: 8px 0 0 8px;
-    padding: 0.75rem 0.45rem;
-    cursor: pointer;
-    color: #c9a86c;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    min-width: 32px;
-    backdrop-filter: blur(6px);
-    transition: background 0.2s, border-color 0.2s;
-    align-self: center;
-    height: 80px;
-}
-.classic-party-tab:hover {
-    background: rgba(60, 42, 18, 0.95);
-    border-color: rgba(201, 168, 108, 0.7);
-}
-
-.classic-party-tab-icon {
-    font-size: 0.95rem;
-}
-.classic-party-tab-label {
-    font-family: 'Cinzel', Georgia, serif;
-    font-size: 0.6rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-/* Panel lateral */
 .classic-party-panel {
-    pointer-events: auto;
-    width: 200px;
-    background: rgba(30, 20, 8, 0.97);
-    border: 1px solid rgba(201, 168, 108, 0.3);
-    border-right: none;
-    border-radius: 10px 0 0 10px;
-    display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    opacity: 0;
-    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
-    backdrop-filter: blur(10px);
+    background: rgba(7, 5, 18, 0.93);
+    border: 1px solid rgba(155, 135, 200, 0.22);
+    border-radius: 12px;
+    backdrop-filter: blur(18px);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.60),
+        0 0 0 1px rgba(120, 100, 180, 0.06),
+        inset 0 1px 0 rgba(200, 185, 245, 0.05);
     overflow: hidden;
 }
 
 .classic-party-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.65rem 0.75rem 0.55rem;
-    border-bottom: 1px solid rgba(201, 168, 108, 0.15);
-    flex-shrink: 0;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.48rem 0.7rem 0.42rem;
+    border-bottom: 1px solid rgba(155, 135, 200, 0.12);
+    background: rgba(120, 100, 180, 0.04);
+}
+
+.classic-party-ornament {
+    font-size: 0.5rem;
+    color: rgba(180, 162, 225, 0.35);
+    line-height: 1;
 }
 
 .classic-party-title {
     font-family: 'Cinzel', Georgia, serif;
-    font-size: 0.75rem;
-    letter-spacing: 0.12em;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: rgba(201, 168, 108, 0.8);
+    color: rgba(195, 178, 238, 0.60);
 }
-
-.classic-party-close {
-    background: transparent;
-    border: none;
-    color: rgba(201, 168, 108, 0.45);
-    font-size: 0.85rem;
-    cursor: pointer;
-    padding: 0.15rem 0.3rem;
-    border-radius: 4px;
-    line-height: 1;
-    transition: color 0.2s, background 0.2s;
-}
-.classic-party-close:hover { color: #c9a86c; background: rgba(201, 168, 108, 0.1); }
 
 .classic-party-list {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.5rem;
+    gap: 0.08rem;
+    padding: 0.35rem 0.4rem;
+    max-height: 55vh;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: rgba(201, 168, 108, 0.2) transparent;
+    scrollbar-color: rgba(155, 135, 200, 0.15) transparent;
 }
-.classic-party-list::-webkit-scrollbar { width: 4px; }
-.classic-party-list::-webkit-scrollbar-thumb { background: rgba(201, 168, 108, 0.2); border-radius: 2px; }
+.classic-party-list::-webkit-scrollbar { width: 3px; }
+.classic-party-list::-webkit-scrollbar-thumb { background: rgba(155, 135, 200, 0.18); border-radius: 2px; }
 
-/* ── Miembro de party (clásico) ───────────────────────────── */
+/* ── Tarjeta de miembro ───────────────────────────────────── */
 .cp-member {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: space-between;
+    gap: 0.35rem;
     width: 100%;
-    padding: 0.45rem 0.55rem;
-    background: rgba(201, 168, 108, 0.06);
-    border: 1px solid rgba(201, 168, 108, 0.15);
-    border-radius: 6px;
+    padding: 0.36rem 0.48rem;
+    background: rgba(255, 255, 255, 0.018);
+    border: 1px solid rgba(155, 135, 200, 0.10);
+    border-radius: 7px;
     cursor: pointer;
-    transition: background 0.25s, border-color 0.25s, opacity 0.4s, filter 0.4s, box-shadow 0.4s;
     text-align: left;
-    color: #e8d5b0;
+    color: rgba(215, 205, 245, 0.82);
     font-family: 'Crimson Text', Georgia, serif;
-    font-size: 0.9rem;
+    transition: background 0.22s, border-color 0.22s, opacity 0.35s, filter 0.35s, box-shadow 0.35s;
 }
 .cp-member:hover {
-    background: rgba(201, 168, 108, 0.13);
-    border-color: rgba(201, 168, 108, 0.4);
-}
-
-/* Online: halo pulsante en el borde — estilo HUD de videojuego, sin punto */
-.cp-member--online {
-    border-color: rgba(201, 168, 108, 0.42);
-    animation: cp-halo-pulse 2.8s ease-in-out infinite;
-}
-@keyframes cp-halo-pulse {
-    0%,  100% { box-shadow: 0 0 5px rgba(201, 168, 108, 0.08), inset 0 0 4px rgba(201, 168, 108, 0.05); }
-    50%        { box-shadow: 0 0 14px rgba(201, 168, 108, 0.22), inset 0 0 8px rgba(201, 168, 108, 0.10); }
-}
-
-/* Respondió: "luz apagada" — oscuro, desaturado, sin hover visible */
-.cp-member--responded {
-    opacity: 0.3;
-    filter: saturate(0.3) brightness(0.7);
-    background: rgba(8, 5, 2, 0.55);
-    border-color: rgba(201, 168, 108, 0.08);
-    cursor: default;
-    animation: none;   /* silenciar el halo si también era online */
-}
-.cp-member--responded:hover {
-    background: rgba(8, 5, 2, 0.55);
-    border-color: rgba(201, 168, 108, 0.08);
-}
-/* Online + ya respondió: halo muy tenue para saber que sigue conectado */
-.cp-member--online.cp-member--responded {
-    animation: cp-halo-responded 3.5s ease-in-out infinite;
-}
-@keyframes cp-halo-responded {
-    0%,  100% { box-shadow: 0 0 3px rgba(201, 168, 108, 0.04); }
-    50%        { box-shadow: 0 0 7px rgba(201, 168, 108, 0.10); }
+    background: rgba(155, 135, 200, 0.08);
+    border-color: rgba(155, 135, 200, 0.30);
+    color: rgba(235, 225, 255, 0.96);
 }
 
 .cp-name {
@@ -666,18 +626,63 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 0.88rem;
+    font-size: 0.82rem;
+    letter-spacing: 0.01em;
 }
 
 .cp-gender {
-    font-size: 0.75rem;
-    color: rgba(201, 168, 108, 0.5);
+    font-size: 0.72rem;
     flex-shrink: 0;
+    opacity: 0.65;
 }
 
-/* ── Responsive: ocultar en pantallas muy pequeñas ────────── */
+/* ── Online: destello suave de constelación ───────────────── */
+.cp-member--online {
+    border-color: rgba(155, 135, 200, 0.26);
+    animation: cp-star-pulse 3.2s ease-in-out infinite;
+}
+@keyframes cp-star-pulse {
+    0%,  100% {
+        box-shadow: 0 0 5px rgba(150, 130, 210, 0.06),
+                    inset 0 0 3px rgba(150, 130, 210, 0.04);
+    }
+    50% {
+        box-shadow: 0 0 14px rgba(150, 130, 210, 0.18),
+                    inset 0 0 7px rgba(150, 130, 210, 0.08);
+    }
+}
+
+/* ── Respondió: "estrella apagada" ───────────────────────── */
+.cp-member--responded {
+    opacity: 0.25;
+    filter: saturate(0.2) brightness(0.55);
+    background: rgba(4, 3, 12, 0.55);
+    border-color: rgba(155, 135, 200, 0.06);
+    cursor: default;
+    animation: none;
+}
+.cp-member--responded:hover {
+    background: rgba(4, 3, 12, 0.55);
+    border-color: rgba(155, 135, 200, 0.06);
+}
+/* Conectado pero ya respondió: pulso muy tenue, como una estrella lejana */
+.cp-member--online.cp-member--responded {
+    animation: cp-star-dim 4.5s ease-in-out infinite;
+}
+@keyframes cp-star-dim {
+    0%,  100% { opacity: 0.25; }
+    50%        { opacity: 0.32; }
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .classic-party-shell {
+        right: 3.8rem;
+        top: 1.2rem;
+        width: 150px;
+    }
+}
 @media (max-width: 400px) {
-    .classic-party-panel { width: 165px; }
     .upm-card { padding: 1.25rem 1rem 1rem; }
     .upm-stats-grid { grid-template-columns: 1fr; }
     .upm-rpg-stat-grid { grid-template-columns: 1fr; }

@@ -108,15 +108,17 @@ body.mode-rpg #vnSection .vn-speaker-avatar-wrap::before {
     to   { transform: rotate(-360deg); }   /* ← antihorario: distinto del clásico */
 }
 
-/* ── RPG Party Shell: izquierda vertical, debajo de la info card ───────────
-   La .vn-info-card ocupa top:20px + ~130px de alto ≈ 150px / 9.4rem.
-   Usamos 10.5rem para dejar ~20px de margen cómodo.
-   theme-menu/index.css lo mueve a bottom con !important; 08 gana porque
-   viene después en el build y añadimos especificidad + !important. */
+/* ── RPG Party Shell: lado DERECHO, bajo la barra de herramientas ──────────
+   .vn-controls está pegado al right:0.8rem con ~48px de ancho.
+   Usamos right:4.2rem para dejar margen entre panel y barra.
+   top:1.4rem lo aleja del borde superior sin chocar con la toolbar.
+   theme-menu/index.css lo mueve a bottom/left con !important;
+   08 gana porque viene después y añadimos especificidad + !important. */
 body.mode-rpg #vnPartyShell {
-    top: max(10.5rem, calc(env(safe-area-inset-top, 0px) + 9.7rem)) !important;
+    top: 1.4rem !important;
+    right: 4.2rem !important;
     bottom: auto !important;
-    left: 0.85rem !important;
+    left: auto !important;
 }
 
 /* Colores del panel RPG party: ámbar/bronce en lugar del morado base */
@@ -138,7 +140,88 @@ body.mode-rpg #vnPartyShell .vn-party-bar-fill.exp {
 
 @media (max-width: 768px) {
     body.mode-rpg #vnPartyShell {
-        top: max(9rem, calc(env(safe-area-inset-top, 0px) + 8.2rem)) !important;
-        left: 0.6rem !important;
+        top: 1.2rem !important;
+        right: 3.8rem !important;
+        left: auto !important;
+    }
+}
+
+/* ── DM Panel en modo RPG: esquina inferior-IZQUIERDA ───────────────────────
+   Pegado a la pared izquierda, por encima del suelo. El dialogue box
+   está centrado y no llega al borde izquierdo, así el panel cabe sin chocar. */
+body.mode-rpg .vn-dm-panel {
+    left: 8px !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 1rem !important;
+    max-height: 50vh !important;
+    border-color: rgba(180, 140, 80, 0.40) !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.65), inset 0 1px 0 rgba(200,165,80,0.08) !important;
+}
+body.mode-rpg .vn-dm-panel-header {
+    border-bottom-color: rgba(180, 140, 80, 0.18) !important;
+    background: rgba(18, 11, 4, 0.98) !important;
+}
+body.mode-rpg .vn-dm-panel-title {
+    color: rgba(220, 182, 100, 0.85) !important;
+}
+body.mode-rpg .vn-dm-panel-header button {
+    color: rgba(180, 140, 80, 0.4) !important;
+}
+body.mode-rpg .vn-dm-panel-header button:hover {
+    color: rgba(225, 185, 100, 0.85) !important;
+}
+body.mode-rpg .vn-dm-tabbar {
+    border-bottom-color: rgba(180, 140, 80, 0.12) !important;
+}
+body.mode-rpg .vn-dm-tab {
+    border-color: rgba(180, 140, 80, 0.20) !important;
+    background: rgba(180, 140, 80, 0.05) !important;
+    color: rgba(180, 140, 80, 0.60) !important;
+}
+body.mode-rpg .vn-dm-tab:hover {
+    border-color: rgba(180, 140, 80, 0.45) !important;
+    color: rgba(225, 194, 135, 0.90) !important;
+}
+body.mode-rpg .vn-dm-tab.active {
+    background: rgba(180, 140, 80, 0.20) !important;
+    border-color: rgba(180, 140, 80, 0.50) !important;
+    color: rgba(255, 228, 170, 0.96) !important;
+}
+body.mode-rpg .vn-dm-section {
+    border-bottom-color: rgba(180, 140, 80, 0.08) !important;
+}
+body.mode-rpg .dm-char-row {
+    border-color: rgba(180, 140, 80, 0.10) !important;
+}
+body.mode-rpg .dm-cond-tag {
+    border-color: rgba(180, 140, 80, 0.20) !important;
+}
+body.mode-rpg .dm-select {
+    border-color: rgba(180, 140, 80, 0.20) !important;
+    color: rgba(220, 190, 130, 0.85) !important;
+}
+body.mode-rpg .dm-select:focus {
+    border-color: rgba(180, 140, 80, 0.50) !important;
+}
+body.mode-rpg .dm-btn,
+body.mode-rpg .dm-btn-primary {
+    border-color: rgba(180, 140, 80, 0.30) !important;
+    color: rgba(220, 185, 110, 0.85) !important;
+}
+body.mode-rpg .dm-btn:hover,
+body.mode-rpg .dm-btn-primary:hover {
+    background: rgba(180, 140, 80, 0.15) !important;
+    border-color: rgba(180, 140, 80, 0.55) !important;
+}
+
+@media (max-width: 768px) {
+    body.mode-rpg .vn-dm-panel {
+        left: 4px !important;
+        right: auto !important;
+        bottom: 0.75rem !important;
+        top: auto !important;
+        max-height: 40vh !important;
+        width: 290px !important;
     }
 }

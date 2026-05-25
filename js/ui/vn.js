@@ -536,6 +536,22 @@ function highlightVnPartyCharacter(charId) {
     }
 }
 
+// Construye participantes mínimos desde characterLocks cuando no hay datos de Supabase.
+// Permite mostrar el panel clásico en historias locales/offline.
+function _buildLocalClassicParticipants(topic) {
+    if (!topic) return [];
+    const locks = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
+    return Object.entries(locks).map(function([uiStr, charId]) {
+        const char = (appData?.characters || []).find(function(c) { return String(c.id) === String(charId); });
+        if (!char) return null;
+        return {
+            user_id: char.owner_user_id || ('local-' + uiStr),
+            user_index: parseInt(uiStr, 10),
+            profile: { name: char.name }
+        };
+    }).filter(Boolean);
+}
+
 function renderVnPartyPanel(force = false) {
     ensureVnPartyPanelBindings();
     const shell = document.getElementById('vnPartyShell');
@@ -553,9 +569,12 @@ function renderVnPartyPanel(force = false) {
     if (!shouldShow) {
         closeVnPartyPanel(true);
         list.innerHTML = '';
-        // Mostrar panel clásico si corresponde
-        if (typeof renderClassicParty === 'function' && typeof currentStoryParticipants !== 'undefined') {
-            renderClassicParty(currentStoryParticipants);
+        // Mostrar panel clásico si corresponde (fallback local si no hay participantes Supabase)
+        if (typeof renderClassicParty === 'function') {
+            const _cpts = Array.isArray(currentStoryParticipants) && currentStoryParticipants.length > 0
+                ? currentStoryParticipants
+                : _buildLocalClassicParticipants(topic);
+            renderClassicParty(_cpts);
         }
         return;
     }
@@ -4810,8 +4829,11 @@ window._scanForPendingMasterRolls  = _scanForPendingMasterRolls;
         if (typeof _checkAndShowMasterRollBar === 'function') _checkAndShowMasterRollBar();
         // Re-renderizar paneles de party con el nuevo orden de turno
         renderVnPartyPanel(true);
-        if (typeof renderClassicParty === 'function' && typeof currentStoryParticipants !== 'undefined') {
-            renderClassicParty(currentStoryParticipants);
+        if (typeof renderClassicParty === 'function') {
+            const _cpts2 = Array.isArray(currentStoryParticipants) && currentStoryParticipants.length > 0
+                ? currentStoryParticipants
+                : _buildLocalClassicParticipants(typeof getCurrentTopic === 'function' ? getCurrentTopic() : null);
+            renderClassicParty(_cpts2);
         }
     }
     function _onStoryEntered(e) {

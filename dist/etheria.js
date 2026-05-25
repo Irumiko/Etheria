@@ -5420,6 +5420,28 @@ function resetVNTransientState({ clearTopic = false } = {}) {
     const oracleMini = document.getElementById('vnOracleMiniPanel');
     if (oracleMini) oracleMini.style.display = 'none';
 
+    // Cerrar panel del Dungeon Master
+    const dmPanel = document.getElementById('vnDmPanel');
+    if (dmPanel) dmPanel.style.display = 'none';
+
+    // Cerrar panel de narración
+    const narratePanel = document.getElementById('vnNarratePanel');
+    if (narratePanel) narratePanel.style.display = 'none';
+
+    // Cerrar y ocultar party panel completamente
+    if (typeof closeVnPartyPanel === 'function') closeVnPartyPanel(true);
+    const partyShell = document.getElementById('vnPartyShell');
+    if (partyShell) partyShell.style.display = 'none';
+    const partyBackdrop = document.getElementById('vnPartyBackdrop');
+    if (partyBackdrop) partyBackdrop.style.display = 'none';
+    // Ocultar también presencia de sala
+    const presencePanel = document.getElementById('vnPresencePanel');
+    if (presencePanel) presencePanel.style.display = 'none';
+
+    // Ocultar panel de personajes del modo clásico
+    const classicPartyShell = document.getElementById('classicPartyShell');
+    if (classicPartyShell) classicPartyShell.style.display = 'none';
+
     if (clearTopic) {
         // Cancelar suscripción realtime al salir de una historia
         if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.unsubscribe === 'function') {
@@ -10912,6 +10934,22 @@ function highlightVnPartyCharacter(charId) {
     }
 }
 
+// Construye participantes mínimos desde characterLocks cuando no hay datos de Supabase.
+// Permite mostrar el panel clásico en historias locales/offline.
+function _buildLocalClassicParticipants(topic) {
+    if (!topic) return [];
+    const locks = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
+    return Object.entries(locks).map(function([uiStr, charId]) {
+        const char = (appData?.characters || []).find(function(c) { return String(c.id) === String(charId); });
+        if (!char) return null;
+        return {
+            user_id: char.owner_user_id || ('local-' + uiStr),
+            user_index: parseInt(uiStr, 10),
+            profile: { name: char.name }
+        };
+    }).filter(Boolean);
+}
+
 function renderVnPartyPanel(force = false) {
     ensureVnPartyPanelBindings();
     const shell = document.getElementById('vnPartyShell');
@@ -10929,9 +10967,12 @@ function renderVnPartyPanel(force = false) {
     if (!shouldShow) {
         closeVnPartyPanel(true);
         list.innerHTML = '';
-        // Mostrar panel clásico si corresponde
-        if (typeof renderClassicParty === 'function' && typeof currentStoryParticipants !== 'undefined') {
-            renderClassicParty(currentStoryParticipants);
+        // Mostrar panel clásico si corresponde (fallback local si no hay participantes Supabase)
+        if (typeof renderClassicParty === 'function') {
+            const _cpts = Array.isArray(currentStoryParticipants) && currentStoryParticipants.length > 0
+                ? currentStoryParticipants
+                : _buildLocalClassicParticipants(topic);
+            renderClassicParty(_cpts);
         }
         return;
     }
@@ -15186,8 +15227,11 @@ window._scanForPendingMasterRolls  = _scanForPendingMasterRolls;
         if (typeof _checkAndShowMasterRollBar === 'function') _checkAndShowMasterRollBar();
         // Re-renderizar paneles de party con el nuevo orden de turno
         renderVnPartyPanel(true);
-        if (typeof renderClassicParty === 'function' && typeof currentStoryParticipants !== 'undefined') {
-            renderClassicParty(currentStoryParticipants);
+        if (typeof renderClassicParty === 'function') {
+            const _cpts2 = Array.isArray(currentStoryParticipants) && currentStoryParticipants.length > 0
+                ? currentStoryParticipants
+                : _buildLocalClassicParticipants(typeof getCurrentTopic === 'function' ? getCurrentTopic() : null);
+            renderClassicParty(_cpts2);
         }
     }
     function _onStoryEntered(e) {
@@ -23045,9 +23089,9 @@ window.CollaborativeGuard = CollaborativeGuard;
             ? `<img class="upm-avatar" src="${_esc(d.avatarUrl)}" alt="${_esc(d.displayName)}">`
             : `<div class="upm-avatar upm-avatar--initials">${_esc((d.displayName[0] || '?').toUpperCase())}</div>`;
 
-        const editBtnLabel = isRpg ? '✎ Editar' : 'Editar perfil';
-        const editBtn = d.isSelf
-            ? `<button class="upm-edit-btn" id="upmEditToggleBtn" type="button" onclick="toggleProfileEdit()">${editBtnLabel}</button>`
+        // En modo RPG no hay botón de editar: los stats se gestionan inline con +/-/Confirmar
+        const editBtn = d.isSelf && !isRpg
+            ? `<button class="upm-edit-btn" id="upmEditToggleBtn" type="button" onclick="toggleProfileEdit()">Editar perfil</button>`
             : '';
 
         const metaSection = (tz || bio) ? `
@@ -23197,30 +23241,48 @@ window.CollaborativeGuard = CollaborativeGuard;
 
     // ── Stats RPG inline ─────────────────────────────────────
 
+    // Deltas pendientes de confirmar: { [stat]: totalDelta }
+    let _stagedDeltas = {};
+
     function _renderRpgStatBlock(d) {
         const { char, profile, freePoints } = d.rpgSheet;
         if (!char || !profile) return '';
         const stats   = (profile && profile.stats) || {};
         const canEdit = freePoints > 0;
 
+        // Puntos gastados en la stage actual (solo subidas)
+        const stagedCost = Object.values(_stagedDeltas).reduce((s, v) => s + Math.max(0, v), 0);
+        const remaining  = freePoints - stagedCost;
+        const hasPending = Object.values(_stagedDeltas).some(v => v !== 0);
+
         const rows = Object.entries(RPG_STAT_LABELS).map(([key, label]) => {
-            const val  = stats[key] || 8;
-            const cid  = _esc(String(char.id));
-            const minus = canEdit
-                ? `<button class="upm-stat-adj upm-stat-adj--minus" onclick="upmAdjustStat('${cid}','${key}',-1)" aria-label="Reducir ${label}">−</button>`
+            const base    = stats[key] || 8;
+            const staged  = _stagedDeltas[key] || 0;
+            const val     = base + staged;
+            const cid     = _esc(String(char.id));
+            // El + solo aparece si quedan puntos libres; el − aparece si hay staged positivo en esa stat
+            const minus = (canEdit && staged > 0)
+                ? `<button class="upm-stat-adj upm-stat-adj--minus" onclick="upmStageStat('${cid}','${key}',-1)" aria-label="Reducir ${label}">−</button>`
                 : '';
-            const plus = canEdit
-                ? `<button class="upm-stat-adj upm-stat-adj--plus" onclick="upmAdjustStat('${cid}','${key}',1)" aria-label="Aumentar ${label}">+</button>`
+            const plus = (canEdit && remaining > 0)
+                ? `<button class="upm-stat-adj upm-stat-adj--plus" onclick="upmStageStat('${cid}','${key}',1)" aria-label="Aumentar ${label}">+</button>`
                 : '';
+            const valClass = staged > 0 ? ' upm-rpg-stat-val--up' : '';
             return `<div class="upm-rpg-stat-row">
                 <span class="upm-rpg-stat-name">${label}</span>
-                ${minus}<span class="upm-rpg-stat-val">${val}</span>${plus}
+                ${minus}<span class="upm-rpg-stat-val${valClass}">${val}</span>${plus}
             </div>`;
         }).join('');
 
-        const ptsEl = freePoints > 0
-            ? `<span class="upm-rpg-free-pts">${freePoints} pts. libres</span>`
+        const ptsEl = canEdit
+            ? `<span class="upm-rpg-free-pts">${remaining} pts. libres</span>`
             : `<span class="upm-rpg-pts-done">Completo</span>`;
+
+        const confirmBar = (canEdit && hasPending) ? `
+            <div class="upm-rpg-confirm-bar">
+                <button class="upm-rpg-btn upm-rpg-btn--cancel" onclick="upmCancelStats()">Cancelar</button>
+                <button class="upm-rpg-btn upm-rpg-btn--confirm" onclick="upmConfirmStats('${_esc(String(char.id))}')">Confirmar</button>
+            </div>` : '';
 
         return `
         <div id="upmRpgStatBlock" class="upm-rpg-stat-block">
@@ -23230,23 +23292,35 @@ window.CollaborativeGuard = CollaborativeGuard;
                 ${ptsEl}
             </div>
             <div class="upm-rpg-stat-grid">${rows}</div>
+            ${confirmBar}
         </div>`;
     }
 
-    // ── Ajuste de stat desde el modal (sin recargar red) ─────
+    // ── Stage local de stats (no persiste hasta confirmar) ───
 
-    function upmAdjustStat(charId, stat, delta) {
+    function upmStageStat(charId, stat, delta) {
+        if (!_cachedProfileData) return;
+        _stagedDeltas[stat] = (_stagedDeltas[stat] || 0) + delta;
+        _refreshStatBlock();
+    }
+
+    function upmConfirmStats(charId) {
         if (typeof adjustRpgStat !== 'function' || !_cachedProfileData) return;
-        adjustRpgStat(charId, stat, delta);
+        Object.entries(_stagedDeltas).forEach(([stat, delta]) => {
+            if (delta !== 0) adjustRpgStat(charId, stat, delta);
+        });
+        _stagedDeltas = {};
+        _refreshStatBlockFromProfile();
+    }
 
-        // Actualizar rpgSheet del cache con datos en memoria
-        const topic = _currentTopic();
-        if (!topic) return;
-        const char = _allChars().find(c => String(c.id) === String(charId));
-        if (!char || typeof getRpgSheetData !== 'function') return;
-        _cachedProfileData.rpgSheet = { char, ...getRpgSheetData(char, topic.id) };
+    function upmCancelStats() {
+        _stagedDeltas = {};
+        _refreshStatBlock();
+    }
 
-        // Reemplazar solo el bloque de stats en el DOM
+    // Refresca solo el bloque de stats con datos actuales del cache
+    function _refreshStatBlock() {
+        if (!_cachedProfileData) return;
         const block = document.getElementById('upmRpgStatBlock');
         if (!block) return;
         const tmp = document.createElement('div');
@@ -23254,18 +23328,28 @@ window.CollaborativeGuard = CollaborativeGuard;
         if (tmp.firstElementChild) block.replaceWith(tmp.firstElementChild);
     }
 
+    // Recarga el rpgSheet desde datos reales (tras confirmar)
+    function _refreshStatBlockFromProfile() {
+        if (!_cachedProfileData) return;
+        const topic = _currentTopic();
+        if (!topic) { _refreshStatBlock(); return; }
+        const char = _allChars().find(c => String(c.id) === String(_cachedProfileData.rpgSheet?.char?.id));
+        if (char && typeof getRpgSheetData === 'function') {
+            _cachedProfileData.rpgSheet = { char, ...getRpgSheetData(char, topic.id) };
+        }
+        _refreshStatBlock();
+    }
+
+    // ── Ajuste de stat desde el modal — mantenido para compat. ──
+    // (ya no lo llama _renderRpgStatBlock; se usa staging en su lugar)
+    function upmAdjustStat(charId, stat, delta) {
+        upmStageStat(charId, stat, delta);
+    }
+
     // ── Panel de party clásico ───────────────────────────────
 
-    let _classicPartyOpen = false;
-
-    function toggleClassicParty() {
-        _classicPartyOpen = !_classicPartyOpen;
-        const shell = document.getElementById('classicPartyShell');
-        const tab   = document.getElementById('classicPartyTab');
-        if (!shell) return;
-        shell.classList.toggle('open', _classicPartyOpen);
-        if (tab) tab.setAttribute('aria-expanded', String(_classicPartyOpen));
-    }
+    // El panel clásico es siempre visible cuando hay participantes (no hay toggle).
+    function toggleClassicParty() { /* sin-op: panel siempre visible */ }
 
     function renderClassicParty(participants) {
         const shell = document.getElementById('classicPartyShell');
@@ -23314,6 +23398,9 @@ window.CollaborativeGuard = CollaborativeGuard;
     global.saveUserMeta          = saveUserMeta;
     global.toggleProfileEdit     = toggleProfileEdit;
     global.upmAdjustStat         = upmAdjustStat;
+    global.upmStageStat          = upmStageStat;
+    global.upmConfirmStats       = upmConfirmStats;
+    global.upmCancelStats        = upmCancelStats;
     global.toggleClassicParty    = toggleClassicParty;
     global.renderClassicParty    = renderClassicParty;
 
@@ -24396,7 +24483,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /* js/ethy.js */
-// ============================================
+﻿// ============================================
 // ETHY - La mascota guía de Etheria
 // ============================================
 // Sistema de guía interactiva con múltiples expresiones y tutoriales
@@ -24439,20 +24526,24 @@ const Ethy = (function() {
     let _clickTimer = null;
     let _sleepTimeout = null;
     let _isSleeping = false;
+    let _autocloseTimeout = null;
+    let _currentSayText = '';
+    let _currentSayButtons = [];
+    let _currentSayDuration = 0;
     const SLEEP_DELAY = 150000; // 2.5 minutos sin interacción
     const POSITION_KEY = 'etheria_ethy_pos';
     const MINIMIZED_KEY = 'etheria_ethy_minimized';
 
     // ── Expresiones disponibles ──────────────────────────────────────────────
     const EXPRESSIONS = {
-        neutral: { class: 'ethy-expression-neutral', emoji: 'ㆆ_ㆆ' },
-        sad: { class: 'ethy-expression-sad', emoji: '˘︹˘' },
-        happy: { class: 'ethy-expression-happy', emoji: '─‿‿─' },
-        excited: { class: 'ethy-expression-excited', emoji: '≧◉◡◉≦' },
-        surprised: { class: 'ethy-expression-surprised', emoji: '◉_◉' },
-        thoughtful: { class: 'ethy-expression-thoughtful', emoji: '¬‿¬' },
-        wink: { class: 'ethy-expression-wink', emoji: '◠‿◠' },
-        love: { class: 'ethy-expression-love', emoji: '♥‿♥' }
+        neutral:    { class: 'ethy-expression-neutral',    emoji: '◉ ◉' },
+        sad:        { class: 'ethy-expression-sad',        emoji: '╥_╥' },
+        happy:      { class: 'ethy-expression-happy',      emoji: '◠‿◠' },
+        excited:    { class: 'ethy-expression-excited',    emoji: '★ ★' },
+        surprised:  { class: 'ethy-expression-surprised',  emoji: '◎_◎' },
+        thoughtful: { class: 'ethy-expression-thoughtful', emoji: '◑ ◐' },
+        wink:       { class: 'ethy-expression-wink',       emoji: '◠ ◉' },
+        love:       { class: 'ethy-expression-love',       emoji: '♡ ♡' }
     };
 
     // ── Tutoriales por sección ───────────────────────────────────────────────
@@ -24460,41 +24551,41 @@ const Ethy = (function() {
 
         // ── Menú Principal ───────────────────────────────────────────────────
         mainMenu: {
-            title: '¡Bienvenido a Etheria!',
+            title: 'El umbral de Etheria',
             expression: 'excited',
             steps: [
                 {
-                    text: '¡Hola! Soy Ethy, tu guía en Etheria. Estoy aquí para ayudarte a crear historias increíbles. ✨',
+                    text: 'Soy Ethy. Llevo aquí desde antes de que llegaras. Este mundo late con cada historia que escribís... y acaba de añadir la tuya. ✨',
                     expression: 'excited',
                     action: null
                 },
                 {
-                    text: 'En "Nueva Partida" empieza todo. Puedes crear una historia en modo Clásico —roleplay libre— o en modo RPG con dados y stats. ¡Tú eliges!',
+                    text: '"Nueva Partida" es la puerta. Al otro lado esperan el roleplay libre —modo Clásico— o el caos gobernado por los dados —modo RPG—. Elige con intención.',
                     expression: 'happy',
                     action: () => highlightElement('.menu-button-console.primary')
                 },
                 {
-                    text: 'En "Personajes" gestionas las fichas de todos tus personajes: avatar, trasfondo, stats y mucho más.',
+                    text: '"Personajes" es donde viven las almas que vais a habitar. Sin ellas no hay historia posible.',
                     expression: 'thoughtful',
                     action: () => highlightElement('.menu-button-console:nth-child(2)')
                 },
                 {
-                    text: 'En "Opciones" ajustas el tema visual, tamaño de fuente, velocidad de texto... todo para que la experiencia sea tuya.',
-                    expression: 'neutral',
+                    text: '"Opciones" es tuyo. Ajusta la luz, la tipografía, el sonido... hasta que Etheria se sienta exactamente como debe.',
+                    expression: 'wink',
                     action: () => highlightElement('.menu-button-console:nth-child(3)')
                 },
                 {
-                    text: 'Abajo tienes tu perfil. Tócalo para cambiar tu nombre, avatar y demás datos en cualquier momento.',
+                    text: 'Tu perfil está abajo. Cámbialo cuando quieras: soy discreta, no lo digo a nadie. 🤫',
                     expression: 'wink',
                     action: () => highlightElement('.menu-profile-btn')
                 },
                 {
-                    text: 'El pequeño icono junto al perfil sirve para importar o exportar tu partida. ¡Así nunca pierdes tus historias!',
+                    text: 'El icono junto al perfil guarda y carga tu mundo entero. Úsalo. Las historias merecen sobrevivir.',
                     expression: 'surprised',
                     action: () => highlightElement('.menu-save-btn')
                 },
                 {
-                    text: '¡Todo listo! Haz clic en mí siempre que quieras orientación. ¡Buena suerte, aventurera! 🌿',
+                    text: 'Ya sé todo lo que necesito saber de ti. Ahora cuéntame una historia. 🌿',
                     expression: 'love',
                     action: null
                 }
@@ -24503,31 +24594,31 @@ const Ethy = (function() {
 
         // ── Galería de Personajes ────────────────────────────────────────────
         gallery: {
-            title: 'Personajes',
+            title: 'El registro de almas',
             expression: 'happy',
             steps: [
                 {
-                    text: '¡Aquí viven todos tus personajes! Puedes buscarlos, filtrarlos por raza o jugador, y ver sus fichas completas.',
+                    text: 'Aquí viven todos los personajes que habéis invocado. Cada uno lleva dentro una historia esperando a ocurrir.',
                     expression: 'happy',
                     action: null
                 },
                 {
-                    text: 'Pulsa "Nuevo personaje" para crear una ficha desde cero: nombre, raza, edad, descripción física, personalidad, historia y notas libres.',
+                    text: '"Nuevo personaje" abre el ritual de creación: nombre, raza, trasfondo, personalidad, secretos... Sé generosa con los detalles.',
                     expression: 'excited',
                     action: () => highlightElement('.gallery-new-btn')
                 },
                 {
-                    text: 'En modo RPG cada personaje tiene stats D&D (STR, DEX, CON, INT, WIS, CHA) y un nivel que crece con la experiencia.',
+                    text: 'En modo RPG cada alma tiene sus propias estadísticas: Fuerza, Destreza, Constitución, Inteligencia, Sabiduría, Carisma. El nivel crece con la experiencia vivida.',
                     expression: 'thoughtful',
                     action: null
                 },
                 {
-                    text: 'Puedes subir un avatar propio o usar una URL. Cada personaje tiene su color de acento para la caja de diálogo. 🎨',
+                    text: 'Cada personaje tiene su propio color de diálogo. Cuando hablan en escena, los reconoces sin mirar el nombre. 🎨',
                     expression: 'wink',
                     action: null
                 },
                 {
-                    text: '¿Quién será tu próximo personaje? Las mejores historias nacen de personajes bien construidos. 🎭',
+                    text: 'Los mejores personajes son los que te sorprenden. Deja espacio para que hagan cosas que no planeaste. 🎭',
                     expression: 'love',
                     action: null
                 }
@@ -24536,31 +24627,31 @@ const Ethy = (function() {
 
         // ── Crear Historia ───────────────────────────────────────────────────
         createTopic: {
-            title: 'Nueva Historia',
+            title: 'Invocar una historia',
             expression: 'excited',
             steps: [
                 {
-                    text: '¡Vamos a crear algo especial! Lo primero es elegir el modo de juego.',
+                    text: 'Estás a punto de abrir una grieta en el tejido de Etheria. Lo que escribas aquí definirá el tono de todo lo que viene. Sin prisa.',
                     expression: 'excited',
                     action: null
                 },
                 {
-                    text: 'El modo Clásico es roleplay puro: narración libre sin mecánicas. Perfecto cuando el foco es el diálogo y la escritura.',
+                    text: 'Modo Clásico: roleplay puro, sin mecánicas. El texto manda. Perfecto cuando la narrativa importa más que el azar.',
                     expression: 'happy',
                     action: () => highlightElement('#modeRoleplay')
                 },
                 {
-                    text: 'El modo RPG añade stats, tiradas de dados y el Oráculo del Destino. Las acciones tienen consecuencias reales. ¡El azar da forma a la historia! 🎲',
+                    text: 'Modo RPG: el Oráculo del Destino interviene. Los dados deciden si la acción tiene éxito... o consecuencias inesperadas. 🎲',
                     expression: 'surprised',
                     action: () => highlightElement('#modeRpg')
                 },
                 {
-                    text: 'Ponle un título y escribe el primer mensaje: ese es el arranque de tu historia. Puedes usar **negrita** y *cursiva* para darle estilo.',
+                    text: 'El primer mensaje es el inicio de todo. Puedes usar **negrita** y *cursiva* para moldear cómo suena cada línea.',
                     expression: 'thoughtful',
                     action: () => highlightElement('#topicTitleInput')
                 },
                 {
-                    text: '¡Todo listo! Una vez creada podrás compartirla con otros jugadores en tiempo real. ✨',
+                    text: 'Una vez creada, otros jugadores pueden unirse en tiempo real. La historia os pertenece a todos. ✨',
                     expression: 'love',
                     action: null
                 }
@@ -24569,36 +24660,36 @@ const Ethy = (function() {
 
         // ── Modo VN Clásico ──────────────────────────────────────────────────
         vnClassic: {
-            title: 'Historia — Modo Clásico',
+            title: 'La escena se abre',
             expression: 'happy',
             steps: [
                 {
-                    text: '¡Tu historia está en marcha! En modo Clásico el protagonismo es del texto y las decisiones.',
+                    text: 'La historia ha empezado. En modo Clásico el protagonismo es del texto: sin interrupciones, sin dados, solo vosotras y las palabras.',
                     expression: 'happy',
                     action: null
                 },
                 {
-                    text: 'Haz clic en la caja de diálogo o pulsa ESPACIO para avanzar. Las flechas ← → navegan entre mensajes.',
+                    text: 'Clic en la caja de diálogo o ESPACIO para avanzar. ← → navegan entre mensajes anteriores.',
                     expression: 'neutral',
                     action: () => highlightElement('.vn-dialogue-box')
                 },
                 {
-                    text: 'El botón "Responder" abre el panel de escritura. Elige tu personaje y escribe tu próxima intervención.',
+                    text: '"Responder" abre el panel de escritura. Elige quién habla y qué dice. Tómate tu tiempo.',
                     expression: 'excited',
                     action: () => highlightElement('.reply-btn')
                 },
                 {
-                    text: 'Añade emociones con emotes: escribe /happy, /sad, /angry, /love... y el personaje reaccionará visualmente. 🎭',
+                    text: 'Los emotes dan vida a la escena: escribe /happy, /sad, /angry, /love... y el personaje reacciona. 🎭',
                     expression: 'wink',
                     action: null
                 },
                 {
-                    text: 'También puedes crear opciones de elección para bifurcar la historia y dejar que los lectores decidan su rumbo.',
+                    text: 'Puedes crear bifurcaciones para que los lectores decidan el rumbo. Las mejores historias dejan huellas distintas en cada quien.',
                     expression: 'thoughtful',
                     action: null
                 },
                 {
-                    text: 'La barra de controles te permite navegar por el historial, marcar favoritos y exportar la historia completa. 📜',
+                    text: 'La barra de controles guarda el historial, los favoritos y permite exportar la historia entera. Nada se pierde. 📜',
                     expression: 'surprised',
                     action: () => highlightElement('.vn-toolbar')
                 }
@@ -24607,36 +24698,36 @@ const Ethy = (function() {
 
         // ── Modo VN RPG ──────────────────────────────────────────────────────
         vnRPG: {
-            title: 'Historia — Modo RPG',
+            title: 'El azar toma la pluma',
             expression: 'excited',
             steps: [
                 {
-                    text: '¡Modo RPG activo! Cada decisión puede tener consecuencias marcadas por los dados. 🎲',
+                    text: 'Modo RPG. Aquí el Oráculo del Destino tiene voz propia. Lo que queráis hacer... tendrá que probarse. 🎲',
                     expression: 'excited',
                     action: null
                 },
                 {
-                    text: 'La ficha de tu personaje aparece arriba a la izquierda. Muestra HP, stats y rango de afinidad con otros personajes.',
+                    text: 'Tu ficha está arriba a la izquierda: HP, stats, afinidad. Consúltala antes de cada decisión importante.',
                     expression: 'thoughtful',
                     action: () => highlightElement('.vn-info-card')
                 },
                 {
-                    text: 'El Oráculo del Destino aparece cuando un personaje intenta algo difícil. Tiras un D20 sumando tu stat relevante contra una dificultad.',
+                    text: 'El Oráculo aparece cuando la acción es difícil. Lanzas un D20 más tu stat relevante contra la dificultad que marca la escena.',
                     expression: 'surprised',
                     action: () => highlightElement('#vnOracleFloatBtn')
                 },
                 {
-                    text: '¡El resultado del dado determina si la acción tiene éxito o falla! El narrador describe las consecuencias en el siguiente mensaje.',
+                    text: 'El resultado del dado no es el final: es el principio del siguiente mensaje. El narrador interpreta lo que ocurre.',
                     expression: 'happy',
                     action: null
                 },
                 {
-                    text: 'El HP puede bajar por combate o consecuencias del Oráculo. Si llega a cero... algo malo pasará. 💀',
+                    text: 'El HP baja en combate o por consecuencias del Oráculo. Cuando llega a cero... algo cambia para siempre. 💀',
                     expression: 'sad',
                     action: () => highlightElement('.vn-info-hp-bar')
                 },
                 {
-                    text: '¡Que los dados te sean favorables, aventurera! 🎲✨',
+                    text: 'Que los dados sean justos... o al menos interesantes. 🎲✨',
                     expression: 'love',
                     action: null
                 }
@@ -24645,32 +24736,32 @@ const Ethy = (function() {
 
         // ── Opciones ─────────────────────────────────────────────────────────
         options: {
-            title: 'Opciones',
-            expression: 'neutral',
+            title: 'Afinar el mundo',
+            expression: 'thoughtful',
             steps: [
                 {
-                    text: 'Aquí ajustas Etheria a tu gusto. Hay tres pestañas: Apariencia, Lectura y Sonido.',
-                    expression: 'neutral',
+                    text: 'Aquí moldeas cómo se siente Etheria. Tres pestañas: Apariencia, Lectura, Sonido. Cada una importa.',
+                    expression: 'thoughtful',
                     action: () => highlightElement('.opt-tab-bar')
                 },
                 {
-                    text: 'En Apariencia puedes cambiar entre modo Claro y Oscuro, ajustar el tamaño de fuente y aplicar filtros de atmósfera a las escenas. 🌙',
-                    expression: 'thoughtful',
+                    text: 'En Apariencia cambias entre luz y oscuridad, ajustas la tipografía y aplicas filtros de atmósfera a las escenas. 🌙',
+                    expression: 'neutral',
                     action: () => highlightElement('#themeToggleBtn')
                 },
                 {
-                    text: 'En Lectura controlas la velocidad del texto, el texto instantáneo y el modo inmersivo para leer sin distracciones.',
+                    text: 'En Lectura controlas la velocidad del texto y el modo inmersivo. Para cuando la historia pide toda tu atención.',
                     expression: 'happy',
                     action: () => highlightElement('[data-tab="reading"]')
                 },
                 {
-                    text: 'Desde Sonido ajustas el volumen general y el de los efectos de lluvia y ambiente. 🔊',
+                    text: 'En Sonido, el volumen de la lluvia y el ambiente. Algunas historias necesitan silencio. Otras, tormenta. 🔊',
                     expression: 'wink',
                     action: () => highlightElement('[data-tab="sound"]')
                 },
                 {
-                    text: '¡Experimenta hasta encontrar la combinación que más te guste!',
-                    expression: 'excited',
+                    text: 'No existe una configuración correcta. Solo la que te permite olvidarte de que estás mirando una pantalla.',
+                    expression: 'love',
                     action: null
                 }
             ]
@@ -24678,31 +24769,31 @@ const Ethy = (function() {
 
         // ── Importar / Exportar ──────────────────────────────────────────────
         saveHub: {
-            title: 'Importar y Exportar',
+            title: 'Custodiar el legado',
             expression: 'thoughtful',
             steps: [
                 {
-                    text: 'Este panel sirve para mover tus datos hacia fuera o hacia dentro de Etheria.',
+                    text: 'Las historias que no se guardan desaparecen. Este panel existe para que las tuyas no lo hagan.',
                     expression: 'thoughtful',
                     action: null
                 },
                 {
-                    text: '"Descargar partida" exporta toda tu información a un archivo JSON. Es tu copia de seguridad local.',
+                    text: '"Descargar partida" exporta todo: personajes, historias, vínculos. Un archivo. Tu mundo entero.',
                     expression: 'neutral',
                     action: () => highlightElement('.save-hub-primary')
                 },
                 {
-                    text: '"Cargar partida" importa ese archivo JSON. Úsalo para restaurar datos o llevarlos de un dispositivo a otro.',
+                    text: '"Cargar partida" restaura ese archivo. Úsalo cuando cambies de dispositivo o cuando algo vaya mal.',
                     expression: 'happy',
                     action: null
                 },
                 {
-                    text: 'Con "Generar código" creas un código de 6 caracteres para compartir una historia concreta con otro jugador.',
+                    text: '"Generar código" crea un código de seis letras para compartir una historia concreta con otra jugadora.',
                     expression: 'excited',
                     action: null
                 },
                 {
-                    text: 'Y con "Importar código" recibes la historia que alguien te compartió. ¡Así de fácil es colaborar! 🌿',
+                    text: '"Importar código" recibe la historia que alguien te mandó. Así nace la colaboración: de un código y de confianza. 🌿',
                     expression: 'love',
                     action: null
                 }
@@ -24753,40 +24844,170 @@ const Ethy = (function() {
         _body.className = 'ethy-body ethy-expression-neutral';
         _body.innerHTML = `
             <svg class="ethy-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Sombra en el suelo -->
-                <ellipse cx="40" cy="68" rx="22" ry="6" fill="#c4b49a" opacity="0.35"/>
-                <!-- Cuerpo / carcasa -->
-                <rect x="14" y="18" width="52" height="42" rx="4" fill="none" stroke="#9c8870" stroke-width="1.5"/>
-                <!-- Antena -->
-                <g class="ethy-part-antenna">
-                    <path d="M58 10 C58 10 62 22 55 24" stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-                    <path d="M56 10 L60 8 L58 12" fill="#9c8870"/>
-                </g>
-                <!-- Ojos -->
-                <g class="ethy-part-eyes">
-                    <circle class="ethy-eye-left"  cx="33" cy="38" r="4" fill="none" stroke="#9c8870" stroke-width="1.3"/>
-                    <circle class="ethy-eye-right" cx="47" cy="38" r="4" fill="none" stroke="#9c8870" stroke-width="1.3"/>
-                    <circle class="ethy-pupil-left"  cx="33" cy="38" r="1.5" fill="#9c8870"/>
-                    <circle class="ethy-pupil-right" cx="47" cy="38" r="1.5" fill="#9c8870"/>
-                </g>
-                <!-- Boca — cada expresión tiene su propio path, solo uno visible -->
-                <g class="ethy-part-mouth">
-                    <path class="ethy-mouth-neutral"   d="M35 44 Q40 46 45 44"            stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none"/>
-                    <path class="ethy-mouth-happy"     d="M33 43 Q40 50 47 43"            stroke="#9c8870" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0"/>
-                    <path class="ethy-mouth-sad"       d="M33 47 Q40 42 47 47"            stroke="#9c8870" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0"/>
-                    <path class="ethy-mouth-excited"   d="M32 43 Q40 52 48 43"            stroke="#9c8870" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0"/>
-                    <path class="ethy-mouth-surprised" d="M37 43 Q40 49 43 43 Q40 51 37 43" stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0"/>
-                    <path class="ethy-mouth-thoughtful" d="M35 44 Q37 43 40 44 Q43 45 45 44" stroke="#9c8870" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0"/>
-                    <path class="ethy-mouth-wink"      d="M34 43 Q40 49 46 44"            stroke="#9c8870" stroke-width="1.3" stroke-linecap="round" fill="none" opacity="0"/>
-                    <path class="ethy-mouth-love"      d="M33 42 Q36 50 40 51 Q44 50 47 42" stroke="#9c8870" stroke-width="1.4" stroke-linecap="round" fill="none" opacity="0"/>
-                    <!-- Lengua del amor — solo visible en love -->
-                    <ellipse class="ethy-mouth-love-tongue" cx="40" cy="51" rx="3" ry="2" fill="#c9a86c" opacity="0"/>
-                </g>
-                <!-- Mejillas — solo visibles en happy/love/excited -->
-                <g class="ethy-part-cheeks" opacity="0">
-                    <ellipse cx="24" cy="43" rx="4" ry="2.5" fill="#d4899a" opacity="0.45"/>
-                    <ellipse cx="56" cy="43" rx="4" ry="2.5" fill="#d4899a" opacity="0.45"/>
-                </g>
+              <defs>
+                <radialGradient id="eg-body" cx="50%" cy="30%" r="75%">
+                  <stop offset="0%"   stop-color="#2a1c0e"/>
+                  <stop offset="100%" stop-color="#0c0702"/>
+                </radialGradient>
+                <linearGradient id="eg-border" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stop-color="rgba(245,210,115,0.95)"/>
+                  <stop offset="52%"  stop-color="rgba(200,160,65,0.80)"/>
+                  <stop offset="100%" stop-color="rgba(155,115,40,0.90)"/>
+                </linearGradient>
+                <radialGradient id="eg-iris" cx="32%" cy="28%" r="68%">
+                  <stop offset="0%"   stop-color="#f5e878"/>
+                  <stop offset="45%"  stop-color="#c8920e"/>
+                  <stop offset="100%" stop-color="#6a4802"/>
+                </radialGradient>
+                <radialGradient id="eg-screen" cx="50%" cy="42%" r="56%">
+                  <stop offset="0%"   stop-color="rgba(190,150,65,0.07)"/>
+                  <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
+                </radialGradient>
+              </defs>
+
+              <!-- Sombra suelo -->
+              <ellipse cx="40" cy="73" rx="19" ry="4.5" fill="#0e0904" opacity="0.45"/>
+              <!-- Halo exterior -->
+              <rect x="6" y="10" width="68" height="58" rx="18" fill="rgba(195,155,55,0.045)"/>
+
+              <!-- Cuerpo -->
+              <rect x="11" y="13" width="58" height="52" rx="15" fill="url(#eg-body)"/>
+              <rect x="11" y="13" width="58" height="52" rx="15" stroke="url(#eg-border)" stroke-width="1.6" fill="none"/>
+              <rect x="19" y="13.5" width="30" height="1.1" rx="0.55" fill="rgba(255,240,165,0.30)"/>
+              <rect x="15" y="17"   width="50" height="44" rx="12"    fill="url(#eg-screen)"/>
+
+              <!-- Esquinas -->
+              <circle cx="14" cy="16" r="2" fill="rgba(220,178,85,0.55)"/>
+              <circle cx="66" cy="16" r="2" fill="rgba(220,178,85,0.55)"/>
+              <circle cx="14" cy="62" r="2" fill="rgba(220,178,85,0.38)"/>
+              <circle cx="66" cy="62" r="2" fill="rgba(220,178,85,0.38)"/>
+
+              <!-- Antena (estatica) -->
+              <g class="ethy-part-antenna">
+                <line x1="55" y1="22" x2="60" y2="8"  stroke="rgba(208,172,82,0.82)" stroke-width="1.4" stroke-linecap="round"/>
+                <polygon points="60,4 57.5,9 62.5,9"   fill="rgba(238,200,102,0.95)"/>
+                <circle cx="60" cy="6.5" r="4"         fill="rgba(225,188,80,0.12)"/>
+                <circle cx="60" cy="6.5" r="2"         fill="rgba(238,205,110,0.20)"/>
+                <circle cx="60" cy="6.5" r="0.9"       fill="rgba(255,238,165,0.75)"/>
+              </g>
+
+              <!-- ======= OJOS =======
+                   Cada expresion tiene su propio grupo de ojos.
+                   Solo el activo es visible (opacity swap, sin transforms). -->
+
+              <!-- neutral: circulos con pupila y reflejo -->
+              <g class="ethy-eyes-neutral">
+                <circle class="ethy-eye-left"  cx="30" cy="34" r="5.5" fill="url(#eg-iris)"/>
+                <circle class="ethy-eye-right" cx="50" cy="34" r="5.5" fill="url(#eg-iris)"/>
+                <circle cx="30" cy="34" r="2.2" fill="#040302"/>
+                <circle cx="50" cy="34" r="2.2" fill="#040302"/>
+                <circle cx="27.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
+                <circle cx="47.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
+              </g>
+
+              <!-- happy: arcos hacia arriba (^__^) -->
+              <g class="ethy-eyes-happy" opacity="0">
+                <path d="M24.5 36.5 Q30 28.5 35.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                <path d="M44.5 36.5 Q50 28.5 55.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+              </g>
+
+              <!-- excited: circulos grandes con brillo extra -->
+              <g class="ethy-eyes-excited" opacity="0">
+                <circle class="ethy-eye-left"  cx="30" cy="34" r="7" fill="url(#eg-iris)"/>
+                <circle class="ethy-eye-right" cx="50" cy="34" r="7" fill="url(#eg-iris)"/>
+                <circle cx="30" cy="34" r="2.5" fill="#040302"/>
+                <circle cx="50" cy="34" r="2.5" fill="#040302"/>
+                <circle cx="27" cy="31.5" r="1.6" fill="rgba(255,255,255,0.88)"/>
+                <circle cx="47" cy="31.5" r="1.6" fill="rgba(255,255,255,0.88)"/>
+                <circle cx="33.5" cy="30.5" r="0.9" fill="rgba(255,255,255,0.55)"/>
+                <circle cx="53.5" cy="30.5" r="0.9" fill="rgba(255,255,255,0.55)"/>
+              </g>
+
+              <!-- sad: circulos bajos, pupilas caidas -->
+              <g class="ethy-eyes-sad" opacity="0">
+                <circle class="ethy-eye-left"  cx="30" cy="35" r="5" fill="url(#eg-iris)" opacity="0.82"/>
+                <circle class="ethy-eye-right" cx="50" cy="35" r="5" fill="url(#eg-iris)" opacity="0.82"/>
+                <circle cx="30" cy="37" r="2" fill="#040302"/>
+                <circle cx="50" cy="37" r="2" fill="#040302"/>
+                <circle cx="28.5" cy="33.5" r="1" fill="rgba(255,255,255,0.65)"/>
+                <circle cx="48.5" cy="33.5" r="1" fill="rgba(255,255,255,0.65)"/>
+              </g>
+
+              <!-- surprised: circulos muy grandes -->
+              <g class="ethy-eyes-surprised" opacity="0">
+                <circle class="ethy-eye-left"  cx="30" cy="34" r="7.2" fill="url(#eg-iris)"/>
+                <circle class="ethy-eye-right" cx="50" cy="34" r="7.2" fill="url(#eg-iris)"/>
+                <circle cx="30" cy="34" r="2.2" fill="#040302"/>
+                <circle cx="50" cy="34" r="2.2" fill="#040302"/>
+                <circle cx="27.5" cy="31.5" r="1.5" fill="rgba(255,255,255,0.88)"/>
+                <circle cx="47.5" cy="31.5" r="1.5" fill="rgba(255,255,255,0.88)"/>
+              </g>
+
+              <!-- thoughtful: pupilas arriba-izquierda (mirando hacia arriba) -->
+              <g class="ethy-eyes-thoughtful" opacity="0">
+                <circle class="ethy-eye-left"  cx="30" cy="34" r="5.2" fill="url(#eg-iris)"/>
+                <circle class="ethy-eye-right" cx="50" cy="34" r="5.2" fill="url(#eg-iris)"/>
+                <circle cx="28.5" cy="32.5" r="2.1" fill="#040302"/>
+                <circle cx="48.5" cy="32.5" r="2.1" fill="#040302"/>
+                <circle cx="27.2" cy="31.2" r="1"   fill="rgba(255,255,255,0.80)"/>
+                <circle cx="47.2" cy="31.2" r="1"   fill="rgba(255,255,255,0.80)"/>
+              </g>
+
+              <!-- wink: ojo izquierdo cerrado (arco) + ojo derecho abierto -->
+              <g class="ethy-eyes-wink" opacity="0">
+                <path d="M24 36 Q30 28.5 36 36" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                <circle class="ethy-eye-right" cx="50" cy="34" r="5.5" fill="url(#eg-iris)"/>
+                <circle cx="50" cy="34" r="2.2" fill="#040302"/>
+                <circle cx="47.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
+              </g>
+
+              <!-- love: arcos felices + destellos rosas -->
+              <g class="ethy-eyes-love" opacity="0">
+                <path d="M24.5 36.5 Q30 28.5 35.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                <path d="M44.5 36.5 Q50 28.5 55.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+                <circle cx="37.5" cy="28" r="1.1" fill="rgba(218,158,165,0.78)"/>
+                <circle cx="43"   cy="27" r="0.8" fill="rgba(218,158,165,0.60)"/>
+                <circle cx="40"   cy="26" r="0.6" fill="rgba(218,158,165,0.45)"/>
+              </g>
+
+              <!-- ======= BOCAS =======
+                   Todas contenidas en aprox. x=28-52, y=46-56.
+                   Solo la de la expresion activa es visible. -->
+              <g class="ethy-part-mouth">
+                <path class="ethy-mouth-neutral"
+                  d="M34 49.5 Q40 52 46 49.5"
+                  stroke="rgba(210,175,90,0.92)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                <path class="ethy-mouth-happy"
+                  d="M30 48 Q40 56.5 50 48"
+                  stroke="rgba(210,175,90,0.95)" stroke-width="1.7" stroke-linecap="round" fill="none" opacity="0"/>
+                <path class="ethy-mouth-sad"
+                  d="M30 53.5 Q40 46 50 53.5"
+                  stroke="rgba(210,175,90,0.90)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0"/>
+                <path class="ethy-mouth-excited"
+                  d="M28 47.5 Q40 57.5 52 47.5"
+                  stroke="rgba(210,175,90,0.95)" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0"/>
+                <ellipse class="ethy-mouth-surprised"
+                  cx="40" cy="51" rx="3" ry="3.5"
+                  stroke="rgba(210,175,90,0.90)" stroke-width="1.3" fill="rgba(4,3,1,0.55)" opacity="0"/>
+                <path class="ethy-mouth-thoughtful"
+                  d="M34 51 Q38 49 41 50.5 Q44.5 52 47 50"
+                  stroke="rgba(210,175,90,0.86)" stroke-width="1.3" stroke-linecap="round" fill="none" opacity="0"/>
+                <path class="ethy-mouth-wink"
+                  d="M32 50 Q41 55.5 50 50.5"
+                  stroke="rgba(210,175,90,0.92)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0"/>
+                <path class="ethy-mouth-love"
+                  d="M30 48 Q40 56.5 50 48"
+                  stroke="rgba(210,175,90,0.95)" stroke-width="1.7" stroke-linecap="round" fill="none" opacity="0"/>
+                <ellipse class="ethy-mouth-love-tongue"
+                  cx="40" cy="56" rx="2.5" ry="1.5"
+                  fill="#cc7888" opacity="0"/>
+              </g>
+
+              <!-- Mejillas (happy / excited / love) -->
+              <g class="ethy-part-cheeks" opacity="0">
+                <ellipse cx="18" cy="41" rx="4" ry="2.5" fill="#cc7888" opacity="0.38"/>
+                <ellipse cx="62" cy="41" rx="4" ry="2.5" fill="#cc7888" opacity="0.38"/>
+              </g>
             </svg>
         `;
 
@@ -24794,7 +25015,7 @@ const Ethy = (function() {
         _bubble = document.createElement('div');
         _bubble.className = 'ethy-speech-bubble';
         _bubble.innerHTML = `
-            <div class="ethy-title">Ethy</div>
+            <div class="ethy-title"><span class="ethy-title-gem">◆</span> Ethy</div>
             <div class="ethy-content"></div>
             <div class="ethy-actions"></div>
             <div class="ethy-steps"></div>
@@ -24872,9 +25093,9 @@ const Ethy = (function() {
             const len = (e.detail?.text || '').length;
             if (len > 200 && !_isSleeping && !_bubble.classList.contains('visible')) {
                 const msgs = [
-                    '¡Vaya, menuda novela! 📖✨',
-                    '¡Eso sí que es un mensaje largo! 💬',
-                    '¡Con todo ese texto podrías escribir un capítulo entero! 🖊️'
+                    'Con eso podrías llenar un capítulo. 📖',
+                    'Pocas personas escriben así. Sigue.',
+                    'El Oráculo recuerda cada palabra. 🖊️'
                 ];
                 setTimeout(() => {
                     say(msgs[Math.floor(Math.random() * msgs.length)], {
@@ -24903,7 +25124,12 @@ const Ethy = (function() {
             setExpression('thoughtful');
             // Frase ocasional — solo 30% de las veces para no saturar
             if (Math.random() < 0.3) {
-                const msgs = ['Hmm...', 'Interesante...', '¿Qué harás?', 'Elige con cuidado.'];
+                const msgs = [
+                    'Lo que elijas, tendrá consecuencias.',
+                    'El hilo del destino se bifurca aquí.',
+                    'Piénsalo bien.',
+                    '...esto es interesante.'
+                ];
                 say(msgs[Math.floor(Math.random() * msgs.length)], {
                     expression: 'thoughtful', duration: 2500
                 });
@@ -24914,9 +25140,9 @@ const Ethy = (function() {
         eventBus.on('scene:ended', () => {
             if (!_canReact()) return;
             const msgs = [
-                'La historia continúa...',
-                'Cada final es un nuevo comienzo.',
-                'Bien hecho.'
+                'El tejido de Etheria recuerda esto.',
+                'Cada final abre una grieta hacia lo siguiente.',
+                'Ha sido un honor estar presente.'
             ];
             say(msgs[Math.floor(Math.random() * msgs.length)], {
                 expression: 'happy', duration: 3000
@@ -24927,9 +25153,9 @@ const Ethy = (function() {
         eventBus.on('scene:error', () => {
             if (!_canReact()) return;
             const msgs = [
-                'Algo no salió como esperaba...',
-                'Eso fue extraño.',
-                'A veces el destino también duda.'
+                'El Oráculo titubeó. Eso no es normal.',
+                'Algo en el tejido se torció. Reintenta.',
+                'Hasta el destino se equivoca a veces.'
             ];
             say(msgs[Math.floor(Math.random() * msgs.length)], {
                 expression: 'sad', duration: 3500
@@ -24940,7 +25166,7 @@ const Ethy = (function() {
         eventBus.on('ui:show-autosave', (data) => {
             if (!_canReact()) return;
             if (data?.state === 'error') {
-                say('No pude guardar tu historia...', { expression: 'sad', duration: 3000 });
+                say('La historia no pudo guardarse. Revisa la conexión.', { expression: 'sad', duration: 3000 });
                 return;
             }
             setExpression('happy');
@@ -24951,7 +25177,7 @@ const Ethy = (function() {
             if (data?.target !== 'button') return;
             if (data?.status !== 'synced') return;
             if (!_canReact()) return;
-            say('Tu historia está a salvo.', { expression: 'happy', duration: 3000 });
+            say('Guardado en los registros de Etheria.', { expression: 'happy', duration: 3000 });
         });
 
         // Navegación → expresión neutra curiosa
@@ -25225,7 +25451,7 @@ const Ethy = (function() {
             _body.classList.add('ethy-hello');
             setTimeout(() => _body.classList.remove('ethy-hello'), 600);
             setExpression(_idleBaseExpression);
-            say('¡Oh! ¡Ya estás de vuelta! 😊', { expression: 'surprised', duration: 3000 });
+            say('Sigues aquí. Bien.', { expression: 'surprised', duration: 3000 });
         }
         _resetSleepTimer();
     }
@@ -25233,12 +25459,12 @@ const Ethy = (function() {
     // ── Easter eggs — clics múltiples ─────────────────────────────────────────
 
     const EASTER_EGGS = [
-        { text: '¡Ay! ¡Para, para! 😣', expression: 'sad' },
-        { text: '¡Oye, que me haces cosquillas! 😅', expression: 'surprised' },
-        { text: 'Está bien, ya veo que tienes energía... 🙄', expression: 'thoughtful' },
-        { text: '¡Me rindo! ¡Tú ganas! 🏳️', expression: 'sad' },
-        { text: '...¿Enserio? ¿No tienes nada mejor que hacer? 👀', expression: 'wink' },
-        { text: 'Muy bien. Seguiré aquí, ignorándote con dignidad. 😤', expression: 'neutral' },
+        { text: 'Eso duele en unidades de cristal.', expression: 'sad' },
+        { text: 'Interesante forma de hacer amigos.', expression: 'surprised' },
+        { text: 'Tres veces. Te he contado tres veces.', expression: 'thoughtful' },
+        { text: 'De acuerdo. Tú ganas. Hoy.', expression: 'sad' },
+        { text: '¿No hay historia esperándote ahí fuera?', expression: 'wink' },
+        { text: 'Bien. Me quedaré aquí. Observando.', expression: 'neutral' },
     ];
     let _easterEggIndex = 0;
 
@@ -25262,16 +25488,16 @@ const Ethy = (function() {
 
     const WEATHER_REACTIONS = {
         rain: [
-            { text: '¡Qué lluvia más bonita... aunque yo no me mojo! ☔', expression: 'happy' },
-            { text: 'Me encanta la lluvia. Tan melancólica... 🌧️', expression: 'thoughtful' },
+            { text: 'La lluvia recuerda cosas. Escucha.', expression: 'thoughtful' },
+            { text: 'Buena atmósfera para lo que viene. 🌧️', expression: 'happy' },
         ],
         fog:  [
-            { text: 'Oooh, qué misterioso con tanta niebla... 👀', expression: 'surprised' },
-            { text: 'Con esta niebla casi no se me ve. ¡Perfecto para esconderme! 🌫️', expression: 'wink' },
+            { text: 'En la niebla ocurren las mejores historias.', expression: 'surprised' },
+            { text: 'Con esta niebla ya no sé si soy real. 🌫️', expression: 'wink' },
         ],
         none: [
-            { text: '¡Qué día más despejado! ☀️', expression: 'happy' },
-            { text: 'Un clima tranquilo para una historia tranquila. 🌤️', expression: 'wink' },
+            { text: 'Calma antes de algo. Siempre. ☀️', expression: 'thoughtful' },
+            { text: 'Un buen día para escribir.', expression: 'happy' },
         ],
     };
     let _lastWeather = null;
@@ -25308,130 +25534,52 @@ const Ethy = (function() {
     }
 
     // Mapeo de expresión → estado de cada parte de la cara
+    // eyeScale: rango 0.90-1.15 (sin squint - scaleY 0.45 causaba uncanny valley)
+    // pupilY:   rango +/-1.5px (movimiento sutil dentro del panel de ojo)
     const FACE_STATES = {
-        neutral:    { mouth: 'neutral',    eyeScale: 1,    pupilY: 0,  cheeks: false, blink: false, squint: false, winkLeft: false },
-        happy:      { mouth: 'happy',      eyeScale: 0.85, pupilY: 1,  cheeks: true,  blink: false, squint: true,  winkLeft: false },
-        excited:    { mouth: 'excited',    eyeScale: 1.1,  pupilY: -1, cheeks: true,  blink: false, squint: false, winkLeft: false },
-        sad:        { mouth: 'sad',        eyeScale: 0.8,  pupilY: 2,  cheeks: false, blink: false, squint: false, winkLeft: false },
-        surprised:  { mouth: 'surprised',  eyeScale: 1.3,  pupilY: -2, cheeks: false, blink: false, squint: false, winkLeft: false },
-        thoughtful: { mouth: 'thoughtful', eyeScale: 0.9,  pupilY: -1, cheeks: false, blink: false, squint: false, winkLeft: false },
-        wink:       { mouth: 'wink',       eyeScale: 1,    pupilY: 1,  cheeks: false, blink: false, squint: false, winkLeft: true  },
-        love:       { mouth: 'love',       eyeScale: 0.75, pupilY: 2,  cheeks: true,  blink: false, squint: true,  winkLeft: false },
+        //                                  eyeScale  pupilY  cheeks  squint  winkLeft
+        neutral:    { mouth: 'neutral',    eyeScale: 1.00, pupilY:  0,   cheeks: false, squint: false, winkLeft: false },
+        happy:      { mouth: 'happy',      eyeScale: 1.00, pupilY:  1,   cheeks: true,  squint: false, winkLeft: false },
+        excited:    { mouth: 'excited',    eyeScale: 1.08, pupilY: -1,   cheeks: true,  squint: false, winkLeft: false },
+        sad:        { mouth: 'sad',        eyeScale: 0.92, pupilY:  1.5, cheeks: false, squint: false, winkLeft: false },
+        surprised:  { mouth: 'surprised',  eyeScale: 1.15, pupilY: -1.5, cheeks: false, squint: false, winkLeft: false },
+        thoughtful: { mouth: 'thoughtful', eyeScale: 0.95, pupilY: -1,   cheeks: false, squint: false, winkLeft: false },
+        wink:       { mouth: 'wink',       eyeScale: 1.00, pupilY:  0,   cheeks: false, squint: false, winkLeft: true  },
+        love:       { mouth: 'love',       eyeScale: 1.00, pupilY:  1,   cheeks: true,  squint: false, winkLeft: false },
     };
 
     function _updateFace(expression) {
-        const state = FACE_STATES[expression] || FACE_STATES.neutral;
         const svg = _body.querySelector('.ethy-svg');
         if (!svg) return;
 
-        // ── Ocultar todas las bocas, mostrar solo la activa ────────────────
-        svg.querySelectorAll('[class^="ethy-mouth-"]').forEach(el => {
+        const CHEEK_EXPRS = new Set(['happy', 'excited', 'love']);
+
+        // Ocultar todos los grupos de ojos, mostrar el de la expresion activa
+        svg.querySelectorAll('[class^="ethy-eyes-"]').forEach(el => {
+            el.style.transition = 'opacity 0.28s ease';
+            el.style.opacity = '0';
+        });
+        const eyeGroup = svg.querySelector('.ethy-eyes-' + expression)
+                      || svg.querySelector('.ethy-eyes-neutral');
+        if (eyeGroup) eyeGroup.style.opacity = '1';
+
+        // Ocultar todas las bocas, mostrar la activa
+        svg.querySelectorAll('[class*="ethy-mouth-"]').forEach(el => {
             el.setAttribute('opacity', '0');
             el.style.transition = 'opacity 0.25s ease';
         });
-        const activeMouth = svg.querySelector(`.ethy-mouth-${expression}`);
-        if (activeMouth) {
-            activeMouth.setAttribute('opacity', '1');
-        }
-        // Lengua en love
+        const activeMouth = svg.querySelector('.ethy-mouth-' + expression);
+        if (activeMouth) activeMouth.setAttribute('opacity', '1');
         const tongue = svg.querySelector('.ethy-mouth-love-tongue');
         if (tongue) tongue.setAttribute('opacity', expression === 'love' ? '1' : '0');
 
-        // ── Mejillas ───────────────────────────────────────────────────────
+        // Mejillas
         const cheeks = svg.querySelector('.ethy-part-cheeks');
         if (cheeks) {
-            cheeks.setAttribute('opacity', state.cheeks ? '1' : '0');
             cheeks.style.transition = 'opacity 0.3s ease';
-        }
-
-        // ── Ojos: escala y squint ──────────────────────────────────────────
-        const eyeLeft  = svg.querySelector('.ethy-eye-left');
-        const eyeRight = svg.querySelector('.ethy-eye-right');
-        const pupilLeft  = svg.querySelector('.ethy-pupil-left');
-        const pupilRight = svg.querySelector('.ethy-pupil-right');
-
-        if (eyeLeft && eyeRight) {
-            const baseR = 4;
-            const rx = (baseR * state.eyeScale).toFixed(2);
-            const rySquint = state.squint ? (baseR * 0.4).toFixed(2) : rx;
-
-            // Eye circles → use rx/ry for ellipse-like squint via transform scaleY
-            [eyeLeft, eyeRight].forEach(el => {
-                el.style.transition = 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)';
-                el.style.transformOrigin = 'center';
-                const scaleX = state.eyeScale;
-                const scaleY = state.squint ? 0.45 : state.eyeScale;
-                el.style.transform = `scale(${scaleX}, ${scaleY})`;
-            });
-
-            // Wink: left eye closed
-            if (eyeLeft && state.winkLeft) {
-                eyeLeft.style.transform = 'scale(1, 0.1)';
-            }
-        }
-
-        // ── Pupila: desplazamiento vertical según estado ───────────────────
-        if (pupilLeft && pupilRight) {
-            [pupilLeft, pupilRight].forEach(el => {
-                el.style.transition = 'transform 0.2s ease';
-                el.style.transform = `translateY(${state.pupilY}px)`;
-            });
-        }
-
-        // ── Antena: vibra en excited ───────────────────────────────────────
-        const antenna = svg.querySelector('.ethy-part-antenna');
-        if (antenna) {
-            antenna.style.transition = 'transform 0.25s ease';
-            antenna.style.transformOrigin = '55px 22px';
-            if (expression === 'excited') {
-                antenna.classList.add('ethy-antenna-excited');
-            } else {
-                antenna.classList.remove('ethy-antenna-excited');
-                antenna.style.transform = expression === 'happy'   ? 'rotate(8deg)'  :
-                                           expression === 'sad'     ? 'rotate(-15deg)' :
-                                           expression === 'surprised' ? 'rotate(-8deg) translateY(-3px)' :
-                                           '';
-            }
+            cheeks.style.opacity = CHEEK_EXPRS.has(expression) ? '1' : '0';
         }
     }
-
-    // ── Funciones de diálogo ─────────────────────────────────────────────────
-
-    // Referencia al texto y botones del mensaje actual (para poder hacer skip)
-    let _currentSayText = '';
-    let _currentSayButtons = [];
-    let _currentSayDuration = 0;
-    let _autocloseTimeout = null;
-
-    function _renderButtons(actions, buttons) {
-        actions.innerHTML = '';
-        buttons.forEach(btn => {
-            const button = document.createElement('button');
-            button.className = 'ethy-btn' + (btn.primary ? ' primary' : '');
-            button.textContent = btn.text;
-            button.onclick = (e) => {
-                e.stopPropagation(); // evitar que el click llegue al document y cierre la burbuja
-                if (btn.action) btn.action();
-                if (btn.close !== false) hideBubble();
-            };
-            actions.appendChild(button);
-        });
-    }
-
-    function _completeTyping() {
-        if (!_isTyping) return;
-        if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
-        _isTyping = false;
-        const content = _bubble.querySelector('.ethy-content');
-        const actions = _bubble.querySelector('.ethy-actions');
-        content.textContent = _currentSayText;
-        _renderButtons(actions, _currentSayButtons);
-        if (_currentSayDuration > 0) {
-            if (_autocloseTimeout) clearTimeout(_autocloseTimeout);
-            _autocloseTimeout = setTimeout(hideBubble, _currentSayDuration);
-        }
-    }
-
     function say(text, options = {}) {
         const { expression = 'neutral', duration = 0, buttons = [] } = options;
 
@@ -25489,10 +25637,38 @@ const Ethy = (function() {
     function hideBubble() {
         _bubble.classList.remove('visible');
         if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
-        if (typeof _autocloseTimeout !== 'undefined' && _autocloseTimeout) {
-            clearTimeout(_autocloseTimeout); _autocloseTimeout = null;
-        }
+        if (_autocloseTimeout) { clearTimeout(_autocloseTimeout); _autocloseTimeout = null; }
         _isTyping = false;
+    }
+
+    // Renderiza los botones de acción dentro de la burbuja
+    function _renderButtons(container, buttons) {
+        container.innerHTML = '';
+        if (!buttons || buttons.length === 0) return;
+        buttons.forEach(btn => {
+            const el = document.createElement('button');
+            el.className = 'ethy-btn' + (btn.primary ? ' primary' : '');
+            el.textContent = btn.text;
+            el.addEventListener('click', () => {
+                if (typeof btn.action === 'function') btn.action();
+                if (btn.close !== false) hideBubble();
+            });
+            container.appendChild(el);
+        });
+    }
+
+    // Salta la animacion de tipeo y muestra el texto completo de inmediato
+    function _completeTyping() {
+        if (!_isTyping) return;
+        if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
+        _isTyping = false;
+        const content = _bubble.querySelector('.ethy-content');
+        const actions = _bubble.querySelector('.ethy-actions');
+        if (content) content.textContent = _currentSayText;
+        if (actions) _renderButtons(actions, _currentSayButtons);
+        if (_currentSayDuration > 0) {
+            _autocloseTimeout = setTimeout(hideBubble, _currentSayDuration);
+        }
     }
 
     // ── Sistema de tutoriales — panel independiente ──────────────────────────

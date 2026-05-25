@@ -169,9 +169,9 @@
             ? `<img class="upm-avatar" src="${_esc(d.avatarUrl)}" alt="${_esc(d.displayName)}">`
             : `<div class="upm-avatar upm-avatar--initials">${_esc((d.displayName[0] || '?').toUpperCase())}</div>`;
 
-        const editBtnLabel = isRpg ? '✎ Editar' : 'Editar perfil';
-        const editBtn = d.isSelf
-            ? `<button class="upm-edit-btn" id="upmEditToggleBtn" type="button" onclick="toggleProfileEdit()">${editBtnLabel}</button>`
+        // En modo RPG no hay botón de editar: los stats se gestionan inline con +/-/Confirmar
+        const editBtn = d.isSelf && !isRpg
+            ? `<button class="upm-edit-btn" id="upmEditToggleBtn" type="button" onclick="toggleProfileEdit()">Editar perfil</button>`
             : '';
 
         const metaSection = (tz || bio) ? `
@@ -321,30 +321,48 @@
 
     // ── Stats RPG inline ─────────────────────────────────────
 
+    // Deltas pendientes de confirmar: { [stat]: totalDelta }
+    let _stagedDeltas = {};
+
     function _renderRpgStatBlock(d) {
         const { char, profile, freePoints } = d.rpgSheet;
         if (!char || !profile) return '';
         const stats   = (profile && profile.stats) || {};
         const canEdit = freePoints > 0;
 
+        // Puntos gastados en la stage actual (solo subidas)
+        const stagedCost = Object.values(_stagedDeltas).reduce((s, v) => s + Math.max(0, v), 0);
+        const remaining  = freePoints - stagedCost;
+        const hasPending = Object.values(_stagedDeltas).some(v => v !== 0);
+
         const rows = Object.entries(RPG_STAT_LABELS).map(([key, label]) => {
-            const val  = stats[key] || 8;
-            const cid  = _esc(String(char.id));
-            const minus = canEdit
-                ? `<button class="upm-stat-adj upm-stat-adj--minus" onclick="upmAdjustStat('${cid}','${key}',-1)" aria-label="Reducir ${label}">−</button>`
+            const base    = stats[key] || 8;
+            const staged  = _stagedDeltas[key] || 0;
+            const val     = base + staged;
+            const cid     = _esc(String(char.id));
+            // El + solo aparece si quedan puntos libres; el − aparece si hay staged positivo en esa stat
+            const minus = (canEdit && staged > 0)
+                ? `<button class="upm-stat-adj upm-stat-adj--minus" onclick="upmStageStat('${cid}','${key}',-1)" aria-label="Reducir ${label}">−</button>`
                 : '';
-            const plus = canEdit
-                ? `<button class="upm-stat-adj upm-stat-adj--plus" onclick="upmAdjustStat('${cid}','${key}',1)" aria-label="Aumentar ${label}">+</button>`
+            const plus = (canEdit && remaining > 0)
+                ? `<button class="upm-stat-adj upm-stat-adj--plus" onclick="upmStageStat('${cid}','${key}',1)" aria-label="Aumentar ${label}">+</button>`
                 : '';
+            const valClass = staged > 0 ? ' upm-rpg-stat-val--up' : '';
             return `<div class="upm-rpg-stat-row">
                 <span class="upm-rpg-stat-name">${label}</span>
-                ${minus}<span class="upm-rpg-stat-val">${val}</span>${plus}
+                ${minus}<span class="upm-rpg-stat-val${valClass}">${val}</span>${plus}
             </div>`;
         }).join('');
 
-        const ptsEl = freePoints > 0
-            ? `<span class="upm-rpg-free-pts">${freePoints} pts. libres</span>`
+        const ptsEl = canEdit
+            ? `<span class="upm-rpg-free-pts">${remaining} pts. libres</span>`
             : `<span class="upm-rpg-pts-done">Completo</span>`;
+
+        const confirmBar = (canEdit && hasPending) ? `
+            <div class="upm-rpg-confirm-bar">
+                <button class="upm-rpg-btn upm-rpg-btn--cancel" onclick="upmCancelStats()">Cancelar</button>
+                <button class="upm-rpg-btn upm-rpg-btn--confirm" onclick="upmConfirmStats('${_esc(String(char.id))}')">Confirmar</button>
+            </div>` : '';
 
         return `
         <div id="upmRpgStatBlock" class="upm-rpg-stat-block">
@@ -354,23 +372,35 @@
                 ${ptsEl}
             </div>
             <div class="upm-rpg-stat-grid">${rows}</div>
+            ${confirmBar}
         </div>`;
     }
 
-    // ── Ajuste de stat desde el modal (sin recargar red) ─────
+    // ── Stage local de stats (no persiste hasta confirmar) ───
 
-    function upmAdjustStat(charId, stat, delta) {
+    function upmStageStat(charId, stat, delta) {
+        if (!_cachedProfileData) return;
+        _stagedDeltas[stat] = (_stagedDeltas[stat] || 0) + delta;
+        _refreshStatBlock();
+    }
+
+    function upmConfirmStats(charId) {
         if (typeof adjustRpgStat !== 'function' || !_cachedProfileData) return;
-        adjustRpgStat(charId, stat, delta);
+        Object.entries(_stagedDeltas).forEach(([stat, delta]) => {
+            if (delta !== 0) adjustRpgStat(charId, stat, delta);
+        });
+        _stagedDeltas = {};
+        _refreshStatBlockFromProfile();
+    }
 
-        // Actualizar rpgSheet del cache con datos en memoria
-        const topic = _currentTopic();
-        if (!topic) return;
-        const char = _allChars().find(c => String(c.id) === String(charId));
-        if (!char || typeof getRpgSheetData !== 'function') return;
-        _cachedProfileData.rpgSheet = { char, ...getRpgSheetData(char, topic.id) };
+    function upmCancelStats() {
+        _stagedDeltas = {};
+        _refreshStatBlock();
+    }
 
-        // Reemplazar solo el bloque de stats en el DOM
+    // Refresca solo el bloque de stats con datos actuales del cache
+    function _refreshStatBlock() {
+        if (!_cachedProfileData) return;
         const block = document.getElementById('upmRpgStatBlock');
         if (!block) return;
         const tmp = document.createElement('div');
@@ -378,18 +408,28 @@
         if (tmp.firstElementChild) block.replaceWith(tmp.firstElementChild);
     }
 
+    // Recarga el rpgSheet desde datos reales (tras confirmar)
+    function _refreshStatBlockFromProfile() {
+        if (!_cachedProfileData) return;
+        const topic = _currentTopic();
+        if (!topic) { _refreshStatBlock(); return; }
+        const char = _allChars().find(c => String(c.id) === String(_cachedProfileData.rpgSheet?.char?.id));
+        if (char && typeof getRpgSheetData === 'function') {
+            _cachedProfileData.rpgSheet = { char, ...getRpgSheetData(char, topic.id) };
+        }
+        _refreshStatBlock();
+    }
+
+    // ── Ajuste de stat desde el modal — mantenido para compat. ──
+    // (ya no lo llama _renderRpgStatBlock; se usa staging en su lugar)
+    function upmAdjustStat(charId, stat, delta) {
+        upmStageStat(charId, stat, delta);
+    }
+
     // ── Panel de party clásico ───────────────────────────────
 
-    let _classicPartyOpen = false;
-
-    function toggleClassicParty() {
-        _classicPartyOpen = !_classicPartyOpen;
-        const shell = document.getElementById('classicPartyShell');
-        const tab   = document.getElementById('classicPartyTab');
-        if (!shell) return;
-        shell.classList.toggle('open', _classicPartyOpen);
-        if (tab) tab.setAttribute('aria-expanded', String(_classicPartyOpen));
-    }
+    // El panel clásico es siempre visible cuando hay participantes (no hay toggle).
+    function toggleClassicParty() { /* sin-op: panel siempre visible */ }
 
     function renderClassicParty(participants) {
         const shell = document.getElementById('classicPartyShell');
@@ -438,6 +478,9 @@
     global.saveUserMeta          = saveUserMeta;
     global.toggleProfileEdit     = toggleProfileEdit;
     global.upmAdjustStat         = upmAdjustStat;
+    global.upmStageStat          = upmStageStat;
+    global.upmConfirmStats       = upmConfirmStats;
+    global.upmCancelStats        = upmCancelStats;
     global.toggleClassicParty    = toggleClassicParty;
     global.renderClassicParty    = renderClassicParty;
 

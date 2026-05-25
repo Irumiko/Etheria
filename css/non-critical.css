@@ -2,7 +2,19 @@
 @import url('./animations.css');
 @import url('./mobile-perf.css');
 @import url('./auth.css');
-@import url('./components.css');
+@import url('./components/01-base.css');
+@import url('./components/02-user-selection.css');
+@import url('./components/03-topic-cards.css');
+@import url('./components/04-info-card.css');
+@import url('./components/05-reply-panel.css');
+@import url('./components/06-vn-mobile-rpg.css');
+@import url('./components/07-tone-story.css');
+@import url('./components/08-responsive-modals.css');
+@import url('./components/09-vn-dialogue.css');
+@import url('./components/10-vn-controls.css');
+@import url('./components/11-character-modal.css');
+@import url('./components/12-rpg-system.css');
+@import url('./components/13-presence-party.css');
 @import url('./menu.css');
 @import url('./options.css');
 @import url('./mascot.css');
@@ -21,3 +33,6 @@
 @import url('./features/vn-themes.css');
 @import url('./menu-gamefeel.css');
 @import url('./options-gamefeel.css');
+/* Estancias aisladas — SIEMPRE AL FINAL (especificidad #sectionId .selector) */
+@import url('./sections/topics.css');
+@import url('./sections/user-profile.css');
