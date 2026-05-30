@@ -2770,14 +2770,26 @@ body::before {
         .user-select-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background:
-                radial-gradient(ellipse 55% 45% at 90% 95%, var(--ps-gold-faint) 0%, transparent 65%),
-                radial-gradient(ellipse 50% 40% at 8% 10%,  var(--ps-gold-faint) 0%, transparent 60%),
-                radial-gradient(ellipse 65% 45% at 50% 0%,  rgba(160,120,230,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 65% 55% at 88% 94%, rgba(130, 80, 220, 0.22) 0%, transparent 65%),
+                radial-gradient(ellipse 55% 45% at 8% 4%,   rgba(90, 60, 200, 0.18) 0%, transparent 62%),
+                radial-gradient(ellipse 75% 50% at 50% -4%,  rgba(155, 105, 250, 0.14) 0%, transparent 55%),
+                radial-gradient(ellipse 40% 35% at 72% 16%,  rgba(200, 155, 255, 0.08) 0%, transparent 48%),
                 linear-gradient(170deg, var(--ps-bg-from) 0%, var(--ps-bg-to) 100%);
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             z-index: var(--z-i-2000); overflow: hidden;
             transition: background 0.4s ease;
+        }
+        /* Dark mode: campo de estrellitas sobre el fondo índigo */
+        [data-theme="dark"] .user-select-screen {
+            background:
+                radial-gradient(circle, rgba(220,195,255,0.55) 1px, transparent 1px) 0 0 / 72px 72px,
+                radial-gradient(circle, rgba(180,155,245,0.35) 1px, transparent 1px) 36px 44px / 108px 88px,
+                radial-gradient(ellipse 65% 55% at 88% 94%, rgba(130, 80, 220, 0.32) 0%, transparent 65%),
+                radial-gradient(ellipse 55% 45% at 8% 4%,   rgba(90, 60, 200, 0.26) 0%, transparent 62%),
+                radial-gradient(ellipse 75% 50% at 50% -4%,  rgba(155, 105, 250, 0.18) 0%, transparent 55%),
+                radial-gradient(ellipse 40% 35% at 72% 16%,  rgba(200, 155, 255, 0.12) 0%, transparent 48%),
+                linear-gradient(170deg, var(--ps-bg-from) 0%, var(--ps-bg-to) 100%);
         }
         .user-select-screen.hidden { display: none; }
 
@@ -2903,36 +2915,76 @@ body::before {
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
         }
-        /* Borde superior dorado */
+        /* Borde superior ornamental */
         .user-card::before {
             content: '';
             position: absolute; top: 0; left: 0; right: 0;
             height: 2px;
-            background: linear-gradient(90deg, transparent 5%, var(--ps-gold-dim) 50%, transparent 95%);
-            opacity: 0.4;
-            transition: opacity 0.22s;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                var(--ps-gold-faint) 15%,
+                var(--ps-gold-dim) 40%,
+                var(--ps-gold) 50%,
+                var(--ps-gold-dim) 60%,
+                var(--ps-gold-faint) 85%,
+                transparent 100%);
+            opacity: 0.35;
+            transition: opacity 0.3s, box-shadow 0.3s;
         }
-        .user-card:hover::before, .user-card.active::before { opacity: 1; }
+        .user-card:hover::before {
+            opacity: 0.85;
+            box-shadow: 0 0 8px 1px var(--ps-gold-faint);
+        }
+        .user-card.active::before {
+            opacity: 1;
+            box-shadow: 0 0 12px 2px rgba(150,110,230,0.25);
+        }
+
+        /* Shimmer de luz al hacer hover */
+        .user-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -90%;
+            width: 55%; height: 100%;
+            background: linear-gradient(
+                108deg,
+                transparent 0%,
+                rgba(230, 210, 255, 0.06) 40%,
+                rgba(240, 220, 255, 0.11) 50%,
+                rgba(230, 210, 255, 0.06) 60%,
+                transparent 100%
+            );
+            transform: skewX(-14deg);
+            transition: left 0.70s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .user-card:hover::after { left: 145%; }
 
         .user-card:hover {
-            transform: translateY(-5px) scale(1.015);
-            box-shadow: 0 14px 36px var(--ps-shadow), 0 0 20px rgba(150, 110, 220, 0.18);
+            transform: translateY(-6px) scale(1.018);
+            box-shadow:
+                0 16px 40px var(--ps-shadow),
+                0 0 24px rgba(150, 110, 220, 0.20),
+                inset 0 0 30px rgba(160, 130, 255, 0.04);
             border-color: var(--ps-gold-dim);
         }
         .user-card.active {
             border-color: var(--ps-gold-dim);
             box-shadow:
-                0 0 0 1.5px var(--ps-gold-faint),
+                0 0 0 1.5px rgba(160, 128, 220, 0.18),
                 0 8px 28px var(--ps-shadow),
-                0 0 32px rgba(160, 128, 220, 0.22);
+                0 0 36px rgba(160, 128, 220, 0.24),
+                inset 0 0 40px rgba(150, 120, 255, 0.05);
         }
         /* Pulso suave solo en la tarjeta activa — guiding the eye */
         .user-card.active .save-slot-number {
-            color: rgba(160,128,220,0.7);
-            background: rgba(160,128,220,0.1);
+            color: rgba(160,128,220,0.75);
         }
         .user-card.active .user-card-footer {
-            border-top-color: rgba(160,128,220,0.2);
+            background:
+                linear-gradient(var(--ps-card-bg), var(--ps-card-bg)) padding-box,
+                linear-gradient(90deg, transparent 5%, rgba(160,128,220,0.35) 50%, transparent 95%) border-box;
         }
         .user-card.active .user-continue-btn {
             animation: btn-pulse-soft 2.8s ease-in-out infinite;
@@ -3127,24 +3179,23 @@ body::before {
             margin-top: -0.08rem;
         }
 
-        /* Avatar */
-        .user-avatar {
-            display: flex !important;
-            width: 65px; height: 65px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, var(--ps-gold-faint), var(--ps-card-bg));
-            border: 2px solid var(--ps-gold-faint);
-            box-shadow: 0 3px 14px var(--ps-shadow);
-            align-items: center; justify-content: center;
-            font-size: 1.7rem;
-            margin: 1.1rem auto 0.6rem;
-            transition: border-color 0.22s, box-shadow 0.22s;
+        /* Halo de luz debajo del avatar (efecto "resplandor") */
+        .user-avatar-wrap {
+            position: relative;
         }
-        .user-card:hover .user-avatar,
-        .user-card.active .user-avatar {
-            border-color: var(--ps-gold-dim);
-            box-shadow: 0 0 18px var(--ps-gold-faint), 0 3px 14px var(--ps-shadow);
+        .user-avatar-wrap::after {
+            content: '';
+            position: absolute;
+            bottom: -6px; left: 50%;
+            transform: translateX(-50%);
+            width: 60%; height: 8px;
+            background: radial-gradient(ellipse at 50% 0%, var(--ps-gold-dim) 0%, transparent 80%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
         }
+        .user-card:hover .user-avatar-wrap::after,
+        .user-card.active .user-avatar-wrap::after { opacity: 0.7; }
 
         /* Nombre */
         .user-name {
@@ -3159,12 +3210,25 @@ body::before {
             margin-bottom: 0.85rem;
         }
 
-        /* Divisor */
+        /* Divisor ornamental */
         .user-card-divider {
+            position: relative;
             width: 55%;
             height: 1px;
-            background: linear-gradient(90deg, transparent, var(--ps-card-border), transparent);
+            background: linear-gradient(90deg, transparent, var(--ps-gold-dim), transparent);
             margin: 0 auto 0.8rem;
+        }
+        .user-card-divider::before {
+            content: '✦';
+            position: absolute;
+            left: 50%; top: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.42rem;
+            color: var(--ps-gold);
+            line-height: 1;
+            background: var(--ps-card-bg);
+            padding: 0 0.25rem;
+            opacity: 0.75;
         }
 
         /* Stats — pills flexibles */
@@ -3203,14 +3267,18 @@ body::before {
 
         /* Footer de la tarjeta */
         .user-card-footer {
+            position: relative;
             width: 100%;
             margin-top: auto;
-            padding: 0.5rem 1rem 0.9rem;
+            padding: 0.55rem 1rem 0.9rem;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0.4rem;
-            border-top: 1px solid var(--ps-card-border);
+            border-top: 1px solid transparent;
+            background:
+                linear-gradient(var(--ps-card-bg), var(--ps-card-bg)) padding-box,
+                linear-gradient(90deg, transparent 10%, var(--ps-gold-faint) 50%, transparent 90%) border-box;
         }
         .user-last-session {
             font-size: 0.62rem;

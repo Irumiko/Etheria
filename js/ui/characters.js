@@ -212,10 +212,11 @@ function renderUserCards() {
         // Última historia activa
         const lastTopic = ownTopics[ownTopics.length - 1] || null;
 
-        // Avatar guardado
+        // Avatar guardado — fallback a etheria_cloud_avatar_url para el perfil activo
         let avatars = [];
         try { avatars = JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]'); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
-        const avatarSrc = avatars[idx] || '';
+        const _activeIdx = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
+        const avatarSrc = avatars[idx] || (idx === _activeIdx ? localStorage.getItem('etheria_cloud_avatar_url') || '' : '');
         const avatarHtml = avatarSrc
             ? `<div class="user-avatar-wrap"><img src="${avatarSrc}" alt="Avatar" loading="lazy"></div>`
             : `<div class="user-avatar-wrap"><span class="user-avatar-initials">${(name||'?')[0].toUpperCase()}</span></div>`;
