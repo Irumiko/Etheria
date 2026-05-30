@@ -2545,19 +2545,19 @@ body::before {
 
         /* ── Variables locales derivadas del tema ── */
         .user-select-screen {
-            --ps-bg-from:     #f3f0fa;
-            --ps-bg-to:       #e8e2f5;
-            --ps-card-bg:     rgba(255, 253, 255, 0.82);
-            --ps-card-border: rgba(150, 120, 210, 0.16);
-            --ps-gold:        #7c5cbf;
-            --ps-gold-dim:    rgba(140, 100, 210, 0.38);
-            --ps-gold-faint:  rgba(150, 110, 220, 0.10);
-            --ps-text:        #2a1f3d;
-            --ps-text-soft:   #5a4a78;
-            --ps-text-muted:  rgba(100, 75, 145, 0.55);
-            --ps-shadow:      rgba(80, 50, 140, 0.14);
-            --ps-vignette:    rgba(30, 10, 60, 0.12);
-            --ps-scan:        rgba(80, 50, 140, 0.025);
+            --ps-bg-from:     #ede8f8;
+            --ps-bg-to:       #e0d8f2;
+            --ps-card-bg:     rgba(252, 250, 255, 0.86);
+            --ps-card-border: rgba(140, 100, 215, 0.32);
+            --ps-gold:        #6b48b8;
+            --ps-gold-dim:    rgba(130, 90, 210, 0.52);
+            --ps-gold-faint:  rgba(145, 105, 225, 0.14);
+            --ps-text:        #24183a;
+            --ps-text-soft:   #503a70;
+            --ps-text-muted:  rgba(90, 65, 140, 0.60);
+            --ps-shadow:      rgba(70, 40, 130, 0.18);
+            --ps-vignette:    rgba(40, 15, 80, 0.18);
+            --ps-scan:        rgba(80, 50, 140, 0.02);
         }
         [data-theme="dark"] .user-select-screen {
             --ps-bg-from:     #08071c;
@@ -2577,46 +2577,65 @@ body::before {
 
         .user-select-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background:
-                radial-gradient(ellipse 65% 55% at 88% 94%, rgba(130, 80, 220, 0.22) 0%, transparent 65%),
-                radial-gradient(ellipse 55% 45% at 8% 4%,   rgba(90, 60, 200, 0.18) 0%, transparent 62%),
-                radial-gradient(ellipse 75% 50% at 50% -4%,  rgba(155, 105, 250, 0.14) 0%, transparent 55%),
-                radial-gradient(ellipse 40% 35% at 72% 16%,  rgba(200, 155, 255, 0.08) 0%, transparent 48%),
-                linear-gradient(170deg, var(--ps-bg-from) 0%, var(--ps-bg-to) 100%);
             display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             z-index: var(--z-i-2000); overflow: hidden;
             transition: background 0.4s ease;
+            /* Base — sobreescrito por cada tema */
+            background: linear-gradient(170deg, var(--ps-bg-from) 0%, var(--ps-bg-to) 100%);
         }
-        /* Dark mode: campo de estrellitas sobre el fondo índigo */
+
+        /* ── LIGHT MODE: vidriera de luz lavanda ── */
+        [data-theme="light"] .user-select-screen {
+            background:
+                /* Rejilla de puntos visible — da textura y profundidad */
+                radial-gradient(circle, rgba(120, 80, 200, 0.22) 1.5px, transparent 1.5px) 0 0   / 48px 48px,
+                radial-gradient(circle, rgba(100, 65, 185, 0.14) 1px,   transparent 1px)   24px 28px / 72px 64px,
+                /* Orbes de color vivos — esquinas y cima */
+                radial-gradient(ellipse 70% 60% at 90% 98%,  rgba(130, 75, 220, 0.38) 0%, transparent 62%),
+                radial-gradient(ellipse 60% 52% at 5%  2%,   rgba(100, 60, 210, 0.32) 0%, transparent 60%),
+                radial-gradient(ellipse 85% 55% at 50% -8%,  rgba(155, 100, 250, 0.26) 0%, transparent 55%),
+                radial-gradient(ellipse 45% 38% at 75% 18%,  rgba(200, 150, 255, 0.18) 0%, transparent 46%),
+                radial-gradient(ellipse 40% 35% at 20% 80%,  rgba(110, 70, 220, 0.16) 0%, transparent 50%),
+                /* Fondo base lavanda */
+                linear-gradient(170deg, #ede8f8 0%, #e0d8f2 60%, #d8d0ee 100%);
+        }
+
+        /* ── DARK MODE: cielo nocturno índigo con estrellas ── */
         [data-theme="dark"] .user-select-screen {
             background:
-                radial-gradient(circle, rgba(220,195,255,0.55) 1px, transparent 1px) 0 0 / 72px 72px,
-                radial-gradient(circle, rgba(180,155,245,0.35) 1px, transparent 1px) 36px 44px / 108px 88px,
-                radial-gradient(ellipse 65% 55% at 88% 94%, rgba(130, 80, 220, 0.32) 0%, transparent 65%),
-                radial-gradient(ellipse 55% 45% at 8% 4%,   rgba(90, 60, 200, 0.26) 0%, transparent 62%),
-                radial-gradient(ellipse 75% 50% at 50% -4%,  rgba(155, 105, 250, 0.18) 0%, transparent 55%),
-                radial-gradient(ellipse 40% 35% at 72% 16%,  rgba(200, 155, 255, 0.12) 0%, transparent 48%),
-                linear-gradient(170deg, var(--ps-bg-from) 0%, var(--ps-bg-to) 100%);
+                /* Estrellas densas */
+                radial-gradient(circle, rgba(230, 210, 255, 0.65) 1px,   transparent 1px) 0 0     / 60px 60px,
+                radial-gradient(circle, rgba(200, 175, 250, 0.45) 1px,   transparent 1px) 30px 38px / 95px 80px,
+                radial-gradient(circle, rgba(255, 245, 255, 0.30) 1.5px, transparent 1.5px) 15px 55px / 140px 120px,
+                /* Nebulosas de color */
+                radial-gradient(ellipse 65% 55% at 90% 96%,  rgba(130, 75, 225, 0.42) 0%, transparent 62%),
+                radial-gradient(ellipse 55% 48% at 5%  2%,   rgba(85,  55, 205, 0.36) 0%, transparent 60%),
+                radial-gradient(ellipse 80% 52% at 50% -6%,  rgba(150, 95, 250, 0.25) 0%, transparent 55%),
+                radial-gradient(ellipse 42% 36% at 72% 18%,  rgba(195, 145, 255, 0.16) 0%, transparent 46%),
+                /* Fondo base índigo profundo */
+                linear-gradient(170deg, #08071c 0%, #0f0c2a 55%, #100d28 100%);
         }
+
         .user-select-screen.hidden { display: none; }
 
-        /* Scanlines sutiles */
+        /* Textura de papel fina — más visible en light */
         .user-select-screen::before {
             content: '';
             position: absolute; inset: 0;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent, transparent 3px,
-                var(--ps-scan) 3px, var(--ps-scan) 4px
-            );
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+            opacity: 0.06;
+            mix-blend-mode: overlay;
             pointer-events: none; z-index: var(--z-i-0);
         }
-        /* Viñeta */
+        [data-theme="light"] .user-select-screen::before { opacity: 0.10; }
+
+        /* Viñeta más pronunciada en las esquinas */
         .user-select-screen::after {
             content: '';
             position: absolute; inset: 0;
-            background: radial-gradient(ellipse 110% 110% at 50% 50%, transparent 50%, var(--ps-vignette) 100%);
+            background:
+                radial-gradient(ellipse 100% 100% at 50% 50%, transparent 42%, var(--ps-vignette) 100%);
             pointer-events: none; z-index: var(--z-i-0);
         }
 
@@ -2635,23 +2654,26 @@ body::before {
             font-weight: 700;
             letter-spacing: 0.28em;
             color: transparent;
-            background: linear-gradient(160deg, var(--ps-gold) 0%, var(--accent-wood) 60%, var(--accent-warm) 100%);
+            background: linear-gradient(155deg, var(--ps-gold) 0%, rgba(160, 120, 255, 0.9) 50%, var(--ps-gold) 100%);
             -webkit-background-clip: text;
             background-clip: text;
-            margin: 0 0 0.35rem;
+            margin: 0 0 0.4rem;
             line-height: 1;
+            text-shadow: none;
+            filter: drop-shadow(0 0 18px rgba(130, 90, 220, 0.28));
         }
         .save-screen-rule {
-            width: 200px; height: 1px;
-            background: linear-gradient(90deg, transparent, var(--ps-gold-dim), transparent);
-            margin: 0 auto 0.5rem;
+            width: 240px; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--ps-gold-dim) 30%, var(--ps-gold) 50%, var(--ps-gold-dim) 70%, transparent);
+            margin: 0 auto 0.55rem;
+            opacity: 0.85;
         }
         .game-subtitle {
             font-family: 'Cinzel', serif;
-            font-size: 0.68rem; letter-spacing: 0.3em;
+            font-size: 0.66rem; letter-spacing: 0.32em;
             color: var(--ps-text-muted);
             text-transform: uppercase; font-style: normal;
-            margin: 0 0 2.5rem;
+            margin: 0 0 2.2rem;
         }
 
         /* Botón tema en la pantalla de perfiles */
@@ -2709,7 +2731,16 @@ body::before {
             display: flex;
             flex-direction: column;
             align-items: center;
-            background: var(--ps-card-bg);
+            /* Gradiente de fondo: suave de arriba (levemente púrpura) hacia abajo (blanco/oscuro) */
+            background-color: var(--ps-card-bg);
+            background-image:
+                /* Puntos ornamentales en las cuatro esquinas */
+                radial-gradient(circle at 11px 11px,        var(--ps-gold-dim) 2.5px, transparent 2.5px),
+                radial-gradient(circle at calc(100% - 11px) 11px,        var(--ps-gold-dim) 2.5px, transparent 2.5px),
+                radial-gradient(circle at 11px calc(100% - 11px),        var(--ps-gold-dim) 2.5px, transparent 2.5px),
+                radial-gradient(circle at calc(100% - 11px) calc(100% - 11px), var(--ps-gold-dim) 2.5px, transparent 2.5px),
+                /* Gradiente sutil de cuerpo */
+                linear-gradient(175deg, rgba(155, 120, 235, 0.07) 0%, transparent 40%);
             border: 1px solid var(--ps-card-border);
             border-radius: 16px;
             padding: 0;
@@ -2717,11 +2748,14 @@ body::before {
             cursor: pointer;
             scroll-snap-align: start;
             transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
-            box-shadow: 0 4px 20px var(--ps-shadow);
+            box-shadow: 0 4px 24px var(--ps-shadow), inset 0 1px 0 rgba(255,255,255,0.55);
             position: relative;
             color: var(--ps-text);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        [data-theme="dark"] .user-card {
+            box-shadow: 0 4px 24px var(--ps-shadow), inset 0 1px 0 rgba(160,130,255,0.10);
         }
         /* Borde superior ornamental */
         .user-card::before {
@@ -2772,18 +2806,18 @@ body::before {
         .user-card:hover {
             transform: translateY(-6px) scale(1.018);
             box-shadow:
-                0 16px 40px var(--ps-shadow),
-                0 0 24px rgba(150, 110, 220, 0.20),
-                inset 0 0 30px rgba(160, 130, 255, 0.04);
-            border-color: var(--ps-gold-dim);
+                0 18px 44px var(--ps-shadow),
+                0 0 28px rgba(140, 100, 220, 0.26),
+                inset 0 0 30px rgba(160, 130, 255, 0.06);
+            border-color: rgba(160, 120, 240, 0.65);
         }
         .user-card.active {
-            border-color: var(--ps-gold-dim);
+            border-color: rgba(160, 120, 240, 0.70);
             box-shadow:
-                0 0 0 1.5px rgba(160, 128, 220, 0.18),
-                0 8px 28px var(--ps-shadow),
-                0 0 36px rgba(160, 128, 220, 0.24),
-                inset 0 0 40px rgba(150, 120, 255, 0.05);
+                0 0 0 2px rgba(160, 128, 220, 0.22),
+                0 8px 30px var(--ps-shadow),
+                0 0 40px rgba(150, 110, 230, 0.30),
+                inset 0 0 40px rgba(150, 120, 255, 0.06);
         }
         /* Pulso suave solo en la tarjeta activa — guiding the eye */
         .user-card.active .save-slot-number {
@@ -2802,22 +2836,26 @@ body::before {
             50%       { box-shadow: 0 0 10px rgba(160,128,220,0.35); border-color: rgba(160,128,220,0.7); }
         }
 
-        /* Franja slot */
+        /* Cabecera de slot — banda de color visible */
         .save-slot-number {
             width: 100%;
             text-align: center;
             font-family: 'Cinzel', serif;
             font-size: 0.55rem;
-            letter-spacing: 0.24em;
-            color: var(--ps-text-muted);
-            background: transparent;
-            padding: 0.38rem 0 0.28rem;
-            border-bottom: 1px solid var(--ps-card-border);
+            letter-spacing: 0.22em;
+            color: var(--ps-gold);
+            background: linear-gradient(135deg, rgba(145, 105, 230, 0.16) 0%, rgba(120, 85, 220, 0.22) 100%);
+            padding: 0.46rem 0 0.36rem;
+            border-bottom: 1px solid rgba(145, 105, 225, 0.22);
             text-transform: uppercase;
         }
+        [data-theme="light"] .save-slot-number {
+            color: rgba(100, 65, 180, 0.85);
+            background: linear-gradient(135deg, rgba(145, 105, 230, 0.12) 0%, rgba(120, 85, 215, 0.18) 100%);
+        }
         .save-slot-dot {
-            opacity: 0.5;
-            margin: 0 0.12em;
+            opacity: 0.6;
+            margin: 0 0.15em;
         }
 
 
@@ -3021,22 +3059,23 @@ body::before {
         /* Divisor ornamental */
         .user-card-divider {
             position: relative;
-            width: 55%;
+            width: 65%;
             height: 1px;
-            background: linear-gradient(90deg, transparent, var(--ps-gold-dim), transparent);
-            margin: 0 auto 0.8rem;
+            background: linear-gradient(90deg, transparent, var(--ps-gold-dim) 35%, var(--ps-gold) 50%, var(--ps-gold-dim) 65%, transparent);
+            margin: 0 auto 0.75rem;
+            opacity: 0.9;
         }
         .user-card-divider::before {
             content: '✦';
             position: absolute;
             left: 50%; top: 50%;
             transform: translate(-50%, -50%);
-            font-size: 0.42rem;
+            font-size: 0.55rem;
             color: var(--ps-gold);
             line-height: 1;
             background: var(--ps-card-bg);
-            padding: 0 0.25rem;
-            opacity: 0.75;
+            padding: 0 0.3rem;
+            opacity: 1;
         }
 
         /* Stats — pills flexibles */

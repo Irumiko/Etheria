@@ -306,8 +306,8 @@ function renderUserCards() {
         addCard.id = 'addProfileCard';
         addCard.onclick = addNewProfile;
         addCard.innerHTML = `
-            <div class="add-profile-icon" style="font-size:2.4rem;line-height:1;">+</div>
-            <div class="add-profile-text" style="font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.15em;text-transform:uppercase;">Nuevo Archivo</div>
+            <div class="add-profile-icon">+</div>
+            <div class="add-profile-text">Nuevo Archivo</div>
         `;
         container.appendChild(addCard);
     }
@@ -322,6 +322,17 @@ function renderUserCards() {
         toggleWelcomeOverlay(true);
     }
 }
+
+// Re-render avatars cuando los settings llegan de Supabase (timing asíncrono)
+(function _watchSettingsForAvatar() {
+    window.addEventListener('etheria:settings-applied', function() {
+        const screen = document.getElementById('userSelectScreen');
+        if (!screen || screen.classList.contains('hidden')) return;
+        // Si alguna tarjeta muestra iniciales en lugar de foto, re-renderizar
+        const hasInitials = screen.querySelector('.user-avatar-initials');
+        if (hasInitials) renderUserCards();
+    });
+}());
 
 function highlightActiveProfile(idx) {
     document.querySelectorAll('.user-card').forEach(card => {
