@@ -2737,8 +2737,8 @@ body::before {
 
         /* ── Variables locales derivadas del tema ── */
         .user-select-screen {
-            --ps-bg-from:     #ede8f8;
-            --ps-bg-to:       #e0d8f2;
+            --ps-bg-from:     #e6ddf5;
+            --ps-bg-to:       #dacef0;
             --ps-card-bg:     rgba(252, 250, 255, 0.86);
             --ps-card-border: rgba(140, 100, 215, 0.32);
             --ps-gold:        #6b48b8;
@@ -2780,43 +2780,41 @@ body::before {
         /* ── LIGHT MODE ── */
         [data-theme="light"] .user-select-screen {
             background:
-                /* Bandas de aurora — elipses horizontales muy anchas */
-                radial-gradient(ellipse 220% 24% at 50% 20%,  rgba(160, 105, 252, 0.16) 0%, transparent 80%),
-                radial-gradient(ellipse 200% 20% at 22% 68%,  rgba(120,  80, 228, 0.13) 0%, transparent 75%),
-                radial-gradient(ellipse 240% 18% at 78% 84%,  rgba(185, 140, 255, 0.10) 0%, transparent 72%),
-                /* Rayos diagonales de luz — líneas muy finas a bajo opacidad */
-                repeating-linear-gradient(
-                    118deg,
-                    transparent 0px, transparent 138px,
-                    rgba(150, 100, 235, 0.055) 138px, rgba(150, 100, 235, 0.055) 140px
-                ),
-                /* Orbes de esquina */
-                radial-gradient(ellipse 70% 60% at 90% 98%,  rgba(130,  75, 220, 0.40) 0%, transparent 62%),
-                radial-gradient(ellipse 60% 52% at  5%  2%,  rgba(100,  60, 210, 0.34) 0%, transparent 60%),
-                radial-gradient(ellipse 85% 55% at 50%  -8%, rgba(155, 100, 250, 0.28) 0%, transparent 55%),
-                radial-gradient(ellipse 45% 38% at 75%  18%, rgba(200, 150, 255, 0.18) 0%, transparent 46%),
-                radial-gradient(ellipse 40% 35% at 20%  80%, rgba(110,  70, 220, 0.17) 0%, transparent 50%),
-                linear-gradient(170deg, #ede8f8 0%, #e0d8f2 60%, #d8d0ee 100%);
+                /* Bandas de aurora horizontal — profundidad de campo */
+                radial-gradient(ellipse 230% 26% at 50% 18%,  rgba(145, 90, 248, 0.20) 0%, transparent 78%),
+                radial-gradient(ellipse 210% 22% at 20% 65%,  rgba(108, 68, 228, 0.17) 0%, transparent 74%),
+                radial-gradient(ellipse 250% 20% at 80% 86%,  rgba(175, 128, 255, 0.14) 0%, transparent 72%),
+                /* Orbes grandes — esquinas y techo */
+                radial-gradient(ellipse 78% 64% at 94% 102%, rgba(115, 58, 218, 0.55) 0%, transparent 60%),
+                radial-gradient(ellipse 68% 56% at  2%  -2%, rgba( 90, 50, 208, 0.50) 0%, transparent 60%),
+                radial-gradient(ellipse 90% 58% at 50% -12%, rgba(138, 84, 248, 0.38) 0%, transparent 54%),
+                /* Orbes medios — zona central y lateral */
+                radial-gradient(ellipse 52% 44% at 82%  20%, rgba(180, 132, 255, 0.32) 0%, transparent 56%),
+                radial-gradient(ellipse 48% 40% at 16%  80%, rgba(100, 60, 220, 0.30) 0%, transparent 54%),
+                radial-gradient(ellipse 42% 36% at 70%  72%, rgba(155, 105, 248, 0.22) 0%, transparent 52%),
+                /* Orbes pequeños — acento y relleno */
+                radial-gradient(ellipse 30% 26% at 10%  30%, rgba(108, 68, 228, 0.24) 0%, transparent 50%),
+                radial-gradient(ellipse 28% 24% at 90%  48%, rgba(175, 125, 255, 0.20) 0%, transparent 48%),
+                linear-gradient(170deg, #e6ddf5 0%, #dacef0 55%, #cfc6ea 100%);
         }
 
         /* ── DARK MODE ── */
         [data-theme="dark"] .user-select-screen {
             background:
-                /* Bandas de aurora — horizontales difuminadas */
-                radial-gradient(ellipse 220% 22% at 50% 22%,  rgba(150,  90, 248, 0.18) 0%, transparent 80%),
-                radial-gradient(ellipse 200% 18% at 22% 70%,  rgba(110,  70, 225, 0.15) 0%, transparent 75%),
-                radial-gradient(ellipse 240% 16% at 78% 82%,  rgba(175, 125, 255, 0.12) 0%, transparent 72%),
-                /* Rayos diagonales */
-                repeating-linear-gradient(
-                    118deg,
-                    transparent 0px, transparent 110px,
-                    rgba(140,  90, 230, 0.08) 110px, rgba(140, 90, 230, 0.08) 112px
-                ),
-                /* Nebulosas */
-                radial-gradient(ellipse 65% 55% at 90% 96%,  rgba(130,  75, 225, 0.44) 0%, transparent 62%),
-                radial-gradient(ellipse 55% 48% at  5%  2%,  rgba( 85,  55, 205, 0.38) 0%, transparent 60%),
-                radial-gradient(ellipse 80% 52% at 50%  -6%, rgba(150,  95, 250, 0.27) 0%, transparent 55%),
-                radial-gradient(ellipse 42% 36% at 72%  18%, rgba(195, 145, 255, 0.18) 0%, transparent 46%),
+                /* Bandas de aurora horizontal */
+                radial-gradient(ellipse 230% 24% at 50% 20%,  rgba(148, 88, 250, 0.20) 0%, transparent 80%),
+                radial-gradient(ellipse 210% 20% at 20% 68%,  rgba(108, 68, 228, 0.17) 0%, transparent 75%),
+                radial-gradient(ellipse 250% 18% at 80% 84%,  rgba(172, 122, 255, 0.14) 0%, transparent 72%),
+                /* Nebulosas grandes */
+                radial-gradient(ellipse 70% 58% at 94% 100%, rgba(128, 72, 228, 0.50) 0%, transparent 62%),
+                radial-gradient(ellipse 58% 52% at  2%   0%, rgba( 82, 52, 208, 0.44) 0%, transparent 60%),
+                radial-gradient(ellipse 84% 56% at 50%  -8%, rgba(148, 92, 252, 0.32) 0%, transparent 55%),
+                /* Nebulosas medias */
+                radial-gradient(ellipse 50% 42% at 82%  22%, rgba(188, 138, 255, 0.26) 0%, transparent 56%),
+                radial-gradient(ellipse 46% 40% at 16%  78%, rgba( 98, 62, 218, 0.26) 0%, transparent 54%),
+                radial-gradient(ellipse 40% 34% at 68%  72%, rgba(152, 102, 248, 0.18) 0%, transparent 52%),
+                /* Acento central suave */
+                radial-gradient(ellipse 32% 28% at 35%  38%, rgba(138, 90, 235, 0.14) 0%, transparent 60%),
                 linear-gradient(170deg, #08071c 0%, #0f0c2a 55%, #100d28 100%);
         }
 
