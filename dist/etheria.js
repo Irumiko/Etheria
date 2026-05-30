@@ -4849,7 +4849,7 @@ function renderUserCards() {
         }
 
         card.innerHTML = `
-            <div class="save-slot-number">Archivo ${String(idx + 1).padStart(2, '0')}</div>
+            <div class="save-slot-number"><span class="save-slot-dot">·</span> Archivo ${String(idx + 1).padStart(2, '0')} <span class="save-slot-dot">·</span></div>
             ${avatarHtml}
             ${genderBadge}
             ${bdayHtml}
