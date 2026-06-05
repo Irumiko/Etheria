@@ -1615,6 +1615,13 @@ function _doEnterTopic(id, t, topicMode) {
         }
     }
 
+    // ── 2c. Activar el evaluador de triggers narrativos ───────────────────────
+    // Se inicializa después de syncFromCharacter para que el snapshot inicial
+    // ya tenga los stats correctos del personaje y no dispare falsos positivos.
+    if (typeof RPGTriggerEvaluator !== 'undefined') {
+        RPGTriggerEvaluator.init(id);
+    }
+
     // ── 3. Aplicar entorno visual (clima, fondo, CSS de modo) ─────────────────
     setWeather(t.weather || 'none');
     const vnSection = document.getElementById('vnSection');

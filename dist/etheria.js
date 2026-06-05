@@ -4710,6 +4710,10 @@ async function selectUser(idx, options = {}) {
     currentUserIndex = idx;
     localStorage.setItem(LAST_PROFILE_KEY, String(idx));
 
+    // Vincular este slot al usuario actual (si hay sesión)
+    const _ownerId = window._cachedUserId || null;
+    if (_ownerId && typeof claimProfile === 'function') claimProfile(idx, _ownerId);
+
     const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
     selectedCharId = savedCharId || null;
 
@@ -4774,6 +4778,31 @@ async function selectUser(idx, options = {}) {
     loadFromCloud().catch(() => {});
 }
 
+// Comprueba si el usuario puede entrar al perfil idx.
+// Devuelve true si puede, false si no (muestra feedback y, si falta sesión, abre el login).
+// Esta función es la única puerta de entrada a selectUser() — debe ser infranqueable.
+function _tryEnterProfile(idx) {
+    const owners    = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
+    const myUserId  = window._cachedUserId || null;
+    const slotOwner = owners[idx] || null;
+
+    // Muro 1: perfil reclamado por otra cuenta — bloqueo absoluto, sin importar el estado de sesión
+    if (slotOwner && slotOwner !== myUserId) {
+        if (typeof showAutosave === 'function') showAutosave('Este perfil pertenece a otra cuenta', 'error');
+        return false;
+    }
+
+    // Muro 2: sin sesión activa — pedir login antes de dejar entrar
+    if (!myUserId) {
+        window._pendingProfileIndex = idx;
+        if (typeof showLoginScreen === 'function') showLoginScreen();
+        if (typeof showAuthMain === 'function') showAuthMain();
+        return false;
+    }
+
+    return true;
+}
+
 // Generar tarjetas de usuario dinámicamente
 function renderUserCards() {
     const container = document.getElementById('userCardsContainer');
@@ -4781,14 +4810,34 @@ function renderUserCards() {
 
     container.innerHTML = '';
 
-    userNames.forEach((name, idx) => {
-        const card = document.createElement('div');
-        card.className = 'user-card';
-        card.dataset.profileIndex = idx;
+    // Propietarios de perfiles — para distinguir el perfil propio de los ajenos
+    const profileOwners = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
+    const myUserId = window._cachedUserId || null;
 
-        // Calcular estadísticas por perfil
+    userNames.forEach((name, idx) => {
+        const slotOwner = profileOwners[idx] || null;
+        // Solo diferenciar cuando hay sesión activa — sin sesión todo parece neutral.
+        // Cuando hay sesión: el slot propio resalta, los reclamados por otras cuentas se atenúan.
+        const isMine    = !!myUserId && slotOwner === myUserId;
+        const isForeign = !!myUserId && !!slotOwner && slotOwner !== myUserId;
+
+        // Calcular estadísticas (también necesarias para decidir si el slot tiene datos)
         const ownTopics = appData.topics.filter(t => t.createdByIndex === idx);
         const ownChars  = appData.characters.filter(c => c.userIndex === idx);
+
+        // Ocultar slots vacíos y sin reclamar — sería confuso verlos atenuados como si pertenecieran
+        // a alguien. Si no tienen propietario, nombre personalizado ni datos, "Nuevo Archivo" los cubre.
+        const hasData       = ownTopics.length > 0 || ownChars.length > 0;
+        const hasCustomName = !!(name && !/^jugador\s*\d+$/i.test(name.trim()));
+        if (!slotOwner && !hasData && !hasCustomName) return;
+
+        const card = document.createElement('div');
+        let cardClass = 'user-card';
+        if (isMine)    cardClass += ' profile-mine';
+        if (isForeign) cardClass += ' profile-foreign';
+        card.className = cardClass;
+        card.dataset.profileIndex = idx;
+
         let totalMsgs = 0;
         ownTopics.forEach(t => {
             // Solo usar mensajes ya en memoria — no forzar carga desde storage en la pantalla de perfiles
@@ -4813,10 +4862,11 @@ function renderUserCards() {
         // Última historia activa
         const lastTopic = ownTopics[ownTopics.length - 1] || null;
 
-        // Avatar guardado
+        // Avatar guardado — fallback a etheria_cloud_avatar_url para el perfil activo
         let avatars = [];
         try { avatars = JSON.parse(localStorage.getItem('etheria_user_avatars') || '[]'); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
-        const avatarSrc = avatars[idx] || '';
+        const _activeIdx = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
+        const avatarSrc = avatars[idx] || (idx === _activeIdx ? localStorage.getItem('etheria_cloud_avatar_url') || '' : '');
         const avatarHtml = avatarSrc
             ? `<div class="user-avatar-wrap"><img src="${avatarSrc}" alt="Avatar" loading="lazy"></div>`
             : `<div class="user-avatar-wrap"><span class="user-avatar-initials">${(name||'?')[0].toUpperCase()}</span></div>`;
@@ -4874,7 +4924,7 @@ function renderUserCards() {
             <div class="user-card-footer">
                 <div class="user-last-session">${lastSessionText}</div>
                 ${lastTopic ? `<div class="user-last-topic">📖 ${escapeHtml(lastTopic.title)}</div>` : ''}
-                ${lastTopic ? `<button class="user-continue-btn">▶ Continuar</button>` : ''}
+                ${!isForeign && lastTopic ? `<button class="user-continue-btn">▶ Continuar</button>` : ''}
             </div>
         `;
 
@@ -4883,6 +4933,7 @@ function renderUserCards() {
         if (btn) {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                if (!_tryEnterProfile(idx)) return;
                 selectUser(idx).then(() => {
                     if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
                     eventBus.emit('audio:stop-menu-music');
@@ -4892,7 +4943,7 @@ function renderUserCards() {
         }
 
         card.onclick = () => {
-            // Al entrar al perfil sin ir directo a un topic, también suprimir el overlay
+            if (!_tryEnterProfile(idx)) return;
             if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
             selectUser(idx);
         };
@@ -4906,8 +4957,8 @@ function renderUserCards() {
         addCard.id = 'addProfileCard';
         addCard.onclick = addNewProfile;
         addCard.innerHTML = `
-            <div class="add-profile-icon" style="font-size:2.4rem;line-height:1;">+</div>
-            <div class="add-profile-text" style="font-family:'Cinzel',serif;font-size:0.78rem;letter-spacing:0.15em;text-transform:uppercase;">Nuevo Archivo</div>
+            <div class="add-profile-icon">+</div>
+            <div class="add-profile-text">Nuevo Archivo</div>
         `;
         container.appendChild(addCard);
     }
@@ -4922,6 +4973,17 @@ function renderUserCards() {
         toggleWelcomeOverlay(true);
     }
 }
+
+// Re-render avatars cuando los settings llegan de Supabase (timing asíncrono)
+(function _watchSettingsForAvatar() {
+    window.addEventListener('etheria:settings-applied', function() {
+        const screen = document.getElementById('userSelectScreen');
+        if (!screen || screen.classList.contains('hidden')) return;
+        // Si alguna tarjeta muestra iniciales en lugar de foto, re-renderizar
+        const hasInitials = screen.querySelector('.user-avatar-initials');
+        if (hasInitials) renderUserCards();
+    });
+}());
 
 function highlightActiveProfile(idx) {
     document.querySelectorAll('.user-card').forEach(card => {
@@ -12011,6 +12073,13 @@ function _doEnterTopic(id, t, topicMode) {
         if (_activeChar) {
             RPGState.syncFromCharacter(_activeChar, id);
         }
+    }
+
+    // ── 2c. Activar el evaluador de triggers narrativos ───────────────────────
+    // Se inicializa después de syncFromCharacter para que el snapshot inicial
+    // ya tenga los stats correctos del personaje y no dispare falsos positivos.
+    if (typeof RPGTriggerEvaluator !== 'undefined') {
+        RPGTriggerEvaluator.init(id);
     }
 
     // ── 3. Aplicar entorno visual (clima, fondo, CSS de modo) ─────────────────
@@ -20659,6 +20728,147 @@ const SupabaseProfiles = (function () {
 
 window.SupabaseProfiles = SupabaseProfiles;
 
+/* js/utils/supabaseSlots.js */
+// ============================================================
+// SUPABASE SLOTS — Sincronización cross-device de slots de perfil
+// ============================================================
+// Almacena en user_settings.slot_data los nombres y propietarios
+// de cada slot. Es la fuente de verdad cuando el usuario tiene sesión:
+//   slot_data = { names: string[], owners: string[] }
+//
+// El localStorage (etheria_user_names, etheria_profile_owners) actúa
+// como caché offline. En cada inicio de sesión se sincroniza desde
+// Supabase; en cada cambio de slots, se persiste en Supabase.
+// ============================================================
+
+const SupabaseSlots = (function () {
+
+    function _client() {
+        return window.supabaseClient || null;
+    }
+
+    async function _getUserId() {
+        const sb = _client();
+        if (!sb) return null;
+        try {
+            const { data, error } = await sb.auth.getUser();
+            if (error || !data?.user?.id) return null;
+            return data.user.id;
+        } catch { return null; }
+    }
+
+    // ── Carga slots desde Supabase ────────────────────────────────────────────
+    // Devuelve { names, owners } o null si no hay sesión / falla la red.
+    async function loadSlots() {
+        const sb = _client();
+        if (!sb) return null;
+        const userId = await _getUserId();
+        if (!userId) return null;
+
+        try {
+            const { data, error } = await sb
+                .from('user_settings')
+                .select('slot_data')
+                .eq('user_id', userId)
+                .maybeSingle();
+
+            if (error) {
+                window.EtheriaLogger?.warn('supabaseSlots', 'loadSlots error:', error.message);
+                return null;
+            }
+
+            // Fila inexistente todavía (usuario nuevo) — devuelve vacío
+            if (!data) return { names: [], owners: [] };
+
+            const sd = data.slot_data;
+            return {
+                names:  Array.isArray(sd?.names)  ? sd.names  : [],
+                owners: Array.isArray(sd?.owners) ? sd.owners : [],
+            };
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseSlots', 'loadSlots exception:', err?.message);
+            return null;
+        }
+    }
+
+    // ── Guarda slots en Supabase ──────────────────────────────────────────────
+    // Hace upsert en user_settings para el usuario actual.
+    async function saveSlots(names, owners) {
+        const sb = _client();
+        if (!sb) return false;
+        const userId = await _getUserId();
+        if (!userId) return false;
+
+        const slot_data = {
+            names:  Array.isArray(names)  ? names  : [],
+            owners: Array.isArray(owners) ? owners : [],
+        };
+
+        try {
+            const { error } = await sb
+                .from('user_settings')
+                .upsert(
+                    { user_id: userId, slot_data },
+                    { onConflict: 'user_id', ignoreDuplicates: false }
+                );
+
+            if (error) {
+                window.EtheriaLogger?.warn('supabaseSlots', 'saveSlots error:', error.message);
+                return false;
+            }
+            return true;
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseSlots', 'saveSlots exception:', err?.message);
+            return false;
+        }
+    }
+
+    // ── Sincronización en el arranque ─────────────────────────────────────────
+    // Llama a esto justo después de verificar la sesión.
+    // Prioridad: Supabase > localStorage.
+    // Si Supabase tiene datos → sobreescribe localStorage.
+    // Si Supabase está vacío pero localStorage tiene datos → sube localStorage a Supabase.
+    async function syncOnLogin() {
+        const remote = await loadSlots();
+        if (remote === null) return; // sin red o sin sesión — trabajar con localStorage
+
+        const localNames  = (function () {
+            try { return JSON.parse(localStorage.getItem('etheria_user_names')  || '[]'); } catch { return []; }
+        }());
+        const localOwners = (function () {
+            try { return JSON.parse(localStorage.getItem('etheria_profile_owners') || '[]'); } catch { return []; }
+        }());
+
+        if (remote.names.length > 0) {
+            // Supabase tiene datos → usarlos como fuente de verdad
+            localStorage.setItem('etheria_user_names',     JSON.stringify(remote.names));
+            localStorage.setItem('etheria_profile_owners', JSON.stringify(remote.owners));
+            window.EtheriaLogger?.info('supabaseSlots', `Slots cargados desde Supabase: [${remote.names.join(', ')}]`);
+        } else if (localNames.length > 0) {
+            // Supabase vacío pero hay datos locales → subir a Supabase
+            await saveSlots(localNames, localOwners);
+            window.EtheriaLogger?.info('supabaseSlots', `Slots locales subidos a Supabase: [${localNames.join(', ')}]`);
+        }
+    }
+
+    // ── Persiste el estado actual de slots ────────────────────────────────────
+    // Llama a esto tras cualquier cambio en userNames o etheria_profile_owners.
+    async function persistCurrentSlots() {
+        try {
+            const names  = JSON.parse(localStorage.getItem('etheria_user_names')  || '[]');
+            const owners = JSON.parse(localStorage.getItem('etheria_profile_owners') || '[]');
+            await saveSlots(names, owners);
+        } catch (err) {
+            window.EtheriaLogger?.warn('supabaseSlots', 'persistCurrentSlots exception:', err?.message);
+        }
+    }
+
+    return { loadSlots, saveSlots, syncOnLogin, persistCurrentSlots };
+
+}());
+
+window.SupabaseSlots = SupabaseSlots;
+
 /* js/utils/supabaseCharacters.js */
 // ============================================
 // SUPABASE CHARACTERS — Personajes por perfil
@@ -22917,6 +23127,535 @@ const CollaborativeGuard = (function () {
 
 window.CollaborativeGuard = CollaborativeGuard;
 
+/* js/rpg/RPGDispatcher.js */
+// ============================================================
+// RPG DISPATCHER
+// Registro de handlers para consecuencias de eventos narrativos.
+//
+// Responsabilidades:
+//   - Mantener un mapa de { acción → función }
+//   - Ejecutar consecuencias de forma asíncrona y segura
+//   - Registrar cada ejecución en activity_log (Supabase)
+//   - NO sabe cuándo disparar — eso es trabajo de RPGTriggerEvaluator
+//
+// Límites de arquitectura:
+//   ✅ Puede usar: RPGState, eventBus, window.supabaseClient
+//   ❌ No puede usar: nada de ui/, nada de SceneLoader
+// ============================================================
+
+const RPGDispatcher = (function () {
+
+    const _registry = new Map();
+
+    // ── API pública ─────────────────────────────────────────────
+
+    /**
+     * Registra un handler para una acción.
+     * Los handlers built-in se registran al final de este archivo.
+     * Los módulos externos pueden añadir los suyos con RPGDispatcher.register().
+     *
+     * @param {string}   action  Nombre de la acción (ej. 'modify_hp')
+     * @param {Function} fn      async (consequence, context) => void
+     */
+    function register(action, fn) {
+        if (_registry.has(action)) {
+            console.warn(`[RPGDispatcher] Reemplazando handler existente para: "${action}"`);
+        }
+        _registry.set(action, fn);
+    }
+
+    /**
+     * Ejecuta una consecuencia individual.
+     * Captura errores para que el resto de consecuencias del evento no se bloqueen.
+     *
+     * @param {object} consequence  { action, ...params }
+     * @param {object} context      { storyId, userId, eventId, profileIndex? }
+     */
+    async function dispatch(consequence, context) {
+        if (!consequence || !consequence.action) {
+            console.warn('[RPGDispatcher] Consecuencia sin acción:', consequence);
+            return;
+        }
+
+        const handler = _registry.get(consequence.action);
+        if (!handler) {
+            console.warn(`[RPGDispatcher] Sin handler para acción: "${consequence.action}"`);
+            _log(consequence, context, 'unknown_action');
+            return;
+        }
+
+        const t0 = Date.now();
+        try {
+            await handler(consequence, context);
+            _log(consequence, context, 'ok', Date.now() - t0);
+        } catch (err) {
+            console.error(`[RPGDispatcher] Error en "${consequence.action}":`, err);
+            _log(consequence, context, 'error', Date.now() - t0, err.message);
+        }
+    }
+
+    /**
+     * Ejecuta todas las consecuencias de un evento en orden.
+     */
+    async function dispatchAll(consequences, context) {
+        if (!Array.isArray(consequences)) return;
+        for (const c of consequences) {
+            await dispatch(c, context);
+        }
+    }
+
+    // ── Observabilidad ──────────────────────────────────────────
+
+    function _log(consequence, context, status, durationMs, errorMsg) {
+        const sb = window.supabaseClient;
+        if (!sb || !context?.userId) return;
+
+        sb.from('activity_log').insert({
+            user_id:     context.userId,
+            action:      `rpg_event:${consequence.action}`,
+            entity_type: 'rpg_event',
+            entity_id:   context.eventId || null,
+            metadata:    {
+                consequence: consequence,
+                story_id:    context.storyId || null,
+                status:      status,
+                duration_ms: durationMs || 0,
+                error:       errorMsg || null
+            }
+        }).then(() => {}).catch(() => {});  // fire-and-forget, nunca bloquear
+    }
+
+    // ── Handlers built-in ───────────────────────────────────────
+    //
+    // Cada handler recibe (consequence, context).
+    // Los nombres de parámetros en `consequence` siguen el schema
+    // documentado en js/scenes/events/arc_base.json.
+
+    // modify_hp — delta puede ser negativo (daño) o positivo (cura)
+    register('modify_hp', async (c) => {
+        if (typeof RPGState === 'undefined') return;
+        const delta = Number(c.delta);
+        if (!Number.isFinite(delta)) throw new Error(`modify_hp: delta inválido (${c.delta})`);
+        RPGState.modifyHp(delta);
+    });
+
+    // set_hp — valor absoluto
+    register('set_hp', async (c) => {
+        if (typeof RPGState === 'undefined') return;
+        const current = RPGState.getHp();
+        const delta   = Number(c.value) - current.current;
+        if (!Number.isFinite(delta)) throw new Error(`set_hp: value inválido (${c.value})`);
+        RPGState.modifyHp(delta);
+    });
+
+    // modify_stat — stat: 'STR'|'DEX'|'CON'|'INT'|'WIS'|'CHA', delta: número
+    register('modify_stat', async (c) => {
+        if (typeof RPGState === 'undefined') return;
+        const stat  = String(c.stat || '').toUpperCase();
+        const delta = Number(c.delta);
+        if (!stat || !Number.isFinite(delta)) throw new Error(`modify_stat: parámetros inválidos`);
+        RPGState.modifyStat(stat, delta);
+    });
+
+    // set_flag — key: string, value: any
+    register('set_flag', async (c) => {
+        if (typeof RPGState === 'undefined') return;
+        if (!c.key) throw new Error('set_flag: falta key');
+        RPGState.setFlag(String(c.key), c.value !== undefined ? c.value : true);
+    });
+
+    // clear_flag — equivalente a set_flag con value: false
+    register('clear_flag', async (c) => {
+        if (typeof RPGState === 'undefined') return;
+        if (!c.key) throw new Error('clear_flag: falta key');
+        RPGState.setFlag(String(c.key), false);
+    });
+
+    // give_item — item: { id, name, qty?, description? }
+    register('give_item', async (c) => {
+        if (typeof RPGState === 'undefined') return;
+        const item = c.item || { id: c.id, name: c.name };
+        if (!item.id) throw new Error('give_item: falta item.id');
+        // Sanitizar nombre para evitar XSS si llega a mostrarse en UI
+        if (item.name) item.name = String(item.name).replace(/<[^>]+>/g, '');
+        RPGState.addItem(item);
+    });
+
+    // remove_item
+    register('remove_item', async (c) => {
+        if (typeof RPGState === 'undefined') return;
+        if (!c.id) throw new Error('remove_item: falta id');
+        RPGState.removeItem(String(c.id), Number(c.qty) || 1);
+    });
+
+    // add_xp
+    register('add_xp', async (c) => {
+        if (typeof RPGState === 'undefined') return;
+        const amount = Number(c.amount);
+        if (!Number.isFinite(amount) || amount < 0) throw new Error(`add_xp: amount inválido (${c.amount})`);
+        RPGState.addXp(amount);
+    });
+
+    // send_message — emite un mensaje narrativo al log de la historia.
+    // El texto pasa por escapeHtml antes de persistir.
+    register('send_message', async (c, ctx) => {
+        // Sanitizar
+        const rawText = String(c.template || c.text || '');
+        const text    = typeof escapeHtml === 'function' ? escapeHtml(rawText) : rawText;
+
+        // Emitir por el bus para que vn.js / RPGRenderer lo puedan mostrar
+        if (window.eventBus) {
+            eventBus.emit('rpg:narrator-message', {
+                text:    text,
+                storyId: ctx?.storyId,
+                eventId: ctx?.eventId,
+                author:  'narrator'
+            });
+        }
+
+        // Intentar persistir en Supabase si está disponible
+        const sb = window.supabaseClient;
+        if (sb && ctx?.storyId && ctx?.userId) {
+            await sb.from('messages').insert({
+                story_id: ctx.storyId,
+                user_id:  ctx.userId,
+                author:   'narrator',
+                content:  text
+            });
+        }
+    });
+
+    // play_sound — delega en el bus de audio existente
+    register('play_sound', async (c) => {
+        if (window.eventBus) {
+            eventBus.emit('scene:sound', {
+                action: c.action || 'play',
+                track:  c.track,
+                volume: c.volume
+            });
+        }
+    });
+
+    // goto_scene — carga una escena RPG
+    register('goto_scene', async (c) => {
+        if (typeof RPGEngine !== 'undefined' && c.scene) {
+            await RPGEngine.loadScene(String(c.scene));
+        }
+    });
+
+    // wait_ms — pausa de N milisegundos (útil para secuenciar consecuencias)
+    register('wait_ms', async (c) => {
+        const ms = Math.min(Number(c.ms) || 0, 10000); // máximo 10s
+        if (ms > 0) await new Promise(resolve => setTimeout(resolve, ms));
+    });
+
+    // ── Exports ──────────────────────────────────────────────────
+
+    return { register, dispatch, dispatchAll };
+
+})();
+
+window.RPGDispatcher = RPGDispatcher;
+
+/* js/rpg/RPGTriggerEvaluator.js */
+// ============================================================
+// RPG TRIGGER EVALUATOR
+// El "Director de Escena": decide CUÁNDO disparar eventos narrativos.
+//
+// Responsabilidades:
+//   - Mantener un snapshot anterior del estado RPG
+//   - Escuchar rpg:state-changed (emitido por RPGState en cada cambio)
+//   - Comparar snapshot anterior vs actual para detectar cruces de umbral
+//   - Delegar la ejecución de consecuencias a RPGDispatcher
+//   - Recordar qué eventos ya se dispararon (por historia) para no repetir
+//
+// Límites de arquitectura:
+//   ✅ Puede usar: RPGState, RPGDispatcher, SceneLoader, eventBus
+//   ❌ No puede usar: nada de ui/, nada de vn.js directamente
+//
+// Integración con modo VN clásico:
+//   Llama a RPGTriggerEvaluator.onVNContext(storyId, messageIndex, sceneTag)
+//   desde vn.js cuando avanza un mensaje con metadatos de escena.
+// ============================================================
+
+const RPGTriggerEvaluator = (function () {
+
+    let _storyId         = null;      // historia activa
+    let _prevSnapshot    = null;      // último snapshot evaluado
+    let _messageCount    = 0;         // mensajes avanzados en modo VN
+    let _activeSceneTag  = null;      // etiqueta de escena actual (modo VN)
+    let _evaluating      = false;     // guard para evitar reentrancia
+    let _initialized     = false;
+
+    // Persistir eventos disparados en localStorage para sobrevivir recargas
+    const FIRED_KEY_PREFIX = 'etheria_rpg_fired_';
+
+    // ── Ciclo de vida ───────────────────────────────────────────
+
+    /**
+     * Inicializa el evaluador para una historia concreta.
+     * Llamar cuando el usuario entra en una historia con modo RPG activo.
+     */
+    function init(storyId) {
+        _storyId = storyId || null;
+        _prevSnapshot = typeof RPGState !== 'undefined' ? RPGState.getSnapshot() : null;
+        _messageCount = 0;
+        _activeSceneTag = null;
+        _evaluating = false;
+
+        if (_initialized) return;   // listeners solo se registran una vez
+        _initialized = true;
+
+        // Escuchar cambios de estado RPG → evaluar triggers automáticamente
+        if (window.eventBus) {
+            eventBus.on('rpg:state-changed', function () {
+                if (_storyId) _scheduleEvaluation();
+            });
+
+            // Cuando el motor de escenas termina un paso, también evaluar
+            eventBus.on('scene:step', function () {
+                if (_storyId) _scheduleEvaluation();
+            });
+        }
+    }
+
+    /**
+     * Señal desde el modo VN clásico: un mensaje ha avanzado.
+     * Si el mensaje lleva metadatos de escena, actualizar el contexto.
+     *
+     * @param {string} storyId      ID de la historia activa
+     * @param {number} msgIndex     Índice del mensaje actual
+     * @param {string} [sceneTag]   Etiqueta de escena del mensaje (opcional)
+     */
+    function onVNContext(storyId, msgIndex, sceneTag) {
+        _storyId = storyId || _storyId;
+        _messageCount = msgIndex || 0;
+
+        if (sceneTag && sceneTag !== _activeSceneTag) {
+            _activeSceneTag = sceneTag;
+            // El cambio de escena puede disparar eventos 'scene_tag' y 'scene_entered'
+            _scheduleEvaluation();
+        } else if (storyId) {
+            _scheduleEvaluation();
+        }
+    }
+
+    /**
+     * Limpia el estado al salir de una historia.
+     */
+    function clear() {
+        _storyId = null;
+        _prevSnapshot = null;
+        _messageCount = 0;
+        _activeSceneTag = null;
+    }
+
+    // ── Evaluación ──────────────────────────────────────────────
+
+    // Debounce ligero: si llegan varios cambios en el mismo tick, evaluar una vez
+    let _evalTimer = null;
+    function _scheduleEvaluation() {
+        if (_evalTimer) return;
+        _evalTimer = setTimeout(async function () {
+            _evalTimer = null;
+            await _runEvaluation();
+        }, 50);
+    }
+
+    async function _runEvaluation() {
+        if (_evaluating || !_storyId) return;
+        _evaluating = true;
+
+        try {
+            const currentSnapshot = _buildCurrentSnapshot();
+            const events = await SceneLoader.getActiveEvents(_storyId);
+
+            for (const event of events) {
+                if (!event || !event.id || !event.trigger) continue;
+
+                const alreadyFired = !event.repeatable && _wasFired(event.id, _storyId);
+                if (alreadyFired) continue;
+
+                // Comprobar condición de guarda (opcional)
+                if (event.condition && typeof RPGState !== 'undefined') {
+                    if (!RPGState.evalCondition(event.condition)) continue;
+                }
+
+                if (_shouldFire(event.trigger, currentSnapshot, _prevSnapshot)) {
+                    _markFired(event.id, _storyId);
+                    await _executeEvent(event, currentSnapshot);
+                }
+            }
+
+            _prevSnapshot = currentSnapshot;
+
+        } catch (err) {
+            console.error('[RPGTriggerEvaluator] Error en evaluación:', err);
+        } finally {
+            _evaluating = false;
+        }
+    }
+
+    // ── Lógica de triggers ───────────────────────────────────────
+
+    function _shouldFire(trigger, current, prev) {
+        if (!trigger || !trigger.type) return false;
+        if (!prev) return false;   // primera evaluación sin estado anterior
+
+        switch (trigger.type) {
+
+            // HP cae POR DEBAJO del umbral (cruza hacia abajo)
+            case 'hp_threshold':
+                return prev.hp.current > trigger.value
+                    && current.hp.current <= trigger.value;
+
+            // HP sube POR ENCIMA del umbral (cruza hacia arriba)
+            case 'hp_threshold_above':
+                return prev.hp.current < trigger.value
+                    && current.hp.current >= trigger.value;
+
+            // Una flag pasa de falsy a truthy
+            case 'flag_set': {
+                const wasSet = _isTruthy(prev.flags[trigger.flag]);
+                const nowSet = _isTruthy(current.flags[trigger.flag]);
+                return !wasSet && nowSet;
+            }
+
+            // Una flag pasa de truthy a falsy
+            case 'flag_cleared': {
+                const wasSet = _isTruthy(prev.flags[trigger.flag]);
+                const nowSet = _isTruthy(current.flags[trigger.flag]);
+                return wasSet && !nowSet;
+            }
+
+            // Un objeto aparece en el inventario
+            case 'item_acquired': {
+                const hadItem = prev.inventory.some(i => i.id === trigger.item && (i.qty || 1) > 0);
+                const hasItem = current.inventory.some(i => i.id === trigger.item && (i.qty || 1) > 0);
+                return !hadItem && hasItem;
+            }
+
+            // El jugador sube de nivel
+            case 'level_up':
+                return current.level > prev.level;
+
+            // Un stat cae POR DEBAJO del umbral
+            case 'stat_threshold': {
+                const statKey  = String(trigger.stat || '').toUpperCase();
+                const prevVal  = prev.stats[statKey] !== undefined ? prev.stats[statKey] : 8;
+                const currVal  = current.stats[statKey] !== undefined ? current.stats[statKey] : 8;
+                return prevVal > trigger.value && currVal <= trigger.value;
+            }
+
+            // Un stat sube POR ENCIMA del umbral
+            case 'stat_threshold_above': {
+                const statKey  = String(trigger.stat || '').toUpperCase();
+                const prevVal  = prev.stats[statKey] !== undefined ? prev.stats[statKey] : 8;
+                const currVal  = current.stats[statKey] !== undefined ? current.stats[statKey] : 8;
+                return prevVal < trigger.value && currVal >= trigger.value;
+            }
+
+            // El contador de mensajes VN llega a un número concreto
+            case 'message_count':
+                return current.messageCount >= trigger.value
+                    && prev.messageCount < trigger.value;
+
+            // El jugador entra en una escena VN con una etiqueta específica
+            case 'scene_tag':
+                return current.activeSceneTag === trigger.tag
+                    && prev.activeSceneTag !== trigger.tag;
+
+            // Alias más semántico de scene_tag
+            case 'scene_entered':
+                return current.activeSceneTag === trigger.scene
+                    && prev.activeSceneTag !== trigger.scene;
+
+            default:
+                console.warn(`[RPGTriggerEvaluator] Tipo de trigger desconocido: "${trigger.type}"`);
+                return false;
+        }
+    }
+
+    function _isTruthy(v) {
+        return v !== undefined && v !== null && v !== false && v !== 0 && v !== '';
+    }
+
+    // ── Ejecución de evento ──────────────────────────────────────
+
+    async function _executeEvent(event, currentSnapshot) {
+        const context = {
+            storyId:      _storyId,
+            userId:       window._cachedUserId || null,
+            profileIndex: typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0,
+            eventId:      event.id
+        };
+
+        eventBus.emit('rpg:event-fired', {
+            eventId: event.id,
+            storyId: _storyId,
+            trigger: event.trigger
+        });
+
+        if (typeof RPGDispatcher !== 'undefined') {
+            await RPGDispatcher.dispatchAll(event.consequences || [], context);
+        }
+    }
+
+    // ── Snapshot enriquecido ─────────────────────────────────────
+    // Añade campos de contexto VN al snapshot de RPGState
+
+    function _buildCurrentSnapshot() {
+        const base = typeof RPGState !== 'undefined'
+            ? RPGState.getSnapshot()
+            : { stats: {}, inventory: [], flags: {}, xp: 0, level: 1, hp: { current: 20, max: 20 } };
+
+        return {
+            ...base,
+            messageCount:   _messageCount,
+            activeSceneTag: _activeSceneTag
+        };
+    }
+
+    // ── Memoria de eventos disparados ────────────────────────────
+
+    function _firedKey(storyId) {
+        return FIRED_KEY_PREFIX + String(storyId);
+    }
+
+    function _wasFired(eventId, storyId) {
+        try {
+            const fired = JSON.parse(localStorage.getItem(_firedKey(storyId)) || '{}');
+            return !!fired[eventId];
+        } catch { return false; }
+    }
+
+    function _markFired(eventId, storyId) {
+        try {
+            const key   = _firedKey(storyId);
+            const fired = JSON.parse(localStorage.getItem(key) || '{}');
+            fired[eventId] = true;
+            localStorage.setItem(key, JSON.stringify(fired));
+        } catch { /* silencioso */ }
+    }
+
+    /**
+     * Reinicia el historial de eventos disparados para una historia.
+     * Útil para testear o si el GM quiere re-ejecutar arcos completos.
+     */
+    function resetFiredEvents(storyId) {
+        try {
+            localStorage.removeItem(_firedKey(storyId || _storyId));
+        } catch { /* silencioso */ }
+    }
+
+    // ── Exports ──────────────────────────────────────────────────
+
+    return { init, onVNContext, clear, resetFiredEvents };
+
+})();
+
+window.RPGTriggerEvaluator = RPGTriggerEvaluator;
+
 /* js/ui/userProfile.js */
 // ============================================================
 // Etheria — User Profile Modal + Classic Party Panel
@@ -23430,6 +24169,330 @@ window.CollaborativeGuard = CollaborativeGuard;
 
 }(window));
 
+/* js/ui/hub.js */
+// Hub principal — datos de usuario y subtítulos dinámicos.
+// El parallax y las capas celestiales son responsabilidad de hub-luna.js.
+(function () {
+  'use strict';
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+
+  function initHub() {
+    _updateUser();
+    _updateMenuSubs();
+  }
+
+  // ── User info ─────────────────────────────────────────────────────────────
+
+  function _updateUser() {
+    const name = (typeof userNames !== 'undefined' && userNames[currentUserIndex]) || 'Jugador';
+    const initial = name[0].toUpperCase();
+
+    const nameEl  = document.getElementById('currentUserDisplay');
+    const initEl  = document.getElementById('menuProfileInitial');
+
+    if (nameEl)  nameEl.textContent  = name;
+    if (initEl)  initEl.textContent  = initial;
+
+    const imgEl  = document.getElementById('menuProfileImg');
+    const avatar = typeof _getCurrentProfileAvatar === 'function' ? _getCurrentProfileAvatar() : '';
+    if (imgEl) {
+      if (avatar) { imgEl.src = avatar; imgEl.style.display = 'block'; }
+      else        { imgEl.src = '';     imgEl.style.display = 'none'; }
+    }
+  }
+
+  function _updateMenuSubs() {
+    const topics = (typeof appData !== 'undefined' && appData?.topics) || [];
+    const chars  = (typeof appData !== 'undefined' && appData?.characters) || [];
+
+    // ── Continuar ──────────────────────────────────────────────────
+    const continueSub = document.getElementById('hubContinueSub');
+    const continueBtn = document.querySelector('.hub-menu-item[data-action="continuar"]');
+    if (topics.length > 0) {
+      const last  = topics[topics.length - 1];
+      const title = last.title ? last.title.substring(0, 34) : null;
+      if (continueSub) continueSub.textContent = title || 'Retoma el hilo de tu última historia';
+      if (continueBtn) continueBtn.onclick = () => {
+        // Re-lee appData en el momento del clic para evitar cierres sobre IDs obsoletos.
+        // Si el último topic fue eliminado o el array se refrescó desde Supabase,
+        // el ID capturado en el closure anterior ya no existe → caemos en showSection.
+        const currentTopics = (typeof appData !== 'undefined' && Array.isArray(appData?.topics))
+          ? appData.topics : [];
+        const latest = currentTopics.length > 0
+          ? currentTopics[currentTopics.length - 1] : null;
+        if (latest?.id && typeof enterTopic === 'function') {
+          enterTopic(latest.id);
+        } else if (typeof showSection === 'function') {
+          showSection('topics');
+        }
+      };
+    } else {
+      if (continueSub) continueSub.textContent = 'Tu primera historia aguarda ser escrita';
+      if (continueBtn) continueBtn.onclick = () => { if (typeof showSection === 'function') showSection('topics'); };
+    }
+
+    // ── Personajes ────────────────────────────────────────────────
+    const personajesSub = document.getElementById('hubPersonajesSub');
+    if (personajesSub) {
+      const n = chars.length;
+      if (n === 0)      personajesSub.textContent = 'Ningún alma ha sido invocada aún';
+      else if (n === 1) personajesSub.textContent = 'Un alma vive en tu galería';
+      else if (n <= 5)  personajesSub.textContent = `${n} almas aguardan tu llamada`;
+      else if (n <= 15) personajesSub.textContent = `${n} destinos entrelazados en tu historia`;
+      else              personajesSub.textContent = `${n} almas convocadas desde las sombras`;
+    }
+
+    // ── Vínculos ──────────────────────────────────────────────────
+    const bonds      = (typeof appData !== 'undefined' && Array.isArray(appData?.bonds))      ? appData.bonds      : [];
+    const affinities = (typeof appData !== 'undefined' && Array.isArray(appData?.affinities)) ? appData.affinities : [];
+    const vinculosSub = document.getElementById('hubVinculosSub');
+    if (vinculosSub) {
+      const total = bonds.length + affinities.length;
+      if (total === 0)     vinculosSub.textContent = 'Los lazos del destino aún no se han forjado';
+      else if (total <= 3) vinculosSub.textContent = `${total} lazos tejidos en el destino`;
+      else if (total <= 9) vinculosSub.textContent = `${total} vínculos que resisten el paso del tiempo`;
+      else                 vinculosSub.textContent = `${total} hilos que no deberían cortarse jamás`;
+    }
+  }
+
+  // ── Public API ────────────────────────────────────────────────────────────
+
+  window.initHub       = initHub;
+  window.updateHubUser = _updateUser;
+
+  // Re-sync user data when returning to menu
+  window.addEventListener('etheria:section-changed', (e) => {
+    if (e.detail?.section === 'mainMenu') {
+      _updateUser();
+      _updateMenuSubs();
+    }
+  });
+})();
+
+/* js/ui/hub-luna.js */
+/* ============================================================
+   ETHERIA · HUB "LUNA DE PLATA" — generación + parallax
+   ------------------------------------------------------------
+   Vanilla, sin dependencias. En el repo: copiar como
+   js/ui/hub-luna.js y llamar HubLuna.init() cuando se muestre
+   el menú. El parallax reaprovecha el mismo patrón --mx/--my
+   que ya usa js/ui/hub.js (puedes fusionarlos).
+   ============================================================ */
+(function () {
+  'use strict';
+
+  // PRNG determinista — el cielo es estable entre recargas.
+  function rng(seed) {
+    let s = seed % 2147483647;
+    if (s <= 0) s += 2147483646;
+    return () => (s = (s * 16807) % 2147483647) / 2147483647;
+  }
+
+  // ── Campo de estrellas ──────────────────────────────────
+  function buildStars(host) {
+    const layers = [
+      { n: 70, sz: [0.6, 1.2], op: 0.55, dur: 5 },
+      { n: 45, sz: [0.9, 1.8], op: 0.8, dur: 7 },
+      { n: 22, sz: [1.4, 2.6], op: 1, dur: 9 },
+    ];
+    const pds = [3, 6, 10];
+    layers.forEach((cfg, li) => {
+      const layer = document.createElement('div');
+      layer.style.cssText = 'position:absolute;inset:0;';
+      layer.setAttribute('data-pd', pds[li]);
+      const r = rng(7 + li * 101);
+      for (let i = 0; i < cfg.n; i++) {
+        const s = document.createElement('span');
+        s.className = 'star';
+        const sz = cfg.sz[0] + r() * (cfg.sz[1] - cfg.sz[0]);
+        s.style.left = (r() * 100) + '%';
+        s.style.top = (r() * 72) + '%';
+        s.style.width = sz + 'px';
+        s.style.height = sz + 'px';
+        s.style.opacity = cfg.op * (0.5 + r() * 0.5);
+        s.style.setProperty('--dur', cfg.dur + 's');
+        s.style.setProperty('--del', (r() * cfg.dur) + 's');
+        layer.appendChild(s);
+      }
+      host.appendChild(layer);
+    });
+    // estrellas brillantes con destello en cruz
+    const bright = document.createElement('div');
+    bright.style.cssText = 'position:absolute;inset:0;';
+    bright.setAttribute('data-pd', 8);
+    const rb = rng(999);
+    for (let i = 0; i < 7; i++) {
+      const sz = 2.4 + rb() * 2.2;
+      const b = document.createElement('div');
+      b.className = 'star-bright';
+      b.style.left = (6 + rb() * 88) + '%';
+      b.style.top = (4 + rb() * 54) + '%';
+      b.innerHTML =
+        '<span class="dot" style="width:' + sz + 'px;height:' + sz + 'px"></span>' +
+        '<span class="gx" style="width:' + (sz * 6) + 'px;height:1px"></span>' +
+        '<span class="gy" style="width:1px;height:' + (sz * 6) + 'px"></span>';
+      bright.appendChild(b);
+    }
+    host.appendChild(bright);
+  }
+
+  // ── Constelaciones ──────────────────────────────────────
+  var CONSTELLATIONS = [
+    { top: '9%', left: '60%', scale: 1.0,
+      nodes: [[0,18,1.8],[16,8,1.4],[34,16,2.6],[52,4,1.4],[62,22,1.6],[44,34,1.3],[28,40,1.2]],
+      edges: [[0,1],[1,2],[2,3],[3,4],[2,5],[5,6]] },
+    { top: '13%', left: '14%', scale: 0.85,
+      nodes: [[4,4,1.4],[22,12,2.4],[40,6,1.3],[30,26,1.5],[14,30,1.2]],
+      edges: [[0,1],[1,2],[1,3],[3,4]] },
+    { top: '30%', left: '78%', scale: 0.8,
+      nodes: [[2,2,1.3],[18,10,1.6],[10,24,2.2],[26,30,1.3]],
+      edges: [[0,1],[1,2],[2,3]] },
+  ];
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  function buildConstellations(host) {
+    CONSTELLATIONS.forEach(function (c, ci) {
+      var w = 72 * c.scale, h = 48 * c.scale;
+      var svg = document.createElementNS(SVGNS, 'svg');
+      svg.setAttribute('width', w); svg.setAttribute('height', h);
+      svg.setAttribute('viewBox', '0 0 72 48');
+      svg.style.top = c.top; svg.style.left = c.left;
+      svg.style.animation = 'cel-constShimmer ' + (7 + ci * 2) + 's ease-in-out ' + ci + 's infinite';
+      var g = document.createElementNS(SVGNS, 'g');
+      c.edges.forEach(function (e, i) {
+        var ln = document.createElementNS(SVGNS, 'line');
+        ln.setAttribute('x1', c.nodes[e[0]][0]); ln.setAttribute('y1', c.nodes[e[0]][1]);
+        ln.setAttribute('x2', c.nodes[e[1]][0]); ln.setAttribute('y2', c.nodes[e[1]][1]);
+        ln.setAttribute('class', 'c-line');
+        ln.style.animationDelay = (0.3 + ci * 0.3) + 's';
+        g.appendChild(ln);
+      });
+      svg.appendChild(g);
+      c.nodes.forEach(function (n) {
+        var halo = document.createElementNS(SVGNS, 'circle');
+        halo.setAttribute('cx', n[0]); halo.setAttribute('cy', n[1]); halo.setAttribute('r', n[2] + 1.4);
+        halo.setAttribute('class', 'c-node-h'); svg.appendChild(halo);
+        var dot = document.createElementNS(SVGNS, 'circle');
+        dot.setAttribute('cx', n[0]); dot.setAttribute('cy', n[1]); dot.setAttribute('r', n[2]);
+        dot.setAttribute('class', 'c-node'); svg.appendChild(dot);
+      });
+      host.appendChild(svg);
+    });
+  }
+
+  // ── Motas ascendentes ───────────────────────────────────
+  function buildMotes(host, count) {
+    var r = rng(404);
+    for (var i = 0; i < count; i++) {
+      var m = document.createElement('div');
+      m.className = 'mote';
+      var sz = 1.5 + r() * 2.5;
+      m.style.left = (r() * 100) + '%';
+      m.style.width = sz + 'px'; m.style.height = sz + 'px';
+      m.style.setProperty('--dur', (14 + r() * 16) + 's');
+      m.style.setProperty('--del', (-r() * 30) + 's');
+      m.style.setProperty('--drift', ((r() - 0.5) * 60) + 'px');
+      host.appendChild(m);
+    }
+  }
+
+  // ── Espina de constelación del menú ─────────────────────
+  function buildSpine(container) {
+    var items = container.querySelectorAll('.hub-menu-item');
+    if (!items.length) return;
+    var svg = container.querySelector('.cel-spine');
+    if (!svg) return;
+    var H = container.offsetHeight;
+    svg.setAttribute('viewBox', '0 0 30 ' + H);
+    var ys = [];
+    items.forEach(function (it) { ys.push(it.offsetTop + it.offsetHeight / 2); });
+    var ns = 'http://www.w3.org/2000/svg';
+    var line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', 15); line.setAttribute('y1', ys[0]);
+    line.setAttribute('x2', 15); line.setAttribute('y2', ys[ys.length - 1]);
+    line.setAttribute('class', 'spine-line');
+    svg.appendChild(line);
+    ys.forEach(function (y, i) {
+      var active = items[i].classList.contains('primary');
+      if (active) {
+        var glow = document.createElementNS(ns, 'circle');
+        glow.setAttribute('cx', 15); glow.setAttribute('cy', y); glow.setAttribute('r', 7);
+        glow.setAttribute('class', 'spine-glow'); svg.appendChild(glow);
+      }
+      var star = document.createElementNS(ns, 'path');
+      star.setAttribute('d', 'M0 -5 L1.3 -1.3 L5 0 L1.3 1.3 L0 5 L-1.3 1.3 L-5 0 L-1.3 -1.3 Z');
+      star.setAttribute('transform', 'translate(15 ' + y + ')');
+      star.setAttribute('class', 'spine-node');
+      star.setAttribute('fill', active ? '#f4d98a' : '#b794f6');
+      if (active) star.style.filter = 'drop-shadow(0 0 6px #e8c878)';
+      svg.appendChild(star);
+      var core = document.createElementNS(ns, 'circle');
+      core.setAttribute('cx', 15); core.setAttribute('cy', y); core.setAttribute('r', 1.4);
+      core.setAttribute('class', 'spine-core'); svg.appendChild(core);
+    });
+  }
+
+  // ── Parallax (mismo patrón que js/ui/hub.js) ────────────
+  function bindParallax(hub) {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var raf = null;
+    hub.addEventListener('mousemove', function (e) {
+      var r = hub.getBoundingClientRect();
+      var mx = ((e.clientX - r.left) / r.width - 0.5);
+      var my = ((e.clientY - r.top) / r.height - 0.5);
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(function () {
+        hub.style.setProperty('--mx', mx.toFixed(4));
+        hub.style.setProperty('--my', my.toFixed(4));
+      });
+    }, { passive: true });
+    hub.addEventListener('mouseleave', function () {
+      hub.style.setProperty('--mx', '0');
+      hub.style.setProperty('--my', '0');
+    }, { passive: true });
+  }
+
+  function init() {
+    var hub = document.getElementById('mainMenu');
+    if (!hub || hub.dataset.celReady) return;
+    hub.dataset.celReady = '1';
+
+    var stars = hub.querySelector('.cel-stars');
+    var cons = hub.querySelector('.cel-constellations');
+    var motes = hub.querySelector('.cel-motes');
+    var menu = hub.querySelector('.menu-container');
+
+    if (stars) buildStars(stars);
+    if (cons) buildConstellations(cons);
+    if (motes) buildMotes(motes, 16);
+    if (menu) buildSpine(menu);
+    bindParallax(hub);
+  }
+
+  // Separate spine init — depends on offsetHeight, needs visible element.
+  function initSpine() {
+    var hub = document.getElementById('mainMenu');
+    if (!hub) return;
+    var menu = hub.querySelector('.menu-container');
+    var spine = menu && menu.querySelector('.cel-spine');
+    if (!spine) return;
+    while (spine.firstChild) spine.removeChild(spine.firstChild);
+    buildSpine(menu);
+  }
+
+  window.HubLuna = { init: init, initSpine: initSpine };
+
+  // On section change: full init first time, rebuild spine on subsequent visits.
+  window.addEventListener('etheria:section-changed', function (e) {
+    if (!e || !e.detail || e.detail.section !== 'mainMenu') return;
+    var hub = document.getElementById('mainMenu');
+    if (!hub) return;
+    if (!hub.dataset.celReady) { init(); } else { initSpine(); }
+  });
+
+})();
+
 /* js/app.js */
 if (window.__ETHERIA_APP_CANONICAL_LOADED__) {
     throw new Error('[Etheria] js/app.js cargado más de una vez.');
@@ -23478,6 +24541,36 @@ async function getEtheriaUserId() {
     return _getUserIdPromise;
 }
 window.getEtheriaUserId = getEtheriaUserId;
+
+// ── Propiedad de perfiles ─────────────────────────────────────────────────
+// Cada slot de perfil puede estar vinculado a un userId de Supabase.
+// Se guarda en localStorage como un array de userId|null por índice.
+// Esto evita que un email pueda meterse en el perfil de otro.
+function _getProfileOwners() {
+    try { return JSON.parse(localStorage.getItem('etheria_profile_owners') || '[]'); } catch { return []; }
+}
+function _findMyProfileIndex(userId) {
+    if (!userId) return -1;
+    return _getProfileOwners().indexOf(userId);
+}
+function _claimProfile(idx, userId) {
+    if (!userId || !Number.isInteger(idx) || idx < 0) return;
+    const owners = _getProfileOwners();
+    if (owners[idx] && owners[idx] !== userId) return; // slot ajeno — no sobreescribir
+    while (owners.length <= idx) owners.push(null);
+    owners[idx] = userId;
+    localStorage.setItem('etheria_profile_owners', JSON.stringify(owners));
+    // Persistir también en Supabase para que sea cross-device
+    if (typeof SupabaseSlots !== 'undefined') {
+        try {
+            const names = typeof userNames !== 'undefined' ? userNames
+                : JSON.parse(localStorage.getItem('etheria_user_names') || '[]');
+            SupabaseSlots.saveSlots(names, owners).catch(() => {});
+        } catch { /* silencioso */ }
+    }
+}
+window.getProfileOwners = _getProfileOwners;
+window.claimProfile = _claimProfile;
 
 // Verificar si hay una sesión existente
 async function checkExistingSession() {
@@ -23568,12 +24661,12 @@ async function logout() {
     _clearAccountData();
 
     // Resetear el flag de inicialización para que initializeApp() pueda
-    // volver a ejecutarse cuando el siguiente usuario inicie sesión.
+    // volver a ejecutarse limpio.
     appInitialized = false;
 
-    showLoginScreen();
-    showAuthMain();
-    setAuthStatus('Sesión cerrada. Introduce email y contraseña para entrar.', false);
+    // Volver al selector de perfiles (no a la pantalla de login directamente).
+    // El login se abrirá cuando el usuario pulse una tarjeta de perfil.
+    initializeApp();
     setTimeout(() => {
         const emailInput = document.getElementById('authEmail');
         if (emailInput) emailInput.focus();
@@ -23747,22 +24840,32 @@ async function login() {
     }
 
     // Limpiar datos de cualquier cuenta anterior ANTES de cargar los nuevos.
-    // Sin esto, si la cuenta nueva no tiene datos en Supabase, la UI mostraría
-    // los datos locales de la cuenta anterior.
     _clearAccountData();
     appInitialized = false;
 
     hideLoginScreen();
-    initializeApp();
+    initializeApp(); // re-renderiza el selector de perfiles limpio
 
-    // Fix 4: mostrar overlay mientras hidratan los datos reales de Supabase.
     _showLoadingOverlay('Cargando tu partida...');
     try {
-        // Fix 3: ensureProfile + hydrateCloudAfterAuth son la única fuente de verdad
-        // post-login. Se han eliminado las llamadas directas a downloadProfileData() y
-        // loadStories() que antes causaban doble ejecución con onAuthStateChange.
-        await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
-        await hydrateCloudAfterAuth(); // descarga todo: datos, historias, personajes, mensajes
+        await ensureProfile();
+        await hydrateCloudAfterAuth();
+
+        const userId = await getEtheriaUserId();
+
+        // Perfil pendiente: el que el usuario pulsó antes de autenticarse
+        const pendingIdx = typeof window._pendingProfileIndex === 'number' ? window._pendingProfileIndex : -1;
+        window._pendingProfileIndex = null;
+
+        // Preferir el perfil ya vinculado a este userId; si no tiene, usar el pendiente
+        const myIdx = _findMyProfileIndex(userId);
+        const targetIdx = myIdx >= 0 ? myIdx : pendingIdx;
+
+        if (targetIdx >= 0 && userNames[targetIdx]) {
+            _claimProfile(targetIdx, userId);
+            if (typeof renderUserCards === 'function') renderUserCards(); // refleja el bloqueo en otras tarjetas
+            selectUser(targetIdx, { autoLoad: true, instant: true }).catch(() => {});
+        }
     } finally {
         _loginHandling = false;
         _hideLoadingOverlay();
@@ -23837,6 +24940,20 @@ async function ensureProfile() {
 
         const userId = userData.user.id;
         window._cachedUserId = userId;
+
+        // Sincronizar slots de perfil desde Supabase → localStorage
+        // Esto garantiza que el selector de perfiles sea fiel a la cuenta,
+        // independientemente del dispositivo o del estado del caché local.
+        if (typeof SupabaseSlots !== 'undefined') {
+            SupabaseSlots.syncOnLogin()
+                .then(() => {
+                    // Re-inicializar app con los datos de slots correctos
+                    appInitialized = false;
+                    initializeApp();
+                    if (typeof renderUserCards === 'function') renderUserCards();
+                })
+                .catch(() => {});
+        }
 
         // Inicializar módulos de perfiles y personajes
         if (typeof SupabaseProfiles !== 'undefined') {
@@ -23939,6 +25056,38 @@ function initializeApp() {
         }
     }
 
+    // ── Limpieza de slots vacíos ─────────────────────────────────────────────
+    // Un slot se conserva SOLO si tiene nombre personalizado o datos reales.
+    // La propiedad (slotOwner) no es suficiente — evita que slots reclamados
+    // accidentalmente (nombre por defecto, sin historias ni personajes) sigan apareciendo.
+    (function _purgeEmptySlots() {
+        if (!userNames || userNames.length === 0) return;
+        const owners = _getProfileOwners();
+        const keepIndices = [];
+        userNames.forEach((name, idx) => {
+            const hasCustomName = !!(name && !/^jugador\s*\d+$/i.test(name.trim()));
+            const hasTopics     = appData.topics.some(t => t.createdByIndex === idx);
+            const hasChars      = appData.characters.some(c => c.userIndex === idx);
+            // Conservar solo si hay contenido real — nombre propio O datos
+            if (hasCustomName || hasTopics || hasChars) keepIndices.push(idx);
+        });
+        if (keepIndices.length === userNames.length) return; // nada que limpiar
+        // Reasignar índices de topics y characters al nuevo mapa
+        const idxMap = {};
+        keepIndices.forEach((oldIdx, newIdx) => { idxMap[oldIdx] = newIdx; });
+        appData.topics.forEach(t => { if (idxMap[t.createdByIndex] !== undefined) t.createdByIndex = idxMap[t.createdByIndex]; });
+        appData.characters.forEach(c => { if (idxMap[c.userIndex] !== undefined) c.userIndex = idxMap[c.userIndex]; });
+        const newOwners = keepIndices.map(i => owners[i] || null);
+        userNames = keepIndices.map(i => userNames[i]);
+        localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+        localStorage.setItem('etheria_profile_owners', JSON.stringify(newOwners));
+        window.EtheriaLogger?.info('app', `Slots vacíos purgados. Perfiles restantes: ${userNames.length}`);
+        // Reflejar la purga en Supabase también
+        if (typeof SupabaseSlots !== 'undefined') {
+            SupabaseSlots.saveSlots(userNames, newOwners).catch(() => {});
+        }
+    }());
+
     const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
     if (savedCharId) selectedCharId = savedCharId;
 
@@ -24035,15 +25184,9 @@ function initializeApp() {
             .catch((err) => {
                 console.warn('No se pudo abrir la sala compartida:', err);
             });
-    } else {
-        const lastProfileId = getStoredLastProfileId();
-        if (lastProfileId !== null && Number.isInteger(lastProfileId) && userNames[lastProfileId]) {
-            selectUser(lastProfileId, { autoLoad: true, instant: true })
-                .catch((err) => {
-                    console.warn('No se pudo cargar el último perfil activo:', err);
-                });
-        }
     }
+    // Nota: la entrada automática al último perfil se gestiona ahora en el
+    // arranque (boot) y post-login, basándose en la sesión y la propiedad del perfil.
 
     window.addEventListener('beforeunload', (e) => {
         if (hasUnsavedChanges) {
@@ -24273,14 +25416,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     })();
     // ── Fin orientación landscape ─────────────────────────────────────────
     
-    // Verificar si hay sesión activa
+    // La pantalla de perfiles es siempre la primera pantalla.
+    // El login se muestra solo cuando el usuario pulsa un perfil que lo requiere.
+    initializeApp();
+
     const hasExistingSession = await checkExistingSession();
-    
+
     if (hasExistingSession) {
-        // Sesión existente, inicializar directamente
-        hideLoginScreen();
-        initializeApp();
-        // Fix 4: ocultar contenido obsoleto de localStorage mientras llegan datos reales
         _showLoadingOverlay('Cargando tu partida...');
         try {
             await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
@@ -24288,10 +25430,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         } finally {
             _hideLoadingOverlay();
         }
-    } else {
-        // Mostrar pantalla de autenticación
-        showLoginScreen();
+        // Quedarse en el selector — el usuario elige manualmente su perfil.
+        // (Los perfiles de otras cuentas aparecerán bloqueados.)
     }
+    // Sin sesión: el selector de perfiles ya está visible.
+    // El login se abrirá cuando el usuario pulse una tarjeta de perfil.
 
     // Configurar listeners de autenticación
     if (window.supabaseClient) {
@@ -24310,8 +25453,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (event === 'SIGNED_OUT') {
                 window._cachedUserId = null;
                 window.dispatchEvent(new CustomEvent('etheria:auth-changed', { detail: { user: null } }));
-                showLoginScreen();
-                showAuthMain();
+                // logout() ya llama a initializeApp() — este handler solo actúa si
+                // el SIGNED_OUT viene de fuera (expiración de sesión, otro tab, etc.)
+                if (!appInitialized) {
+                    initializeApp();
+                } else {
+                    // Sesión expirada con app ya visible: volver al selector de perfiles
+                    const _ms = document.getElementById('mainMenu');
+                    const _us = document.getElementById('userSelectScreen');
+                    if (_ms && !_ms.classList.contains('hidden')) {
+                        _ms.classList.add('hidden');
+                        if (_us) _us.classList.remove('hidden');
+                        if (typeof renderUserCards === 'function') renderUserCards();
+                    }
+                }
             }
         });
     } else {
@@ -24383,18 +25538,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // (absorbido de mejoras.js — Mejora 1)
     (function _initMenuSubtitle() {
         var phrases = [
-            'Un mundo al borde del olvido',
-            'Cada elección deja una cicatriz',
-            'El destino se escribe con tinta y dados',
-            'Las historias no terminan, se transforman',
-            'Cada personaje guarda un secreto',
-            'El pasado elige quiénes somos',
-            'Algunos hilos no deberían cortarse',
-            'La magia no perdona a los imprudentes',
-            'Hasta los héroes sangran en silencio',
-            'El azar es la firma de los dioses',
-            'Ningún mapa llega hasta el final del camino',
-            'Lo que se escribe, permanece'
+            'Donde las historias respiran y los destinos se entrelazan al ritmo de quien los escribe',
+            'Cada elección teje un nuevo hilo en el tapiz del destino',
+            'El destino se escribe con tinta, dados y voluntad',
+            'Las historias no terminan — se transforman en leyenda',
+            'Cada personaje guarda un secreto que cambiará el curso del relato',
+            'El pasado elige quiénes somos; el presente decide quiénes seremos',
+            'Algunos hilos del destino no deberían cortarse jamás',
+            'La magia florece donde la imaginación no encuentra límites',
+            'El azar es la firma de los dioses en las páginas de tu historia',
+            'Ningún mapa llega hasta el final del camino que aún no has recorrido',
+            'Lo que se escribe con el corazón, permanece para siempre',
+            'Entre tus manos descansa el poder de dar vida a mundos enteros'
         ];
         var el = document.querySelector('.menu-subtitle');
         if (el) el.textContent = phrases[Math.floor(Math.random() * phrases.length)];
@@ -24543,7 +25698,9 @@ const Ethy = (function() {
         surprised:  { class: 'ethy-expression-surprised',  emoji: '◎_◎' },
         thoughtful: { class: 'ethy-expression-thoughtful', emoji: '◑ ◐' },
         wink:       { class: 'ethy-expression-wink',       emoji: '◠ ◉' },
-        love:       { class: 'ethy-expression-love',       emoji: '♡ ♡' }
+        love:       { class: 'ethy-expression-love',       emoji: '♡ ♡' },
+        mystic:     { class: 'ethy-expression-mystic',     emoji: '◇ ◇' },
+        saving:     { class: 'ethy-expression-saving',     emoji: '✓ ✓' },
     };
 
     // ── Tutoriales por sección ───────────────────────────────────────────────
@@ -24552,40 +25709,30 @@ const Ethy = (function() {
         // ── Menú Principal ───────────────────────────────────────────────────
         mainMenu: {
             title: 'El umbral de Etheria',
-            expression: 'excited',
+            expression: 'mystic',
             steps: [
                 {
-                    text: 'Soy Ethy. Llevo aquí desde antes de que llegaras. Este mundo late con cada historia que escribís... y acaba de añadir la tuya. ✨',
-                    expression: 'excited',
+                    text: 'Llevo aquí desde antes de que llegaras. Este mundo se teje con historias, y la tuya acaba de añadir un hilo nuevo.',
+                    expression: 'mystic',
                     action: null
                 },
                 {
-                    text: '"Nueva Partida" es la puerta. Al otro lado esperan el roleplay libre —modo Clásico— o el caos gobernado por los dados —modo RPG—. Elige con intención.',
-                    expression: 'happy',
+                    text: '"Continuar" es la puerta. Al otro lado: roleplay libre —modo Clásico— o destino gobernado por los dados —modo RPG—. Elige con intención.',
+                    expression: 'thoughtful',
                     action: () => highlightElement('.menu-button-console.primary')
                 },
                 {
-                    text: '"Personajes" es donde viven las almas que vais a habitar. Sin ellas no hay historia posible.',
-                    expression: 'thoughtful',
+                    text: '"Personajes" es el registro de almas. Sin ellas no hay relato posible; con ellas, cualquier historia puede ocurrir.',
+                    expression: 'happy',
                     action: () => highlightElement('.menu-button-console:nth-child(2)')
                 },
                 {
-                    text: '"Opciones" es tuyo. Ajusta la luz, la tipografía, el sonido... hasta que Etheria se sienta exactamente como debe.',
-                    expression: 'wink',
-                    action: () => highlightElement('.menu-button-console:nth-child(3)')
-                },
-                {
-                    text: 'Tu perfil está abajo. Cámbialo cuando quieras: soy discreta, no lo digo a nadie. 🤫',
-                    expression: 'wink',
-                    action: () => highlightElement('.menu-profile-btn')
-                },
-                {
-                    text: 'El icono junto al perfil guarda y carga tu mundo entero. Úsalo. Las historias merecen sobrevivir.',
+                    text: 'El icono de guardado preserva tu mundo entero. Úsalo. Las historias merecen sobrevivir más allá de una sesión.',
                     expression: 'surprised',
                     action: () => highlightElement('.menu-save-btn')
                 },
                 {
-                    text: 'Ya sé todo lo que necesito saber de ti. Ahora cuéntame una historia. 🌿',
+                    text: 'Eso es todo lo que necesitas saber por ahora. El resto lo aprenderás escribiendo.',
                     expression: 'love',
                     action: null
                 }
@@ -24595,30 +25742,25 @@ const Ethy = (function() {
         // ── Galería de Personajes ────────────────────────────────────────────
         gallery: {
             title: 'El registro de almas',
-            expression: 'happy',
+            expression: 'thoughtful',
             steps: [
                 {
-                    text: 'Aquí viven todos los personajes que habéis invocado. Cada uno lleva dentro una historia esperando a ocurrir.',
-                    expression: 'happy',
-                    action: null
-                },
-                {
-                    text: '"Nuevo personaje" abre el ritual de creación: nombre, raza, trasfondo, personalidad, secretos... Sé generosa con los detalles.',
-                    expression: 'excited',
-                    action: () => highlightElement('.gallery-new-btn')
-                },
-                {
-                    text: 'En modo RPG cada alma tiene sus propias estadísticas: Fuerza, Destreza, Constitución, Inteligencia, Sabiduría, Carisma. El nivel crece con la experiencia vivida.',
+                    text: 'Aquí viven las almas que has invocado. Cada una guarda un secreto que todavía no le has contado a nadie.',
                     expression: 'thoughtful',
                     action: null
                 },
                 {
-                    text: 'Cada personaje tiene su propio color de diálogo. Cuando hablan en escena, los reconoces sin mirar el nombre. 🎨',
-                    expression: 'wink',
+                    text: '"Nuevo personaje" abre el ritual: nombre, origen, carácter, secretos. Sé generosa con los detalles oscuros.',
+                    expression: 'excited',
+                    action: () => highlightElement('.gallery-new-btn')
+                },
+                {
+                    text: 'En modo RPG cada alma tiene sus estadísticas propias. El nivel crece con lo que viven, no con lo que planeas para ellas.',
+                    expression: 'mystic',
                     action: null
                 },
                 {
-                    text: 'Los mejores personajes son los que te sorprenden. Deja espacio para que hagan cosas que no planeaste. 🎭',
+                    text: 'Los mejores personajes son los que hacen cosas que no planeaste. Déjales ese espacio.',
                     expression: 'love',
                     action: null
                 }
@@ -24628,30 +25770,25 @@ const Ethy = (function() {
         // ── Crear Historia ───────────────────────────────────────────────────
         createTopic: {
             title: 'Invocar una historia',
-            expression: 'excited',
+            expression: 'mystic',
             steps: [
                 {
-                    text: 'Estás a punto de abrir una grieta en el tejido de Etheria. Lo que escribas aquí definirá el tono de todo lo que viene. Sin prisa.',
-                    expression: 'excited',
+                    text: 'Estás abriendo una grieta en el tejido. Lo que escribas aquí definirá el tono de todo lo que venga después. Sin prisa.',
+                    expression: 'mystic',
                     action: null
                 },
                 {
-                    text: 'Modo Clásico: roleplay puro, sin mecánicas. El texto manda. Perfecto cuando la narrativa importa más que el azar.',
-                    expression: 'happy',
+                    text: 'Modo Clásico: solo el texto manda. Sin mecánicas, sin dados. Para cuando la narrativa importa más que el azar.',
+                    expression: 'thoughtful',
                     action: () => highlightElement('#modeRoleplay')
                 },
                 {
-                    text: 'Modo RPG: el Oráculo del Destino interviene. Los dados deciden si la acción tiene éxito... o consecuencias inesperadas. 🎲',
+                    text: 'Modo RPG: el Oráculo del Destino toma la pluma. Los dados deciden si las acciones tienen consecuencias... o consecuencias peores.',
                     expression: 'surprised',
                     action: () => highlightElement('#modeRpg')
                 },
                 {
-                    text: 'El primer mensaje es el inicio de todo. Puedes usar **negrita** y *cursiva* para moldear cómo suena cada línea.',
-                    expression: 'thoughtful',
-                    action: () => highlightElement('#topicTitleInput')
-                },
-                {
-                    text: 'Una vez creada, otros jugadores pueden unirse en tiempo real. La historia os pertenece a todos. ✨',
+                    text: 'Una vez creada, otros pueden unirse en tiempo real. La historia deja de pertenecerte solo a ti.',
                     expression: 'love',
                     action: null
                 }
@@ -24661,35 +25798,25 @@ const Ethy = (function() {
         // ── Modo VN Clásico ──────────────────────────────────────────────────
         vnClassic: {
             title: 'La escena se abre',
-            expression: 'happy',
+            expression: 'love',
             steps: [
                 {
-                    text: 'La historia ha empezado. En modo Clásico el protagonismo es del texto: sin interrupciones, sin dados, solo vosotras y las palabras.',
-                    expression: 'happy',
+                    text: 'La historia ya respira. En modo Clásico el texto lo es todo: sin dados, sin mecánicas. Solo vosotras y las palabras.',
+                    expression: 'love',
                     action: null
                 },
                 {
-                    text: 'Clic en la caja de diálogo o ESPACIO para avanzar. ← → navegan entre mensajes anteriores.',
+                    text: 'Clic o ESPACIO para avanzar. Las flechas navegan por lo que ya ocurrió.',
                     expression: 'neutral',
                     action: () => highlightElement('.vn-dialogue-box')
                 },
                 {
-                    text: '"Responder" abre el panel de escritura. Elige quién habla y qué dice. Tómate tu tiempo.',
-                    expression: 'excited',
+                    text: '"Responder" abre el panel. Elige quién habla y qué dice. La historia espera.',
+                    expression: 'thoughtful',
                     action: () => highlightElement('.reply-btn')
                 },
                 {
-                    text: 'Los emotes dan vida a la escena: escribe /happy, /sad, /angry, /love... y el personaje reacciona. 🎭',
-                    expression: 'wink',
-                    action: null
-                },
-                {
-                    text: 'Puedes crear bifurcaciones para que los lectores decidan el rumbo. Las mejores historias dejan huellas distintas en cada quien.',
-                    expression: 'thoughtful',
-                    action: null
-                },
-                {
-                    text: 'La barra de controles guarda el historial, los favoritos y permite exportar la historia entera. Nada se pierde. 📜',
+                    text: 'La barra de controles guarda el historial y permite exportar la historia completa. Nada de lo que escribáis tiene que perderse.',
                     expression: 'surprised',
                     action: () => highlightElement('.vn-toolbar')
                 }
@@ -24699,35 +25826,30 @@ const Ethy = (function() {
         // ── Modo VN RPG ──────────────────────────────────────────────────────
         vnRPG: {
             title: 'El azar toma la pluma',
-            expression: 'excited',
+            expression: 'mystic',
             steps: [
                 {
-                    text: 'Modo RPG. Aquí el Oráculo del Destino tiene voz propia. Lo que queráis hacer... tendrá que probarse. 🎲',
-                    expression: 'excited',
+                    text: 'Modo RPG. El Oráculo del Destino tiene aquí su propia voz. Lo que queráis hacer tendrá que probarse ante él.',
+                    expression: 'mystic',
                     action: null
                 },
                 {
-                    text: 'Tu ficha está arriba a la izquierda: HP, stats, afinidad. Consúltala antes de cada decisión importante.',
+                    text: 'Tu ficha: HP, estadísticas, afinidad. Arriba a la izquierda. Consúltala antes de cada acción que importe.',
                     expression: 'thoughtful',
                     action: () => highlightElement('.vn-info-card')
                 },
                 {
-                    text: 'El Oráculo aparece cuando la acción es difícil. Lanzas un D20 más tu stat relevante contra la dificultad que marca la escena.',
+                    text: 'El Oráculo interviene cuando la acción es difícil. D20 más tu estadística relevante. El resultado es el principio, no el final.',
                     expression: 'surprised',
                     action: () => highlightElement('#vnOracleFloatBtn')
                 },
                 {
-                    text: 'El resultado del dado no es el final: es el principio del siguiente mensaje. El narrador interpreta lo que ocurre.',
-                    expression: 'happy',
-                    action: null
-                },
-                {
-                    text: 'El HP baja en combate o por consecuencias del Oráculo. Cuando llega a cero... algo cambia para siempre. 💀',
+                    text: 'El HP llega a cero cuando el peso de las consecuencias se acumula. Cuando eso ocurre, algo cambia para siempre.',
                     expression: 'sad',
                     action: () => highlightElement('.vn-info-hp-bar')
                 },
                 {
-                    text: 'Que los dados sean justos... o al menos interesantes. 🎲✨',
+                    text: 'Que los dados sean al menos interesantes.',
                     expression: 'love',
                     action: null
                 }
@@ -24740,27 +25862,22 @@ const Ethy = (function() {
             expression: 'thoughtful',
             steps: [
                 {
-                    text: 'Aquí moldeas cómo se siente Etheria. Tres pestañas: Apariencia, Lectura, Sonido. Cada una importa.',
+                    text: 'Aquí moldeas cómo se siente Etheria. Apariencia, Lectura, Sonido. Cada una cambia algo en cómo vives el relato.',
                     expression: 'thoughtful',
                     action: () => highlightElement('.opt-tab-bar')
                 },
                 {
-                    text: 'En Apariencia cambias entre luz y oscuridad, ajustas la tipografía y aplicas filtros de atmósfera a las escenas. 🌙',
+                    text: 'Apariencia: entre luz y oscuridad, tipografía, atmósfera. El mundo se ve distinto según cómo lo iluminas.',
                     expression: 'neutral',
                     action: () => highlightElement('#themeToggleBtn')
                 },
                 {
-                    text: 'En Lectura controlas la velocidad del texto y el modo inmersivo. Para cuando la historia pide toda tu atención.',
-                    expression: 'happy',
-                    action: () => highlightElement('[data-tab="reading"]')
-                },
-                {
-                    text: 'En Sonido, el volumen de la lluvia y el ambiente. Algunas historias necesitan silencio. Otras, tormenta. 🔊',
+                    text: 'Sonido: el volumen de la lluvia, el ambiente. Algunas historias necesitan silencio. Otras, que truene.',
                     expression: 'wink',
                     action: () => highlightElement('[data-tab="sound"]')
                 },
                 {
-                    text: 'No existe una configuración correcta. Solo la que te permite olvidarte de que estás mirando una pantalla.',
+                    text: 'No hay configuración correcta. Solo la que te hace olvidar que estás mirando una pantalla.',
                     expression: 'love',
                     action: null
                 }
@@ -24773,27 +25890,22 @@ const Ethy = (function() {
             expression: 'thoughtful',
             steps: [
                 {
-                    text: 'Las historias que no se guardan desaparecen. Este panel existe para que las tuyas no lo hagan.',
+                    text: 'Las historias que no se preservan desaparecen. Este panel existe para que las tuyas no lo hagan.',
                     expression: 'thoughtful',
                     action: null
                 },
                 {
-                    text: '"Descargar partida" exporta todo: personajes, historias, vínculos. Un archivo. Tu mundo entero.',
+                    text: '"Descargar partida" exporta todo: personajes, relatos, vínculos. Un archivo. Tu mundo entero en una sola pieza.',
                     expression: 'neutral',
                     action: () => highlightElement('.save-hub-primary')
                 },
                 {
-                    text: '"Cargar partida" restaura ese archivo. Úsalo cuando cambies de dispositivo o cuando algo vaya mal.',
-                    expression: 'happy',
-                    action: null
-                },
-                {
-                    text: '"Generar código" crea un código de seis letras para compartir una historia concreta con otra jugadora.',
+                    text: '"Generar código" crea un código para compartir una historia concreta. Así empieza la colaboración: con seis letras y confianza.',
                     expression: 'excited',
                     action: null
                 },
                 {
-                    text: '"Importar código" recibe la historia que alguien te mandó. Así nace la colaboración: de un código y de confianza. 🌿',
+                    text: 'Guarda antes de cerrar. No porque el sistema lo exija. Porque las historias merecen sobrevivir.',
                     expression: 'love',
                     action: null
                 }
@@ -24843,172 +25955,89 @@ const Ethy = (function() {
         _body = document.createElement('div');
         _body.className = 'ethy-body ethy-expression-neutral';
         _body.innerHTML = `
-            <svg class="ethy-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <radialGradient id="eg-body" cx="50%" cy="30%" r="75%">
-                  <stop offset="0%"   stop-color="#2a1c0e"/>
-                  <stop offset="100%" stop-color="#0c0702"/>
-                </radialGradient>
-                <linearGradient id="eg-border" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"   stop-color="rgba(245,210,115,0.95)"/>
-                  <stop offset="52%"  stop-color="rgba(200,160,65,0.80)"/>
-                  <stop offset="100%" stop-color="rgba(155,115,40,0.90)"/>
-                </linearGradient>
-                <radialGradient id="eg-iris" cx="32%" cy="28%" r="68%">
-                  <stop offset="0%"   stop-color="#f5e878"/>
-                  <stop offset="45%"  stop-color="#c8920e"/>
-                  <stop offset="100%" stop-color="#6a4802"/>
-                </radialGradient>
-                <radialGradient id="eg-screen" cx="50%" cy="42%" r="56%">
-                  <stop offset="0%"   stop-color="rgba(190,150,65,0.07)"/>
-                  <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
-                </radialGradient>
-              </defs>
+            <svg class="ethy-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+  <defs>
+    <radialGradient id="eg-body" cx="50%" cy="28%" r="78%">
+      <stop offset="0%" stop-color="#2a1a52"/>
+      <stop offset="100%" stop-color="#150c30"/>
+    </radialGradient>
+    <linearGradient id="eg-border" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="rgba(203,182,255,0.95)"/>
+      <stop offset="52%"  stop-color="rgba(157,107,255,0.80)"/>
+      <stop offset="100%" stop-color="rgba(124,77,255,0.90)"/>
+    </linearGradient>
+    <filter id="eg-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="1.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
 
-              <!-- Sombra suelo -->
-              <ellipse cx="40" cy="73" rx="19" ry="4.5" fill="#0e0904" opacity="0.45"/>
-              <!-- Halo exterior -->
-              <rect x="6" y="10" width="68" height="58" rx="18" fill="rgba(195,155,55,0.045)"/>
+  <ellipse cx="40" cy="73" rx="18" ry="4" fill="#0a0520" opacity="0.4"/>
 
-              <!-- Cuerpo -->
-              <rect x="11" y="13" width="58" height="52" rx="15" fill="url(#eg-body)"/>
-              <rect x="11" y="13" width="58" height="52" rx="15" stroke="url(#eg-border)" stroke-width="1.6" fill="none"/>
-              <rect x="19" y="13.5" width="30" height="1.1" rx="0.55" fill="rgba(255,240,165,0.30)"/>
-              <rect x="15" y="17"   width="50" height="44" rx="12"    fill="url(#eg-screen)"/>
+  <rect x="11" y="13" width="58" height="52" rx="16" fill="url(#eg-body)"/>
+  <rect x="11" y="13" width="58" height="52" rx="16" stroke="url(#eg-border)" stroke-width="1.6" fill="none"/>
+  <rect x="19" y="13.5" width="30" height="1.1" rx="0.55" fill="rgba(255,255,255,0.14)"/>
+  <circle cx="14" cy="16" r="2" fill="rgba(157,107,255,0.55)"/>
+  <circle cx="66" cy="16" r="2" fill="rgba(157,107,255,0.55)"/>
+  <circle cx="14" cy="62" r="2" fill="rgba(157,107,255,0.38)"/>
+  <circle cx="66" cy="62" r="2" fill="rgba(157,107,255,0.38)"/>
 
-              <!-- Esquinas -->
-              <circle cx="14" cy="16" r="2" fill="rgba(220,178,85,0.55)"/>
-              <circle cx="66" cy="16" r="2" fill="rgba(220,178,85,0.55)"/>
-              <circle cx="14" cy="62" r="2" fill="rgba(220,178,85,0.38)"/>
-              <circle cx="66" cy="62" r="2" fill="rgba(220,178,85,0.38)"/>
+  <g class="ethy-part-antenna">
+    <line x1="40" y1="13" x2="40" y2="5" stroke="rgba(183,148,246,0.85)" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="M40,1 l1.1,2.8 2.8,1.1 -2.8,1.1 -1.1,2.8 -1.1,-2.8 -2.8,-1.1 2.8,-1.1 Z" fill="rgba(244,217,138,0.95)"/>
+  </g>
 
-              <!-- Antena (estatica) -->
-              <g class="ethy-part-antenna">
-                <line x1="55" y1="22" x2="60" y2="8"  stroke="rgba(208,172,82,0.82)" stroke-width="1.4" stroke-linecap="round"/>
-                <polygon points="60,4 57.5,9 62.5,9"   fill="rgba(238,200,102,0.95)"/>
-                <circle cx="60" cy="6.5" r="4"         fill="rgba(225,188,80,0.12)"/>
-                <circle cx="60" cy="6.5" r="2"         fill="rgba(238,205,110,0.20)"/>
-                <circle cx="60" cy="6.5" r="0.9"       fill="rgba(255,238,165,0.75)"/>
-              </g>
-
-              <!-- ======= OJOS =======
-                   Cada expresion tiene su propio grupo de ojos.
-                   Solo el activo es visible (opacity swap, sin transforms). -->
-
-              <!-- neutral: circulos con pupila y reflejo -->
-              <g class="ethy-eyes-neutral">
-                <circle class="ethy-eye-left"  cx="30" cy="34" r="5.5" fill="url(#eg-iris)"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="5.5" fill="url(#eg-iris)"/>
-                <circle cx="30" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="50" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="27.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
-                <circle cx="47.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
-              </g>
-
-              <!-- happy: arcos hacia arriba (^__^) -->
-              <g class="ethy-eyes-happy" opacity="0">
-                <path d="M24.5 36.5 Q30 28.5 35.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                <path d="M44.5 36.5 Q50 28.5 55.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-              </g>
-
-              <!-- excited: circulos grandes con brillo extra -->
-              <g class="ethy-eyes-excited" opacity="0">
-                <circle class="ethy-eye-left"  cx="30" cy="34" r="7" fill="url(#eg-iris)"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="7" fill="url(#eg-iris)"/>
-                <circle cx="30" cy="34" r="2.5" fill="#040302"/>
-                <circle cx="50" cy="34" r="2.5" fill="#040302"/>
-                <circle cx="27" cy="31.5" r="1.6" fill="rgba(255,255,255,0.88)"/>
-                <circle cx="47" cy="31.5" r="1.6" fill="rgba(255,255,255,0.88)"/>
-                <circle cx="33.5" cy="30.5" r="0.9" fill="rgba(255,255,255,0.55)"/>
-                <circle cx="53.5" cy="30.5" r="0.9" fill="rgba(255,255,255,0.55)"/>
-              </g>
-
-              <!-- sad: circulos bajos, pupilas caidas -->
-              <g class="ethy-eyes-sad" opacity="0">
-                <circle class="ethy-eye-left"  cx="30" cy="35" r="5" fill="url(#eg-iris)" opacity="0.82"/>
-                <circle class="ethy-eye-right" cx="50" cy="35" r="5" fill="url(#eg-iris)" opacity="0.82"/>
-                <circle cx="30" cy="37" r="2" fill="#040302"/>
-                <circle cx="50" cy="37" r="2" fill="#040302"/>
-                <circle cx="28.5" cy="33.5" r="1" fill="rgba(255,255,255,0.65)"/>
-                <circle cx="48.5" cy="33.5" r="1" fill="rgba(255,255,255,0.65)"/>
-              </g>
-
-              <!-- surprised: circulos muy grandes -->
-              <g class="ethy-eyes-surprised" opacity="0">
-                <circle class="ethy-eye-left"  cx="30" cy="34" r="7.2" fill="url(#eg-iris)"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="7.2" fill="url(#eg-iris)"/>
-                <circle cx="30" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="50" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="27.5" cy="31.5" r="1.5" fill="rgba(255,255,255,0.88)"/>
-                <circle cx="47.5" cy="31.5" r="1.5" fill="rgba(255,255,255,0.88)"/>
-              </g>
-
-              <!-- thoughtful: pupilas arriba-izquierda (mirando hacia arriba) -->
-              <g class="ethy-eyes-thoughtful" opacity="0">
-                <circle class="ethy-eye-left"  cx="30" cy="34" r="5.2" fill="url(#eg-iris)"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="5.2" fill="url(#eg-iris)"/>
-                <circle cx="28.5" cy="32.5" r="2.1" fill="#040302"/>
-                <circle cx="48.5" cy="32.5" r="2.1" fill="#040302"/>
-                <circle cx="27.2" cy="31.2" r="1"   fill="rgba(255,255,255,0.80)"/>
-                <circle cx="47.2" cy="31.2" r="1"   fill="rgba(255,255,255,0.80)"/>
-              </g>
-
-              <!-- wink: ojo izquierdo cerrado (arco) + ojo derecho abierto -->
-              <g class="ethy-eyes-wink" opacity="0">
-                <path d="M24 36 Q30 28.5 36 36" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="5.5" fill="url(#eg-iris)"/>
-                <circle cx="50" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="47.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
-              </g>
-
-              <!-- love: arcos felices + destellos rosas -->
-              <g class="ethy-eyes-love" opacity="0">
-                <path d="M24.5 36.5 Q30 28.5 35.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                <path d="M44.5 36.5 Q50 28.5 55.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                <circle cx="37.5" cy="28" r="1.1" fill="rgba(218,158,165,0.78)"/>
-                <circle cx="43"   cy="27" r="0.8" fill="rgba(218,158,165,0.60)"/>
-                <circle cx="40"   cy="26" r="0.6" fill="rgba(218,158,165,0.45)"/>
-              </g>
-
-              <!-- ======= BOCAS =======
-                   Todas contenidas en aprox. x=28-52, y=46-56.
-                   Solo la de la expresion activa es visible. -->
-              <g class="ethy-part-mouth">
-                <path class="ethy-mouth-neutral"
-                  d="M34 49.5 Q40 52 46 49.5"
-                  stroke="rgba(210,175,90,0.92)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-                <path class="ethy-mouth-happy"
-                  d="M30 48 Q40 56.5 50 48"
-                  stroke="rgba(210,175,90,0.95)" stroke-width="1.7" stroke-linecap="round" fill="none" opacity="0"/>
-                <path class="ethy-mouth-sad"
-                  d="M30 53.5 Q40 46 50 53.5"
-                  stroke="rgba(210,175,90,0.90)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0"/>
-                <path class="ethy-mouth-excited"
-                  d="M28 47.5 Q40 57.5 52 47.5"
-                  stroke="rgba(210,175,90,0.95)" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0"/>
-                <ellipse class="ethy-mouth-surprised"
-                  cx="40" cy="51" rx="3" ry="3.5"
-                  stroke="rgba(210,175,90,0.90)" stroke-width="1.3" fill="rgba(4,3,1,0.55)" opacity="0"/>
-                <path class="ethy-mouth-thoughtful"
-                  d="M34 51 Q38 49 41 50.5 Q44.5 52 47 50"
-                  stroke="rgba(210,175,90,0.86)" stroke-width="1.3" stroke-linecap="round" fill="none" opacity="0"/>
-                <path class="ethy-mouth-wink"
-                  d="M32 50 Q41 55.5 50 50.5"
-                  stroke="rgba(210,175,90,0.92)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0"/>
-                <path class="ethy-mouth-love"
-                  d="M30 48 Q40 56.5 50 48"
-                  stroke="rgba(210,175,90,0.95)" stroke-width="1.7" stroke-linecap="round" fill="none" opacity="0"/>
-                <ellipse class="ethy-mouth-love-tongue"
-                  cx="40" cy="56" rx="2.5" ry="1.5"
-                  fill="#cc7888" opacity="0"/>
-              </g>
-
-              <!-- Mejillas (happy / excited / love) -->
-              <g class="ethy-part-cheeks" opacity="0">
-                <ellipse cx="18" cy="41" rx="4" ry="2.5" fill="#cc7888" opacity="0.38"/>
-                <ellipse cx="62" cy="41" rx="4" ry="2.5" fill="#cc7888" opacity="0.38"/>
-              </g>
-            </svg>
+  <g filter="url(#eg-glow)">
+    <g class="ethy-eyes-neutral">
+      <ellipse cx="30" cy="36" rx="5" ry="7" fill="#f4d98a"/>
+      <ellipse cx="50" cy="36" rx="5" ry="7" fill="#f4d98a"/>
+    </g>
+    <g class="ethy-eyes-happy" opacity="0">
+      <path d="M25 38 Q30 31 35 38" stroke="#f4d98a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <path d="M45 38 Q50 31 55 38" stroke="#f4d98a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    </g>
+    <g class="ethy-eyes-excited" opacity="0">
+      <ellipse cx="30" cy="36" rx="6.4" ry="8" fill="#f4d98a"/>
+      <ellipse cx="50" cy="36" rx="6.4" ry="8" fill="#f4d98a"/>
+      <circle cx="33.5" cy="32.5" r="1.2" fill="#fff" opacity="0.7"/>
+      <circle cx="53.5" cy="32.5" r="1.2" fill="#fff" opacity="0.7"/>
+    </g>
+    <g class="ethy-eyes-sad" opacity="0">
+      <path d="M25 38 Q30 42 35 38" stroke="#f4d98a" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <path d="M45 38 Q50 42 55 38" stroke="#f4d98a" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    </g>
+    <g class="ethy-eyes-surprised" opacity="0">
+      <circle cx="30" cy="36" r="7.4" fill="rgba(10,5,30,0.45)" stroke="#f4d98a" stroke-width="2"/>
+      <circle cx="30" cy="36" r="3.2" fill="#f4d98a"/>
+      <circle cx="50" cy="36" r="7.4" fill="rgba(10,5,30,0.45)" stroke="#f4d98a" stroke-width="2"/>
+      <circle cx="50" cy="36" r="3.2" fill="#f4d98a"/>
+    </g>
+    <g class="ethy-eyes-thoughtful" opacity="0">
+      <ellipse cx="31" cy="34" rx="4.4" ry="6" fill="#f4d98a"/>
+      <ellipse cx="51" cy="34" rx="4.4" ry="6" fill="#f4d98a"/>
+    </g>
+    <g class="ethy-eyes-wink" opacity="0">
+      <path d="M25 37 Q30 31 35 37" stroke="#f4d98a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="50" cy="36" rx="5" ry="7" fill="#f4d98a"/>
+    </g>
+    <g class="ethy-eyes-love" opacity="0">
+      <path d="M25 38 Q30 31 35 38" stroke="#f4d98a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <path d="M45 38 Q50 31 55 38" stroke="#f4d98a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <circle cx="40" cy="26" r="1.1" fill="rgba(218,158,165,0.8)"/>
+    </g>
+    <g class="ethy-eyes-mystic" opacity="0">
+      <ellipse cx="30" cy="36" rx="4.6" ry="6.6" fill="#e9e3fb"/>
+      <ellipse cx="50" cy="36" rx="4.6" ry="6.6" fill="#e9e3fb"/>
+      <path d="M40,9 l1.7,3.9 3.9,1.7 -3.9,1.7 -1.7,3.9 -1.7,-3.9 -3.9,-1.7 3.9,-1.7 Z" fill="#f4d98a"/>
+      <circle cx="40" cy="14.6" r="0.8" fill="#fff"/>
+    </g>
+    <g class="ethy-eyes-saving" opacity="0">
+      <path d="M25 38 Q30 31 35 38" stroke="#8fe0c2" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <path d="M45 38 Q50 31 55 38" stroke="#8fe0c2" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <path d="M31,14 l3.2,3.2 L41,9" stroke="#8fe0c2" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>
         `;
 
         // Crear burbuja de diálogo
@@ -25091,93 +26120,103 @@ const Ethy = (function() {
         // ── Reacción a mensaje enviado ────────────────────────────────────
         window.addEventListener('etheria:message-sent', (e) => {
             const len = (e.detail?.text || '').length;
-            if (len > 200 && !_isSleeping && !_bubble.classList.contains('visible')) {
+            // Solo textos largos, solo 35% de las veces, sin interrumpir
+            if (len > 200 && !_isSleeping && !_bubble.classList.contains('visible') && Math.random() < 0.35) {
                 const msgs = [
-                    'Con eso podrías llenar un capítulo. 📖',
-                    'Pocas personas escriben así. Sigue.',
-                    'El Oráculo recuerda cada palabra. 🖊️'
+                    'Eso quedará grabado en el tejido.',
+                    'Las palabras largas tienen raíces profundas.',
+                    'El éter guarda lo que acabas de escribir.',
+                    'Pocos escriben con esa densidad.',
                 ];
                 setTimeout(() => {
                     say(msgs[Math.floor(Math.random() * msgs.length)], {
-                        expression: 'excited', duration: 4000
+                        expression: 'excited', duration: 3500
                     });
                 }, 800);
             }
         });
 
         // ── EventBus — reacciones a eventos del sistema ───────────────────
-        // Cooldown: Ethy no reacciona más de una vez cada 3 segundos
-        // para evitar spam de expresiones o frases en escenas rápidas.
+        // Cooldown: Ethy no reacciona con burbuja más de una vez cada 8 segundos.
+        // Subir de 3s a 8s reduce drásticamente el spam en sesiones activas.
         if (typeof eventBus === 'undefined') return;
 
         let _lastEventReaction = 0;
         function _canReact() {
             const now = Date.now();
-            if (now - _lastEventReaction < 3000) return false;
+            if (now - _lastEventReaction < 8000) return false;
             _lastEventReaction = now;
             return true;
         }
 
-        // El jugador ve una elección → Ethy reflexiona
+        // El jugador ve una elección → Ethy reflexiona (solo 25% de veces, sin molestar)
         eventBus.on('scene:choice-shown', () => {
             if (!_canReact()) return;
             setExpression('thoughtful');
-            // Frase ocasional — solo 30% de las veces para no saturar
-            if (Math.random() < 0.3) {
+            if (Math.random() < 0.25) {
                 const msgs = [
-                    'Lo que elijas, tendrá consecuencias.',
-                    'El hilo del destino se bifurca aquí.',
-                    'Piénsalo bien.',
-                    '...esto es interesante.'
+                    'Los caminos que no se toman también dejan huella.',
+                    'El hilo se bifurca. Ninguna dirección es la equivocada.',
+                    'Hay cosas que solo ocurren si las eliges.',
+                    'El destino observa. Tú decides.',
                 ];
                 say(msgs[Math.floor(Math.random() * msgs.length)], {
-                    expression: 'thoughtful', duration: 2500
+                    expression: 'thoughtful', duration: 3000
                 });
             }
         });
 
-        // Escena terminada → satisfacción
+        // Escena terminada → satisfacción (60% de veces para no ser predecible)
         eventBus.on('scene:ended', () => {
             if (!_canReact()) return;
-            const msgs = [
-                'El tejido de Etheria recuerda esto.',
-                'Cada final abre una grieta hacia lo siguiente.',
-                'Ha sido un honor estar presente.'
-            ];
-            say(msgs[Math.floor(Math.random() * msgs.length)], {
-                expression: 'happy', duration: 3000
-            });
+            if (Math.random() < 0.6) {
+                const msgs = [
+                    'El éter recuerda cada palabra de esto.',
+                    'Hay historias que no terminan aunque la escena cierre.',
+                    'Una grieta más en el tejido. Bien hecha.',
+                    'Lo que escribisteis aquí permanecerá.',
+                ];
+                say(msgs[Math.floor(Math.random() * msgs.length)], {
+                    expression: 'happy', duration: 3500
+                });
+            }
         });
 
-        // Error en escena → preocupación
+        // Error en escena → inquietud
         eventBus.on('scene:error', () => {
             if (!_canReact()) return;
             const msgs = [
-                'El Oráculo titubeó. Eso no es normal.',
-                'Algo en el tejido se torció. Reintenta.',
-                'Hasta el destino se equivoca a veces.'
+                'El Oráculo titubeó. Algo en el tejido se tensó.',
+                'Una grieta inesperada. Reintenta cuando quieras.',
+                'No todo error es un mal presagio. Sigue.',
             ];
             say(msgs[Math.floor(Math.random() * msgs.length)], {
-                expression: 'sad', duration: 3500
+                expression: 'sad', duration: 4000
             });
         });
 
-        // Guardado → confirmación tranquila
+        // Guardado automático → silencioso. Solo parpadeo de expresión, sin burbuja.
+        // El guardado es continuo e invisible; interrumpir con texto sería molesto.
+        // Único caso con burbuja: error real de conexión.
         eventBus.on('ui:show-autosave', (data) => {
-            if (!_canReact()) return;
             if (data?.state === 'error') {
-                say('La historia no pudo guardarse. Revisa la conexión.', { expression: 'sad', duration: 3000 });
+                if (!_canReact()) return;
+                say('El hilo se ha roto. Revisa la conexión antes de continuar.', { expression: 'sad', duration: 4000 });
                 return;
             }
-            setExpression('happy');
+            // Éxito: solo cambia expresión 2s, sin burbuja ni texto
+            setExpression('saving');
+            setTimeout(() => setExpression(_idleBaseExpression), 2000);
         });
 
-        // Sincronización completada → frase breve
+        // Sincronización manual completada → también silenciosa.
+        // El jugador ya inició la acción; no necesita que Ethy la confirme.
         eventBus.on('sync:status-changed', (data) => {
             if (data?.target !== 'button') return;
             if (data?.status !== 'synced') return;
-            if (!_canReact()) return;
-            say('Guardado en los registros de Etheria.', { expression: 'happy', duration: 3000 });
+            // Sin burbuja; pequeño guiño visual basta
+            setExpression('wink');
+            setTimeout(() => setExpression(_idleBaseExpression), 1500);
         });
 
         // Navegación → expresión neutra curiosa
@@ -25451,7 +26490,13 @@ const Ethy = (function() {
             _body.classList.add('ethy-hello');
             setTimeout(() => _body.classList.remove('ethy-hello'), 600);
             setExpression(_idleBaseExpression);
-            say('Sigues aquí. Bien.', { expression: 'surprised', duration: 3000 });
+            const wakeMsg = _pickRandom([
+                'Sigues aquí. El éter lo sabía.',
+                'De vuelta. Las constelaciones no se habían movido.',
+                'Ah. Pensé que el relato se había detenido.',
+                'Aquí estás. El tejido respiró al notarlo.',
+            ]);
+            say(wakeMsg, { expression: 'surprised', duration: 3500 });
         }
         _resetSleepTimer();
     }
@@ -25459,12 +26504,13 @@ const Ethy = (function() {
     // ── Easter eggs — clics múltiples ─────────────────────────────────────────
 
     const EASTER_EGGS = [
-        { text: 'Eso duele en unidades de cristal.', expression: 'sad' },
-        { text: 'Interesante forma de hacer amigos.', expression: 'surprised' },
-        { text: 'Tres veces. Te he contado tres veces.', expression: 'thoughtful' },
-        { text: 'De acuerdo. Tú ganas. Hoy.', expression: 'sad' },
-        { text: '¿No hay historia esperándote ahí fuera?', expression: 'wink' },
-        { text: 'Bien. Me quedaré aquí. Observando.', expression: 'neutral' },
+        { text: 'El éter no olvida los golpes.', expression: 'sad' },
+        { text: 'Las constelaciones toman nota de esto.', expression: 'surprised' },
+        { text: 'Tres veces. Lo he contado. Ya sé lo que eres.', expression: 'thoughtful' },
+        { text: 'Bien. Si eso te da paz, que así sea.', expression: 'sad' },
+        { text: 'Hay relatos que esperan. Solo digo.', expression: 'wink' },
+        { text: 'Me quedaré aquí. Observando. Como siempre.', expression: 'neutral' },
+        { text: 'Una entidad antigua puede ser paciente. Una entidad antigua y sin boca, más.', expression: 'mystic' },
     ];
     let _easterEggIndex = 0;
 
@@ -25488,16 +26534,17 @@ const Ethy = (function() {
 
     const WEATHER_REACTIONS = {
         rain: [
-            { text: 'La lluvia recuerda cosas. Escucha.', expression: 'thoughtful' },
-            { text: 'Buena atmósfera para lo que viene. 🌧️', expression: 'happy' },
+            { text: 'La lluvia recuerda. Escucha lo que dice.', expression: 'thoughtful' },
+            { text: 'Buena atmósfera para lo que viene.', expression: 'mystic' },
+            { text: 'El agua borra algunas cosas. Y revela otras.', expression: 'thoughtful' },
         ],
         fog:  [
-            { text: 'En la niebla ocurren las mejores historias.', expression: 'surprised' },
-            { text: 'Con esta niebla ya no sé si soy real. 🌫️', expression: 'wink' },
+            { text: 'En la niebla ocurren las historias que no se planean.', expression: 'mystic' },
+            { text: 'No todo lo que se oculta quiere ser encontrado.', expression: 'surprised' },
         ],
         none: [
-            { text: 'Calma antes de algo. Siempre. ☀️', expression: 'thoughtful' },
-            { text: 'Un buen día para escribir.', expression: 'happy' },
+            { text: 'Silencio antes del siguiente acto. Siempre.', expression: 'thoughtful' },
+            { text: 'La calma también es parte del relato.', expression: 'neutral' },
         ],
     };
     let _lastWeather = null;
@@ -25506,6 +26553,8 @@ const Ethy = (function() {
         if (!weather || weather === _lastWeather) return;
         _lastWeather = weather;
         if (_isMinimized || _isSleeping || _bubble.classList.contains('visible')) return;
+        // Breve destello "Visión" al cambiar clima/tema
+        setExpression('mystic');
         const reactions = WEATHER_REACTIONS[weather] || WEATHER_REACTIONS.none;
         const r = reactions[Math.floor(Math.random() * reactions.length)];
         setTimeout(() => {
@@ -25563,22 +26612,7 @@ const Ethy = (function() {
                       || svg.querySelector('.ethy-eyes-neutral');
         if (eyeGroup) eyeGroup.style.opacity = '1';
 
-        // Ocultar todas las bocas, mostrar la activa
-        svg.querySelectorAll('[class*="ethy-mouth-"]').forEach(el => {
-            el.setAttribute('opacity', '0');
-            el.style.transition = 'opacity 0.25s ease';
-        });
-        const activeMouth = svg.querySelector('.ethy-mouth-' + expression);
-        if (activeMouth) activeMouth.setAttribute('opacity', '1');
-        const tongue = svg.querySelector('.ethy-mouth-love-tongue');
-        if (tongue) tongue.setAttribute('opacity', expression === 'love' ? '1' : '0');
-
-        // Mejillas
-        const cheeks = svg.querySelector('.ethy-part-cheeks');
-        if (cheeks) {
-            cheeks.style.transition = 'opacity 0.3s ease';
-            cheeks.style.opacity = CHEEK_EXPRS.has(expression) ? '1' : '0';
-        }
+        // Boca y mejillas eliminadas del sprite amatista — bloques vacíos omitidos.
     }
     function say(text, options = {}) {
         const { expression = 'neutral', duration = 0, buttons = [] } = options;

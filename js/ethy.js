@@ -58,7 +58,9 @@ const Ethy = (function() {
         surprised:  { class: 'ethy-expression-surprised',  emoji: '◎_◎' },
         thoughtful: { class: 'ethy-expression-thoughtful', emoji: '◑ ◐' },
         wink:       { class: 'ethy-expression-wink',       emoji: '◠ ◉' },
-        love:       { class: 'ethy-expression-love',       emoji: '♡ ♡' }
+        love:       { class: 'ethy-expression-love',       emoji: '♡ ♡' },
+        mystic:     { class: 'ethy-expression-mystic',     emoji: '◇ ◇' },
+        saving:     { class: 'ethy-expression-saving',     emoji: '✓ ✓' },
     };
 
     // ── Tutoriales por sección ───────────────────────────────────────────────
@@ -67,40 +69,30 @@ const Ethy = (function() {
         // ── Menú Principal ───────────────────────────────────────────────────
         mainMenu: {
             title: 'El umbral de Etheria',
-            expression: 'excited',
+            expression: 'mystic',
             steps: [
                 {
-                    text: 'Soy Ethy. Llevo aquí desde antes de que llegaras. Este mundo late con cada historia que escribís... y acaba de añadir la tuya. ✨',
-                    expression: 'excited',
+                    text: 'Llevo aquí desde antes de que llegaras. Este mundo se teje con historias, y la tuya acaba de añadir un hilo nuevo.',
+                    expression: 'mystic',
                     action: null
                 },
                 {
-                    text: '"Nueva Partida" es la puerta. Al otro lado esperan el roleplay libre —modo Clásico— o el caos gobernado por los dados —modo RPG—. Elige con intención.',
-                    expression: 'happy',
+                    text: '"Continuar" es la puerta. Al otro lado: roleplay libre —modo Clásico— o destino gobernado por los dados —modo RPG—. Elige con intención.',
+                    expression: 'thoughtful',
                     action: () => highlightElement('.menu-button-console.primary')
                 },
                 {
-                    text: '"Personajes" es donde viven las almas que vais a habitar. Sin ellas no hay historia posible.',
-                    expression: 'thoughtful',
+                    text: '"Personajes" es el registro de almas. Sin ellas no hay relato posible; con ellas, cualquier historia puede ocurrir.',
+                    expression: 'happy',
                     action: () => highlightElement('.menu-button-console:nth-child(2)')
                 },
                 {
-                    text: '"Opciones" es tuyo. Ajusta la luz, la tipografía, el sonido... hasta que Etheria se sienta exactamente como debe.',
-                    expression: 'wink',
-                    action: () => highlightElement('.menu-button-console:nth-child(3)')
-                },
-                {
-                    text: 'Tu perfil está abajo. Cámbialo cuando quieras: soy discreta, no lo digo a nadie. 🤫',
-                    expression: 'wink',
-                    action: () => highlightElement('.menu-profile-btn')
-                },
-                {
-                    text: 'El icono junto al perfil guarda y carga tu mundo entero. Úsalo. Las historias merecen sobrevivir.',
+                    text: 'El icono de guardado preserva tu mundo entero. Úsalo. Las historias merecen sobrevivir más allá de una sesión.',
                     expression: 'surprised',
                     action: () => highlightElement('.menu-save-btn')
                 },
                 {
-                    text: 'Ya sé todo lo que necesito saber de ti. Ahora cuéntame una historia. 🌿',
+                    text: 'Eso es todo lo que necesitas saber por ahora. El resto lo aprenderás escribiendo.',
                     expression: 'love',
                     action: null
                 }
@@ -110,30 +102,25 @@ const Ethy = (function() {
         // ── Galería de Personajes ────────────────────────────────────────────
         gallery: {
             title: 'El registro de almas',
-            expression: 'happy',
+            expression: 'thoughtful',
             steps: [
                 {
-                    text: 'Aquí viven todos los personajes que habéis invocado. Cada uno lleva dentro una historia esperando a ocurrir.',
-                    expression: 'happy',
-                    action: null
-                },
-                {
-                    text: '"Nuevo personaje" abre el ritual de creación: nombre, raza, trasfondo, personalidad, secretos... Sé generosa con los detalles.',
-                    expression: 'excited',
-                    action: () => highlightElement('.gallery-new-btn')
-                },
-                {
-                    text: 'En modo RPG cada alma tiene sus propias estadísticas: Fuerza, Destreza, Constitución, Inteligencia, Sabiduría, Carisma. El nivel crece con la experiencia vivida.',
+                    text: 'Aquí viven las almas que has invocado. Cada una guarda un secreto que todavía no le has contado a nadie.',
                     expression: 'thoughtful',
                     action: null
                 },
                 {
-                    text: 'Cada personaje tiene su propio color de diálogo. Cuando hablan en escena, los reconoces sin mirar el nombre. 🎨',
-                    expression: 'wink',
+                    text: '"Nuevo personaje" abre el ritual: nombre, origen, carácter, secretos. Sé generosa con los detalles oscuros.',
+                    expression: 'excited',
+                    action: () => highlightElement('.gallery-new-btn')
+                },
+                {
+                    text: 'En modo RPG cada alma tiene sus estadísticas propias. El nivel crece con lo que viven, no con lo que planeas para ellas.',
+                    expression: 'mystic',
                     action: null
                 },
                 {
-                    text: 'Los mejores personajes son los que te sorprenden. Deja espacio para que hagan cosas que no planeaste. 🎭',
+                    text: 'Los mejores personajes son los que hacen cosas que no planeaste. Déjales ese espacio.',
                     expression: 'love',
                     action: null
                 }
@@ -143,30 +130,25 @@ const Ethy = (function() {
         // ── Crear Historia ───────────────────────────────────────────────────
         createTopic: {
             title: 'Invocar una historia',
-            expression: 'excited',
+            expression: 'mystic',
             steps: [
                 {
-                    text: 'Estás a punto de abrir una grieta en el tejido de Etheria. Lo que escribas aquí definirá el tono de todo lo que viene. Sin prisa.',
-                    expression: 'excited',
+                    text: 'Estás abriendo una grieta en el tejido. Lo que escribas aquí definirá el tono de todo lo que venga después. Sin prisa.',
+                    expression: 'mystic',
                     action: null
                 },
                 {
-                    text: 'Modo Clásico: roleplay puro, sin mecánicas. El texto manda. Perfecto cuando la narrativa importa más que el azar.',
-                    expression: 'happy',
+                    text: 'Modo Clásico: solo el texto manda. Sin mecánicas, sin dados. Para cuando la narrativa importa más que el azar.',
+                    expression: 'thoughtful',
                     action: () => highlightElement('#modeRoleplay')
                 },
                 {
-                    text: 'Modo RPG: el Oráculo del Destino interviene. Los dados deciden si la acción tiene éxito... o consecuencias inesperadas. 🎲',
+                    text: 'Modo RPG: el Oráculo del Destino toma la pluma. Los dados deciden si las acciones tienen consecuencias... o consecuencias peores.',
                     expression: 'surprised',
                     action: () => highlightElement('#modeRpg')
                 },
                 {
-                    text: 'El primer mensaje es el inicio de todo. Puedes usar **negrita** y *cursiva* para moldear cómo suena cada línea.',
-                    expression: 'thoughtful',
-                    action: () => highlightElement('#topicTitleInput')
-                },
-                {
-                    text: 'Una vez creada, otros jugadores pueden unirse en tiempo real. La historia os pertenece a todos. ✨',
+                    text: 'Una vez creada, otros pueden unirse en tiempo real. La historia deja de pertenecerte solo a ti.',
                     expression: 'love',
                     action: null
                 }
@@ -176,35 +158,25 @@ const Ethy = (function() {
         // ── Modo VN Clásico ──────────────────────────────────────────────────
         vnClassic: {
             title: 'La escena se abre',
-            expression: 'happy',
+            expression: 'love',
             steps: [
                 {
-                    text: 'La historia ha empezado. En modo Clásico el protagonismo es del texto: sin interrupciones, sin dados, solo vosotras y las palabras.',
-                    expression: 'happy',
+                    text: 'La historia ya respira. En modo Clásico el texto lo es todo: sin dados, sin mecánicas. Solo vosotras y las palabras.',
+                    expression: 'love',
                     action: null
                 },
                 {
-                    text: 'Clic en la caja de diálogo o ESPACIO para avanzar. ← → navegan entre mensajes anteriores.',
+                    text: 'Clic o ESPACIO para avanzar. Las flechas navegan por lo que ya ocurrió.',
                     expression: 'neutral',
                     action: () => highlightElement('.vn-dialogue-box')
                 },
                 {
-                    text: '"Responder" abre el panel de escritura. Elige quién habla y qué dice. Tómate tu tiempo.',
-                    expression: 'excited',
+                    text: '"Responder" abre el panel. Elige quién habla y qué dice. La historia espera.',
+                    expression: 'thoughtful',
                     action: () => highlightElement('.reply-btn')
                 },
                 {
-                    text: 'Los emotes dan vida a la escena: escribe /happy, /sad, /angry, /love... y el personaje reacciona. 🎭',
-                    expression: 'wink',
-                    action: null
-                },
-                {
-                    text: 'Puedes crear bifurcaciones para que los lectores decidan el rumbo. Las mejores historias dejan huellas distintas en cada quien.',
-                    expression: 'thoughtful',
-                    action: null
-                },
-                {
-                    text: 'La barra de controles guarda el historial, los favoritos y permite exportar la historia entera. Nada se pierde. 📜',
+                    text: 'La barra de controles guarda el historial y permite exportar la historia completa. Nada de lo que escribáis tiene que perderse.',
                     expression: 'surprised',
                     action: () => highlightElement('.vn-toolbar')
                 }
@@ -214,35 +186,30 @@ const Ethy = (function() {
         // ── Modo VN RPG ──────────────────────────────────────────────────────
         vnRPG: {
             title: 'El azar toma la pluma',
-            expression: 'excited',
+            expression: 'mystic',
             steps: [
                 {
-                    text: 'Modo RPG. Aquí el Oráculo del Destino tiene voz propia. Lo que queráis hacer... tendrá que probarse. 🎲',
-                    expression: 'excited',
+                    text: 'Modo RPG. El Oráculo del Destino tiene aquí su propia voz. Lo que queráis hacer tendrá que probarse ante él.',
+                    expression: 'mystic',
                     action: null
                 },
                 {
-                    text: 'Tu ficha está arriba a la izquierda: HP, stats, afinidad. Consúltala antes de cada decisión importante.',
+                    text: 'Tu ficha: HP, estadísticas, afinidad. Arriba a la izquierda. Consúltala antes de cada acción que importe.',
                     expression: 'thoughtful',
                     action: () => highlightElement('.vn-info-card')
                 },
                 {
-                    text: 'El Oráculo aparece cuando la acción es difícil. Lanzas un D20 más tu stat relevante contra la dificultad que marca la escena.',
+                    text: 'El Oráculo interviene cuando la acción es difícil. D20 más tu estadística relevante. El resultado es el principio, no el final.',
                     expression: 'surprised',
                     action: () => highlightElement('#vnOracleFloatBtn')
                 },
                 {
-                    text: 'El resultado del dado no es el final: es el principio del siguiente mensaje. El narrador interpreta lo que ocurre.',
-                    expression: 'happy',
-                    action: null
-                },
-                {
-                    text: 'El HP baja en combate o por consecuencias del Oráculo. Cuando llega a cero... algo cambia para siempre. 💀',
+                    text: 'El HP llega a cero cuando el peso de las consecuencias se acumula. Cuando eso ocurre, algo cambia para siempre.',
                     expression: 'sad',
                     action: () => highlightElement('.vn-info-hp-bar')
                 },
                 {
-                    text: 'Que los dados sean justos... o al menos interesantes. 🎲✨',
+                    text: 'Que los dados sean al menos interesantes.',
                     expression: 'love',
                     action: null
                 }
@@ -255,27 +222,22 @@ const Ethy = (function() {
             expression: 'thoughtful',
             steps: [
                 {
-                    text: 'Aquí moldeas cómo se siente Etheria. Tres pestañas: Apariencia, Lectura, Sonido. Cada una importa.',
+                    text: 'Aquí moldeas cómo se siente Etheria. Apariencia, Lectura, Sonido. Cada una cambia algo en cómo vives el relato.',
                     expression: 'thoughtful',
                     action: () => highlightElement('.opt-tab-bar')
                 },
                 {
-                    text: 'En Apariencia cambias entre luz y oscuridad, ajustas la tipografía y aplicas filtros de atmósfera a las escenas. 🌙',
+                    text: 'Apariencia: entre luz y oscuridad, tipografía, atmósfera. El mundo se ve distinto según cómo lo iluminas.',
                     expression: 'neutral',
                     action: () => highlightElement('#themeToggleBtn')
                 },
                 {
-                    text: 'En Lectura controlas la velocidad del texto y el modo inmersivo. Para cuando la historia pide toda tu atención.',
-                    expression: 'happy',
-                    action: () => highlightElement('[data-tab="reading"]')
-                },
-                {
-                    text: 'En Sonido, el volumen de la lluvia y el ambiente. Algunas historias necesitan silencio. Otras, tormenta. 🔊',
+                    text: 'Sonido: el volumen de la lluvia, el ambiente. Algunas historias necesitan silencio. Otras, que truene.',
                     expression: 'wink',
                     action: () => highlightElement('[data-tab="sound"]')
                 },
                 {
-                    text: 'No existe una configuración correcta. Solo la que te permite olvidarte de que estás mirando una pantalla.',
+                    text: 'No hay configuración correcta. Solo la que te hace olvidar que estás mirando una pantalla.',
                     expression: 'love',
                     action: null
                 }
@@ -288,27 +250,22 @@ const Ethy = (function() {
             expression: 'thoughtful',
             steps: [
                 {
-                    text: 'Las historias que no se guardan desaparecen. Este panel existe para que las tuyas no lo hagan.',
+                    text: 'Las historias que no se preservan desaparecen. Este panel existe para que las tuyas no lo hagan.',
                     expression: 'thoughtful',
                     action: null
                 },
                 {
-                    text: '"Descargar partida" exporta todo: personajes, historias, vínculos. Un archivo. Tu mundo entero.',
+                    text: '"Descargar partida" exporta todo: personajes, relatos, vínculos. Un archivo. Tu mundo entero en una sola pieza.',
                     expression: 'neutral',
                     action: () => highlightElement('.save-hub-primary')
                 },
                 {
-                    text: '"Cargar partida" restaura ese archivo. Úsalo cuando cambies de dispositivo o cuando algo vaya mal.',
-                    expression: 'happy',
-                    action: null
-                },
-                {
-                    text: '"Generar código" crea un código de seis letras para compartir una historia concreta con otra jugadora.',
+                    text: '"Generar código" crea un código para compartir una historia concreta. Así empieza la colaboración: con seis letras y confianza.',
                     expression: 'excited',
                     action: null
                 },
                 {
-                    text: '"Importar código" recibe la historia que alguien te mandó. Así nace la colaboración: de un código y de confianza. 🌿',
+                    text: 'Guarda antes de cerrar. No porque el sistema lo exija. Porque las historias merecen sobrevivir.',
                     expression: 'love',
                     action: null
                 }
@@ -358,172 +315,89 @@ const Ethy = (function() {
         _body = document.createElement('div');
         _body.className = 'ethy-body ethy-expression-neutral';
         _body.innerHTML = `
-            <svg class="ethy-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <radialGradient id="eg-body" cx="50%" cy="30%" r="75%">
-                  <stop offset="0%"   stop-color="#2a1c0e"/>
-                  <stop offset="100%" stop-color="#0c0702"/>
-                </radialGradient>
-                <linearGradient id="eg-border" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"   stop-color="rgba(245,210,115,0.95)"/>
-                  <stop offset="52%"  stop-color="rgba(200,160,65,0.80)"/>
-                  <stop offset="100%" stop-color="rgba(155,115,40,0.90)"/>
-                </linearGradient>
-                <radialGradient id="eg-iris" cx="32%" cy="28%" r="68%">
-                  <stop offset="0%"   stop-color="#f5e878"/>
-                  <stop offset="45%"  stop-color="#c8920e"/>
-                  <stop offset="100%" stop-color="#6a4802"/>
-                </radialGradient>
-                <radialGradient id="eg-screen" cx="50%" cy="42%" r="56%">
-                  <stop offset="0%"   stop-color="rgba(190,150,65,0.07)"/>
-                  <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
-                </radialGradient>
-              </defs>
+            <svg class="ethy-svg" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="overflow:visible">
+  <defs>
+    <radialGradient id="eg-body" cx="50%" cy="28%" r="78%">
+      <stop offset="0%" stop-color="#2a1a52"/>
+      <stop offset="100%" stop-color="#150c30"/>
+    </radialGradient>
+    <linearGradient id="eg-border" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="rgba(203,182,255,0.95)"/>
+      <stop offset="52%"  stop-color="rgba(157,107,255,0.80)"/>
+      <stop offset="100%" stop-color="rgba(124,77,255,0.90)"/>
+    </linearGradient>
+    <filter id="eg-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="1.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
 
-              <!-- Sombra suelo -->
-              <ellipse cx="40" cy="73" rx="19" ry="4.5" fill="#0e0904" opacity="0.45"/>
-              <!-- Halo exterior -->
-              <rect x="6" y="10" width="68" height="58" rx="18" fill="rgba(195,155,55,0.045)"/>
+  <ellipse cx="40" cy="73" rx="18" ry="4" fill="#0a0520" opacity="0.4"/>
 
-              <!-- Cuerpo -->
-              <rect x="11" y="13" width="58" height="52" rx="15" fill="url(#eg-body)"/>
-              <rect x="11" y="13" width="58" height="52" rx="15" stroke="url(#eg-border)" stroke-width="1.6" fill="none"/>
-              <rect x="19" y="13.5" width="30" height="1.1" rx="0.55" fill="rgba(255,240,165,0.30)"/>
-              <rect x="15" y="17"   width="50" height="44" rx="12"    fill="url(#eg-screen)"/>
+  <rect x="11" y="13" width="58" height="52" rx="16" fill="url(#eg-body)"/>
+  <rect x="11" y="13" width="58" height="52" rx="16" stroke="url(#eg-border)" stroke-width="1.6" fill="none"/>
+  <rect x="19" y="13.5" width="30" height="1.1" rx="0.55" fill="rgba(255,255,255,0.14)"/>
+  <circle cx="14" cy="16" r="2" fill="rgba(157,107,255,0.55)"/>
+  <circle cx="66" cy="16" r="2" fill="rgba(157,107,255,0.55)"/>
+  <circle cx="14" cy="62" r="2" fill="rgba(157,107,255,0.38)"/>
+  <circle cx="66" cy="62" r="2" fill="rgba(157,107,255,0.38)"/>
 
-              <!-- Esquinas -->
-              <circle cx="14" cy="16" r="2" fill="rgba(220,178,85,0.55)"/>
-              <circle cx="66" cy="16" r="2" fill="rgba(220,178,85,0.55)"/>
-              <circle cx="14" cy="62" r="2" fill="rgba(220,178,85,0.38)"/>
-              <circle cx="66" cy="62" r="2" fill="rgba(220,178,85,0.38)"/>
+  <g class="ethy-part-antenna">
+    <line x1="40" y1="13" x2="40" y2="5" stroke="rgba(183,148,246,0.85)" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="M40,1 l1.1,2.8 2.8,1.1 -2.8,1.1 -1.1,2.8 -1.1,-2.8 -2.8,-1.1 2.8,-1.1 Z" fill="rgba(244,217,138,0.95)"/>
+  </g>
 
-              <!-- Antena (estatica) -->
-              <g class="ethy-part-antenna">
-                <line x1="55" y1="22" x2="60" y2="8"  stroke="rgba(208,172,82,0.82)" stroke-width="1.4" stroke-linecap="round"/>
-                <polygon points="60,4 57.5,9 62.5,9"   fill="rgba(238,200,102,0.95)"/>
-                <circle cx="60" cy="6.5" r="4"         fill="rgba(225,188,80,0.12)"/>
-                <circle cx="60" cy="6.5" r="2"         fill="rgba(238,205,110,0.20)"/>
-                <circle cx="60" cy="6.5" r="0.9"       fill="rgba(255,238,165,0.75)"/>
-              </g>
-
-              <!-- ======= OJOS =======
-                   Cada expresion tiene su propio grupo de ojos.
-                   Solo el activo es visible (opacity swap, sin transforms). -->
-
-              <!-- neutral: circulos con pupila y reflejo -->
-              <g class="ethy-eyes-neutral">
-                <circle class="ethy-eye-left"  cx="30" cy="34" r="5.5" fill="url(#eg-iris)"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="5.5" fill="url(#eg-iris)"/>
-                <circle cx="30" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="50" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="27.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
-                <circle cx="47.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
-              </g>
-
-              <!-- happy: arcos hacia arriba (^__^) -->
-              <g class="ethy-eyes-happy" opacity="0">
-                <path d="M24.5 36.5 Q30 28.5 35.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                <path d="M44.5 36.5 Q50 28.5 55.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-              </g>
-
-              <!-- excited: circulos grandes con brillo extra -->
-              <g class="ethy-eyes-excited" opacity="0">
-                <circle class="ethy-eye-left"  cx="30" cy="34" r="7" fill="url(#eg-iris)"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="7" fill="url(#eg-iris)"/>
-                <circle cx="30" cy="34" r="2.5" fill="#040302"/>
-                <circle cx="50" cy="34" r="2.5" fill="#040302"/>
-                <circle cx="27" cy="31.5" r="1.6" fill="rgba(255,255,255,0.88)"/>
-                <circle cx="47" cy="31.5" r="1.6" fill="rgba(255,255,255,0.88)"/>
-                <circle cx="33.5" cy="30.5" r="0.9" fill="rgba(255,255,255,0.55)"/>
-                <circle cx="53.5" cy="30.5" r="0.9" fill="rgba(255,255,255,0.55)"/>
-              </g>
-
-              <!-- sad: circulos bajos, pupilas caidas -->
-              <g class="ethy-eyes-sad" opacity="0">
-                <circle class="ethy-eye-left"  cx="30" cy="35" r="5" fill="url(#eg-iris)" opacity="0.82"/>
-                <circle class="ethy-eye-right" cx="50" cy="35" r="5" fill="url(#eg-iris)" opacity="0.82"/>
-                <circle cx="30" cy="37" r="2" fill="#040302"/>
-                <circle cx="50" cy="37" r="2" fill="#040302"/>
-                <circle cx="28.5" cy="33.5" r="1" fill="rgba(255,255,255,0.65)"/>
-                <circle cx="48.5" cy="33.5" r="1" fill="rgba(255,255,255,0.65)"/>
-              </g>
-
-              <!-- surprised: circulos muy grandes -->
-              <g class="ethy-eyes-surprised" opacity="0">
-                <circle class="ethy-eye-left"  cx="30" cy="34" r="7.2" fill="url(#eg-iris)"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="7.2" fill="url(#eg-iris)"/>
-                <circle cx="30" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="50" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="27.5" cy="31.5" r="1.5" fill="rgba(255,255,255,0.88)"/>
-                <circle cx="47.5" cy="31.5" r="1.5" fill="rgba(255,255,255,0.88)"/>
-              </g>
-
-              <!-- thoughtful: pupilas arriba-izquierda (mirando hacia arriba) -->
-              <g class="ethy-eyes-thoughtful" opacity="0">
-                <circle class="ethy-eye-left"  cx="30" cy="34" r="5.2" fill="url(#eg-iris)"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="5.2" fill="url(#eg-iris)"/>
-                <circle cx="28.5" cy="32.5" r="2.1" fill="#040302"/>
-                <circle cx="48.5" cy="32.5" r="2.1" fill="#040302"/>
-                <circle cx="27.2" cy="31.2" r="1"   fill="rgba(255,255,255,0.80)"/>
-                <circle cx="47.2" cy="31.2" r="1"   fill="rgba(255,255,255,0.80)"/>
-              </g>
-
-              <!-- wink: ojo izquierdo cerrado (arco) + ojo derecho abierto -->
-              <g class="ethy-eyes-wink" opacity="0">
-                <path d="M24 36 Q30 28.5 36 36" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                <circle class="ethy-eye-right" cx="50" cy="34" r="5.5" fill="url(#eg-iris)"/>
-                <circle cx="50" cy="34" r="2.2" fill="#040302"/>
-                <circle cx="47.8" cy="31.8" r="1.2" fill="rgba(255,255,255,0.82)"/>
-              </g>
-
-              <!-- love: arcos felices + destellos rosas -->
-              <g class="ethy-eyes-love" opacity="0">
-                <path d="M24.5 36.5 Q30 28.5 35.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                <path d="M44.5 36.5 Q50 28.5 55.5 36.5" stroke="rgba(232,188,80,0.95)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-                <circle cx="37.5" cy="28" r="1.1" fill="rgba(218,158,165,0.78)"/>
-                <circle cx="43"   cy="27" r="0.8" fill="rgba(218,158,165,0.60)"/>
-                <circle cx="40"   cy="26" r="0.6" fill="rgba(218,158,165,0.45)"/>
-              </g>
-
-              <!-- ======= BOCAS =======
-                   Todas contenidas en aprox. x=28-52, y=46-56.
-                   Solo la de la expresion activa es visible. -->
-              <g class="ethy-part-mouth">
-                <path class="ethy-mouth-neutral"
-                  d="M34 49.5 Q40 52 46 49.5"
-                  stroke="rgba(210,175,90,0.92)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-                <path class="ethy-mouth-happy"
-                  d="M30 48 Q40 56.5 50 48"
-                  stroke="rgba(210,175,90,0.95)" stroke-width="1.7" stroke-linecap="round" fill="none" opacity="0"/>
-                <path class="ethy-mouth-sad"
-                  d="M30 53.5 Q40 46 50 53.5"
-                  stroke="rgba(210,175,90,0.90)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0"/>
-                <path class="ethy-mouth-excited"
-                  d="M28 47.5 Q40 57.5 52 47.5"
-                  stroke="rgba(210,175,90,0.95)" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0"/>
-                <ellipse class="ethy-mouth-surprised"
-                  cx="40" cy="51" rx="3" ry="3.5"
-                  stroke="rgba(210,175,90,0.90)" stroke-width="1.3" fill="rgba(4,3,1,0.55)" opacity="0"/>
-                <path class="ethy-mouth-thoughtful"
-                  d="M34 51 Q38 49 41 50.5 Q44.5 52 47 50"
-                  stroke="rgba(210,175,90,0.86)" stroke-width="1.3" stroke-linecap="round" fill="none" opacity="0"/>
-                <path class="ethy-mouth-wink"
-                  d="M32 50 Q41 55.5 50 50.5"
-                  stroke="rgba(210,175,90,0.92)" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0"/>
-                <path class="ethy-mouth-love"
-                  d="M30 48 Q40 56.5 50 48"
-                  stroke="rgba(210,175,90,0.95)" stroke-width="1.7" stroke-linecap="round" fill="none" opacity="0"/>
-                <ellipse class="ethy-mouth-love-tongue"
-                  cx="40" cy="56" rx="2.5" ry="1.5"
-                  fill="#cc7888" opacity="0"/>
-              </g>
-
-              <!-- Mejillas (happy / excited / love) -->
-              <g class="ethy-part-cheeks" opacity="0">
-                <ellipse cx="18" cy="41" rx="4" ry="2.5" fill="#cc7888" opacity="0.38"/>
-                <ellipse cx="62" cy="41" rx="4" ry="2.5" fill="#cc7888" opacity="0.38"/>
-              </g>
-            </svg>
+  <g filter="url(#eg-glow)">
+    <g class="ethy-eyes-neutral">
+      <ellipse cx="30" cy="36" rx="5" ry="7" fill="#f4d98a"/>
+      <ellipse cx="50" cy="36" rx="5" ry="7" fill="#f4d98a"/>
+    </g>
+    <g class="ethy-eyes-happy" opacity="0">
+      <path d="M25 38 Q30 31 35 38" stroke="#f4d98a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <path d="M45 38 Q50 31 55 38" stroke="#f4d98a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    </g>
+    <g class="ethy-eyes-excited" opacity="0">
+      <ellipse cx="30" cy="36" rx="6.4" ry="8" fill="#f4d98a"/>
+      <ellipse cx="50" cy="36" rx="6.4" ry="8" fill="#f4d98a"/>
+      <circle cx="33.5" cy="32.5" r="1.2" fill="#fff" opacity="0.7"/>
+      <circle cx="53.5" cy="32.5" r="1.2" fill="#fff" opacity="0.7"/>
+    </g>
+    <g class="ethy-eyes-sad" opacity="0">
+      <path d="M25 38 Q30 42 35 38" stroke="#f4d98a" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <path d="M45 38 Q50 42 55 38" stroke="#f4d98a" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    </g>
+    <g class="ethy-eyes-surprised" opacity="0">
+      <circle cx="30" cy="36" r="7.4" fill="rgba(10,5,30,0.45)" stroke="#f4d98a" stroke-width="2"/>
+      <circle cx="30" cy="36" r="3.2" fill="#f4d98a"/>
+      <circle cx="50" cy="36" r="7.4" fill="rgba(10,5,30,0.45)" stroke="#f4d98a" stroke-width="2"/>
+      <circle cx="50" cy="36" r="3.2" fill="#f4d98a"/>
+    </g>
+    <g class="ethy-eyes-thoughtful" opacity="0">
+      <ellipse cx="31" cy="34" rx="4.4" ry="6" fill="#f4d98a"/>
+      <ellipse cx="51" cy="34" rx="4.4" ry="6" fill="#f4d98a"/>
+    </g>
+    <g class="ethy-eyes-wink" opacity="0">
+      <path d="M25 37 Q30 31 35 37" stroke="#f4d98a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="50" cy="36" rx="5" ry="7" fill="#f4d98a"/>
+    </g>
+    <g class="ethy-eyes-love" opacity="0">
+      <path d="M25 38 Q30 31 35 38" stroke="#f4d98a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <path d="M45 38 Q50 31 55 38" stroke="#f4d98a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <circle cx="40" cy="26" r="1.1" fill="rgba(218,158,165,0.8)"/>
+    </g>
+    <g class="ethy-eyes-mystic" opacity="0">
+      <ellipse cx="30" cy="36" rx="4.6" ry="6.6" fill="#e9e3fb"/>
+      <ellipse cx="50" cy="36" rx="4.6" ry="6.6" fill="#e9e3fb"/>
+      <path d="M40,9 l1.7,3.9 3.9,1.7 -3.9,1.7 -1.7,3.9 -1.7,-3.9 -3.9,-1.7 3.9,-1.7 Z" fill="#f4d98a"/>
+      <circle cx="40" cy="14.6" r="0.8" fill="#fff"/>
+    </g>
+    <g class="ethy-eyes-saving" opacity="0">
+      <path d="M25 38 Q30 31 35 38" stroke="#8fe0c2" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <path d="M45 38 Q50 31 55 38" stroke="#8fe0c2" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <path d="M31,14 l3.2,3.2 L41,9" stroke="#8fe0c2" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>
         `;
 
         // Crear burbuja de diálogo
@@ -606,93 +480,103 @@ const Ethy = (function() {
         // ── Reacción a mensaje enviado ────────────────────────────────────
         window.addEventListener('etheria:message-sent', (e) => {
             const len = (e.detail?.text || '').length;
-            if (len > 200 && !_isSleeping && !_bubble.classList.contains('visible')) {
+            // Solo textos largos, solo 35% de las veces, sin interrumpir
+            if (len > 200 && !_isSleeping && !_bubble.classList.contains('visible') && Math.random() < 0.35) {
                 const msgs = [
-                    'Con eso podrías llenar un capítulo. 📖',
-                    'Pocas personas escriben así. Sigue.',
-                    'El Oráculo recuerda cada palabra. 🖊️'
+                    'Eso quedará grabado en el tejido.',
+                    'Las palabras largas tienen raíces profundas.',
+                    'El éter guarda lo que acabas de escribir.',
+                    'Pocos escriben con esa densidad.',
                 ];
                 setTimeout(() => {
                     say(msgs[Math.floor(Math.random() * msgs.length)], {
-                        expression: 'excited', duration: 4000
+                        expression: 'excited', duration: 3500
                     });
                 }, 800);
             }
         });
 
         // ── EventBus — reacciones a eventos del sistema ───────────────────
-        // Cooldown: Ethy no reacciona más de una vez cada 3 segundos
-        // para evitar spam de expresiones o frases en escenas rápidas.
+        // Cooldown: Ethy no reacciona con burbuja más de una vez cada 8 segundos.
+        // Subir de 3s a 8s reduce drásticamente el spam en sesiones activas.
         if (typeof eventBus === 'undefined') return;
 
         let _lastEventReaction = 0;
         function _canReact() {
             const now = Date.now();
-            if (now - _lastEventReaction < 3000) return false;
+            if (now - _lastEventReaction < 8000) return false;
             _lastEventReaction = now;
             return true;
         }
 
-        // El jugador ve una elección → Ethy reflexiona
+        // El jugador ve una elección → Ethy reflexiona (solo 25% de veces, sin molestar)
         eventBus.on('scene:choice-shown', () => {
             if (!_canReact()) return;
             setExpression('thoughtful');
-            // Frase ocasional — solo 30% de las veces para no saturar
-            if (Math.random() < 0.3) {
+            if (Math.random() < 0.25) {
                 const msgs = [
-                    'Lo que elijas, tendrá consecuencias.',
-                    'El hilo del destino se bifurca aquí.',
-                    'Piénsalo bien.',
-                    '...esto es interesante.'
+                    'Los caminos que no se toman también dejan huella.',
+                    'El hilo se bifurca. Ninguna dirección es la equivocada.',
+                    'Hay cosas que solo ocurren si las eliges.',
+                    'El destino observa. Tú decides.',
                 ];
                 say(msgs[Math.floor(Math.random() * msgs.length)], {
-                    expression: 'thoughtful', duration: 2500
+                    expression: 'thoughtful', duration: 3000
                 });
             }
         });
 
-        // Escena terminada → satisfacción
+        // Escena terminada → satisfacción (60% de veces para no ser predecible)
         eventBus.on('scene:ended', () => {
             if (!_canReact()) return;
-            const msgs = [
-                'El tejido de Etheria recuerda esto.',
-                'Cada final abre una grieta hacia lo siguiente.',
-                'Ha sido un honor estar presente.'
-            ];
-            say(msgs[Math.floor(Math.random() * msgs.length)], {
-                expression: 'happy', duration: 3000
-            });
+            if (Math.random() < 0.6) {
+                const msgs = [
+                    'El éter recuerda cada palabra de esto.',
+                    'Hay historias que no terminan aunque la escena cierre.',
+                    'Una grieta más en el tejido. Bien hecha.',
+                    'Lo que escribisteis aquí permanecerá.',
+                ];
+                say(msgs[Math.floor(Math.random() * msgs.length)], {
+                    expression: 'happy', duration: 3500
+                });
+            }
         });
 
-        // Error en escena → preocupación
+        // Error en escena → inquietud
         eventBus.on('scene:error', () => {
             if (!_canReact()) return;
             const msgs = [
-                'El Oráculo titubeó. Eso no es normal.',
-                'Algo en el tejido se torció. Reintenta.',
-                'Hasta el destino se equivoca a veces.'
+                'El Oráculo titubeó. Algo en el tejido se tensó.',
+                'Una grieta inesperada. Reintenta cuando quieras.',
+                'No todo error es un mal presagio. Sigue.',
             ];
             say(msgs[Math.floor(Math.random() * msgs.length)], {
-                expression: 'sad', duration: 3500
+                expression: 'sad', duration: 4000
             });
         });
 
-        // Guardado → confirmación tranquila
+        // Guardado automático → silencioso. Solo parpadeo de expresión, sin burbuja.
+        // El guardado es continuo e invisible; interrumpir con texto sería molesto.
+        // Único caso con burbuja: error real de conexión.
         eventBus.on('ui:show-autosave', (data) => {
-            if (!_canReact()) return;
             if (data?.state === 'error') {
-                say('La historia no pudo guardarse. Revisa la conexión.', { expression: 'sad', duration: 3000 });
+                if (!_canReact()) return;
+                say('El hilo se ha roto. Revisa la conexión antes de continuar.', { expression: 'sad', duration: 4000 });
                 return;
             }
-            setExpression('happy');
+            // Éxito: solo cambia expresión 2s, sin burbuja ni texto
+            setExpression('saving');
+            setTimeout(() => setExpression(_idleBaseExpression), 2000);
         });
 
-        // Sincronización completada → frase breve
+        // Sincronización manual completada → también silenciosa.
+        // El jugador ya inició la acción; no necesita que Ethy la confirme.
         eventBus.on('sync:status-changed', (data) => {
             if (data?.target !== 'button') return;
             if (data?.status !== 'synced') return;
-            if (!_canReact()) return;
-            say('Guardado en los registros de Etheria.', { expression: 'happy', duration: 3000 });
+            // Sin burbuja; pequeño guiño visual basta
+            setExpression('wink');
+            setTimeout(() => setExpression(_idleBaseExpression), 1500);
         });
 
         // Navegación → expresión neutra curiosa
@@ -966,7 +850,13 @@ const Ethy = (function() {
             _body.classList.add('ethy-hello');
             setTimeout(() => _body.classList.remove('ethy-hello'), 600);
             setExpression(_idleBaseExpression);
-            say('Sigues aquí. Bien.', { expression: 'surprised', duration: 3000 });
+            const wakeMsg = _pickRandom([
+                'Sigues aquí. El éter lo sabía.',
+                'De vuelta. Las constelaciones no se habían movido.',
+                'Ah. Pensé que el relato se había detenido.',
+                'Aquí estás. El tejido respiró al notarlo.',
+            ]);
+            say(wakeMsg, { expression: 'surprised', duration: 3500 });
         }
         _resetSleepTimer();
     }
@@ -974,12 +864,13 @@ const Ethy = (function() {
     // ── Easter eggs — clics múltiples ─────────────────────────────────────────
 
     const EASTER_EGGS = [
-        { text: 'Eso duele en unidades de cristal.', expression: 'sad' },
-        { text: 'Interesante forma de hacer amigos.', expression: 'surprised' },
-        { text: 'Tres veces. Te he contado tres veces.', expression: 'thoughtful' },
-        { text: 'De acuerdo. Tú ganas. Hoy.', expression: 'sad' },
-        { text: '¿No hay historia esperándote ahí fuera?', expression: 'wink' },
-        { text: 'Bien. Me quedaré aquí. Observando.', expression: 'neutral' },
+        { text: 'El éter no olvida los golpes.', expression: 'sad' },
+        { text: 'Las constelaciones toman nota de esto.', expression: 'surprised' },
+        { text: 'Tres veces. Lo he contado. Ya sé lo que eres.', expression: 'thoughtful' },
+        { text: 'Bien. Si eso te da paz, que así sea.', expression: 'sad' },
+        { text: 'Hay relatos que esperan. Solo digo.', expression: 'wink' },
+        { text: 'Me quedaré aquí. Observando. Como siempre.', expression: 'neutral' },
+        { text: 'Una entidad antigua puede ser paciente. Una entidad antigua y sin boca, más.', expression: 'mystic' },
     ];
     let _easterEggIndex = 0;
 
@@ -1003,16 +894,17 @@ const Ethy = (function() {
 
     const WEATHER_REACTIONS = {
         rain: [
-            { text: 'La lluvia recuerda cosas. Escucha.', expression: 'thoughtful' },
-            { text: 'Buena atmósfera para lo que viene. 🌧️', expression: 'happy' },
+            { text: 'La lluvia recuerda. Escucha lo que dice.', expression: 'thoughtful' },
+            { text: 'Buena atmósfera para lo que viene.', expression: 'mystic' },
+            { text: 'El agua borra algunas cosas. Y revela otras.', expression: 'thoughtful' },
         ],
         fog:  [
-            { text: 'En la niebla ocurren las mejores historias.', expression: 'surprised' },
-            { text: 'Con esta niebla ya no sé si soy real. 🌫️', expression: 'wink' },
+            { text: 'En la niebla ocurren las historias que no se planean.', expression: 'mystic' },
+            { text: 'No todo lo que se oculta quiere ser encontrado.', expression: 'surprised' },
         ],
         none: [
-            { text: 'Calma antes de algo. Siempre. ☀️', expression: 'thoughtful' },
-            { text: 'Un buen día para escribir.', expression: 'happy' },
+            { text: 'Silencio antes del siguiente acto. Siempre.', expression: 'thoughtful' },
+            { text: 'La calma también es parte del relato.', expression: 'neutral' },
         ],
     };
     let _lastWeather = null;
@@ -1021,6 +913,8 @@ const Ethy = (function() {
         if (!weather || weather === _lastWeather) return;
         _lastWeather = weather;
         if (_isMinimized || _isSleeping || _bubble.classList.contains('visible')) return;
+        // Breve destello "Visión" al cambiar clima/tema
+        setExpression('mystic');
         const reactions = WEATHER_REACTIONS[weather] || WEATHER_REACTIONS.none;
         const r = reactions[Math.floor(Math.random() * reactions.length)];
         setTimeout(() => {
@@ -1078,22 +972,7 @@ const Ethy = (function() {
                       || svg.querySelector('.ethy-eyes-neutral');
         if (eyeGroup) eyeGroup.style.opacity = '1';
 
-        // Ocultar todas las bocas, mostrar la activa
-        svg.querySelectorAll('[class*="ethy-mouth-"]').forEach(el => {
-            el.setAttribute('opacity', '0');
-            el.style.transition = 'opacity 0.25s ease';
-        });
-        const activeMouth = svg.querySelector('.ethy-mouth-' + expression);
-        if (activeMouth) activeMouth.setAttribute('opacity', '1');
-        const tongue = svg.querySelector('.ethy-mouth-love-tongue');
-        if (tongue) tongue.setAttribute('opacity', expression === 'love' ? '1' : '0');
-
-        // Mejillas
-        const cheeks = svg.querySelector('.ethy-part-cheeks');
-        if (cheeks) {
-            cheeks.style.transition = 'opacity 0.3s ease';
-            cheeks.style.opacity = CHEEK_EXPRS.has(expression) ? '1' : '0';
-        }
+        // Boca y mejillas eliminadas del sprite amatista — bloques vacíos omitidos.
     }
     function say(text, options = {}) {
         const { expression = 'neutral', duration = 0, buttons = [] } = options;

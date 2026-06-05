@@ -117,4 +117,25 @@
             --input-bg: #15112a;
             --input-text: #ede8f5;
             --menu-button-bg: rgba(14, 12, 28, 0.96);
+
+            /* ── Paleta "Luna de Plata" (Hub re-skin §5) ──────────────────
+               Definida en celestial-bg.jsx (CELESTE object).
+               Usar con var(--cel-*) en hub-luna.css, hub.css y mascot.css.
+               El violeta exacto #7c4dff es el aprobado por el cliente.
+            ── */
+            --cel-void:         #0c0720;   /* vacío cósmico — fondo más profundo        */
+            --cel-bg:           #1a0f33;   /* cielo oscuro                              */
+            --cel-bg-raised:    #241544;   /* superficies elevadas                      */
+            --cel-violet:       #7c4dff;   /* acento principal Luna de Plata (≠ #a080e0)*/
+            --cel-violet-glow:  #9d6bff;   /* violeta para glows                        */
+            --cel-violet-soft:  #b794f6;   /* violeta suave (subtítulos, líneas)        */
+            --cel-lilac:        #cbb6ff;   /* lila (constelaciones, estrellas)          */
+            --cel-gold:         #e8c878;   /* oro — sólo acento (gema, sello activo)    */
+            --cel-gold-glow:    #f4d98a;   /* oro brillante (tercer ojo, sparkle)       */
+            --cel-silver:       #e9e3fb;   /* plata (marca "Etheria")                   */
+            --cel-text-hi:      #f3eeff;   /* texto de alta jerarquía                  */
+            --cel-text:         #d2c7ec;   /* texto base                                */
+            --cel-text-muted:   #9a8fc2;   /* texto secundario / subs                  */
+            --cel-text-dim:     #6b6090;   /* texto muy atenuado / overlines            */
+            --cel-online:       #8fe0c2;   /* indicador online / estado de guardado     */
         }

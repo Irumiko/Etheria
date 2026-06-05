@@ -1,43 +1,13 @@
-// Hub principal — parallax, datos de usuario, reinicio al volver al menú.
+// Hub principal — datos de usuario y subtítulos dinámicos.
+// El parallax y las capas celestiales son responsabilidad de hub-luna.js.
 (function () {
   'use strict';
-
-  let _parallaxBound = false;
 
   // ── Init ─────────────────────────────────────────────────────────────────
 
   function initHub() {
-    const hub = document.getElementById('mainMenu');
-    if (!hub) return;
-
-    document.documentElement.style.setProperty(
-      '--hub-bg-url', "url('assets/backgrounds/hub-forest.png')"
-    );
-
-    if (!_parallaxBound) {
-      _bindParallax(hub);
-      _parallaxBound = true;
-    }
-
     _updateUser();
     _updateMenuSubs();
-  }
-
-  // ── Parallax ──────────────────────────────────────────────────────────────
-
-  function _bindParallax(hub) {
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-
-    hub.addEventListener('mousemove', (e) => {
-      const r = hub.getBoundingClientRect();
-      hub.style.setProperty('--mx', ((e.clientX - r.left) / r.width - 0.5).toFixed(4));
-      hub.style.setProperty('--my', ((e.clientY - r.top) / r.height - 0.5).toFixed(4));
-    }, { passive: true });
-
-    hub.addEventListener('mouseleave', () => {
-      hub.style.setProperty('--mx', '0');
-      hub.style.setProperty('--my', '0');
-    }, { passive: true });
   }
 
   // ── User info ─────────────────────────────────────────────────────────────
@@ -46,8 +16,8 @@
     const name = (typeof userNames !== 'undefined' && userNames[currentUserIndex]) || 'Jugador';
     const initial = name[0].toUpperCase();
 
-    const nameEl    = document.getElementById('currentUserDisplay');
-    const initEl    = document.getElementById('menuProfileInitial');
+    const nameEl  = document.getElementById('currentUserDisplay');
+    const initEl  = document.getElementById('menuProfileInitial');
 
     if (nameEl)  nameEl.textContent  = name;
     if (initEl)  initEl.textContent  = initial;
@@ -62,46 +32,61 @@
 
   function _updateMenuSubs() {
     const topics = (typeof appData !== 'undefined' && appData?.topics) || [];
+    const chars  = (typeof appData !== 'undefined' && appData?.characters) || [];
 
-    // Historias count
-    const historiasSub = document.getElementById('hubHistoriasSub');
-    if (historiasSub && topics.length > 0) {
-      historiasSub.textContent = `${topics.length} historia${topics.length !== 1 ? 's' : ''} activa${topics.length !== 1 ? 's' : ''}`;
-    }
-
-    // Personajes count
-    const chars = (typeof appData !== 'undefined' && appData?.characters) || [];
-    const personajesSub = document.getElementById('hubPersonajesSub');
-    if (personajesSub && chars.length > 0) {
-      personajesSub.textContent = `${chars.length} en galería`;
-    }
-
-    // Continuar: last topic
+    // ── Continuar ──────────────────────────────────────────────────
     const continueSub = document.getElementById('hubContinueSub');
     const continueBtn = document.querySelector('.hub-menu-item[data-action="continuar"]');
     if (topics.length > 0) {
-      const last = topics[topics.length - 1];
-      if (continueSub) continueSub.textContent = last.title ? last.title.substring(0, 30) : 'Retoma tu última escena';
+      const last  = topics[topics.length - 1];
+      const title = last.title ? last.title.substring(0, 34) : null;
+      if (continueSub) continueSub.textContent = title || 'Retoma el hilo de tu última historia';
       if (continueBtn) continueBtn.onclick = () => {
-        if (typeof enterTopic === 'function') enterTopic(last.id);
-        else if (typeof showSection === 'function') showSection('topics');
+        // Re-lee appData en el momento del clic para evitar cierres sobre IDs obsoletos.
+        // Si el último topic fue eliminado o el array se refrescó desde Supabase,
+        // el ID capturado en el closure anterior ya no existe → caemos en showSection.
+        const currentTopics = (typeof appData !== 'undefined' && Array.isArray(appData?.topics))
+          ? appData.topics : [];
+        const latest = currentTopics.length > 0
+          ? currentTopics[currentTopics.length - 1] : null;
+        if (latest?.id && typeof enterTopic === 'function') {
+          enterTopic(latest.id);
+        } else if (typeof showSection === 'function') {
+          showSection('topics');
+        }
       };
     } else {
-      if (continueSub) continueSub.textContent = 'Empieza tu primera historia';
+      if (continueSub) continueSub.textContent = 'Tu primera historia aguarda ser escrita';
       if (continueBtn) continueBtn.onclick = () => { if (typeof showSection === 'function') showSection('topics'); };
     }
-  }
 
-  // ── Theme toggle wrapper ──────────────────────────────────────────────────
+    // ── Personajes ────────────────────────────────────────────────
+    const personajesSub = document.getElementById('hubPersonajesSub');
+    if (personajesSub) {
+      const n = chars.length;
+      if (n === 0)      personajesSub.textContent = 'Ningún alma ha sido invocada aún';
+      else if (n === 1) personajesSub.textContent = 'Un alma vive en tu galería';
+      else if (n <= 5)  personajesSub.textContent = `${n} almas aguardan tu llamada`;
+      else if (n <= 15) personajesSub.textContent = `${n} destinos entrelazados en tu historia`;
+      else              personajesSub.textContent = `${n} almas convocadas desde las sombras`;
+    }
 
-  function hubToggleTheme() {
-    if (typeof toggleTheme === 'function') toggleTheme();
+    // ── Vínculos ──────────────────────────────────────────────────
+    const bonds      = (typeof appData !== 'undefined' && Array.isArray(appData?.bonds))      ? appData.bonds      : [];
+    const affinities = (typeof appData !== 'undefined' && Array.isArray(appData?.affinities)) ? appData.affinities : [];
+    const vinculosSub = document.getElementById('hubVinculosSub');
+    if (vinculosSub) {
+      const total = bonds.length + affinities.length;
+      if (total === 0)     vinculosSub.textContent = 'Los lazos del destino aún no se han forjado';
+      else if (total <= 3) vinculosSub.textContent = `${total} lazos tejidos en el destino`;
+      else if (total <= 9) vinculosSub.textContent = `${total} vínculos que resisten el paso del tiempo`;
+      else                 vinculosSub.textContent = `${total} hilos que no deberían cortarse jamás`;
+    }
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
 
   window.initHub       = initHub;
-  window.hubToggleTheme = hubToggleTheme;
   window.updateHubUser = _updateUser;
 
   // Re-sync user data when returning to menu

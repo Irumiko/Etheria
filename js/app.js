@@ -46,6 +46,36 @@ async function getEtheriaUserId() {
 }
 window.getEtheriaUserId = getEtheriaUserId;
 
+// ── Propiedad de perfiles ─────────────────────────────────────────────────
+// Cada slot de perfil puede estar vinculado a un userId de Supabase.
+// Se guarda en localStorage como un array de userId|null por índice.
+// Esto evita que un email pueda meterse en el perfil de otro.
+function _getProfileOwners() {
+    try { return JSON.parse(localStorage.getItem('etheria_profile_owners') || '[]'); } catch { return []; }
+}
+function _findMyProfileIndex(userId) {
+    if (!userId) return -1;
+    return _getProfileOwners().indexOf(userId);
+}
+function _claimProfile(idx, userId) {
+    if (!userId || !Number.isInteger(idx) || idx < 0) return;
+    const owners = _getProfileOwners();
+    if (owners[idx] && owners[idx] !== userId) return; // slot ajeno — no sobreescribir
+    while (owners.length <= idx) owners.push(null);
+    owners[idx] = userId;
+    localStorage.setItem('etheria_profile_owners', JSON.stringify(owners));
+    // Persistir también en Supabase para que sea cross-device
+    if (typeof SupabaseSlots !== 'undefined') {
+        try {
+            const names = typeof userNames !== 'undefined' ? userNames
+                : JSON.parse(localStorage.getItem('etheria_user_names') || '[]');
+            SupabaseSlots.saveSlots(names, owners).catch(() => {});
+        } catch { /* silencioso */ }
+    }
+}
+window.getProfileOwners = _getProfileOwners;
+window.claimProfile = _claimProfile;
+
 // Verificar si hay una sesión existente
 async function checkExistingSession() {
     if (!window.supabaseClient) return false;
@@ -135,12 +165,12 @@ async function logout() {
     _clearAccountData();
 
     // Resetear el flag de inicialización para que initializeApp() pueda
-    // volver a ejecutarse cuando el siguiente usuario inicie sesión.
+    // volver a ejecutarse limpio.
     appInitialized = false;
 
-    showLoginScreen();
-    showAuthMain();
-    setAuthStatus('Sesión cerrada. Introduce email y contraseña para entrar.', false);
+    // Volver al selector de perfiles (no a la pantalla de login directamente).
+    // El login se abrirá cuando el usuario pulse una tarjeta de perfil.
+    initializeApp();
     setTimeout(() => {
         const emailInput = document.getElementById('authEmail');
         if (emailInput) emailInput.focus();
@@ -314,22 +344,32 @@ async function login() {
     }
 
     // Limpiar datos de cualquier cuenta anterior ANTES de cargar los nuevos.
-    // Sin esto, si la cuenta nueva no tiene datos en Supabase, la UI mostraría
-    // los datos locales de la cuenta anterior.
     _clearAccountData();
     appInitialized = false;
 
     hideLoginScreen();
-    initializeApp();
+    initializeApp(); // re-renderiza el selector de perfiles limpio
 
-    // Fix 4: mostrar overlay mientras hidratan los datos reales de Supabase.
     _showLoadingOverlay('Cargando tu partida...');
     try {
-        // Fix 3: ensureProfile + hydrateCloudAfterAuth son la única fuente de verdad
-        // post-login. Se han eliminado las llamadas directas a downloadProfileData() y
-        // loadStories() que antes causaban doble ejecución con onAuthStateChange.
-        await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
-        await hydrateCloudAfterAuth(); // descarga todo: datos, historias, personajes, mensajes
+        await ensureProfile();
+        await hydrateCloudAfterAuth();
+
+        const userId = await getEtheriaUserId();
+
+        // Perfil pendiente: el que el usuario pulsó antes de autenticarse
+        const pendingIdx = typeof window._pendingProfileIndex === 'number' ? window._pendingProfileIndex : -1;
+        window._pendingProfileIndex = null;
+
+        // Preferir el perfil ya vinculado a este userId; si no tiene, usar el pendiente
+        const myIdx = _findMyProfileIndex(userId);
+        const targetIdx = myIdx >= 0 ? myIdx : pendingIdx;
+
+        if (targetIdx >= 0 && userNames[targetIdx]) {
+            _claimProfile(targetIdx, userId);
+            if (typeof renderUserCards === 'function') renderUserCards(); // refleja el bloqueo en otras tarjetas
+            selectUser(targetIdx, { autoLoad: true, instant: true }).catch(() => {});
+        }
     } finally {
         _loginHandling = false;
         _hideLoadingOverlay();
@@ -404,6 +444,20 @@ async function ensureProfile() {
 
         const userId = userData.user.id;
         window._cachedUserId = userId;
+
+        // Sincronizar slots de perfil desde Supabase → localStorage
+        // Esto garantiza que el selector de perfiles sea fiel a la cuenta,
+        // independientemente del dispositivo o del estado del caché local.
+        if (typeof SupabaseSlots !== 'undefined') {
+            SupabaseSlots.syncOnLogin()
+                .then(() => {
+                    // Re-inicializar app con los datos de slots correctos
+                    appInitialized = false;
+                    initializeApp();
+                    if (typeof renderUserCards === 'function') renderUserCards();
+                })
+                .catch(() => {});
+        }
 
         // Inicializar módulos de perfiles y personajes
         if (typeof SupabaseProfiles !== 'undefined') {
@@ -506,6 +560,38 @@ function initializeApp() {
         }
     }
 
+    // ── Limpieza de slots vacíos ─────────────────────────────────────────────
+    // Un slot se conserva SOLO si tiene nombre personalizado o datos reales.
+    // La propiedad (slotOwner) no es suficiente — evita que slots reclamados
+    // accidentalmente (nombre por defecto, sin historias ni personajes) sigan apareciendo.
+    (function _purgeEmptySlots() {
+        if (!userNames || userNames.length === 0) return;
+        const owners = _getProfileOwners();
+        const keepIndices = [];
+        userNames.forEach((name, idx) => {
+            const hasCustomName = !!(name && !/^jugador\s*\d+$/i.test(name.trim()));
+            const hasTopics     = appData.topics.some(t => t.createdByIndex === idx);
+            const hasChars      = appData.characters.some(c => c.userIndex === idx);
+            // Conservar solo si hay contenido real — nombre propio O datos
+            if (hasCustomName || hasTopics || hasChars) keepIndices.push(idx);
+        });
+        if (keepIndices.length === userNames.length) return; // nada que limpiar
+        // Reasignar índices de topics y characters al nuevo mapa
+        const idxMap = {};
+        keepIndices.forEach((oldIdx, newIdx) => { idxMap[oldIdx] = newIdx; });
+        appData.topics.forEach(t => { if (idxMap[t.createdByIndex] !== undefined) t.createdByIndex = idxMap[t.createdByIndex]; });
+        appData.characters.forEach(c => { if (idxMap[c.userIndex] !== undefined) c.userIndex = idxMap[c.userIndex]; });
+        const newOwners = keepIndices.map(i => owners[i] || null);
+        userNames = keepIndices.map(i => userNames[i]);
+        localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+        localStorage.setItem('etheria_profile_owners', JSON.stringify(newOwners));
+        window.EtheriaLogger?.info('app', `Slots vacíos purgados. Perfiles restantes: ${userNames.length}`);
+        // Reflejar la purga en Supabase también
+        if (typeof SupabaseSlots !== 'undefined') {
+            SupabaseSlots.saveSlots(userNames, newOwners).catch(() => {});
+        }
+    }());
+
     const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
     if (savedCharId) selectedCharId = savedCharId;
 
@@ -602,15 +688,9 @@ function initializeApp() {
             .catch((err) => {
                 console.warn('No se pudo abrir la sala compartida:', err);
             });
-    } else {
-        const lastProfileId = getStoredLastProfileId();
-        if (lastProfileId !== null && Number.isInteger(lastProfileId) && userNames[lastProfileId]) {
-            selectUser(lastProfileId, { autoLoad: true, instant: true })
-                .catch((err) => {
-                    console.warn('No se pudo cargar el último perfil activo:', err);
-                });
-        }
     }
+    // Nota: la entrada automática al último perfil se gestiona ahora en el
+    // arranque (boot) y post-login, basándose en la sesión y la propiedad del perfil.
 
     window.addEventListener('beforeunload', (e) => {
         if (hasUnsavedChanges) {
@@ -840,14 +920,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     })();
     // ── Fin orientación landscape ─────────────────────────────────────────
     
-    // Verificar si hay sesión activa
+    // La pantalla de perfiles es siempre la primera pantalla.
+    // El login se muestra solo cuando el usuario pulsa un perfil que lo requiere.
+    initializeApp();
+
     const hasExistingSession = await checkExistingSession();
-    
+
     if (hasExistingSession) {
-        // Sesión existente, inicializar directamente
-        hideLoginScreen();
-        initializeApp();
-        // Fix 4: ocultar contenido obsoleto de localStorage mientras llegan datos reales
         _showLoadingOverlay('Cargando tu partida...');
         try {
             await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
@@ -855,10 +934,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         } finally {
             _hideLoadingOverlay();
         }
-    } else {
-        // Mostrar pantalla de autenticación
-        showLoginScreen();
+        // Quedarse en el selector — el usuario elige manualmente su perfil.
+        // (Los perfiles de otras cuentas aparecerán bloqueados.)
     }
+    // Sin sesión: el selector de perfiles ya está visible.
+    // El login se abrirá cuando el usuario pulse una tarjeta de perfil.
 
     // Configurar listeners de autenticación
     if (window.supabaseClient) {
@@ -877,8 +957,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (event === 'SIGNED_OUT') {
                 window._cachedUserId = null;
                 window.dispatchEvent(new CustomEvent('etheria:auth-changed', { detail: { user: null } }));
-                showLoginScreen();
-                showAuthMain();
+                // logout() ya llama a initializeApp() — este handler solo actúa si
+                // el SIGNED_OUT viene de fuera (expiración de sesión, otro tab, etc.)
+                if (!appInitialized) {
+                    initializeApp();
+                } else {
+                    // Sesión expirada con app ya visible: volver al selector de perfiles
+                    const _ms = document.getElementById('mainMenu');
+                    const _us = document.getElementById('userSelectScreen');
+                    if (_ms && !_ms.classList.contains('hidden')) {
+                        _ms.classList.add('hidden');
+                        if (_us) _us.classList.remove('hidden');
+                        if (typeof renderUserCards === 'function') renderUserCards();
+                    }
+                }
             }
         });
     } else {
@@ -950,18 +1042,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     // (absorbido de mejoras.js — Mejora 1)
     (function _initMenuSubtitle() {
         var phrases = [
-            'Un mundo al borde del olvido',
-            'Cada elección deja una cicatriz',
-            'El destino se escribe con tinta y dados',
-            'Las historias no terminan, se transforman',
-            'Cada personaje guarda un secreto',
-            'El pasado elige quiénes somos',
-            'Algunos hilos no deberían cortarse',
-            'La magia no perdona a los imprudentes',
-            'Hasta los héroes sangran en silencio',
-            'El azar es la firma de los dioses',
-            'Ningún mapa llega hasta el final del camino',
-            'Lo que se escribe, permanece'
+            'Donde las historias respiran y los destinos se entrelazan al ritmo de quien los escribe',
+            'Cada elección teje un nuevo hilo en el tapiz del destino',
+            'El destino se escribe con tinta, dados y voluntad',
+            'Las historias no terminan — se transforman en leyenda',
+            'Cada personaje guarda un secreto que cambiará el curso del relato',
+            'El pasado elige quiénes somos; el presente decide quiénes seremos',
+            'Algunos hilos del destino no deberían cortarse jamás',
+            'La magia florece donde la imaginación no encuentra límites',
+            'El azar es la firma de los dioses en las páginas de tu historia',
+            'Ningún mapa llega hasta el final del camino que aún no has recorrido',
+            'Lo que se escribe con el corazón, permanece para siempre',
+            'Entre tus manos descansa el poder de dar vida a mundos enteros'
         ];
         var el = document.querySelector('.menu-subtitle');
         if (el) el.textContent = phrases[Math.floor(Math.random() * phrases.length)];

@@ -1,0 +1,573 @@
+/* ══════════════════════════════════════════════════════════════
+   HUB / MENÚ PRINCIPAL — Estancia aislada
+   Layout: título abajo-izquierda · botones columna derecha
+   Selectores bajo #mainMenu → especificidad (1,1,0).
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Variables ─────────────────────────────────────────────── */
+#mainMenu {
+    --hub-accent:      rgba(175, 130, 255, 1);
+    --hub-accent-dim:  rgba(155, 110, 240, 0.55);
+    --hub-gold:        rgba(228, 200, 255, 1);
+    --hub-text:        rgba(242, 232, 255, 1);
+    --hub-text-muted:  rgba(200, 175, 240, 0.78);
+    --hub-btn-bg:      rgba(10, 5, 22, 0.76);
+    --hub-btn-border:  rgba(152, 110, 238, 0.46);
+    --hub-shadow:      rgba(20, 6, 48, 0.70);
+    --hub-icon-bg:     rgba(145, 100, 230, 0.18);
+    --hub-icon-border: rgba(145, 100, 230, 0.30);
+}
+
+/* ── Degradados de legibilidad sobre el fondo ──────────────── */
+/* Izquierda: oscurece la zona del título */
+#mainMenu .menu-vignette-left {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to right,
+        rgba(6, 3, 16, 0.55) 0%,
+        rgba(6, 3, 16, 0.22) 38%,
+        transparent 60%
+    );
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Derecha: oscurece la zona de los botones */
+#mainMenu .menu-vignette-right {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to left,
+        rgba(6, 3, 16, 0.55) 0%,
+        rgba(6, 3, 16, 0.22) 38%,
+        transparent 60%
+    );
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ── BARRA SUPERIOR ────────────────────────────────────────── */
+#mainMenu .menu-top-bar {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 1rem 1.4rem !important;
+    z-index: 20 !important;
+    gap: 1rem;
+}
+
+/* Acciones del lado derecho */
+#mainMenu .menu-top-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+
+/* Ocultar el antiguo footer si quedara en DOM */
+#mainMenu .menu-footer {
+    display: none !important;
+}
+
+/* ── PERFIL (barra superior) ───────────────────────────────── */
+#mainMenu .menu-profile-btn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.6rem !important;
+    background: rgba(10, 5, 22, 0.72) !important;
+    border: 1px solid rgba(150, 108, 238, 0.38) !important;
+    border-radius: 10px !important;
+    padding: 0.38rem 0.75rem 0.38rem 0.42rem !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    cursor: pointer !important;
+    transition: background 0.22s, border-color 0.22s, transform 0.22s !important;
+    animation: hubSlideDown 0.5s 0.1s both !important;
+}
+
+#mainMenu .menu-profile-btn:hover {
+    background: rgba(20, 10, 40, 0.82) !important;
+    border-color: rgba(178, 132, 255, 0.62) !important;
+    transform: translateY(1px) !important;
+}
+
+#mainMenu .menu-profile-avatar {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    background: rgba(120, 78, 195, 0.30) !important;
+    border: 1.5px solid rgba(160, 118, 242, 0.42) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    flex: 0 0 30px !important;
+}
+
+#mainMenu .menu-profile-initial {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    color: rgba(222, 192, 255, 1) !important;
+    line-height: 1 !important;
+}
+
+#mainMenu .menu-profile-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+}
+
+#mainMenu .menu-profile-info {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.04rem !important;
+}
+
+#mainMenu .menu-profile-name {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.74rem !important;
+    letter-spacing: 0.06em !important;
+    color: rgba(228, 202, 255, 1) !important;
+    line-height: 1.2 !important;
+}
+
+#mainMenu .menu-profile-hint {
+    font-size: 0.60rem !important;
+    color: rgba(185, 155, 238, 0.72) !important;
+    letter-spacing: 0.03em !important;
+    font-family: sans-serif !important;
+}
+
+/* ── CONTROLES (tema, inbox, guardado) ─────────────────────── */
+#mainMenu .menu-theme-toggle,
+#mainMenu .menu-save-btn,
+#mainMenu .menu-inbox-float {
+    background: rgba(10, 5, 22, 0.72) !important;
+    border: 1px solid rgba(148, 108, 235, 0.32) !important;
+    color: rgba(178, 138, 250, 0.72) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    transition: background 0.22s, border-color 0.22s, color 0.22s !important;
+    animation: hubSlideDown 0.5s 0.2s both !important;
+}
+
+#mainMenu .menu-theme-toggle:hover,
+#mainMenu .menu-save-btn:hover,
+#mainMenu .menu-inbox-float:hover {
+    background: rgba(20, 10, 40, 0.82) !important;
+    border-color: rgba(175, 130, 255, 0.58) !important;
+    color: rgba(215, 180, 255, 0.96) !important;
+}
+
+/* ── TÍTULO (abajo-izquierda) ──────────────────────────────── */
+#mainMenu .menu-brand {
+    position: absolute !important;
+    bottom: clamp(1.8rem, 5vh, 3.2rem) !important;
+    left: clamp(1.8rem, 4vw, 3.5rem) !important;
+    z-index: 10 !important;
+    text-align: left !important;
+    overflow: hidden !important; /* necesario para el shimmer */
+    animation: hubSlideUp 0.7s 0.15s both !important;
+}
+
+/* Shimmer periódico que barre el área del brand cada ~8s */
+#mainMenu .menu-brand::after {
+    content: '' !important;
+    position: absolute !important;
+    top: -10%; bottom: -10% !important;
+    left: -80% !important;
+    width: 45% !important;
+    background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(228, 205, 255, 0.05) 35%,
+        rgba(240, 220, 255, 0.13) 50%,
+        rgba(228, 205, 255, 0.05) 65%,
+        transparent 100%
+    ) !important;
+    transform: skewX(-10deg) !important;
+    animation: hubBrandShimmer 8s ease-in-out infinite 1.8s !important;
+    pointer-events: none !important;
+}
+
+#mainMenu .menu-title {
+    font-family: 'Cinzel', serif !important;
+    font-weight: 400 !important;
+    font-size: clamp(3.6rem, 7.5vw, 6.8rem) !important;
+    letter-spacing: 0.04em !important;
+    text-transform: none !important;
+    line-height: 1.0 !important;
+    margin-bottom: 0.6rem !important;
+    color: rgba(240, 222, 255, 1) !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    filter: none !important;
+    /* Glow que respira suavemente */
+    animation: hubTitleBreath 4.5s ease-in-out infinite 0.85s,
+               hubTitleFloat   7s   ease-in-out infinite 0.85s !important;
+}
+
+[data-theme="dark"] #mainMenu .menu-title {
+    color: rgba(250, 235, 255, 1) !important;
+}
+
+#mainMenu .title-letter {
+    color: inherit !important;
+    text-transform: none !important;
+}
+
+/* ── SUBTÍTULO ─────────────────────────────────────────────── */
+#mainMenu .menu-subtitle {
+    font-size: clamp(0.60rem, 1.1vw, 0.76rem) !important;
+    color: rgba(210, 180, 250, 0.80) !important;
+    font-style: italic !important;
+    letter-spacing: 0.22em !important;
+    text-transform: uppercase !important;
+    text-shadow: 0 0 12px rgba(182, 132, 255, 0.45), 0 1px 5px rgba(0,0,0,0.60) !important;
+    position: relative !important;
+    padding-left: 1.1rem !important;
+    /* Animación retardada para que entre después del título */
+    animation: hubSubtitleReveal 1s ease-out 0.75s both !important;
+}
+
+/* Guión ornamental izquierdo */
+#mainMenu .menu-subtitle::before {
+    content: '' !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 0.65rem !important;
+    height: 1px !important;
+    background: rgba(195, 148, 255, 0.65) !important;
+    box-shadow: 0 0 6px rgba(195, 148, 255, 0.50) !important;
+}
+
+/* Línea ornamental debajo que se desvanece hacia la derecha */
+#mainMenu .menu-subtitle::after {
+    content: '' !important;
+    display: block !important;
+    margin-top: 0.45rem !important;
+    height: 1px !important;
+    width: clamp(12rem, 28vw, 22rem) !important;
+    background: linear-gradient(
+        to right,
+        rgba(195, 148, 255, 0.50) 0%,
+        rgba(175, 128, 245, 0.20) 50%,
+        transparent 100%
+    ) !important;
+    box-shadow: 0 0 8px rgba(175, 128, 255, 0.25) !important;
+}
+
+[data-theme="dark"] #mainMenu .menu-subtitle {
+    color: rgba(200, 168, 248, 0.78) !important;
+}
+
+/* ── COLUMNA DE NAVEGACIÓN (derecha) ───────────────────────── */
+#mainMenu .menu-container {
+    position: absolute !important;
+    right: clamp(1.5rem, 4vw, 3.5rem) !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: clamp(240px, 26vw, 310px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.45rem !important;
+    z-index: 10 !important;
+    /* Sobreescribir cualquier estilo previo del menu-center-content */
+    margin: 0 !important;
+    padding: 0 !important;
+    left: auto !important;
+}
+
+/* ── ÍTEMS DE MENÚ ─────────────────────────────────────────── */
+#mainMenu .hub-menu-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.85rem !important;
+    width: 100% !important;
+    padding: 0.78rem 1rem 0.78rem 0.82rem !important;
+    background: linear-gradient(
+        108deg,
+        rgba(14, 7, 30, 0.82) 0%,
+        rgba(10, 5, 22, 0.74) 100%
+    ) !important;
+    border: 1px solid var(--hub-btn-border) !important;
+    /* Línea de acento izquierda — da profundidad visual */
+    border-left: 3px solid rgba(145, 100, 230, 0.38) !important;
+    border-radius: 10px !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+    cursor: pointer !important;
+    transition: background 0.22s, border-color 0.22s, border-left-color 0.22s,
+                transform 0.22s, box-shadow 0.22s !important;
+    text-align: left !important;
+    color: var(--hub-text) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    box-shadow: 0 2px 16px rgba(10, 4, 28, 0.40),
+                inset 0 1px 0 rgba(200, 165, 255, 0.06) !important;
+    animation: hubSlideLeft 0.45s both !important;
+}
+
+#mainMenu .hub-menu-item:nth-child(1) { animation-delay: 0.28s !important; }
+#mainMenu .hub-menu-item:nth-child(2) { animation-delay: 0.38s !important; }
+#mainMenu .hub-menu-item:nth-child(3) { animation-delay: 0.48s !important; }
+#mainMenu .hub-menu-item:nth-child(4) { animation-delay: 0.58s !important; }
+
+#mainMenu .hub-menu-item:hover {
+    background: linear-gradient(
+        108deg,
+        rgba(24, 12, 46, 0.90) 0%,
+        rgba(16, 8, 32, 0.82) 100%
+    ) !important;
+    border-color: rgba(178, 132, 255, 0.62) !important;
+    border-left-color: rgba(195, 148, 255, 0.90) !important;
+    transform: translateX(-4px) !important;
+    box-shadow: 0 4px 28px rgba(10, 4, 28, 0.55),
+                inset 0 1px 0 rgba(210, 178, 255, 0.09) !important;
+}
+
+/* Shimmer al hover */
+#mainMenu .hub-menu-item::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0; left: -110% !important;
+    width: 55%; height: 100% !important;
+    background: linear-gradient(
+        108deg,
+        transparent 20%,
+        rgba(200, 162, 255, 0.08) 50%,
+        transparent 80%
+    ) !important;
+    transition: left 0.55s ease !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+}
+#mainMenu .hub-menu-item:hover::before { left: 150% !important; }
+
+/* Primario (Continuar) — borde izquierdo dorado, glow propio */
+#mainMenu .hub-menu-item.primary {
+    border-color: rgba(185, 140, 255, 0.55) !important;
+    border-left-color: rgba(195, 148, 255, 0.85) !important;
+    background: linear-gradient(
+        108deg,
+        rgba(18, 9, 36, 0.86) 0%,
+        rgba(12, 6, 26, 0.78) 100%
+    ) !important;
+    box-shadow: 0 3px 22px rgba(10, 4, 28, 0.50),
+                0 0 0 1px rgba(185, 140, 255, 0.08),
+                inset 0 1px 0 rgba(210, 178, 255, 0.08) !important;
+}
+
+#mainMenu .hub-menu-item.primary .hub-item-icon {
+    background: rgba(162, 115, 245, 0.28) !important;
+    border-color: rgba(162, 115, 245, 0.50) !important;
+    box-shadow: 0 0 10px rgba(162, 115, 245, 0.25) !important;
+}
+
+#mainMenu .hub-menu-item.primary:hover {
+    border-left-color: var(--hub-gold) !important;
+    box-shadow: 0 6px 32px rgba(10, 4, 28, 0.62),
+                0 0 0 1px rgba(195, 148, 255, 0.15) !important;
+}
+
+/* Opciones — más sutil */
+#mainMenu .hub-menu-item--minor {
+    opacity: 0.68 !important;
+    border-left-color: rgba(130, 92, 210, 0.28) !important;
+}
+#mainMenu .hub-menu-item--minor:hover {
+    opacity: 1 !important;
+}
+
+/* ── ICONO dentro del ítem ─────────────────────────────────── */
+#mainMenu .hub-item-icon {
+    width: 34px !important;
+    height: 34px !important;
+    flex: 0 0 34px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9px !important;
+    background: radial-gradient(
+        circle at 40% 35%,
+        rgba(175, 130, 255, 0.22) 0%,
+        rgba(125, 82, 210, 0.10) 100%
+    ) !important;
+    border: 1px solid rgba(152, 108, 240, 0.35) !important;
+    color: rgba(200, 162, 255, 0.90) !important;
+    transition: background 0.22s, color 0.22s, border-color 0.22s, box-shadow 0.22s !important;
+    box-shadow: inset 0 1px 0 rgba(210, 178, 255, 0.10) !important;
+}
+
+#mainMenu .hub-menu-item:hover .hub-item-icon {
+    background: radial-gradient(
+        circle at 40% 35%,
+        rgba(192, 148, 255, 0.32) 0%,
+        rgba(145, 100, 232, 0.16) 100%
+    ) !important;
+    border-color: rgba(195, 150, 255, 0.55) !important;
+    color: var(--hub-gold) !important;
+    box-shadow: 0 0 10px rgba(175, 130, 255, 0.28),
+                inset 0 1px 0 rgba(220, 188, 255, 0.14) !important;
+}
+
+/* ── CONTENIDO de texto del ítem ───────────────────────────── */
+#mainMenu .hub-item-content {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.12rem !important;
+    min-width: 0 !important; /* permite text-overflow */
+}
+
+#mainMenu .hub-menu-item .menu-label {
+    font-family: 'Cinzel', serif !important;
+    font-size: 0.80rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: var(--hub-text) !important;
+    line-height: 1.2 !important;
+}
+
+#mainMenu .hub-item-sub {
+    font-size: 0.67rem !important;
+    color: rgba(190, 158, 248, 0.75) !important;
+    letter-spacing: 0.02em !important;
+    /* Georgia: elegante, soporta minúsculas, tono serif místico sin el problema
+       de small-caps de Cinzel que forzaba todo a mayúsculas */
+    font-family: Georgia, 'Times New Roman', serif !important;
+    font-style: italic !important;
+    text-transform: none !important;
+    white-space: normal !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    line-height: 1.35 !important;
+}
+
+#mainMenu .hub-menu-item:hover .hub-item-sub {
+    color: rgba(218, 190, 255, 0.94) !important;
+}
+
+/* ── FLECHA del ítem ───────────────────────────────────────── */
+#mainMenu .hub-item-arrow {
+    flex: 0 0 auto !important;
+    color: rgba(155, 112, 240, 0.42) !important;
+    transition: transform 0.22s ease, color 0.22s !important;
+}
+
+#mainMenu .hub-menu-item:hover .hub-item-arrow {
+    transform: translateX(3px) !important;
+    color: var(--hub-gold) !important;
+}
+
+/* ── BOTÓN SALIR ───────────────────────────────────────────── */
+#mainMenu .menu-exit-btn {
+    background: rgba(10, 5, 22, 0.58) !important;
+    border-color: rgba(140, 100, 218, 0.22) !important;
+    color: rgba(175, 138, 248, 0.58) !important;
+}
+
+#mainMenu .menu-exit-btn:hover {
+    background: rgba(20, 10, 38, 0.72) !important;
+    border-color: rgba(165, 120, 244, 0.50) !important;
+    color: rgba(212, 175, 255, 0.96) !important;
+}
+
+/* ── ANIMACIONES DE ENTRADA ────────────────────────────────── */
+@keyframes hubSlideDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hubSlideUp {
+    from { opacity: 0; transform: translateY(20px); filter: blur(3px); }
+    to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+
+@keyframes hubSlideLeft {
+    from { opacity: 0; transform: translateX(28px); filter: blur(2px); }
+    to   { opacity: 1; transform: translateX(0);    filter: blur(0); }
+}
+
+/* ── ANIMACIONES DEL BRAND (título + subtítulo) ────────────── */
+
+/* Glow que respira: el título pulsa entre suave e intenso */
+@keyframes hubTitleBreath {
+    0%, 100% {
+        text-shadow:
+            0 0 16px rgba(192, 145, 252, 0.60),
+            0 0 44px rgba(148, 96, 236, 0.30),
+            0 0 85px rgba(112, 65, 200, 0.16),
+            0 3px 12px rgba(0, 0, 0, 0.88);
+    }
+    50% {
+        text-shadow:
+            0 0 28px rgba(215, 170, 255, 0.88),
+            0 0 68px rgba(172, 118, 252, 0.52),
+            0 0 120px rgba(145, 88, 228, 0.28),
+            0 3px 12px rgba(0, 0, 0, 0.88);
+    }
+}
+
+/* Flotación sutil: sube y baja 4px muy despacio */
+@keyframes hubTitleFloat {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-4px); }
+}
+
+/* Shimmer periódico: luz que barre el brand de izq a dcha */
+@keyframes hubBrandShimmer {
+    0%,  30% { left: -80%;  opacity: 0; }
+    33%       { opacity: 1; }
+    65%       { left: 130%; opacity: 1; }
+    68%, 100% { left: 130%; opacity: 0; }
+}
+
+/* Subtítulo aparece desde abajo con fade */
+@keyframes hubSubtitleReveal {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── RESPONSIVE: móvil ─────────────────────────────────────── */
+@media (max-width: 680px) {
+    #mainMenu .menu-top-bar {
+        padding: 0.75rem 1rem !important;
+    }
+
+    /* En móvil: columna centrada */
+    #mainMenu .menu-container {
+        position: absolute !important;
+        right: auto !important;
+        left: 50% !important;
+        top: auto !important;
+        bottom: 5rem !important;
+        transform: translateX(-50%) !important;
+        width: min(92vw, 340px) !important;
+    }
+
+    /* Título: más pequeño, centrado */
+    #mainMenu .menu-brand {
+        left: 50% !important;
+        bottom: auto !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        text-align: center !important;
+        display: none !important; /* ocultar en móvil con nav centrada */
+    }
+
+    #mainMenu .hub-menu-item:hover {
+        transform: none !important;
+    }
+}

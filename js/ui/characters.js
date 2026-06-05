@@ -109,6 +109,10 @@ async function selectUser(idx, options = {}) {
     currentUserIndex = idx;
     localStorage.setItem(LAST_PROFILE_KEY, String(idx));
 
+    // Vincular este slot al usuario actual (si hay sesión)
+    const _ownerId = window._cachedUserId || null;
+    if (_ownerId && typeof claimProfile === 'function') claimProfile(idx, _ownerId);
+
     const savedCharId = localStorage.getItem(`etheria_selected_char_${currentUserIndex}`);
     selectedCharId = savedCharId || null;
 
@@ -173,6 +177,31 @@ async function selectUser(idx, options = {}) {
     loadFromCloud().catch(() => {});
 }
 
+// Comprueba si el usuario puede entrar al perfil idx.
+// Devuelve true si puede, false si no (muestra feedback y, si falta sesión, abre el login).
+// Esta función es la única puerta de entrada a selectUser() — debe ser infranqueable.
+function _tryEnterProfile(idx) {
+    const owners    = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
+    const myUserId  = window._cachedUserId || null;
+    const slotOwner = owners[idx] || null;
+
+    // Muro 1: perfil reclamado por otra cuenta — bloqueo absoluto, sin importar el estado de sesión
+    if (slotOwner && slotOwner !== myUserId) {
+        if (typeof showAutosave === 'function') showAutosave('Este perfil pertenece a otra cuenta', 'error');
+        return false;
+    }
+
+    // Muro 2: sin sesión activa — pedir login antes de dejar entrar
+    if (!myUserId) {
+        window._pendingProfileIndex = idx;
+        if (typeof showLoginScreen === 'function') showLoginScreen();
+        if (typeof showAuthMain === 'function') showAuthMain();
+        return false;
+    }
+
+    return true;
+}
+
 // Generar tarjetas de usuario dinámicamente
 function renderUserCards() {
     const container = document.getElementById('userCardsContainer');
@@ -180,14 +209,34 @@ function renderUserCards() {
 
     container.innerHTML = '';
 
-    userNames.forEach((name, idx) => {
-        const card = document.createElement('div');
-        card.className = 'user-card';
-        card.dataset.profileIndex = idx;
+    // Propietarios de perfiles — para distinguir el perfil propio de los ajenos
+    const profileOwners = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
+    const myUserId = window._cachedUserId || null;
 
-        // Calcular estadísticas por perfil
+    userNames.forEach((name, idx) => {
+        const slotOwner = profileOwners[idx] || null;
+        // Solo diferenciar cuando hay sesión activa — sin sesión todo parece neutral.
+        // Cuando hay sesión: el slot propio resalta, los reclamados por otras cuentas se atenúan.
+        const isMine    = !!myUserId && slotOwner === myUserId;
+        const isForeign = !!myUserId && !!slotOwner && slotOwner !== myUserId;
+
+        // Calcular estadísticas (también necesarias para decidir si el slot tiene datos)
         const ownTopics = appData.topics.filter(t => t.createdByIndex === idx);
         const ownChars  = appData.characters.filter(c => c.userIndex === idx);
+
+        // Ocultar slots vacíos y sin reclamar — sería confuso verlos atenuados como si pertenecieran
+        // a alguien. Si no tienen propietario, nombre personalizado ni datos, "Nuevo Archivo" los cubre.
+        const hasData       = ownTopics.length > 0 || ownChars.length > 0;
+        const hasCustomName = !!(name && !/^jugador\s*\d+$/i.test(name.trim()));
+        if (!slotOwner && !hasData && !hasCustomName) return;
+
+        const card = document.createElement('div');
+        let cardClass = 'user-card';
+        if (isMine)    cardClass += ' profile-mine';
+        if (isForeign) cardClass += ' profile-foreign';
+        card.className = cardClass;
+        card.dataset.profileIndex = idx;
+
         let totalMsgs = 0;
         ownTopics.forEach(t => {
             // Solo usar mensajes ya en memoria — no forzar carga desde storage en la pantalla de perfiles
@@ -274,7 +323,7 @@ function renderUserCards() {
             <div class="user-card-footer">
                 <div class="user-last-session">${lastSessionText}</div>
                 ${lastTopic ? `<div class="user-last-topic">📖 ${escapeHtml(lastTopic.title)}</div>` : ''}
-                ${lastTopic ? `<button class="user-continue-btn">▶ Continuar</button>` : ''}
+                ${!isForeign && lastTopic ? `<button class="user-continue-btn">▶ Continuar</button>` : ''}
             </div>
         `;
 
@@ -283,6 +332,7 @@ function renderUserCards() {
         if (btn) {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                if (!_tryEnterProfile(idx)) return;
                 selectUser(idx).then(() => {
                     if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
                     eventBus.emit('audio:stop-menu-music');
@@ -292,7 +342,7 @@ function renderUserCards() {
         }
 
         card.onclick = () => {
-            // Al entrar al perfil sin ir directo a un topic, también suprimir el overlay
+            if (!_tryEnterProfile(idx)) return;
             if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
             selectUser(idx);
         };

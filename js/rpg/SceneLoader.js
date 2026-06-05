@@ -182,5 +182,79 @@ const SceneLoader = (function () {
         });
     }
 
-    return { load, prefetch, isCached, clearCache, getIndex };
+    // ── Eventos narrativos (arc de eventos del GM) ──────────────
+    //
+    // Los eventos son distintos de las escenas: son reacciones asíncronas
+    // a cambios de estado, no pasos secuenciales. Se cargan desde:
+    //   1. js/scenes/events/arc_base.json  (eventos base estáticos del arco)
+    //   2. stories.gm_events (jsonb)       (eventos dinámicos del GM en Supabase)
+    //
+    // El resultado es la unión de ambas fuentes, deduplicada por id.
+
+    const EVENTS_PATH   = 'js/scenes/events/';
+    const _eventsCache  = new Map();   // storyId → array de eventos fusionados
+
+    /**
+     * Devuelve todos los eventos activos para una historia:
+     * eventos base del arc + eventos dinámicos del GM en Supabase.
+     *
+     * @param  {string} storyId
+     * @returns {Promise<Array>}
+     */
+    async function getActiveEvents(storyId) {
+        if (_eventsCache.has(storyId)) {
+            return _eventsCache.get(storyId);
+        }
+
+        const [baseEvents, gmEvents] = await Promise.all([
+            _loadBaseEvents(),
+            _loadGMEvents(storyId)
+        ]);
+
+        // Fusionar: los eventos del GM tienen prioridad (mismo id → reemplaza base)
+        const byId = new Map();
+        for (const e of baseEvents) { if (e && e.id) byId.set(e.id, e); }
+        for (const e of gmEvents)   { if (e && e.id) byId.set(e.id, e); }
+
+        const merged = Array.from(byId.values());
+        _eventsCache.set(storyId, merged);
+        return merged;
+    }
+
+    /**
+     * Invalida la caché de eventos de una historia (llamar tras guardar nuevos eventos del GM).
+     */
+    function clearEventsCache(storyId) {
+        if (storyId) _eventsCache.delete(storyId);
+        else         _eventsCache.clear();
+    }
+
+    async function _loadBaseEvents() {
+        try {
+            const res = await fetch(EVENTS_PATH + 'arc_base.json');
+            if (!res.ok) return [];
+            const data = await res.json();
+            return Array.isArray(data) ? data : [];
+        } catch {
+            return [];
+        }
+    }
+
+    async function _loadGMEvents(storyId) {
+        if (!storyId || !window.supabaseClient) return [];
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('stories')
+                .select('gm_events')
+                .eq('id', storyId)
+                .maybeSingle();
+
+            if (error || !data) return [];
+            return Array.isArray(data.gm_events) ? data.gm_events : [];
+        } catch {
+            return [];
+        }
+    }
+
+    return { load, prefetch, isCached, clearCache, getIndex, getActiveEvents, clearEventsCache };
 })();

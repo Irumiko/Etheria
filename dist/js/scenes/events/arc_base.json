@@ -1,0 +1,72 @@
+[
+  {
+    "id": "crystal_of_wisdom",
+    "repeatable": false,
+    "trigger": { "type": "flag_set", "flag": "found_wisdom_crystal" },
+    "consequences": [
+      { "action": "modify_stat", "stat": "INT", "delta": 3 },
+      {
+        "action": "give_item",
+        "item": {
+          "id": "wisdom_crystal",
+          "name": "Cristal de Sabiduría",
+          "description": "Un fragmento de conocimiento antiguo. Tu mente se expande al sostenerlo.",
+          "qty": 1
+        }
+      },
+      { "action": "set_flag", "key": "wisdom_crystal_absorbed", "value": true },
+      { "action": "send_message", "template": "El cristal pulsa con luz tenue. Algo en tu mente se expande y el mundo se vuelve más legible." }
+    ]
+  },
+
+  {
+    "id": "hp_critical_warning",
+    "repeatable": false,
+    "trigger": { "type": "hp_threshold", "value": 5 },
+    "consequences": [
+      { "action": "set_flag", "key": "player_in_critical_state", "value": true },
+      { "action": "play_sound", "track": "heartbeat_low", "volume": 0.6 },
+      { "action": "send_message", "template": "Tu visión se nubla. Cada latido duele. Debes encontrar refugio antes de que sea tarde." }
+    ]
+  },
+
+  {
+    "id": "hp_recovered",
+    "repeatable": true,
+    "trigger": { "type": "hp_threshold_above", "value": 15 },
+    "condition": { "flag": "player_in_critical_state" },
+    "consequences": [
+      { "action": "clear_flag", "key": "player_in_critical_state" },
+      { "action": "send_message", "template": "Tu pulso se estabiliza. El peligro inmediato ha pasado." }
+    ]
+  },
+
+  {
+    "id": "first_level_up",
+    "repeatable": false,
+    "trigger": { "type": "level_up" },
+    "consequences": [
+      {
+        "action": "give_item",
+        "item": {
+          "id": "adventurer_badge",
+          "name": "Insignia de Aventurero",
+          "description": "Prueba de que has dado tus primeros pasos en el mundo de Etheria.",
+          "qty": 1
+        }
+      },
+      { "action": "modify_hp", "delta": 5 },
+      { "action": "send_message", "template": "Has ganado experiencia suficiente para crecer. Tu historia en Etheria acaba de empezar de verdad." }
+    ]
+  },
+
+  {
+    "id": "intelligence_mastery",
+    "repeatable": false,
+    "trigger": { "type": "stat_threshold_above", "stat": "INT", "value": 14 },
+    "consequences": [
+      { "action": "set_flag", "key": "int_mastery_unlocked", "value": true },
+      { "action": "send_message", "template": "Tu intelecto ha alcanzado un nivel que pocos mortales conocen. Los secretos del mundo se revelan ante ti como páginas de un libro abierto." }
+    ]
+  }
+]

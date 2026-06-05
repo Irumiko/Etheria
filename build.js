@@ -59,8 +59,10 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/menu-gamefeel.css',
   'css/options-gamefeel.css',
   /* ── Estancias aisladas: SIEMPRE al final — ganan todos los conflictos de cascada ── */
-  'css/sections/topics.css',   /* Sección Historias: fondo, botones, filtros, buscador */
+  'css/sections/topics.css',       /* Sección Historias: fondo, botones, filtros, buscador */
   'css/sections/user-profile.css', /* Modal de perfil de usuario + panel party clásico */
+  'css/sections/hub.css',          /* Menú principal: paleta purple/crystal unificada */
+  'css/sections/hub-luna.css',     /* Re-skin "Luna de Plata": cielo · sellos arcanos */
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];
@@ -78,6 +80,7 @@ const STATIC_ASSETS = [
   ['assets/backgrounds/default_background.jpg', 'assets/backgrounds/default_background.jpg'],
   ['assets/backgrounds/rpg_background.png', 'assets/backgrounds/rpg_background.png'],
   ['assets/backgrounds/topics_night_sky.jpg', 'assets/backgrounds/topics_night_sky.jpg'],
+  ['assets/backgrounds/profile_selector_bg.png', 'assets/backgrounds/profile_selector_bg.png'],
   ['assets/parallax/layer_bg.png', 'assets/parallax/layer_bg.png'],
   ['assets/parallax/layer_mid.png', 'assets/parallax/layer_mid.png'],
   ['assets/parallax/layer_fg.png', 'assets/parallax/layer_fg.png'],
@@ -85,6 +88,7 @@ const STATIC_ASSETS = [
   ['assets/parallax/layer_mid_night.png', 'assets/parallax/layer_mid_night.png'],
   ['assets/parallax/layer_fg_night.png', 'assets/parallax/layer_fg_night.png'],
   ['assets/ui/ethy.svg', 'assets/ui/ethy.svg'],
+  ['assets/backgrounds/hub-valley.png', 'assets/backgrounds/hub-valley.png'],
 ];
 
 function readFile(relPath) { return fs.readFileSync(path.join(root, relPath), 'utf8'); }
@@ -260,15 +264,23 @@ if (rpgSegments.length > 0) {
 console.log('\n  Assets:');
 STATIC_ASSETS.forEach(([src, dest]) => { if (copyFile(src, dest)) console.log(`    ${dest}`); });
 
-const scenesDir = path.join(root, 'js/scenes');
-const scenesDist = path.join(distDir, 'js/scenes');
-if (fs.existsSync(scenesDir)) {
-  fs.mkdirSync(scenesDist, { recursive: true });
-  fs.readdirSync(scenesDir).filter((f) => f.endsWith('.json')).forEach((f) => {
-    fs.copyFileSync(path.join(scenesDir, f), path.join(scenesDist, f));
-    console.log(`    js/scenes/${f}`);
+// Copia recursiva de js/scenes/ — incluye subdirectorios como events/
+function copyJsonDir(srcDir, destDir, relBase) {
+  if (!fs.existsSync(srcDir)) return;
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.readdirSync(srcDir).forEach((f) => {
+    const srcFull  = path.join(srcDir, f);
+    const destFull = path.join(destDir, f);
+    const rel      = relBase ? `${relBase}/${f}` : f;
+    if (fs.statSync(srcFull).isDirectory()) {
+      copyJsonDir(srcFull, destFull, rel);
+    } else if (f.endsWith('.json')) {
+      fs.copyFileSync(srcFull, destFull);
+      console.log(`    js/scenes/${rel}`);
+    }
   });
 }
+copyJsonDir(path.join(root, 'js/scenes'), path.join(distDir, 'js/scenes'), '');
 
 const buildVer = Date.now().toString(36);
 const swDist = path.join(distDir, 'sw.js');
