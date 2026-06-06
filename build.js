@@ -63,6 +63,7 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/sections/user-profile.css', /* Modal de perfil de usuario + panel party clásico */
   'css/sections/hub.css',          /* Menú principal: paleta purple/crystal unificada */
   'css/sections/hub-luna.css',     /* Re-skin "Luna de Plata": cielo · sellos arcanos */
+  'css/sections/options-luna.css', /* Re-skin Opciones "Luna de Plata" + atmósferas */
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];

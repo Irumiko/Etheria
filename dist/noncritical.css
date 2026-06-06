@@ -27991,6 +27991,10 @@ body:has(#topicsSection.active) {
   --cel-sky-top:     #100a2c;
   --cel-sky-mid:     #211a4c;
   --cel-sky-low:     #2e2362;
+  /* atmósfera — variables base (noche por defecto) */
+  --cel-horizon-glow: rgba(176,178,255,0.45);
+  --cel-land-filter:  brightness(0.50) saturate(0.78) contrast(1.0) hue-rotate(224deg);
+  --cel-star-op:      1;
 
   position: fixed;
   inset: 0;
@@ -28016,6 +28020,82 @@ body:has(#topicsSection.active) {
 @media (prefers-reduced-motion: reduce) {
   #mainMenu.cel-hub [data-pd] { transform: none !important; transition: none; }
 }
+
+/* ── Atmósferas · momento del día ───────────────────────────
+   'noche' = la Luna de Plata original. Cada clase solo cambia
+   matiz del cielo, brillo del horizonte, tinte del paisaje,
+   densidad de estrellas y el astro (luna/sol). ───────────── */
+#mainMenu.cel-hub.amb-amanecer {
+  --cel-sky-top:#2a1e42; --cel-sky-mid:#6e4250; --cel-sky-low:#c47a4e;
+  --cel-horizon-glow: rgba(250,180,120,0.60);
+  --cel-land-filter:  brightness(0.60) saturate(1.0) contrast(1.0) sepia(0.18) hue-rotate(318deg);
+  --cel-star-op: 0.42;
+}
+#mainMenu.cel-hub.amb-mediodia {
+  --cel-sky-top:#3f5290; --cel-sky-mid:#5f7ab4; --cel-sky-low:#9fbcdc;
+  --cel-horizon-glow: rgba(228,238,255,0.50);
+  --cel-land-filter:  brightness(1.0) saturate(1.1) contrast(1.02) hue-rotate(0deg);
+  --cel-star-op: 0.05;
+}
+#mainMenu.cel-hub.amb-atardecer {
+  --cel-sky-top:#150d2e; --cel-sky-mid:#3e1638; --cel-sky-low:#7e2c34;
+  --cel-horizon-glow: rgba(236,96,64,0.58);
+  --cel-land-filter:  brightness(0.50) saturate(1.15) contrast(1.04) sepia(0.15) hue-rotate(330deg);
+  --cel-star-op: 0.5;
+}
+#mainMenu.cel-hub.amb-noche {
+  --cel-sky-top:#0c0726; --cel-sky-mid:#1a1442; --cel-sky-low:#241c54;
+  --cel-horizon-glow: rgba(176,178,255,0.42);
+  --cel-land-filter:  brightness(0.46) saturate(0.76) contrast(1.0) hue-rotate(224deg);
+  --cel-star-op: 1;
+}
+/* nebulosa: detalle puntual por atmósfera (atenuada de día) */
+#mainMenu.amb-amanecer .cel-nebula{ opacity:0.7; }
+#mainMenu.amb-amanecer .cel-nebula i:nth-child(1){ background:radial-gradient(circle, rgba(250,170,120,0.34) 0%, transparent 68%); }
+#mainMenu.amb-mediodia .cel-nebula{ opacity:0.32; }
+#mainMenu.amb-mediodia .cel-nebula i:nth-child(1){ background:radial-gradient(circle, rgba(190,215,255,0.34) 0%, transparent 70%); }
+#mainMenu.amb-atardecer .cel-nebula i:nth-child(2){ background:radial-gradient(circle, rgba(238,120,90,0.28) 0%, transparent 66%); }
+
+/* ── Astro: sol (día) en lugar de luna (noche) ──────────── */
+#mainMenu .cel-moon { display:none; }
+#mainMenu.amb-noche .cel-moon { display:block; }
+#mainMenu .cel-sun {
+  position:absolute; top:var(--sun-top,10%); left:var(--sun-left,42%); display:none; pointer-events:none;
+}
+#mainMenu.amb-amanecer .cel-sun,
+#mainMenu.amb-mediodia .cel-sun,
+#mainMenu.amb-atardecer .cel-sun { display:block; }
+#mainMenu .cel-sun .orb {
+  position:relative; width:var(--sun-size,120px); height:var(--sun-size,120px); border-radius:50%;
+  background:var(--sun-grad); box-shadow:var(--sun-shadow);
+}
+#mainMenu .cel-sun .glow {
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:calc(var(--sun-size,120px) * 2.7); height:calc(var(--sun-size,120px) * 2.7); border-radius:50%;
+  background:var(--sun-glow); animation:cel-moonglow 8s ease-in-out infinite;
+}
+#mainMenu.amb-amanecer {
+  --sun-top:32%; --sun-left:42%; --sun-size:118px;
+  --sun-grad:radial-gradient(circle at 42% 40%, #fff3e0 0%, #ffd9a8 40%, #f5b070 72%, #e0905e 100%);
+  --sun-shadow:0 0 64px rgba(250,190,130,0.65), inset -8px -8px 30px rgba(170,100,70,0.35);
+  --sun-glow:radial-gradient(circle, rgba(252,200,140,0.40) 0%, rgba(240,170,110,0.16) 42%, transparent 70%);
+}
+#mainMenu.amb-mediodia {
+  --sun-top:6%; --sun-left:50%; --sun-size:104px;
+  --sun-grad:radial-gradient(circle at 40% 36%, #ffffff 0%, #fff4d6 46%, #ffe49e 78%, #f5cd76 100%);
+  --sun-shadow:0 0 70px rgba(255,236,160,0.7), inset -6px -6px 24px rgba(200,160,80,0.3);
+  --sun-glow:radial-gradient(circle, rgba(255,240,190,0.40) 0%, rgba(255,220,150,0.16) 40%, transparent 66%);
+}
+#mainMenu.amb-atardecer {
+  --sun-top:40%; --sun-left:55%; --sun-size:150px;
+  --sun-grad:radial-gradient(circle at 44% 42%, #ffd9a0 0%, #ff9d5a 38%, #e85e3a 70%, #c43028 100%);
+  --sun-shadow:0 0 84px rgba(236,94,58,0.62), inset -10px -10px 36px rgba(140,40,40,0.42);
+  --sun-glow:radial-gradient(circle, rgba(238,110,70,0.42) 0%, rgba(210,70,60,0.16) 44%, transparent 72%);
+}
+/* mediodía: paisaje recupera color natural */
+#mainMenu.amb-mediodia .cel-landscape .tint{ opacity:0.35; }
+#mainMenu.amb-mediodia .cel-landscape .tint2{ opacity:0.12; }
+#mainMenu.amb-amanecer .cel-landscape .tint2{ opacity:0.3; }
 
 /* ── 1. Cielo ───────────────────────────────────────────── */
 #mainMenu .cel-sky {
@@ -28063,7 +28143,7 @@ body:has(#topicsSection.active) {
 @keyframes cel-aurora { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
 /* ── 4. Estrellas (las puebla hub-luna.js) ──────────────── */
-#mainMenu .cel-stars { position: absolute; inset: 0; pointer-events: none; }
+#mainMenu .cel-stars { position: absolute; inset: 0; pointer-events: none; opacity: var(--cel-star-op, 1); transition: opacity 700ms ease; }
 #mainMenu .cel-stars .star {
   position: absolute; border-radius: 50%; background: #fff;
   animation: cel-twinkle var(--dur,6s) ease-in-out var(--del,0s) infinite;
@@ -28123,7 +28203,7 @@ body:has(#topicsSection.active) {
 /* ── 7. Resplandor de horizonte ─────────────────────────── */
 #mainMenu .cel-horizon {
   position: absolute; left: 0; right: 0; bottom: 30%; height: 24%; pointer-events: none;
-  background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(176,178,255,0.45) 0%, transparent 72%);
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, var(--cel-horizon-glow) 0%, transparent 72%);
 }
 
 /* ── 8. Paisaje lejano ──────────────────────────────────── */
@@ -28133,7 +28213,8 @@ body:has(#topicsSection.active) {
   background-image: url('./assets/backgrounds/hub-valley.png');   /* repo: ./assets/backgrounds/hub-valley.png */
   background-size: cover; background-position: center 72%;
   image-rendering: pixelated;
-  filter: brightness(0.50) saturate(0.78) contrast(1.0) hue-rotate(224deg);
+  filter: var(--cel-land-filter, brightness(0.50) saturate(0.78) contrast(1.0) hue-rotate(224deg));
+  transition: filter 700ms ease;
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 26%, #000 58%);
           mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 26%, #000 58%);
 }
@@ -28219,16 +28300,20 @@ body:has(#topicsSection.active) {
   box-shadow: 0 0 22px rgba(124,77,255,0.27);
 }
 #mainMenu .menu-profile-avatar {
-  position: relative; width: 40px; height: 40px; border-radius: 50%;
+  position: relative; width: 54px; height: 54px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  overflow: hidden;
   background: linear-gradient(135deg, #6b46c1, #3b2a6b);
   border: 1px solid rgba(203,182,255,0.5);
-  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 18px; color: #fff;
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 22px; color: #fff;
 }
 #mainMenu .menu-profile-avatar::after {
-  content: ''; position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px;
+  content: ''; position: absolute; right: 0px; bottom: 0px; width: 13px; height: 13px;
   border-radius: 50%; background: var(--cel-online); border: 2px solid #150c30;
   box-shadow: 0 0 8px var(--cel-online);
+}
+#mainMenu .menu-profile-avatar img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
 }
 #mainMenu .menu-profile-name {
   display: block; font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 19px;
@@ -28525,13 +28610,18 @@ body:has(#topicsSection.active) {
   box-shadow: 0 0 22px rgba(124,77,255,0.27) !important;
 }
 #mainMenu.cel-hub .menu-profile-avatar {
-  width: 40px !important; height: 40px !important; border-radius: 50% !important;
+  width: 54px !important; height: 54px !important; border-radius: 50% !important;
+  flex: 0 0 54px !important;        /* anula hub.css: flex: 0 0 30px */
   display: flex !important; align-items: center !important; justify-content: center !important;
   flex-shrink: 0 !important; overflow: hidden !important;
   background: linear-gradient(135deg, #6b46c1, #3b2a6b) !important;
   border: 1px solid rgba(203,182,255,0.5) !important;
   font-family: 'Cormorant Garamond', serif !important;
-  font-weight: 600 !important; font-size: 18px !important; color: #fff !important;
+  font-weight: 600 !important; font-size: 22px !important; color: #fff !important;
+}
+#mainMenu.cel-hub .menu-profile-avatar img {
+  position: absolute !important; inset: 0 !important;
+  width: 100% !important; height: 100% !important; object-fit: cover !important;
 }
 #mainMenu.cel-hub .menu-profile-name {
   display: block !important; font-family: 'Cormorant Garamond', serif !important;
@@ -28666,36 +28756,48 @@ body:has(#topicsSection.active) {
   align-items: center !important; gap: 12px !important;
 }
 
-/* Estilos compartidos para save y theme (NO forzamos display en inbox:
-   su visibility la controla JS con style="display:none/flex") */
+/* Estilos compartidos para save y theme.
+   Cancela position:absolute de menu.css (.menu-theme-toggle) y
+   position:absolute de auth.css (.menu-inbox-float). */
 #mainMenu.cel-hub .menu-save-btn,
 #mainMenu.cel-hub .menu-theme-toggle {
+  position: static !important;    /* anula menu.css: position:absolute */
+  top: auto !important;           /* anula menu.css: top: 1.2rem */
+  right: auto !important;         /* anula menu.css: right: 1.4rem */
+  z-index: auto !important;       /* anula menu.css: z-index: 50 */
   width: 42px !important; height: 42px !important; min-width: 42px !important;
   border-radius: 50% !important;
   background: rgba(16,10,38,0.46) !important;
   border: 1px solid rgba(124,77,255,0.30) !important;
   color: var(--cel-lilac) !important;
   display: flex !important; align-items: center !important; justify-content: center !important;
+  align-self: center !important;
   backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important;
   box-shadow: none !important; padding: 0 !important;
   font-size: 0 !important;          /* silencia cualquier texto/emoji residual */
   animation: none !important;
   transition: all 240ms ease !important;
 }
-/* El inbox usa los mismos estilos pero SIN sobreescribir display */
+/* El inbox usa los mismos estilos pero SIN sobreescribir display.
+   Cancela el position:absolute + top/right de auth.css */
 #mainMenu.cel-hub .menu-inbox-float {
+  position: static !important;    /* anula auth.css: position:absolute */
+  top: auto !important;           /* anula auth.css: top: 1.2rem */
+  right: auto !important;         /* anula auth.css: right: 4.4rem */
+  z-index: auto !important;       /* anula auth.css: z-index: 50 */
   width: 42px !important; height: 42px !important; min-width: 42px !important;
   border-radius: 50% !important;
   background: rgba(16,10,38,0.46) !important;
   border: 1px solid rgba(124,77,255,0.30) !important;
   color: var(--cel-lilac) !important;
   align-items: center !important; justify-content: center !important;
+  align-self: center !important;
   backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important;
   box-shadow: none !important; padding: 0 !important;
   animation: none !important;
   transition: all 240ms ease !important;
 }
-/* Cuando JS lo hace visible */
+/* Cuando JS lo hace visible (style="" ó style="display:flex") */
 #mainMenu.cel-hub .menu-inbox-float:not([style*="display:none"]):not([style*="display: none"]) {
   display: flex !important;
 }
@@ -28713,11 +28815,34 @@ body:has(#topicsSection.active) {
 #mainMenu.cel-hub #menuThemeIcon {
   display: none !important;
 }
-/* El SVG del tema hereda el color del botón y no colapsa en flex */
-#mainMenu.cel-hub .cel-theme-svg {
+/* El SVG del tema / icono de atmósfera hereda el color y no colapsa en flex */
+#mainMenu.cel-hub .cel-theme-svg,
+#mainMenu.cel-hub .amb-ico {
   display: block !important;
   flex-shrink: 0 !important;
   pointer-events: none !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+/* #ambCycleBtn mismos estilos que menu-theme-toggle */
+#mainMenu.cel-hub #ambCycleBtn {
+  width: 42px !important; height: 42px !important; min-width: 42px !important;
+  border-radius: 50% !important;
+  background: rgba(16,10,38,0.46) !important;
+  border: 1px solid rgba(124,77,255,0.30) !important;
+  color: var(--cel-lilac) !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: none !important; padding: 0 !important;
+  animation: none !important;
+  transition: all 240ms ease !important;
+  cursor: pointer !important;
+}
+#mainMenu.cel-hub #ambCycleBtn:hover {
+  background: rgba(124,77,255,0.22) !important;
+  border-color: rgba(124,77,255,0.6) !important;
+  color: var(--cel-text-hi) !important;
+  box-shadow: 0 0 20px rgba(124,77,255,0.33) !important;
 }
 
 /* Badge de notificaciones */
@@ -28739,4 +28864,253 @@ body:has(#topicsSection.active) {
     top: auto !important; bottom: 20px !important; transform: none !important;
   }
 }
+
+
+/* -- css/sections/options-luna.css -- */
+/* ============================================================
+   ETHERIA · OPCIONES "Luna de Plata" — estancia aislada
+   Scope: todo bajo #optionsSection.cel-opt
+   ============================================================ */
+
+#optionsSection.cel-opt {
+  --cel-void:#0c0720; --cel-bg:#1a0f33; --cel-bg-raised:#241544;
+  --cel-violet:#7c4dff; --cel-violet-glow:#9d6bff; --cel-violet-soft:#b794f6;
+  --cel-lilac:#cbb6ff; --cel-gold:#e8c878; --cel-gold-glow:#f4d98a;
+  --cel-text-hi:#f3eeff; --cel-text:#d2c7ec; --cel-text-muted:#9a8fc2;
+  --cel-text-dim:#6b6090; --cel-online:#8fe0c2; --cel-danger:#e0708a;
+  --sky-top:#100a2c; --sky-mid:#1c1442; --sky-low:#241a4e;
+
+  position:fixed; inset:0; overflow:hidden;
+  background:var(--cel-void); color:var(--cel-text);
+  font-family:'Outfit',system-ui,sans-serif;
+}
+#optionsSection.cel-opt.amb-amanecer  { --sky-top:#2a1e42; --sky-mid:#6e4250; --sky-low:#9a5a44; }
+#optionsSection.cel-opt.amb-mediodia  { --sky-top:#3f5290; --sky-mid:#5f7ab4; --sky-low:#8aa6cc; }
+#optionsSection.cel-opt.amb-atardecer { --sky-top:#150d2e; --sky-mid:#3e1638; --sky-low:#6e2832; }
+#optionsSection.cel-opt.amb-noche     { --sky-top:#0c0726; --sky-mid:#1a1442; --sky-low:#241c54; }
+
+/* Detalle puntual: la nebulosa se tiñe según el momento del día */
+#optionsSection.cel-opt.amb-amanecer .cel-neb i:nth-child(1){ background:radial-gradient(circle,rgba(250,170,120,0.30),transparent 68%); }
+#optionsSection.cel-opt.amb-atardecer .cel-neb i:nth-child(2){ background:radial-gradient(circle,rgba(238,120,90,0.26),transparent 66%); }
+#optionsSection.cel-opt.amb-mediodia .cel-neb{ opacity:0.32; }
+#optionsSection.cel-opt.amb-mediodia .cel-neb i:nth-child(1){ background:radial-gradient(circle,rgba(190,215,255,0.32),transparent 70%); }
+/* estrellas más tenues de día */
+#optionsSection.cel-opt.amb-mediodia .cel-stars{ opacity:0.12; }
+#optionsSection.cel-opt.amb-amanecer .cel-stars,
+#optionsSection.cel-opt.amb-atardecer .cel-stars{ opacity:0.5; }
+
+/* ── Fondo (atenuado) ─────────────────────────────────────── */
+#optionsSection .cel-sky{ position:absolute; inset:0;
+  background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-mid) 52%,var(--sky-low) 82%,var(--sky-top) 100%);
+  transition:background 700ms ease; }
+#optionsSection .cel-neb{ position:absolute; inset:-8%; pointer-events:none; opacity:0.55; }
+#optionsSection .cel-neb i{ position:absolute; border-radius:50%; filter:blur(34px); display:block; }
+#optionsSection .cel-neb i:nth-child(1){ top:2%; left:6%; width:48%; height:50%;
+  background:radial-gradient(circle,rgba(124,77,255,0.30),transparent 68%); animation:cel-neb 20s ease-in-out infinite; }
+#optionsSection .cel-neb i:nth-child(2){ top:6%; right:4%; width:44%; height:48%;
+  background:radial-gradient(circle,rgba(157,107,255,0.22),transparent 66%); animation:cel-neb 26s ease-in-out 2s infinite; }
+@keyframes cel-neb{ 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(12px,-8px) scale(1.05);} }
+#optionsSection .cel-stars{ position:absolute; inset:0; pointer-events:none; }
+#optionsSection .cel-stars .star{ position:absolute; border-radius:50%; background:#fff;
+  animation:cel-tw var(--dur,6s) ease-in-out var(--del,0s) infinite; }
+@keyframes cel-tw{ 0%,100%{opacity:.2;} 50%{opacity:.9;} }
+#optionsSection .cel-vignette{ position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse 110% 80% at 50% 44%,transparent 36%,rgba(6,3,18,0.82) 100%); }
+
+/* ── Marco / layout ───────────────────────────────────────── */
+#optionsSection .opt-frame{ position:absolute; inset:0; z-index:2;
+  display:flex; flex-direction:column; padding:30px 44px 28px; }
+
+/* Header */
+#optionsSection .opt-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:26px; }
+#optionsSection .opt-header-left{ display:flex; align-items:center; gap:16px; }
+#optionsSection .opt-crest{ display:flex; align-items:center; gap:9px; }
+#optionsSection .opt-crest svg{ filter:drop-shadow(0 0 8px rgba(232,200,120,.5)); }
+#optionsSection .opt-title{ margin:0; font-family:'Cormorant Garamond',serif; font-weight:600;
+  font-size:38px; line-height:1; letter-spacing:.04em; color:var(--cel-text-hi);
+  text-shadow:0 2px 18px rgba(0,0,0,.6); }
+#optionsSection .opt-title-sub{ font-size:10px; letter-spacing:.32em; text-transform:uppercase;
+  color:var(--cel-violet-soft); margin-top:7px; }
+#optionsSection .opt-back{ display:flex; align-items:center; gap:8px; cursor:pointer;
+  padding:10px 18px; border:1px solid rgba(124,77,255,.28); background:rgba(16,10,38,.42);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  color:var(--cel-text-muted); font-size:11px; letter-spacing:.2em; text-transform:uppercase; font-weight:600;
+  clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);
+  transition:all 240ms ease; }
+#optionsSection .opt-back:hover{ background:rgba(124,77,255,.16); border-color:rgba(124,77,255,.55); color:var(--cel-text-hi); }
+
+/* Body: rail + content */
+#optionsSection .opt-body{ flex:1; display:flex; gap:34px; min-height:0; }
+
+/* ── Rail de constelación ─────────────────────────────────── */
+#optionsSection .opt-rail{ position:relative; width:264px; flex-shrink:0;
+  display:flex; flex-direction:column; gap:10px; padding-left:30px; }
+#optionsSection .opt-rail::before{ content:''; position:absolute; left:13px; top:34px; bottom:34px; width:1px;
+  background:linear-gradient(180deg,transparent,var(--cel-violet-soft) 8%,var(--cel-violet-soft) 92%,transparent);
+  opacity:.32; }
+#optionsSection .opt-tab{ position:relative; display:flex; align-items:center; gap:14px; cursor:pointer;
+  width:100%; text-align:left; border:0; font:inherit; color:inherit; padding:14px 16px;
+  background:linear-gradient(100deg,rgba(26,15,51,.40),rgba(16,10,38,.30));
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  box-shadow:0 0 0 1px rgba(124,77,255,.12); transition:all 280ms cubic-bezier(.34,1.2,.64,1); }
+#optionsSection .opt-tab:hover{ transform:translateX(4px); box-shadow:0 0 0 1px rgba(124,77,255,.3); }
+#optionsSection .opt-tab.active{
+  background:linear-gradient(100deg,rgba(124,77,255,.26),rgba(36,21,68,.5) 70%);
+  box-shadow:0 0 0 1px rgba(124,77,255,.5),0 0 24px rgba(124,77,255,.22),0 12px 30px rgba(0,0,0,.4); }
+/* nodo de constelación a la izquierda */
+#optionsSection .opt-node{ position:absolute; left:-23px; top:50%; width:9px; height:9px;
+  transform:translateY(-50%) rotate(45deg); background:var(--cel-violet-soft); transition:all 280ms ease; }
+#optionsSection .opt-tab.active .opt-node{ background:var(--cel-gold-glow);
+  box-shadow:0 0 8px var(--cel-gold); }
+/* glyph en rombo */
+#optionsSection .opt-tab-glyph{ width:40px; height:40px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  transform:rotate(45deg); border:1px solid rgba(183,148,246,.5); background:rgba(10,6,26,.5); transition:all 280ms ease; }
+#optionsSection .opt-tab-glyph svg{ transform:rotate(-45deg); color:var(--cel-lilac); }
+#optionsSection .opt-tab.active .opt-tab-glyph{ border-color:var(--cel-gold); background:rgba(124,77,255,.18);
+  box-shadow:0 0 16px rgba(124,77,255,.4),inset 0 0 10px rgba(124,77,255,.3); }
+#optionsSection .opt-tab.active .opt-tab-glyph svg{ color:var(--cel-gold-glow); }
+#optionsSection .opt-tab-text{ flex:1; min-width:0; }
+#optionsSection .opt-tab-num{ font-size:8.5px; font-weight:700; letter-spacing:.24em; color:var(--cel-text-dim); }
+#optionsSection .opt-tab.active .opt-tab-num{ color:var(--cel-gold); }
+#optionsSection .opt-tab-label{ display:block; font-family:'Cormorant Garamond',serif; font-weight:600; font-size:21px;
+  line-height:1.05; color:var(--cel-text); margin-top:2px; transition:color 240ms ease; }
+#optionsSection .opt-tab.active .opt-tab-label{ color:var(--cel-text-hi); }
+#optionsSection .opt-tab-sub{ display:block; font-size:10px; letter-spacing:.04em; color:var(--cel-text-muted);
+  font-style:italic; font-family:'Cormorant Garamond',serif; margin-top:3px; }
+
+/* ── Panel de contenido ───────────────────────────────────── */
+#optionsSection .opt-content{ flex:1; position:relative; min-width:0;
+  padding:30px 34px; overflow:hidden;
+  background:linear-gradient(150deg,rgba(36,21,68,.5),rgba(16,10,38,.46));
+  backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%);
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,0 100%,0 16px);
+  box-shadow:0 0 0 1px rgba(124,77,255,.2),0 18px 50px rgba(0,0,0,.5); }
+/* esquinas en L */
+#optionsSection .opt-content .corner{ position:absolute; width:18px; height:18px; pointer-events:none;
+  border-color:var(--cel-violet-soft); opacity:.7; }
+#optionsSection .opt-content .corner.tl{ top:5px; left:5px; border-top:1px solid; border-left:1px solid; }
+#optionsSection .opt-content .corner.tr{ top:5px; right:5px; border-top:1px solid; border-right:1px solid; }
+#optionsSection .opt-content .corner.bl{ bottom:5px; left:5px; border-bottom:1px solid; border-left:1px solid; }
+#optionsSection .opt-content .corner.br{ bottom:5px; right:5px; border-bottom:1px solid; border-right:1px solid; }
+
+#optionsSection .opt-pane{ display:none; height:100%; overflow-y:auto; overflow-x:hidden; padding-right:8px; }
+#optionsSection .opt-pane.active{ display:block; animation:cel-fade 360ms ease; }
+@keyframes cel-fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+/* scrollbar */
+#optionsSection .opt-pane::-webkit-scrollbar{ width:6px; }
+#optionsSection .opt-pane::-webkit-scrollbar-thumb{ background:rgba(124,77,255,.4); border-radius:3px; }
+
+#optionsSection .opt-pane-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:22px; flex-wrap:wrap; }
+#optionsSection .opt-pane-title{ font-family:'Cormorant Garamond',serif; font-weight:600; font-size:27px;
+  color:var(--cel-text-hi); letter-spacing:.02em; white-space:nowrap; }
+#optionsSection .opt-pane-hint{ font-size:11px; font-style:italic; font-family:'Cormorant Garamond',serif;
+  color:var(--cel-violet-soft); white-space:nowrap; }
+#optionsSection .opt-divider{ height:1px; margin:22px 0 18px;
+  background:linear-gradient(90deg,rgba(124,77,255,.4),transparent); }
+#optionsSection .opt-subhead{ display:flex; align-items:center; gap:10px; margin:4px 0 14px;
+  font-size:10px; font-weight:700; letter-spacing:.24em; text-transform:uppercase; color:var(--cel-gold); }
+#optionsSection .opt-subhead::after{ content:''; flex:1; height:1px; background:linear-gradient(90deg,rgba(232,200,120,.4),transparent); }
+
+/* ── Filas de control ─────────────────────────────────────── */
+#optionsSection .opt-row{ display:flex; align-items:center; justify-content:space-between; gap:20px;
+  padding:14px 0; border-bottom:1px solid rgba(124,77,255,.08); }
+#optionsSection .opt-row:last-child{ border-bottom:0; }
+#optionsSection .opt-row-stacked{ flex-direction:column; align-items:stretch; gap:10px; }
+#optionsSection .opt-label{ font-size:14px; color:var(--cel-text); font-weight:500; white-space:nowrap; }
+#optionsSection .opt-label .sub{ display:block; font-size:11px; color:var(--cel-text-muted); margin-top:3px; font-weight:400; white-space:normal; }
+#optionsSection .opt-control{ display:flex; align-items:center; gap:14px; }
+
+/* Slider */
+#optionsSection .opt-slidewrap{ display:flex; align-items:center; gap:14px; min-width:240px; }
+#optionsSection input[type=range].opt-slider{ -webkit-appearance:none; appearance:none; width:200px; height:4px; border-radius:3px;
+  background:linear-gradient(90deg,var(--cel-violet) 0%,var(--cel-violet) var(--fill,50%),rgba(124,77,255,.18) var(--fill,50%)); outline:none; }
+#optionsSection input[type=range].opt-slider::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff,var(--cel-violet-soft) 60%,var(--cel-violet)); cursor:pointer;
+  box-shadow:0 0 10px var(--cel-violet),0 0 0 1px rgba(255,255,255,.3); }
+#optionsSection input[type=range].opt-slider::-moz-range-thumb{ width:16px; height:16px; border:0; border-radius:50%;
+  background:var(--cel-violet-soft); box-shadow:0 0 10px var(--cel-violet); cursor:pointer; }
+#optionsSection .opt-slideval{ min-width:54px; text-align:right; font-size:12px; color:var(--cel-lilac);
+  font-variant-numeric:tabular-nums; letter-spacing:.05em; }
+
+/* Switch */
+#optionsSection .opt-switch{ position:relative; width:46px; height:26px; flex-shrink:0; cursor:pointer; }
+#optionsSection .opt-switch input{ position:absolute; opacity:0; width:0; height:0; }
+#optionsSection .opt-switch .track{ position:absolute; inset:0; border-radius:999px;
+  background:rgba(10,6,26,.6); border:1px solid rgba(124,77,255,.3); transition:all 260ms ease; }
+#optionsSection .opt-switch .knob{ position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%;
+  background:var(--cel-violet-soft); transition:all 260ms cubic-bezier(.34,1.4,.6,1); box-shadow:0 1px 4px rgba(0,0,0,.5); }
+#optionsSection .opt-switch input:checked + .track{ background:rgba(124,77,255,.32); border-color:var(--cel-gold); }
+#optionsSection .opt-switch input:checked + .track + .knob,
+#optionsSection .opt-switch input:checked ~ .knob{ left:25px; background:var(--cel-gold-glow); box-shadow:0 0 10px var(--cel-gold); }
+
+/* Inputs / select */
+#optionsSection .opt-input,#optionsSection .opt-select{ font:inherit; font-size:13px; color:var(--cel-text-hi);
+  padding:10px 13px; background:rgba(10,6,26,.5); border:1px solid rgba(124,77,255,.28);
+  outline:none; transition:all 220ms ease; }
+#optionsSection .opt-input{ flex:1; min-width:0; }
+#optionsSection .opt-input:focus,#optionsSection .opt-select:focus{ border-color:var(--cel-violet); box-shadow:0 0 0 3px rgba(124,77,255,.16); }
+#optionsSection .opt-input::placeholder{ color:var(--cel-text-dim); }
+#optionsSection .opt-select{ cursor:pointer; appearance:none; padding-right:30px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23b794f6' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 12px center; }
+#optionsSection .opt-input-row{ display:flex; gap:10px; max-width:100%; }
+#optionsSection .opt-btn{ font:inherit; font-size:11px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+  padding:0 18px; cursor:pointer; color:var(--cel-gold-glow); white-space:nowrap;
+  background:rgba(124,77,255,.16); border:1px solid rgba(232,200,120,.4); transition:all 220ms ease; }
+#optionsSection .opt-btn:hover{ background:rgba(124,77,255,.3); box-shadow:0 0 14px rgba(124,77,255,.3); }
+
+/* Swatches (atmósfera / filtro) */
+#optionsSection .opt-swatches{ display:flex; gap:12px; flex-wrap:wrap; }
+#optionsSection .opt-swatch{ cursor:pointer; border:1px solid rgba(124,77,255,.26); background:rgba(10,6,26,.4);
+  padding:10px; width:108px; text-align:center; transition:all 240ms ease;
+  clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px); }
+#optionsSection .opt-swatch:hover{ border-color:rgba(124,77,255,.5); transform:translateY(-2px); }
+#optionsSection .opt-swatch.active{ border-color:var(--cel-gold); box-shadow:0 0 0 1px var(--cel-gold),0 0 18px rgba(124,77,255,.3); }
+#optionsSection .opt-swatch .chip{ display:block; height:42px; border-radius:4px; margin-bottom:8px; position:relative; overflow:hidden; }
+#optionsSection .opt-swatch .chip .st{ position:absolute; width:2px; height:2px; border-radius:50%; background:#fff; }
+#optionsSection .opt-swatch-name{ display:block; font-size:11px; color:var(--cel-text); letter-spacing:.02em; }
+#optionsSection .opt-swatch.active .opt-swatch-name{ color:var(--cel-gold-glow); }
+#optionsSection .opt-swatch-sub{ display:block; font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--cel-text-dim); margin-top:2px; }
+
+/* Avatar */
+#optionsSection .opt-avatar-zone{ display:flex; align-items:center; gap:18px; margin-bottom:8px; }
+#optionsSection .opt-avatar{ position:relative; width:110px; height:110px; border-radius:50%; flex-shrink:0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#6b46c1,#3b2a6b);
+  border:1px solid rgba(203,182,255,.5); box-shadow:0 0 28px rgba(124,77,255,.35);
+  font-family:'Cormorant Garamond',serif; font-size:42px; font-weight:600; color:#fff;
+  overflow:hidden; }
+#optionsSection .opt-avatar::after{ content:''; position:absolute; inset:-5px; border-radius:50%;
+  border:1px solid rgba(232,200,120,.35); pointer-events:none; }
+#optionsSection .opt-avatar img{ position:absolute; inset:0; width:100%; height:100%; border-radius:50%; object-fit:cover; }
+#optionsSection .opt-avatar-hint{ font-size:11px; color:var(--cel-text-muted); line-height:1.5; }
+#optionsSection .opt-avatar-hint b{ color:var(--cel-lilac); font-weight:600; }
+
+/* Live preview — una mini-escena que adopta el momento del día */
+#optionsSection .opt-preview{ margin-top:6px; position:relative; overflow:hidden; padding:18px 20px;
+  background:linear-gradient(135deg,var(--pv-a,rgba(20,12,44,.7)),var(--pv-b,rgba(10,6,26,.66)));
+  border:1px solid rgba(124,77,255,.22); transition:background 600ms ease;
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px); }
+/* astro de la escena (sol/luna) */
+#optionsSection .opt-preview::before{ content:''; position:absolute; top:-26px; right:-10px; width:90px; height:90px; border-radius:50%;
+  background:var(--pv-orb,radial-gradient(circle,rgba(176,178,255,.28),transparent 70%)); pointer-events:none; transition:background 600ms ease; }
+#optionsSection.amb-amanecer  .opt-preview{ --pv-a:rgba(58,34,52,.82); --pv-b:rgba(28,16,40,.8); --pv-orb:radial-gradient(circle,rgba(252,200,140,.45),rgba(240,150,110,.12) 50%,transparent 72%); }
+#optionsSection.amb-mediodia  .opt-preview{ --pv-a:rgba(70,92,150,.78); --pv-b:rgba(40,54,96,.78); --pv-orb:radial-gradient(circle,rgba(255,246,210,.5),rgba(220,230,255,.14) 50%,transparent 72%); }
+#optionsSection.amb-atardecer .opt-preview{ --pv-a:rgba(56,20,46,.84); --pv-b:rgba(28,12,34,.82); --pv-orb:radial-gradient(circle,rgba(238,110,70,.46),rgba(200,60,50,.12) 50%,transparent 72%); }
+#optionsSection.amb-noche     .opt-preview{ --pv-a:rgba(20,12,44,.82); --pv-b:rgba(10,6,26,.8); --pv-orb:radial-gradient(circle,rgba(176,178,255,.32),rgba(124,77,255,.1) 50%,transparent 72%); }
+#optionsSection .opt-preview-tag{ position:relative; font-size:9px; letter-spacing:.24em; text-transform:uppercase; color:var(--cel-text-dim); margin-bottom:10px; }
+#optionsSection .opt-preview-name{ position:relative; font-family:'Cormorant Garamond',serif; font-size:15px; font-weight:600; color:var(--cel-gold); margin-bottom:5px; letter-spacing:.04em; }
+#optionsSection .opt-preview-text{ position:relative; color:var(--cel-text-hi); line-height:1.55; transition:font-size 200ms ease, filter 300ms ease; }
+#optionsSection .opt-preview.f-sepia .opt-preview-text{ filter:sepia(.5) saturate(1.2) hue-rotate(-12deg); }
+#optionsSection .opt-preview.f-bw .opt-preview-text{ filter:grayscale(1) contrast(1.05); }
+#optionsSection .opt-preview.f-cinematic .opt-preview-text{ filter:contrast(1.15) brightness(.94) saturate(1.15); }
+
+/* Danger row */
+#optionsSection .opt-danger{ margin-top:24px; display:flex; align-items:center; justify-content:space-between;
+  padding-top:18px; border-top:1px solid rgba(224,112,138,.18); }
+#optionsSection .opt-danger-btn{ font:inherit; font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+  padding:9px 18px; cursor:pointer; color:var(--cel-danger); background:transparent; border:1px solid rgba(224,112,138,.4);
+  transition:all 220ms ease; }
+#optionsSection .opt-danger-btn:hover{ background:rgba(224,112,138,.14); border-color:var(--cel-danger); }
+#optionsSection .opt-status-note{ font-size:11px; color:var(--cel-text-muted); margin-top:6px; }
 

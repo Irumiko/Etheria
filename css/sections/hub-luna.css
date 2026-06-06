@@ -27,6 +27,10 @@
   --cel-sky-top:     #100a2c;
   --cel-sky-mid:     #211a4c;
   --cel-sky-low:     #2e2362;
+  /* atmósfera — variables base (noche por defecto) */
+  --cel-horizon-glow: rgba(176,178,255,0.45);
+  --cel-land-filter:  brightness(0.50) saturate(0.78) contrast(1.0) hue-rotate(224deg);
+  --cel-star-op:      1;
 
   position: fixed;
   inset: 0;
@@ -52,6 +56,82 @@
 @media (prefers-reduced-motion: reduce) {
   #mainMenu.cel-hub [data-pd] { transform: none !important; transition: none; }
 }
+
+/* ── Atmósferas · momento del día ───────────────────────────
+   'noche' = la Luna de Plata original. Cada clase solo cambia
+   matiz del cielo, brillo del horizonte, tinte del paisaje,
+   densidad de estrellas y el astro (luna/sol). ───────────── */
+#mainMenu.cel-hub.amb-amanecer {
+  --cel-sky-top:#2a1e42; --cel-sky-mid:#6e4250; --cel-sky-low:#c47a4e;
+  --cel-horizon-glow: rgba(250,180,120,0.60);
+  --cel-land-filter:  brightness(0.60) saturate(1.0) contrast(1.0) sepia(0.18) hue-rotate(318deg);
+  --cel-star-op: 0.42;
+}
+#mainMenu.cel-hub.amb-mediodia {
+  --cel-sky-top:#3f5290; --cel-sky-mid:#5f7ab4; --cel-sky-low:#9fbcdc;
+  --cel-horizon-glow: rgba(228,238,255,0.50);
+  --cel-land-filter:  brightness(1.0) saturate(1.1) contrast(1.02) hue-rotate(0deg);
+  --cel-star-op: 0.05;
+}
+#mainMenu.cel-hub.amb-atardecer {
+  --cel-sky-top:#150d2e; --cel-sky-mid:#3e1638; --cel-sky-low:#7e2c34;
+  --cel-horizon-glow: rgba(236,96,64,0.58);
+  --cel-land-filter:  brightness(0.50) saturate(1.15) contrast(1.04) sepia(0.15) hue-rotate(330deg);
+  --cel-star-op: 0.5;
+}
+#mainMenu.cel-hub.amb-noche {
+  --cel-sky-top:#0c0726; --cel-sky-mid:#1a1442; --cel-sky-low:#241c54;
+  --cel-horizon-glow: rgba(176,178,255,0.42);
+  --cel-land-filter:  brightness(0.46) saturate(0.76) contrast(1.0) hue-rotate(224deg);
+  --cel-star-op: 1;
+}
+/* nebulosa: detalle puntual por atmósfera (atenuada de día) */
+#mainMenu.amb-amanecer .cel-nebula{ opacity:0.7; }
+#mainMenu.amb-amanecer .cel-nebula i:nth-child(1){ background:radial-gradient(circle, rgba(250,170,120,0.34) 0%, transparent 68%); }
+#mainMenu.amb-mediodia .cel-nebula{ opacity:0.32; }
+#mainMenu.amb-mediodia .cel-nebula i:nth-child(1){ background:radial-gradient(circle, rgba(190,215,255,0.34) 0%, transparent 70%); }
+#mainMenu.amb-atardecer .cel-nebula i:nth-child(2){ background:radial-gradient(circle, rgba(238,120,90,0.28) 0%, transparent 66%); }
+
+/* ── Astro: sol (día) en lugar de luna (noche) ──────────── */
+#mainMenu .cel-moon { display:none; }
+#mainMenu.amb-noche .cel-moon { display:block; }
+#mainMenu .cel-sun {
+  position:absolute; top:var(--sun-top,10%); left:var(--sun-left,42%); display:none; pointer-events:none;
+}
+#mainMenu.amb-amanecer .cel-sun,
+#mainMenu.amb-mediodia .cel-sun,
+#mainMenu.amb-atardecer .cel-sun { display:block; }
+#mainMenu .cel-sun .orb {
+  position:relative; width:var(--sun-size,120px); height:var(--sun-size,120px); border-radius:50%;
+  background:var(--sun-grad); box-shadow:var(--sun-shadow);
+}
+#mainMenu .cel-sun .glow {
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:calc(var(--sun-size,120px) * 2.7); height:calc(var(--sun-size,120px) * 2.7); border-radius:50%;
+  background:var(--sun-glow); animation:cel-moonglow 8s ease-in-out infinite;
+}
+#mainMenu.amb-amanecer {
+  --sun-top:32%; --sun-left:42%; --sun-size:118px;
+  --sun-grad:radial-gradient(circle at 42% 40%, #fff3e0 0%, #ffd9a8 40%, #f5b070 72%, #e0905e 100%);
+  --sun-shadow:0 0 64px rgba(250,190,130,0.65), inset -8px -8px 30px rgba(170,100,70,0.35);
+  --sun-glow:radial-gradient(circle, rgba(252,200,140,0.40) 0%, rgba(240,170,110,0.16) 42%, transparent 70%);
+}
+#mainMenu.amb-mediodia {
+  --sun-top:6%; --sun-left:50%; --sun-size:104px;
+  --sun-grad:radial-gradient(circle at 40% 36%, #ffffff 0%, #fff4d6 46%, #ffe49e 78%, #f5cd76 100%);
+  --sun-shadow:0 0 70px rgba(255,236,160,0.7), inset -6px -6px 24px rgba(200,160,80,0.3);
+  --sun-glow:radial-gradient(circle, rgba(255,240,190,0.40) 0%, rgba(255,220,150,0.16) 40%, transparent 66%);
+}
+#mainMenu.amb-atardecer {
+  --sun-top:40%; --sun-left:55%; --sun-size:150px;
+  --sun-grad:radial-gradient(circle at 44% 42%, #ffd9a0 0%, #ff9d5a 38%, #e85e3a 70%, #c43028 100%);
+  --sun-shadow:0 0 84px rgba(236,94,58,0.62), inset -10px -10px 36px rgba(140,40,40,0.42);
+  --sun-glow:radial-gradient(circle, rgba(238,110,70,0.42) 0%, rgba(210,70,60,0.16) 44%, transparent 72%);
+}
+/* mediodía: paisaje recupera color natural */
+#mainMenu.amb-mediodia .cel-landscape .tint{ opacity:0.35; }
+#mainMenu.amb-mediodia .cel-landscape .tint2{ opacity:0.12; }
+#mainMenu.amb-amanecer .cel-landscape .tint2{ opacity:0.3; }
 
 /* ── 1. Cielo ───────────────────────────────────────────── */
 #mainMenu .cel-sky {
@@ -99,7 +179,7 @@
 @keyframes cel-aurora { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
 /* ── 4. Estrellas (las puebla hub-luna.js) ──────────────── */
-#mainMenu .cel-stars { position: absolute; inset: 0; pointer-events: none; }
+#mainMenu .cel-stars { position: absolute; inset: 0; pointer-events: none; opacity: var(--cel-star-op, 1); transition: opacity 700ms ease; }
 #mainMenu .cel-stars .star {
   position: absolute; border-radius: 50%; background: #fff;
   animation: cel-twinkle var(--dur,6s) ease-in-out var(--del,0s) infinite;
@@ -159,7 +239,7 @@
 /* ── 7. Resplandor de horizonte ─────────────────────────── */
 #mainMenu .cel-horizon {
   position: absolute; left: 0; right: 0; bottom: 30%; height: 24%; pointer-events: none;
-  background: radial-gradient(ellipse 80% 100% at 50% 100%, rgba(176,178,255,0.45) 0%, transparent 72%);
+  background: radial-gradient(ellipse 80% 100% at 50% 100%, var(--cel-horizon-glow) 0%, transparent 72%);
 }
 
 /* ── 8. Paisaje lejano ──────────────────────────────────── */
@@ -169,7 +249,8 @@
   background-image: url('../../assets/backgrounds/hub-valley.png');   /* repo: ../../assets/backgrounds/hub-valley.png */
   background-size: cover; background-position: center 72%;
   image-rendering: pixelated;
-  filter: brightness(0.50) saturate(0.78) contrast(1.0) hue-rotate(224deg);
+  filter: var(--cel-land-filter, brightness(0.50) saturate(0.78) contrast(1.0) hue-rotate(224deg));
+  transition: filter 700ms ease;
   -webkit-mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 26%, #000 58%);
           mask-image: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.5) 26%, #000 58%);
 }
@@ -255,16 +336,20 @@
   box-shadow: 0 0 22px rgba(124,77,255,0.27);
 }
 #mainMenu .menu-profile-avatar {
-  position: relative; width: 40px; height: 40px; border-radius: 50%;
+  position: relative; width: 54px; height: 54px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  overflow: hidden;
   background: linear-gradient(135deg, #6b46c1, #3b2a6b);
   border: 1px solid rgba(203,182,255,0.5);
-  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 18px; color: #fff;
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 22px; color: #fff;
 }
 #mainMenu .menu-profile-avatar::after {
-  content: ''; position: absolute; right: -1px; bottom: -1px; width: 11px; height: 11px;
+  content: ''; position: absolute; right: 0px; bottom: 0px; width: 13px; height: 13px;
   border-radius: 50%; background: var(--cel-online); border: 2px solid #150c30;
   box-shadow: 0 0 8px var(--cel-online);
+}
+#mainMenu .menu-profile-avatar img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
 }
 #mainMenu .menu-profile-name {
   display: block; font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 19px;
@@ -561,13 +646,18 @@
   box-shadow: 0 0 22px rgba(124,77,255,0.27) !important;
 }
 #mainMenu.cel-hub .menu-profile-avatar {
-  width: 40px !important; height: 40px !important; border-radius: 50% !important;
+  width: 54px !important; height: 54px !important; border-radius: 50% !important;
+  flex: 0 0 54px !important;        /* anula hub.css: flex: 0 0 30px */
   display: flex !important; align-items: center !important; justify-content: center !important;
   flex-shrink: 0 !important; overflow: hidden !important;
   background: linear-gradient(135deg, #6b46c1, #3b2a6b) !important;
   border: 1px solid rgba(203,182,255,0.5) !important;
   font-family: 'Cormorant Garamond', serif !important;
-  font-weight: 600 !important; font-size: 18px !important; color: #fff !important;
+  font-weight: 600 !important; font-size: 22px !important; color: #fff !important;
+}
+#mainMenu.cel-hub .menu-profile-avatar img {
+  position: absolute !important; inset: 0 !important;
+  width: 100% !important; height: 100% !important; object-fit: cover !important;
 }
 #mainMenu.cel-hub .menu-profile-name {
   display: block !important; font-family: 'Cormorant Garamond', serif !important;
@@ -702,36 +792,48 @@
   align-items: center !important; gap: 12px !important;
 }
 
-/* Estilos compartidos para save y theme (NO forzamos display en inbox:
-   su visibility la controla JS con style="display:none/flex") */
+/* Estilos compartidos para save y theme.
+   Cancela position:absolute de menu.css (.menu-theme-toggle) y
+   position:absolute de auth.css (.menu-inbox-float). */
 #mainMenu.cel-hub .menu-save-btn,
 #mainMenu.cel-hub .menu-theme-toggle {
+  position: static !important;    /* anula menu.css: position:absolute */
+  top: auto !important;           /* anula menu.css: top: 1.2rem */
+  right: auto !important;         /* anula menu.css: right: 1.4rem */
+  z-index: auto !important;       /* anula menu.css: z-index: 50 */
   width: 42px !important; height: 42px !important; min-width: 42px !important;
   border-radius: 50% !important;
   background: rgba(16,10,38,0.46) !important;
   border: 1px solid rgba(124,77,255,0.30) !important;
   color: var(--cel-lilac) !important;
   display: flex !important; align-items: center !important; justify-content: center !important;
+  align-self: center !important;
   backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important;
   box-shadow: none !important; padding: 0 !important;
   font-size: 0 !important;          /* silencia cualquier texto/emoji residual */
   animation: none !important;
   transition: all 240ms ease !important;
 }
-/* El inbox usa los mismos estilos pero SIN sobreescribir display */
+/* El inbox usa los mismos estilos pero SIN sobreescribir display.
+   Cancela el position:absolute + top/right de auth.css */
 #mainMenu.cel-hub .menu-inbox-float {
+  position: static !important;    /* anula auth.css: position:absolute */
+  top: auto !important;           /* anula auth.css: top: 1.2rem */
+  right: auto !important;         /* anula auth.css: right: 4.4rem */
+  z-index: auto !important;       /* anula auth.css: z-index: 50 */
   width: 42px !important; height: 42px !important; min-width: 42px !important;
   border-radius: 50% !important;
   background: rgba(16,10,38,0.46) !important;
   border: 1px solid rgba(124,77,255,0.30) !important;
   color: var(--cel-lilac) !important;
   align-items: center !important; justify-content: center !important;
+  align-self: center !important;
   backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important;
   box-shadow: none !important; padding: 0 !important;
   animation: none !important;
   transition: all 240ms ease !important;
 }
-/* Cuando JS lo hace visible */
+/* Cuando JS lo hace visible (style="" ó style="display:flex") */
 #mainMenu.cel-hub .menu-inbox-float:not([style*="display:none"]):not([style*="display: none"]) {
   display: flex !important;
 }
@@ -749,11 +851,34 @@
 #mainMenu.cel-hub #menuThemeIcon {
   display: none !important;
 }
-/* El SVG del tema hereda el color del botón y no colapsa en flex */
-#mainMenu.cel-hub .cel-theme-svg {
+/* El SVG del tema / icono de atmósfera hereda el color y no colapsa en flex */
+#mainMenu.cel-hub .cel-theme-svg,
+#mainMenu.cel-hub .amb-ico {
   display: block !important;
   flex-shrink: 0 !important;
   pointer-events: none !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+/* #ambCycleBtn mismos estilos que menu-theme-toggle */
+#mainMenu.cel-hub #ambCycleBtn {
+  width: 42px !important; height: 42px !important; min-width: 42px !important;
+  border-radius: 50% !important;
+  background: rgba(16,10,38,0.46) !important;
+  border: 1px solid rgba(124,77,255,0.30) !important;
+  color: var(--cel-lilac) !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  backdrop-filter: blur(12px) !important; -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: none !important; padding: 0 !important;
+  animation: none !important;
+  transition: all 240ms ease !important;
+  cursor: pointer !important;
+}
+#mainMenu.cel-hub #ambCycleBtn:hover {
+  background: rgba(124,77,255,0.22) !important;
+  border-color: rgba(124,77,255,0.6) !important;
+  color: var(--cel-text-hi) !important;
+  box-shadow: 0 0 20px rgba(124,77,255,0.33) !important;
 }
 
 /* Badge de notificaciones */

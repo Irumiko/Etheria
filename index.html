@@ -322,6 +322,10 @@
                 <span class="veil"></span>
             </div>
         </div>
+        <div class="cel-sun" data-pd="7">
+            <div class="glow"></div>
+            <div class="orb"></div>
+        </div>
         <div class="cel-horizon" data-pd="8"></div>
         <div class="cel-landscape" data-pd="11">
             <div class="img"></div><div class="tint"></div><div class="tint2"></div>
@@ -361,15 +365,10 @@
                 <button class="menu-save-btn cel-round-btn" onclick="openSaveHubModal()" title="Centro de guardado" aria-label="Centro de guardado">
                     <svg viewBox="0 0 16 16" fill="none" width="17" height="17"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
                 </button>
-                <button class="menu-theme-toggle cel-round-btn" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar tema">
-                    <!-- Icono SVG geométrico: luna creciente + estrella. Sin emojis. -->
-                    <svg class="cel-theme-svg" viewBox="0 0 24 24" fill="none" width="16" height="16" aria-hidden="true">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" opacity="0.9"/>
-                        <circle cx="17" cy="5" r="1.2" fill="currentColor"/>
-                        <circle cx="20" cy="9" r="0.75" fill="currentColor" opacity="0.7"/>
+                <button id="ambCycleBtn" class="menu-theme-toggle cel-round-btn" title="Noche" aria-label="Atmósfera: Noche" onclick="window.EtheriaAtmosphere && window.EtheriaAtmosphere.cycle()">
+                    <svg class="amb-ico" viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true">
+                        <path d="M16 11.5A6 6 0 018.5 4 6 6 0 1016 11.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                     </svg>
-                    <!-- El span queda para compatibilidad con el JS que lee/escribe menuThemeIcon;
-                         hub-luna.css lo oculta dentro de #mainMenu.cel-hub -->
                     <span id="menuThemeIcon" style="display:none"></span>
                 </button>
             </div>
@@ -605,234 +604,288 @@
         <div id="bondsContainer"></div>
     </div>
 
-    <!-- Options Section -->
-    <div id="optionsSection" class="game-section">
-        <div class="section-header-bar">
-            <div class="section-header-left">
-                <span class="section-header-breadcrumb">›</span>
-                <h2 class="section-title">⚙ Opciones</h2>
+    <!-- Options Section — skin "Luna de Plata" -->
+    <div id="optionsSection" class="game-section cel-opt amb-noche">
+
+        <!-- Fondo atmosférico -->
+        <div class="cel-sky"></div>
+        <div class="cel-neb"><i></i><i></i></div>
+        <div class="cel-stars"></div>
+        <div class="cel-vignette"></div>
+
+        <!-- Marco principal -->
+        <div class="opt-frame">
+
+            <!-- Header -->
+            <div class="opt-header">
+                <div class="opt-header-left">
+                    <span class="opt-crest">
+                        <svg width="22" height="22" viewBox="-11 -11 22 22"><g fill="none" stroke="#e8c878" stroke-width="0.7"><polygon points="0,-9 2.2,-2.2 9,0 2.2,2.2 0,9 -2.2,2.2 -9,0 -2.2,-2.2"/><circle r="3.2"/></g></svg>
+                    </span>
+                    <div>
+                        <h2 class="opt-title">Opciones</h2>
+                        <div class="opt-title-sub">El santuario de los ajustes</div>
+                    </div>
+                </div>
+                <button class="opt-back" onclick="backToMenu()">
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    Volver
+                </button>
             </div>
-            <button class="back-button" onclick="backToMenu()">← Volver</button>
+
+            <!-- Body -->
+            <div class="opt-body">
+
+                <!-- Rail de constelación -->
+                <nav class="opt-rail" role="tablist">
+                    <button class="opt-tab active" role="tab" data-tab="account" aria-selected="true">
+                        <span class="opt-node"></span>
+                        <span class="opt-tab-glyph"><svg width="19" height="19" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="3.4" stroke="currentColor" stroke-width="1.4"/><path d="M3.5 17c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>
+                        <span class="opt-tab-text"><span class="opt-tab-num">I</span><span class="opt-tab-label">Cuenta</span><span class="opt-tab-sub">Tu reflejo</span></span>
+                    </button>
+                    <button class="opt-tab" role="tab" data-tab="appearance" aria-selected="false">
+                        <span class="opt-node"></span>
+                        <span class="opt-tab-glyph"><svg width="19" height="19" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="6.5" r="1.4" fill="currentColor"/><circle cx="13.2" cy="9.5" r="1.2" fill="currentColor"/><circle cx="7" cy="9.8" r="1.2" fill="currentColor"/><circle cx="11" cy="13" r="1.2" fill="currentColor"/></svg></span>
+                        <span class="opt-tab-text"><span class="opt-tab-num">II</span><span class="opt-tab-label">Apariencia</span><span class="opt-tab-sub">La luz del mundo</span></span>
+                    </button>
+                    <button class="opt-tab" role="tab" data-tab="reading" aria-selected="false">
+                        <span class="opt-node"></span>
+                        <span class="opt-tab-glyph"><svg width="19" height="19" viewBox="0 0 20 20" fill="none"><path d="M10 4.5C8.5 3.3 5.5 3 3.5 3.4v11C5.5 14 8.5 14.3 10 15.5M10 4.5c1.5-1.2 4.5-1.5 6.5-1.1v11c-2-.4-5-.1-6.5 1.1M10 4.5v11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                        <span class="opt-tab-text"><span class="opt-tab-num">III</span><span class="opt-tab-label">Lectura</span><span class="opt-tab-sub">El ritmo del relato</span></span>
+                    </button>
+                    <button class="opt-tab" role="tab" data-tab="sound" aria-selected="false">
+                        <span class="opt-node"></span>
+                        <span class="opt-tab-glyph"><svg width="19" height="19" viewBox="0 0 20 20" fill="none"><path d="M4 7.5v5h3l4 3.5v-12L7 7.5H4z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M13.5 7.5a4 4 0 010 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+                        <span class="opt-tab-text"><span class="opt-tab-num">IV</span><span class="opt-tab-label">Sonido</span><span class="opt-tab-sub">Ecos de Etheria</span></span>
+                    </button>
+                </nav>
+
+                <!-- Panel de contenido -->
+                <section class="opt-content">
+                    <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+
+                    <!-- CUENTA -->
+                    <div class="opt-pane active" data-pane="account" role="tabpanel">
+                        <div class="opt-pane-head">
+                            <span class="opt-pane-title">Tu reflejo</span>
+                            <span class="opt-pane-hint">— quién eres tras la pantalla</span>
+                        </div>
+
+                        <!-- Avatar -->
+                        <div class="opt-avatar-zone">
+                            <div class="opt-avatar" id="optAvatarPreview" onclick="document.getElementById('optAvatarInput').click()" title="Cambiar avatar" style="cursor:pointer">
+                                <span id="optAvatarInitials">?</span>
+                                <img id="optAvatarImg" src="" alt="Avatar" style="display:none;position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover">
+                            </div>
+                            <div class="opt-avatar-hint">
+                                Toca el sigilo para mudar tu rostro.<br>
+                                <b>PNG · JPG · GIF</b> · máx. 1 MB
+                                <br><button class="opt-danger-btn" id="optAvatarRemoveBtn" onclick="removeProfileAvatar()" style="display:none;margin-top:8px;font-size:10px;padding:6px 12px">✕ Quitar foto</button>
+                            </div>
+                            <input type="file" id="optAvatarInput" accept="image/png,image/jpeg,image/gif,image/webp" style="display:none" onchange="handleAvatarUpload(this)">
+                        </div>
+
+                        <div class="opt-row opt-row-stacked">
+                            <span class="opt-label">Nombre visible</span>
+                            <div class="opt-input-row">
+                                <input type="text" id="optProfileName" class="opt-input" placeholder="Tu nombre..." autocomplete="off">
+                                <button onclick="saveProfileNameFromOptions()" class="opt-btn">Guardar</button>
+                            </div>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label">Género</span>
+                            <select id="optProfileGender" class="opt-select" onchange="saveProfileGender(this.value)">
+                                <option value="">Sin especificar</option>
+                                <option value="masculino">Masculino</option>
+                                <option value="femenino">Femenino</option>
+                                <option value="no-binario">No binario</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label">Cumpleaños</span>
+                            <input type="date" id="optProfileBirthday" class="opt-input" style="flex:0 0 auto" onchange="saveProfileBirthday(this.value)">
+                            <span id="optBirthdayHint" class="opt-status-note"></span>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label" id="optProfileStats" style="font-size:11px;color:var(--cel-text-muted)"></span>
+                        </div>
+
+                        <div class="opt-subhead">Seguridad</div>
+                        <div class="opt-row opt-row-stacked">
+                            <span class="opt-label">Cambiar email</span>
+                            <div class="opt-input-row">
+                                <input type="email" id="optNewEmail" class="opt-input" placeholder="nuevo@email.com" autocomplete="off">
+                                <button onclick="requestEmailChange()" class="opt-btn">Cambiar</button>
+                            </div>
+                            <p id="optEmailStatus" class="opt-status-note"></p>
+                        </div>
+                        <div class="opt-row opt-row-stacked">
+                            <span class="opt-label">Nueva contraseña</span>
+                            <div class="opt-input-row">
+                                <input type="password" id="optNewPassword" class="opt-input" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                                <button onclick="requestPasswordChange()" class="opt-btn">Cambiar</button>
+                            </div>
+                            <input type="password" id="optNewPasswordConfirm" class="opt-input" placeholder="Confirmar contraseña" autocomplete="new-password" style="margin-top:8px">
+                            <p id="optPasswordStatus" class="opt-status-note"></p>
+                        </div>
+
+                        <div class="opt-danger">
+                            <span class="opt-label" style="color:var(--cel-text-muted)">Cerrar la sesión en este dispositivo</span>
+                            <button class="opt-danger-btn" onclick="logout()">Cerrar sesión</button>
+                        </div>
+                    </div>
+
+                    <!-- APARIENCIA -->
+                    <div class="opt-pane" data-pane="appearance" role="tabpanel">
+                        <div class="opt-pane-head">
+                            <span class="opt-pane-title">La luz del mundo</span>
+                            <span class="opt-pane-hint">— cómo se ilumina Etheria</span>
+                        </div>
+
+                        <div class="opt-subhead">Atmósfera · momento del día</div>
+                        <div class="opt-swatches" style="margin-bottom:6px">
+                            <button class="opt-swatch" data-atmosphere="amanecer">
+                                <span class="chip" style="background:linear-gradient(180deg,#2a1e42,#9a5a44)"><i class="st" style="top:8px;left:14px"></i><i class="st" style="top:20px;left:42px"></i></span>
+                                <span class="opt-swatch-name">Amanecer</span><span class="opt-swatch-sub">Naranja</span>
+                            </button>
+                            <button class="opt-swatch" data-atmosphere="mediodia">
+                                <span class="chip" style="background:linear-gradient(180deg,#3f5290,#8aa6cc)"></span>
+                                <span class="opt-swatch-name">Mediodía</span><span class="opt-swatch-sub">Clara</span>
+                            </button>
+                            <button class="opt-swatch" data-atmosphere="atardecer">
+                                <span class="chip" style="background:linear-gradient(180deg,#150d2e,#6e2832)"><i class="st" style="top:9px;left:18px"></i><i class="st" style="top:22px;left:48px"></i></span>
+                                <span class="opt-swatch-name">Atardecer</span><span class="opt-swatch-sub">Rojiza</span>
+                            </button>
+                            <button class="opt-swatch" data-atmosphere="noche">
+                                <span class="chip" style="background:linear-gradient(180deg,#0c0726,#241c54)"><i class="st" style="top:8px;left:16px"></i><i class="st" style="top:20px;left:40px"></i><i class="st" style="top:30px;left:70px"></i><i class="st" style="top:14px;left:88px"></i></span>
+                                <span class="opt-swatch-name">Noche</span><span class="opt-swatch-sub">Profunda</span>
+                            </button>
+                        </div>
+
+                        <div class="opt-row">
+                            <span class="opt-label">Tamaño de fuente</span>
+                            <div class="opt-slidewrap">
+                                <input type="range" id="optFontSize" class="opt-slider" min="14" max="24" value="19" data-fmt="px" data-preview="font"
+                                    oninput="updateFontSize(this.value)">
+                                <span class="opt-slideval" id="optFontSizeVal">19px</span>
+                            </div>
+                        </div>
+
+                        <div class="opt-row opt-row-stacked">
+                            <span class="opt-label">Filtro de escena</span>
+                            <div class="opt-swatches">
+                                <button class="opt-swatch active" data-filter="none" style="width:92px"><span class="chip" style="background:linear-gradient(135deg,#3a2a6b,#7c4dff)"></span><span class="opt-swatch-name">Normal</span></button>
+                                <button class="opt-swatch" data-filter="sepia" style="width:92px"><span class="chip" style="background:linear-gradient(135deg,#5a4326,#c79a5a)"></span><span class="opt-swatch-name">Sépia</span></button>
+                                <button class="opt-swatch" data-filter="bw" style="width:92px"><span class="chip" style="background:linear-gradient(135deg,#2a2a33,#9a9aa6)"></span><span class="opt-swatch-name">B / N</span></button>
+                                <button class="opt-swatch" data-filter="cinematic" style="width:92px"><span class="chip" style="background:linear-gradient(135deg,#1a1430,#5b3a8a)"></span><span class="opt-swatch-name">Cine</span></button>
+                            </div>
+                        </div>
+
+                        <div class="opt-divider"></div>
+                        <div class="opt-preview">
+                            <div class="opt-preview-tag">Vista previa</div>
+                            <div class="opt-preview-name">Oráculo</div>
+                            <div class="opt-preview-text">Las constelaciones se reordenan cuando alguien se atreve a cambiar su destino. ¿Estás lista para reescribir el tuyo?</div>
+                        </div>
+                    </div>
+
+                    <!-- LECTURA -->
+                    <div class="opt-pane" data-pane="reading" role="tabpanel">
+                        <div class="opt-pane-head">
+                            <span class="opt-pane-title">El ritmo del relato</span>
+                            <span class="opt-pane-hint">— cómo fluye cada palabra</span>
+                        </div>
+
+                        <div class="opt-row">
+                            <span class="opt-label">Velocidad del texto</span>
+                            <div class="opt-slidewrap">
+                                <input type="range" id="optTextSpeed" class="opt-slider" min="10" max="100" value="75" data-fmt="speed"
+                                    oninput="updateTextSpeed(this.value); syncSpeedLabel(this.value)">
+                                <span class="opt-slideval" id="optSpeedVal">Normal</span>
+                            </div>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label">Texto instantáneo<span class="sub">Revela las frases completas, sin tecleo</span></span>
+                            <label class="opt-switch">
+                                <input type="checkbox" id="optInstantText" onchange="updateTextSpeed(this.checked ? 10 : parseInt(document.getElementById('optTextSpeed').value))">
+                                <span class="track"></span><span class="knob"></span>
+                            </label>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label">Modo inmersivo VN<span class="sub">Oculta la interfaz durante la lectura</span></span>
+                            <label class="opt-switch">
+                                <input type="checkbox" id="optImmersiveMode" onchange="toggleImmersiveModeSetting(this.checked)">
+                                <span class="track"></span><span class="knob"></span>
+                            </label>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label">Lectura continua<span class="sub">Avanza solo entre líneas</span></span>
+                            <label class="opt-switch">
+                                <input type="checkbox" id="optContinuousRead" onchange="toggleContinuousReading(this.checked)">
+                                <span class="track"></span><span class="knob"></span>
+                            </label>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label">Espera de autoavance</span>
+                            <div class="opt-slidewrap">
+                                <input type="range" id="optContinuousDelay" class="opt-slider" min="3" max="5" value="4" data-fmt="s"
+                                    oninput="updateContinuousReadDelay(this.value)">
+                                <span class="opt-slideval" id="optContinuousDelayVal">4s</span>
+                            </div>
+                        </div>
+
+                        <div class="opt-divider"></div>
+                        <div class="opt-preview">
+                            <div class="opt-preview-tag">Vista previa</div>
+                            <div class="opt-preview-name">Narrador</div>
+                            <div class="opt-preview-text">El viento arrastró un susurro entre las ruinas… y, por un instante, el mundo entero pareció contener el aliento.</div>
+                        </div>
+                    </div>
+
+                    <!-- SONIDO -->
+                    <div class="opt-pane" data-pane="sound" role="tabpanel">
+                        <div class="opt-pane-head">
+                            <span class="opt-pane-title">Ecos de Etheria</span>
+                            <span class="opt-pane-hint">— lo que oye tu mundo</span>
+                        </div>
+
+                        <div class="opt-row">
+                            <span class="opt-label">Volumen general</span>
+                            <div class="opt-slidewrap">
+                                <input type="range" id="optMasterVol" class="opt-slider" min="0" max="100" value="50" data-fmt="pct"
+                                    oninput="updateMasterVolume(this.value)">
+                                <span class="opt-slideval" id="optMasterVolVal">50%</span>
+                            </div>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label">Volumen de lluvia</span>
+                            <div class="opt-slidewrap">
+                                <input type="range" id="optRainVol" class="opt-slider" min="0" max="100" value="30" data-fmt="pct"
+                                    oninput="updateRainVolume(this.value)">
+                                <span class="opt-slideval" id="optRainVolVal">30%</span>
+                            </div>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label">Efectos de interfaz<span class="sub">Sonidos al pulsar y navegar</span></span>
+                            <label class="opt-switch">
+                                <input type="checkbox" id="optUiSounds" checked onchange="updateUiSounds(this.checked)">
+                                <span class="track"></span><span class="knob"></span>
+                            </label>
+                        </div>
+                        <div class="opt-row">
+                            <span class="opt-label">Notificaciones push<span class="sub" id="pushNotifLabel">Avisa cuando te toca responder</span></span>
+                            <label class="opt-switch">
+                                <input type="checkbox" id="pushNotifToggle"
+                                    onchange="EtheriaPush && (this.checked ? EtheriaPush.requestPermissionAndSubscribe() : EtheriaPush.unsubscribe())">
+                                <span class="track"></span><span class="knob"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                </section>
+            </div>
         </div>
-
-        <!-- ── Tab bar ─────────────────────────────────────────── -->
-        <div class="opt-tab-bar" role="tablist">
-            <button class="opt-tab active opt-tab-account" role="tab" aria-selected="true"  data-tab="account" onclick="switchOptTab('account',this)">
-                <span class="opt-tab-icon">👤</span>
-                <span class="opt-tab-label">Cuenta</span>
-            </button>
-            <button class="opt-tab" role="tab" aria-selected="false"  data-tab="appearance" onclick="switchOptTab('appearance',this)">
-                <span class="opt-tab-icon">🎨</span>
-                <span class="opt-tab-label">Apariencia</span>
-            </button>
-            <button class="opt-tab" role="tab" aria-selected="false" data-tab="reading"    onclick="switchOptTab('reading',this)">
-                <span class="opt-tab-icon">📖</span>
-                <span class="opt-tab-label">Lectura</span>
-            </button>
-            <button class="opt-tab" role="tab" aria-selected="false" data-tab="sound"      onclick="switchOptTab('sound',this)">
-                <span class="opt-tab-icon">🔊</span>
-                <span class="opt-tab-label">Sonido</span>
-            </button>
-
-        </div>
-
-        <!-- ── Paneles ─────────────────────────────────────────── -->
-        <div class="opt-panels">
-
-            <!-- CUENTA / PERFIL -->
-            <div class="opt-panel active" id="optPanel-account" role="tabpanel">
-                <div class="opt-section-title">Perfil
-                    <button class="opt-save-btn opt-logout-btn" onclick="logout()" style="float:right;font-size:0.75rem;padding:0.25rem 0.7rem;margin-top:-2px;">Cerrar sesión</button>
-                </div>
-
-                <!-- Avatar -->
-                <div class="opt-profile-avatar-zone">
-                    <div class="opt-avatar-preview" id="optAvatarPreview" onclick="document.getElementById('optAvatarInput').click()" title="Cambiar avatar">
-                        <span class="opt-avatar-initials" id="optAvatarInitials">?</span>
-                        <img class="opt-avatar-img" id="optAvatarImg" src="" alt="Avatar" style="display:none">
-                        <div class="opt-avatar-overlay">📷</div>
-                    </div>
-                    <div class="opt-avatar-actions">
-                        <p class="opt-avatar-hint">Toca para cambiar tu avatar.<br>PNG, JPG o GIF · Máx. 1 MB</p>
-                        <button class="opt-avatar-remove-btn" id="optAvatarRemoveBtn" onclick="removeProfileAvatar()" style="display:none">✕ Quitar foto</button>
-                    </div>
-                    <input type="file" id="optAvatarInput" accept="image/png,image/jpeg,image/gif,image/webp"
-                        style="display:none" onchange="handleAvatarUpload(this)">
-                </div>
-
-                <div class="opt-rows">
-                    <div class="option-row opt-row-stacked">
-                        <label class="option-label" for="optProfileName">Nombre visible</label>
-                        <div class="opt-input-row">
-                            <input type="text" id="optProfileName" class="opt-text-input" placeholder="Tu nombre..." autocomplete="off">
-                            <button onclick="saveProfileNameFromOptions()" class="opt-save-btn">Guardar</button>
-                        </div>
-                    </div>
-                    <div class="option-row">
-                        <label class="option-label" for="optProfileGender">Género</label>
-                        <select id="optProfileGender" class="opt-select" onchange="saveProfileGender(this.value)">
-                            <option value="">Sin especificar</option>
-                            <option value="masculino">Masculino</option>
-                            <option value="femenino">Femenino</option>
-                            <option value="no-binario">No binario</option>
-                            <option value="otro">Otro</option>
-                        </select>
-                    </div>
-                    <div class="option-row">
-                        <label class="option-label" for="optProfileBirthday">Cumpleaños</label>
-                        <div class="opt-birthday-wrap">
-                            <input type="date" id="optProfileBirthday" class="opt-date-input"
-                                onchange="saveProfileBirthday(this.value)">
-                            <span class="opt-birthday-hint" id="optBirthdayHint"></span>
-                        </div>
-                    </div>
-                    <div class="option-row" style="border-top: 1px solid rgba(201,168,108,0.08); margin-top: 0.5rem; padding-top: 1rem;">
-                        <span class="option-label" style="color: var(--text-muted); font-size: 0.82rem;" id="optProfileStats"></span>
-                    </div>
-                </div>
-                <!-- SEGURIDAD -->
-                <div class="opt-section-title" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid rgba(201,168,108,0.12);">Seguridad</div>
-                <div class="opt-rows">
-                    <!-- Cambio de email -->
-                    <div class="option-row opt-row-stacked">
-                        <label class="option-label" for="optNewEmail">Cambiar email</label>
-                        <div class="opt-input-row">
-                            <input type="email" id="optNewEmail" class="opt-text-input" placeholder="nuevo@email.com" autocomplete="off">
-                            <button onclick="requestEmailChange()" class="opt-save-btn">Cambiar</button>
-                        </div>
-                        <p id="optEmailStatus" class="opt-security-status"></p>
-                    </div>
-                    <!-- Cambio de contraseña -->
-                    <div class="option-row opt-row-stacked">
-                        <label class="option-label" for="optNewPassword">Nueva contraseña</label>
-                        <div class="opt-input-row">
-                            <input type="password" id="optNewPassword" class="opt-text-input" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
-                            <button onclick="requestPasswordChange()" class="opt-save-btn">Cambiar</button>
-                        </div>
-                        <div class="opt-input-row" style="margin-top: 0.5rem;">
-                            <input type="password" id="optNewPasswordConfirm" class="opt-text-input" placeholder="Confirmar contraseña" autocomplete="new-password">
-                        </div>
-                        <p id="optPasswordStatus" class="opt-security-status"></p>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- APARIENCIA -->
-            <div class="opt-panel" id="optPanel-appearance" role="tabpanel">
-                <div class="opt-section-title">Apariencia</div>
-                <div class="opt-rows">
-                    <div class="option-row">
-                        <span class="option-label">Tema visual</span>
-                        <button onclick="toggleTheme()" class="opt-toggle-btn" id="themeToggleBtn">☀️ Claro</button>
-                    </div>
-                    <div class="option-row">
-                        <label class="option-label" for="optFontSize">Tamaño de fuente</label>
-                        <div class="option-slider-wrap">
-                            <input type="range" id="optFontSize" class="setting-slider" min="14" max="24" value="19"
-                                oninput="updateFontSize(this.value); document.getElementById('optFontSizeVal').textContent = this.value + 'px'">
-                            <span class="option-slider-val" id="optFontSizeVal">19px</span>
-                        </div>
-                    </div>
-                    <div class="option-row opt-row-filters">
-                        <label class="option-label">Filtro de escena</label>
-                        <div class="filter-buttons">
-                            <button class="filter-btn active" onclick="setAtmosphere('none', this)">Normal</button>
-                            <button class="filter-btn" onclick="setAtmosphere('sepia', this)">Sépia</button>
-                            <button class="filter-btn" onclick="setAtmosphere('bw', this)">B/N</button>
-                            <button class="filter-btn" onclick="setAtmosphere('cinematic', this)">Cine</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- LECTURA -->
-            <div class="opt-panel" id="optPanel-reading" role="tabpanel">
-                <div class="opt-section-title">Lectura</div>
-                <div class="opt-rows">
-                    <div class="option-row">
-                        <label class="option-label" for="optTextSpeed">Velocidad del texto</label>
-                        <div class="option-slider-wrap">
-                            <input type="range" id="optTextSpeed" class="setting-slider" min="10" max="100" value="75"
-                                oninput="updateTextSpeed(this.value); syncSpeedLabel(this.value)">
-                            <span class="option-slider-val" id="optSpeedVal">Normal</span>
-                        </div>
-                    </div>
-                    <div class="option-row">
-                        <span class="option-label">Texto instantáneo</span>
-                        <label class="opt-switch">
-                            <input type="checkbox" id="optInstantText"
-                                onchange="updateTextSpeed(this.checked ? 10 : parseInt(document.getElementById('optTextSpeed').value))">
-                            <span class="opt-slider"></span>
-                        </label>
-                    </div>
-                    <div class="option-row">
-                        <span class="option-label">Modo inmersivo VN</span>
-                        <label class="opt-switch">
-                            <input type="checkbox" id="optImmersiveMode" onchange="toggleImmersiveModeSetting(this.checked)">
-                            <span class="opt-slider"></span>
-                        </label>
-                    </div>
-                    <div class="option-row">
-                        <span class="option-label">Lectura continua</span>
-                        <label class="opt-switch">
-                            <input type="checkbox" id="optContinuousRead" onchange="toggleContinuousReading(this.checked)">
-                            <span class="opt-slider"></span>
-                        </label>
-                    </div>
-                    <div class="option-row">
-                        <label class="option-label" for="optContinuousDelay">Espera autoavance</label>
-                        <div class="option-slider-wrap">
-                            <input type="range" id="optContinuousDelay" class="setting-slider" min="3" max="5" value="4"
-                                oninput="updateContinuousReadDelay(this.value)">
-                            <span class="option-slider-val" id="optContinuousDelayVal">4s</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SONIDO -->
-            <div class="opt-panel" id="optPanel-sound" role="tabpanel">
-                <div class="opt-section-title">Sonido</div>
-                <div class="opt-rows">
-                    <div class="option-row">
-                        <label class="option-label" for="optMasterVol">Volumen general</label>
-                        <div class="option-slider-wrap">
-                            <input type="range" id="optMasterVol" class="setting-slider" min="0" max="100" value="50"
-                                oninput="updateMasterVolume(this.value)">
-                            <span class="option-slider-val" id="optMasterVolVal">50%</span>
-                        </div>
-                    </div>
-                    <div class="option-row">
-                        <label class="option-label" for="optRainVol">Volumen lluvia</label>
-                        <div class="option-slider-wrap">
-                            <input type="range" id="optRainVol" class="setting-slider" min="0" max="100" value="30"
-                                oninput="updateRainVolume(this.value)">
-                            <span class="option-slider-val" id="optRainVolVal">30%</span>
-                        </div>
-                    </div>
-                    <div class="option-row">
-                        <span class="option-label">Efectos de UI</span>
-                        <label class="opt-switch">
-                            <input type="checkbox" id="optUiSounds" checked onchange="updateUiSounds(this.checked)">
-                            <span class="opt-switch-slider"></span>
-                        </label>
-                    </div>
-                    <div class="option-row">
-                        <div class="option-label-group">
-                            <span class="option-label">Notificaciones push</span>
-                            <span class="option-sublabel" id="pushNotifLabel">Avisa cuando te toca responder</span>
-                        </div>
-                        <label class="opt-switch">
-                            <input type="checkbox" id="pushNotifToggle"
-                                onchange="EtheriaPush && (this.checked ? EtheriaPush.requestPermissionAndSubscribe() : EtheriaPush.unsubscribe())">
-                            <span class="opt-switch-slider"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-        </div><!-- /opt-panels -->
     </div>
 
     <!-- VN Section -->
@@ -2290,7 +2343,9 @@
 <script src="js/rpg/RPGRenderer.js"></script>
 <script src="js/ui/userProfile.js"></script>
 <script src="js/ui/hub.js"></script>
+<script src="js/ui/atmosphere.js"></script>
 <script src="js/ui/hub-luna.js"></script>
+<script src="js/ui/options-luna.js"></script>
 <script src="js/app.js"></script>
 <script src="js/ethy.js"></script>
 

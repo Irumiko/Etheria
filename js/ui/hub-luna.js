@@ -180,6 +180,51 @@
     }, { passive: true });
   }
 
+  // ── Ciclo de atmósferas ─────────────────────────────────
+  var AMB_ORDER = ['amanecer', 'mediodia', 'atardecer', 'noche'];
+  var AMB_LABEL = { amanecer: 'Amanecer', mediodia: 'Mediodía', atardecer: 'Atardecer', noche: 'Noche' };
+  var AMB_ICON = {
+    amanecer: '<path d="M3 15h14M10 5v2M5.5 8l1 1M14.5 8l-1 1M7 15a3 3 0 016 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.4 4.2L10 2.6l1.6 1.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>',
+    mediodia: '<circle cx="10" cy="10" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.5v2M10 15.5v2M2.5 10h2M15.5 10h2M4.7 4.7l1.4 1.4M13.9 13.9l1.4 1.4M4.7 15.3l1.4-1.4M13.9 6.1l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+    atardecer: '<path d="M3 15h14M10 5v2M5.5 8l1 1M14.5 8l-1 1M7 15a3 3 0 016 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.4 6.4L10 8l1.6-1.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>',
+    noche: '<path d="M16 11.5A6 6 0 018.5 4 6 6 0 1016 11.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>'
+  };
+
+  function applyAtmosphereToHub(hub, name) {
+    AMB_ORDER.forEach(function (a) { hub.classList.remove('amb-' + a); });
+    hub.classList.add('amb-' + name);
+    var btn = hub.querySelector('#ambCycleBtn');
+    if (btn) {
+      var ico = btn.querySelector('.amb-ico');
+      if (ico) ico.innerHTML = AMB_ICON[name];
+      btn.title = AMB_LABEL[name];
+      btn.setAttribute('aria-label', 'Atmósfera: ' + AMB_LABEL[name]);
+    }
+  }
+
+  function bindAmbCycle(hub) {
+    var btn = hub.querySelector('#ambCycleBtn');
+    if (!btn) return;
+    // listen to global atmosphere changes (from Options or other panels)
+    if (window.eventBus) {
+      window.eventBus.on('settings:atmosphere-changed', function (value) {
+        applyAtmosphereToHub(hub, value);
+      });
+    }
+    // apply current state from EtheriaAtmosphere (set by atmosphere.js on body)
+    var current = (window.EtheriaAtmosphere && window.EtheriaAtmosphere.get()) || 'noche';
+    applyAtmosphereToHub(hub, current);
+    btn.addEventListener('click', function () {
+      if (window.EtheriaAtmosphere) {
+        window.EtheriaAtmosphere.cycle();
+      } else {
+        var idx = AMB_ORDER.indexOf(current);
+        current = AMB_ORDER[(idx + 1) % AMB_ORDER.length];
+        applyAtmosphereToHub(hub, current);
+      }
+    });
+  }
+
   function init() {
     var hub = document.getElementById('mainMenu');
     if (!hub || hub.dataset.celReady) return;
@@ -195,6 +240,7 @@
     if (motes) buildMotes(motes, 16);
     if (menu) buildSpine(menu);
     bindParallax(hub);
+    bindAmbCycle(hub);
   }
 
   // Separate spine init — depends on offsetHeight, needs visible element.
@@ -209,6 +255,10 @@
   }
 
   window.HubLuna = { init: init, initSpine: initSpine };
+
+  // Auto-init en carga inicial (mainMenu puede estar visible sin section-changed)
+  if (document.readyState !== 'loading') { init(); }
+  else { document.addEventListener('DOMContentLoaded', init); }
 
   // On section change: full init first time, rebuild spine on subsequent visits.
   window.addEventListener('etheria:section-changed', function (e) {
