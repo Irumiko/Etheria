@@ -192,6 +192,7 @@ function resetVNTransientState({ clearTopic = false } = {}) {
         if (typeof cancelContinuousRead === 'function') cancelContinuousRead('exit-topic');
         if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
         window.dispatchEvent(new CustomEvent('etheria:topic-leave'));
+        if (typeof SupabaseCycles !== 'undefined') SupabaseCycles.reset();
         currentTopicId = null;
         currentMessageIndex = 0;
     }

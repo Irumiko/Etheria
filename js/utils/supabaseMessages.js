@@ -190,6 +190,7 @@
                     weather          : msgObj.weather           || undefined,
                     diceRoll         : msgObj.diceRoll          || undefined,
                     options          : msgObj.options           || undefined,
+                    cycle_id         : msgObj.cycle_id          || undefined,
                     oracle            : msgObj.oracle             || undefined,
                     oracleConsequence : msgObj.oracleConsequence  || undefined,
                     metaType          : msgObj.metaType           || undefined,

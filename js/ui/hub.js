@@ -50,6 +50,9 @@
         const latest = currentTopics.length > 0
           ? currentTopics[currentTopics.length - 1] : null;
         if (latest?.id && typeof enterTopic === 'function') {
+          const mainMenu = document.getElementById('mainMenu');
+          if (mainMenu) mainMenu.classList.add('hidden');
+          eventBus.emit('audio:stop-menu-music');
           enterTopic(latest.id);
         } else if (typeof showSection === 'function') {
           showSection('topics');

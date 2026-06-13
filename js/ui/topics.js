@@ -32,15 +32,17 @@ window.openNoCharacterWarning = openNoCharacterWarning;
 function openBranchEditor() {
     tempBranches = [];
     for(let i=1; i<=3; i++) {
-        const textInput = document.getElementById(`option${i}Text`);
-        const contInput = document.getElementById(`option${i}Continuation`);
+        const textInput    = document.getElementById(`option${i}Text`);
+        const contInput    = document.getElementById(`option${i}Continuation`);
+        const impactSelect = document.getElementById(`option${i}AffinityImpact`);
         const t = textInput?.value.trim() || '';
         const c = contInput?.value.trim() || '';
         if(t || c) {
             tempBranches.push({
                 id: i,
                 text: t,
-                continuation: c
+                continuation: c,
+                affinityImpact: impactSelect?.value || 'neutral'
             });
         }
     }
@@ -64,6 +66,11 @@ function renderBranchEditor() {
                 </div>
                 <input type="text" class="branch-input" placeholder="Texto de la opción" value="${escapeHtml(branch.text)}" onchange="updateBranch(${branch.id}, 'text', this.value)">
                 <textarea class="branch-textarea" placeholder="Continuación narrativa..." onchange="updateBranch(${branch.id}, 'continuation', this.value)">${escapeHtml(branch.continuation)}</textarea>
+                <select class="option-affinity-select" onchange="updateBranch(${branch.id}, 'affinityImpact', this.value)">
+                    <option value="neutral" ${(branch.affinityImpact || 'neutral') === 'neutral' ? 'selected' : ''}>Sin efecto de afinidad</option>
+                    <option value="positive" ${branch.affinityImpact === 'positive' ? 'selected' : ''}>↑ Impacto positivo</option>
+                    <option value="negative" ${branch.affinityImpact === 'negative' ? 'selected' : ''}>↓ Impacto negativo</option>
+                </select>
             </div>
         `).join('');
     }
@@ -74,7 +81,8 @@ function addNewBranch() {
     tempBranches.push({
         id: newId,
         text: '',
-        continuation: ''
+        continuation: '',
+        affinityImpact: 'neutral'
     });
     renderBranchEditor();
 }
@@ -100,15 +108,18 @@ function saveBranches() {
     }
 
     for(let i=0; i<3; i++) {
-        const textInput = document.getElementById(`option${i+1}Text`);
-        const contInput = document.getElementById(`option${i+1}Continuation`);
+        const textInput    = document.getElementById(`option${i+1}Text`);
+        const contInput    = document.getElementById(`option${i+1}Continuation`);
+        const impactSelect = document.getElementById(`option${i+1}AffinityImpact`);
 
         if (i < validBranches.length) {
-            if (textInput) textInput.value = validBranches[i].text;
-            if (contInput) contInput.value = validBranches[i].continuation;
+            if (textInput)    textInput.value    = validBranches[i].text;
+            if (contInput)    contInput.value    = validBranches[i].continuation;
+            if (impactSelect) impactSelect.value = validBranches[i].affinityImpact || 'neutral';
         } else {
-            if (textInput) textInput.value = '';
-            if (contInput) contInput.value = '';
+            if (textInput)    textInput.value    = '';
+            if (contInput)    contInput.value    = '';
+            if (impactSelect) impactSelect.value = 'neutral';
         }
     }
 

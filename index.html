@@ -960,8 +960,6 @@
                     <div class="affinity-rank-row">
                         <div class="affinity-rank-name" id="affinityRankName">Desconocidos</div>
                         <div class="affinity-controls-inline">
-                            <button class="affinity-btn-inline affinity-btn-minus" onclick="modifyAffinity(-1)" title="Disminuir afinidad" aria-label="Bajar afinidad">−</button>
-                            <button class="affinity-btn-inline affinity-btn-plus" onclick="modifyAffinity(1)" title="Aumentar afinidad" aria-label="Subir afinidad">+</button>
                             <button class="affinity-btn-inline" onclick="openRelationshipGraph()" title="Ver grafo de relaciones">✶</button>
                         </div>
                     </div>
@@ -1727,16 +1725,31 @@
                                 <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
                                 <input type="text" id="option1Text" class="option-input" placeholder="Texto de la opción">
                                 <textarea id="option1Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                                <select id="option1AffinityImpact" class="option-affinity-select">
+                                    <option value="neutral">Sin efecto de afinidad</option>
+                                    <option value="positive">↑ Impacto positivo</option>
+                                    <option value="negative">↓ Impacto negativo</option>
+                                </select>
                             </div>
                             <div class="option-field-group">
                                 <div class="option-field-header"><span>②</span><span>Opción 2</span></div>
                                 <input type="text" id="option2Text" class="option-input" placeholder="Texto de la opción">
                                 <textarea id="option2Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                                <select id="option2AffinityImpact" class="option-affinity-select">
+                                    <option value="neutral">Sin efecto de afinidad</option>
+                                    <option value="positive">↑ Impacto positivo</option>
+                                    <option value="negative">↓ Impacto negativo</option>
+                                </select>
                             </div>
                             <div class="option-field-group">
                                 <div class="option-field-header"><span>③</span><span>Opción 3</span></div>
                                 <input type="text" id="option3Text" class="option-input" placeholder="Texto de la opción">
                                 <textarea id="option3Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
+                                <select id="option3AffinityImpact" class="option-affinity-select">
+                                    <option value="neutral">Sin efecto de afinidad</option>
+                                    <option value="positive">↑ Impacto positivo</option>
+                                    <option value="negative">↓ Impacto negativo</option>
+                                </select>
                             </div>
                             <button class="branch-editor-btn" onclick="openBranchEditor()">
                                 <span>🌿</span><span>Editor Avanzado de Ramas</span>
@@ -2319,6 +2332,8 @@
     <script src="js/utils/supabaseInbox.js"></script>
     <script src="js/utils/supabaseExtras.js"></script>
     <script src="js/utils/pushNotifications.js"></script>
+<script src="js/ui/toasts.js"></script>
+<script src="js/ui/vn-design.js"></script>
 <script src="js/ui/vn.js"></script>
 <script src="js/ui/journal.js"></script>
 <script src="js/ui/topics.js"></script>
@@ -2328,6 +2343,8 @@
 <script src="js/utils/supabaseCharacters.js"></script>
 <script src="js/utils/supabaseBonds.js"></script>
 <script src="js/utils/supabaseAffinities.js"></script>
+<script src="js/utils/supabaseCycles.js"></script>
+<script src="js/utils/supabaseCycleViews.js"></script>
 <script src="js/utils/supabaseJournals.js"></script>
 <script src="js/utils/supabaseFavorites.js"></script>
 <script src="js/utils/supabaseSettings.js"></script>
@@ -2360,8 +2377,6 @@
             <div id="graphAffinityControls" class="graph-affinity-controls hidden">
                 <span class="graph-affinity-label">Afinidad con <strong id="graphAffinityTargetName">—</strong>:</span>
                 <span class="graph-affinity-rank" id="graphAffinityRankName">—</span>
-                <button class="graph-affinity-btn minus" onclick="modifyAffinity(-1); refreshRelationshipGraph();" title="Disminuir afinidad">−</button>
-                <button class="graph-affinity-btn plus" onclick="modifyAffinity(1); refreshRelationshipGraph();" title="Aumentar afinidad">+</button>
             </div>
             <div id="relationshipGraphCanvas" class="relationship-constellation"></div>
             <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.6rem;">★ = nivel de afinidad (0-5). Las flechas A→B y B→A pueden ser distintas. Grosor de línea = interacciones recientes.</div>

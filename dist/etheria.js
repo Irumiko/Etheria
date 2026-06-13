@@ -5513,6 +5513,7 @@ function resetVNTransientState({ clearTopic = false } = {}) {
         if (typeof cancelContinuousRead === 'function') cancelContinuousRead('exit-topic');
         if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
         window.dispatchEvent(new CustomEvent('etheria:topic-leave'));
+        if (typeof SupabaseCycles !== 'undefined') SupabaseCycles.reset();
         currentTopicId = null;
         currentMessageIndex = 0;
     }
@@ -8546,6 +8547,7 @@ window.SupabaseSync = SupabaseSync;
                     weather          : msgObj.weather           || undefined,
                     diceRoll         : msgObj.diceRoll          || undefined,
                     options          : msgObj.options           || undefined,
+                    cycle_id         : msgObj.cycle_id          || undefined,
                     oracle            : msgObj.oracle             || undefined,
                     oracleConsequence : msgObj.oracleConsequence  || undefined,
                     metaType          : msgObj.metaType           || undefined,
@@ -10457,6 +10459,624 @@ window.SupabaseSync = SupabaseSync;
 
 })(window);
 
+/* js/ui/toasts.js */
+// ═══════════════════════════════════════════════════════════════════
+// TOASTS — Sistema de notificaciones reutilizable de Etheria
+//
+// API pública (window.Toasts):
+//   show({ type, title, body, duration })
+//     type: 'info' | 'success' | 'warning' | 'error'
+//     duration: ms, omitir para sticky (cierra con click)
+//
+//   showCycleEchos({ changes, onDismiss })
+//     changes: [{ charName, charAvatar, direction: 'up'|'down' }]
+//     onDismiss: función llamada al cerrar
+// ═══════════════════════════════════════════════════════════════════
+
+const Toasts = (function () {
+
+    // ── Estilos inyectados una sola vez ───────────────────────────────
+
+    let _stylesInjected = false;
+
+    function _injectStyles() {
+        if (_stylesInjected) return;
+        _stylesInjected = true;
+
+        const css = `
+/* ── Toasts base ─────────────────────────────────────── */
+.eth-toast {
+    position: fixed;
+    z-index: 9800;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(calc(100% + 2rem));
+    max-width: min(480px, calc(100vw - 2rem));
+    width: 100%;
+    background: rgba(12, 9, 18, 0.97);
+    border: 1px solid var(--accent-gold, #c9a86c);
+    border-radius: 4px;
+    box-shadow:
+        0 0 0 1px rgba(201, 168, 108, 0.12),
+        0 8px 40px rgba(0, 0, 0, 0.7),
+        0 0 24px rgba(201, 168, 108, 0.08);
+    padding: 1.25rem 1.5rem 1.1rem;
+    font-family: var(--font-body, 'Crimson Text', Georgia, serif);
+    color: var(--text-primary, #e8dcc8);
+    cursor: pointer;
+    transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity  0.38s ease;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+}
+.eth-toast.eth-toast--visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+.eth-toast.eth-toast--leaving {
+    transform: translateX(-50%) translateY(calc(100% + 2rem));
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ── Toast genérico ──────────────────────────────────── */
+.eth-toast__title {
+    font-family: var(--font-display, 'Cinzel', serif);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-gold, #c9a86c);
+    margin-bottom: 0.35rem;
+}
+.eth-toast__body {
+    font-size: 0.95rem;
+    line-height: 1.45;
+    opacity: 0.88;
+}
+.eth-toast--error   .eth-toast__title { color: #c07070; }
+.eth-toast--warning .eth-toast__title { color: #c0a040; }
+.eth-toast--success .eth-toast__title { color: #70a870; }
+
+/* ── Ecos del ciclo ──────────────────────────────────── */
+.eth-toast--echos {
+    padding: 1.4rem 1.6rem 1.3rem;
+}
+.eth-toast__echos-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+    border-bottom: 1px solid rgba(201, 168, 108, 0.18);
+    padding-bottom: 0.75rem;
+}
+.eth-toast__echos-icon {
+    font-size: 1.1rem;
+    opacity: 0.75;
+}
+.eth-toast__echos-titles {
+    flex: 1;
+}
+.eth-toast__echos-title {
+    font-family: var(--font-display, 'Cinzel', serif);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-gold, #c9a86c);
+    line-height: 1.2;
+}
+.eth-toast__echos-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.5;
+    margin-top: 0.15rem;
+    font-style: italic;
+}
+.eth-toast__echos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-bottom: 1rem;
+}
+.eth-toast__echos-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.eth-toast__echos-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    object-fit: cover;
+    flex-shrink: 0;
+    background: rgba(201, 168, 108, 0.08);
+}
+.eth-toast__echos-initial {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    flex-shrink: 0;
+    background: rgba(201, 168, 108, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display, 'Cinzel', serif);
+    font-size: 0.75rem;
+    color: var(--accent-gold, #c9a86c);
+}
+.eth-toast__echos-name {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+.eth-toast__echos-arrow {
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.eth-toast__echos-arrow--up   { color: #c9a86c; }
+.eth-toast__echos-arrow--down { color: #8a5050; }
+.eth-toast__echos-hint {
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    opacity: 0.35;
+    text-transform: uppercase;
+    font-family: var(--font-display, 'Cinzel', serif);
+}
+
+/* Ornamento Art Deco superior */
+.eth-toast--echos::before {
+    content: '';
+    display: block;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(201, 168, 108, 0.6) 30%,
+        rgba(201, 168, 108, 0.9) 50%,
+        rgba(201, 168, 108, 0.6) 70%,
+        transparent
+    );
+    margin: -1.4rem -1.6rem 1.2rem;
+    border-radius: 4px 4px 0 0;
+}
+        `;
+
+        const style = document.createElement('style');
+        style.id = 'eth-toasts-styles';
+        style.textContent = css;
+        document.head.appendChild(style);
+    }
+
+    // ── Helpers DOM ───────────────────────────────────────────────────
+
+    function _create(extraClass) {
+        _injectStyles();
+        const el = document.createElement('div');
+        el.className = 'eth-toast' + (extraClass ? ' ' + extraClass : '');
+        document.body.appendChild(el);
+        return el;
+    }
+
+    function _show(el) {
+        // Forzar reflow antes de añadir la clase visible
+        void el.offsetWidth;
+        el.classList.add('eth-toast--visible');
+    }
+
+    function _dismiss(el, onDismiss) {
+        el.classList.remove('eth-toast--visible');
+        el.classList.add('eth-toast--leaving');
+        setTimeout(function () {
+            if (el.parentNode) el.parentNode.removeChild(el);
+            if (typeof onDismiss === 'function') onDismiss();
+        }, 420);
+    }
+
+    // ── show — toast genérico ─────────────────────────────────────────
+
+    function show(config) {
+        const { type = 'info', title, body, duration, onDismiss } = config || {};
+
+        const el = _create('eth-toast--' + type);
+        el.innerHTML = (title ? `<div class="eth-toast__title">${_esc(title)}</div>` : '') +
+                       (body  ? `<div class="eth-toast__body">${_esc(body)}</div>`   : '');
+
+        const close = function () { _dismiss(el, onDismiss); };
+
+        if (duration) {
+            setTimeout(close, duration);
+        } else {
+            el.addEventListener('click', close, { once: true });
+        }
+
+        _show(el);
+        return el;
+    }
+
+    // ── showCycleEchos — panel "Ecos del Ciclo" ───────────────────────
+
+    function showCycleEchos(config) {
+        const { changes = [], onDismiss } = config || {};
+        if (changes.length === 0) return null;
+
+        const el = _create('eth-toast--echos');
+
+        const entriesHtml = changes.map(function (c) {
+            const avatarHtml = c.charAvatar
+                ? `<img class="eth-toast__echos-avatar" src="${_esc(c.charAvatar)}" alt="${_esc(c.charName)}" loading="lazy">`
+                : `<div class="eth-toast__echos-initial">${_esc((c.charName || '?')[0].toUpperCase())}</div>`;
+
+            const arrowClass = c.direction === 'up'
+                ? 'eth-toast__echos-arrow--up'
+                : 'eth-toast__echos-arrow--down';
+            const arrowGlyph = c.direction === 'up' ? '▲' : '▼';
+
+            return `
+                <div class="eth-toast__echos-entry">
+                    ${avatarHtml}
+                    <span class="eth-toast__echos-name">${_esc(c.charName)}</span>
+                    <span class="eth-toast__echos-arrow ${arrowClass}" aria-label="${c.direction === 'up' ? 'subió' : 'bajó'}">${arrowGlyph}</span>
+                </div>`;
+        }).join('');
+
+        el.innerHTML = `
+            <div class="eth-toast__echos-header">
+                <span class="eth-toast__echos-icon">✦</span>
+                <div class="eth-toast__echos-titles">
+                    <div class="eth-toast__echos-title">Ecos del Ciclo</div>
+                    <div class="eth-toast__echos-subtitle">Los lazos del destino se han movido</div>
+                </div>
+            </div>
+            <div class="eth-toast__echos-list">${entriesHtml}</div>
+            <div class="eth-toast__echos-hint">Toca para cerrar</div>
+        `;
+
+        const close = function () { _dismiss(el, onDismiss); };
+        el.addEventListener('click', close, { once: true });
+
+        _show(el);
+        return el;
+    }
+
+    // ── Utilidad ──────────────────────────────────────────────────────
+
+    function _esc(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // ── Public API ────────────────────────────────────────────────────
+
+    return { show, showCycleEchos };
+
+})();
+
+window.Toasts = Toasts;
+
+/* js/ui/vn-design.js */
+// ═══════════════════════════════════════════════════════════════════
+// VN Design Layer — Senda de la Palabra & Senda del Azar
+//
+// Inyecta los ornamentos puramente decorativos que requieren DOM o
+// canvas animado: campo de estrellas (canvas), anillo zodiacal (SVG
+// en modo clásico), ruta de expedición (SVG en modo RPG).
+//
+// Se auto-activa cuando se entra a #vnSection y limpia al salir.
+// Respeta prefers-reduced-motion: sin animaciones ni canvas activo.
+// ═══════════════════════════════════════════════════════════════════
+
+(function () {
+    'use strict';
+
+    var _raf     = 0;
+    var _stars   = [];
+    var _canvas  = null;
+    var _ctx     = null;
+    var _running = false;
+    var _mode    = null; // 'classic' | 'rpg' | null
+    var _resizeHandler = null;
+
+    var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ── Helpers ─────────────────────────────────────────────────────
+
+    function _isClassic() { return document.body.classList.contains('mode-classic'); }
+    function _isRpg()     { return document.body.classList.contains('mode-rpg'); }
+
+    // ── Star field canvas ───────────────────────────────────────────
+
+    function _initCanvas(section) {
+        _canvas = document.getElementById('vnStarCanvas');
+        if (!_canvas) {
+            _canvas = document.createElement('canvas');
+            _canvas.id = 'vnStarCanvas';
+            _canvas.setAttribute('aria-hidden', 'true');
+            section.insertBefore(_canvas, section.firstChild);
+        }
+        _ctx = _canvas.getContext('2d');
+        _setupStars();
+    }
+
+    function _setupStars() {
+        var DPR  = Math.min(window.devicePixelRatio || 1, 2);
+        var warm = _isRpg();
+        var w = _canvas.clientWidth;
+        var h = _canvas.clientHeight;
+        _canvas.width  = Math.max(1, w * DPR);
+        _canvas.height = Math.max(1, h * DPR);
+        if (_ctx) _ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        var n = Math.min(240, Math.round((w * h) / 8200));
+        _stars = [];
+        for (var i = 0; i < n; i++) {
+            var r = Math.random();
+            var hue = r < 0.16 ? 'c' : r < 0.30 ? 'b' : 'a';
+            _stars.push({
+                x:    Math.random() * w,
+                y:    Math.random() * h,
+                r:    Math.random() * 1.2 + 0.25,
+                base: Math.random() * 0.4 + 0.28,
+                amp:  Math.random() * 0.5 + 0.1,
+                sp:   Math.random() * 0.0015 + 0.0004,
+                ph:   Math.random() * 6.28,
+                hue:  hue,
+                warm: warm,
+            });
+        }
+    }
+
+    function _palRgb(s) {
+        var warm = s.warm;
+        if (s.hue === 'c') return warm ? '230,150,90'  : '150,170,240';
+        if (s.hue === 'b') return warm ? '240,200,150' : '206,188,250';
+        return                     warm ? '255,238,205' : '250,248,255';
+    }
+
+    function _drawStars(t) {
+        if (!_ctx || !_canvas) return;
+        var w = _canvas.width  / (window.devicePixelRatio || 1);
+        var h = _canvas.height / (window.devicePixelRatio || 1);
+        _ctx.clearRect(0, 0, w, h);
+        for (var i = 0; i < _stars.length; i++) {
+            var s = _stars[i];
+            var a = REDUCED
+                ? s.base + 0.12
+                : s.base + Math.sin(t * s.sp + s.ph) * s.amp;
+            a = Math.max(0, Math.min(1, a));
+            var rgb = _palRgb(s);
+            _ctx.beginPath();
+            _ctx.arc(s.x, s.y, s.r, 0, 6.2832);
+            _ctx.fillStyle   = 'rgba(' + rgb + ',' + a + ')';
+            _ctx.shadowBlur  = s.r * 3.5;
+            _ctx.shadowColor = 'rgba(' + rgb + ',' + (a * 0.7) + ')';
+            _ctx.fill();
+        }
+        _ctx.shadowBlur = 0;
+    }
+
+    function _loop(t) {
+        if (!_running) return;
+        _drawStars(t);
+        if (!REDUCED) _raf = requestAnimationFrame(_loop);
+    }
+
+    // ── Zodiac ring (classic) ───────────────────────────────────────
+
+    function _injectZodiacRing(section) {
+        if (document.getElementById('vnZodiacRing')) return;
+        var accent = '#c1a8ec';
+        var ns = 'http://www.w3.org/2000/svg';
+        var svg = document.createElementNS(ns, 'svg');
+        svg.id = 'vnZodiacRing';
+        svg.setAttribute('viewBox', '0 0 660 660');
+        svg.setAttribute('aria-hidden', 'true');
+
+        // outer ring
+        var c1 = document.createElementNS(ns, 'circle');
+        c1.setAttribute('cx', '330'); c1.setAttribute('cy', '330'); c1.setAttribute('r', '318');
+        c1.setAttribute('fill', 'none'); c1.setAttribute('stroke', accent);
+        c1.setAttribute('stroke-width', '0.7'); c1.setAttribute('opacity', '0.45');
+        svg.appendChild(c1);
+
+        // dashed inner ring
+        var c2 = document.createElementNS(ns, 'circle');
+        c2.setAttribute('cx', '330'); c2.setAttribute('cy', '330'); c2.setAttribute('r', '300');
+        c2.setAttribute('fill', 'none'); c2.setAttribute('stroke', accent);
+        c2.setAttribute('stroke-width', '0.5'); c2.setAttribute('stroke-dasharray', '1 10');
+        c2.setAttribute('opacity', '0.6');
+        svg.appendChild(c2);
+
+        // 12 star markers
+        var R = 309;
+        for (var i = 0; i < 12; i++) {
+            var ang = (i * 30 - 90) * Math.PI / 180;
+            var cx = 330 + Math.cos(ang) * R;
+            var cy = 330 + Math.sin(ang) * R;
+            var dot = document.createElementNS(ns, 'circle');
+            dot.setAttribute('cx', cx.toFixed(2));
+            dot.setAttribute('cy', cy.toFixed(2));
+            dot.setAttribute('r', i % 3 === 0 ? '2.4' : '1.4');
+            dot.setAttribute('fill', i % 3 === 0 ? '#fdf8ff' : accent);
+            dot.setAttribute('opacity', '0.9');
+            svg.appendChild(dot);
+        }
+
+        section.appendChild(svg);
+    }
+
+    // Soft moon glow element
+    function _injectMoonGlow(section) {
+        if (document.getElementById('vnMoonGlow')) return;
+        var div = document.createElement('div');
+        div.id = 'vnMoonGlow';
+        div.setAttribute('aria-hidden', 'true');
+        div.style.cssText = [
+            'position:absolute',
+            'left:50%', 'top:0',
+            'transform:translateX(-50%)',
+            'width:150px', 'height:150px',
+            'border-radius:50%',
+            'background:radial-gradient(circle at 42% 38%, rgba(245,242,255,0.9), rgba(206,196,255,0.4) 52%, transparent 72%)',
+            'filter:blur(2px)',
+            'pointer-events:none',
+            'z-index:2',
+        ].join(';');
+        section.appendChild(div);
+    }
+
+    // ── Expedition route hint (RPG) ─────────────────────────────────
+
+    function _injectRouteHint(section) {
+        if (document.getElementById('vnRouteHint')) return;
+        var ns = 'http://www.w3.org/2000/svg';
+        var svg = document.createElementNS(ns, 'svg');
+        svg.id = 'vnRouteHint';
+        svg.setAttribute('viewBox', '0 0 1600 900');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('aria-hidden', 'true');
+
+        var color = '#e3a24f';
+        var path  = document.createElementNS(ns, 'path');
+        path.setAttribute('d', 'M150 210 C 480 150, 760 300, 1050 230 S 1480 180, 1520 250');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', color);
+        path.setAttribute('stroke-width', '1.5');
+        path.setAttribute('stroke-dasharray', '2 10');
+        path.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(path);
+
+        [[150,210],[1050,230],[1520,250]].forEach(function(pt) {
+            var c = document.createElementNS(ns, 'circle');
+            c.setAttribute('cx', pt[0]); c.setAttribute('cy', pt[1]); c.setAttribute('r', '3.5');
+            c.setAttribute('fill', 'none'); c.setAttribute('stroke', color); c.setAttribute('stroke-width', '1.5');
+            svg.appendChild(c);
+        });
+
+        section.appendChild(svg);
+    }
+
+    // ── "Continuar" button injection (classic mode only) ────────────
+    // Adds a primary CTA next to pagination if not already present.
+
+    function _injectContinueBtn(section) {
+        if (document.getElementById('vnContinueReplyBtn')) return;
+        var counterWrap = section.querySelector('.vn-counter-dice-wrap');
+        if (!counterWrap) return;
+
+        var btn = document.createElement('button');
+        btn.id = 'vnContinueReplyBtn';
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Continuar / Responder');
+        btn.setAttribute('title', 'Continuar / Responder');
+        btn.onclick = function () {
+            if (typeof openReplyPanel === 'function') openReplyPanel();
+        };
+        btn.innerHTML =
+            'Continuar ' +
+            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+            '<path d="M5 12 H19 M14 7 L19 12 L14 17"/></svg>';
+
+        var actionsRight = section.querySelector('.vn-dialogue-actions-right');
+        if (actionsRight) {
+            actionsRight.style.display = '';
+            actionsRight.appendChild(btn);
+        } else {
+            counterWrap.parentNode.insertBefore(btn, counterWrap.nextSibling);
+        }
+    }
+
+    // ── Lifecycle ───────────────────────────────────────────────────
+
+    function _start() {
+        var section = document.getElementById('vnSection');
+        if (!section) return;
+
+        var classic = _isClassic();
+        var rpg     = _isRpg();
+        if (!classic && !rpg) return;
+
+        _mode    = classic ? 'classic' : 'rpg';
+        _running = true;
+
+        // Star canvas
+        if (!REDUCED) {
+            _initCanvas(section);
+            _raf = requestAnimationFrame(_loop);
+        }
+
+        // Ornaments
+        if (classic) {
+            _injectMoonGlow(section);
+            if (!REDUCED) _injectZodiacRing(section);
+            _injectContinueBtn(section);
+        } else if (rpg) {
+            _injectRouteHint(section);
+        }
+
+        // Resize
+        _resizeHandler = function () {
+            if (_canvas && _running) _setupStars();
+        };
+        window.addEventListener('resize', _resizeHandler);
+    }
+
+    function _stop() {
+        _running = false;
+        cancelAnimationFrame(_raf);
+        if (_resizeHandler) {
+            window.removeEventListener('resize', _resizeHandler);
+            _resizeHandler = null;
+        }
+        // Remove injected elements
+        ['vnStarCanvas','vnZodiacRing','vnMoonGlow','vnRouteHint'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+        });
+        _canvas = null; _ctx = null; _stars = []; _mode = null;
+    }
+
+    // ── Event listeners ─────────────────────────────────────────────
+
+    // Listen to Etheria's own topic-enter / topic-leave events
+    window.addEventListener('etheria:topic-enter', function () {
+        _stop(); // clean previous
+        // Small delay to let mode class settle
+        setTimeout(_start, 100);
+    });
+
+    window.addEventListener('etheria:topic-leave', function () {
+        _stop();
+    });
+
+    // Fallback: observe body class changes (mode-classic / mode-rpg)
+    (function () {
+        if (!window.MutationObserver) return;
+        var prev = '';
+        var obs  = new MutationObserver(function () {
+            var now = document.body.className;
+            if (now === prev) return;
+            prev = now;
+            var inVn = !!document.querySelector('#vnSection.active, #vnSection.vn-section.active');
+            if (!inVn) return;
+            if (_mode !== null) _stop();
+            setTimeout(_start, 80);
+        });
+        obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    }());
+
+    window.VnDesign = { start: _start, stop: _stop };
+
+}());
+
 /* js/ui/vn.js */
 // Modo novela visual: renderizado de mensajes, sprites, typewriter, reply panel, opciones y historial.
 // ============================================
@@ -12051,6 +12671,14 @@ function _doEnterTopic(id, t, topicMode) {
     if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
         SupabaseMessages.subscribeGlobal(null, null, id);
     }
+    // Ciclos narrativos — solo modo clásico
+    if (topicMode !== 'rpg' && typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.init(id, getTopicMessages(id)).catch(() => {});
+    }
+    // Ecos del ciclo: mostrar cambios de afinidad de ciclos cerrados no vistos
+    if (topicMode !== 'rpg' && typeof SupabaseCycleViews !== 'undefined') {
+        setTimeout(function () { _checkUnseenCycleEchos(id).catch(() => {}); }, 800);
+    }
     const _existingMsgs = getTopicMessages(id);
     // Si el tema tiene mensajes, posicionar en el último — no en el primero
     currentMessageIndex = _existingMsgs.length > 0 ? _existingMsgs.length - 1 : 0;
@@ -13272,10 +13900,12 @@ function editCurrentMessage() {
 
         msg.options.forEach((opt, idx) => {
             if (idx < 3) {
-                const textInput = document.getElementById(`option${idx + 1}Text`);
-                const contInput = document.getElementById(`option${idx + 1}Continuation`);
-                if (textInput) textInput.value = opt.text || '';
-                if (contInput) contInput.value = opt.continuation || '';
+                const textInput    = document.getElementById(`option${idx + 1}Text`);
+                const contInput    = document.getElementById(`option${idx + 1}Continuation`);
+                const impactSelect = document.getElementById(`option${idx + 1}AffinityImpact`);
+                if (textInput)    textInput.value    = opt.text         || '';
+                if (contInput)    contInput.value    = opt.continuation || '';
+                if (impactSelect) impactSelect.value = opt.affinityImpact || 'neutral';
             }
         });
     }
@@ -13330,9 +13960,15 @@ function saveEditedMessage() {
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
+            const impactSel = document.getElementById(`option${i}AffinityImpact`);
             const t = textInput?.value.trim() || '';
             const c = contInput?.value.trim() || '';
-            if(t && c) options.push({text: t, continuation: c});
+            if(t && c) {
+                const opt = {text: t, continuation: c};
+                const impact = impactSel?.value;
+                if (impact && impact !== 'neutral') opt.affinityImpact = impact;
+                options.push(opt);
+            }
         }
     }
 
@@ -15758,10 +16394,12 @@ function toggleOptionsFields() {
         if (tempBranches.length > 0) {
             tempBranches.forEach((branch, idx) => {
                 if (idx < 3) {
-                    const textInput = document.getElementById(`option${idx + 1}Text`);
-                    const contInput = document.getElementById(`option${idx + 1}Continuation`);
-                    if (textInput) textInput.value = branch.text || '';
-                    if (contInput) contInput.value = branch.continuation || '';
+                    const textInput    = document.getElementById(`option${idx + 1}Text`);
+                    const contInput    = document.getElementById(`option${idx + 1}Continuation`);
+                    const impactSelect = document.getElementById(`option${idx + 1}AffinityImpact`);
+                    if (textInput)    textInput.value    = branch.text         || '';
+                    if (contInput)    contInput.value    = branch.continuation || '';
+                    if (impactSelect) impactSelect.value = branch.affinityImpact || 'neutral';
                 }
             });
         }
@@ -15905,9 +16543,15 @@ function postVNReply() {
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
+            const impactSel = document.getElementById(`option${i}AffinityImpact`);
             const t = textInput?.value.trim() || '';
             const c = contInput?.value.trim() || '';
-            if(t && c) options.push({text: t, continuation: c});
+            if(t && c) {
+                const opt = {text: t, continuation: c};
+                const impact = impactSel?.value;
+                if (impact && impact !== 'neutral') opt.affinityImpact = impact;
+                options.push(opt);
+            }
         }
         if(options.length === 0) { showAutosave('Rellena al menos una opción con texto y continuación', 'error'); return; }
     }
@@ -16010,11 +16654,27 @@ function postVNReply() {
         }
     }
 
+    // Ciclos narrativos: adjuntar cycle_id antes de guardar (solo modo clásico)
+    if (!isRpgModeMode() && typeof SupabaseCycles !== 'undefined') {
+        const _cycleId = SupabaseCycles.getActiveCycleId();
+        if (_cycleId) newMsg.cycle_id = _cycleId;
+    }
+
     topicMessages.push(newMsg);
 
     // Envío a Supabase (no bloquea — fallback local automático si falla)
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
+    }
+
+    // Ciclos narrativos: comprobar cierre del ciclo tras enviar (solo modo clásico)
+    if (!isRpgModeMode() && typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.onMessageSent(
+            currentUserIndex,
+            getTopicMessages(currentTopicId),
+            currentTopicId,
+            function (closedCycleId) { _resolveCycleAffinities(closedCycleId, currentTopicId); }
+        ).catch(() => {});
     }
 
     notifyNextTurnIfNeeded(newMsg, topic, char).catch(() => {});
@@ -16034,6 +16694,161 @@ function postVNReply() {
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
     triggerDialogueFadeIn();
     showCurrentMessage('forward');
+}
+
+// ============================================
+// CICLOS NARRATIVOS — resolución de afinidad al cierre
+// Solo modo clásico. No toca nada de js/rpg/.
+// ============================================
+
+// Aplica un cambio de afinidad programático siguiendo exactamente
+// el mismo camino de datos que modifyAffinity() en roleplay.js:
+// appData.affinities → save → SupabaseBonds → eventBus('affinity:changed')
+function _applyAffinityForCycle(topicId, fromCharId, toCharId, direction) {
+    if (!topicId || !fromCharId || !toCharId || fromCharId === toCharId) return;
+    if (typeof getAffinityKey !== 'function' || typeof getAffinityIncrement !== 'function') return;
+
+    if (!appData.affinities) appData.affinities = {};
+    if (!appData.affinities[topicId]) appData.affinities[topicId] = {};
+
+    const key          = getAffinityKey(fromCharId, toCharId);
+    const currentValue = appData.affinities[topicId][key] || 0;
+    const newValue     = getAffinityIncrement(currentValue, direction);
+
+    if (newValue === currentValue) return;
+
+    appData.affinities[topicId][key] = newValue;
+    hasUnsavedChanges = true;
+    save({ silent: true });
+
+    if (typeof SupabaseBonds !== 'undefined' && typeof SupabaseBonds.upsertBond === 'function') {
+        SupabaseBonds.upsertBond({
+            fromCharId, toCharId, affinity: newValue, storyId: topicId
+        }).catch(() => {});
+    }
+
+    if (typeof eventBus !== 'undefined') {
+        eventBus.emit('affinity:changed', {
+            direction, newValue, topicId,
+            targetCharId: toCharId,
+            activeCharId: fromCharId
+        });
+    }
+}
+
+// Recorre los mensajes del ciclo cerrado, aplica affinityImpact de cada
+// opción seleccionada. El fromCharId se resuelve buscando el mensaje más
+// reciente del selector (msg.selectedBy) en el ciclo; si no hay, su
+// primer personaje en appData.characters.
+function _resolveCycleAffinities(cycleId, topicId) {
+    if (!cycleId || !topicId) return;
+
+    const msgs      = getTopicMessages(topicId);
+    const cycleMsgs = msgs.filter(m => m.cycle_id === cycleId && !m.isOptionResult);
+
+    cycleMsgs.forEach(function (msg) {
+        if (!msg.options || msg.selectedOptionIndex === undefined) return;
+
+        const selectedOpt = msg.options[msg.selectedOptionIndex];
+        if (!selectedOpt || !selectedOpt.affinityImpact || selectedOpt.affinityImpact === 'neutral') return;
+
+        const targetCharId = msg.characterId;
+        if (!targetCharId) return;
+
+        // Buscar el personaje que usó el selector en este ciclo
+        const selectorIdx  = msg.selectedBy;
+        const selectorMsgs = cycleMsgs.filter(
+            m => m.userIndex === selectorIdx && m.characterId && m.id !== msg.id
+        );
+        const fromCharId   = selectorMsgs.length > 0
+            ? selectorMsgs[selectorMsgs.length - 1].characterId
+            : (appData.characters.find(c => c.userIndex === selectorIdx)?.id || null);
+
+        if (!fromCharId) return;
+
+        const direction = selectedOpt.affinityImpact === 'positive' ? 1 : -1;
+        _applyAffinityForCycle(topicId, fromCharId, targetCharId, direction);
+    });
+}
+
+// ── Ecos del ciclo: detectar y mostrar cambios no vistos ─────────────
+// Consulta Supabase por ciclos cerrados no vistos, deriva los cambios
+// de afinidad que afectan al usuario activo, y muestra el panel.
+// Al cerrar el panel, registra todos los ciclos como vistos.
+
+async function _checkUnseenCycleEchos(topicId) {
+    if (!topicId || typeof SupabaseCycleViews === 'undefined') return;
+    if (typeof Toasts === 'undefined') return;
+
+    const unseenIds = await SupabaseCycleViews.getUnseenForTopic(topicId);
+    if (!unseenIds || unseenIds.length === 0) return;
+
+    const msgs    = getTopicMessages(topicId);
+    const myChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
+    const myIds   = new Set(myChars.map(c => String(c.id)));
+
+    // Acumular neto de impacto por personaje ajeno: charId → number (positivo = net up)
+    const netByOtherChar = {};
+
+    unseenIds.forEach(function (cycleId) {
+        const cycleMsgs = msgs.filter(m => m.cycle_id === cycleId && !m.isOptionResult);
+
+        cycleMsgs.forEach(function (msg) {
+            if (!msg.options || msg.selectedOptionIndex === undefined) return;
+
+            const selectedOpt = msg.options[msg.selectedOptionIndex];
+            if (!selectedOpt || !selectedOpt.affinityImpact || selectedOpt.affinityImpact === 'neutral') return;
+
+            const targetCharId = msg.characterId ? String(msg.characterId) : null;
+            if (!targetCharId) return;
+
+            const selectorIdx  = msg.selectedBy;
+            const selectorMsgs = cycleMsgs.filter(
+                m => m.userIndex === selectorIdx && m.characterId && m.id !== msg.id
+            );
+            const fromCharId = selectorMsgs.length > 0
+                ? String(selectorMsgs[selectorMsgs.length - 1].characterId)
+                : (appData.characters.find(c => c.userIndex === selectorIdx)?.id
+                    ? String(appData.characters.find(c => c.userIndex === selectorIdx).id)
+                    : null);
+
+            if (!fromCharId) return;
+
+            // ¿Afecta al usuario activo?
+            const myInvolved   = myIds.has(fromCharId) || myIds.has(targetCharId);
+            if (!myInvolved) return;
+
+            // El "otro" personaje es el que no es mío
+            const otherCharId  = myIds.has(fromCharId) ? targetCharId : fromCharId;
+            const delta        = selectedOpt.affinityImpact === 'positive' ? 1 : -1;
+
+            netByOtherChar[otherCharId] = (netByOtherChar[otherCharId] || 0) + delta;
+        });
+    });
+
+    const changes = Object.entries(netByOtherChar)
+        .filter(([, net]) => net !== 0)
+        .map(function ([charId, net]) {
+            const char = appData.characters.find(c => String(c.id) === charId);
+            return {
+                charName:   char?.name   || '—',
+                charAvatar: char?.avatar || null,
+                direction:  net > 0 ? 'up' : 'down',
+            };
+        });
+
+    if (changes.length === 0) {
+        // Sin cambios visibles para este usuario — marcar como vistos de todas formas
+        unseenIds.forEach(id => SupabaseCycleViews.markSeen(id).catch(() => {}));
+        return;
+    }
+
+    Toasts.showCycleEchos({
+        changes,
+        onDismiss: function () {
+            unseenIds.forEach(id => SupabaseCycleViews.markSeen(id).catch(() => {}));
+        },
+    });
 }
 
 // ============================================
@@ -17258,15 +18073,17 @@ window.openNoCharacterWarning = openNoCharacterWarning;
 function openBranchEditor() {
     tempBranches = [];
     for(let i=1; i<=3; i++) {
-        const textInput = document.getElementById(`option${i}Text`);
-        const contInput = document.getElementById(`option${i}Continuation`);
+        const textInput    = document.getElementById(`option${i}Text`);
+        const contInput    = document.getElementById(`option${i}Continuation`);
+        const impactSelect = document.getElementById(`option${i}AffinityImpact`);
         const t = textInput?.value.trim() || '';
         const c = contInput?.value.trim() || '';
         if(t || c) {
             tempBranches.push({
                 id: i,
                 text: t,
-                continuation: c
+                continuation: c,
+                affinityImpact: impactSelect?.value || 'neutral'
             });
         }
     }
@@ -17290,6 +18107,11 @@ function renderBranchEditor() {
                 </div>
                 <input type="text" class="branch-input" placeholder="Texto de la opción" value="${escapeHtml(branch.text)}" onchange="updateBranch(${branch.id}, 'text', this.value)">
                 <textarea class="branch-textarea" placeholder="Continuación narrativa..." onchange="updateBranch(${branch.id}, 'continuation', this.value)">${escapeHtml(branch.continuation)}</textarea>
+                <select class="option-affinity-select" onchange="updateBranch(${branch.id}, 'affinityImpact', this.value)">
+                    <option value="neutral" ${(branch.affinityImpact || 'neutral') === 'neutral' ? 'selected' : ''}>Sin efecto de afinidad</option>
+                    <option value="positive" ${branch.affinityImpact === 'positive' ? 'selected' : ''}>↑ Impacto positivo</option>
+                    <option value="negative" ${branch.affinityImpact === 'negative' ? 'selected' : ''}>↓ Impacto negativo</option>
+                </select>
             </div>
         `).join('');
     }
@@ -17300,7 +18122,8 @@ function addNewBranch() {
     tempBranches.push({
         id: newId,
         text: '',
-        continuation: ''
+        continuation: '',
+        affinityImpact: 'neutral'
     });
     renderBranchEditor();
 }
@@ -17326,15 +18149,18 @@ function saveBranches() {
     }
 
     for(let i=0; i<3; i++) {
-        const textInput = document.getElementById(`option${i+1}Text`);
-        const contInput = document.getElementById(`option${i+1}Continuation`);
+        const textInput    = document.getElementById(`option${i+1}Text`);
+        const contInput    = document.getElementById(`option${i+1}Continuation`);
+        const impactSelect = document.getElementById(`option${i+1}AffinityImpact`);
 
         if (i < validBranches.length) {
-            if (textInput) textInput.value = validBranches[i].text;
-            if (contInput) contInput.value = validBranches[i].continuation;
+            if (textInput)    textInput.value    = validBranches[i].text;
+            if (contInput)    contInput.value    = validBranches[i].continuation;
+            if (impactSelect) impactSelect.value = validBranches[i].affinityImpact || 'neutral';
         } else {
-            if (textInput) textInput.value = '';
-            if (contInput) contInput.value = '';
+            if (textInput)    textInput.value    = '';
+            if (contInput)    contInput.value    = '';
+            if (impactSelect) impactSelect.value = 'neutral';
         }
     }
 
@@ -21815,6 +22641,350 @@ const SupabaseAffinities = (function () {
 
 window.SupabaseAffinities = SupabaseAffinities;
 
+/* js/utils/supabaseCycles.js */
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE CYCLES — Ciclos narrativos del modo clásico
+//
+// Gestiona la tabla `topic_cycles`:
+//   - Obtener o crear el ciclo abierto de un tema
+//   - Registrar qué usuarios han respondido en el ciclo
+//   - Cerrar el ciclo cuando todos han respondido o han pasado 72h
+//   - Abrir inmediatamente un ciclo nuevo al cerrar
+//
+// No bloquea la UI. Si Supabase no está disponible, la app sigue
+// funcionando sin ciclos (sin errores visibles).
+// ═══════════════════════════════════════════════════════════════════
+
+const SupabaseCycles = (function () {
+
+    const CYCLE_DURATION_MS = 72 * 60 * 60 * 1000; // 72 horas en ms
+
+    // Ciclo en memoria para el topic activo.
+    // Forma: { id, topic_id, started_at, closes_at, participants: number[] }
+    let _cachedCycle   = null;
+    let _cachedTopicId = null;
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    function _client() { return window.supabaseClient || null; }
+    function _isAvailable() { return !!_client(); }
+
+    function _log(...args) {
+        window.EtheriaLogger?.info?.('supabaseCycles', ...args);
+    }
+    function _warn(...args) {
+        window.EtheriaLogger?.warn('supabaseCycles', ...args);
+    }
+
+    // ── Fetch: ciclo abierto de un topic ─────────────────────────────
+
+    async function _fetchOpenCycle(topicId) {
+        if (!_isAvailable() || !topicId) return null;
+        try {
+            const { data, error } = await _client()
+                .from('topic_cycles')
+                .select('*')
+                .eq('topic_id', String(topicId))
+                .eq('status', 'open')
+                .order('started_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (error) { _warn('fetchOpenCycle error:', error.message); return null; }
+            return data || null;
+        } catch (e) {
+            _warn('fetchOpenCycle exception:', e.message);
+            return null;
+        }
+    }
+
+    // ── Create: nuevo ciclo ───────────────────────────────────────────
+
+    async function _createCycle(topicId, participants) {
+        if (!_isAvailable() || !topicId) return null;
+        const now      = new Date();
+        const closesAt = new Date(now.getTime() + CYCLE_DURATION_MS);
+        try {
+            const { data, error } = await _client()
+                .from('topic_cycles')
+                .insert({
+                    topic_id:     String(topicId),
+                    started_at:   now.toISOString(),
+                    closes_at:    closesAt.toISOString(),
+                    status:       'open',
+                    participants: JSON.stringify(participants || []),
+                })
+                .select()
+                .single();
+
+            if (error) { _warn('createCycle error:', error.message); return null; }
+            _log(`Ciclo creado: ${data.id} (topic ${topicId}, ${participants.length} participantes)`);
+            return data;
+        } catch (e) {
+            _warn('createCycle exception:', e.message);
+            return null;
+        }
+    }
+
+    // ── Close: cerrar ciclo existente ─────────────────────────────────
+
+    async function _closeCycle(cycleId) {
+        if (!_isAvailable() || !cycleId) return;
+        try {
+            const { error } = await _client()
+                .from('topic_cycles')
+                .update({
+                    status:    'closed',
+                    closed_at: new Date().toISOString(),
+                })
+                .eq('id', cycleId);
+
+            if (error) { _warn('closeCycle error:', error.message); return; }
+            _log(`Ciclo cerrado: ${cycleId}`);
+        } catch (e) {
+            _warn('closeCycle exception:', e.message);
+        }
+    }
+
+    // ── Update participants in Supabase ───────────────────────────────
+    // Sincroniza el array de participantes del ciclo (solo si cambió).
+
+    async function _updateParticipants(cycleId, participants) {
+        if (!_isAvailable() || !cycleId) return;
+        try {
+            await _client()
+                .from('topic_cycles')
+                .update({ participants: JSON.stringify(participants) })
+                .eq('id', cycleId);
+        } catch (e) {
+            _warn('updateParticipants exception:', e.message);
+        }
+    }
+
+    // ── Derivar participantes de los mensajes del topic ───────────────
+    // Solo usuarios con al menos un mensaje real (no opciones-resultado).
+
+    function _deriveParticipants(topicMessages) {
+        const seen = new Set();
+        (topicMessages || []).forEach(m => {
+            if (m.userIndex !== undefined && !m.isOptionResult) {
+                seen.add(Number(m.userIndex));
+            }
+        });
+        return [...seen];
+    }
+
+    // ── Public: init ──────────────────────────────────────────────────
+    // Llamado al entrar en un topic en modo clásico.
+    // Busca el ciclo abierto o crea uno nuevo.
+
+    async function init(topicId, topicMessages) {
+        if (!topicId) return;
+        _cachedTopicId = String(topicId);
+        _cachedCycle   = null;
+
+        const participants = _deriveParticipants(topicMessages);
+
+        let cycle = await _fetchOpenCycle(topicId);
+
+        if (!cycle) {
+            // No hay ciclo abierto: crear el primero
+            cycle = await _createCycle(topicId, participants);
+        } else {
+            // Hay ciclo abierto: comprobar si ya expiró por tiempo
+            if (new Date() > new Date(cycle.closes_at)) {
+                await _closeCycle(cycle.id);
+                cycle = await _createCycle(topicId, participants);
+            }
+        }
+
+        _cachedCycle = cycle;
+        _log(`Ciclo activo para topic ${topicId}:`, _cachedCycle?.id || 'ninguno');
+    }
+
+    // ── Public: getActiveCycleId ──────────────────────────────────────
+
+    function getActiveCycleId() {
+        return _cachedCycle?.id || null;
+    }
+
+    // ── Public: onMessageSent ─────────────────────────────────────────
+    // Llamado después de enviar un mensaje en modo clásico.
+    // Comprueba si el ciclo debe cerrarse. Si sí: cierra, llama onClose,
+    // abre un ciclo nuevo.
+    //
+    // @param {number}   userIndex      — quién envió el mensaje
+    // @param {Array}    topicMessages  — todos los mensajes del topic
+    // @param {string}   topicId
+    // @param {Function} onClose        — callback(cycleId) al cerrarse
+
+    async function onMessageSent(userIndex, topicMessages, topicId, onClose) {
+        if (!_cachedCycle || String(_cachedTopicId) !== String(topicId)) return;
+
+        const cycle = _cachedCycle;
+
+        // Añadir userIndex a participants si aún no está
+        const participantsArr = Array.isArray(cycle.participants)
+            ? cycle.participants
+            : (JSON.parse(cycle.participants || '[]'));
+
+        if (!participantsArr.includes(Number(userIndex))) {
+            participantsArr.push(Number(userIndex));
+            cycle.participants = participantsArr;
+            _updateParticipants(cycle.id, participantsArr).catch(() => {});
+        }
+
+        // ── Comprobar cierre ─────────────────────────────────────────
+        const cycleMsgs = topicMessages.filter(
+            m => m.cycle_id === cycle.id && !m.isOptionResult
+        );
+        const responders = new Set(cycleMsgs.map(m => Number(m.userIndex)));
+        const allResponded = participantsArr.every(p => responders.has(p));
+        const expired      = new Date() > new Date(cycle.closes_at);
+
+        if (!allResponded && !expired) return;
+
+        // ── Cerrar ciclo ─────────────────────────────────────────────
+        _cachedCycle = null;
+        await _closeCycle(cycle.id);
+
+        // Notificar al caller para que resuelva affinidades
+        if (typeof onClose === 'function') {
+            try { onClose(cycle.id); } catch (e) { _warn('onClose error:', e.message); }
+        }
+
+        // ── Abrir ciclo nuevo ────────────────────────────────────────
+        const newParticipants = _deriveParticipants(topicMessages);
+        const newCycle = await _createCycle(topicId, newParticipants);
+        _cachedCycle = newCycle;
+    }
+
+    // ── Public: reset (al salir del topic) ───────────────────────────
+
+    function reset() {
+        _cachedCycle   = null;
+        _cachedTopicId = null;
+    }
+
+    // ── Public API ────────────────────────────────────────────────────
+
+    return { init, getActiveCycleId, onMessageSent, reset };
+
+})();
+
+window.SupabaseCycles = SupabaseCycles;
+
+/* js/utils/supabaseCycleViews.js */
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE CYCLE VIEWS — Registro personal de Ecos del ciclo vistos
+//
+// Gestiona la tabla `cycle_views`:
+//   - getUnseenForTopic(topicId) → ciclos cerrados no vistos por el
+//     usuario activo en ese tema
+//   - markSeen(cycleId) → registra la visualización del panel
+//
+// Si Supabase no está disponible la app continúa sin errores.
+// ═══════════════════════════════════════════════════════════════════
+
+const SupabaseCycleViews = (function () {
+
+    function _client()      { return window.supabaseClient || null; }
+    function _isAvailable() { return !!_client(); }
+
+    function _warn(...args) {
+        window.EtheriaLogger?.warn('supabaseCycleViews', ...args);
+    }
+
+    // ── userId en caché ───────────────────────────────────────────────
+
+    let _userId = null;
+
+    async function _ensureUserId() {
+        if (_userId) return _userId;
+        try {
+            const { data } = await _client().auth.getUser();
+            _userId = data?.user?.id || null;
+        } catch { _userId = null; }
+        return _userId;
+    }
+
+    window.addEventListener('etheria:auth-changed', function (e) {
+        _userId = e.detail?.user?.id || null;
+    });
+
+    // ── getUnseenForTopic ─────────────────────────────────────────────
+    // Devuelve los ciclos cerrados del topic que el usuario actual
+    // no ha marcado como vistos todavía.
+
+    async function getUnseenForTopic(topicId) {
+        if (!_isAvailable() || !topicId) return [];
+
+        const uid = await _ensureUserId();
+        if (!uid) return [];
+
+        try {
+            // 1. Ciclos cerrados del topic
+            const { data: cycles, error: cyclesErr } = await _client()
+                .from('topic_cycles')
+                .select('id')
+                .eq('topic_id', String(topicId))
+                .eq('status', 'closed');
+
+            if (cyclesErr) { _warn('getUnseen cycles error:', cyclesErr.message); return []; }
+            if (!cycles || cycles.length === 0) return [];
+
+            const cycleIds = cycles.map(c => c.id);
+
+            // 2. De esos ciclos, cuáles ya ha visto este usuario
+            const { data: views, error: viewsErr } = await _client()
+                .from('cycle_views')
+                .select('cycle_id')
+                .eq('user_id', uid)
+                .in('cycle_id', cycleIds);
+
+            if (viewsErr) { _warn('getUnseen views error:', viewsErr.message); return []; }
+
+            const seenIds = new Set((views || []).map(v => v.cycle_id));
+            return cycleIds.filter(id => !seenIds.has(id));
+
+        } catch (e) {
+            _warn('getUnseenForTopic exception:', e.message);
+            return [];
+        }
+    }
+
+    // ── markSeen ──────────────────────────────────────────────────────
+    // Registra que el usuario actual ha visto el panel de un ciclo.
+    // Usa upsert para respetar la restricción única (cycle_id, user_id).
+
+    async function markSeen(cycleId) {
+        if (!_isAvailable() || !cycleId) return;
+
+        const uid = await _ensureUserId();
+        if (!uid) return;
+
+        try {
+            const { error } = await _client()
+                .from('cycle_views')
+                .upsert(
+                    { cycle_id: cycleId, user_id: uid, viewed_at: new Date().toISOString() },
+                    { onConflict: 'cycle_id,user_id' }
+                );
+
+            if (error) _warn('markSeen error:', error.message);
+        } catch (e) {
+            _warn('markSeen exception:', e.message);
+        }
+    }
+
+    // ── Public API ────────────────────────────────────────────────────
+
+    return { getUnseenForTopic, markSeen };
+
+})();
+
+window.SupabaseCycleViews = SupabaseCycleViews;
+
 /* js/utils/supabaseJournals.js */
 // ═══════════════════════════════════════════════════════════════════
 // SUPABASE JOURNALS — Diarios de historia
@@ -24222,6 +25392,9 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
         const latest = currentTopics.length > 0
           ? currentTopics[currentTopics.length - 1] : null;
         if (latest?.id && typeof enterTopic === 'function') {
+          const mainMenu = document.getElementById('mainMenu');
+          if (mainMenu) mainMenu.classList.add('hidden');
+          eventBus.emit('audio:stop-menu-music');
           enterTopic(latest.id);
         } else if (typeof showSection === 'function') {
           showSection('topics');

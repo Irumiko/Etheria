@@ -1591,6 +1591,14 @@ function _doEnterTopic(id, t, topicMode) {
     if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
         SupabaseMessages.subscribeGlobal(null, null, id);
     }
+    // Ciclos narrativos — solo modo clásico
+    if (topicMode !== 'rpg' && typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.init(id, getTopicMessages(id)).catch(() => {});
+    }
+    // Ecos del ciclo: mostrar cambios de afinidad de ciclos cerrados no vistos
+    if (topicMode !== 'rpg' && typeof SupabaseCycleViews !== 'undefined') {
+        setTimeout(function () { _checkUnseenCycleEchos(id).catch(() => {}); }, 800);
+    }
     const _existingMsgs = getTopicMessages(id);
     // Si el tema tiene mensajes, posicionar en el último — no en el primero
     currentMessageIndex = _existingMsgs.length > 0 ? _existingMsgs.length - 1 : 0;
@@ -2812,10 +2820,12 @@ function editCurrentMessage() {
 
         msg.options.forEach((opt, idx) => {
             if (idx < 3) {
-                const textInput = document.getElementById(`option${idx + 1}Text`);
-                const contInput = document.getElementById(`option${idx + 1}Continuation`);
-                if (textInput) textInput.value = opt.text || '';
-                if (contInput) contInput.value = opt.continuation || '';
+                const textInput    = document.getElementById(`option${idx + 1}Text`);
+                const contInput    = document.getElementById(`option${idx + 1}Continuation`);
+                const impactSelect = document.getElementById(`option${idx + 1}AffinityImpact`);
+                if (textInput)    textInput.value    = opt.text         || '';
+                if (contInput)    contInput.value    = opt.continuation || '';
+                if (impactSelect) impactSelect.value = opt.affinityImpact || 'neutral';
             }
         });
     }
@@ -2870,9 +2880,15 @@ function saveEditedMessage() {
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
+            const impactSel = document.getElementById(`option${i}AffinityImpact`);
             const t = textInput?.value.trim() || '';
             const c = contInput?.value.trim() || '';
-            if(t && c) options.push({text: t, continuation: c});
+            if(t && c) {
+                const opt = {text: t, continuation: c};
+                const impact = impactSel?.value;
+                if (impact && impact !== 'neutral') opt.affinityImpact = impact;
+                options.push(opt);
+            }
         }
     }
 
@@ -5298,10 +5314,12 @@ function toggleOptionsFields() {
         if (tempBranches.length > 0) {
             tempBranches.forEach((branch, idx) => {
                 if (idx < 3) {
-                    const textInput = document.getElementById(`option${idx + 1}Text`);
-                    const contInput = document.getElementById(`option${idx + 1}Continuation`);
-                    if (textInput) textInput.value = branch.text || '';
-                    if (contInput) contInput.value = branch.continuation || '';
+                    const textInput    = document.getElementById(`option${idx + 1}Text`);
+                    const contInput    = document.getElementById(`option${idx + 1}Continuation`);
+                    const impactSelect = document.getElementById(`option${idx + 1}AffinityImpact`);
+                    if (textInput)    textInput.value    = branch.text         || '';
+                    if (contInput)    contInput.value    = branch.continuation || '';
+                    if (impactSelect) impactSelect.value = branch.affinityImpact || 'neutral';
                 }
             });
         }
@@ -5445,9 +5463,15 @@ function postVNReply() {
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
+            const impactSel = document.getElementById(`option${i}AffinityImpact`);
             const t = textInput?.value.trim() || '';
             const c = contInput?.value.trim() || '';
-            if(t && c) options.push({text: t, continuation: c});
+            if(t && c) {
+                const opt = {text: t, continuation: c};
+                const impact = impactSel?.value;
+                if (impact && impact !== 'neutral') opt.affinityImpact = impact;
+                options.push(opt);
+            }
         }
         if(options.length === 0) { showAutosave('Rellena al menos una opción con texto y continuación', 'error'); return; }
     }
@@ -5550,11 +5574,27 @@ function postVNReply() {
         }
     }
 
+    // Ciclos narrativos: adjuntar cycle_id antes de guardar (solo modo clásico)
+    if (!isRpgModeMode() && typeof SupabaseCycles !== 'undefined') {
+        const _cycleId = SupabaseCycles.getActiveCycleId();
+        if (_cycleId) newMsg.cycle_id = _cycleId;
+    }
+
     topicMessages.push(newMsg);
 
     // Envío a Supabase (no bloquea — fallback local automático si falla)
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
+    }
+
+    // Ciclos narrativos: comprobar cierre del ciclo tras enviar (solo modo clásico)
+    if (!isRpgModeMode() && typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.onMessageSent(
+            currentUserIndex,
+            getTopicMessages(currentTopicId),
+            currentTopicId,
+            function (closedCycleId) { _resolveCycleAffinities(closedCycleId, currentTopicId); }
+        ).catch(() => {});
     }
 
     notifyNextTurnIfNeeded(newMsg, topic, char).catch(() => {});
@@ -5574,6 +5614,161 @@ function postVNReply() {
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
     triggerDialogueFadeIn();
     showCurrentMessage('forward');
+}
+
+// ============================================
+// CICLOS NARRATIVOS — resolución de afinidad al cierre
+// Solo modo clásico. No toca nada de js/rpg/.
+// ============================================
+
+// Aplica un cambio de afinidad programático siguiendo exactamente
+// el mismo camino de datos que modifyAffinity() en roleplay.js:
+// appData.affinities → save → SupabaseBonds → eventBus('affinity:changed')
+function _applyAffinityForCycle(topicId, fromCharId, toCharId, direction) {
+    if (!topicId || !fromCharId || !toCharId || fromCharId === toCharId) return;
+    if (typeof getAffinityKey !== 'function' || typeof getAffinityIncrement !== 'function') return;
+
+    if (!appData.affinities) appData.affinities = {};
+    if (!appData.affinities[topicId]) appData.affinities[topicId] = {};
+
+    const key          = getAffinityKey(fromCharId, toCharId);
+    const currentValue = appData.affinities[topicId][key] || 0;
+    const newValue     = getAffinityIncrement(currentValue, direction);
+
+    if (newValue === currentValue) return;
+
+    appData.affinities[topicId][key] = newValue;
+    hasUnsavedChanges = true;
+    save({ silent: true });
+
+    if (typeof SupabaseBonds !== 'undefined' && typeof SupabaseBonds.upsertBond === 'function') {
+        SupabaseBonds.upsertBond({
+            fromCharId, toCharId, affinity: newValue, storyId: topicId
+        }).catch(() => {});
+    }
+
+    if (typeof eventBus !== 'undefined') {
+        eventBus.emit('affinity:changed', {
+            direction, newValue, topicId,
+            targetCharId: toCharId,
+            activeCharId: fromCharId
+        });
+    }
+}
+
+// Recorre los mensajes del ciclo cerrado, aplica affinityImpact de cada
+// opción seleccionada. El fromCharId se resuelve buscando el mensaje más
+// reciente del selector (msg.selectedBy) en el ciclo; si no hay, su
+// primer personaje en appData.characters.
+function _resolveCycleAffinities(cycleId, topicId) {
+    if (!cycleId || !topicId) return;
+
+    const msgs      = getTopicMessages(topicId);
+    const cycleMsgs = msgs.filter(m => m.cycle_id === cycleId && !m.isOptionResult);
+
+    cycleMsgs.forEach(function (msg) {
+        if (!msg.options || msg.selectedOptionIndex === undefined) return;
+
+        const selectedOpt = msg.options[msg.selectedOptionIndex];
+        if (!selectedOpt || !selectedOpt.affinityImpact || selectedOpt.affinityImpact === 'neutral') return;
+
+        const targetCharId = msg.characterId;
+        if (!targetCharId) return;
+
+        // Buscar el personaje que usó el selector en este ciclo
+        const selectorIdx  = msg.selectedBy;
+        const selectorMsgs = cycleMsgs.filter(
+            m => m.userIndex === selectorIdx && m.characterId && m.id !== msg.id
+        );
+        const fromCharId   = selectorMsgs.length > 0
+            ? selectorMsgs[selectorMsgs.length - 1].characterId
+            : (appData.characters.find(c => c.userIndex === selectorIdx)?.id || null);
+
+        if (!fromCharId) return;
+
+        const direction = selectedOpt.affinityImpact === 'positive' ? 1 : -1;
+        _applyAffinityForCycle(topicId, fromCharId, targetCharId, direction);
+    });
+}
+
+// ── Ecos del ciclo: detectar y mostrar cambios no vistos ─────────────
+// Consulta Supabase por ciclos cerrados no vistos, deriva los cambios
+// de afinidad que afectan al usuario activo, y muestra el panel.
+// Al cerrar el panel, registra todos los ciclos como vistos.
+
+async function _checkUnseenCycleEchos(topicId) {
+    if (!topicId || typeof SupabaseCycleViews === 'undefined') return;
+    if (typeof Toasts === 'undefined') return;
+
+    const unseenIds = await SupabaseCycleViews.getUnseenForTopic(topicId);
+    if (!unseenIds || unseenIds.length === 0) return;
+
+    const msgs    = getTopicMessages(topicId);
+    const myChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
+    const myIds   = new Set(myChars.map(c => String(c.id)));
+
+    // Acumular neto de impacto por personaje ajeno: charId → number (positivo = net up)
+    const netByOtherChar = {};
+
+    unseenIds.forEach(function (cycleId) {
+        const cycleMsgs = msgs.filter(m => m.cycle_id === cycleId && !m.isOptionResult);
+
+        cycleMsgs.forEach(function (msg) {
+            if (!msg.options || msg.selectedOptionIndex === undefined) return;
+
+            const selectedOpt = msg.options[msg.selectedOptionIndex];
+            if (!selectedOpt || !selectedOpt.affinityImpact || selectedOpt.affinityImpact === 'neutral') return;
+
+            const targetCharId = msg.characterId ? String(msg.characterId) : null;
+            if (!targetCharId) return;
+
+            const selectorIdx  = msg.selectedBy;
+            const selectorMsgs = cycleMsgs.filter(
+                m => m.userIndex === selectorIdx && m.characterId && m.id !== msg.id
+            );
+            const fromCharId = selectorMsgs.length > 0
+                ? String(selectorMsgs[selectorMsgs.length - 1].characterId)
+                : (appData.characters.find(c => c.userIndex === selectorIdx)?.id
+                    ? String(appData.characters.find(c => c.userIndex === selectorIdx).id)
+                    : null);
+
+            if (!fromCharId) return;
+
+            // ¿Afecta al usuario activo?
+            const myInvolved   = myIds.has(fromCharId) || myIds.has(targetCharId);
+            if (!myInvolved) return;
+
+            // El "otro" personaje es el que no es mío
+            const otherCharId  = myIds.has(fromCharId) ? targetCharId : fromCharId;
+            const delta        = selectedOpt.affinityImpact === 'positive' ? 1 : -1;
+
+            netByOtherChar[otherCharId] = (netByOtherChar[otherCharId] || 0) + delta;
+        });
+    });
+
+    const changes = Object.entries(netByOtherChar)
+        .filter(([, net]) => net !== 0)
+        .map(function ([charId, net]) {
+            const char = appData.characters.find(c => String(c.id) === charId);
+            return {
+                charName:   char?.name   || '—',
+                charAvatar: char?.avatar || null,
+                direction:  net > 0 ? 'up' : 'down',
+            };
+        });
+
+    if (changes.length === 0) {
+        // Sin cambios visibles para este usuario — marcar como vistos de todas formas
+        unseenIds.forEach(id => SupabaseCycleViews.markSeen(id).catch(() => {}));
+        return;
+    }
+
+    Toasts.showCycleEchos({
+        changes,
+        onDismiss: function () {
+            unseenIds.forEach(id => SupabaseCycleViews.markSeen(id).catch(() => {}));
+        },
+    });
 }
 
 // ============================================
