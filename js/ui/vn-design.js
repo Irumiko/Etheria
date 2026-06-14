@@ -295,30 +295,34 @@
 
         function _ensureClassicParty() {
             if (document.body.classList.contains('mode-rpg')) return;
-            var pts = window.currentStoryParticipants;
+            // currentStoryParticipants / currentTopicId / appData son `let` en state.js
+            // → accesibles como globales de script, pero NO como window.*
+            /* global currentStoryParticipants, currentTopicId, appData */
+            var pts = typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [];
             if (Array.isArray(pts) && pts.length > 0) {
                 renderClassicParty(pts);
                 return;
             }
             // Fallback local: build from characterLocks + legacy roleCharacterId
-            var topicId = window.currentTopicId;
-            var topic   = topicId && window.appData && window.appData.topics
-                ? window.appData.topics.find(function(t) { return String(t.id) === String(topicId); })
+            var topicId = typeof currentTopicId !== 'undefined' ? currentTopicId : null;
+            var _data   = typeof appData !== 'undefined' ? appData : null;
+            var topic   = topicId && _data && _data.topics
+                ? _data.topics.find(function(t) { return String(t.id) === String(topicId); })
                 : null;
             if (!topic) return;
             var locks   = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
-            var chars   = (window.appData && window.appData.characters) || [];
+            var chars   = (_data && _data.characters) || [];
             var localPts = Object.entries(locks).map(function(entry) {
                 var uiStr = entry[0], charId = entry[1];
-                var char  = chars.find(function(c) { return String(c.id) === String(charId); });
-                if (!char) return null;
-                return { user_id: char.owner_user_id || ('local-' + uiStr), user_index: parseInt(uiStr, 10), profile: { name: char.name } };
+                var ch    = chars.find(function(c) { return String(c.id) === String(charId); });
+                if (!ch) return null;
+                return { user_id: ch.owner_user_id || ('local-' + uiStr), user_index: parseInt(uiStr, 10), profile: { name: ch.name } };
             }).filter(Boolean);
-            // Legacy classic: single creator char in roleCharacterId
+            // Legacy classic: single creator char stored in roleCharacterId
             if (!localPts.length && topic.roleCharacterId) {
                 var creatorUi = topic.createdByIndex !== undefined ? topic.createdByIndex : 0;
-                var char = chars.find(function(c) { return String(c.id) === String(topic.roleCharacterId); });
-                if (char) localPts.push({ user_id: char.owner_user_id || ('local-' + creatorUi), user_index: creatorUi, profile: { name: char.name } });
+                var legacyCh  = chars.find(function(c) { return String(c.id) === String(topic.roleCharacterId); });
+                if (legacyCh) localPts.push({ user_id: legacyCh.owner_user_id || ('local-' + creatorUi), user_index: creatorUi, profile: { name: legacyCh.name } });
             }
             if (localPts.length) renderClassicParty(localPts);
         }
