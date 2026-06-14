@@ -251,7 +251,7 @@
         if (classic) {
             _injectMoonGlow(section);
             if (!REDUCED) _injectZodiacRing(section);
-            _injectContinueBtn(section);
+            // _injectContinueBtn: eliminado per diseño v2 (prototipo no lo incluye)
         } else if (rpg) {
             _injectRouteHint(section);
         }
@@ -308,5 +308,206 @@
     }());
 
     window.VnDesign = { start: _start, stop: _stop };
+
+}());
+
+// ═══════════════════════════════════════════════════════════════════
+// Perfil desplegable desde el party
+// Clic en el nombre de un miembro → abre/cierra ficha anclada.
+// Implementado con event delegation (no modifica vn.js ni userProfile.js).
+// ═══════════════════════════════════════════════════════════════════
+
+(function () {
+    'use strict';
+
+    var _activePanel = null;  // { charId, el }
+
+    function _esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function _isRpg() { return document.body.classList.contains('mode-rpg'); }
+
+    function _getChar(charId) {
+        var chars = (window.appData && window.appData.characters) || [];
+        return chars.find(function (c) { return String(c.id) === String(charId); }) || null;
+    }
+
+    function _getProfile(char) {
+        if (!char || typeof ensureCharacterRpgProfile !== 'function') return null;
+        return ensureCharacterRpgProfile(char, window.currentTopicId || null);
+    }
+
+    function _isOwn(char) {
+        if (!char) return false;
+        return char.userIndex === window.currentUserIndex;
+    }
+
+    function _hpBar(cur, max, cls) {
+        var pct = max > 0 ? Math.max(0, Math.min(100, (cur / max) * 100)) : 0;
+        return '<div class="vmpf-bar-row">' +
+            '<span class="vmpf-bar-label">' + cls.toUpperCase() + '</span>' +
+            '<span class="vmpf-bar-track"><span class="vmpf-bar-fill' + (cls === 'exp' ? ' exp' : '') + '" style="width:' + pct + '%"></span></span>' +
+            '<span class="vmpf-bar-val">' + cur + '/' + max + '</span>' +
+        '</div>';
+    }
+
+    function _buildPanel(char, profile, anchorEl) {
+        var isOwn = _isOwn(char);
+        var rpg   = _isRpg();
+
+        var stats = '';
+        if (rpg && profile) {
+            var s = profile.stats || {};
+            var labels = ['STR','DEX','CON','INT','WIS','CHA'];
+            var keys   = ['str','dex','con','int','wis','cha'];
+            stats = '<div class="vmpf-stats">' +
+                keys.map(function (k, i) {
+                    return '<div class="vmpf-stat">' +
+                        '<span class="vmpf-stat-label">' + labels[i] + '</span>' +
+                        '<span class="vmpf-stat-val">' + (s[k] !== undefined ? s[k] : '—') + '</span>' +
+                    '</div>';
+                }).join('') +
+            '</div>';
+        }
+
+        var bars = '';
+        if (rpg && profile) {
+            bars = _hpBar(profile.hp || 0, profile.hpMax || 0, 'hp') +
+                   _hpBar(profile.exp || 0, profile.expMax || 0, 'exp');
+        }
+
+        var editBtn = (rpg && isOwn)
+            ? '<button type="button" class="vmpf-edit-btn" onclick="' +
+              (typeof openCurrentVnCharacterSheet === 'function'
+                  ? 'openCurrentVnCharacterSheet()'
+                  : 'openSheet && openSheet(\'' + _esc(char.id) + '\')') +
+              '; window._closeVnMemberProfile && window._closeVnMemberProfile();" >' +
+              'Editar ficha</button>'
+            : '';
+
+        var glyph = char.gender === 'female' ? '♀' : char.gender === 'male' ? '♂' : '';
+        var meta  = rpg && profile
+            ? _esc((profile.className || char.class_name || '')) + (profile.level ? ' · Nv.' + profile.level : '')
+            : (glyph || '');
+
+        var panel = document.createElement('div');
+        panel.className = 'vn-member-profile ' + (rpg ? 'vn-member-profile--rpg' : 'vn-member-profile--classic');
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-modal', 'true');
+        panel.setAttribute('data-vmpf-char', String(char.id));
+
+        var avatarText = char.avatar_emoji || char.avatar || (char.name ? char.name[0] : '?');
+        panel.innerHTML =
+            '<div class="vmpf-header">' +
+                '<span class="vmpf-avatar" aria-hidden="true">' + _esc(avatarText) + '</span>' +
+                '<div class="vmpf-header-info">' +
+                    '<span class="vmpf-name">' + _esc(char.name || '?') + '</span>' +
+                    (meta ? '<span class="vmpf-meta">' + meta + '</span>' : '') +
+                '</div>' +
+            '</div>' +
+            (bars ? '<div class="vmpf-bars">' + bars + '</div>' : '') +
+            stats +
+            editBtn;
+
+        // anchor below the row
+        var rect = anchorEl.getBoundingClientRect();
+        var vnRect = (document.getElementById('vnSection') || document.body).getBoundingClientRect();
+        panel.style.position = 'absolute';
+        panel.style.top  = (rect.bottom - vnRect.top + 6) + 'px';
+        panel.style.left = Math.max(4, rect.left - vnRect.left) + 'px';
+        panel.style.zIndex = '99';
+
+        return panel;
+    }
+
+    function _closePanel() {
+        if (_activePanel) {
+            if (_activePanel.el && _activePanel.el.parentNode) {
+                _activePanel.el.parentNode.removeChild(_activePanel.el);
+            }
+            _activePanel = null;
+        }
+    }
+    window._closeVnMemberProfile = _closePanel;
+
+    window.toggleVnMemberProfile = function (charId, anchorEl) {
+        if (_activePanel && String(_activePanel.charId) === String(charId)) {
+            _closePanel();
+            return;
+        }
+        _closePanel();
+
+        var char = _getChar(charId);
+        if (!char) return;
+        var profile = _getProfile(char);
+
+        var vnSection = document.getElementById('vnSection');
+        if (!vnSection) return;
+
+        var panel = _buildPanel(char, profile, anchorEl);
+        vnSection.appendChild(panel);
+        _activePanel = { charId: String(charId), el: panel };
+
+        // Close on outside click or Esc
+        setTimeout(function () {
+            document.addEventListener('click', _onOutside, true);
+            document.addEventListener('keydown', _onEsc, true);
+        }, 0);
+    };
+
+    function _onOutside(e) {
+        if (_activePanel && !_activePanel.el.contains(e.target)) {
+            _closePanel();
+            document.removeEventListener('click', _onOutside, true);
+            document.removeEventListener('keydown', _onEsc, true);
+        }
+    }
+
+    function _onEsc(e) {
+        if (e.key === 'Escape' && _activePanel) {
+            _closePanel();
+            document.removeEventListener('click', _onOutside, true);
+            document.removeEventListener('keydown', _onEsc, true);
+        }
+    }
+
+    // ── Event delegation — party RPG (.vn-party-name) y clásico (.cp-name) ──
+    document.addEventListener('click', function (e) {
+        var nameEl = e.target.closest('.vn-party-name, .cp-name');
+        if (!nameEl) return;
+
+        var memberEl = nameEl.closest('[data-char-id], .cp-member[onclick]');
+        var charId   = memberEl && memberEl.dataset.charId;
+
+        // Para clásico: extraer charId desde el onclick via currentStoryParticipants
+        if (!charId && nameEl.closest('.cp-member')) {
+            // En clásico no tenemos charId directo; usamos el nombre para buscar
+            var nameText = nameEl.textContent.trim();
+            var chars    = (window.appData && window.appData.characters) || [];
+            var found    = chars.find(function (c) { return c.name === nameText; });
+            if (found) charId = found.id;
+        }
+
+        if (!charId) return;
+        e.stopPropagation();
+        window.toggleVnMemberProfile(charId, memberEl || nameEl);
+    }, true);
+
+    // ── Hacer nombres clicables vía CSS pointer (ya cubierto por el delegation) ──
+    // Inyectamos el style solo una vez para que .vn-party-name y .cp-name muestren cursor pointer.
+    (function () {
+        if (document.getElementById('_vmpf-style')) return;
+        var s = document.createElement('style');
+        s.id  = '_vmpf-style';
+        s.textContent = [
+            '.vn-party-name, .cp-name { cursor: pointer; }',
+            '.vn-party-name:hover { opacity: .8; }',
+            '.cp-name:hover { opacity: .8; }',
+        ].join('\n');
+        document.head.appendChild(s);
+    }());
 
 }());

@@ -2037,3 +2037,117 @@ body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate::after { inset: 2px
 }
 /* ocultar la tarjeta de perfil redundante en Azar */
 body.theme-rpg #vnSection #vnInfoCard { display: none !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   PERFIL DESPLEGABLE desde el party (.vn-member-profile)
+   Inyectado por vn-design.js al clicar un nombre del party.
+   ══════════════════════════════════════════════════════════════════════ */
+.vn-member-profile {
+    min-width: 220px;
+    max-width: 280px;
+    border-radius: 12px;
+    padding: 0 0 14px;
+    overflow: hidden;
+    animation: vmpf-in .18s cubic-bezier(.2,.7,.3,1) both;
+}
+
+@keyframes vmpf-in {
+    from { opacity: 0; transform: translateY(-6px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* RPG — carta de tarot ámbar */
+.vn-member-profile--rpg {
+    background: linear-gradient(180deg, rgba(30,20,9,.98), rgba(12,7,3,.99));
+    border: 1px solid rgba(227,162,79,.5);
+    box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 40px rgba(227,162,79,.18), inset 0 0 0 1px rgba(176,118,58,.15);
+}
+
+/* Clásico — medallón de plata */
+.vn-member-profile--classic {
+    background: linear-gradient(180deg, rgba(22,18,52,.97), rgba(9,8,26,.99));
+    border: 1px solid rgba(220,214,240,.3);
+    box-shadow: 0 24px 60px rgba(0,0,0,.65), 0 0 40px rgba(193,168,236,.15);
+}
+
+/* Cabecera */
+.vmpf-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px 12px;
+}
+.vn-member-profile--rpg    .vmpf-header { border-bottom: 1px solid rgba(176,118,58,.28); background: linear-gradient(180deg, rgba(50,33,14,.5), transparent); }
+.vn-member-profile--classic .vmpf-header { border-bottom: 1px solid rgba(206,196,255,.2); background: linear-gradient(180deg, rgba(36,30,78,.4), transparent); }
+
+.vmpf-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; flex-shrink: 0;
+}
+.vn-member-profile--rpg    .vmpf-avatar { border: 1.5px solid rgba(227,162,79,.6); background: rgba(26,17,8,.7); }
+.vn-member-profile--classic .vmpf-avatar { border: 1.5px solid rgba(193,168,236,.5); background: rgba(20,16,48,.6); }
+
+.vmpf-name {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 14px; font-weight: 600; letter-spacing: .08em;
+}
+.vmpf-meta {
+    display: block;
+    font-family: 'Crimson Text', serif;
+    font-size: 13px; opacity: .7; margin-top: 2px;
+}
+.vn-member-profile--rpg    .vmpf-name { color: #fbe6c6; }
+.vn-member-profile--classic .vmpf-name { color: var(--vns-cream); }
+
+/* Barras HP/EXP */
+.vmpf-bars { padding: 10px 16px 6px; }
+.vmpf-bar-row {
+    display: grid; grid-template-columns: 30px 1fr 44px;
+    align-items: center; gap: 8px; margin-bottom: 6px;
+}
+.vmpf-bar-label { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .12em; opacity: .75; }
+.vmpf-bar-track { height: 4px; border-radius: 2px; overflow: hidden; background: rgba(255,255,255,.08); }
+.vmpf-bar-fill  { height: 100%; border-radius: 2px; background: var(--vns-hp); }
+.vmpf-bar-fill.exp { background: var(--vns-exp); }
+.vmpf-bar-val   { font-family: ui-monospace, monospace; font-size: 10px; opacity: .6; text-align: right; }
+
+/* Rejilla de stats */
+.vmpf-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 6px; padding: 8px 16px;
+}
+.vmpf-stat {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 5px 4px; border-radius: 6px;
+}
+.vn-member-profile--rpg    .vmpf-stat { background: rgba(227,162,79,.08); border: 1px solid rgba(176,118,58,.25); }
+.vn-member-profile--classic .vmpf-stat { background: rgba(193,168,236,.07); border: 1px solid rgba(206,196,255,.2); }
+.vmpf-stat-label { font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: .1em; opacity: .6; }
+.vmpf-stat-val   { font-family: ui-monospace, monospace; font-size: 15px; font-weight: 600; margin-top: 2px; }
+.vn-member-profile--rpg    .vmpf-stat-val { color: var(--vns-a-parch); }
+.vn-member-profile--classic .vmpf-stat-val { color: var(--vns-cream); }
+
+/* Botón editar ficha */
+.vmpf-edit-btn {
+    display: block; width: calc(100% - 32px); margin: 10px 16px 0;
+    padding: 8px 0; border-radius: 8px;
+    font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; cursor: pointer;
+    transition: filter .15s;
+}
+.vmpf-edit-btn:hover { filter: brightness(1.15); }
+.vn-member-profile--rpg .vmpf-edit-btn {
+    background: linear-gradient(180deg, #c9883f, #8a5422);
+    border: 1px solid rgba(255,210,140,.5);
+    color: #fff6e6;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,220,160,.3);
+}
+.vn-member-profile--classic .vmpf-edit-btn {
+    background: linear-gradient(180deg, rgba(70,60,140,.8), rgba(40,34,90,.9));
+    border: 1px solid rgba(193,168,236,.5);
+    color: #f3ecda;
+    box-shadow: 0 4px 14px rgba(0,0,0,.4);
+}
