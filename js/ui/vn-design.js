@@ -285,6 +285,46 @@
         _stop(); // clean previous
         // Small delay to let mode class settle
         setTimeout(_start, 100);
+
+        // Classic party: ensure renderClassicParty is called with participants.
+        // vn.js/_buildLocalClassicParticipants ignores legacy roleCharacterId;
+        // here we call renderClassicParty with currentStoryParticipants if
+        // available, or build a minimal fallback that also covers legacy format.
+        if (document.body.classList.contains('mode-rpg')) return;
+        if (typeof renderClassicParty !== 'function') return;
+
+        function _ensureClassicParty() {
+            if (document.body.classList.contains('mode-rpg')) return;
+            var pts = window.currentStoryParticipants;
+            if (Array.isArray(pts) && pts.length > 0) {
+                renderClassicParty(pts);
+                return;
+            }
+            // Fallback local: build from characterLocks + legacy roleCharacterId
+            var topicId = window.currentTopicId;
+            var topic   = topicId && window.appData && window.appData.topics
+                ? window.appData.topics.find(function(t) { return String(t.id) === String(topicId); })
+                : null;
+            if (!topic) return;
+            var locks   = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
+            var chars   = (window.appData && window.appData.characters) || [];
+            var localPts = Object.entries(locks).map(function(entry) {
+                var uiStr = entry[0], charId = entry[1];
+                var char  = chars.find(function(c) { return String(c.id) === String(charId); });
+                if (!char) return null;
+                return { user_id: char.owner_user_id || ('local-' + uiStr), user_index: parseInt(uiStr, 10), profile: { name: char.name } };
+            }).filter(Boolean);
+            // Legacy classic: single creator char in roleCharacterId
+            if (!localPts.length && topic.roleCharacterId) {
+                var creatorUi = topic.createdByIndex !== undefined ? topic.createdByIndex : 0;
+                var char = chars.find(function(c) { return String(c.id) === String(topic.roleCharacterId); });
+                if (char) localPts.push({ user_id: char.owner_user_id || ('local-' + creatorUi), user_index: creatorUi, profile: { name: char.name } });
+            }
+            if (localPts.length) renderClassicParty(localPts);
+        }
+
+        // Run once immediately (mode classes already set before this event fires)
+        _ensureClassicParty();
     });
 
     window.addEventListener('etheria:topic-leave', function () {
