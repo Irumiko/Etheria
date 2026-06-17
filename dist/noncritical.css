@@ -31684,3 +31684,273 @@ body.theme-classic #vnSection .vn-options-container::before {
     opacity: .85 !important;
 }
 
+
+/* ══ BLOQUE PRODUCCIÓN (Palabra - CSS produccion) ══ */
+tal cual dentro de
+        css/sections/vn-scene.css (reemplazando las reglas equivalentes que ya
+        hubiera). Cárgalo el ÚLTIMO en build.js. No hace falta tocar el HTML:
+        los selectores ya casan con el DOM existente.
+
+     => El resto del documento (este comentario y el markup de demostración) NO
+        se copia; solo sirve para que veas el resultado.
+     ════════════════════════════════════════════════════════════════════ -->
+
+<style id="PRODUCCION">
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║  SENDA DE LA PALABRA · estilo de producción  (scope: theme-classic)    ║
+   ║  Copiar este bloque entero dentro de css/sections/vn-scene.css         ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+body.theme-classic {
+    --pal-night:   #0c0b18;
+    --pal-deep:    #0b0a24;
+    --pal-cream:   #f3ecda;
+    --pal-silver:  #dcd6f0;
+    --pal-lav:     #c1a8ec;
+    --pal-line:    rgba(206,196,255,0.55);
+    --pal-glow:    rgba(197,168,232,0.45);
+    --pal-hp:      #d9694e;
+}
+
+/* ───────────────────────── ESCENA / FONDO ───────────────────────── */
+body.theme-classic #vnSection {
+    background: linear-gradient(178deg, #231c52 0%, #0b0a24 88%) !important;
+}
+
+/* ════════════════════ CAJA DE DIÁLOGO ════════════════════
+   Tamaño FIJO (no crece con el contenido). Avatar dentro, a la izquierda.
+   Nameplate engastado ENCIMA del avatar. Texto a la izquierda con scroll. */
+body.theme-classic #vnSection .bottom-panel .vn-dialogue-box {
+    position: relative !important;
+    width: min(900px, 70vw) !important;
+    height: 232px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border-radius: 30px !important;
+    background:
+        radial-gradient(ellipse 90% 120% at 50% -10%, rgba(193,168,236,0.12), transparent 60%),
+        linear-gradient(180deg, rgba(20,17,48,0.82), rgba(9,8,26,0.92)) !important;
+    border: 1px solid rgba(220,214,240,0.34) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(125%) !important;
+    backdrop-filter: blur(16px) saturate(125%) !important;
+    box-shadow: 0 18px 70px rgba(0,0,0,0.55), 0 0 40px var(--pal-glow) !important;
+    overflow: visible !important;
+}
+/* neutraliza adornos heredados de otros CSS */
+body.theme-classic #vnSection .bottom-panel .vn-dialogue-box::before { content:none !important; display:none !important; }
+body.theme-classic #vnSection .bottom-panel .vn-dialogue-box::after  { content:none !important; display:none !important; }
+
+/* AVATAR — círculo de plata 84px, fijo dentro de la caja */
+body.theme-classic #vnSection #vnSpeakerAvatar {
+    position: absolute !important;
+    left: 34px !important;
+    top: 56% !important;
+    transform: translateY(-50%) !important;
+    width: 84px !important;
+    height: 84px !important;
+    min-width: 84px !important;
+    border-radius: 50% !important;
+    border: 2px solid rgba(220,214,240,0.6) !important;
+    background: radial-gradient(ellipse at 34% 30%, #5a4f8c, #241f44) !important;
+    box-shadow: 0 0 0 5px rgba(193,168,236,0.13), 0 8px 22px rgba(0,0,0,0.55) !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    font-family: 'Cinzel', serif !important; font-size: 2.3rem !important; color: #fff !important;
+    overflow: hidden !important; z-index: 3 !important;
+}
+body.theme-classic #vnSection #vnSpeakerAvatar img { width:100% !important; height:100% !important; object-fit:cover !important; }
+/* aro decorativo exterior (doble anillo de plata) */
+body.theme-classic #vnSection #vnSpeakerAvatar::after {
+    content:'' !important; position:absolute !important; inset:-6px !important; border-radius:50% !important;
+    border:1px dashed rgba(220,214,240,0.45) !important; pointer-events:none !important;
+}
+
+/* NAMEPLATE — píldora engastada centrada SOBRE el avatar */
+body.theme-classic #vnSection .vn-speaker-plate {
+    position: absolute !important;
+    top: 14px !important;
+    bottom: auto !important;
+    left: 76px !important;
+    transform: translateX(-50%) !important;
+    display: inline-flex !important; align-items: center !important;
+    max-width: 150px !important;
+    padding: 6px 22px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(180deg, #34306f, #221d52 48%, #110f33) !important;
+    border: 1px solid rgba(220,214,240,0.5) !important;
+    box-shadow: inset 0 1px 0 rgba(220,214,240,0.4), 0 0 20px var(--pal-glow) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 14px !important; font-weight: 600 !important;
+    letter-spacing: 0.14em !important; color: #fdfaef !important;
+    white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important;
+    clip-path: none !important; z-index: 5 !important;
+}
+body.theme-classic #vnSection .vn-speaker-plate::before {
+    content:'' !important; position:absolute !important; inset:3px !important; border-radius:999px !important;
+    border:1px solid rgba(220,214,240,0.18) !important; pointer-events:none !important;
+}
+body.theme-classic #vnSection .vn-speaker-plate::after { content:none !important; display:none !important; }
+/* el wrap decorativo que a veces inyecta el JS no debe deformar nada */
+body.theme-classic #vnSection .vn-speaker-avatar-wrap { position:absolute !important; pointer-events:none !important; }
+
+/* TEXTO — Cormorant Garamond itálica (itálica REAL), a la izquierda, scroll si es largo */
+body.theme-classic #vnSection .vn-dialogue-text {
+    position: absolute !important;
+    left: 150px !important; right: 30px !important;
+    top: 54px !important; bottom: 52px !important;
+    margin: 0 !important; padding: 2px 10px 2px 0 !important;
+    overflow-y: auto !important;
+    font-family: 'Cormorant Garamond', 'EB Garamond', Georgia, serif !important;
+    font-style: italic !important; font-weight: 500 !important;
+    font-size: 23px !important; line-height: 1.6 !important;
+    letter-spacing: 0.012em !important;
+    color: #f5f0e2 !important; text-align: left !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5) !important;
+}
+body.theme-classic #vnSection .vn-dialogue-text::-webkit-scrollbar { width:5px; }
+body.theme-classic #vnSection .vn-dialogue-text::-webkit-scrollbar-thumb { background:rgba(206,196,255,0.3); border-radius:3px; }
+
+/* ACCIONES DE MENSAJE (Responder / Editar / Borrar) — píldoras finas arriba-derecha */
+body.theme-classic #vnSection .vn-msg-actions {
+    position: absolute !important;
+    top: 16px !important; right: 22px !important;
+    display: flex !important; gap: 6px !important;
+    margin: 0 !important; padding: 0 !important; z-index: 6 !important;
+}
+body.theme-classic #vnSection .vn-msg-actions .vma-btn {
+    display: inline-flex !important; align-items: center !important; gap: 5px !important;
+    padding: 4px 11px !important; min-height: 0 !important; height: auto !important;
+    border-radius: 999px !important;
+    border: 1px solid rgba(220,214,240,0.3) !important;
+    background: rgba(20,17,48,0.4) !important;
+    color: #efeaf8 !important;
+    font-family: 'Cinzel', serif !important; font-size: 9px !important; font-weight: 500 !important;
+    letter-spacing: 0.1em !important; text-transform: uppercase !important; line-height: 1.1 !important;
+    box-shadow: none !important; clip-path: none !important; cursor: pointer !important;
+}
+body.theme-classic #vnSection .vn-msg-actions .vma-btn::before,
+body.theme-classic #vnSection .vn-msg-actions .vma-btn::after { content:none !important; display:none !important; }
+body.theme-classic #vnSection .vn-msg-actions .vma-btn .vma-icon { font-size:10px !important; opacity:0.9 !important; }
+body.theme-classic #vnSection .vn-msg-actions .vma-reply  { border-color:rgba(193,168,236,0.6) !important; background:rgba(193,168,236,0.14) !important; }
+body.theme-classic #vnSection .vn-msg-actions .vma-delete { border-color:rgba(217,105,78,0.4) !important; color:var(--pal-hp) !important; }
+body.theme-classic #vnSection .vn-msg-actions .vma-btn:hover { border-color:rgba(193,168,236,0.85) !important; color:#fff !important; }
+
+/* PIE — navegación + acciones, con separador de LUNA centrado */
+body.theme-classic #vnSection .vn-dialogue-footer {
+    position: absolute !important;
+    left: 150px !important; right: 22px !important; bottom: 12px !important;
+    display: flex !important; align-items: center !important; justify-content: space-between !important;
+    margin: 0 !important; padding: 0 !important; z-index: 6 !important;
+}
+body.theme-classic #vnSection .vn-dialogue-footer::before {
+    content:'' !important; position:absolute !important; top:-10px !important; left:-12px !important; right:0 !important;
+    height:1px !important; background:linear-gradient(90deg, transparent, var(--pal-line) 50%, transparent) !important;
+}
+/* luna creciente sobre el divisor */
+body.theme-classic #vnSection .vn-dialogue-footer::after {
+    content:'' !important; position:absolute !important; top:-20px !important; left:50% !important; transform:translateX(-50%) !important;
+    width:54px !important; height:20px !important; background-repeat:no-repeat !important; background-position:center !important; background-size:contain !important;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='54' height='20'%3E%3Crect width='54' height='20' fill='%23110f33'/%3E%3Cpath d='M2 10 H18 M36 10 H52' stroke='%23c1a8ec' stroke-width='1' opacity='0.6'/%3E%3Cpath d='M30 4 a6 6 0 1 0 0 12 a4.5 4.5 0 0 1 0 -12 Z' fill='none' stroke='%23dcd6f0' stroke-width='1.2'/%3E%3Ccircle cx='21' cy='10' r='1' fill='%23c1a8ec'/%3E%3Ccircle cx='40' cy='5' r='0.8' fill='%23c1a8ec'/%3E%3C/svg%3E") !important;
+}
+/* navegación mini (« ‹ › ») */
+body.theme-classic #vnSection .vn-counter-dice-wrap { display:flex !important; align-items:center !important; gap:6px !important; order:2 !important; }
+body.theme-classic #vnSection .vn-nav-mini-btn {
+    width:26px !important; height:26px !important; border-radius:50% !important; padding:0 !important;
+    border:1px solid rgba(206,196,255,0.22) !important; background:rgba(20,17,48,0.4) !important; color:var(--pal-silver) !important;
+    display:inline-flex !important; align-items:center !important; justify-content:center !important; cursor:pointer !important;
+}
+body.theme-classic #vnSection .vn-nav-mini-btn:hover { border-color:rgba(193,168,236,0.7) !important; color:#fff !important; }
+body.theme-classic #vnSection .vn-message-counter {
+    font-family:'EB Garamond', serif !important; font-style:italic !important; font-size:12px !important; color:var(--pal-silver) !important; opacity:0.7 !important; padding:0 4px !important;
+}
+/* acciones del pie (Escena / Emotes) — píldoras de plata, agrupadas a la izquierda */
+body.theme-classic #vnSection .vn-dialogue-actions { display:flex !important; align-items:center !important; order:1 !important; }
+body.theme-classic #vnSection .vn-dialogue-actions-left { display:flex !important; gap:8px !important; }
+body.theme-classic #vnSection .vn-dialogue-action-btn {
+    display:inline-flex !important; align-items:center !important; gap:6px !important;
+    padding:5px 13px !important; min-height:0 !important; height:auto !important;
+    border-radius:999px !important; border:1px solid rgba(220,214,240,0.26) !important; background:rgba(20,17,48,0.34) !important;
+    color:#ccc4ec !important; font-family:'Cinzel', serif !important; font-size:9.5px !important; letter-spacing:0.08em !important;
+    text-transform:uppercase !important; line-height:1.1 !important; box-shadow:none !important; cursor:pointer !important;
+}
+body.theme-classic #vnSection .vn-dialogue-action-btn:hover { border-color:rgba(193,168,236,0.75) !important; color:#fff !important; }
+body.theme-classic #vnSection .vn-dialogue-action-btn .action-icon { font-size:11px !important; }
+
+/* ════════════════════ TOOLBAR LATERAL ════════════════════
+   Riel-píldora de plata, botones circulares pequeños. */
+body.theme-classic #vnSection .vn-toolbar.vn-classic-controls {
+    width: auto !important;
+    padding: 9px 7px !important;
+    gap: 7px !important;
+    border-radius: 999px !important;
+    background: rgba(12,10,32,0.55) !important;
+    border: 1px solid rgba(206,196,255,0.18) !important;
+    -webkit-backdrop-filter: blur(12px) !important; backdrop-filter: blur(12px) !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4) !important;
+    overflow: visible !important;
+}
+body.theme-classic #vnSection .vn-toolbar.vn-classic-controls::before,
+body.theme-classic #vnSection .vn-toolbar.vn-classic-controls::after { content:none !important; display:none !important; }
+body.theme-classic #vnSection .vn-classic-control-slot { display:flex !important; }
+body.theme-classic #vnSection .vn-classic-control-btn {
+    width: 34px !important; height: 34px !important; min-width: 34px !important; padding: 0 !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(206,196,255,0.22) !important;
+    background: rgba(20,17,48,0.4) !important;
+    color: var(--pal-silver) !important;
+    display:flex !important; align-items:center !important; justify-content:center !important;
+    box-shadow:none !important; clip-path:none !important; cursor:pointer !important;
+    transition: border-color .15s, background .15s, color .15s !important;
+}
+body.theme-classic #vnSection .vn-classic-control-btn:hover {
+    border-color: rgba(193,168,236,0.8) !important; color:#fff !important; background: rgba(34,28,72,0.55) !important;
+}
+body.theme-classic #vnSection .vn-classic-control-btn.vn-btn-danger { border-color:rgba(217,105,78,0.4) !important; color:var(--pal-hp) !important; }
+body.theme-classic #vnSection .vn-classic-control-btn.vn-btn-danger:hover { border-color:var(--pal-hp) !important; color:#ffd9cf !important; }
+body.theme-classic #vnSection .vn-classic-control-icon { display:flex !important; }
+body.theme-classic #vnSection .vn-classic-control-icon svg { width:16px !important; height:16px !important; }
+body.theme-classic #vnSection .vn-classic-control-divider { width:16px !important; height:1px !important; margin:1px auto !important; background:rgba(206,196,255,0.3) !important; }
+
+/* ════════════════════ PARTY CLÁSICA ════════════════════
+   "Constelación del vínculo": medallones + nombre + glifo de género.
+   El panel ya existe (#classicPartyShell + renderClassicParty). Solo reskin. */
+body.theme-classic #classicPartyShell {
+    position: fixed !important;
+    top: 1.5rem !important; right: 4.6rem !important; left:auto !important; bottom:auto !important;
+    width: 208px !important; z-index: 800 !important;
+}
+body.theme-classic #classicPartyShell .classic-party-panel,
+body.theme-classic #classicPartyShell > div {
+    background: linear-gradient(180deg, rgba(20,17,48,0.74), rgba(9,8,26,0.88)) !important;
+    border: 1px solid rgba(206,196,255,0.2) !important;
+    border-radius: 16px !important;
+    padding: 16px 16px 14px !important;
+    -webkit-backdrop-filter: blur(12px) !important; backdrop-filter: blur(12px) !important;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.4) !important;
+}
+body.theme-classic #classicPartyShell .classic-party-title {
+    font-family:'Cinzel', serif !important; font-size:10px !important; letter-spacing:0.26em !important; text-transform:uppercase !important;
+    color:var(--pal-lav) !important; text-align:center !important; display:flex !important; align-items:center !important; justify-content:center !important; gap:8px !important;
+}
+body.theme-classic #classicPartyShell .cp-member {
+    display:flex !important; align-items:center !important; gap:11px !important;
+    padding:8px 10px !important; margin-top:8px !important;
+    background:rgba(34,28,72,0.3) !important; border:1px solid rgba(206,196,255,0.14) !important; border-radius:10px !important;
+    color:var(--pal-cream) !important; font-family:'Crimson Text', serif !important;
+}
+body.theme-classic #classicPartyShell .cp-member:hover { background:rgba(193,168,236,0.12) !important; border-color:rgba(193,168,236,0.5) !important; }
+/* avatar redondo del miembro (si lo hay) */
+body.theme-classic #classicPartyShell .cp-member img,
+body.theme-classic #classicPartyShell .cp-avatar {
+    width:34px !important; height:34px !important; border-radius:50% !important; object-fit:cover !important;
+    border:1px solid rgba(220,214,240,0.5) !important; box-shadow:0 0 0 3px rgba(193,168,236,0.12) !important;
+}
+body.theme-classic #classicPartyShell .cp-name {
+    font-family:'Cinzel', serif !important; font-size:14px !important; color:var(--pal-cream) !important; letter-spacing:0.02em !important; cursor:pointer !important;
+}
+body.theme-classic #classicPartyShell .cp-gender { color:var(--pal-lav) !important; }
+/* punto de "en escena" si existe el indicador */
+body.theme-classic #classicPartyShell .cp-presence,
+body.theme-classic #classicPartyShell .cp-dot { background:var(--pal-lav) !important; box-shadow:0 0 7px var(--pal-glow) !important; }
+
+/* ════════════════════ FIN del bloque de producción ════════════════════ */
+
