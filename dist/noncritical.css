@@ -29137,6 +29137,38 @@ body:has(#topicsSection.active) {
 /* ══════════════════════════════════════════════════════════════════════
    COMPARTIDO: variables locales del VN
    ══════════════════════════════════════════════════════════════════════ */
+/* ── Variables en body también para herencia fuera de #vnSection ──────── */
+/* #classicPartyShell y similares necesitan estos tokens */
+body.theme-classic,
+body.theme-rpg {
+    --vns-cream:  #f3ecda;
+    --vns-gold:   #c9a86c;
+    --vns-goldlt: #f0d898;
+    --vns-hp:     #d9694e;
+    --vns-exp:    #6fae9c;
+
+    --vns-p-deep:   #0b0a24;
+    --vns-p-mid:    #181a44;
+    --vns-p-sky1:   #231c52;
+    --vns-p-sky2:   #0c0a26;
+    --vns-p-silver: #dcd6f0;
+    --vns-p-lav:    #c1a8ec;
+    --vns-p-peri:   #9aa6ee;
+    --vns-p-line:   rgba(206,196,255,.55);
+    --vns-p-glow:   rgba(197,168,232,.45);
+
+    --vns-a-deep:   #160d06;
+    --vns-a-mid:    #39200e;
+    --vns-a-sky1:   #4a2c12;
+    --vns-a-sky2:   #140a05;
+    --vns-a-amber:  #e3a24f;
+    --vns-a-bronze: #b0763a;
+    --vns-a-parch:  #e7d3a3;
+    --vns-a-ember:  #e08a5c;
+    --vns-a-line:   rgba(224,162,79,.5);
+    --vns-a-glow:   rgba(224,162,79,.4);
+}
+
 #vnSection {
     --vns-cream:  #f3ecda;
     --vns-gold:   #c9a86c;
@@ -29196,6 +29228,64 @@ body.theme-classic #vnSection::after {
     z-index: 1;
 }
 
+
+/* ── Tarjeta de info (arriba-izq) — paleta Palabra ─────────────────── */
+body.theme-classic #vnSection .vn-info-card {
+    background: linear-gradient(160deg, rgba(18,14,44,.82), rgba(9,7,28,.9)) !important;
+    border: 1px solid rgba(193,168,236,.28) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,.45), inset 0 1px 0 rgba(220,214,240,.06) !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-name {
+    color: var(--vns-cream) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 14px !important;
+    letter-spacing: .06em !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-subtitle {
+    color: var(--vns-p-lav) !important;
+    font-family: 'EB Garamond', serif !important;
+    font-style: italic !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-pill {
+    background: rgba(193,168,236,.1) !important;
+    border: 1px solid rgba(193,168,236,.25) !important;
+    color: var(--vns-p-silver) !important;
+    font-size: 10px !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-pill-sep {
+    color: rgba(193,168,236,.4) !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-affection-bar-fill {
+    background: linear-gradient(90deg, #9aa6ee, #c1a8ec) !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-hover-details {
+    background: rgba(9,7,26,.96) !important;
+    border: 1px solid rgba(193,168,236,.22) !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-avatar {
+    border: 2px solid rgba(193,168,236,.4) !important;
+    box-shadow: 0 0 14px rgba(145,108,220,.3) !important;
+}
+
+/* ── Chapter reveal — Palabra (lavanda en vez de dorado) ────────────── */
+body.theme-classic #vnSection #vnChapterReveal .vn-chapter-reveal-line {
+    background: linear-gradient(90deg, transparent, rgba(193,168,236,.7), transparent) !important;
+    width: 260px !important;
+    margin: 0.8rem 0 !important;
+}
+body.theme-classic #vnSection #vnChapterReveal .vn-chapter-reveal-title {
+    color: var(--vns-p-silver) !important;
+    font-size: 1.6rem !important;
+    letter-spacing: .2em !important;
+    text-shadow: 0 0 40px rgba(193,168,236,.5), 0 0 80px rgba(145,108,220,.3) !important;
+}
+body.theme-classic #vnSection #vnChapterReveal {
+    background: rgba(7,6,23,.88) !important;
+    backdrop-filter: blur(4px) !important;
+}
 /* ── Caja de diálogo — Palabra ──────────────────────────────────────── */
 /* Spec (1,3,1): body.theme-classic + #vnSection + .bottom-panel + .vn-dialogue-box
    Supera a 07-overrides (1,2,0) incluso en propiedades !important */
@@ -29521,68 +29611,56 @@ body.theme-classic #vnSection .vn-classic-control-btn.vn-btn-danger:hover {
 }
 
 /* ── Party clásica (derecha) ─────────────────────────────────────────── */
+/* ── Party clásica (derecha, arriba) — #classicPartyShell + .cp-member ──────
+   OJO: el JS (userProfile.js → renderClassicParty) genera .cp-member / .cp-name
+   / .cp-gender. NO uses .classic-party-entry (no existe). El panel ya existe en
+   el código; solo se reestiliza y se posiciona aquí. ── */
 body.theme-classic #classicPartyShell {
-    position: absolute;
-    top: 104px;
-    right: 104px;
-    width: 208px;
-    z-index: 9;
+    position: fixed !important;
+    top: 1.5rem !important;
+    right: 4.6rem !important;   /* separado de la toolbar del borde */
+    left: auto !important;
+    bottom: auto !important;
+    width: 188px !important;
+    z-index: 800 !important;
 }
 
 body.theme-classic #vnPartyShell {
     display: none;
 }
 
-.classic-party-header {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 9px;
-    margin-bottom: 14px;
-    font-family: 'Cinzel', serif;
-    font-size: 9.5px;
-    letter-spacing: .32em;
-    text-transform: uppercase;
-    color: var(--vns-p-lav);
-    opacity: .85;
+body.theme-classic #classicPartyShell .classic-party-panel {
+    background: linear-gradient(180deg, rgba(20,17,48,.74), rgba(9,8,26,.88)) !important;
+    border: 1px solid rgba(206,196,255,.2) !important;
+    border-radius: 14px !important;
 }
-
-.classic-party-list {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+body.theme-classic #classicPartyShell .classic-party-title {
+    font-family: 'Cinzel', serif !important;
+    color: var(--vns-p-lav) !important;
+    letter-spacing: .26em !important;
 }
+body.theme-classic #classicPartyShell .classic-party-ornament { color: var(--vns-p-lav) !important; }
 
-.classic-party-list::before {
-    content: '';
-    position: absolute;
-    right: 18.5px;
-    top: 14px;
-    bottom: 14px;
-    width: 1px;
-    background: repeating-linear-gradient(180deg, var(--vns-p-line) 0 2px, transparent 2px 7px);
-    opacity: .55;
-    pointer-events: none;
+/* miembros reales (.cp-member / .cp-name / .cp-gender) */
+body.theme-classic #classicPartyShell .cp-member {
+    background: rgba(34,28,72,.3) !important;
+    border: 1px solid rgba(206,196,255,.14) !important;
+    border-radius: 8px !important;
+    color: var(--vns-cream) !important;
+    font-family: 'Crimson Text', serif !important;
 }
-
-.classic-party-entry {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
+body.theme-classic #classicPartyShell .cp-member:hover {
+    background: rgba(193,168,236,.12) !important;
+    border-color: rgba(193,168,236,.5) !important;
 }
-
-.classic-party-entry.absent { opacity: .45; }
-
-.classic-party-name {
-    font-family: 'Cinzel', serif;
-    font-size: 15.5px;
-    font-weight: 500;
-    color: var(--vns-cream);
-    letter-spacing: .03em;
-    text-align: right;
+body.theme-classic #classicPartyShell .cp-member--responded { border-color: rgba(193,168,236,.4) !important; }
+body.theme-classic #classicPartyShell .cp-name {
+    font-family: 'Cinzel', serif !important;
+    font-size: 14px !important;
+    color: var(--vns-cream) !important;
+    letter-spacing: .02em !important;
 }
+body.theme-classic #classicPartyShell .cp-gender { color: var(--vns-p-lav) !important; }
 
 /* ── Opciones de respuesta — píldoras con nodo-estrella ─────────────── */
 body.theme-classic #vnSection .vn-options-container {
@@ -30487,7 +30565,6 @@ body.theme-rpg #vnSection .vn-speaker-avatar-wrap::before {
     body.theme-classic #vnSection .vn-dialogue-text { padding-left: 82px !important; font-size: 19px !important; }
     body.theme-classic #vnSection .vn-msg-actions    { padding-left: 82px; }
     body.theme-classic #vnSection .vn-options-container { width: calc(100vw - 1.1rem); }
-    body.theme-classic #classicPartyShell { display: none; }
 
     body.theme-rpg #vnSection .bottom-panel .vn-dialogue-box {
         width: calc(100vw - 1rem) !important;
@@ -30501,6 +30578,12 @@ body.theme-rpg #vnSection .vn-speaker-avatar-wrap::before {
     }
     body.theme-rpg #vnSection .vn-dialogue-text { padding-left: 80px !important; font-size: 17px !important; }
     body.theme-rpg #vnSection .vn-msg-actions    { padding-left: 80px; }
+}
+
+/* Ocultar las party SOLO en móvil real (no a 900px, que apagaba el party en
+   ventanas medianas y parecía que "no se creaba"). */
+@media (max-width: 600px) {
+    body.theme-classic #classicPartyShell,
     body.theme-rpg #vnPartyShell { display: none; }
 }
 
@@ -31157,116 +31240,449 @@ body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate::after { inset: 2px
 body.theme-rpg #vnSection #vnInfoCard { display: none !important; }
 
 /* ══════════════════════════════════════════════════════════════════════
-   PERFIL DESPLEGABLE desde el party (.vn-member-profile)
-   Inyectado por vn-design.js al clicar un nombre del party.
+   PANEL DE RESPUESTA · Senda de la Palabra (p-responder)
+   Clases reales del HTML: #vnReplyPanel .vrp-modal / .vrp-header /
+   .vrp-footer / .vrp-btn-cancel / .vrp-btn-send / .vn-reply-textarea
    ══════════════════════════════════════════════════════════════════════ */
-.vn-member-profile {
-    min-width: 220px;
-    max-width: 280px;
-    border-radius: 12px;
-    padding: 0 0 14px;
-    overflow: hidden;
-    animation: vmpf-in .18s cubic-bezier(.2,.7,.3,1) both;
+
+/* ── Overlay completo ─────────────────────────────────────────────── */
+body.theme-classic #vnSection #vnReplyPanel.vn-reply-panel {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding-bottom: 40px !important;
+    z-index: 900 !important;
+    pointer-events: auto !important;
 }
 
-@keyframes vmpf-in {
-    from { opacity: 0; transform: translateY(-6px) scale(.97); }
-    to   { opacity: 1; transform: none; }
+/* ── Scrim ────────────────────────────────────────────────────────── */
+body.theme-classic #vnSection #vnReplyPanel .vrp-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    background: radial-gradient(ellipse 80% 70% at 50% 50%,
+        rgba(4,3,14,.44), rgba(4,3,14,.64)) !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
 }
 
-/* RPG — carta de tarot ámbar */
-.vn-member-profile--rpg {
-    background: linear-gradient(180deg, rgba(30,20,9,.98), rgba(12,7,3,.99));
-    border: 1px solid rgba(227,162,79,.5);
-    box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 40px rgba(227,162,79,.18), inset 0 0 0 1px rgba(176,118,58,.15);
+/* ── Caja del panel — "pergamino estelar" ─────────────────────────── */
+body.theme-classic #vnSection #vnReplyPanel .vrp-modal {
+    position: relative !important;
+    z-index: 1 !important;
+    width: min(880px, calc(100vw - 2rem)) !important;
+    max-height: 90vh !important;
+    border-radius: 22px !important;
+    background:
+        radial-gradient(ellipse 80% 120% at 30% -10%, rgba(193,168,236,.11), transparent 60%),
+        linear-gradient(180deg, rgba(22,18,52,.93), rgba(10,8,28,.96)) !important;
+    border: 1px solid rgba(220,214,240,.28) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    box-shadow: 0 -10px 70px rgba(0,0,0,.5), 0 0 50px rgba(197,168,232,.25) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
 }
 
-/* Clásico — medallón de plata */
-.vn-member-profile--classic {
-    background: linear-gradient(180deg, rgba(22,18,52,.97), rgba(9,8,26,.99));
-    border: 1px solid rgba(220,214,240,.3);
-    box-shadow: 0 24px 60px rgba(0,0,0,.65), 0 0 40px rgba(193,168,236,.15);
+/* hairline superior */
+body.theme-classic #vnSection #vnReplyPanel .vrp-modal::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; left: 24px !important; right: 24px !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(220,214,240,.55), transparent) !important;
+    pointer-events: none !important;
+    z-index: 2 !important;
 }
 
-/* Cabecera */
-.vmpf-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 16px 12px;
+/* ── Header ───────────────────────────────────────────────────────── */
+body.theme-classic #vnSection #vnReplyPanel .vrp-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 20px 28px 14px !important;
+    border-bottom: none !important;
+    background: transparent !important;
 }
-.vn-member-profile--rpg    .vmpf-header { border-bottom: 1px solid rgba(176,118,58,.28); background: linear-gradient(180deg, rgba(50,33,14,.5), transparent); }
-.vn-member-profile--classic .vmpf-header { border-bottom: 1px solid rgba(206,196,255,.2); background: linear-gradient(180deg, rgba(36,30,78,.4), transparent); }
 
-.vmpf-avatar {
-    width: 42px; height: 42px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; flex-shrink: 0;
+body.theme-classic #vnSection #vnReplyPanel .vrp-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    flex: 1 !important;
 }
-.vn-member-profile--rpg    .vmpf-avatar { border: 1.5px solid rgba(227,162,79,.6); background: rgba(26,17,8,.7); }
-.vn-member-profile--classic .vmpf-avatar { border: 1.5px solid rgba(193,168,236,.5); background: rgba(20,16,48,.6); }
 
-.vmpf-name {
-    display: block;
-    font-family: 'Cinzel', serif;
-    font-size: 14px; font-weight: 600; letter-spacing: .08em;
+/* Cameo "Tu voz" — círculo plata */
+body.theme-classic #vnSection #vnReplyPanel .vrp-icon {
+    width: 42px !important;
+    height: 42px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(145deg, rgba(50,40,100,.7), rgba(20,16,50,.8)) !important;
+    border: 1.5px solid rgba(220,214,240,.4) !important;
+    box-shadow: 0 0 14px rgba(197,168,232,.3) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 18px !important;
+    flex-shrink: 0 !important;
 }
-.vmpf-meta {
-    display: block;
-    font-family: 'Crimson Text', serif;
-    font-size: 13px; opacity: .7; margin-top: 2px;
-}
-.vn-member-profile--rpg    .vmpf-name { color: #fbe6c6; }
-.vn-member-profile--classic .vmpf-name { color: var(--vns-cream); }
 
-/* Barras HP/EXP */
-.vmpf-bars { padding: 10px 16px 6px; }
-.vmpf-bar-row {
-    display: grid; grid-template-columns: 30px 1fr 44px;
-    align-items: center; gap: 8px; margin-bottom: 6px;
+body.theme-classic #vnSection #vnReplyPanel .vrp-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: #fdfaef !important;
+    letter-spacing: .04em !important;
+    text-shadow: 0 0 12px rgba(197,168,232,.4) !important;
 }
-.vmpf-bar-label { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: .12em; opacity: .75; }
-.vmpf-bar-track { height: 4px; border-radius: 2px; overflow: hidden; background: rgba(255,255,255,.08); }
-.vmpf-bar-fill  { height: 100%; border-radius: 2px; background: var(--vns-hp); }
-.vmpf-bar-fill.exp { background: var(--vns-exp); }
-.vmpf-bar-val   { font-family: ui-monospace, monospace; font-size: 10px; opacity: .6; text-align: right; }
 
-/* Rejilla de stats */
-.vmpf-stats {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    gap: 6px; padding: 8px 16px;
+body.theme-classic #vnSection #vnReplyPanel .vrp-char-badge {
+    font-family: 'EB Garamond', serif !important;
+    font-style: italic !important;
+    font-size: 13px !important;
+    color: var(--vns-p-silver) !important;
+    opacity: .72 !important;
 }
-.vmpf-stat {
-    display: flex; flex-direction: column; align-items: center;
-    padding: 5px 4px; border-radius: 6px;
-}
-.vn-member-profile--rpg    .vmpf-stat { background: rgba(227,162,79,.08); border: 1px solid rgba(176,118,58,.25); }
-.vn-member-profile--classic .vmpf-stat { background: rgba(193,168,236,.07); border: 1px solid rgba(206,196,255,.2); }
-.vmpf-stat-label { font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: .1em; opacity: .6; }
-.vmpf-stat-val   { font-family: ui-monospace, monospace; font-size: 15px; font-weight: 600; margin-top: 2px; }
-.vn-member-profile--rpg    .vmpf-stat-val { color: var(--vns-a-parch); }
-.vn-member-profile--classic .vmpf-stat-val { color: var(--vns-cream); }
 
-/* Botón editar ficha */
-.vmpf-edit-btn {
-    display: block; width: calc(100% - 32px); margin: 10px 16px 0;
-    padding: 8px 0; border-radius: 8px;
-    font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600;
-    letter-spacing: .14em; text-transform: uppercase; cursor: pointer;
-    transition: filter .15s;
+/* Tono Narrador — sobrio, sin override llamativo */
+body.theme-classic #vnSection #vnReplyPanel .vrp-narrator-switch {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    cursor: pointer !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 10px !important;
+    letter-spacing: .12em !important;
+    text-transform: uppercase !important;
+    color: var(--vns-p-silver) !important;
+    opacity: .75 !important;
 }
-.vmpf-edit-btn:hover { filter: brightness(1.15); }
-.vn-member-profile--rpg .vmpf-edit-btn {
-    background: linear-gradient(180deg, #c9883f, #8a5422);
-    border: 1px solid rgba(255,210,140,.5);
-    color: #fff6e6;
-    box-shadow: 0 4px 14px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,220,160,.3);
+
+body.theme-classic #vnSection #vnReplyPanel .vrp-switch-track {
+    width: 30px !important;
+    height: 17px !important;
+    border-radius: 999px !important;
+    background: rgba(20,17,48,.6) !important;
+    border: 1px solid rgba(220,214,240,.25) !important;
+    position: relative !important;
+    flex-shrink: 0 !important;
 }
-.vn-member-profile--classic .vmpf-edit-btn {
-    background: linear-gradient(180deg, rgba(70,60,140,.8), rgba(40,34,90,.9));
-    border: 1px solid rgba(193,168,236,.5);
-    color: #f3ecda;
-    box-shadow: 0 4px 14px rgba(0,0,0,.4);
+body.theme-classic #vnSection #vnReplyPanel .vrp-switch-thumb {
+    width: 11px !important; height: 11px !important;
+    border-radius: 50% !important;
+    background: var(--vns-p-silver) !important;
+    position: absolute !important;
+    top: 2px !important; left: 2px !important;
+    transition: left .2s !important;
+}
+
+/* Botón cerrar */
+body.theme-classic #vnSection #vnReplyPanel .vrp-close-btn {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(220,214,240,.22) !important;
+    background: transparent !important;
+    color: var(--vns-p-silver) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: border-color .15s, box-shadow .15s !important;
+}
+body.theme-classic #vnSection #vnReplyPanel .vrp-close-btn:hover {
+    border-color: var(--vns-p-silver) !important;
+    box-shadow: 0 0 8px var(--vns-p-glow) !important;
+}
+
+/* ── Cuerpo ───────────────────────────────────────────────────────── */
+body.theme-classic #vnSection #vnReplyPanel .vrp-body {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 0 28px 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+/* Selector de personaje — sobrio */
+body.theme-classic #vnSection #vnReplyPanel .char-selector-container {
+    background: rgba(14,12,36,.5) !important;
+    border: 1px solid rgba(220,214,240,.18) !important;
+    border-radius: 10px !important;
+}
+
+/* Área de escritura — campo oscuro con borde plata */
+body.theme-classic #vnSection #vnReplyPanel .vn-reply-textarea-wrap {
+    position: relative !important;
+    border-radius: 16px !important;
+    background: rgba(8,6,24,.5) !important;
+    border: 1px solid rgba(220,214,240,.18) !important;
+    overflow: hidden !important;
+}
+body.theme-classic #vnSection #vnReplyPanel .vn-reply-textarea {
+    background: transparent !important;
+    border: none !important;
+    color: #f5f0e2 !important;
+    font-family: 'EB Garamond', 'Crimson Text', Georgia, serif !important;
+    font-style: italic !important;
+    font-size: 20px !important;
+    line-height: 1.65 !important;
+    padding: 18px 22px !important;
+    resize: none !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+body.theme-classic #vnSection #vnReplyPanel .vn-reply-textarea::placeholder {
+    color: rgba(220,214,240,.35) !important;
+    font-style: italic !important;
+}
+body.theme-classic #vnSection #vnReplyPanel .vn-reply-textarea:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Pane labels — Cinzel pequeño */
+body.theme-classic #vnSection #vnReplyPanel .vrp-pane-label {
+    font-family: 'Cinzel', serif !important;
+    font-size: 9.5px !important;
+    letter-spacing: .18em !important;
+    text-transform: uppercase !important;
+    color: var(--vns-p-silver) !important;
+    opacity: .55 !important;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────── */
+body.theme-classic #vnSection #vnReplyPanel .vrp-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    padding: 16px 28px 20px !important;
+    border-top: none !important;
+    background: transparent !important;
+    position: relative !important;
+}
+/* hairline sobre el footer */
+body.theme-classic #vnSection #vnReplyPanel .vrp-footer::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important; left: 24px !important; right: 24px !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(220,214,240,.35) 40%, rgba(193,168,236,.5) 50%, rgba(220,214,240,.35) 60%, transparent) !important;
+    pointer-events: none !important;
+}
+
+/* Botón "Cancelar" — fantasma plata */
+body.theme-classic #vnSection #vnReplyPanel .vrp-btn-cancel {
+    padding: 10px 22px !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    border: 1px solid rgba(220,214,240,.28) !important;
+    color: var(--vns-p-silver) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 11px !important;
+    letter-spacing: .16em !important;
+    text-transform: uppercase !important;
+    cursor: pointer !important;
+    transition: border-color .15s, box-shadow .15s !important;
+    clip-path: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+body.theme-classic #vnSection #vnReplyPanel .vrp-btn-cancel:hover {
+    border-color: rgba(220,214,240,.6) !important;
+    box-shadow: 0 0 8px var(--vns-p-glow) !important;
+}
+
+/* Botón "Enviar" — cápsula lavanda brillante ("Susurrar") */
+body.theme-classic #vnSection #vnReplyPanel .vrp-btn-send {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+    padding: 12px 28px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(180deg, rgba(193,168,236,.4), rgba(193,168,236,.18)) !important;
+    border: 1px solid rgba(193,168,236,.7) !important;
+    color: #fff !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: .16em !important;
+    text-transform: uppercase !important;
+    cursor: pointer !important;
+    box-shadow: 0 0 22px rgba(197,168,232,.35) !important;
+    transition: box-shadow .15s, border-color .15s !important;
+    clip-path: none !important;
+    text-shadow: none !important;
+}
+body.theme-classic #vnSection #vnReplyPanel .vrp-btn-send:hover {
+    box-shadow: 0 0 36px rgba(193,168,236,.6) !important;
+    border-color: var(--vns-p-lav) !important;
+}
+
+/* Texto de pie — "cada palabra teje un vínculo..." — antes del footer,
+   lo ponemos dentro del vrp-body como hint si existe */
+body.theme-classic #vnSection #vnReplyPanel .vrp-section-label,
+body.theme-classic #vnSection #vnReplyPanel .vrp-format-hints code {
+    font-family: 'EB Garamond', serif !important;
+    font-style: italic !important;
+    font-size: 12px !important;
+    color: var(--vns-p-silver) !important;
+    opacity: .55 !important;
+    background: transparent !important;
+    border: none !important;
+    letter-spacing: 0 !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   PANEL DE RESPUESTA · Senda del Azar (bitácora de expedición)
+   ══════════════════════════════════════════════════════════════════════ */
+body.theme-rpg #vnSection #vnReplyPanel.vn-reply-panel {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding-bottom: 38px !important;
+    z-index: 900 !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vrp-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    background: radial-gradient(ellipse 80% 70% at 50% 50%,
+        rgba(8,4,2,.46), rgba(8,4,2,.65)) !important;
+    backdrop-filter: blur(3px) !important;
+    -webkit-backdrop-filter: blur(3px) !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vrp-modal {
+    position: relative !important;
+    z-index: 1 !important;
+    width: min(900px, calc(100vw - 2rem)) !important;
+    border-radius: 12px !important;
+    background: linear-gradient(180deg, rgba(28,18,8,.94), rgba(12,7,3,.96)) !important;
+    border: 1px solid rgba(227,162,79,.35) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 -10px 64px rgba(0,0,0,.55), 0 0 40px rgba(227,162,79,.18) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vrp-header {
+    padding: 18px 26px 12px !important;
+    border-bottom: none !important;
+    background: transparent !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vrp-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    color: #fdf6e3 !important;
+    letter-spacing: .04em !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vn-reply-textarea {
+    background: transparent !important;
+    border: none !important;
+    color: #f6ecd6 !important;
+    font-family: 'Crimson Text', Georgia, serif !important;
+    font-size: 18px !important;
+    line-height: 1.78 !important;
+    padding: 16px 20px !important;
+    resize: none !important;
+    width: 100% !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vn-reply-textarea-wrap {
+    background: rgba(10,6,2,.55) !important;
+    border: 1px solid rgba(176,118,58,.28) !important;
+    border-radius: 8px !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vrp-body {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 0 26px 8px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vrp-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    padding: 14px 26px 18px !important;
+    border-top: none !important;
+    background: transparent !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vrp-btn-cancel {
+    padding: 10px 20px !important;
+    border-radius: 8px !important;
+    background: transparent !important;
+    border: 1px solid rgba(176,118,58,.4) !important;
+    color: var(--vns-a-parch) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 11px !important;
+    letter-spacing: .14em !important;
+    text-transform: uppercase !important;
+    cursor: pointer !important;
+    clip-path: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+body.theme-rpg #vnSection #vnReplyPanel .vrp-btn-send {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+    padding: 12px 26px !important;
+    border-radius: 8px !important;
+    background: linear-gradient(180deg, rgba(227,162,79,.4), rgba(227,162,79,.18)) !important;
+    border: 1px solid rgba(227,162,79,.7) !important;
+    color: #fff !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: .16em !important;
+    text-transform: uppercase !important;
+    cursor: pointer !important;
+    box-shadow: 0 0 20px rgba(227,162,79,.25) !important;
+    clip-path: none !important;
+    text-shadow: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   OPCIONES DE RESPUESTA — adornos extra (estrella de 4 puntas rotante)
+   La estrella está en .vn-option-btn / .vn-option si el JS la inyecta,
+   o como ::before si la ponemos en CSS.
+   ══════════════════════════════════════════════════════════════════════ */
+body.theme-classic #vnSection .vn-options-container::before {
+    content: '¿Qué respondes?' !important;
+    display: block !important;
+    text-align: center !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 12px !important;
+    letter-spacing: .34em !important;
+    text-transform: uppercase !important;
+    color: var(--vns-cream) !important;
+    text-shadow: 0 0 18px var(--vns-p-glow) !important;
+    margin-bottom: 10px !important;
+    opacity: .85 !important;
 }
 
