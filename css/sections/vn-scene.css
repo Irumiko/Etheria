@@ -2127,11 +2127,10 @@ body.theme-rpg #vnSection #vnInfoCard { display: none !important; }
    .vrp-footer / .vrp-btn-cancel / .vrp-btn-send / .vn-reply-textarea
    ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Overlay completo ─────────────────────────────────────────────── */
+/* ── Overlay completo — NO tocamos display; el JS lo pone a flex/none ── */
 body.theme-classic #vnSection #vnReplyPanel.vn-reply-panel {
     position: fixed !important;
     inset: 0 !important;
-    display: flex !important;
     align-items: flex-end !important;
     justify-content: center !important;
     padding-bottom: 40px !important;
@@ -2428,7 +2427,6 @@ body.theme-classic #vnSection #vnReplyPanel .vrp-format-hints code {
 body.theme-rpg #vnSection #vnReplyPanel.vn-reply-panel {
     position: fixed !important;
     inset: 0 !important;
-    display: flex !important;
     align-items: flex-end !important;
     justify-content: center !important;
     padding-bottom: 38px !important;
