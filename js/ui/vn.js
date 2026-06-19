@@ -1436,6 +1436,55 @@ function applyTopicBackground(vnSection, backgroundPath) {
     }
 })();
 
+// ── Listener EventBus: rpg:narrator-message ──────────────────────────────────
+// RPGDispatcher emite este evento cuando una escena procesa un comando de tipo
+// 'narrator'. vn.js lo convierte en un mensaje sintético isNarrator:true y lo
+// muestra en la caja de diálogo, igual que los mensajes de narrador manuales.
+// No se persiste en Supabase — es efímero, solo visual durante la escena.
+(function _initVnNarratorMessageListener() {
+    if (window._vnNarratorMsgListenerReady) return;
+    window._vnNarratorMsgListenerReady = true;
+    if (typeof eventBus === 'undefined') return;
+    eventBus.on('rpg:narrator-message', function(data) {
+        if (!data || !data.text) return;
+        // Solo actuar si el VN está activo (hay un topic abierto)
+        if (!currentTopicId) return;
+        const msgs = getTopicMessages(currentTopicId);
+        const syntheticMsg = {
+            id:          (globalThis.crypto?.randomUUID?.()) || (Date.now() + '_rpg_narr'),
+            characterId: null,
+            charName:    'Narrador',
+            charColor:   null,
+            charAvatar:  null,
+            charSprite:  null,
+            text:        data.text,
+            isNarrator:  true,
+            userIndex:   currentUserIndex,
+            timestamp:   new Date().toISOString(),
+            _synthetic:  true   // marcador para no persistir ni contar en paginación
+        };
+        msgs.push(syntheticMsg);
+        currentMessageIndex = msgs.length - 1;
+        triggerDialogueFadeIn();
+        showCurrentMessage('forward');
+    });
+})();
+
+// ── Listener EventBus: rpg:state-changed ─────────────────────────────────────
+// RPGState emite este evento en cada cambio de HP/XP/nivel/stats/condición.
+// vn.js lo usa para refrescar el panel de party sin esperar al siguiente mensaje.
+(function _initVnRpgStateChangedListener() {
+    if (window._vnRpgStateChangedListenerReady) return;
+    window._vnRpgStateChangedListenerReady = true;
+    if (typeof eventBus === 'undefined') return;
+    eventBus.on('rpg:state-changed', function() {
+        // Forzar re-render de la party panel para reflejar el cambio inmediatamente
+        if (typeof renderVnPartyPanel === 'function') {
+            renderVnPartyPanel(true);
+        }
+    });
+})();
+
 function preloadTopicBackgrounds() {
     const topicBackgrounds = (appData?.topics || []).map(topic => resolveTopicBackgroundPath(topic.background));
     const uniqueBackgrounds = new Set([...topicBackgrounds, ...DEFAULT_TOPIC_BACKGROUND_VARIANTS].filter(Boolean));
@@ -1891,8 +1940,8 @@ function detectOracleCategory(question = '', stat = '') {
     const statKey = String(stat || '').toUpperCase();
     if (statKey === 'INT' || /analizar|descifrar|investigar|leer|pensar|recordar/.test(q)) return 'analysis';
     if (statKey === 'STR' || /forzar|romper|empujar|levantar|golpear/.test(q)) return 'force';
-    if (statKey === 'AGI' || /esquivar|correr|saltar|huir|sigilo/.test(q)) return 'agility';
-    if (statKey === 'VIT' || /resistir|aguantar|soportar|mantener/.test(q)) return 'endurance';
+    if (statKey === 'DEX' || statKey === 'AGI' || /esquivar|correr|saltar|huir|sigilo/.test(q)) return 'agility';
+    if (statKey === 'CON' || statKey === 'VIT' || /resistir|aguantar|soportar|mantener/.test(q)) return 'endurance';
     if (/convencer|negociar|persuadir|mentir|pedir/.test(q)) return 'negotiation';
     return 'generic';
 }
@@ -2142,7 +2191,15 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     const msgCounter = document.getElementById('vnMessageCounter');
-    if (msgCounter) msgCounter.textContent = `${currentMessageIndex + 1} / ${msgs.length}`;
+    if (msgCounter) {
+        msgCounter.textContent = `${currentMessageIndex + 1} / ${msgs.length}`;
+        // 07-overrides.css oculta este ID con display:none!important.
+        // El estilo inline tiene mayor prioridad que cualquier hoja de estilos,
+        // así que lo restauramos aquí sin tocar otros archivos CSS.
+        if (getComputedStyle(msgCounter).display === 'none') {
+            msgCounter.style.display = 'inline-flex';
+        }
+    }
 
     const liveSpeaker = (msg.isNarrator || !msg.characterId) ? 'Narrador' : (msg.charName || 'Personaje');
     announceForScreenReader(`Nuevo mensaje de ${liveSpeaker}: ${stripHtml(formatText(cleanText)).slice(0, 180)}`);
@@ -6150,3 +6207,4 @@ function vrpSetWeatherBtn(clickedBtn) {
         _list.innerHTML = '';
     });
 }());
+
