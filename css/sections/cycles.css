@@ -88,7 +88,7 @@ body.theme-rpg #vnSection .cycle-badge-dot { background: #e3a24f; }
    ELECCIONES ACTIVAS DEL CICLO
    Flota sobre la escena entre el fondo y la caja de diálogo.
    ══════════════════════════════════════════════════════════════════════ */
-#vnSection .cycle-choices-container {
+body.theme-classic #vnSection .cycle-choices-container {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -101,10 +101,10 @@ body.theme-rpg #vnSection .cycle-badge-dot { background: #e3a24f; }
     animation: cycle-slide-up .35s ease;
 }
 
-#vnSection .cycle-choices-container.hidden { display: none; }
+body.theme-classic #vnSection .cycle-choices-container.hidden { display: none; }
 
 /* Tarjeta de una elección */
-#vnSection .cycle-choice-card {
+body.theme-classic #vnSection .cycle-choice-card {
     background: rgba(10, 8, 28, .88);
     border: 1px solid rgba(201, 168, 108, .3);
     border-radius: 14px;
@@ -113,7 +113,7 @@ body.theme-rpg #vnSection .cycle-badge-dot { background: #e3a24f; }
     box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
 }
 
-#vnSection .cycle-choice-question {
+body.theme-classic #vnSection .cycle-choice-question {
     font-family: 'EB Garamond', serif;
     font-style: italic;
     font-size: 15px;
@@ -122,13 +122,13 @@ body.theme-rpg #vnSection .cycle-badge-dot { background: #e3a24f; }
     line-height: 1.5;
 }
 
-#vnSection .cycle-choice-options {
+body.theme-classic #vnSection .cycle-choice-options {
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
 
-#vnSection .cycle-choice-opt {
+body.theme-classic #vnSection .cycle-choice-opt {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -143,15 +143,15 @@ body.theme-rpg #vnSection .cycle-badge-dot { background: #e3a24f; }
     font-family: inherit;
 }
 
-#vnSection .cycle-choice-opt:hover {
+body.theme-classic #vnSection .cycle-choice-opt:hover {
     background: rgba(201, 168, 108, .1);
     border-color: rgba(201, 168, 108, .4);
     transform: translateX(3px);
 }
 
-#vnSection .cycle-choice-opt:active { transform: translateX(1px); }
+body.theme-classic #vnSection .cycle-choice-opt:active { transform: translateX(1px); }
 
-#vnSection .cycle-choice-label {
+body.theme-classic #vnSection .cycle-choice-label {
     font-family: 'Cinzel', serif;
     font-size: 11px;
     font-weight: 600;
@@ -160,7 +160,7 @@ body.theme-rpg #vnSection .cycle-badge-dot { background: #e3a24f; }
     flex-shrink: 0;
 }
 
-#vnSection .cycle-choice-text {
+body.theme-classic #vnSection .cycle-choice-text {
     font-family: 'Crimson Text', serif;
     font-size: 15px;
     color: #dcd6f0;
@@ -195,7 +195,7 @@ body.theme-rpg #vnSection .cycle-choice-label { color: #e3a24f; }
    Aparece en la esquina inferior derecha al cerrarse un ciclo.
    Solo muestra los cambios de afinidad del personaje propio.
    ══════════════════════════════════════════════════════════════════════ */
-#vnSection .cycle-ecos-panel {
+body.theme-classic #vnSection .cycle-ecos-panel {
     position: absolute;
     right: 72px;   /* a la izquierda de la toolbar */
     bottom: 48px;
@@ -210,9 +210,9 @@ body.theme-rpg #vnSection .cycle-choice-label { color: #e3a24f; }
     animation: cycle-fade-in .4s ease;
 }
 
-#vnSection .cycle-ecos-panel.hidden { display: none; }
+body.theme-classic #vnSection .cycle-ecos-panel.hidden { display: none; }
 
-#vnSection .ecos-header {
+body.theme-classic #vnSection .ecos-header {
     font-family: 'Cinzel', serif;
     font-size: 10px;
     font-weight: 600;
@@ -223,7 +223,7 @@ body.theme-rpg #vnSection .cycle-choice-label { color: #e3a24f; }
     margin-bottom: 4px;
 }
 
-#vnSection .ecos-sub {
+body.theme-classic #vnSection .ecos-sub {
     font-family: 'EB Garamond', serif;
     font-style: italic;
     font-size: 11px;
@@ -232,14 +232,14 @@ body.theme-rpg #vnSection .cycle-choice-label { color: #e3a24f; }
     margin-bottom: 12px;
 }
 
-#vnSection .ecos-list {
+body.theme-classic #vnSection .ecos-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
     margin-bottom: 12px;
 }
 
-#vnSection .eco-item {
+body.theme-classic #vnSection .eco-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -249,7 +249,7 @@ body.theme-rpg #vnSection .cycle-choice-label { color: #e3a24f; }
     border: 1px solid rgba(255, 255, 255, .07);
 }
 
-#vnSection .eco-char {
+body.theme-classic #vnSection .eco-char {
     font-family: 'Cinzel', serif;
     font-size: 10px;
     color: #f3ecda;
@@ -259,7 +259,7 @@ body.theme-rpg #vnSection .cycle-choice-label { color: #e3a24f; }
     text-overflow: ellipsis;
 }
 
-#vnSection .eco-delta {
+body.theme-classic #vnSection .eco-delta {
     font-family: ui-monospace, monospace;
     font-size: 12px;
     font-weight: 700;
@@ -268,15 +268,15 @@ body.theme-rpg #vnSection .cycle-choice-label { color: #e3a24f; }
     flex-shrink: 0;
 }
 
-#vnSection .eco-positive { border-color: rgba(111, 174, 156, .3); }
-#vnSection .eco-positive .eco-delta { color: #6fae9c; }
+body.theme-classic #vnSection .eco-positive { border-color: rgba(111, 174, 156, .3); }
+body.theme-classic #vnSection .eco-positive .eco-delta { color: #6fae9c; }
 
-#vnSection .eco-negative { border-color: rgba(217, 105, 78, .3); }
-#vnSection .eco-negative .eco-delta { color: #d9694e; }
+body.theme-classic #vnSection .eco-negative { border-color: rgba(217, 105, 78, .3); }
+body.theme-classic #vnSection .eco-negative .eco-delta { color: #d9694e; }
 
-#vnSection .eco-neutral .eco-delta { color: rgba(243, 236, 218, .5); }
+body.theme-classic #vnSection .eco-neutral .eco-delta { color: rgba(243, 236, 218, .5); }
 
-#vnSection .ecos-close-btn {
+body.theme-classic #vnSection .ecos-close-btn {
     width: 100%;
     padding: 7px;
     background: rgba(201, 168, 108, .1);
@@ -291,7 +291,7 @@ body.theme-rpg #vnSection .cycle-choice-label { color: #e3a24f; }
     cursor: pointer;
     transition: background .15s ease;
 }
-#vnSection .ecos-close-btn:hover { background: rgba(201, 168, 108, .18); }
+body.theme-classic #vnSection .ecos-close-btn:hover { background: rgba(201, 168, 108, .18); }
 
 /* Modo Palabra */
 body.theme-classic #vnSection .cycle-ecos-panel {
@@ -491,12 +491,12 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
    RESPONSIVE — móvil
    ══════════════════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
-    #vnSection .cycle-choices-container {
+    body.theme-classic #vnSection .cycle-choices-container {
         bottom: 180px;
         width: calc(100vw - 1rem);
     }
 
-    #vnSection .cycle-ecos-panel {
+    body.theme-classic #vnSection .cycle-ecos-panel {
         right: 8px;
         bottom: 160px;
         width: calc(100vw - 80px);
@@ -515,19 +515,19 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
 /* Respetar prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
     #vnSection .cycle-badge-dot { animation: none; }
-    #vnSection .cycle-choices-container,
-    #vnSection .cycle-ecos-panel,
+    body.theme-classic #vnSection .cycle-choices-container,
+    body.theme-classic #vnSection .cycle-ecos-panel,
     #vnSection .branch-modal-overlay,
     #vnSection .branch-modal-inner { animation: none; }
     #vnSection .branch-opt:hover  { transform: none; }
-    #vnSection .cycle-choice-opt:hover { transform: none; }
+    body.theme-classic #vnSection .cycle-choice-opt:hover { transform: none; }
 }
 
 /* ══════════════════════════════════════════════════════════════════════
    PANEL DE CREACIÓN DE ELECCIÓN — pergamino de la Senda de la Palabra
    Solo visible en modo clásico.
    ══════════════════════════════════════════════════════════════════════ */
-#vnSection .choice-creator-overlay {
+body.theme-classic #vnSection .choice-creator-overlay {
     position: absolute;
     inset: 0;
     background: rgba(4, 3, 14, .7);
@@ -538,9 +538,9 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     backdrop-filter: blur(4px);
     animation: cycle-fade-in .3s ease;
 }
-#vnSection .choice-creator-overlay.hidden { display: none; }
+body.theme-classic #vnSection .choice-creator-overlay.hidden { display: none; }
 
-#vnSection .choice-creator-inner {
+body.theme-classic #vnSection .choice-creator-inner {
     width: min(520px, calc(100vw - 2rem));
     background: linear-gradient(160deg, rgba(14, 11, 34, .97), rgba(8, 6, 22, .98));
     border: 1px solid rgba(193, 168, 236, .35);
@@ -553,7 +553,7 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
 }
 
 /* Ornamento superior — hilo de constelación */
-#vnSection .choice-creator-inner::before {
+body.theme-classic #vnSection .choice-creator-inner::before {
     content: '✦ ——————— ✦ ——————— ✦';
     display: block;
     text-align: center;
@@ -564,14 +564,14 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     pointer-events: none;
 }
 
-#vnSection .choice-creator-header {
+body.theme-classic #vnSection .choice-creator-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 8px;
 }
 
-#vnSection .choice-creator-title {
+body.theme-classic #vnSection .choice-creator-title {
     font-family: 'Cinzel', serif;
     font-size: 13px;
     font-weight: 600;
@@ -580,7 +580,7 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     text-transform: uppercase;
 }
 
-#vnSection .choice-creator-close {
+body.theme-classic #vnSection .choice-creator-close {
     background: none;
     border: none;
     color: rgba(193, 168, 236, .4);
@@ -591,16 +591,16 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     transition: color .15s;
     font-family: inherit;
 }
-#vnSection .choice-creator-close:hover { color: rgba(193, 168, 236, .8); }
+body.theme-classic #vnSection .choice-creator-close:hover { color: rgba(193, 168, 236, .8); }
 
-#vnSection .choice-creator-sub {
+body.theme-classic #vnSection .choice-creator-sub {
     font-family: 'EB Garamond', serif;
     font-size: 14px;
     color: rgba(243, 236, 218, .65);
     line-height: 1.55;
     margin-bottom: 18px;
 }
-#vnSection .choice-creator-sub em {
+body.theme-classic #vnSection .choice-creator-sub em {
     font-size: 12px;
     color: rgba(243, 236, 218, .38);
     display: block;
@@ -608,9 +608,9 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
 }
 
 /* Campo de pregunta */
-#vnSection .choice-creator-field { margin-bottom: 16px; }
+body.theme-classic #vnSection .choice-creator-field { margin-bottom: 16px; }
 
-#vnSection .choice-field-label {
+body.theme-classic #vnSection .choice-field-label {
     display: block;
     font-family: 'Cinzel', serif;
     font-size: 9px;
@@ -621,7 +621,7 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     margin-bottom: 6px;
 }
 
-#vnSection .choice-field-textarea {
+body.theme-classic #vnSection .choice-field-textarea {
     width: 100%;
     background: rgba(255, 255, 255, .04);
     border: 1px solid rgba(193, 168, 236, .2);
@@ -636,31 +636,31 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     transition: border-color .15s;
     font-size: 16px; /* evita zoom en iOS */
 }
-#vnSection .choice-field-textarea::placeholder {
+body.theme-classic #vnSection .choice-field-textarea::placeholder {
     color: rgba(243, 236, 218, .25);
     font-style: italic;
 }
-#vnSection .choice-field-textarea:focus {
+body.theme-classic #vnSection .choice-field-textarea:focus {
     outline: none;
     border-color: rgba(193, 168, 236, .5);
     background: rgba(193, 168, 236, .04);
 }
 
 /* Filas de opciones */
-#vnSection .choice-creator-options {
+body.theme-classic #vnSection .choice-creator-options {
     display: flex;
     flex-direction: column;
     gap: 8px;
     margin-bottom: 18px;
 }
 
-#vnSection .choice-opt-row {
+body.theme-classic #vnSection .choice-opt-row {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-#vnSection .choice-opt-tag {
+body.theme-classic #vnSection .choice-opt-tag {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -669,12 +669,12 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     flex-shrink: 0;
 }
 
-#vnSection .choice-opt-impact {
+body.theme-classic #vnSection .choice-opt-impact {
     font-size: 15px;
     font-weight: 700;
     line-height: 1;
 }
-#vnSection .choice-opt-impact-label {
+body.theme-classic #vnSection .choice-opt-impact-label {
     font-family: 'Cinzel', serif;
     font-size: 7px;
     letter-spacing: .1em;
@@ -683,22 +683,22 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
 }
 
 /* Colores por tipo de impacto */
-#vnSection .choice-opt-positive .choice-opt-impact,
-#vnSection .choice-opt-positive .choice-opt-impact-label { color: #6fae9c; }
-#vnSection .choice-opt-positive .choice-opt-input { border-color: rgba(111, 174, 156, .2); }
-#vnSection .choice-opt-positive .choice-opt-input:focus { border-color: rgba(111, 174, 156, .5); background: rgba(111, 174, 156, .04); }
+body.theme-classic #vnSection .choice-opt-positive .choice-opt-impact,
+body.theme-classic #vnSection .choice-opt-positive .choice-opt-impact-label { color: #6fae9c; }
+body.theme-classic #vnSection .choice-opt-positive .choice-opt-input { border-color: rgba(111, 174, 156, .2); }
+body.theme-classic #vnSection .choice-opt-positive .choice-opt-input:focus { border-color: rgba(111, 174, 156, .5); background: rgba(111, 174, 156, .04); }
 
-#vnSection .choice-opt-neutral .choice-opt-impact,
-#vnSection .choice-opt-neutral .choice-opt-impact-label { color: rgba(243, 236, 218, .45); }
-#vnSection .choice-opt-neutral .choice-opt-input { border-color: rgba(243, 236, 218, .12); }
-#vnSection .choice-opt-neutral .choice-opt-input:focus { border-color: rgba(243, 236, 218, .3); }
+body.theme-classic #vnSection .choice-opt-neutral .choice-opt-impact,
+body.theme-classic #vnSection .choice-opt-neutral .choice-opt-impact-label { color: rgba(243, 236, 218, .45); }
+body.theme-classic #vnSection .choice-opt-neutral .choice-opt-input { border-color: rgba(243, 236, 218, .12); }
+body.theme-classic #vnSection .choice-opt-neutral .choice-opt-input:focus { border-color: rgba(243, 236, 218, .3); }
 
-#vnSection .choice-opt-negative .choice-opt-impact,
-#vnSection .choice-opt-negative .choice-opt-impact-label { color: #d9694e; }
-#vnSection .choice-opt-negative .choice-opt-input { border-color: rgba(217, 105, 78, .2); }
-#vnSection .choice-opt-negative .choice-opt-input:focus { border-color: rgba(217, 105, 78, .5); background: rgba(217, 105, 78, .04); }
+body.theme-classic #vnSection .choice-opt-negative .choice-opt-impact,
+body.theme-classic #vnSection .choice-opt-negative .choice-opt-impact-label { color: #d9694e; }
+body.theme-classic #vnSection .choice-opt-negative .choice-opt-input { border-color: rgba(217, 105, 78, .2); }
+body.theme-classic #vnSection .choice-opt-negative .choice-opt-input:focus { border-color: rgba(217, 105, 78, .5); background: rgba(217, 105, 78, .04); }
 
-#vnSection .choice-opt-input {
+body.theme-classic #vnSection .choice-opt-input {
     flex: 1;
     background: rgba(255, 255, 255, .04);
     border: 1px solid rgba(255, 255, 255, .1);
@@ -709,18 +709,18 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     font-size: 15px;
     transition: border-color .15s, background .15s;
 }
-#vnSection .choice-opt-input::placeholder { color: rgba(243, 236, 218, .22); }
-#vnSection .choice-opt-input:focus { outline: none; }
+body.theme-classic #vnSection .choice-opt-input::placeholder { color: rgba(243, 236, 218, .22); }
+body.theme-classic #vnSection .choice-opt-input:focus { outline: none; }
 
 /* Footer */
-#vnSection .choice-creator-footer {
+body.theme-classic #vnSection .choice-creator-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
 }
 
-#vnSection .choice-creator-note {
+body.theme-classic #vnSection .choice-creator-note {
     font-family: 'EB Garamond', serif;
     font-style: italic;
     font-size: 12px;
@@ -728,7 +728,7 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     flex: 1;
 }
 
-#vnSection .choice-launch-btn {
+body.theme-classic #vnSection .choice-launch-btn {
     flex-shrink: 0;
     padding: 10px 20px;
     background: rgba(193, 168, 236, .14);
@@ -743,27 +743,27 @@ body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
     cursor: pointer;
     transition: background .18s, border-color .18s, box-shadow .18s;
 }
-#vnSection .choice-launch-btn:hover {
+body.theme-classic #vnSection .choice-launch-btn:hover {
     background: rgba(193, 168, 236, .22);
     border-color: rgba(193, 168, 236, .7);
     box-shadow: 0 0 14px rgba(193, 168, 236, .2);
 }
-#vnSection .choice-launch-btn:disabled {
+body.theme-classic #vnSection .choice-launch-btn:disabled {
     opacity: .45;
     cursor: not-allowed;
 }
 
 /* Botón en la caja de diálogo — estado "gastado" */
-#vnSection .choice-btn-spent {
+body.theme-classic #vnSection .choice-btn-spent {
     opacity: .4;
     cursor: not-allowed;
 }
-#vnSection .choice-btn-spent .action-icon { filter: grayscale(1); }
+body.theme-classic #vnSection .choice-btn-spent .action-icon { filter: grayscale(1); }
 
 /* Responsive */
 @media (max-width: 600px) {
-    #vnSection .choice-creator-inner { padding: 20px 16px 16px; }
-    #vnSection .choice-opt-tag { min-width: 28px; }
-    #vnSection .choice-creator-footer { flex-direction: column; align-items: stretch; }
-    #vnSection .choice-launch-btn { text-align: center; }
+    body.theme-classic #vnSection .choice-creator-inner { padding: 20px 16px 16px; }
+    body.theme-classic #vnSection .choice-opt-tag { min-width: 28px; }
+    body.theme-classic #vnSection .choice-creator-footer { flex-direction: column; align-items: stretch; }
+    body.theme-classic #vnSection .choice-launch-btn { text-align: center; }
 }
