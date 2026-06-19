@@ -64,6 +64,7 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/sections/hub.css',          /* Menú principal: paleta purple/crystal unificada */
   'css/sections/hub-luna.css',     /* Re-skin "Luna de Plata": cielo · sellos arcanos */
   'css/sections/options-luna.css', /* Re-skin Opciones "Luna de Plata" + atmósferas */
+  'css/sections/vn-scene.css',     /* Reskin VN: Senda de la Palabra + Senda del Azar — cargado al final, gana la cascada */
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];
