@@ -967,6 +967,12 @@
                     </div>
                     <div class="affinity-feedback" id="affinityFeedback"></div>
                 </div>
+                <!-- Badge de ciclo activo — visible cuando hay un ciclo abierto -->
+                <div id="cycleBadge" class="cycle-badge hidden" title="Ciclo activo en esta historia">
+                    <span class="cycle-badge-dot"></span>
+                    <span class="cycle-badge-label">Ciclo activo</span>
+                </div>
+
                 <div class="vn-info-affection" id="vnInfoAffection" style="display:none;">
                     <span>❤️</span><span id="vnAffectionValue">0</span>
                 </div>
@@ -1794,6 +1800,21 @@
 
     <!-- Character Editor -->
 
+    <!-- ══ Modal: Bifurcación de rama de relación ══════════════════════════ -->
+    <div id="branchSelectionModal" class="branch-modal-overlay hidden" role="dialog"
+         aria-modal="true" aria-labelledby="branchModalTitle">
+    </div>
+
+    <!-- ══ Panel: Ecos del ciclo (cambios de afinidad al cerrar) ═══════════ -->
+    <div id="cycleEcosPanel" class="cycle-ecos-panel hidden" role="status" aria-live="polite">
+    </div>
+
+    <!-- ══ Contenedor: Elecciones activas del ciclo ════════════════════════ -->
+    <!-- Se renderiza dinámicamente por _refreshChoicesUI() sobre la escena  -->
+    <div id="cycleChoicesContainer" class="cycle-choices-container hidden"
+         aria-label="Elecciones activas del ciclo">
+    </div>
+
     </div><!-- /vnSection -->
 
 <div id="shortcutsModal" class="modal-overlay" onclick="if(event.target === this) closeModal('shortcutsModal')" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
@@ -2328,7 +2349,6 @@
 <script src="js/utils/supabaseCharacters.js"></script>
 <script src="js/utils/supabaseBonds.js"></script>
 <script src="js/utils/supabaseAffinities.js"></script>
-    <script src="js/utils/supabaseCycles.js"></script>
 <script src="js/utils/supabaseJournals.js"></script>
 <script src="js/utils/supabaseFavorites.js"></script>
 <script src="js/utils/supabaseSettings.js"></script>
