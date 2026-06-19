@@ -1543,6 +1543,13 @@
                         <button id="vnNarrateDialogBtn" class="vn-dialogue-action-btn narrate-action-btn" type="button" onclick="handleActionButtonClick(event); prepareChapter()" style="display:none;" title="Nueva escena" aria-label="Nueva escena">
                             <span class="action-icon">✒</span><span class="action-label">Escena</span>
                         </button>
+                        <!-- Elección de afinidad (solo modo clásico, si puede lanzar) -->
+                        <button id="vnChoiceDialogBtn" class="vn-dialogue-action-btn choice-action-btn" type="button"
+                                onclick="handleActionButtonClick(event); openChoicePanel()"
+                                style="display:none;"
+                                title="Lanzar una elección al ciclo" aria-label="Lanzar elección">
+                            <span class="action-icon">✦</span><span class="action-label">Elección</span>
+                        </button>
                         <!-- Emotes (ambos modos) -->
                         <button id="vnEmoteDialogBtn" class="vn-dialogue-action-btn emote-action-btn" type="button" onclick="handleActionButtonClick(event); toggleVnDialogEmotePicker(event)" title="Emotes" aria-label="Emotes">
                             <span class="action-icon">🎭</span><span class="action-label">Emotes</span>
