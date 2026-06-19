@@ -1,0 +1,2032 @@
+/* ══════════════════════════════════════════════════════════════════════
+   css/sections/vn-scene.css
+   Reskin VN — Senda de la Palabra (clásico) · Senda del Azar (RPG).
+
+   Cargado AL FINAL de NON_CRITICAL_CSS_ORDER → gana la cascada contra
+   vn-cinematic, vn-themes, 07-overrides, components/09, rpg-scene, etc.
+
+   Scope: body.theme-classic #vnSection · body.theme-rpg #vnSection.
+   NO tocar rpg-scene.css, vn-themes.css, components/*.css.
+
+   Para propiedades que 07-overrides marca !important, usamos !important
+   aquí también (nuestro selector (1,3,1) > su (1,2,0) → ganamos igualmente).
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Keyframes (declarados aquí por si vn-cinematic fue revertido) ──── */
+@keyframes vn-spin  { to { transform: translateX(-50%) rotate(360deg); } }
+@keyframes vn-blink { 0%,49% { opacity:.7 } 50%,100% { opacity:0 } }
+
+/* ══════════════════════════════════════════════════════════════════════
+   COMPARTIDO: variables locales del VN
+   ══════════════════════════════════════════════════════════════════════ */
+#vnSection {
+    --vns-cream:  #f3ecda;
+    --vns-gold:   #c9a86c;
+    --vns-goldlt: #f0d898;
+    --vns-hp:     #d9694e;
+    --vns-exp:    #6fae9c;
+
+    /* Palabra */
+    --vns-p-deep:   #0b0a24;
+    --vns-p-mid:    #181a44;
+    --vns-p-sky1:   #231c52;
+    --vns-p-sky2:   #0c0a26;
+    --vns-p-silver: #dcd6f0;
+    --vns-p-lav:    #c1a8ec;
+    --vns-p-peri:   #9aa6ee;
+    --vns-p-line:   rgba(206,196,255,.55);
+    --vns-p-glow:   rgba(197,168,232,.45);
+
+    /* Azar */
+    --vns-a-deep:   #160d06;
+    --vns-a-mid:    #39200e;
+    --vns-a-sky1:   #4a2c12;
+    --vns-a-sky2:   #140a05;
+    --vns-a-amber:  #e3a24f;
+    --vns-a-bronze: #b0763a;
+    --vns-a-parch:  #e7d3a3;
+    --vns-a-ember:  #e08a5c;
+    --vns-a-line:   rgba(224,162,79,.5);
+    --vns-a-glow:   rgba(224,162,79,.4);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SENDA DE LA PALABRA · body.theme-classic
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Fondo de la sección ─────────────────────────────────────────────── */
+body.theme-classic #vnSection {
+    background: var(--vns-p-deep);
+    color: var(--vns-cream);
+}
+
+body.theme-classic #vnSection::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(178deg, var(--vns-p-sky1) 0%, var(--vns-p-sky2) 88%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+body.theme-classic #vnSection::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 96% 80% at 50% 50%, transparent 50%, rgba(4,3,14,.66) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ── Caja de diálogo — Palabra ──────────────────────────────────────── */
+/* Spec (1,3,1): body.theme-classic + #vnSection + .bottom-panel + .vn-dialogue-box
+   Supera a 07-overrides (1,2,0) incluso en propiedades !important */
+body.theme-classic #vnSection .bottom-panel .vn-dialogue-box {
+    position: absolute !important;  /* anula position:fixed !important de 07-overrides */
+    left: 50% !important;
+    bottom: 48px !important;
+    top: auto !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: 820px !important;
+    max-width: calc(100vw - 2rem) !important;
+    margin: 0 !important;
+    padding: 34px 40px 24px;
+    border-radius: 18px 18px 22px 22px !important;
+    background:
+        radial-gradient(ellipse 80% 120% at 30% -10%, rgba(193,168,236,.1), transparent 60%),
+        linear-gradient(180deg, rgba(20,17,48,.8), rgba(9,8,26,.9)) !important;
+    border: 1px solid rgba(220,214,240,.25) !important;
+    backdrop-filter: blur(14px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(120%) !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5) !important;
+    z-index: 10;
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Hairline superior — neutraliza ::before de otros archivos y pone el nuestro */
+body.theme-classic #vnSection .bottom-panel .vn-dialogue-box::before {
+    content: '' !important;
+    position: absolute;
+    top: 0;
+    left: 24px;
+    right: 24px;
+    bottom: auto;
+    width: auto;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(220,214,240,.55), transparent) !important;
+    border: none;
+    border-radius: 0;
+    font-size: inherit;
+    pointer-events: none;
+}
+
+/* Suprime el glifo ✦ que 07-overrides inyecta en ::after */
+body.theme-classic #vnSection .bottom-panel .vn-dialogue-box::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* ── Placa de nombre — píldora engastada en el borde ────────────────── */
+body.theme-classic #vnSection .vn-speaker-plate {
+    position: absolute;
+    top: 0;
+    left: 52px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 26px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #2e2968, #171340);
+    border: 1px solid rgba(220,214,240,.53);
+    box-shadow:
+        0 4px 16px rgba(0,0,0,.5),
+        0 0 22px var(--vns-p-glow),
+        inset 0 1px 0 rgba(255,255,255,.1);
+    font-family: 'Cinzel', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: #fdfaef;
+    letter-spacing: .14em;
+    text-shadow: 0 0 12px var(--vns-p-glow);
+    text-transform: none;
+    white-space: nowrap;
+    clip-path: none;
+    z-index: 3;
+}
+
+body.theme-classic #vnSection .vn-speaker-plate::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 999px;
+    border: 1px solid rgba(220,214,240,.19);
+    pointer-events: none;
+}
+
+body.theme-classic #vnSection .vn-speaker-plate::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* ── Avatar — 92 px, posición absoluta dentro de la caja ────────────── */
+body.theme-classic #vnSection #vnSpeakerAvatar {
+    position: absolute;
+    left: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 92px;
+    height: 92px;
+    border-radius: 50%;
+    border: 2px solid rgba(220,214,240,.5);
+    box-shadow:
+        0 0 0 1px rgba(193,168,236,.2),
+        0 8px 20px rgba(0,0,0,.5),
+        0 0 16px -4px var(--vns-p-glow);
+    background: rgba(30,26,70,.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.8rem;
+    overflow: hidden;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* ── Constelación de ornamento (inyectada por vn-design.js) ─────────── */
+body.theme-classic #vnSection .vn-constellation-ornament {
+    position: absolute;
+    top: -15px;
+    right: 38px;
+    pointer-events: none;
+}
+
+/* ── Acciones de mensaje — desplazadas al lado derecho del avatar ───── */
+body.theme-classic #vnSection .vn-msg-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-left: 118px; /* 92px avatar + 26px gap */
+}
+
+/* ── Texto de diálogo — EB Garamond itálica 23 px ────────────────────── */
+body.theme-classic #vnSection .vn-dialogue-text {
+    font-family: 'EB Garamond', 'Crimson Text', Georgia, serif !important;
+    font-style: italic !important;
+    font-size: 23px !important;
+    line-height: 1.72 !important;
+    color: #f5f0e2 !important;
+    text-shadow: 0 1px 4px rgba(0,0,0,.5) !important;
+    letter-spacing: 0 !important;
+    padding-left: 118px; /* alineado con las acciones */
+}
+
+/* ── Pie + divisor de fases lunares ─────────────────────────────────── */
+body.theme-classic #vnSection .vn-dialogue-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 14px;
+    margin-top: 22px;
+    position: relative;
+    border-top: none;
+}
+
+body.theme-classic #vnSection .vn-dialogue-footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(220,214,240,.44), rgba(193,168,236,.6) 50%, rgba(220,214,240,.44), transparent);
+}
+
+/* ── Botones de paginación — circulares plateados ────────────────────── */
+body.theme-classic #vnSection .vn-nav-mini-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid rgba(220,214,240,.3);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--vns-p-silver);
+    transition: border-color 150ms, box-shadow 150ms;
+}
+
+body.theme-classic #vnSection .vn-nav-mini-btn:hover {
+    border-color: var(--vns-p-silver);
+    box-shadow: 0 0 8px var(--vns-p-glow);
+}
+
+body.theme-classic #vnSection .vn-message-counter {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    color: var(--vns-p-silver);
+    opacity: .6;
+    letter-spacing: .06em;
+}
+
+/* ── Píldoras de acción (Escena / Emotes / Responder / Borrar) ──────── */
+body.theme-classic #vnSection .vn-dialogue-action-btn,
+body.theme-classic #vnSection .reply-btn,
+body.theme-classic #vnSection .delete-message-btn,
+body.theme-classic #vnSection .narrate-action-btn,
+body.theme-classic #vnSection .emote-action-btn,
+body.theme-classic #vnSection .vn-adv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 15px;
+    border-radius: 999px;
+    border: 1px solid rgba(220,214,240,.25);
+    background: transparent;
+    color: var(--vns-cream);
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 150ms, box-shadow 150ms;
+}
+
+body.theme-classic #vnSection .reply-btn {
+    background: rgba(193,168,236,.11);
+    border-color: rgba(193,168,236,.53);
+}
+
+body.theme-classic #vnSection .delete-message-btn {
+    border-color: rgba(217,105,78,.35);
+    color: var(--vns-hp);
+}
+
+body.theme-classic #vnSection .vn-dialogue-action-btn:hover,
+body.theme-classic #vnSection .reply-btn:hover,
+body.theme-classic #vnSection .narrate-action-btn:hover,
+body.theme-classic #vnSection .emote-action-btn:hover {
+    border-color: rgba(193,168,236,.6);
+    box-shadow: 0 0 8px var(--vns-p-glow);
+}
+
+/* ── Botón "Continuar" — cápsula lavanda ─────────────────────────────── */
+body.theme-classic #vnSection #vnContinueBtn,
+body.theme-classic #vnSection .vn-continue-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 24px;
+    border-radius: 999px;
+    border: 1px solid rgba(193,168,236,.67);
+    background: linear-gradient(180deg, rgba(193,168,236,.25), rgba(193,168,236,.11));
+    color: #fff;
+    font-family: 'Cinzel', serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 0 20px var(--vns-p-glow);
+    transition: box-shadow 150ms, border-color 150ms;
+}
+
+body.theme-classic #vnSection #vnContinueBtn:hover,
+body.theme-classic #vnSection .vn-continue-btn:hover {
+    box-shadow: 0 0 32px rgba(193,168,236,.6);
+    border-color: var(--vns-p-lav);
+}
+
+/* ── Toolbar lateral — cápsula circular plateada ────────────────────── */
+body.theme-classic #vnSection .vn-toolbar.vn-classic-controls {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    left: auto;
+    bottom: auto;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 8px;
+    border-radius: 999px;
+    background: rgba(12,10,32,.55);
+    border: 1px solid rgba(220,214,240,.17);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: none;
+    max-height: none;
+    overflow: visible;
+}
+
+body.theme-classic #vnSection .vn-classic-control-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(220,214,240,.2);
+    background: rgba(14,12,36,.42);
+    color: var(--vns-p-silver);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transform: none;
+    transition: border-color 150ms, box-shadow 150ms, background 150ms;
+}
+
+body.theme-classic #vnSection .vn-classic-control-btn:hover {
+    border-color: var(--vns-p-silver);
+    box-shadow: 0 0 8px var(--vns-p-glow);
+    background: rgba(30,26,60,.7);
+    color: var(--vns-p-lav);
+    transform: none;
+}
+
+body.theme-classic #vnSection .vn-classic-control-btn.vn-btn-danger {
+    border-color: rgba(217,105,78,.4);
+    color: var(--vns-hp);
+}
+
+body.theme-classic #vnSection .vn-classic-control-btn.vn-btn-danger:hover {
+    border-color: var(--vns-hp);
+    box-shadow: 0 0 8px rgba(217,105,78,.3);
+    background: rgba(50,15,10,.7);
+}
+
+/* ── Party clásica (derecha) ─────────────────────────────────────────── */
+/* ── Party clásica (derecha, arriba) — #classicPartyShell + .cp-member ──────
+   OJO: el JS (userProfile.js → renderClassicParty) genera .cp-member / .cp-name
+   / .cp-gender. NO uses .classic-party-entry (no existe). El panel ya existe en
+   el código; solo se reestiliza y se posiciona aquí. ── */
+body.theme-classic #classicPartyShell {
+    position: fixed !important;
+    top: 1.5rem !important;
+    right: 4.6rem !important;   /* separado de la toolbar del borde */
+    left: auto !important;
+    bottom: auto !important;
+    width: 188px !important;
+    z-index: 800 !important;
+}
+
+body.theme-classic #vnPartyShell {
+    display: none;
+}
+
+body.theme-classic #classicPartyShell .classic-party-panel {
+    background: linear-gradient(180deg, rgba(20,17,48,.74), rgba(9,8,26,.88)) !important;
+    border: 1px solid rgba(206,196,255,.2) !important;
+    border-radius: 14px !important;
+}
+body.theme-classic #classicPartyShell .classic-party-title {
+    font-family: 'Cinzel', serif !important;
+    color: var(--vns-p-lav) !important;
+    letter-spacing: .26em !important;
+}
+body.theme-classic #classicPartyShell .classic-party-ornament { color: var(--vns-p-lav) !important; }
+
+/* miembros reales (.cp-member / .cp-name / .cp-gender) */
+body.theme-classic #classicPartyShell .cp-member {
+    background: rgba(34,28,72,.3) !important;
+    border: 1px solid rgba(206,196,255,.14) !important;
+    border-radius: 8px !important;
+    color: var(--vns-cream) !important;
+    font-family: 'Crimson Text', serif !important;
+}
+body.theme-classic #classicPartyShell .cp-member:hover {
+    background: rgba(193,168,236,.12) !important;
+    border-color: rgba(193,168,236,.5) !important;
+}
+body.theme-classic #classicPartyShell .cp-member--responded { border-color: rgba(193,168,236,.4) !important; }
+body.theme-classic #classicPartyShell .cp-name {
+    font-family: 'Cinzel', serif !important;
+    font-size: 14px !important;
+    color: var(--vns-cream) !important;
+    letter-spacing: .02em !important;
+}
+body.theme-classic #classicPartyShell .cp-gender { color: var(--vns-p-lav) !important; }
+
+/* ── Opciones de respuesta — píldoras con nodo-estrella ─────────────── */
+body.theme-classic #vnSection .vn-options-container {
+    position: absolute;
+    left: 50%;
+    bottom: calc(48px + 14rem);
+    transform: translateX(-50%);
+    width: min(760px, calc(100vw - 2.8rem));
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    z-index: 11;
+}
+
+body.theme-classic #vnSection .vn-option-btn,
+body.theme-classic #vnSection .vn-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    padding: 18px 26px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(28,24,62,.72), rgba(14,12,38,.82));
+    border: 1px solid rgba(220,214,240,.23);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 14px 40px rgba(0,0,0,.4);
+    color: var(--vns-cream);
+    font-family: 'EB Garamond', 'Crimson Text', Georgia, serif;
+    font-style: italic;
+    font-size: 19px;
+    line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    body.theme-classic #vnSection .vn-option-btn,
+    body.theme-classic #vnSection .vn-option {
+        transition: transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s ease, border-color .3s ease, background .3s ease;
+    }
+}
+
+body.theme-classic #vnSection .vn-option-btn:hover,
+body.theme-classic #vnSection .vn-option:hover {
+    border-color: rgba(193,168,236,.85);
+    background: linear-gradient(180deg, rgba(42,36,86,.82), rgba(22,18,52,.88));
+    box-shadow: 0 18px 48px rgba(0,0,0,.46), 0 0 28px var(--vns-p-glow);
+    transform: translateY(-3px);
+}
+
+body.theme-classic #vnSection .vn-option-btn:active,
+body.theme-classic #vnSection .vn-option:active {
+    transform: translateY(-1px) scale(.99);
+}
+
+/* ── Turno / locación ────────────────────────────────────────────────── */
+body.theme-classic #vnSection #vnTurnBadge,
+body.theme-classic #vnSection .vn-location-label {
+    position: absolute;
+    top: 42px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 24px;
+    letter-spacing: .14em;
+    color: var(--vns-cream);
+    text-shadow: 0 0 26px var(--vns-p-glow);
+    z-index: 8;
+    background: none;
+    border: none;
+    padding: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SENDA DEL AZAR · body.theme-rpg
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Fondo de la sección ─────────────────────────────────────────────── */
+body.theme-rpg #vnSection {
+    background: var(--vns-a-deep);
+    color: var(--vns-cream);
+}
+
+body.theme-rpg #vnSection::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(178deg, var(--vns-a-sky1) 0%, var(--vns-a-sky2) 88%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+body.theme-rpg #vnSection::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 96% 82% at 50% 54%, transparent 46%, rgba(8,4,2,.66) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ── Caja de diálogo — Azar — spec (1,3,1) ──────────────────────────── */
+body.theme-rpg #vnSection .bottom-panel .vn-dialogue-box {
+    position: absolute !important;
+    left: 50% !important;
+    bottom: 46px !important;
+    top: auto !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: 860px !important;
+    max-width: calc(100vw - 2rem) !important;
+    margin: 0 !important;
+    padding: 30px 34px 26px;
+    border-radius: 10px 10px 12px 12px !important;
+    background: linear-gradient(180deg, rgba(26,17,8,.88), rgba(12,7,3,.92)) !important;
+    border: 1px solid rgba(227,162,79,.29) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    box-shadow: 0 18px 54px rgba(0,0,0,.55) !important;
+    z-index: 10;
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Marco de carta de tarot — línea interior (inset 9px) */
+body.theme-rpg #vnSection .bottom-panel .vn-dialogue-box::before {
+    content: '' !important;
+    position: absolute;
+    inset: 9px;
+    border: 1px solid rgba(176,118,58,.18) !important;
+    border-radius: 7px;
+    pointer-events: none;
+    height: auto;
+    width: auto;
+    background: none !important;
+    font-size: 0;
+}
+
+/* Suprime ::after heredado */
+body.theme-rpg #vnSection .bottom-panel .vn-dialogue-box::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* ── Placa de nombre — bronce hexagonal biselada ─────────────────────── */
+body.theme-rpg #vnSection .vn-speaker-plate {
+    position: absolute;
+    top: 0;
+    left: 46px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 30px;
+    clip-path: polygon(12px 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0% 50%);
+    background: linear-gradient(180deg, #4a2e13, #201207);
+    border: none;
+    border-radius: 0;
+    outline: 1px solid rgba(227,162,79,.7);
+    font-family: 'Cinzel', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fdf6e3;
+    letter-spacing: .1em;
+    text-shadow: 0 0 10px var(--vns-a-glow);
+    text-transform: none;
+    white-space: nowrap;
+    box-shadow: none;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,.55)) drop-shadow(0 0 12px var(--vns-a-glow));
+    z-index: 3;
+}
+
+body.theme-rpg #vnSection .vn-speaker-plate::before { content: none !important; display: none !important; }
+body.theme-rpg #vnSection .vn-speaker-plate::after  { content: none !important; display: none !important; }
+
+/* ── Avatar — 84 px ─────────────────────────────────────────────────── */
+body.theme-rpg #vnSection #vnSpeakerAvatar {
+    position: absolute;
+    left: 34px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(176,118,58,.7);
+    box-shadow:
+        0 0 0 1px rgba(227,162,79,.2),
+        0 8px 20px rgba(0,0,0,.5);
+    background: rgba(26,17,8,.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.4rem;
+    overflow: hidden;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* ── Acciones de mensaje ─────────────────────────────────────────────── */
+body.theme-rpg #vnSection .vn-msg-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-left: 108px; /* 84px avatar + 24px gap */
+}
+
+/* ── Texto de diálogo — Crimson Text 20 px ───────────────────────────── */
+body.theme-rpg #vnSection .vn-dialogue-text {
+    font-family: 'Crimson Text', Georgia, serif !important;
+    font-style: normal !important;
+    font-size: 20px !important;
+    line-height: 1.6 !important;
+    color: #f6ecd6 !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,.5) !important;
+    letter-spacing: .012em !important;
+    padding-left: 108px;
+}
+
+/* ── Pie + divisor solar ─────────────────────────────────────────────── */
+body.theme-rpg #vnSection .vn-dialogue-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 12px;
+    margin-top: 20px;
+    border-top: none;
+    position: relative;
+}
+
+body.theme-rpg #vnSection .vn-dialogue-footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(176,118,58,.34), rgba(227,162,79,.5) 50%, rgba(176,118,58,.34), transparent);
+}
+
+/* ── Botones de paginación — cuadrados radio 7 ───────────────────────── */
+body.theme-rpg #vnSection .vn-nav-mini-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid rgba(176,118,58,.25);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--vns-a-parch);
+    transition: border-color 150ms, box-shadow 150ms;
+}
+
+body.theme-rpg #vnSection .vn-nav-mini-btn:hover {
+    border-color: var(--vns-a-amber);
+    box-shadow: 0 0 8px var(--vns-a-glow);
+}
+
+body.theme-rpg #vnSection .vn-message-counter {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    color: var(--vns-a-parch);
+    opacity: .6;
+    letter-spacing: .06em;
+}
+
+/* ── Píldoras de acción — bronce angular ────────────────────────────── */
+body.theme-rpg #vnSection .vn-dialogue-action-btn,
+body.theme-rpg #vnSection .reply-btn,
+body.theme-rpg #vnSection .delete-message-btn,
+body.theme-rpg #vnSection .narrate-action-btn,
+body.theme-rpg #vnSection .emote-action-btn,
+body.theme-rpg #vnSection .vn-adv-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: 1px solid rgba(231,211,163,.25);
+    background: transparent;
+    color: var(--vns-cream);
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 150ms, box-shadow 150ms;
+}
+
+body.theme-rpg #vnSection .reply-btn {
+    background: rgba(227,162,79,.1);
+    border-color: rgba(227,162,79,.53);
+    color: var(--vns-a-amber);
+}
+
+body.theme-rpg #vnSection .delete-message-btn {
+    border-color: rgba(217,105,78,.35);
+    color: var(--vns-hp);
+}
+
+body.theme-rpg #vnSection .vn-dialogue-action-btn:hover,
+body.theme-rpg #vnSection .reply-btn:hover,
+body.theme-rpg #vnSection .narrate-action-btn:hover,
+body.theme-rpg #vnSection .emote-action-btn:hover {
+    border-color: rgba(227,162,79,.6);
+    box-shadow: 0 0 8px var(--vns-a-glow);
+}
+
+/* ── Toolbar lateral — cápsula angular bronce ───────────────────────── */
+body.theme-rpg #vnSection .vn-toolbar.vn-rpg-controls {
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    left: auto;
+    bottom: auto;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 8px;
+    border-radius: 12px;
+    background: rgba(16,9,4,.6);
+    border: 1px solid rgba(176,118,58,.23);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: none;
+    max-height: none;
+    overflow: visible;
+}
+
+body.theme-rpg #vnSection .vn-rpg-control-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 8px;
+    border: 1px solid rgba(176,118,58,.27);
+    background: rgba(20,12,5,.45);
+    color: var(--vns-a-parch);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transform: none;
+    transition: border-color 150ms, box-shadow 150ms, background 150ms;
+}
+
+body.theme-rpg #vnSection .vn-rpg-control-btn:hover {
+    border-color: var(--vns-a-amber);
+    box-shadow: 0 0 8px var(--vns-a-glow);
+    background: rgba(40,22,8,.7);
+    color: var(--vns-a-amber);
+    transform: none;
+}
+
+body.theme-rpg #vnSection .vn-rpg-control-btn.vn-btn-danger {
+    border-color: rgba(217,105,78,.35);
+    color: var(--vns-hp);
+}
+
+body.theme-rpg #vnSection .vn-rpg-control-btn.vn-btn-danger:hover {
+    border-color: var(--vns-hp);
+    box-shadow: 0 0 8px rgba(217,105,78,.3);
+    background: rgba(50,15,8,.7);
+}
+
+/* ── Party RPG (izquierda) ──────────────────────────────────────────── */
+body.theme-rpg #vnPartyShell {
+    position: absolute;
+    top: 100px;
+    left: 48px;
+    width: 264px;
+    z-index: 9;
+}
+
+body.theme-rpg #classicPartyShell {
+    display: none;
+}
+
+body.theme-rpg #vnSection .vn-party-panel,
+body.theme-rpg #vnSection .vn-narrate-panel,
+body.theme-rpg #vnSection .vn-dm-panel,
+body.theme-rpg #vnSection .vn-oracle-minipanel {
+    border-radius: 10px;
+    border: 1px solid rgba(227,162,79,.22);
+    background: rgba(20,13,6,.88);
+    box-shadow: 0 16px 40px rgba(0,0,0,.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+body.theme-rpg #vnSection .vn-party-title {
+    font-family: 'Cinzel', serif;
+    font-size: 9.5px;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    color: var(--vns-a-amber);
+    opacity: .85;
+}
+
+/* ── Miembros del party — ficha slim (PV / EXP / Nv) ───────────────── */
+body.theme-rpg #vnSection .vn-party-member {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 12px;
+}
+
+body.theme-rpg #vnSection .vn-party-member-name {
+    font-family: 'Cinzel', serif;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--vns-cream);
+    letter-spacing: .02em;
+}
+
+body.theme-rpg #vnSection .vn-party-member-level {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: var(--vns-a-parch);
+    opacity: .8;
+    letter-spacing: .06em;
+}
+
+/* ── Decisiones / opciones RPG — naipes de arcano ───────────────────── */
+body.theme-rpg #vnSection .vn-options-container {
+    position: absolute;
+    left: 50%;
+    bottom: calc(46px + 13.5rem);
+    transform: translateX(-50%);
+    width: min(660px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 11;
+}
+
+/* Header "Tu decisión" */
+body.theme-rpg #vnSection .vn-choice-prompt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 9.5px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--vns-a-amber);
+    opacity: .9;
+    margin-bottom: 4px;
+}
+
+body.theme-rpg #vnSection .vn-option-btn,
+body.theme-rpg #vnSection .vn-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    padding: 10px 16px 10px 12px;
+    border-radius: 9px;
+    background: rgba(26,17,8,.8);
+    border: 1px solid rgba(176,118,58,.33);
+    color: var(--vns-cream);
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 16px;
+    line-height: 1.3;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.42);
+}
+
+/* Marco interior (inset) */
+body.theme-rpg #vnSection .vn-option-btn::before,
+body.theme-rpg #vnSection .vn-option::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgba(176,118,58,.15);
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+body.theme-rpg #vnSection .vn-option-btn::after,
+body.theme-rpg #vnSection .vn-option::after {
+    content: none !important;
+    display: none !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    body.theme-rpg #vnSection .vn-option-btn,
+    body.theme-rpg #vnSection .vn-option {
+        transition: transform .24s cubic-bezier(.2,.7,.3,1), box-shadow .24s ease, border-color .24s ease, background .24s ease;
+        transform-origin: 50% 130%;
+    }
+}
+
+body.theme-rpg #vnSection .vn-option-btn:hover,
+body.theme-rpg #vnSection .vn-option:hover {
+    border-color: rgba(227,162,79,.9);
+    background: rgba(42,27,11,.92);
+    box-shadow: 0 20px 44px rgba(0,0,0,.52), 0 0 26px var(--vns-a-glow);
+    transform: translateY(-5px) rotate(-.8deg);
+}
+
+/* ── Turno / locación ────────────────────────────────────────────────── */
+body.theme-rpg #vnSection #vnTurnBadge {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px;
+    color: var(--vns-a-parch);
+    opacity: .85;
+    letter-spacing: .08em;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(176,118,58,.27);
+    background: rgba(20,12,5,.45);
+    position: absolute;
+    top: 44px;
+    right: 96px;
+    z-index: 11;
+}
+
+/* ── Panel DM / Narrador — lenguaje de tarot ────────────────────────── */
+body.theme-rpg #vnSection #vnDmPanel.vn-dm-panel {
+    border-radius: 12px;
+    border: 1px solid rgba(227,162,79,.3);
+    background: rgba(18,11,5,.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 24px 60px rgba(0,0,0,.55);
+    color: var(--vns-cream);
+}
+
+body.theme-rpg #vnSection .vn-dm-tab {
+    font-family: 'Cinzel', serif;
+    font-size: 9.5px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--vns-a-parch);
+    opacity: .65;
+    border-bottom: 1px solid transparent;
+    transition: opacity 150ms, border-color 150ms;
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 0;
+    background: transparent;
+}
+
+body.theme-rpg #vnSection .vn-dm-tab.active,
+body.theme-rpg #vnSection .vn-dm-tab[aria-selected="true"] {
+    color: var(--vns-a-amber);
+    opacity: 1;
+    border-bottom-color: var(--vns-a-amber);
+}
+
+body.theme-rpg #vnSection .vn-dm-section {
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 15px;
+    color: var(--vns-cream);
+    line-height: 1.55;
+}
+
+/* ── Panel DM — modo clásico (mismo panel, paleta plata) ────────────── */
+body.theme-classic #vnSection #vnDmPanel.vn-dm-panel {
+    border-radius: 14px;
+    border: 1px solid rgba(220,214,240,.22);
+    background: rgba(14,12,36,.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 24px 60px rgba(0,0,0,.5);
+    color: var(--vns-cream);
+}
+
+body.theme-classic #vnSection .vn-dm-tab {
+    font-family: 'Cinzel', serif;
+    font-size: 9.5px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--vns-p-silver);
+    opacity: .6;
+    border-bottom: 1px solid transparent;
+    padding: 8px 12px;
+    cursor: pointer;
+    background: transparent;
+    transition: opacity 150ms, border-color 150ms;
+}
+
+body.theme-classic #vnSection .vn-dm-tab.active,
+body.theme-classic #vnSection .vn-dm-tab[aria-selected="true"] {
+    color: var(--vns-p-lav);
+    opacity: 1;
+    border-bottom-color: var(--vns-p-lav);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   FIX DEFINITIVO · botones Palabra = píldoras fantasma (proto: GhostPill)
+   El enemigo real es modules/07-overrides.css (~L3100): tema azul/morado con
+   degradados, corchetes ::before/::after e iconos ↵/✕, todo !important y misma
+   especificidad → empata. SOLUCIÓN: añadimos el padre .vn-msg-actions para
+   subir la especificidad y ganar SIEMPRE, sin depender del orden de carga.
+   ══════════════════════════════════════════════════════════════════════ */
+body.theme-classic #vnSection .vn-msg-actions .vma-btn {
+    border-radius: 999px !important;
+    background: transparent !important;
+    border: 1px solid rgba(220,214,240,.40) !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 10px !important;
+    font-weight: 400 !important;
+    letter-spacing: .16em !important;
+    text-transform: uppercase !important;
+    color: var(--vns-cream) !important;
+    padding: 7px 15px !important;
+    min-height: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    cursor: pointer !important;
+    transition: border-color 150ms ease, background 150ms ease !important;
+    clip-path: none !important;
+    transform: none !important;
+}
+
+/* mata corchetes ::before/::after y el swap de icono ↵/✕ de 07-overrides */
+body.theme-classic #vnSection .vn-msg-actions .vma-btn::before,
+body.theme-classic #vnSection .vn-msg-actions .vma-btn::after,
+body.theme-classic #vnSection .vn-msg-actions .vma-btn .vma-icon::before,
+body.theme-classic #vnSection .vn-msg-actions .vma-btn .vma-icon::after {
+    content: none !important;
+    display: none !important;
+    border: 0 !important;
+}
+
+/* Responder → acento lavanda */
+body.theme-classic #vnSection .vn-msg-actions .vma-btn.vma-reply {
+    background: rgba(193,168,236,.12) !important;
+    border-color: rgba(193,168,236,.55) !important;
+    color: var(--vns-cream) !important;
+}
+body.theme-classic #vnSection .vn-msg-actions .vma-btn.vma-reply .vma-icon { color: #c1a8ec !important; }
+body.theme-classic #vnSection .vn-msg-actions .vma-btn.vma-reply:hover {
+    background: rgba(193,168,236,.2) !important;
+    border-color: rgba(193,168,236,.9) !important;
+    box-shadow: 0 0 12px var(--vns-p-glow) !important;
+    transform: none !important;
+}
+
+/* Editar → plata sobria */
+body.theme-classic #vnSection .vn-msg-actions .vma-btn.vma-edit {
+    background: transparent !important;
+    border-color: rgba(220,214,240,.28) !important;
+    color: var(--vns-cream) !important;
+}
+body.theme-classic #vnSection .vn-msg-actions .vma-btn.vma-edit .vma-icon { color: #dcd6f0 !important; }
+
+/* Borrar → rojo apagado: solo borde + icono */
+body.theme-classic #vnSection .vn-msg-actions .vma-btn.vma-delete {
+    background: transparent !important;
+    border-color: rgba(217,105,78,.45) !important;
+    color: var(--vns-cream) !important;
+}
+body.theme-classic #vnSection .vn-msg-actions .vma-btn.vma-delete .vma-icon { color: #d9694e !important; }
+body.theme-classic #vnSection .vn-msg-actions .vma-btn.vma-delete:hover {
+    background: rgba(217,105,78,.1) !important;
+    border-color: rgba(217,105,78,.75) !important;
+    box-shadow: 0 0 8px rgba(217,105,78,.25) !important;
+    transform: none !important;
+}
+
+/* Escena / Emotes (.vn-dialogue-action-btn) — también píldoras fantasma.
+   07-overrides los pinta en azul; subimos especificidad con el padre. */
+body.theme-classic #vnSection .vn-dialogue-actions-left .vn-dialogue-action-btn {
+    border-radius: 999px !important;
+    background: transparent !important;
+    border: 1px solid rgba(220,214,240,.30) !important;
+    color: var(--vns-cream) !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 10px !important;
+    letter-spacing: .14em !important;
+    text-transform: uppercase !important;
+    padding: 7px 15px !important;
+    clip-path: none !important;
+    transform: none !important;
+}
+body.theme-classic #vnSection .vn-dialogue-actions-left .vn-dialogue-action-btn::before,
+body.theme-classic #vnSection .vn-dialogue-actions-left .vn-dialogue-action-btn::after {
+    content: none !important;
+    display: none !important;
+}
+body.theme-classic #vnSection .vn-dialogue-actions-left .vn-dialogue-action-btn:hover {
+    border-color: rgba(193,168,236,.8) !important;
+    background: rgba(193,168,236,.08) !important;
+}
+
+/* RPG — píldoras bronce angulares */
+body.theme-rpg #vnSection .vma-btn {
+    border-radius: 7px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 10px !important;
+    letter-spacing: .16em !important;
+    text-transform: uppercase !important;
+    color: var(--vns-cream) !important;
+    padding: 7px 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    cursor: pointer !important;
+    border: 1px solid rgba(231,211,163,.25) !important;
+    transition: border-color 150ms ease, box-shadow 150ms ease !important;
+    clip-path: none !important;
+    transform: none !important;
+}
+
+body.theme-rpg #vnSection .vma-btn::before,
+body.theme-rpg #vnSection .vma-btn::after {
+    content: none !important;
+    display: none !important;
+}
+
+body.theme-rpg #vnSection .vma-btn.vma-reply {
+    background: rgba(227,162,79,.1) !important;
+    border-color: rgba(227,162,79,.53) !important;
+    color: var(--vns-a-amber) !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+body.theme-rpg #vnSection .vma-btn.vma-reply:hover {
+    border-color: var(--vns-a-amber) !important;
+    box-shadow: 0 0 8px var(--vns-a-glow) !important;
+    transform: none !important;
+}
+
+body.theme-rpg #vnSection .vma-btn.vma-delete {
+    background: transparent !important;
+    border-color: rgba(217,105,78,.35) !important;
+    color: var(--vns-hp) !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+body.theme-rpg #vnSection .vma-btn.vma-delete:hover {
+    border-color: rgba(217,105,78,.7) !important;
+    box-shadow: 0 0 8px rgba(217,105,78,.25) !important;
+    transform: none !important;
+}
+
+/* ── Fix: luna — más difusa y atmosférica, menos bola sólida ── */
+/* Las inline styles de vn-design.js no tienen !important → CSS !important gana */
+#vnSection #vnMoonGlow {
+    width: 280px !important;
+    height: 280px !important;
+    filter: blur(22px) !important;
+    background: radial-gradient(circle at 42% 38%,
+        rgba(245,242,255,.52),
+        rgba(206,196,255,.22) 52%,
+        transparent 72%) !important;
+    opacity: .85 !important;
+    top: -60px !important;
+}
+
+/* ── Pieza #4: aro del avatar — reposicionado para envolver el avatar nuevo ── */
+/* Clásico: avatar en left:40px top:34px 92×92px */
+body.theme-classic #vnSection .vn-speaker-avatar-wrap {
+    left: 40px !important;
+    top: 34px !important;
+    transform: none !important;
+    width: 92px !important;
+    height: 92px !important;
+    position: absolute !important;
+    pointer-events: none;
+    z-index: 4;
+}
+
+body.theme-classic #vnSection .vn-speaker-avatar-wrap::before {
+    inset: -5px !important;
+    border-radius: 50% !important;
+    border: 1.5px solid rgba(193,168,236,.6) !important;
+    background: conic-gradient(from 0deg,
+        transparent 0deg 24deg,
+        rgba(193,168,236,.4) 24deg 34deg,
+        transparent 34deg 60deg,
+        rgba(193,168,236,.35) 60deg 70deg,
+        transparent 70deg 360deg) !important;
+    -webkit-mask: radial-gradient(circle, transparent 64%, #000 65%) !important;
+    mask: radial-gradient(circle, transparent 64%, #000 65%) !important;
+}
+
+/* RPG: avatar en left:34px top:30px 84×84px */
+body.theme-rpg #vnSection .vn-speaker-avatar-wrap {
+    left: 34px !important;
+    top: 30px !important;
+    transform: none !important;
+    width: 84px !important;
+    height: 84px !important;
+    position: absolute !important;
+    pointer-events: none;
+    z-index: 4;
+}
+
+body.theme-rpg #vnSection .vn-speaker-avatar-wrap::before {
+    inset: -5px !important;
+    border-radius: 50% !important;
+    border: 1.5px solid rgba(176,118,58,.65) !important;
+    background: conic-gradient(from 0deg,
+        transparent 0deg 24deg,
+        rgba(227,162,79,.38) 24deg 34deg,
+        transparent 34deg 60deg,
+        rgba(227,162,79,.32) 60deg 70deg,
+        transparent 70deg 360deg) !important;
+    -webkit-mask: radial-gradient(circle, transparent 64%, #000 65%) !important;
+    mask: radial-gradient(circle, transparent 64%, #000 65%) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ORNAMENTOS INYECTADOS POR vn-design.js
+   Sacados del flujo normal → position:absolute, detrás del contenido.
+   ══════════════════════════════════════════════════════════════════════ */
+#vnSection #vnStarCanvas,
+#vnSection #vnZodiacRing,
+#vnSection #vnRouteHint,
+#vnSection #vnMoonGlow {
+    position: absolute !important;
+    pointer-events: none !important;
+}
+
+#vnSection #vnStarCanvas {
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 1 !important;
+}
+
+#vnSection #vnRouteHint {
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 2 !important;
+    opacity: .14;
+}
+
+#vnSection #vnZodiacRing {
+    top: -330px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 660px;
+    height: 660px;
+    z-index: 2;
+    opacity: .5;
+}
+
+#vnSection #vnMoonGlow {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+}
+
+/* La UI real por encima de los ornamentos de fondo */
+#vnSection .bottom-panel,
+#vnSection .vn-toolbar,
+#vnSection #vnPartyShell,
+#vnSection #classicPartyShell {
+    position: relative;
+    z-index: 10;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+    body.theme-classic #vnSection .bottom-panel .vn-dialogue-box {
+        width: calc(100vw - 1rem) !important;
+        bottom: max(.5rem, env(safe-area-inset-bottom)) !important;
+        padding: 28px 20px 18px;
+    }
+    body.theme-classic #vnSection #vnSpeakerAvatar {
+        width: 64px;
+        height: 64px;
+        font-size: 2rem;
+    }
+    body.theme-classic #vnSection .vn-dialogue-text { padding-left: 82px !important; font-size: 19px !important; }
+    body.theme-classic #vnSection .vn-msg-actions    { padding-left: 82px; }
+    body.theme-classic #vnSection .vn-options-container { width: calc(100vw - 1.1rem); }
+
+    body.theme-rpg #vnSection .bottom-panel .vn-dialogue-box {
+        width: calc(100vw - 1rem) !important;
+        bottom: max(.5rem, env(safe-area-inset-bottom)) !important;
+        padding: 26px 20px 20px;
+    }
+    body.theme-rpg #vnSection #vnSpeakerAvatar {
+        width: 60px;
+        height: 60px;
+        font-size: 1.9rem;
+    }
+    body.theme-rpg #vnSection .vn-dialogue-text { padding-left: 80px !important; font-size: 17px !important; }
+    body.theme-rpg #vnSection .vn-msg-actions    { padding-left: 80px; }
+}
+
+/* Ocultar las party SOLO en móvil real (no a 900px, que apagaba el party en
+   ventanas medianas y parecía que "no se creaba"). */
+@media (max-width: 600px) {
+    body.theme-classic #classicPartyShell,
+    body.theme-rpg #vnPartyShell { display: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v3 (ESCRITORIO) · el texto no debe pisar el avatar + aro anclado
+   El padding del texto solo vivía en la media query móvil → en escritorio el
+   texto volvía al borde y el avatar lo tapaba. Forzamos aquí con especificidad
+   alta (añadiendo .vn-dialogue-box) + !important para ganar a vn-themes.css.
+   ══════════════════════════════════════════════════════════════════════ */
+/* Clásico: avatar 92px en left:40 → el texto despeja a 156px */
+body.theme-classic #vnSection .vn-dialogue-box .vn-dialogue-text,
+body.theme-classic #vnSection .vn-dialogue-box .vn-reaction-display,
+body.theme-classic #vnSection .vn-dialogue-box .vn-continue-indicator {
+    padding-left: 156px !important;
+}
+/* RPG: avatar 84px en left:34 → 142px */
+body.theme-rpg #vnSection .vn-dialogue-box .vn-dialogue-text,
+body.theme-rpg #vnSection .vn-dialogue-box .vn-reaction-display,
+body.theme-rpg #vnSection .vn-dialogue-box .vn-continue-indicator {
+    padding-left: 142px !important;
+}
+
+/* Aro del avatar — anclarlo del todo (anula bottom/right de reglas base que lo
+   descolocaban hacia abajo) */
+body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap,
+body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap {
+    bottom: auto !important;
+    right: auto !important;
+    margin: 0 !important;
+}
+
+/* Placa de nombre — afinada: medallón translúcido plata (clásico), menos
+   índigo plano. (Si la prefieres distinta, este es el bloque a tocar.) */
+body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate {
+    background: linear-gradient(180deg, rgba(28,26,68,.92), rgba(12,11,34,.95)) !important;
+    border: 1px solid rgba(220,214,240,.45) !important;
+    box-shadow: 0 4px 18px rgba(0,0,0,.5), 0 0 18px var(--vns-p-glow) !important;
+    font-size: 15px !important;
+    letter-spacing: .22em !important;
+    padding: 7px 24px !important;
+    color: #f3ecda !important;
+}
+body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate::before {
+    inset: 4px !important;
+    border-color: rgba(220,214,240,.16) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v4 · aro del avatar suelto (orphan ring)
+   La regla base .vn-speaker-avatar-wrap usa top:50% + translateY(-50%) →
+   se centra en la caja (alta) y cae DEBAJO del avatar. Como el avatar nuevo
+   (#vnSpeakerAvatar) YA tiene su propio marco circular, ese aro decorativo
+   sobra: lo ocultamos y damos al avatar un aro propio anclado a él.
+   ══════════════════════════════════════════════════════════════════════ */
+body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap,
+body.theme-rpg     #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap {
+    display: none !important;
+}
+/* Aro propio del avatar — Palabra (plata/lavanda) */
+body.theme-classic #vnSection .vn-dialogue-box #vnSpeakerAvatar {
+    box-shadow:
+        0 0 0 1px rgba(220,214,240,.55),
+        0 0 0 5px rgba(193,168,236,.14),
+        0 8px 20px rgba(0,0,0,.5),
+        0 0 18px -4px var(--vns-p-glow) !important;
+}
+/* Aro propio del avatar — Azar (ámbar/bronce) */
+body.theme-rpg #vnSection .vn-dialogue-box #vnSpeakerAvatar {
+    border-color: rgba(227,162,79,.6) !important;
+    box-shadow:
+        0 0 0 1px rgba(227,162,79,.6),
+        0 0 0 5px rgba(176,118,58,.16),
+        0 8px 20px rgba(0,0,0,.5) !important;
+}
+/* un pelín más de aire entre avatar y texto */
+body.theme-classic #vnSection .vn-dialogue-box .vn-dialogue-text { padding-left: 160px !important; }
+body.theme-rpg     #vnSection .vn-dialogue-box .vn-dialogue-text { padding-left: 148px !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v5 · avatar centrado verticalmente en la caja
+   Estaba pinchado arriba (top:34/30px). Lo centramos como el diseño original
+   del wrap: top:50% + translateY(-50%). Anclado a la caja, sube/baja con ella.
+   ══════════════════════════════════════════════════════════════════════ */
+body.theme-classic #vnSection .vn-dialogue-box #vnSpeakerAvatar,
+body.theme-rpg     #vnSection .vn-dialogue-box #vnSpeakerAvatar {
+    top: 50% !important;
+    bottom: auto !important;
+    transform: translateY(-50%) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v7 · acabado fiel al prototipo (avatar moneda, nameplate con relieve,
+   barra fantasma fuera). Va al final → gana por orden.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* (a) BARRA DORADA FANTASMA — era .vn-continue-indicator estirado por un
+   padding-left que convertía su border-top en una barra. Lo ocultamos: la
+   navegación ya la dan las flechas del pie. */
+#vnSection .vn-dialogue-box .vn-continue-indicator {
+    display: none !important;
+}
+
+/* (b) AVATAR AZAR — moneda de bronce circular (mata el clip-path hexagonal
+   de components.css mode-rpg) */
+body.theme-rpg #vnSection .vn-dialogue-box #vnSpeakerAvatar {
+    clip-path: none !important;
+    border-radius: 50% !important;
+    border: 2px solid rgba(227,162,79,.85) !important;
+    background: radial-gradient(ellipse at 34% 30%, #6a4a20, #2a1a0a) !important;
+    box-shadow:
+        0 0 0 1px rgba(20,10,3,.9),
+        0 8px 20px rgba(0,0,0,.55) !important;
+    color: #fdf0d8 !important;
+    font-family: 'Cinzel', serif !important;
+    z-index: 2 !important;
+}
+/* anillo de moneda con muescas — reutilizamos .vn-speaker-avatar-wrap
+   (que en clásico seguimos ocultando) reposicionado sobre el avatar */
+body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap {
+    display: block !important;
+    position: absolute !important;
+    left: 34px !important;
+    top: 50% !important;
+    transform: translate(-7px, -50%) !important;
+    width: 98px !important;
+    height: 98px !important;
+    bottom: auto !important;
+    right: auto !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    pointer-events: none !important;
+    z-index: 1 !important;
+    background: none !important;
+}
+body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    border-radius: 50% !important;
+    border: none !important;
+    animation: none !important;
+    background: conic-gradient(from 0deg,
+        #e3a24f 0deg 2deg, transparent 2deg 15deg, #e3a24f 15deg 17deg, transparent 17deg 30deg,
+        #e3a24f 30deg 32deg, transparent 32deg 45deg, #e3a24f 45deg 47deg, transparent 47deg 60deg,
+        #e3a24f 60deg 62deg, transparent 62deg 75deg, #e3a24f 75deg 77deg, transparent 77deg 90deg,
+        #e3a24f 90deg 92deg, transparent 92deg 105deg, #e3a24f 105deg 107deg, transparent 107deg 120deg,
+        #e3a24f 120deg 122deg, transparent 122deg 135deg, #e3a24f 135deg 137deg, transparent 137deg 150deg,
+        #e3a24f 150deg 152deg, transparent 152deg 165deg, #e3a24f 165deg 167deg, transparent 167deg 180deg,
+        #e3a24f 180deg 182deg, transparent 182deg 195deg, #e3a24f 195deg 197deg, transparent 197deg 210deg,
+        #e3a24f 210deg 212deg, transparent 212deg 225deg, #e3a24f 225deg 227deg, transparent 227deg 240deg,
+        #e3a24f 240deg 242deg, transparent 242deg 255deg, #e3a24f 255deg 257deg, transparent 257deg 270deg,
+        #e3a24f 270deg 272deg, transparent 272deg 285deg, #e3a24f 285deg 287deg, transparent 287deg 300deg,
+        #e3a24f 300deg 302deg, transparent 302deg 315deg, #e3a24f 315deg 317deg, transparent 317deg 330deg,
+        #e3a24f 330deg 332deg, transparent 332deg 345deg, #e3a24f 345deg 347deg, transparent 347deg 360deg) !important;
+    -webkit-mask: radial-gradient(circle, transparent 0 44px, #000 44px 49px, transparent 49px) !important;
+    mask: radial-gradient(circle, transparent 0 44px, #000 44px 49px, transparent 49px) !important;
+    opacity: .9 !important;
+}
+
+/* (c) NAMEPLATE AZAR — bronce biselado con relieve */
+body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate {
+    background: linear-gradient(180deg, #6b431d 0%, #4a2e13 45%, #2a1809 100%) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,220,150,.35),
+        inset 0 -2px 4px rgba(0,0,0,.5) !important;
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,.6)) drop-shadow(0 0 10px var(--vns-a-glow)) !important;
+    outline: none !important;
+    letter-spacing: .16em !important;
+}
+body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate::after {
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    inset: 3px !important;
+    clip-path: polygon(12px 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0% 50%) !important;
+    border: 1px solid rgba(255,210,140,.45) !important;
+    pointer-events: none !important;
+    background: none !important;
+}
+
+/* (d) NAMEPLATE PALABRA — medallón plata con más relieve */
+body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate {
+    background: linear-gradient(180deg, #34306f 0%, #221d52 48%, #110f33 100%) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(220,214,240,.4),
+        inset 0 -2px 5px rgba(0,0,0,.45),
+        0 4px 16px rgba(0,0,0,.5),
+        0 0 20px var(--vns-p-glow) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v8 · CAJA DE ALTURA FIJA + SCROLL + esquinas ricas
+   El texto ya no deforma la caja: altura fija, avatar en posición constante,
+   acciones ancladas arriba, pie anclado abajo, y el texto con scroll propio.
+   Solo en escritorio (≥860px) — móvil conserva su media query.
+   ══════════════════════════════════════════════════════════════════════ */
+@media (min-width: 860px) {
+  #vnSection .bottom-panel .vn-dialogue-box {
+      height: 210px !important;
+      min-height: 210px !important;
+      max-height: 210px !important;
+      box-sizing: border-box !important;
+      padding: 0 !important;
+      overflow: visible !important;
+  }
+  /* acciones (Responder/Editar/Borrar) — ancladas arriba-derecha */
+  #vnSection .vn-dialogue-box .vn-msg-actions {
+      position: absolute !important;
+      top: 18px !important;
+      right: 26px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      z-index: 6 !important;
+  }
+  /* texto — región fija con scroll SOLO si desborda. NADA de flex: el
+     typewriter envuelve cada palabra en <span.tw-char>, y un contenedor flex
+     las apilaría en vertical ("Aqui / Kazuya / hablando"). Bloque normal. */
+  #vnSection .vn-dialogue-box .vn-dialogue-text {
+      position: absolute !important;
+      top: 56px !important;
+      bottom: 54px !important;
+      right: 30px !important;
+      display: block !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      margin: 0 !important;
+      min-height: 0 !important;
+      padding: 2px 12px 2px 0 !important;
+  }
+  body.theme-classic #vnSection .vn-dialogue-box .vn-dialogue-text { left: 158px !important; }
+  body.theme-rpg     #vnSection .vn-dialogue-box .vn-dialogue-text { left: 150px !important; }
+  /* pie — anclado abajo */
+  #vnSection .vn-dialogue-box .vn-dialogue-footer {
+      position: absolute !important;
+      bottom: 14px !important;
+      right: 26px !important;
+      margin: 0 !important;
+      z-index: 6 !important;
+  }
+  body.theme-classic #vnSection .vn-dialogue-box .vn-dialogue-footer { left: 160px !important; }
+  body.theme-rpg     #vnSection .vn-dialogue-box .vn-dialogue-footer { left: 150px !important; }
+  /* el indicador de reacción no debe empujar el layout */
+  #vnSection .vn-dialogue-box .vn-reaction-display { position: absolute !important; left: 158px !important; bottom: 48px !important; margin: 0 !important; }
+
+  /* botones de mensaje — COMPACTOS, sin invadir la zona de texto */
+  #vnSection .vn-dialogue-box .vn-msg-actions .vma-btn {
+      padding: 5px 11px !important;
+      font-size: 9px !important;
+      gap: 5px !important;
+      letter-spacing: .12em !important;
+      min-height: 0 !important;
+      line-height: 1.1 !important;
+  }
+  #vnSection .vn-dialogue-box .vn-msg-actions .vma-btn .vma-icon { font-size: 11px !important; transform: scale(.85); }
+}
+
+/* ── TAMAÑO Y FUENTE DEL TEXTO — alineado a la izquierda (lectura normal),
+   fuentes con carácter. NOTA: la app importa EB Garamond SIN itálica real, así
+   que para Palabra usamos Cormorant Garamond (sí trae itálica real, elegante). */
+body.theme-classic #vnSection .vn-dialogue-box .vn-dialogue-text {
+    font-family: 'Cormorant Garamond', 'EB Garamond', Georgia, serif !important;
+    font-style: italic !important;
+    font-weight: 500 !important;
+    font-size: 22px !important;
+    line-height: 1.6 !important;
+    letter-spacing: .012em !important;
+    color: #f3ecda !important;
+    text-align: left !important;
+}
+body.theme-rpg #vnSection .vn-dialogue-box .vn-dialogue-text {
+    font-family: 'Crimson Text', Georgia, serif !important;
+    font-style: normal !important;
+    font-size: 18.5px !important;
+    line-height: 1.6 !important;
+    letter-spacing: .005em !important;
+    color: #f6ecd6 !important;
+    text-align: left !important;
+}
+/* el primer párrafo/<em> de "historia vacía" también a la izquierda */
+#vnSection .vn-dialogue-box .vn-dialogue-text em,
+#vnSection .vn-dialogue-box .vn-dialogue-text p { text-align: left !important; }
+
+/* ── SEPARADOR con luna (Palabra) / sol (Azar) sobre el divisor del pie ── */
+#vnSection .vn-dialogue-box .vn-dialogue-footer { position: relative; }
+#vnSection .vn-dialogue-box .vn-dialogue-footer::after {
+    content: '' !important;
+    position: absolute !important;
+    top: -10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 30px !important;
+    height: 20px !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: contain !important;
+    pointer-events: none !important;
+    z-index: 7 !important;
+}
+/* Palabra — luna creciente entre dos trazos de plata */
+body.theme-classic #vnSection .vn-dialogue-box .vn-dialogue-footer::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='20'%3E%3Crect width='60' height='20' fill='%23110f33'/%3E%3Cpath d='M2 10 H20 M40 10 H58' stroke='%23c1a8ec' stroke-width='1' opacity='0.6'/%3E%3Cpath d='M34 4 a6 6 0 1 0 0 12 a4.5 4.5 0 0 1 0 -12 Z' fill='none' stroke='%23dcd6f0' stroke-width='1.2'/%3E%3Ccircle cx='24' cy='10' r='1' fill='%23c1a8ec'/%3E%3Ccircle cx='44' cy='5' r='0.8' fill='%23c1a8ec'/%3E%3C/svg%3E") !important;
+    width: 62px !important;
+}
+/* Azar — sol radiante entre dos trazos de bronce */
+body.theme-rpg #vnSection .vn-dialogue-box .vn-dialogue-footer::after {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='20'%3E%3Crect width='60' height='20' fill='%23150c05'/%3E%3Cpath d='M2 10 H20 M40 10 H58' stroke='%23b0763a' stroke-width='1' opacity='0.7'/%3E%3Ccircle cx='30' cy='10' r='4.5' fill='none' stroke='%23e3a24f' stroke-width='1.3'/%3E%3Cg stroke='%23e3a24f' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M30 2 V4.5 M30 15.5 V18 M22 10 H24.5 M35.5 10 H38 M24.5 4.5 L26 6 M34 14 L35.5 15.5 M35.5 4.5 L34 6 M26 14 L24.5 15.5'/%3E%3C/g%3E%3C/svg%3E") !important;
+    width: 62px !important;
+}
+
+/* Scrollbar temática del texto */
+#vnSection .vn-dialogue-box .vn-dialogue-text::-webkit-scrollbar { width: 6px; }
+#vnSection .vn-dialogue-box .vn-dialogue-text::-webkit-scrollbar-track { background: rgba(176,118,58,.08); border-radius: 3px; }
+body.theme-classic #vnSection .vn-dialogue-box .vn-dialogue-text::-webkit-scrollbar-thumb { background: rgba(193,168,236,.45); border-radius: 3px; }
+body.theme-rpg     #vnSection .vn-dialogue-box .vn-dialogue-text::-webkit-scrollbar-thumb { background: rgba(227,162,79,.45); border-radius: 3px; }
+
+/* Doble marco interior (más ornamento, ambos modos) */
+#vnSection .vn-dialogue-box::before { inset: 7px !important; }
+body.theme-rpg #vnSection .vn-dialogue-box::after {
+    content: '' !important; display: block !important; position: absolute !important;
+    inset: 11px !important; border: 1px solid rgba(176,118,58,.10) !important; border-radius: 6px !important;
+    pointer-events: none !important; background: none !important;
+}
+
+/* ── ESQUINAS RICAS — .vn-db-corners i (inyectadas por vn.js) ──────────── */
+#vnSection .vn-db-corners i {
+    width: 26px !important; height: 26px !important;
+    background-repeat: no-repeat !important; background-position: center !important; background-size: contain !important;
+    opacity: .85 !important;
+}
+/* Azar — corchete de bronce + runa */
+body.theme-rpg #vnSection .vn-db-corners i {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26'%3E%3Cpath d='M3 11 V3 H11' fill='none' stroke='%23e3a24f' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='3' cy='3' r='1.7' fill='%23e3a24f'/%3E%3Cpath d='M3 17 V14 M14 3 H17' stroke='%23b0763a' stroke-width='1.2' stroke-linecap='round'/%3E%3Cpath d='M7 7 L9 9' stroke='%23e3a24f' stroke-width='1' stroke-linecap='round' opacity='0.7'/%3E%3C/svg%3E") !important;
+}
+body.theme-rpg #vnSection .vn-db-corners i:nth-child(2) { transform: scaleX(-1) !important; }
+body.theme-rpg #vnSection .vn-db-corners i:nth-child(3) { transform: scaleY(-1) !important; }
+body.theme-rpg #vnSection .vn-db-corners i:nth-child(4) { transform: scale(-1,-1) !important; }
+/* Palabra — corchete de plata + estrella */
+body.theme-classic #vnSection .vn-db-corners i {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26'%3E%3Cpath d='M3 11 V3 H11' fill='none' stroke='%23dcd6f0' stroke-width='1.4' stroke-linecap='round'/%3E%3Cpath d='M7 3 L8 5 L10 6 L8 7 L7 9 L6 7 L4 6 L6 5 Z' fill='%23c1a8ec'/%3E%3Cpath d='M3 16 V13.5 M13.5 3 H16' stroke='%23c1a8ec' stroke-width='1' stroke-linecap='round' opacity='0.7'/%3E%3C/svg%3E") !important;
+}
+body.theme-classic #vnSection .vn-db-corners i:nth-child(2) { transform: scaleX(-1) !important; }
+body.theme-classic #vnSection .vn-db-corners i:nth-child(3) { transform: scaleY(-1) !important; }
+body.theme-classic #vnSection .vn-db-corners i:nth-child(4) { transform: scale(-1,-1) !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v10 · BOTONES — compactos, integrados y distintos por modo.
+   Especificidad alta (id + .vn-dialogue-box + .vn-msg-actions + .vma-btn) y al
+   final del archivo → ganan a las "placas de comando" de 07-overrides.
+   ══════════════════════════════════════════════════════════════════════ */
+/* ---- acciones de mensaje (Responder / Editar / Borrar) ---- */
+#vnSection .vn-dialogue-box .vn-msg-actions { gap: 6px !important; }
+#vnSection .vn-dialogue-box .vn-msg-actions .vma-btn {
+    padding: 4px 10px !important;
+    min-height: 0 !important;
+    height: auto !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 9px !important;
+    font-weight: 500 !important;
+    letter-spacing: .1em !important;
+    text-transform: uppercase !important;
+    line-height: 1.1 !important;
+    gap: 5px !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    clip-path: none !important;
+    transform: none !important;
+}
+#vnSection .vn-dialogue-box .vn-msg-actions .vma-btn::before,
+#vnSection .vn-dialogue-box .vn-msg-actions .vma-btn::after { content: none !important; display: none !important; }
+#vnSection .vn-dialogue-box .vn-msg-actions .vma-btn .vma-icon {
+    font-size: 10px !important; transform: scale(.8); opacity: .9;
+}
+/* Palabra — píldoras finas de plata/lavanda */
+body.theme-classic #vnSection .vn-dialogue-box .vn-msg-actions .vma-btn {
+    border-radius: 999px !important;
+    border: 1px solid rgba(220,214,240,.3) !important;
+    background: rgba(20,17,48,.4) !important;
+    color: #efeaf8 !important;
+}
+body.theme-classic #vnSection .vn-dialogue-box .vn-msg-actions .vma-btn.vma-reply {
+    border-color: rgba(193,168,236,.6) !important; background: rgba(193,168,236,.14) !important;
+}
+body.theme-classic #vnSection .vn-dialogue-box .vn-msg-actions .vma-btn.vma-delete { border-color: rgba(217,105,78,.4) !important; }
+/* Azar — fichas angulares de bronce */
+body.theme-rpg #vnSection .vn-dialogue-box .vn-msg-actions .vma-btn {
+    border-radius: 0 !important;
+    clip-path: polygon(5px 0, 100% 0, calc(100% - 5px) 100%, 0 100%) !important;
+    border: 1px solid rgba(176,118,58,.5) !important;
+    background: rgba(28,18,9,.5) !important;
+    color: #f0e3cb !important;
+}
+body.theme-rpg #vnSection .vn-dialogue-box .vn-msg-actions .vma-btn.vma-reply {
+    border-color: rgba(227,162,79,.75) !important; background: rgba(227,162,79,.14) !important;
+}
+body.theme-rpg #vnSection .vn-dialogue-box .vn-msg-actions .vma-btn.vma-delete { border-color: rgba(217,105,78,.45) !important; }
+
+/* ---- botones del pie (Oráculo / Master / Posada / Emotes / Escena) ---- */
+#vnSection .vn-dialogue-box .vn-adv-btn,
+#vnSection .vn-dialogue-box .vn-dialogue-action-btn {
+    padding: 5px 12px !important;
+    min-height: 0 !important;
+    height: auto !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 9.5px !important;
+    letter-spacing: .08em !important;
+    line-height: 1.1 !important;
+    gap: 5px !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+#vnSection .vn-dialogue-box .vn-adv-btn .vna-icon,
+#vnSection .vn-dialogue-box .vn-dialogue-action-btn .vna-icon { transform: scale(.82); }
+body.theme-classic #vnSection .vn-dialogue-box .vn-adv-btn,
+body.theme-classic #vnSection .vn-dialogue-box .vn-dialogue-action-btn {
+    border-radius: 999px !important; border: 1px solid rgba(220,214,240,.26) !important; background: rgba(20,17,48,.34) !important;
+}
+body.theme-rpg #vnSection .vn-dialogue-box .vn-adv-btn,
+body.theme-rpg #vnSection .vn-dialogue-box .vn-dialogue-action-btn {
+    border-radius: 6px !important; border: 1px solid rgba(176,118,58,.4) !important; background: rgba(28,18,9,.4) !important;
+}
+/* el grupo de acciones del pie, más junto (no estirado de extremo a extremo) */
+#vnSection .vn-dialogue-box .vn-dialogue-actions-left { gap: .4rem !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v12 · TOOLBAR LATERAL — sencilla, redondeada y pequeña (estilo prototipo).
+   Sin remates de sol/luna ni columna: contenedor limpio + botones compactos.
+   Va al final → gana a 09-vn-mode-menus + 07-overrides.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ---------- contenedor (ambos modos) ---------- */
+#vnSection .vn-toolbar.vn-rpg-controls,
+#vnSection .vn-toolbar.vn-classic-controls {
+    width: auto !important;
+    padding: 9px 7px !important;
+    gap: 7px !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    backdrop-filter: blur(12px) !important;
+    overflow: visible !important;
+}
+#vnSection .vn-toolbar.vn-rpg-controls::before,
+#vnSection .vn-toolbar.vn-rpg-controls::after,
+#vnSection .vn-toolbar.vn-classic-controls::before,
+#vnSection .vn-toolbar.vn-classic-controls::after { content: none !important; display: none !important; }
+
+body.theme-rpg #vnSection .vn-toolbar.vn-rpg-controls {
+    border-radius: 13px !important;
+    background: rgba(16,9,4,.6) !important;
+    border: 1px solid rgba(176,118,58,.32) !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,.45) !important;
+}
+body.theme-classic #vnSection .vn-toolbar.vn-classic-controls {
+    border-radius: 999px !important;
+    background: rgba(12,10,32,.55) !important;
+    border: 1px solid rgba(206,196,255,.18) !important;
+    box-shadow: 0 12px 30px rgba(0,0,0,.4) !important;
+}
+
+/* ---------- botones (compactos, redondeados, limpios) ---------- */
+#vnSection .vn-rpg-control-btn,
+#vnSection .vn-classic-control-btn {
+    position: relative !important; z-index: 1 !important;
+    width: 34px !important; height: 34px !important; min-width: 34px !important;
+    clip-path: none !important;
+    box-shadow: none !important;
+    transition: border-color .15s, background .15s, color .15s !important;
+}
+/* Azar — cuadraditos redondeados de bronce */
+body.theme-rpg #vnSection .vn-rpg-control-btn {
+    border-radius: 8px !important;
+    border: 1px solid rgba(176,118,58,.34) !important;
+    background: rgba(20,12,5,.45) !important;
+    color: var(--vns-a-parch) !important;
+}
+body.theme-rpg #vnSection .vn-rpg-control-btn:hover {
+    border-color: var(--vns-a-amber) !important; color: #fff3df !important;
+    background: rgba(40,24,10,.6) !important;
+}
+body.theme-rpg #vnSection .vn-rpg-control-btn.vn-btn-danger { border-color: rgba(217,105,78,.4) !important; color: var(--vns-hp) !important; }
+/* Palabra — círculos de plata */
+body.theme-classic #vnSection .vn-classic-control-btn {
+    border-radius: 50% !important;
+    border: 1px solid rgba(206,196,255,.22) !important;
+    background: rgba(20,17,48,.4) !important;
+    color: var(--vns-p-silver) !important;
+}
+body.theme-classic #vnSection .vn-classic-control-btn:hover {
+    border-color: rgba(193,168,236,.8) !important; color: #fff !important;
+    background: rgba(34,28,72,.55) !important;
+}
+body.theme-classic #vnSection .vn-classic-control-btn.vn-btn-danger { border-color: rgba(217,105,78,.4) !important; color: var(--vns-hp) !important; }
+
+/* divisores discretos */
+#vnSection .vn-rpg-control-divider,
+#vnSection .vn-classic-control-divider {
+    width: 16px !important; height: 1px !important; margin: 1px auto !important;
+}
+body.theme-rpg #vnSection .vn-rpg-control-divider { background: rgba(176,118,58,.35) !important; }
+body.theme-classic #vnSection .vn-classic-control-divider { background: rgba(206,196,255,.3) !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v13 · NAMEPLATE DENTRO de la caja, sobre el avatar (no en el borde).
+   ══════════════════════════════════════════════════════════════════════ */
+#vnSection .vn-dialogue-box .vn-speaker-plate {
+    top: 16px !important;
+    bottom: auto !important;
+    z-index: 5 !important;
+    max-width: 138px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    font-size: 13px !important;
+    letter-spacing: .14em !important;
+}
+/* centrado sobre el avatar de cada modo */
+body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate {
+    left: 78px !important; transform: translateX(-50%) !important;
+}
+body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate {
+    left: 86px !important; transform: translateX(-50%) !important;
+}
+/* el ::after biselado del nameplate Azar debe seguir al nuevo tamaño */
+body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate::after { inset: 2px !important; }
+/* baja un poco el avatar para que el nameplate quede limpio encima */
+#vnSection .vn-dialogue-box #vnSpeakerAvatar { top: 58% !important; }
+#vnSection .vn-dialogue-box .vn-speaker-avatar-wrap { top: 58% !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v14 · ORÁCULO DEL DESTINO — más imponente (arcano de tarot).
+   Solo apariencia; se conservan TODOS los controles y handlers.
+   ══════════════════════════════════════════════════════════════════════ */
+#vnOracleMiniPanel.vn-oracle-minipanel {
+    width: 372px !important;
+    padding: 0 0 18px !important;
+    border-radius: 14px !important;
+    background:
+        radial-gradient(ellipse 120% 60% at 50% 0%, rgba(227,162,79,.14), transparent 60%),
+        linear-gradient(180deg, rgba(30,20,9,.98), rgba(12,7,3,.99)) !important;
+    border: 1px solid rgba(227,162,79,.5) !important;
+    box-shadow: 0 36px 100px rgba(0,0,0,.75), 0 0 60px rgba(227,162,79,.22), inset 0 0 0 1px rgba(176,118,58,.18) !important;
+    overflow: hidden !important;
+}
+/* corchetes de tarot en las esquinas */
+#vnOracleMiniPanel.vn-oracle-minipanel::before,
+#vnOracleMiniPanel.vn-oracle-minipanel::after {
+    content: '' !important; position: absolute !important; width: 18px !important; height: 18px !important;
+    border: 1.5px solid rgba(227,162,79,.7) !important; pointer-events: none !important; z-index: 3 !important;
+}
+#vnOracleMiniPanel.vn-oracle-minipanel::before { top: 8px !important; left: 8px !important; border-right: 0 !important; border-bottom: 0 !important; }
+#vnOracleMiniPanel.vn-oracle-minipanel::after  { bottom: 8px !important; right: 8px !important; border-left: 0 !important; border-top: 0 !important; }
+
+/* cabecera — banda dorada con emblema radiante */
+#vnOracleMiniPanel .vn-oracle-minipanel-header {
+    position: relative !important;
+    padding: 16px 18px 14px !important;
+    margin-bottom: 4px !important;
+    background: linear-gradient(180deg, rgba(60,38,16,.6), rgba(28,18,8,0)) !important;
+    border-bottom: 1px solid rgba(176,118,58,.3) !important;
+}
+#vnOracleMiniPanel .vn-oracle-minipanel-title {
+    font-family: 'Cinzel', serif !important;
+    font-size: 15px !important; font-weight: 600 !important;
+    letter-spacing: .16em !important; text-transform: uppercase !important;
+    color: #fbe6c6 !important;
+    text-shadow: 0 0 16px rgba(227,162,79,.5) !important;
+    display: inline-flex !important; align-items: center !important; gap: 9px !important;
+}
+/* emblema solar de 8 puntas antes del título (sustituye al 🎲) */
+#vnOracleMiniPanel .vn-oracle-minipanel-title::before {
+    content: '' !important; width: 20px !important; height: 20px !important; flex-shrink: 0 !important;
+    background: no-repeat center/contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M10 1 L11.6 8.4 L19 10 L11.6 11.6 L10 19 L8.4 11.6 L1 10 L8.4 8.4 Z' fill='%23e3a24f'/%3E%3Ccircle cx='10' cy='10' r='2' fill='%23150c05'/%3E%3C/svg%3E") !important;
+}
+#vnOracleMiniPanel .vn-oracle-minipanel-body { padding: 0 18px !important; }
+
+/* textarea — pergamino hundido */
+#vnOracleMiniPanel .vn-oracle-minipanel-textarea {
+    border-radius: 9px !important;
+    border: 1px solid rgba(176,118,58,.4) !important;
+    background: rgba(10,6,2,.55) !important;
+    color: #f3e6cf !important;
+    font-family: 'Crimson Text', serif !important; font-size: 15px !important;
+}
+#vnOracleMiniPanel .vn-oracle-minipanel-textarea::placeholder { color: rgba(231,211,163,.5) !important; font-style: italic !important; }
+
+/* botones de stat — fichas de bronce */
+#vnOracleMiniPanel .oracle-stat-btn {
+    border-radius: 7px !important;
+    border: 1px solid rgba(176,118,58,.4) !important;
+    background: rgba(24,15,6,.6) !important;
+    color: var(--vns-a-parch) !important;
+    font-family: 'Cinzel', serif !important; font-size: 11px !important; letter-spacing: .06em !important;
+    transition: all .15s !important;
+}
+#vnOracleMiniPanel .oracle-stat-btn:hover { border-color: rgba(227,162,79,.7) !important; color: #fff3df !important; }
+#vnOracleMiniPanel .oracle-stat-btn.active {
+    border-color: var(--vns-a-amber) !important;
+    background: linear-gradient(180deg, rgba(227,162,79,.3), rgba(176,118,58,.15)) !important;
+    color: #fff6e6 !important;
+    box-shadow: 0 0 12px rgba(227,162,79,.4), inset 0 1px 0 rgba(255,220,150,.3) !important;
+}
+
+/* select y textos de contexto */
+#vnOracleMiniPanel .vn-oracle-rolltype-select {
+    border-radius: 7px !important; border: 1px solid rgba(176,118,58,.4) !important;
+    background: rgba(20,12,5,.6) !important; color: #f0e3cb !important;
+    font-family: 'Cinzel', serif !important; font-size: 12px !important;
+}
+#vnOracleMiniPanel .vn-oracle-minipanel-context,
+#vnOracleMiniPanel .vn-oracle-minipanel-info {
+    font-family: 'EB Garamond', serif !important; font-style: italic !important;
+    color: var(--vns-a-parch) !important;
+}
+#vnOracleMiniPanel .vn-oracle-minipanel-info {
+    text-align: center !important; letter-spacing: .04em !important;
+    border-top: 1px solid rgba(176,118,58,.2) !important;
+    border-bottom: 1px solid rgba(176,118,58,.2) !important;
+    padding: 8px 0 !important; margin: 4px 0 !important;
+}
+
+/* botón consultar — sello dorado imponente */
+#vnOracleMiniPanel .vn-oracle-minipanel-roll {
+    border-radius: 9px !important;
+    background: linear-gradient(180deg, #c9883f, #8a5422) !important;
+    border: 1px solid rgba(255,210,140,.6) !important;
+    color: #fff6e6 !important;
+    font-family: 'Cinzel', serif !important; font-size: 13px !important; font-weight: 600 !important;
+    letter-spacing: .14em !important; text-transform: uppercase !important;
+    box-shadow: 0 6px 22px rgba(0,0,0,.5), 0 0 24px rgba(227,162,79,.35), inset 0 1px 0 rgba(255,230,180,.4) !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,.4) !important;
+    transition: filter .15s, transform .15s !important;
+}
+#vnOracleMiniPanel .vn-oracle-minipanel-roll:hover { filter: brightness(1.12) !important; transform: translateY(-1px) !important; }
+#vnOracleMiniPanel .vn-oracle-minipanel-close { color: var(--vns-a-parch) !important; }
+#vnOracleMiniPanel .vn-oracle-minipanel-close:hover { color: #fff3df !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   FIX v16 · LAYOUT Azar — oráculo arriba-derecha + ocultar tarjeta de perfil.
+   El #vnInfoCard (tu personaje arriba-izquierda) ya es REDUNDANTE: la caja de
+   diálogo muestra quién habla (nameplate + avatar) y el party muestra HP/EXP/
+   nivel. En Azar lo ocultamos para despejar la izquierda al party.
+   La edición de stats pasa a hacerse clicando el nombre en el party (lo cablea
+   Claude Code — ver CONTRATO §profil). En clásico lo dejamos por ahora (lleva
+   la afinidad).
+   ══════════════════════════════════════════════════════════════════════ */
+/* oráculo: abrir arriba-derecha en vez de centro-derecha */
+#vnOracleMiniPanel.vn-oracle-minipanel {
+    top: 92px !important;
+    bottom: auto !important;
+    right: 1.3rem !important;
+    left: auto !important;
+}
+/* ocultar la tarjeta de perfil redundante en Azar */
+body.theme-rpg #vnSection #vnInfoCard { display: none !important; }
