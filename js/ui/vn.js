@@ -733,6 +733,7 @@ function updateOracleFloatButton() {
     floatBtn.style.display = shouldShow ? 'inline-flex' : 'none';
     // Keep innkeeper button in sync too
     if (typeof updateNarrateButton === 'function') updateNarrateButton();
+    if (typeof updateChoiceButton === 'function') updateChoiceButton();
     floatBtn.classList.toggle('active', oracleModeActive);
     floatBtn.dataset.oracleActive = oracleModeActive ? 'true' : 'false';
 }
@@ -1436,55 +1437,6 @@ function applyTopicBackground(vnSection, backgroundPath) {
     }
 })();
 
-// ── Listener EventBus: rpg:narrator-message ──────────────────────────────────
-// RPGDispatcher emite este evento cuando una escena procesa un comando de tipo
-// 'narrator'. vn.js lo convierte en un mensaje sintético isNarrator:true y lo
-// muestra en la caja de diálogo, igual que los mensajes de narrador manuales.
-// No se persiste en Supabase — es efímero, solo visual durante la escena.
-(function _initVnNarratorMessageListener() {
-    if (window._vnNarratorMsgListenerReady) return;
-    window._vnNarratorMsgListenerReady = true;
-    if (typeof eventBus === 'undefined') return;
-    eventBus.on('rpg:narrator-message', function(data) {
-        if (!data || !data.text) return;
-        // Solo actuar si el VN está activo (hay un topic abierto)
-        if (!currentTopicId) return;
-        const msgs = getTopicMessages(currentTopicId);
-        const syntheticMsg = {
-            id:          (globalThis.crypto?.randomUUID?.()) || (Date.now() + '_rpg_narr'),
-            characterId: null,
-            charName:    'Narrador',
-            charColor:   null,
-            charAvatar:  null,
-            charSprite:  null,
-            text:        data.text,
-            isNarrator:  true,
-            userIndex:   currentUserIndex,
-            timestamp:   new Date().toISOString(),
-            _synthetic:  true   // marcador para no persistir ni contar en paginación
-        };
-        msgs.push(syntheticMsg);
-        currentMessageIndex = msgs.length - 1;
-        triggerDialogueFadeIn();
-        showCurrentMessage('forward');
-    });
-})();
-
-// ── Listener EventBus: rpg:state-changed ─────────────────────────────────────
-// RPGState emite este evento en cada cambio de HP/XP/nivel/stats/condición.
-// vn.js lo usa para refrescar el panel de party sin esperar al siguiente mensaje.
-(function _initVnRpgStateChangedListener() {
-    if (window._vnRpgStateChangedListenerReady) return;
-    window._vnRpgStateChangedListenerReady = true;
-    if (typeof eventBus === 'undefined') return;
-    eventBus.on('rpg:state-changed', function() {
-        // Forzar re-render de la party panel para reflejar el cambio inmediatamente
-        if (typeof renderVnPartyPanel === 'function') {
-            renderVnPartyPanel(true);
-        }
-    });
-})();
-
 function preloadTopicBackgrounds() {
     const topicBackgrounds = (appData?.topics || []).map(topic => resolveTopicBackgroundPath(topic.background));
     const uniqueBackgrounds = new Set([...topicBackgrounds, ...DEFAULT_TOPIC_BACKGROUND_VARIANTS].filter(Boolean));
@@ -1940,8 +1892,8 @@ function detectOracleCategory(question = '', stat = '') {
     const statKey = String(stat || '').toUpperCase();
     if (statKey === 'INT' || /analizar|descifrar|investigar|leer|pensar|recordar/.test(q)) return 'analysis';
     if (statKey === 'STR' || /forzar|romper|empujar|levantar|golpear/.test(q)) return 'force';
-    if (statKey === 'DEX' || statKey === 'AGI' || /esquivar|correr|saltar|huir|sigilo/.test(q)) return 'agility';
-    if (statKey === 'CON' || statKey === 'VIT' || /resistir|aguantar|soportar|mantener/.test(q)) return 'endurance';
+    if (statKey === 'AGI' || /esquivar|correr|saltar|huir|sigilo/.test(q)) return 'agility';
+    if (statKey === 'VIT' || /resistir|aguantar|soportar|mantener/.test(q)) return 'endurance';
     if (/convencer|negociar|persuadir|mentir|pedir/.test(q)) return 'negotiation';
     return 'generic';
 }
@@ -2191,15 +2143,7 @@ function showCurrentMessage(direction = 'forward') {
     }
 
     const msgCounter = document.getElementById('vnMessageCounter');
-    if (msgCounter) {
-        msgCounter.textContent = `${currentMessageIndex + 1} / ${msgs.length}`;
-        // 07-overrides.css oculta este ID con display:none!important.
-        // El estilo inline tiene mayor prioridad que cualquier hoja de estilos,
-        // así que lo restauramos aquí sin tocar otros archivos CSS.
-        if (getComputedStyle(msgCounter).display === 'none') {
-            msgCounter.style.display = 'inline-flex';
-        }
-    }
+    if (msgCounter) msgCounter.textContent = `${currentMessageIndex + 1} / ${msgs.length}`;
 
     const liveSpeaker = (msg.isNarrator || !msg.characterId) ? 'Narrador' : (msg.charName || 'Personaje');
     announceForScreenReader(`Nuevo mensaje de ${liveSpeaker}: ${stripHtml(formatText(cleanText)).slice(0, 180)}`);
@@ -6208,3 +6152,169 @@ function vrpSetWeatherBtn(clickedBtn) {
     });
 }());
 
+
+// ── Sistema de elecciones de afinidad (modo clásico) ─────────────────────────
+// openChoicePanel / closeChoicePanel / launchChoice / updateChoiceButton
+// El botón #vnChoiceDialogBtn vive en el pie de la caja de diálogo y solo
+// es visible en modo clásico cuando el jugador puede lanzar una elección.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Muestra u oculta el botón de elección según el contexto actual.
+// Reglas:
+//   - Solo en modo clásico (no RPG)
+//   - Solo si hay un topic abierto
+//   - Desactivado (disabled + tooltip) si ya lanzó elección este ciclo
+function updateChoiceButton() {
+    const btn = document.getElementById('vnChoiceDialogBtn');
+    if (!btn) return;
+
+    const topic     = getCurrentTopic ? getCurrentTopic() : null;
+    const vnSection = document.getElementById('vnSection');
+    const isClassic = !isRpgTopicMode(topic?.mode);
+    const isInVn    = !!vnSection?.classList.contains('active');
+
+    if (!isClassic || !isInVn || !currentTopicId) {
+        btn.style.display = 'none';
+        return;
+    }
+
+    btn.style.display = 'inline-flex';
+
+    // Comprobar si puede lanzar elección en el ciclo actual
+    if (typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.getOpenCycle(currentTopicId).then(cycle => {
+            if (!cycle) {
+                // Sin ciclo abierto — puede lanzar (abrirá uno nuevo)
+                btn.disabled = false;
+                btn.title    = 'Lanzar una elección al ciclo';
+                btn.classList.remove('choice-btn-spent');
+                return;
+            }
+            SupabaseCycles.canLaunchChoice(cycle.id).then(canLaunch => {
+                btn.disabled = !canLaunch;
+                btn.title    = canLaunch
+                    ? 'Lanzar una elección al ciclo'
+                    : 'Ya lanzaste una elección en este ciclo — disponible en el siguiente';
+                btn.classList.toggle('choice-btn-spent', !canLaunch);
+            }).catch(() => {});
+        }).catch(() => {});
+    }
+}
+
+// Abre el panel pergamino de creación de elección.
+function openChoicePanel() {
+    const panel = document.getElementById('choiceCreatorPanel');
+    if (!panel) return;
+
+    // Limpiar campos
+    const q = document.getElementById('choiceQuestion');
+    const a = document.getElementById('choiceOptA');
+    const b = document.getElementById('choiceOptB');
+    const c = document.getElementById('choiceOptC');
+    const note = document.getElementById('choiceCreatorNote');
+
+    if (q) q.value = '';
+    if (a) a.value = '';
+    if (b) b.value = '';
+    if (c) c.value = '';
+    if (note) note.textContent = '';
+
+    panel.classList.remove('hidden');
+    if (q) setTimeout(() => q.focus(), 80);
+}
+
+// Cierra el panel sin lanzar nada.
+function closeChoicePanel() {
+    const panel = document.getElementById('choiceCreatorPanel');
+    if (panel) panel.classList.add('hidden');
+}
+
+// Valida y lanza la elección al ciclo activo (o abre uno nuevo si no hay).
+async function launchChoice() {
+    const question = document.getElementById('choiceQuestion')?.value?.trim();
+    const optA     = document.getElementById('choiceOptA')?.value?.trim();
+    const optB     = document.getElementById('choiceOptB')?.value?.trim();
+    const optC     = document.getElementById('choiceOptC')?.value?.trim();
+    const note     = document.getElementById('choiceCreatorNote');
+    const launchBtn = document.getElementById('choiceLaunchBtn');
+
+    // Validación
+    if (!question) {
+        if (note) note.textContent = 'Escribe la pregunta para continuar.';
+        document.getElementById('choiceQuestion')?.focus();
+        return;
+    }
+    if (!optA || !optB || !optC) {
+        if (note) note.textContent = 'Completa las tres opciones.';
+        return;
+    }
+    if (!currentTopicId || !selectedCharId) {
+        if (note) note.textContent = 'Entra en una historia con un personaje para lanzar una elección.';
+        return;
+    }
+
+    if (typeof SupabaseCycles === 'undefined') return;
+
+    // Deshabilitar botón mientras procesa
+    if (launchBtn) { launchBtn.disabled = true; launchBtn.textContent = 'Lanzando…'; }
+    if (note) note.textContent = '';
+
+    try {
+        // Obtener o abrir el ciclo
+        let cycle = await SupabaseCycles.getOpenCycle(currentTopicId);
+        if (!cycle) {
+            // Recopilar los userIds de los participantes del topic
+            const topic        = getCurrentTopic ? getCurrentTopic() : null;
+            const participants = (topic?.participants || []);
+            cycle = await SupabaseCycles.openCycle(currentTopicId, participants);
+        }
+
+        if (!cycle) {
+            if (note) note.textContent = 'No se pudo abrir el ciclo. Inténtalo de nuevo.';
+            return;
+        }
+
+        // Las tres opciones con impacto fijo: A=+, B=0, C=-
+        // El orden se baraja aleatoriamente para que la posición visual no revele el impacto
+        const opts = [
+            { label: 'A', text: optA, affinity_impact:  3 }, // positiva
+            { label: 'B', text: optB, affinity_impact:  0 }, // neutral
+            { label: 'C', text: optC, affinity_impact: -3 }, // negativa
+        ];
+        // Barajar para que la posición no delate el impacto a quien responde
+        opts.sort(() => Math.random() - .5);
+        opts.forEach((o, i) => { o.label = String.fromCharCode(65 + i); });
+
+        const choice = await SupabaseCycles.createChoice(
+            cycle.id,
+            currentTopicId,
+            selectedCharId,
+            question,
+            opts
+        );
+
+        if (!choice) {
+            if (note) note.textContent = 'No se pudo lanzar la elección. ¿Ya lanzaste una este ciclo?';
+            return;
+        }
+
+        // Éxito
+        closeChoicePanel();
+        if (typeof showAutosave === 'function') {
+            showAutosave('✦ Elección lanzada al ciclo', 'saved');
+        }
+        updateChoiceButton();
+
+    } catch (err) {
+        window.EtheriaLogger?.warn('choicePanel', 'launchChoice error:', err?.message);
+        if (note) note.textContent = 'Error inesperado. Inténtalo de nuevo.';
+    } finally {
+        if (launchBtn) { launchBtn.disabled = false; launchBtn.textContent = '✦ Lanzar al ciclo'; }
+    }
+}
+
+// Exponer funciones al scope global (son llamadas desde onclick del HTML)
+window.openChoicePanel   = openChoicePanel;
+window.closeChoicePanel  = closeChoicePanel;
+window.launchChoice      = launchChoice;
+window.updateChoiceButton = updateChoiceButton;
