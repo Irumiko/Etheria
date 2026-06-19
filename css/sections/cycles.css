@@ -1,0 +1,524 @@
+/* ══════════════════════════════════════════════════════════════════════
+   css/sections/cycles.css
+   Sistema de ciclos — badge, elecciones, panel Ecos, modal bifurcación.
+
+   Scope: siempre dentro de #vnSection para no contaminar otras secciones.
+   Cargado AL FINAL de NON_CRITICAL_CSS_ORDER (después de vn-scene.css).
+
+   Paleta heredada del proyecto:
+     Clásico (Palabra) → plata #dcd6f0 · lavanda #c1a8ec · fondo #0b0a24
+     RPG    (Azar)     → ámbar #e3a24f · bronce #b0763a  · fondo #160d06
+     Común             → oro marca #c9a86c · crema #f3ecda · PV #d9694e
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ─────────────────────────────────────────────────────── */
+@keyframes cycle-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cycle-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .45; }
+}
+
+@keyframes cycle-slide-up {
+    from { opacity: 0; transform: translateY(16px) translateX(-50%); }
+    to   { opacity: 1; transform: translateY(0)    translateX(-50%); }
+}
+
+@keyframes branch-appear {
+    from { opacity: 0; transform: scale(.94); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   BADGE DE CICLO ACTIVO
+   Pequeño indicador que aparece en el panel de info cuando hay un
+   ciclo abierto en el tema.
+   ══════════════════════════════════════════════════════════════════════ */
+#vnSection .cycle-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px 3px 6px;
+    border-radius: 999px;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    background: rgba(201, 168, 108, .12);
+    border: 1px solid rgba(201, 168, 108, .35);
+    color: #c9a86c;
+    margin-top: 4px;
+    animation: cycle-fade-in .3s ease;
+    cursor: default;
+}
+
+#vnSection .cycle-badge.hidden { display: none; }
+
+#vnSection .cycle-badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #c9a86c;
+    animation: cycle-pulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+/* Modo Palabra → tono lavanda */
+body.theme-classic #vnSection .cycle-badge {
+    background: rgba(193, 168, 236, .12);
+    border-color: rgba(193, 168, 236, .35);
+    color: #c1a8ec;
+}
+body.theme-classic #vnSection .cycle-badge-dot { background: #c1a8ec; }
+
+/* Modo Azar → tono ámbar */
+body.theme-rpg #vnSection .cycle-badge {
+    background: rgba(227, 162, 79, .12);
+    border-color: rgba(227, 162, 79, .35);
+    color: #e3a24f;
+}
+body.theme-rpg #vnSection .cycle-badge-dot { background: #e3a24f; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   ELECCIONES ACTIVAS DEL CICLO
+   Flota sobre la escena entre el fondo y la caja de diálogo.
+   ══════════════════════════════════════════════════════════════════════ */
+#vnSection .cycle-choices-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 220px;   /* encima de la caja de diálogo */
+    width: min(700px, calc(100vw - 2rem));
+    z-index: var(--z-dialogue, 150);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: cycle-slide-up .35s ease;
+}
+
+#vnSection .cycle-choices-container.hidden { display: none; }
+
+/* Tarjeta de una elección */
+#vnSection .cycle-choice-card {
+    background: rgba(10, 8, 28, .88);
+    border: 1px solid rgba(201, 168, 108, .3);
+    border-radius: 14px;
+    padding: 16px 18px 12px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+}
+
+#vnSection .cycle-choice-question {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: #f3ecda;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+#vnSection .cycle-choice-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#vnSection .cycle-choice-opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 13px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    font-family: inherit;
+}
+
+#vnSection .cycle-choice-opt:hover {
+    background: rgba(201, 168, 108, .1);
+    border-color: rgba(201, 168, 108, .4);
+    transform: translateX(3px);
+}
+
+#vnSection .cycle-choice-opt:active { transform: translateX(1px); }
+
+#vnSection .cycle-choice-label {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: #c9a86c;
+    min-width: 18px;
+    flex-shrink: 0;
+}
+
+#vnSection .cycle-choice-text {
+    font-family: 'Crimson Text', serif;
+    font-size: 15px;
+    color: #dcd6f0;
+    line-height: 1.4;
+}
+
+/* Modo Palabra */
+body.theme-classic #vnSection .cycle-choice-card {
+    border-color: rgba(193, 168, 236, .3);
+}
+body.theme-classic #vnSection .cycle-choice-opt:hover {
+    background: rgba(193, 168, 236, .1);
+    border-color: rgba(193, 168, 236, .4);
+}
+body.theme-classic #vnSection .cycle-choice-label { color: #c1a8ec; }
+body.theme-classic #vnSection .cycle-choice-text  { font-family: 'EB Garamond', serif; font-style: italic; }
+
+/* Modo Azar */
+body.theme-rpg #vnSection .cycle-choice-card {
+    border-color: rgba(227, 162, 79, .3);
+    border-radius: 10px;
+}
+body.theme-rpg #vnSection .cycle-choice-opt:hover {
+    background: rgba(227, 162, 79, .1);
+    border-color: rgba(227, 162, 79, .4);
+}
+body.theme-rpg #vnSection .cycle-choice-label { color: #e3a24f; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   PANEL "ECOS DEL CICLO"
+   Aparece en la esquina inferior derecha al cerrarse un ciclo.
+   Solo muestra los cambios de afinidad del personaje propio.
+   ══════════════════════════════════════════════════════════════════════ */
+#vnSection .cycle-ecos-panel {
+    position: absolute;
+    right: 72px;   /* a la izquierda de la toolbar */
+    bottom: 48px;
+    width: 220px;
+    background: rgba(8, 6, 22, .92);
+    border: 1px solid rgba(201, 168, 108, .35);
+    border-radius: 14px;
+    padding: 16px;
+    z-index: var(--z-controls, 200);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, .5);
+    animation: cycle-fade-in .4s ease;
+}
+
+#vnSection .cycle-ecos-panel.hidden { display: none; }
+
+#vnSection .ecos-header {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #c9a86c;
+    text-align: center;
+    margin-bottom: 4px;
+}
+
+#vnSection .ecos-sub {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: rgba(243, 236, 218, .5);
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+#vnSection .ecos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+#vnSection .eco-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .07);
+}
+
+#vnSection .eco-char {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    color: #f3ecda;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#vnSection .eco-delta {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+#vnSection .eco-positive { border-color: rgba(111, 174, 156, .3); }
+#vnSection .eco-positive .eco-delta { color: #6fae9c; }
+
+#vnSection .eco-negative { border-color: rgba(217, 105, 78, .3); }
+#vnSection .eco-negative .eco-delta { color: #d9694e; }
+
+#vnSection .eco-neutral .eco-delta { color: rgba(243, 236, 218, .5); }
+
+#vnSection .ecos-close-btn {
+    width: 100%;
+    padding: 7px;
+    background: rgba(201, 168, 108, .1);
+    border: 1px solid rgba(201, 168, 108, .25);
+    border-radius: 7px;
+    color: #c9a86c;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+#vnSection .ecos-close-btn:hover { background: rgba(201, 168, 108, .18); }
+
+/* Modo Palabra */
+body.theme-classic #vnSection .cycle-ecos-panel {
+    border-color: rgba(193, 168, 236, .35);
+}
+body.theme-classic #vnSection .ecos-header { color: #c1a8ec; }
+body.theme-classic #vnSection .ecos-close-btn {
+    background: rgba(193, 168, 236, .1);
+    border-color: rgba(193, 168, 236, .25);
+    color: #c1a8ec;
+}
+body.theme-classic #vnSection .ecos-close-btn:hover {
+    background: rgba(193, 168, 236, .18);
+}
+
+/* Modo Azar */
+body.theme-rpg #vnSection .cycle-ecos-panel {
+    border-color: rgba(227, 162, 79, .35);
+    border-radius: 10px;
+}
+body.theme-rpg #vnSection .ecos-header { color: #e3a24f; }
+body.theme-rpg #vnSection .ecos-close-btn {
+    background: rgba(227, 162, 79, .1);
+    border-color: rgba(227, 162, 79, .25);
+    color: #e3a24f;
+    border-radius: 7px;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   MODAL DE BIFURCACIÓN DE RAMA
+   Aparece cuando la afinidad alcanza el umbral (valor >= 36).
+   El usuario elige cómo percibe su personaje la relación.
+   ══════════════════════════════════════════════════════════════════════ */
+#vnSection .branch-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 3, 14, .72);
+    z-index: var(--z-modals, 500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: cycle-fade-in .3s ease;
+}
+
+#vnSection .branch-modal-overlay.hidden { display: none; }
+
+#vnSection .branch-modal-inner {
+    width: min(480px, calc(100vw - 2rem));
+    background: rgba(10, 8, 28, .96);
+    border: 1px solid rgba(201, 168, 108, .4);
+    border-radius: 20px;
+    padding: 32px 28px 24px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .6);
+    animation: branch-appear .35s cubic-bezier(.2, .8, .3, 1);
+}
+
+#vnSection .branch-modal-title {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .2em;
+    color: #c9a86c;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+#vnSection .branch-modal-sub {
+    font-family: 'EB Garamond', serif;
+    font-size: 15px;
+    color: rgba(243, 236, 218, .75);
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 22px;
+}
+
+#vnSection .branch-modal-sub em {
+    font-size: 13px;
+    color: rgba(243, 236, 218, .45);
+    display: block;
+    margin-top: 4px;
+}
+
+#vnSection .branch-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+#vnSection .branch-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 12px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+    font-family: inherit;
+    text-align: center;
+}
+
+#vnSection .branch-opt:hover { transform: translateY(-2px); }
+#vnSection .branch-opt:active { transform: translateY(0); }
+
+#vnSection .branch-icon {
+    font-size: 22px;
+    line-height: 1;
+    display: block;
+}
+
+#vnSection .branch-name {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+
+#vnSection .branch-desc {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: rgba(243, 236, 218, .55);
+    line-height: 1.35;
+}
+
+/* Colores individuales por rama */
+#vnSection .branch-friendship {
+    border-color: rgba(46, 204, 113, .2);
+}
+#vnSection .branch-friendship:hover {
+    background: rgba(46, 204, 113, .1);
+    border-color: rgba(46, 204, 113, .45);
+}
+#vnSection .branch-friendship .branch-name  { color: #2ecc71; }
+#vnSection .branch-friendship .branch-icon  { color: #2ecc71; }
+
+#vnSection .branch-romance {
+    border-color: rgba(231, 76, 60, .2);
+}
+#vnSection .branch-romance:hover {
+    background: rgba(231, 76, 60, .1);
+    border-color: rgba(231, 76, 60, .45);
+}
+#vnSection .branch-romance .branch-name { color: #e74c3c; }
+#vnSection .branch-romance .branch-icon { color: #e74c3c; }
+
+#vnSection .branch-rivalry {
+    border-color: rgba(211, 84, 0, .2);
+}
+#vnSection .branch-rivalry:hover {
+    background: rgba(211, 84, 0, .1);
+    border-color: rgba(211, 84, 0, .45);
+}
+#vnSection .branch-rivalry .branch-name { color: #d35400; }
+#vnSection .branch-rivalry .branch-icon { color: #d35400; }
+
+#vnSection .branch-enmity {
+    border-color: rgba(127, 140, 141, .25);
+}
+#vnSection .branch-enmity:hover {
+    background: rgba(127, 140, 141, .1);
+    border-color: rgba(127, 140, 141, .5);
+}
+#vnSection .branch-enmity .branch-name { color: #95a5a6; }
+#vnSection .branch-enmity .branch-icon { color: #95a5a6; }
+
+#vnSection .branch-modal-footer {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: rgba(243, 236, 218, .35);
+    text-align: center;
+}
+
+/* Modo Palabra — bordes redondeados, lavanda */
+body.theme-classic #vnSection .branch-modal-inner {
+    border-color: rgba(193, 168, 236, .4);
+}
+body.theme-classic #vnSection .branch-modal-title { color: #c1a8ec; }
+
+/* Modo Azar — ángulos, ámbar */
+body.theme-rpg #vnSection .branch-modal-inner {
+    border-color: rgba(227, 162, 79, .4);
+    border-radius: 12px;
+}
+body.theme-rpg #vnSection .branch-modal-title { color: #e3a24f; }
+body.theme-rpg #vnSection .branch-opt { border-radius: 8px; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE — móvil
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+    #vnSection .cycle-choices-container {
+        bottom: 180px;
+        width: calc(100vw - 1rem);
+    }
+
+    #vnSection .cycle-ecos-panel {
+        right: 8px;
+        bottom: 160px;
+        width: calc(100vw - 80px);
+        max-width: 280px;
+    }
+
+    #vnSection .branch-options {
+        grid-template-columns: 1fr;
+    }
+
+    #vnSection .branch-modal-inner {
+        padding: 24px 18px 18px;
+    }
+}
+
+/* Respetar prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+    #vnSection .cycle-badge-dot { animation: none; }
+    #vnSection .cycle-choices-container,
+    #vnSection .cycle-ecos-panel,
+    #vnSection .branch-modal-overlay,
+    #vnSection .branch-modal-inner { animation: none; }
+    #vnSection .branch-opt:hover  { transform: none; }
+    #vnSection .cycle-choice-opt:hover { transform: none; }
+}
