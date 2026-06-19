@@ -373,9 +373,20 @@
     font-size: 0.72rem;
 }
 .bond-aff-incoming { opacity: 0.65; }
-.bond-aff-arrow { color: color-mix(in srgb, var(--rank-color, #ffffff) 70%, transparent); font-size: 0.65rem; }
-.bond-aff-rank  { color: var(--rank-color, #ffffff); font-weight: 600; }
-.bond-aff-val   { color: rgba(255,255,255,0.4); font-size: 0.67rem; }
+.bond-aff-arrow  { color: color-mix(in srgb, var(--rank-color, #ffffff) 70%, transparent); font-size: 0.65rem; }
+.bond-aff-rank   { color: var(--rank-color, #ffffff); font-weight: 600; }
+.bond-aff-val    { color: rgba(255,255,255,0.4); font-size: 0.67rem; }
+/* Icono de rama (♦ ♡ ⚔ ✗) — mismo color que el rank */
+.bond-aff-icon   { color: var(--rank-color, #ffffff); font-size: 0.75rem; opacity: .85; }
+/* Etiqueta de rama — discreta, debajo del rank */
+.bond-aff-branch {
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: .06em;
+    color: color-mix(in srgb, var(--rank-color, #ffffff) 55%, transparent);
+    margin-top: 1px;
+    white-space: nowrap;
+}
 
 /* ── Nota ── */
 .bond-note-text {
@@ -492,3 +503,4 @@
     .bonds-detail-panel { width: 100vw; }
     .bond-row { padding: 10px 14px; }
 }
+
