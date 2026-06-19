@@ -15,15 +15,97 @@ const alignments = {
     'CB': 'Caótico Bueno', 'CN': 'Caótico Neutral', 'CM': 'Caótico Malvado'
 };
 
-// Sistema de rangos de afinidad - Solo nombres, sin mostrar puntos
+// ── Sistema de rangos de afinidad con ramas ──────────────────────────────────
+//
+// Estructura en árbol:
+//   Tronco común    → Desconocido (0-15), Conocido (16-35), Amigo (36-60)
+//   [bifurcación al llegar a Amigo — el usuario elige la rama]
+//   Rama amistad    → Amigo cercano, Confidente, Mejor amigo
+//   Rama romance    → Admiración, Afecto, Devoción, Amor profundo
+//   Tronco negativo → Tensión (valor negativo, elecciones negativas)
+//   Rama rivalidad  → Rivalidad, Rival declarado, Némesis
+//   Rama enemistad  → Antipatía, Enemistad, Enemistad profunda
+//
+// increment: puntos que mueve cada elección (3 bajos, 2 medios, 1 altos)
+// bifurcation: true si este rango desbloquea el selector de rama
+// La relación es DIRECCIONAL: cada personaje elige su propia percepción.
+// ─────────────────────────────────────────────────────────────────────────────
 const affinityRanks = [
-    { name: 'Desconocidos', min: 0, max: 15, increment: 5, color: '#ffffff' },
-    { name: 'Conocidos', min: 16, max: 35, increment: 4, color: '#9b59b6' },
-    { name: 'Amigos', min: 36, max: 60, increment: 3, color: '#3498db' },
-    { name: 'Mejores Amigos', min: 61, max: 80, increment: 2, color: '#27ae60' },
-    { name: 'Interés Romántico', min: 81, max: 95, increment: 1, color: '#f1c40f' },
-    { name: 'Pareja', min: 96, max: 100, increment: 0.5, color: '#e74c3c' }
+    // ── Tronco común ──────────────────────────────────────────────
+    { name: 'Desconocidos', branch: 'common',     min: 0,    max: 15,   increment: 3, color: '#8e9196', icon: '○' },
+    { name: 'Conocidos',    branch: 'common',     min: 16,   max: 35,   increment: 3, color: '#9b59b6', icon: '◎' },
+    { name: 'Amigos',       branch: 'common',     min: 36,   max: 60,   increment: 3, color: '#3498db', icon: '✦', bifurcation: true },
+
+    // ── Rama: Amistad ─────────────────────────────────────────────
+    { name: 'Amigo cercano', branch: 'friendship', min: 61,  max: 74,   increment: 2, color: '#2ecc71', icon: '♦' },
+    { name: 'Confidente',    branch: 'friendship', min: 75,  max: 87,   increment: 2, color: '#27ae60', icon: '♦♦' },
+    { name: 'Mejor amigo',   branch: 'friendship', min: 88,  max: 100,  increment: 1, color: '#1a8a4a', icon: '♦♦♦' },
+
+    // ── Rama: Romance ─────────────────────────────────────────────
+    { name: 'Admiración',    branch: 'romance',    min: 61,  max: 70,   increment: 2, color: '#f39c12', icon: '♡' },
+    { name: 'Afecto',        branch: 'romance',    min: 71,  max: 80,   increment: 2, color: '#e67e22', icon: '♡♡' },
+    { name: 'Devoción',      branch: 'romance',    min: 81,  max: 90,   increment: 1, color: '#e74c3c', icon: '♥' },
+    { name: 'Amor profundo', branch: 'romance',    min: 91,  max: 100,  increment: 1, color: '#c0392b', icon: '♥♥' },
+
+    // ── Tronco negativo ───────────────────────────────────────────
+    { name: 'Tensión',       branch: 'negative',   min: -20, max: -1,   increment: 3, color: '#e67e22', icon: '⚡' },
+
+    // ── Rama: Rivalidad ───────────────────────────────────────────
+    { name: 'Rivalidad',        branch: 'rivalry', min: -50, max: -21,  increment: 2, color: '#d35400', icon: '⚔' },
+    { name: 'Rival declarado',  branch: 'rivalry', min: -75, max: -51,  increment: 2, color: '#e74c3c', icon: '⚔⚔' },
+    { name: 'Némesis',          branch: 'rivalry', min: -100,max: -76,  increment: 1, color: '#c0392b', icon: '⚔⚔⚔' },
+
+    // ── Rama: Enemistad ───────────────────────────────────────────
+    { name: 'Antipatía',           branch: 'enmity', min: -50, max: -21, increment: 2, color: '#7f8c8d', icon: '✗' },
+    { name: 'Enemistad',           branch: 'enmity', min: -75, max: -51, increment: 2, color: '#566573', icon: '✗✗' },
+    { name: 'Enemistad profunda',   branch: 'enmity', min: -100,max: -76, increment: 1, color: '#2c3e50', icon: '✗✗✗' },
 ];
+
+// ── Configuración del sistema de ciclos ──────────────────────────────────────
+const CYCLE_CONFIG = {
+    DURATION_HOURS:          72,   // horas hasta cierre automático del ciclo
+    MAX_PARTICIPANTS:         5,
+    BIFURCATION_MIN:         36,   // value >= 36 desbloquea el selector de rama
+    NEGATIVE_THRESHOLD:      -1,   // value < 0 entra en tronco negativo
+    NEGATIVE_BRANCH_UNLOCK: -21,   // value <= -21 bifurca rivalidad/enemistad
+};
+
+// Helper: dado un valor y un relation_type, devuelve el rank correcto.
+// Reemplaza la antigua getAffinityRankInfo(value) — ahora acepta relationType.
+// Retrocompatible: si no se pasa relationType, funciona igual que antes.
+function getAffinityRankInfo(value, relationType) {
+    const v   = Number(value) || 0;
+    const rel = relationType || 'undefined';
+
+    if (v < 0) {
+        if (v >= CYCLE_CONFIG.NEGATIVE_THRESHOLD) {
+            return affinityRanks.find(r => r.branch === 'negative');
+        }
+        const negBranch = (rel === 'enmity') ? 'enmity' : 'rivalry';
+        const neg = affinityRanks.filter(r => r.branch === negBranch);
+        return neg.find(r => v >= r.min && v <= r.max) || neg[0];
+    }
+
+    // Tronco común
+    const common = affinityRanks.filter(r => r.branch === 'common');
+    const inCommon = common.find(r => v >= r.min && v <= r.max);
+    if (inCommon) return inCommon;
+
+    // Rama positiva (solo si ya se eligió)
+    if (rel === 'undefined') return common[common.length - 1];
+    const branch = affinityRanks.filter(r => r.branch === rel);
+    return branch.find(r => v >= r.min && v <= r.max) || branch[branch.length - 1];
+}
+
+// Helper: ¿está en el punto de bifurcación positiva?
+function isAtBifurcationPoint(value, relationType) {
+    return Number(value) >= CYCLE_CONFIG.BIFURCATION_MIN && (!relationType || relationType === 'undefined');
+}
+
+// Helper: ¿está en el punto de bifurcación negativa?
+function isAtNegativeBifurcation(value, relationType) {
+    return Number(value) <= CYCLE_CONFIG.NEGATIVE_BRANCH_UNLOCK && (!relationType || relationType === 'undefined');
+}
 
 // Emotes manga con símbolos
 const emoteConfig = {
@@ -115,3 +197,4 @@ let pendingRemoteProfileData = null;
 let pendingRemoteTimestamp = 0;
 let isOfflineMode = false;
 const cloudMigrationPendingProfiles = new Set();
+
