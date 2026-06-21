@@ -1123,3 +1123,70 @@ body.theme-rpg #vnSection .vn-turn-banner {
 @media (prefers-reduced-motion: reduce) {
     #vnSection .vn-turn-banner { animation: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ESTADO DE TURNO EN EL PARTY PANEL
+   Funciona en ambos modos: party clásico (cp-member) y RPG (vn-party-member)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Party clásico — turno activo ────────────────────────────────── */
+#vnSection .cp-member--active-turn,
+.classic-party-panel .cp-member--active-turn {
+    border-color: rgba(201, 168, 108, .5) !important;
+    background: rgba(201, 168, 108, .08) !important;
+    box-shadow: 0 0 10px rgba(201, 168, 108, .15);
+}
+
+/* Icono de estado en la tarjeta del party clásico */
+.classic-party-panel .cp-status-icon {
+    font-size: 10px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* ✦ Tu turno */
+.classic-party-panel .cp-member--active-turn .cp-status-icon {
+    color: #c9a86c;
+}
+
+/* ✓ Respondió */
+.classic-party-panel .cp-member--responded .cp-status-icon {
+    color: #6fae9c;
+}
+
+/* · Esperando */
+.classic-party-panel .cp-member:not(.cp-member--responded):not(.cp-member--active-turn) .cp-status-icon {
+    color: rgba(243, 236, 218, .3);
+}
+
+/* Modo Palabra — turno en lavanda */
+body.theme-classic .classic-party-panel .cp-member--active-turn {
+    border-color: rgba(193, 168, 236, .5) !important;
+    background: rgba(193, 168, 236, .08) !important;
+    box-shadow: 0 0 10px rgba(193, 168, 236, .15);
+}
+body.theme-classic .classic-party-panel .cp-member--active-turn .cp-status-icon {
+    color: #c1a8ec;
+}
+
+/* ── Party RPG — turno activo ─────────────────────────────────────── */
+#vnSection .vn-party-member--active-turn {
+    border-left-color: #c9a86c !important;
+    background: rgba(201, 168, 108, .06) !important;
+}
+
+/* Badge ✦ / ▶ en la esquina de la tarjeta RPG */
+#vnSection .vn-party-turn-badge {
+    position: absolute;
+    top: 6px;
+    right: 28px;   /* a la izquierda del número de slot */
+    font-size: 10px;
+    color: #c9a86c;
+    line-height: 1;
+    pointer-events: none;
+    animation: cycle-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #vnSection .vn-party-turn-badge { animation: none; }
+}
