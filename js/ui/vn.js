@@ -606,6 +606,12 @@ function renderVnPartyPanel(force = false) {
     // Orden estable: slot 0 primero, slot 1 segundo, etc.
     const sortedCharIds = [...charIds].sort((a, b) => _charUserIndex(a) - _charUserIndex(b));
 
+    // ── Turno activo en el party RPG ────────────────────────────────────────
+    const _turnMode    = topic?.turnMode || topic?.turn_mode || 'off';
+    const _turnQueue   = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
+    const _activeTurn  = _turnMode !== 'off' && _turnQueue.length > 0 ? _turnQueue[0] : null;
+    const _myUid       = window._cachedUserId || null;
+
     list.innerHTML = sortedCharIds.map((charId, idx) => {
         const entry = snapshot[charId];
         if (!entry) return '';
@@ -636,8 +642,13 @@ function renderVnPartyPanel(force = false) {
             ? `<button type="button" class="vn-party-profile-btn" onclick="event.stopPropagation();openUserProfileModal('${ownerUserId}')" title="Ver perfil" aria-label="Ver perfil del jugador">👤</button>`
             : '';
 
+        const _ownerUidForTurn = _charOwnerUid(charId);
+        const _isActiveTurn    = _activeTurn && _ownerUidForTurn === _activeTurn;
+        const _isMyTurn        = _isActiveTurn && _ownerUidForTurn === _myUid;
+        const _turnClass       = _isActiveTurn ? ' vn-party-member--active-turn' : '';
+
         return `
-            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
+            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}${_turnClass}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
                 <div class="vn-party-main">
                     <div class="vn-party-topline">
                         <div>
@@ -660,6 +671,7 @@ function renderVnPartyPanel(force = false) {
                     </div>
                 </div>
                 <span class="vn-party-turn-order">${turnNumber}</span>
+                ${_isActiveTurn ? `<span class="vn-party-turn-badge" title="${_isMyTurn ? 'Tu turno' : 'Turno activo'}">${_isMyTurn ? '✦' : '▶'}</span>` : ''}
                 ${profileBtn}
             </button>
         `;
