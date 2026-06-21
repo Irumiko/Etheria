@@ -1296,15 +1296,20 @@
                     <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg></span>
                 </button>
             </div>
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="EtheriaExport.exportText()" aria-label="Exportar historia como texto" title="Exportar como .txt">
+            <div class="vn-classic-control-slot" style="position:relative;">
+                <button class="vn-classic-control-btn" onclick="toggleExportMenu('exportMenuClassic', event)" aria-label="Exportar historia" title="Exportar historia" aria-haspopup="true">
                     <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 v8"/><path d="M5 7 l3 3 l3-3"/><line x1="3" y1="13" x2="13" y2="13"/></svg></span>
                 </button>
-            </div>
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="EtheriaExport.printHTML()" aria-label="Exportar historia para imprimir / PDF" title="Imprimir / guardar como PDF">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="10" height="7" rx="1"/><path d="M5 6 V3 h6 v3"/><line x1="5.5" y1="10" x2="10.5" y2="10"/><line x1="5.5" y1="12" x2="8.5" y2="12"/></svg></span>
-                </button>
+                <div id="exportMenuClassic" class="export-menu hidden" role="menu">
+                    <button class="export-menu-item" role="menuitem" onclick="EtheriaExport.exportText(); closeExportMenu('exportMenuClassic')">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M2 4h12M2 8h8M2 12h6"/></svg>
+                        Texto plano (.txt)
+                    </button>
+                    <button class="export-menu-item" role="menuitem" onclick="EtheriaExport.printHTML(); closeExportMenu('exportMenuClassic')">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="6" width="10" height="7" rx="1"/><path d="M5 6 V3 h6 v3"/><line x1="5.5" y1="10" x2="10.5" y2="10"/></svg>
+                        Imprimir / guardar PDF
+                    </button>
+                </div>
             </div>
 
             <div class="vn-classic-control-divider"></div>
@@ -1368,15 +1373,20 @@
                     <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg></span>
                 </button>
             </div>
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="EtheriaExport.exportText()" aria-label="Exportar historia como texto" title="Exportar como .txt">
+            <div class="vn-rpg-control-slot" style="position:relative;">
+                <button class="vn-rpg-control-btn" onclick="toggleExportMenu('exportMenuRpg', event)" aria-label="Exportar historia" title="Exportar historia" aria-haspopup="true">
                     <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 v8"/><path d="M5 7 l3 3 l3-3"/><line x1="3" y1="13" x2="13" y2="13"/></svg></span>
                 </button>
-            </div>
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="EtheriaExport.printHTML()" aria-label="Exportar historia para imprimir / PDF" title="Imprimir / guardar como PDF">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="10" height="7" rx="1"/><path d="M5 6 V3 h6 v3"/><line x1="5.5" y1="10" x2="10.5" y2="10"/><line x1="5.5" y1="12" x2="8.5" y2="12"/></svg></span>
-                </button>
+                <div id="exportMenuRpg" class="export-menu hidden" role="menu">
+                    <button class="export-menu-item" role="menuitem" onclick="EtheriaExport.exportText(); closeExportMenu('exportMenuRpg')">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M2 4h12M2 8h8M2 12h6"/></svg>
+                        Texto plano (.txt)
+                    </button>
+                    <button class="export-menu-item" role="menuitem" onclick="EtheriaExport.printHTML(); closeExportMenu('exportMenuRpg')">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="6" width="10" height="7" rx="1"/><path d="M5 6 V3 h6 v3"/><line x1="5.5" y1="10" x2="10.5" y2="10"/></svg>
+                        Imprimir / guardar PDF
+                    </button>
+                </div>
             </div>
 
             <div class="vn-rpg-control-divider"></div>
