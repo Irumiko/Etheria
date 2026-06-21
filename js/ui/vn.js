@@ -733,6 +733,7 @@ function updateOracleFloatButton() {
     floatBtn.style.display = shouldShow ? 'inline-flex' : 'none';
     // Keep innkeeper button in sync too
     if (typeof updateNarrateButton === 'function') updateNarrateButton();
+    if (typeof updateTurnBanner === 'function') updateTurnBanner();
     floatBtn.classList.toggle('active', oracleModeActive);
     floatBtn.dataset.oracleActive = oracleModeActive ? 'true' : 'false';
 }
@@ -6355,3 +6356,66 @@ function _hideCycleChoicesInPanel() {
 }
 
 window._onCycleOptClick = _onCycleOptClick;
+
+// ── Indicador de turno — banner sobre la caja de diálogo ─────────────────────
+// Muestra discretamente a quién le toca responder cuando turn_mode está activo.
+// Si es el turno del usuario actual: "✦ Tu turno" (invita a responder)
+// Si es el turno de otro: "⏳ Turno de [nombre]" (espera)
+// Si turn_mode está off: banner oculto
+
+function updateTurnBanner() {
+    const banner = _getOrCreateTurnBanner();
+    if (!banner) return;
+
+    const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    if (!topic || !topic.turnMode || topic.turnMode === 'off'
+            || !Array.isArray(topic.turnOrder) || topic.turnOrder.length === 0) {
+        banner.classList.add('hidden');
+        return;
+    }
+
+    const me       = window._cachedUserId;
+    const current  = topic.turnOrder[0];
+    const isMyTurn = current === me;
+
+    if (isMyTurn) {
+        banner.className = 'vn-turn-banner vn-turn-mine';
+        banner.innerHTML = '<span class="turn-banner-icon">✦</span>'
+                         + '<span class="turn-banner-text">Tu turno</span>';
+    } else {
+        // Buscar el nombre del participante que tiene el turno
+        const participants = Array.isArray(window.currentStoryParticipants)
+            ? window.currentStoryParticipants : [];
+        const p = participants.find(p => p?.user_id === current);
+        const name = p?.profile?.name || p?.profile?.username
+            || (current ? current.slice(0, 8) + '…' : 'otro jugador');
+
+        banner.className = 'vn-turn-banner vn-turn-other';
+        banner.innerHTML = '<span class="turn-banner-icon">⏳</span>'
+                         + `<span class="turn-banner-text">Turno de <strong>${name}</strong></span>`;
+    }
+
+    banner.classList.remove('hidden');
+}
+
+function _getOrCreateTurnBanner() {
+    let banner = document.getElementById('vnTurnBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'vnTurnBanner';
+        banner.className = 'vn-turn-banner hidden';
+        // Insertar justo encima de la caja de diálogo (.bottom-panel)
+        const bottomPanel = document.querySelector('#vnSection .bottom-panel');
+        if (bottomPanel) {
+            bottomPanel.parentElement?.insertBefore(banner, bottomPanel);
+        }
+    }
+    return banner;
+}
+
+// Escuchar el evento de turno recibido para actualizar el banner en tiempo real
+window.addEventListener('etheria:turn-notification', function () {
+    if (typeof updateTurnBanner === 'function') updateTurnBanner();
+});
+
+window.updateTurnBanner = updateTurnBanner;
