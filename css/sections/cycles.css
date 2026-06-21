@@ -1038,3 +1038,88 @@ body.theme-classic .vrp-cycle-opt-text {
 @media (prefers-reduced-motion: reduce) {
     body.theme-classic .vrp-cycle-opt:hover:not(:disabled) { transform: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   BANNER DE TURNO
+   Aparece encima de la caja de diálogo cuando turn_mode está activo.
+   Funciona en ambos modos (Palabra y Azar).
+   ══════════════════════════════════════════════════════════════════════ */
+
+@keyframes turn-banner-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+#vnSection .vn-turn-banner {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(var(--dialogue-box-height, 180px) + 10px);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 14px 5px 10px;
+    border-radius: 999px;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    white-space: nowrap;
+    z-index: var(--z-dialogue, 150);
+    pointer-events: none;
+    animation: turn-banner-in .25s ease;
+    backdrop-filter: blur(8px);
+}
+
+#vnSection .vn-turn-banner.hidden { display: none; }
+
+/* Tu turno — invita a responder */
+#vnSection .vn-turn-mine {
+    background: rgba(111, 174, 156, .15);
+    border: 1px solid rgba(111, 174, 156, .4);
+    color: #6fae9c;
+}
+
+/* Turno de otro — espera */
+#vnSection .vn-turn-other {
+    background: rgba(10, 8, 28, .7);
+    border: 1px solid rgba(255, 255, 255, .1);
+    color: rgba(243, 236, 218, .55);
+}
+
+#vnSection .vn-turn-other strong {
+    color: rgba(243, 236, 218, .8);
+    font-weight: 600;
+}
+
+#vnSection .turn-banner-icon {
+    font-size: 11px;
+    flex-shrink: 0;
+}
+
+#vnSection .turn-banner-text {
+    font-size: 10px;
+}
+
+/* Modo Palabra — ajuste de bottom por la caja de diálogo */
+body.theme-classic #vnSection .vn-turn-banner {
+    bottom: 210px;
+}
+
+/* Modo Azar — caja ligeramente más alta */
+body.theme-rpg #vnSection .vn-turn-banner {
+    bottom: 220px;
+}
+
+/* Móvil */
+@media (max-width: 600px) {
+    body.theme-classic #vnSection .vn-turn-banner,
+    body.theme-rpg    #vnSection .vn-turn-banner {
+        bottom: 170px;
+        font-size: 9px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #vnSection .vn-turn-banner { animation: none; }
+}
