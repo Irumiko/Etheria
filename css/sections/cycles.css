@@ -914,3 +914,127 @@ body.theme-rpg #vnSection .export-menu-item { border-radius: 5px; }
 @media (prefers-reduced-motion: reduce) {
     #vnSection .export-menu { animation: none; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ELECCIONES DEL CICLO DENTRO DEL REPLY PANEL
+   Sección que aparece encima del textarea cuando hay elecciones activas.
+   Scope: body.theme-classic (las elecciones son exclusivas del modo Palabra)
+   ══════════════════════════════════════════════════════════════════════ */
+
+body.theme-classic .vrp-cycle-choices {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid rgba(193, 168, 236, .15);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgba(193, 168, 236, .03);
+}
+
+body.theme-classic .vrp-cycle-choices.hidden { display: none; }
+
+/* Tarjeta de una elección */
+body.theme-classic .vrp-cycle-card {
+    border: 1px solid rgba(193, 168, 236, .2);
+    border-radius: 10px;
+    padding: 12px 13px 10px;
+    background: rgba(10, 8, 28, .5);
+    transition: opacity .2s ease;
+}
+
+body.theme-classic .vrp-cycle-card-done {
+    opacity: .65;
+}
+
+body.theme-classic .vrp-cycle-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin-bottom: 9px;
+}
+
+body.theme-classic .vrp-cycle-icon {
+    color: #c1a8ec;
+    font-size: 11px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+body.theme-classic .vrp-cycle-question {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 15px;
+    color: #f3ecda;
+    line-height: 1.45;
+    flex: 1;
+}
+
+body.theme-classic .vrp-cycle-responded {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #6fae9c;
+    white-space: nowrap;
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+/* Opciones de respuesta */
+body.theme-classic .vrp-cycle-opts {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+body.theme-classic .vrp-cycle-opt {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 8px 11px;
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 7px;
+    cursor: pointer;
+    text-align: left;
+    transition: background .14s ease, border-color .14s ease, transform .14s ease;
+    font-family: inherit;
+}
+
+body.theme-classic .vrp-cycle-opt:hover:not(:disabled) {
+    background: rgba(193, 168, 236, .1);
+    border-color: rgba(193, 168, 236, .35);
+    transform: translateX(3px);
+}
+
+body.theme-classic .vrp-cycle-opt:disabled { cursor: default; }
+
+body.theme-classic .vrp-cycle-opt-selected {
+    background: rgba(111, 174, 156, .1) !important;
+    border-color: rgba(111, 174, 156, .4) !important;
+}
+
+body.theme-classic .vrp-cycle-opt-spent {
+    opacity: .5;
+}
+
+body.theme-classic .vrp-cycle-opt-label {
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    font-weight: 600;
+    color: #c1a8ec;
+    min-width: 16px;
+    flex-shrink: 0;
+}
+
+body.theme-classic .vrp-cycle-opt-text {
+    font-family: 'Crimson Text', serif;
+    font-size: 14px;
+    color: rgba(243, 236, 218, .85);
+    line-height: 1.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.theme-classic .vrp-cycle-opt:hover:not(:disabled) { transform: none; }
+}
