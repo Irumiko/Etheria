@@ -834,3 +834,83 @@ body.theme-rpg #vnSection .history-older-end {
 @media (prefers-reduced-motion: reduce) {
     #vnSection .history-older-spinner-dot { animation: none; opacity: .6; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   DROPDOWN DE EXPORTACIÓN
+   Funciona en ambos modos — neutral visualmente.
+   ══════════════════════════════════════════════════════════════════════ */
+
+@keyframes export-menu-in {
+    from { opacity: 0; transform: translateX(8px) scale(.97); }
+    to   { opacity: 1; transform: translateX(0)   scale(1);   }
+}
+
+#vnSection .export-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    width: 190px;
+    background: rgba(10, 8, 24, .97);
+    border: 1px solid rgba(201, 168, 108, .3);
+    border-radius: 11px;
+    padding: 5px;
+    z-index: var(--z-controls, 200);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, .5);
+    backdrop-filter: blur(10px);
+    animation: export-menu-in .18s ease;
+}
+
+#vnSection .export-menu.hidden { display: none; }
+
+#vnSection .export-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 9px 11px;
+    background: none;
+    border: none;
+    border-radius: 7px;
+    color: rgba(243, 236, 218, .8);
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    cursor: pointer;
+    text-align: left;
+    transition: background .12s ease, color .12s ease;
+}
+
+#vnSection .export-menu-item:hover {
+    background: rgba(201, 168, 108, .1);
+    color: #c9a86c;
+}
+
+#vnSection .export-menu-item svg {
+    flex-shrink: 0;
+    opacity: .7;
+}
+
+/* Modo Palabra */
+body.theme-classic #vnSection .export-menu {
+    border-color: rgba(193, 168, 236, .3);
+}
+body.theme-classic #vnSection .export-menu-item:hover {
+    background: rgba(193, 168, 236, .1);
+    color: #c1a8ec;
+}
+
+/* Modo Azar */
+body.theme-rpg #vnSection .export-menu {
+    border-color: rgba(227, 162, 79, .3);
+    border-radius: 8px;
+}
+body.theme-rpg #vnSection .export-menu-item:hover {
+    background: rgba(227, 162, 79, .1);
+    color: #e3a24f;
+}
+body.theme-rpg #vnSection .export-menu-item { border-radius: 5px; }
+
+@media (prefers-reduced-motion: reduce) {
+    #vnSection .export-menu { animation: none; }
+}
