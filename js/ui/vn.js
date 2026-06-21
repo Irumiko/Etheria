@@ -5184,6 +5184,16 @@ function openReplyPanel() {
     // Actualizar botones de clima (nuevos vrp-weather-btn)
     vrpSyncWeatherButtons();
 
+    // ── Elecciones activas del ciclo (solo modo clásico) ──────────────────
+    // Carga las elecciones del ciclo abierto e inyecta el panel de respuesta
+    // dentro del reply panel, justo encima del textarea.
+    if (!isRpgModeMode() && !editingMessageId && currentTopicId
+            && typeof SupabaseCycles !== 'undefined') {
+        _loadAndRenderCycleChoicesInPanel(currentTopicId);
+    } else {
+        _hideCycleChoicesInPanel();
+    }
+
     // Foco al textarea después de la animación de entrada
     setTimeout(() => {
         const replyText = document.getElementById('vnReplyText');
@@ -5192,6 +5202,7 @@ function openReplyPanel() {
 }
 
 function closeReplyPanel() {
+    _hideCycleChoicesInPanel();
     const panel = document.getElementById('vnReplyPanel');
     if (panel) panel.style.display = 'none';
     emitTypingState(false);
@@ -6209,3 +6220,138 @@ function closeExportMenu(menuId) {
 
 window.toggleExportMenu = toggleExportMenu;
 window.closeExportMenu  = closeExportMenu;
+
+// ── Elecciones del ciclo dentro del reply panel ──────────────────────────────
+// Al abrir el panel de respuesta en modo clásico, se cargan las elecciones
+// activas del ciclo y se muestran como tarjetas con opciones seleccionables.
+// El autor de cada elección NO ve su propia elección (no puede responderse).
+// Al seleccionar una opción se guarda en cycle_choice_responses via Supabase.
+
+async function _loadAndRenderCycleChoicesInPanel(topicId) {
+    const container = _getCycleInPanelContainer();
+    if (!container) return;
+
+    try {
+        const cycle = await SupabaseCycles.getOpenCycle(topicId);
+        if (!cycle) { _hideCycleChoicesInPanel(); return; }
+
+        const choices = await SupabaseCycles.loadChoicesForCycle(cycle.id);
+        const responses = await SupabaseCycles.loadResponsesForCycle(cycle.id);
+
+        // Filtrar: el usuario no ve sus propias elecciones
+        const uid = (await window.supabaseClient?.auth?.getUser())?.data?.user?.id;
+        const myCharId = String(selectedCharId || '');
+
+        // Elecciones respondibles: no son del usuario actual
+        const respondible = choices.filter(ch => ch.author_user_id !== uid);
+
+        if (respondible.length === 0) { _hideCycleChoicesInPanel(); return; }
+
+        // Respuestas ya dadas por el personaje activo
+        const myResponses = new Set(
+            responses
+                .filter(r => String(r.responder_char_id) === myCharId)
+                .map(r => r.choice_id)
+        );
+
+        // Renderizar
+        container.innerHTML = respondible.map(choice => {
+            const alreadyResponded = myResponses.has(choice.id);
+            const opts = (choice.cycle_choice_options || [])
+                .sort((a, b) => a.display_order - b.display_order);
+
+            const optsHtml = opts.map(opt => `
+                <button class="vrp-cycle-opt ${alreadyResponded ? 'vrp-cycle-opt-spent' : ''}"
+                        data-choice-id="${choice.id}"
+                        data-opt-id="${opt.id}"
+                        data-cycle-id="${cycle.id}"
+                        ${alreadyResponded ? 'disabled' : ''}
+                        onclick="_onCycleOptClick(this)">
+                    <span class="vrp-cycle-opt-label">${opt.label}</span>
+                    <span class="vrp-cycle-opt-text">${opt.option_text}</span>
+                </button>
+            `).join('');
+
+            return `
+                <div class="vrp-cycle-card ${alreadyResponded ? 'vrp-cycle-card-done' : ''}">
+                    <div class="vrp-cycle-card-header">
+                        <span class="vrp-cycle-icon">✦</span>
+                        <span class="vrp-cycle-question">${choice.question_text}</span>
+                        ${alreadyResponded
+                            ? '<span class="vrp-cycle-responded">Respondida ✓</span>'
+                            : ''}
+                    </div>
+                    <div class="vrp-cycle-opts">${optsHtml}</div>
+                </div>
+            `;
+        }).join('');
+
+        container.classList.remove('hidden');
+
+    } catch (err) {
+        window.EtheriaLogger?.warn('cycles-panel', 'Error cargando elecciones:', err?.message);
+        _hideCycleChoicesInPanel();
+    }
+}
+
+function _onCycleOptClick(btn) {
+    if (!btn || btn.disabled) return;
+    const choiceId = btn.dataset.choiceId;
+    const optId    = btn.dataset.optId;
+    const cycleId  = btn.dataset.cycleId;
+    if (!choiceId || !optId || !cycleId || !currentTopicId || !selectedCharId) return;
+
+    // Feedback visual inmediato
+    const card = btn.closest('.vrp-cycle-card');
+    if (card) {
+        card.querySelectorAll('.vrp-cycle-opt').forEach(b => { b.disabled = true; });
+        card.classList.add('vrp-cycle-card-done');
+        const responded = card.querySelector('.vrp-cycle-responded');
+        if (!responded) {
+            const header = card.querySelector('.vrp-cycle-card-header');
+            if (header) {
+                const span = document.createElement('span');
+                span.className = 'vrp-cycle-responded';
+                span.textContent = 'Respondida ✓';
+                header.appendChild(span);
+            }
+        }
+        // Marcar la opción elegida
+        btn.classList.add('vrp-cycle-opt-selected');
+    }
+
+    // Guardar en Supabase
+    if (typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.saveResponse(
+            choiceId, optId, cycleId, currentTopicId, String(selectedCharId)
+        ).then(ok => {
+            if (ok && typeof showAutosave === 'function') {
+                showAutosave('✦ Respuesta guardada — se revelará al cerrar el ciclo', 'saved');
+            }
+        }).catch(() => {});
+    }
+}
+
+function _getCycleInPanelContainer() {
+    let container = document.getElementById('vrpCycleChoices');
+    if (!container) {
+        // Crear el contenedor e insertarlo antes del vrp-body
+        container = document.createElement('div');
+        container.id = 'vrpCycleChoices';
+        container.className = 'vrp-cycle-choices hidden';
+        container.setAttribute('aria-label', 'Elecciones activas del ciclo');
+        // Insertarlo justo antes del vrp-write-pane
+        const writePane = document.querySelector('.vrp-write-pane');
+        if (writePane) {
+            writePane.closest('.vrp-split')?.parentElement?.insertBefore(container, writePane.closest('.vrp-split'));
+        }
+    }
+    return container;
+}
+
+function _hideCycleChoicesInPanel() {
+    const container = document.getElementById('vrpCycleChoices');
+    if (container) container.classList.add('hidden');
+}
+
+window._onCycleOptClick = _onCycleOptClick;
