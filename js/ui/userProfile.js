@@ -447,6 +447,12 @@
         // Quién ha respondido en el ciclo actual (detección por historial de mensajes)
         const respondedSet = _respondedThisCycle(participants);
 
+                // ── Estado de turno activo ──────────────────────────────────────────
+        const turnMode      = topic?.turnMode || topic?.turn_mode || 'off';
+        const turnQueue     = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
+        const activeTurnUid = turnMode !== 'off' && turnQueue.length > 0 ? turnQueue[0] : null;
+        const myUid         = window._cachedUserId || null;
+
         // El orden NO cambia: participants ya viene ordenado por primer-mensaje (llegada)
         list.innerHTML = participants.map(p => {
             const charId    = lockMap[p.user_index] || lockMap[String(p.user_index)];
@@ -456,17 +462,34 @@
             const gIcon     = GENDER_ICON[genderKey] || '';
             const online    = _isOnline(p.user_id);
             const responded = respondedSet.has(p.user_id);
+            const isMyTurn  = activeTurnUid && p.user_id === activeTurnUid;
+            const isMe      = p.user_id === myUid;
             const uid       = _esc(p.user_id || '');
 
             const classes = ['cp-member'];
             if (online)    classes.push('cp-member--online');
             if (responded) classes.push('cp-member--responded');
+            if (isMyTurn)  classes.push('cp-member--active-turn');
+
+            let statusIcon  = '';
+            let statusTitle = '';
+            if (isMyTurn) {
+                statusIcon  = isMe ? '✦' : '▶';
+                statusTitle = isMe ? 'Tu turno' : 'Turno activo';
+            } else if (responded) {
+                statusIcon  = '✓';
+                statusTitle = 'Ya respondió';
+            } else if (respondedSet.size > 0) {
+                statusIcon  = '·';
+                statusTitle = 'Esperando';
+            }
 
             return `<button type="button" class="${classes.join(' ')}"
                         onclick="openUserProfileModal('${uid}')"
-                        title="${_esc(name)}${responded ? ' \xB7 Ya respondi\xF3' : ' \xB7 Esperando'}">
+                        title="${_esc(name)} · ${statusTitle || (online ? 'En línea' : 'Desconectado')}">
                 <span class="cp-name">${_esc(name)}</span>
                 ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
+                ${statusIcon ? `<span class="cp-status-icon" aria-hidden="true">${statusIcon}</span>` : ''}
             </button>`;
         }).join('');
     }
@@ -509,3 +532,4 @@
     });
 
 }(window));
+
