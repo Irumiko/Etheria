@@ -6175,3 +6175,37 @@ function vrpSetWeatherBtn(clickedBtn) {
     });
 }());
 
+
+// ── Menú de exportación ───────────────────────────────────────────────────────
+// Dropdown ligero que agrupa las dos opciones de exportar (txt y PDF).
+// Se cierra al hacer clic fuera o al elegir una opción.
+
+function toggleExportMenu(menuId, event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    const isOpen = !menu.classList.contains('hidden');
+    // Cerrar cualquier otro menú de exportación abierto
+    document.querySelectorAll('.export-menu').forEach(function (m) {
+        m.classList.add('hidden');
+    });
+    if (!isOpen) {
+        menu.classList.remove('hidden');
+        // Cerrar al hacer clic fuera
+        setTimeout(function () {
+            document.addEventListener('click', function _closeExport() {
+                closeExportMenu(menuId);
+                document.removeEventListener('click', _closeExport);
+            }, { once: true });
+        }, 0);
+    }
+}
+
+function closeExportMenu(menuId) {
+    const menu = document.getElementById(menuId || 'exportMenuClassic') ||
+                 document.getElementById('exportMenuRpg');
+    if (menu) menu.classList.add('hidden');
+}
+
+window.toggleExportMenu = toggleExportMenu;
+window.closeExportMenu  = closeExportMenu;
