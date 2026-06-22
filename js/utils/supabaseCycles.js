@@ -118,6 +118,11 @@ const SupabaseCycles = (function () {
             eventBus.emit('cycle:closed', { cycleId, topicId });
         }
 
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('cycle_closed', 'story', String(topicId),
+                { cycleId }).catch(() => {});
+        }
+
         window.EtheriaLogger?.info?.('SupabaseCycles', `Ciclo cerrado: ${cycleId}`);
         return true;
     }
@@ -209,6 +214,11 @@ const SupabaseCycles = (function () {
             eventBus.emit('cycle:choice-created', { topicId, cycleId, choice });
         }
 
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('choice_launched', 'story', String(topicId),
+                { cycleId, choiceId: choice.id, authorCharId }).catch(() => {});
+        }
+
         window.EtheriaLogger?.info?.('SupabaseCycles', `Elección creada: ${choice.id}`);
         return choice;
     }
@@ -236,6 +246,11 @@ const SupabaseCycles = (function () {
 
         if (typeof eventBus !== 'undefined') {
             eventBus.emit('cycle:response-saved', { choiceId, optionId, topicId });
+        }
+
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('choice_responded', 'story', String(topicId),
+                { choiceId, cycleId, responderCharId }).catch(() => {});
         }
 
         return true;
@@ -406,6 +421,11 @@ const SupabaseCycles = (function () {
             });
         }
 
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('branch_chosen', 'story', String(topicId),
+                { fromCharId, toCharId, relationType }).catch(() => {});
+        }
+
         window.EtheriaLogger?.info?.('SupabaseCycles',
             `Rama elegida: ${fromCharId}→${toCharId} = ${relationType}`);
         return true;
@@ -532,3 +552,4 @@ const SupabaseCycles = (function () {
 })();
 
 window.SupabaseCycles = SupabaseCycles;
+
