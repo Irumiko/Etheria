@@ -5,7 +5,6 @@
 // Tabla: id (uuid), session_id (text), author (text),
 //        content (text), created_at (timestamp).
 //
-// No sustituye localStorage ni jsonbin.io.
 // Si Supabase falla, la app continúa sin errores.
 // ============================================
 
