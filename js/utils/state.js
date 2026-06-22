@@ -171,7 +171,7 @@ const emoteConfig = {
     sleep: { symbol: '💤', class: 'emote-sleep', name: 'Sueño' }
 };
 
-// userNames eliminado — la autenticación es via Supabase Auth.
+let userNames = []; // Nombres de perfil sincronizados con Supabase (user_data.data.userNames)
 let currentUserIndex = 0;
 let appData = {
     topics: [],
