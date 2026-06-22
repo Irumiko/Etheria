@@ -31,34 +31,44 @@ const alignments = {
 // La relación es DIRECCIONAL: cada personaje elige su propia percepción.
 // ─────────────────────────────────────────────────────────────────────────────
 const affinityRanks = [
-    // ── Tronco común ──────────────────────────────────────────────
-    { name: 'Desconocidos', branch: 'common',     min: 0,    max: 15,   increment: 3, color: '#8e9196', icon: '○' },
-    { name: 'Conocidos',    branch: 'common',     min: 16,   max: 35,   increment: 3, color: '#9b59b6', icon: '◎' },
-    { name: 'Amigos',       branch: 'common',     min: 36,   max: 60,   increment: 3, color: '#3498db', icon: '✦', bifurcation: true },
+    // ── Tronco común (siempre unilateral) ────────────────────────
+    { name: 'Desconocidos', branch: 'common',     min: 0,    max: 15,  increment: 3, color: '#8e9196', icon: '○' },
+    { name: 'Conocidos',    branch: 'common',     min: 16,   max: 35,  increment: 3, color: '#9b59b6', icon: '◎' },
+    { name: 'Amigos',       branch: 'common',     min: 36,   max: 60,  increment: 3, color: '#3498db', icon: '✦', bifurcation: true },
 
     // ── Rama: Amistad ─────────────────────────────────────────────
-    { name: 'Amigo cercano', branch: 'friendship', min: 61,  max: 74,   increment: 2, color: '#2ecc71', icon: '♦' },
-    { name: 'Confidente',    branch: 'friendship', min: 75,  max: 87,   increment: 2, color: '#27ae60', icon: '♦♦' },
-    { name: 'Mejor amigo',   branch: 'friendship', min: 88,  max: 100,  increment: 1, color: '#1a8a4a', icon: '♦♦♦' },
+    // Techo unilateral: Buen amigo — no requiere reciprocidad
+    // Techo bilateral:  Mejor amigo — requiere que el otro también esté en rama amistad con value >= 88
+    { name: 'Amigo cercano', branch: 'friendship', min: 61,  max: 74,  increment: 2, color: '#2ecc71', icon: '♦' },
+    { name: 'Confidente',    branch: 'friendship', min: 75,  max: 87,  increment: 2, color: '#27ae60', icon: '♦♦' },
+    { name: 'Buen amigo',    branch: 'friendship', min: 88,  max: 94,  increment: 1, color: '#1e9e55', icon: '♦♦♦',
+      unilateralCap: true },   // techo unilateral: no se puede superar sin reciprocidad
+    { name: 'Mejor amigo',   branch: 'friendship', min: 95,  max: 100, increment: 1, color: '#1a8a4a', icon: '♦♦♦♦',
+      requiresReciprocity: true, reciprocityBranch: 'friendship', reciprocityMin: 88 },
 
     // ── Rama: Romance ─────────────────────────────────────────────
-    { name: 'Admiración',    branch: 'romance',    min: 61,  max: 70,   increment: 2, color: '#f39c12', icon: '♡' },
-    { name: 'Afecto',        branch: 'romance',    min: 71,  max: 80,   increment: 2, color: '#e67e22', icon: '♡♡' },
-    { name: 'Devoción',      branch: 'romance',    min: 81,  max: 90,   increment: 1, color: '#e74c3c', icon: '♥' },
-    { name: 'Amor profundo', branch: 'romance',    min: 91,  max: 100,  increment: 1, color: '#c0392b', icon: '♥♥' },
+    // Techo unilateral: Amor platónico — puede quererte sin ser correspondido
+    // Techo bilateral:  Amor profundo — requiere que el otro también esté en rama romance con value >= 91
+    { name: 'Admiración',    branch: 'romance',    min: 61,  max: 70,  increment: 2, color: '#f39c12', icon: '♡' },
+    { name: 'Afecto',        branch: 'romance',    min: 71,  max: 80,  increment: 2, color: '#e67e22', icon: '♡♡' },
+    { name: 'Devoción',      branch: 'romance',    min: 81,  max: 90,  increment: 1, color: '#e74c3c', icon: '♥' },
+    { name: 'Amor platónico', branch: 'romance',   min: 91,  max: 95,  increment: 1, color: '#c0392b', icon: '♥♥',
+      unilateralCap: true },   // techo unilateral
+    { name: 'Amor profundo',  branch: 'romance',   min: 96,  max: 100, increment: 1, color: '#922b21', icon: '♥♥♥',
+      requiresReciprocity: true, reciprocityBranch: 'romance', reciprocityMin: 91 },
 
-    // ── Tronco negativo ───────────────────────────────────────────
-    { name: 'Tensión',       branch: 'negative',   min: -20, max: -1,   increment: 3, color: '#e67e22', icon: '⚡' },
+    // ── Tronco negativo (siempre unilateral) ─────────────────────
+    { name: 'Tensión',       branch: 'negative',   min: -20, max: -1,  increment: 3, color: '#e67e22', icon: '⚡' },
 
-    // ── Rama: Rivalidad ───────────────────────────────────────────
-    { name: 'Rivalidad',        branch: 'rivalry', min: -50, max: -21,  increment: 2, color: '#d35400', icon: '⚔' },
-    { name: 'Rival declarado',  branch: 'rivalry', min: -75, max: -51,  increment: 2, color: '#e74c3c', icon: '⚔⚔' },
-    { name: 'Némesis',          branch: 'rivalry', min: -100,max: -76,  increment: 1, color: '#c0392b', icon: '⚔⚔⚔' },
+    // ── Rama: Rivalidad (toda unilateral — la hostilidad no necesita ser mutua) ──
+    { name: 'Rivalidad',       branch: 'rivalry',  min: -50, max: -21, increment: 2, color: '#d35400', icon: '⚔' },
+    { name: 'Rival declarado', branch: 'rivalry',  min: -75, max: -51, increment: 2, color: '#e74c3c', icon: '⚔⚔' },
+    { name: 'Némesis',         branch: 'rivalry',  min: -100,max: -76, increment: 1, color: '#c0392b', icon: '⚔⚔⚔' },
 
-    // ── Rama: Enemistad ───────────────────────────────────────────
-    { name: 'Antipatía',           branch: 'enmity', min: -50, max: -21, increment: 2, color: '#7f8c8d', icon: '✗' },
-    { name: 'Enemistad',           branch: 'enmity', min: -75, max: -51, increment: 2, color: '#566573', icon: '✗✗' },
-    { name: 'Enemistad profunda',   branch: 'enmity', min: -100,max: -76, increment: 1, color: '#2c3e50', icon: '✗✗✗' },
+    // ── Rama: Enemistad (toda unilateral) ────────────────────────
+    { name: 'Antipatía',          branch: 'enmity', min: -50, max: -21, increment: 2, color: '#7f8c8d', icon: '✗' },
+    { name: 'Enemistad',          branch: 'enmity', min: -75, max: -51, increment: 2, color: '#566573', icon: '✗✗' },
+    { name: 'Enemistad profunda',  branch: 'enmity', min: -100,max: -76, increment: 1, color: '#2c3e50', icon: '✗✗✗' },
 ];
 
 // ── Configuración del sistema de ciclos ──────────────────────────────────────
@@ -94,8 +104,48 @@ function getAffinityRankInfo(value, relationType) {
     // Rama positiva (solo si ya se eligió)
     if (rel === 'undefined') return common[common.length - 1];
     const branch = affinityRanks.filter(r => r.branch === rel);
-    return branch.find(r => v >= r.min && v <= r.max) || branch[branch.length - 1];
+
+    // Si el rango exacto requiere reciprocidad y no se tiene, devolver el techo unilateral
+    const exact = branch.find(r => v >= r.min && v <= r.max);
+    if (exact?.requiresReciprocity) {
+        // getAffinityRankInfo no tiene acceso al valor del otro personaje aquí —
+        // la comprobación de reciprocidad se hace en getAffinityRankInfoWithReciprocity.
+        // Por defecto devolvemos el rango unilateral cap si existe, o el exact.
+        const cap = branch.find(r => r.unilateralCap);
+        return cap || exact;
+    }
+    return exact || branch[branch.length - 1];
 }
+
+// Versión extendida que comprueba reciprocidad.
+// otherValue: valor de afinidad del otro personaje hacia este
+// otherRelationType: relation_type del otro personaje
+function getAffinityRankInfoWithReciprocity(value, relationType, otherValue, otherRelationType) {
+    const v   = Number(value) || 0;
+    const rel = relationType || 'undefined';
+
+    if (v < 0 || rel === 'undefined') return getAffinityRankInfo(value, relationType);
+
+    const branch = affinityRanks.filter(r => r.branch === rel);
+    const exact  = branch.find(r => v >= r.min && v <= r.max);
+    if (!exact) return branch[branch.length - 1];
+
+    // Si requiere reciprocidad, comprobar si el otro la cumple
+    if (exact.requiresReciprocity) {
+        const otherV   = Number(otherValue) || 0;
+        const otherRel = otherRelationType || 'undefined';
+        const hasReciprocity = otherRel === exact.reciprocityBranch
+            && otherV >= (exact.reciprocityMin || 0);
+        if (!hasReciprocity) {
+            // Devolver el techo unilateral en su lugar
+            const cap = branch.find(r => r.unilateralCap);
+            return cap || branch.find(r => !r.requiresReciprocity && r.min <= v) || exact;
+        }
+    }
+    return exact;
+}
+
+window.getAffinityRankInfoWithReciprocity = getAffinityRankInfoWithReciprocity;
 
 // Helper: ¿está en el punto de bifurcación positiva?
 function isAtBifurcationPoint(value, relationType) {
