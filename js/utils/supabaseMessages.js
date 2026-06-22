@@ -211,6 +211,13 @@
             }
 
             _available = true;
+            // Registrar en activity_log (fire-and-forget, no bloquea el envío)
+            if (global.SupabaseExtras?.logActivity) {
+                global.SupabaseExtras.logActivity('message_sent', 'story',
+                    String(sessionId),
+                    { isNarrator: !!msgObj.isNarrator, charId: String(msgObj.characterId || '') }
+                ).catch(() => {});
+            }
             return true;
 
         } catch (e) {
@@ -686,3 +693,4 @@
     };
 
 }(window));
+
