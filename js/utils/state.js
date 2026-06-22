@@ -171,7 +171,7 @@ const emoteConfig = {
     sleep: { symbol: '💤', class: 'emote-sleep', name: 'Sueño' }
 };
 
-let userNames = ['Jugador 1', 'Jugador 2', 'Jugador 3'];
+// userNames eliminado — la autenticación es via Supabase Auth.
 let currentUserIndex = 0;
 let appData = {
     topics: [],
@@ -230,13 +230,7 @@ const LAST_PROFILE_KEY = 'lastProfileId';
 const LOCAL_PROFILE_UPDATED_PREFIX = 'etheria_profile_updated_';
 const AUTO_SYNC_INTERVAL = 30000;
 const OFFLINE_SYNC_INTERVAL = 60000;
-// Fix 5: JSONBin is DISABLED — Supabase handles all cloud persistence.
-// The config is kept as a stub so callers don't crash; ensureCloudConfig() blocks all calls.
-const JSONBIN_CONFIG = {
-    apiKey: '',
-    binId: '',
-    baseUrl: 'https://api.jsonbin.io/v3/b'
-};
+// Persistencia gestionada íntegramente por Supabase.
 let cloudSyncStatus = 'idle';
 let cloudSyncInterval = null;
 let cloudSyncInProgress = false;
