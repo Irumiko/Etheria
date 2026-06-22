@@ -1,0 +1,267 @@
+/* ══════════════════════════════════════════════════════════════════════
+   css/sections/charPopover.css
+   Popover visual de personaje — party panel (clásico y RPG).
+   Puramente visual: sin botones de acción ni editores.
+
+   Cargado al final de NON_CRITICAL_CSS_ORDER.
+   ══════════════════════════════════════════════════════════════════════ */
+
+@keyframes cp-popover-in {
+    from { opacity: 0; transform: translateY(6px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);   }
+}
+
+/* ── Contenedor ──────────────────────────────────────────────────── */
+#vnSection #charPopover {
+    position: absolute;
+    width: 220px;
+    background: rgba(8, 6, 22, .97);
+    border: 1px solid rgba(201, 168, 108, .28);
+    border-radius: 14px;
+    padding: 14px;
+    z-index: var(--z-modals, 500);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, .55),
+                inset 0 1px 0 rgba(255, 255, 255, .04);
+    backdrop-filter: blur(12px);
+    animation: cp-popover-in .2s cubic-bezier(.2, .8, .3, 1);
+    pointer-events: auto;
+}
+
+#vnSection #charPopover.hidden { display: none; }
+
+/* Modo Palabra → borde lavanda */
+body.theme-classic #vnSection #charPopover {
+    border-color: rgba(193, 168, 236, .28);
+}
+
+/* Modo Azar → borde ámbar, esquinas más rectas */
+body.theme-rpg #vnSection #charPopover {
+    border-color: rgba(227, 162, 79, .28);
+    border-radius: 10px;
+}
+
+/* ── Cabecera: avatar + nombre ───────────────────────────────────── */
+#vnSection .cp-popover-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#vnSection .cp-popover-avatar-wrap {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .1);
+    background: rgba(255, 255, 255, .04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#vnSection .cp-popover-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+#vnSection .cp-popover-initial {
+    font-family: 'Cinzel', serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--char-color, #9b59b6);
+    line-height: 1;
+    user-select: none;
+}
+
+#vnSection .cp-popover-meta {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+#vnSection .cp-popover-name {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #f3ecda;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#vnSection .cp-popover-sub {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: rgba(243, 236, 218, .45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Separador entre cabecera y cuerpo ───────────────────────────── */
+#vnSection .cp-popover-body {
+    border-top: 1px solid rgba(255, 255, 255, .07);
+    padding-top: 11px;
+}
+
+/* ── Afinidad (modo clásico) ─────────────────────────────────────── */
+#vnSection .cp-popover-affinity {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+#vnSection .cp-popover-aff-icon {
+    font-size: 18px;
+    color: var(--aff-color, #9b59b6);
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+#vnSection .cp-popover-aff-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+#vnSection .cp-popover-aff-name {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--aff-color, #9b59b6);
+}
+
+/* Indicador sutil cuando se está en el techo unilateral */
+#vnSection .cp-popover-aff-hint {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 10px;
+    color: rgba(243, 236, 218, .35);
+}
+
+#vnSection .cp-popover-aff-unknown {
+    opacity: .5;
+}
+#vnSection .cp-popover-aff-unknown .cp-popover-aff-icon,
+#vnSection .cp-popover-aff-unknown .cp-popover-aff-name {
+    color: rgba(243, 236, 218, .4);
+}
+
+/* "Tu personaje" */
+#vnSection .cp-popover-me {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: rgba(243, 236, 218, .4);
+    text-align: center;
+    padding: 2px 0;
+}
+
+/* ── Stats RPG ───────────────────────────────────────────────────── */
+#vnSection .cp-popover-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+#vnSection .cp-popover-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .07);
+    border-radius: 6px;
+    padding: 5px 4px;
+}
+
+#vnSection .cp-popover-stat-label {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: rgba(227, 162, 79, .7);
+    text-transform: uppercase;
+}
+
+#vnSection .cp-popover-stat-val {
+    font-family: ui-monospace, monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f3ecda;
+    line-height: 1;
+}
+
+/* ── Minibarras HP / EXP ─────────────────────────────────────────── */
+#vnSection .cp-popover-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#vnSection .cp-popover-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#vnSection .cp-popover-bar-label {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: rgba(243, 236, 218, .45);
+    width: 22px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+#vnSection .cp-popover-bar {
+    flex: 1;
+    height: 5px;
+    background: rgba(255, 255, 255, .08);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+#vnSection .cp-popover-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width .3s ease;
+}
+
+#vnSection .cp-popover-bar-hp  { background: #6fae9c; }
+#vnSection .cp-popover-bar-exp { background: #c9a86c; }
+
+#vnSection .cp-popover-bar-val {
+    font-family: ui-monospace, monospace;
+    font-size: 9px;
+    color: rgba(243, 236, 218, .45);
+    white-space: nowrap;
+    min-width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Sin datos */
+#vnSection .cp-popover-empty {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: rgba(243, 236, 218, .35);
+    text-align: center;
+}
+
+/* Reducir movimiento */
+@media (prefers-reduced-motion: reduce) {
+    #vnSection #charPopover { animation: none; }
+    #vnSection .cp-popover-bar-fill { transition: none; }
+}
