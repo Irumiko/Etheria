@@ -67,6 +67,7 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/sections/vn-scene.css',     /* Reskin VN: Senda de la Palabra + Senda del Azar — cargado al final, gana la cascada */
   'css/sections/cycles.css',       /* Sistema de ciclos: badge, elecciones, Ecos, modal de bifurcación de rama */
   'css/sections/charPopover.css',   /* Popover visual de personaje — party panel clásico y RPG */
+  'css/sections/activityDashboard.css', /* Dashboard de actividad por historia */
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];
