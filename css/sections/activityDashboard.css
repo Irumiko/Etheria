@@ -1,0 +1,258 @@
+/* ══════════════════════════════════════════════════════════════════════
+   css/sections/activityDashboard.css
+   Dashboard de actividad por historia — solo modo clásico (owner).
+   ══════════════════════════════════════════════════════════════════════ */
+
+@keyframes adb-in {
+    from { opacity: 0; transform: scale(.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Modal overlay ───────────────────────────────────────────────── */
+#activityDashboardModal {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 3, 14, .75);
+    z-index: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    padding: 16px;
+}
+#activityDashboardModal.hidden { display: none; }
+
+#activityDashboardBody {
+    width: min(560px, 100%);
+    max-height: 85vh;
+    overflow-y: auto;
+    background: rgba(8, 6, 22, .97);
+    border: 1px solid rgba(201, 168, 108, .3);
+    border-radius: 18px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .6);
+    animation: adb-in .25s ease;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201, 168, 108, .2) transparent;
+}
+
+/* ── Raíz del contenido ──────────────────────────────────────────── */
+.adb-root { padding: 24px 22px 20px; }
+
+/* ── Cabecera ────────────────────────────────────────────────────── */
+.adb-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.adb-title {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .2em;
+    color: #c9a86c;
+}
+
+.adb-period {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 11px;
+    color: rgba(243, 236, 218, .4);
+}
+
+/* ── Métricas ────────────────────────────────────────────────────── */
+.adb-metrics {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.adb-metric {
+    flex: 1;
+    min-width: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 10px 8px;
+    background: rgba(255, 255, 255, .04);
+    border: 1px solid rgba(255, 255, 255, .07);
+    border-radius: 10px;
+}
+
+.adb-metric-icon {
+    font-size: 14px;
+    color: rgba(201, 168, 108, .7);
+}
+
+.adb-metric-val {
+    font-family: ui-monospace, monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: #f3ecda;
+    line-height: 1;
+}
+
+.adb-metric-label {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(243, 236, 218, .4);
+}
+
+/* ── Nota de vínculos bilaterales ────────────────────────────────── */
+.adb-bilateral-note {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: rgba(111, 174, 156, .8);
+    text-align: center;
+    margin-bottom: 16px;
+    padding: 8px 12px;
+    background: rgba(111, 174, 156, .06);
+    border: 1px solid rgba(111, 174, 156, .2);
+    border-radius: 8px;
+}
+
+/* ── Secciones ───────────────────────────────────────────────────── */
+.adb-section { margin-bottom: 18px; }
+
+.adb-section-label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: rgba(201, 168, 108, .55);
+    margin-bottom: 8px;
+}
+
+/* ── Gráfico de barras ───────────────────────────────────────────── */
+.adb-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 80px;
+    padding-bottom: 20px;
+    position: relative;
+}
+
+.adb-bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+}
+
+.adb-bar-wrap {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+}
+
+.adb-bar-fill {
+    width: 100%;
+    background: linear-gradient(to top, rgba(193, 168, 236, .7), rgba(193, 168, 236, .3));
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: height .3s ease;
+}
+
+.adb-bar-label {
+    font-family: ui-monospace, monospace;
+    font-size: 7px;
+    color: rgba(243, 236, 218, .3);
+    margin-top: 4px;
+    white-space: nowrap;
+}
+
+/* ── Columnas dobles ─────────────────────────────────────────────── */
+.adb-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.adb-col { display: flex; flex-direction: column; gap: 6px; }
+
+/* ── Hitos de rango ──────────────────────────────────────────────── */
+.adb-rank-row, .adb-branch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 9px;
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .06);
+    border-radius: 6px;
+}
+
+.adb-rank-name, .adb-branch-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    color: rgba(243, 236, 218, .7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.adb-rank-count, .adb-branch-count {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 700;
+    color: #c9a86c;
+    flex-shrink: 0;
+    margin-left: 6px;
+}
+
+/* ── Estados vacíos y loading ────────────────────────────────────── */
+.adb-empty {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: rgba(243, 236, 218, .3);
+    text-align: center;
+    padding: 8px 0;
+}
+
+.adb-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: rgba(243, 236, 218, .5);
+}
+
+@keyframes adb-spin { to { transform: rotate(360deg); } }
+
+.adb-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(201, 168, 108, .2);
+    border-top-color: #c9a86c;
+    border-radius: 50%;
+    animation: adb-spin .8s linear infinite;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .adb-cols { grid-template-columns: 1fr; }
+    .adb-metrics { gap: 6px; }
+    .adb-metric { min-width: 60px; padding: 8px 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #activityDashboardBody { animation: none; }
+    .adb-bar-fill          { transition: none; }
+    .adb-spinner           { animation: none; border-top-color: #c9a86c; }
+}
