@@ -648,7 +648,7 @@ function renderVnPartyPanel(force = false) {
         const _turnClass       = _isActiveTurn ? ' vn-party-member--active-turn' : '';
 
         return `
-            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}${_turnClass}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
+            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}${_turnClass}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="if(typeof CharPopover!=='undefined'){CharPopover.toggle('${escapeHtml(entry.charId)}',this)}else{highlightVnPartyCharacter('${escapeHtml(entry.charId)}')}" aria-label="${escapeHtml(entry.name)}">
                 <div class="vn-party-main">
                     <div class="vn-party-topline">
                         <div>
