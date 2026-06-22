@@ -484,8 +484,9 @@
                 statusTitle = 'Esperando';
             }
 
+            const cid = _esc(String(charId || ''));
             return `<button type="button" class="${classes.join(' ')}"
-                        onclick="openUserProfileModal('${uid}')"
+                        onclick="if(typeof CharPopover!=='undefined'){CharPopover.toggle('${cid}',this)}else{openUserProfileModal('${uid}')}"
                         title="${_esc(name)} · ${statusTitle || (online ? 'En línea' : 'Desconectado')}">
                 <span class="cp-name">${_esc(name)}</span>
                 ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
