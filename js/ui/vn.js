@@ -6575,3 +6575,15 @@ window.launchChoice       = launchChoice;
 window.updateChoiceButton = updateChoiceButton;
 window.toggleExportMenu   = toggleExportMenu;
 window.closeExportMenu    = closeExportMenu;
+
+// ── Dashboard de actividad ────────────────────────────────────────────────────
+// Abre el dashboard solo si el usuario es el creador del topic (owner).
+function openActivityDashboard() {
+    const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    if (!topic || !currentTopicId) return;
+
+    if (typeof ActivityDashboard !== 'undefined') {
+        ActivityDashboard.open(currentTopicId);
+    }
+}
+window.openActivityDashboard = openActivityDashboard;
