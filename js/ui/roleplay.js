@@ -1116,6 +1116,16 @@ const AFFINITY_RANK_ICONS = {
 let _affinityMilestoneTimer = null;
 
 function showAffinityMilestone(rankInfo, activeCharId, targetCharId) {
+    // Log del hito de rango alcanzado
+    if (window.SupabaseExtras?.logActivity && rankInfo?.name) {
+        window.SupabaseExtras.logActivity('rank_reached', 'story', currentTopicId, {
+            rank:         rankInfo.name,
+            branch:       rankInfo.branch || 'common',
+            fromCharId:   String(activeCharId || ''),
+            toCharId:     String(targetCharId || ''),
+            bilateral:    !!rankInfo.requiresReciprocity
+        }).catch(() => {});
+    }
     const overlay   = document.getElementById('vnAffinityMilestone');
     const iconEl    = document.getElementById('vnAffinityMilestoneIcon');
     const rankEl    = document.getElementById('vnAffinityMilestoneRank');
@@ -1415,3 +1425,4 @@ window.showBranchSelectionModal = showBranchSelectionModal;
 window._showEcosPanel           = _showEcosPanel;
 window._refreshCycleUI          = _refreshCycleUI;
 window._refreshChoicesUI        = _refreshChoicesUI;
+
