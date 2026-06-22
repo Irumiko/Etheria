@@ -1826,6 +1826,13 @@
     <div id="cycleEcosPanel" class="cycle-ecos-panel hidden" role="status" aria-live="polite">
     </div>
 
+    <!-- ══ Modal: Dashboard de actividad ══════════════════════════════════ -->
+    <div id="activityDashboardModal" class="hidden" role="dialog"
+         aria-modal="true" aria-label="Actividad de la historia"
+         onclick="if(event.target===this) ActivityDashboard.close()">
+        <div id="activityDashboardBody"></div>
+    </div>
+
     </div><!-- /vnSection -->
 
 <div id="shortcutsModal" class="modal-overlay" onclick="if(event.target === this) closeModal('shortcutsModal')" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
