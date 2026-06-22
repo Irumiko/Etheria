@@ -6431,3 +6431,147 @@ window.addEventListener('etheria:turn-notification', function () {
 });
 
 window.updateTurnBanner = updateTurnBanner;
+
+// ── Panel de creación de elección (modo clásico exclusivamente) ───────────────
+// Estas funciones gestionan el botón ✦ Elección en la caja de diálogo y el
+// panel pergamino para crear elecciones de afinidad. Solo activas en modo clásico.
+
+// Muestra/oculta el botón según contexto. Solo visible en modo clásico cuando
+// el jugador tiene derecho a lanzar una elección en el ciclo activo.
+function updateChoiceButton() {
+    const btn = document.getElementById('vnChoiceDialogBtn');
+    if (!btn) return;
+
+    // Solo en modo clásico
+    const topic     = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    const isClassic = !isRpgTopicMode(topic?.mode);
+    const vnActive  = !!document.getElementById('vnSection')?.classList.contains('active');
+
+    if (!isClassic || !vnActive || !currentTopicId) {
+        btn.style.display = 'none';
+        return;
+    }
+
+    btn.style.display = 'inline-flex';
+
+    if (typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.getOpenCycle(currentTopicId).then(cycle => {
+            if (!cycle) {
+                btn.disabled = false;
+                btn.title    = 'Lanzar una elección al ciclo';
+                btn.classList.remove('choice-btn-spent');
+                return;
+            }
+            SupabaseCycles.canLaunchChoice(cycle.id).then(canLaunch => {
+                btn.disabled = !canLaunch;
+                btn.title    = canLaunch
+                    ? 'Lanzar una elección al ciclo'
+                    : 'Ya lanzaste una elección en este ciclo — disponible en el siguiente';
+                btn.classList.toggle('choice-btn-spent', !canLaunch);
+            }).catch(() => {});
+        }).catch(() => {});
+    }
+}
+
+// Abre el panel pergamino de creación de elección.
+function openChoicePanel() {
+    const panel = document.getElementById('choiceCreatorPanel');
+    if (!panel) return;
+    ['choiceQuestion','choiceOptA','choiceOptB','choiceOptC'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const note = document.getElementById('choiceCreatorNote');
+    if (note) note.textContent = '';
+    panel.classList.remove('hidden');
+    setTimeout(() => document.getElementById('choiceQuestion')?.focus(), 80);
+}
+
+// Cierra el panel sin lanzar nada.
+function closeChoicePanel() {
+    const panel = document.getElementById('choiceCreatorPanel');
+    if (panel) panel.classList.add('hidden');
+}
+
+// Valida y lanza la elección al ciclo activo (o abre uno si no hay).
+async function launchChoice() {
+    const question  = document.getElementById('choiceQuestion')?.value?.trim();
+    const optA      = document.getElementById('choiceOptA')?.value?.trim();
+    const optB      = document.getElementById('choiceOptB')?.value?.trim();
+    const optC      = document.getElementById('choiceOptC')?.value?.trim();
+    const note      = document.getElementById('choiceCreatorNote');
+    const launchBtn = document.getElementById('choiceLaunchBtn');
+
+    if (!question) { if (note) note.textContent = 'Escribe la pregunta para continuar.'; return; }
+    if (!optA || !optB || !optC) { if (note) note.textContent = 'Completa las tres opciones.'; return; }
+    if (!currentTopicId || !selectedCharId) { if (note) note.textContent = 'Entra en una historia con un personaje.'; return; }
+    if (typeof SupabaseCycles === 'undefined') return;
+
+    if (launchBtn) { launchBtn.disabled = true; launchBtn.textContent = 'Lanzando…'; }
+    if (note) note.textContent = '';
+
+    try {
+        let cycle = await SupabaseCycles.getOpenCycle(currentTopicId);
+        if (!cycle) {
+            const topic        = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+            const participants = topic?.participants || [];
+            cycle = await SupabaseCycles.openCycle(currentTopicId, participants);
+        }
+        if (!cycle) { if (note) note.textContent = 'No se pudo abrir el ciclo. Inténtalo de nuevo.'; return; }
+
+        // Tres opciones con impacto fijo, orden barajado para no revelar el impacto por posición
+        const opts = [
+            { label: 'A', text: optA, affinity_impact:  3 },
+            { label: 'B', text: optB, affinity_impact:  0 },
+            { label: 'C', text: optC, affinity_impact: -3 },
+        ];
+        opts.sort(() => Math.random() - .5);
+        opts.forEach((o, i) => { o.label = String.fromCharCode(65 + i); });
+
+        const choice = await SupabaseCycles.createChoice(
+            cycle.id, currentTopicId, selectedCharId, question, opts
+        );
+        if (!choice) { if (note) note.textContent = '¿Ya lanzaste una elección este ciclo?'; return; }
+
+        closeChoicePanel();
+        if (typeof showAutosave === 'function') showAutosave('✦ Elección lanzada al ciclo', 'saved');
+        updateChoiceButton();
+
+    } catch (err) {
+        window.EtheriaLogger?.warn('choicePanel', err?.message);
+        if (note) note.textContent = 'Error inesperado. Inténtalo de nuevo.';
+    } finally {
+        if (launchBtn) { launchBtn.disabled = false; launchBtn.textContent = '✦ Lanzar al ciclo'; }
+    }
+}
+
+// ── toggleExportMenu / closeExportMenu ────────────────────────────────────────
+function toggleExportMenu(menuId, event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    const isOpen = !menu.classList.contains('hidden');
+    document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden'));
+    if (!isOpen) {
+        menu.classList.remove('hidden');
+        setTimeout(function () {
+            document.addEventListener('click', function _closeExport() {
+                closeExportMenu(menuId);
+                document.removeEventListener('click', _closeExport);
+            }, { once: true });
+        }, 0);
+    }
+}
+
+function closeExportMenu(menuId) {
+    const menu = document.getElementById(menuId || 'exportMenuClassic') ||
+                 document.getElementById('exportMenuRpg');
+    if (menu) menu.classList.add('hidden');
+}
+
+window.openChoicePanel    = openChoicePanel;
+window.closeChoicePanel   = closeChoicePanel;
+window.launchChoice       = launchChoice;
+window.updateChoiceButton = updateChoiceButton;
+window.toggleExportMenu   = toggleExportMenu;
+window.closeExportMenu    = closeExportMenu;
