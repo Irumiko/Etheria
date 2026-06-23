@@ -652,26 +652,29 @@
     }
 }
 
-/* ── Respondió: "estrella apagada" ───────────────────────── */
+/* ── Respondió: atenuado pero legible ────────────────────── */
+/* opacity 0.25 era demasiado agresivo — estado más común mientras avanza
+   la historia, así que los nombres tienen que seguir siendo legibles.
+   0.45 + brightness(0.75) da claramente "inactivo" sin desaparecer. */
 .cp-member--responded {
-    opacity: 0.25;
-    filter: saturate(0.2) brightness(0.55);
+    opacity: 0.45;
+    filter: saturate(0.35) brightness(0.75);
     background: rgba(4, 3, 12, 0.55);
-    border-color: rgba(155, 135, 200, 0.06);
+    border-color: rgba(155, 135, 200, 0.08);
     cursor: default;
     animation: none;
 }
 .cp-member--responded:hover {
     background: rgba(4, 3, 12, 0.55);
-    border-color: rgba(155, 135, 200, 0.06);
+    border-color: rgba(155, 135, 200, 0.08);
 }
-/* Conectado pero ya respondió: pulso muy tenue, como una estrella lejana */
+/* Conectado pero ya respondió: pulso muy suave */
 .cp-member--online.cp-member--responded {
     animation: cp-star-dim 4.5s ease-in-out infinite;
 }
 @keyframes cp-star-dim {
-    0%,  100% { opacity: 0.25; }
-    50%        { opacity: 0.32; }
+    0%,  100% { opacity: 0.45; }
+    50%        { opacity: 0.55; }
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
@@ -687,3 +690,4 @@
     .upm-stats-grid { grid-template-columns: 1fr; }
     .upm-rpg-stat-grid { grid-template-columns: 1fr; }
 }
+
