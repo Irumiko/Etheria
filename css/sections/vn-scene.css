@@ -131,26 +131,28 @@ body.theme-classic #vnSection .bottom-panel .vn-dialogue-box::after {
 /* ── Placa de nombre — píldora engastada en el borde ────────────────── */
 body.theme-classic #vnSection .vn-speaker-plate {
     position: absolute;
-    /* Engastada en el borde superior — translateY(-42%) en lugar de -50%
-       para que quede mayoritariamente dentro del frame y no tape los ornamentos */
-    top: 0;
+    /* Etiqueta anclada al borde superior interno — parte visual de la caja,
+       no un adorno flotante. top:0 + translateY(-100%) la pone ENCIMA del borde
+       sin invadir el frame decorativo. */
+    top: -1px;
     left: 50%;
-    transform: translate(-50%, -42%);
+    transform: translate(-50%, -100%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 7px 28px 7px 22px;
-    border-radius: 999px;
-    background: linear-gradient(180deg, #34306f 0%, #221d52 48%, #110f33 100%);
-    border: 1px solid rgba(220,214,240,.5);
+    padding: 6px 24px 7px;
+    /* Bordes redondeados solo arriba — se funde con la caja por abajo */
+    border-radius: 10px 10px 0 0;
+    background: linear-gradient(180deg, #2a2660 0%, #1a1645 100%);
+    border: 1px solid rgba(220,214,240,.45);
+    border-bottom: none;
     box-shadow:
-        inset 0 1px 0 rgba(220,214,240,.35),
-        inset 0 -2px 5px rgba(0,0,0,.45),
-        0 4px 16px rgba(0,0,0,.5),
-        0 0 22px var(--vns-p-glow);
+        inset 0 1px 0 rgba(220,214,240,.25),
+        0 -4px 16px rgba(0,0,0,.4),
+        0 0 18px var(--vns-p-glow);
     font-family: 'Cinzel', serif;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     color: #fdfaef;
     letter-spacing: .18em;
@@ -159,7 +161,7 @@ body.theme-classic #vnSection .vn-speaker-plate {
     white-space: nowrap;
     clip-path: none;
     z-index: 3;
-    min-width: 160px;
+    min-width: 140px;
 }
 
 body.theme-classic #vnSection .vn-speaker-plate::before {
@@ -1415,25 +1417,26 @@ body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap {
 /* Placa de nombre — afinada: medallón translúcido plata (clásico), menos
    índigo plano. (Si la prefieres distinta, este es el bloque a tocar.) */
 body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate {
-    background: linear-gradient(180deg, #34306f 0%, #221d52 48%, #110f33 100%) !important;
-    border: 1px solid rgba(220,214,240,.5) !important;
+    background: linear-gradient(180deg, #2a2660 0%, #1a1645 100%) !important;
+    border: 1px solid rgba(220,214,240,.45) !important;
+    border-bottom: none !important;
+    border-radius: 10px 10px 0 0 !important;
     box-shadow:
-        inset 0 1px 0 rgba(220,214,240,.35),
-        inset 0 -2px 5px rgba(0,0,0,.45),
-        0 4px 16px rgba(0,0,0,.5),
-        0 0 20px var(--vns-p-glow) !important;
-    font-size: 15px !important;
+        inset 0 1px 0 rgba(220,214,240,.25),
+        0 -4px 16px rgba(0,0,0,.4),
+        0 0 18px var(--vns-p-glow) !important;
+    font-size: 14px !important;
     letter-spacing: .18em !important;
-    padding: 7px 28px 7px 22px !important;
+    padding: 6px 24px 7px !important;
     color: #fdfaef !important;
     left: 50% !important;
-    transform: translate(-50%, -42%) !important;
-    min-width: 160px !important;
+    top: -1px !important;
+    transform: translate(-50%, -100%) !important;
+    min-width: 140px !important;
     justify-content: center !important;
 }
 body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate::before {
-    inset: 3px !important;
-    border-color: rgba(220,214,240,.14) !important;
+    content: none !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -2058,3 +2061,50 @@ body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate::after { inset: 2px
 /* ocultar la tarjeta de perfil redundante en Azar */
 body.theme-rpg #vnSection #vnInfoCard { display: none !important; }
 
+
+/* ── Fix nameplate RPG — misma lógica de etiqueta que clásico ────────────── */
+body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate {
+    top: -1px !important;
+    left: 50% !important;
+    transform: translate(-50%, -100%) !important;
+    border-radius: 8px 8px 0 0 !important;
+    border-bottom: none !important;
+}
+
+/* ── Popover — clase RPG y nivel ─────────────────────────────────────────── */
+#vnSection .cp-popover-class-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 9px;
+    background: rgba(227, 162, 79, .06);
+    border: 1px solid rgba(227, 162, 79, .15);
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+#vnSection .cp-popover-class-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #e3a24f;
+}
+#vnSection .cp-popover-class-level {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    color: rgba(227, 162, 79, .7);
+}
+
+/* ── Party clásico — mejorar visibilidad ─────────────────────────────────── */
+body.theme-classic .classic-party-panel .cp-member {
+    background: rgba(193, 168, 236, .08) !important;
+    border: 1px solid rgba(193, 168, 236, .25) !important;
+    color: #dcd6f0 !important;
+}
+body.theme-classic .classic-party-panel .cp-member .cp-name {
+    color: #dcd6f0 !important;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: .06em;
+}
