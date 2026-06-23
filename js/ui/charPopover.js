@@ -180,6 +180,7 @@ const CharPopover = (function () {
                 <div class="cp-popover-meta">
                     <span class="cp-popover-name">${_esc(fullName)}</span>
                     ${sub ? `<span class="cp-popover-sub">${_esc(sub)}</span>` : ''}
+                    ${char.age ? `<span class="cp-popover-sub">${_esc(String(char.age))} años</span>` : ''}
                 </div>
             </div>
             ${bodyHtml ? `<div class="cp-popover-body">${bodyHtml}</div>` : ''}
@@ -289,3 +290,4 @@ const CharPopover = (function () {
 })();
 
 window.CharPopover = CharPopover;
+
