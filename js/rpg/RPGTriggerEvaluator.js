@@ -56,6 +56,12 @@ const RPGTriggerEvaluator = (function () {
             eventBus.on('scene:step', function () {
                 if (_storyId) _scheduleEvaluation();
             });
+
+            // Cuando una variable de escena cambia (retransmitido por RPGRenderer)
+            // reevaluar triggers por si alguna condición depende de esa variable
+            eventBus.on('rpg:variable-updated', function () {
+                if (_storyId) _scheduleEvaluation();
+            });
         }
     }
 
@@ -295,3 +301,4 @@ const RPGTriggerEvaluator = (function () {
 })();
 
 window.RPGTriggerEvaluator = RPGTriggerEvaluator;
+
