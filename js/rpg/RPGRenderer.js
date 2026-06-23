@@ -42,16 +42,23 @@ const RPGRenderer = (function () {
 
         _unsubs = [
             eventBus.on('scene:started',          _onSceneStarted),
-            eventBus.on('scene:step',              _onStep),
-            eventBus.on('scene:choice-shown',      _onChoiceShown),
-            eventBus.on('scene:background',        _onBackground),
-            eventBus.on('scene:sound',             _onSound),
-            eventBus.on('scene:camera',            _onCamera),
-            eventBus.on('scene:stat-check-result', _onStatCheckResult),
-            eventBus.on('scene:choice-made',       _onChoiceMade),
-            eventBus.on('scene:ended',             _onSceneEnded),
-            eventBus.on('scene:error',             _onError),
-            eventBus.on('rpg:state-updated',       _onStateUpdated)
+            eventBus.on('scene:step',             _onStep),
+            eventBus.on('scene:choice-shown',     _onChoiceShown),
+            eventBus.on('scene:background',       _onBackground),
+            eventBus.on('scene:sound',            _onSound),
+            eventBus.on('scene:camera',           _onCamera),
+            eventBus.on('scene:stat-check-result',_onStatCheckResult),
+            eventBus.on('scene:choice-made',      _onChoiceMade),
+            eventBus.on('scene:ended',            _onSceneEnded),
+            eventBus.on('scene:error',            _onError),
+            eventBus.on('rpg:state-updated',      _onStateUpdated),
+            // Estados de escena — conectados para mantener la UI sincronizada
+            eventBus.on('scene:paused',           _onScenePaused),
+            eventBus.on('scene:resumed',          _onSceneResumed),
+            eventBus.on('scene:stopped',          _onSceneStopped),
+            eventBus.on('scene:wait-start',       _onWaitStart),
+            eventBus.on('scene:variable-changed', _onVariableChanged),
+            eventBus.on('rpg:event-fired',        _onEventFired)
         ];
     }
 
@@ -171,6 +178,65 @@ const RPGRenderer = (function () {
             _setText(DOM.dialogueText, 'No se pudo cargar la escena: ' + data.error);
             box.style.display = 'flex';
         }
+    }
+
+    // ── Handlers de estados de escena nuevos ────────────────────
+
+    function _onScenePaused() {
+        // Mostrar indicador visual de pausa en la sección RPG
+        var vnSection = document.getElementById(DOM.vnSection);
+        if (vnSection) vnSection.classList.add('rpg-scene-paused');
+        // Bloquear input de avance mientras está en pausa
+        var box = _dialogueBox();
+        if (box) box.style.pointerEvents = 'none';
+    }
+
+    function _onSceneResumed() {
+        var vnSection = document.getElementById(DOM.vnSection);
+        if (vnSection) vnSection.classList.remove('rpg-scene-paused');
+        var box = _dialogueBox();
+        if (box) box.style.pointerEvents = '';
+    }
+
+    function _onSceneStopped() {
+        // Mismo comportamiento que scene:ended — limpiar UI
+        _clearChoices();
+        _hideStatCheck();
+        var vnSection = document.getElementById(DOM.vnSection);
+        if (vnSection) {
+            vnSection.classList.remove('rpg-scene-active');
+            vnSection.classList.remove('rpg-scene-paused');
+        }
+        var box = _dialogueBox();
+        if (box) box.style.pointerEvents = '';
+    }
+
+    function _onWaitStart(data) {
+        // Mostrar indicador de espera en la caja de diálogo mientras dura el wait
+        var textEl = document.getElementById(DOM.dialogueText);
+        if (!textEl) return;
+        var duration = data && data.duration ? data.duration : 0;
+        textEl.classList.add('rpg-waiting');
+        if (duration > 0) {
+            setTimeout(function () {
+                textEl.classList.remove('rpg-waiting');
+            }, duration);
+        }
+    }
+
+    function _onVariableChanged(data) {
+        // Las variables de escena cambiaron — notificar al TriggerEvaluator
+        // vía EventBus para que revalúe condiciones sin acoplamiento directo.
+        // RPGRenderer no tiene lógica de triggers: solo retransmite.
+        if (data && data.key !== undefined) {
+            eventBus.emit('rpg:variable-updated', { key: data.key, value: data.value });
+        }
+    }
+
+    function _onEventFired(data) {
+        // rpg:event-fired es información de diagnóstico del TriggerEvaluator.
+        // Solo logeamos — no hay UI asociada por ahora.
+        window.EtheriaLogger?.info?.('RPGRenderer', 'event fired:', data?.eventId);
     }
 
     function _onStateUpdated(data) {
@@ -394,3 +460,4 @@ const RPGRenderer = (function () {
 
     return { init: init, destroy: destroy, updateStatBar: _updateStatBar };
 })();
+
