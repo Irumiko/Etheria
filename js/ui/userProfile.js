@@ -438,8 +438,25 @@
 
         const topic       = _currentTopic();
         const isClassicMode = !_isRpg();
-        shell.style.display = isClassicMode && participants && participants.length > 0 ? '' : 'none';
-        if (!isClassicMode || !participants || !participants.length) return;
+        // Mostrar el party clásico desde el primer mensaje — aunque solo esté
+        // el personaje propio. La condición anterior requería participants.length > 0
+        // lo que ocultaba el panel hasta que alguien respondía.
+        shell.style.display = isClassicMode ? '' : 'none';
+        if (!isClassicMode) return;
+        // Si no hay participantes aún, mostrar solo el personaje propio como fallback
+        if (!participants || !participants.length) {
+            const ownChar = _getOwnChar();
+            if (ownChar) {
+                list.innerHTML = '<button type="button" class="cp-member cp-member--online"'
+                    + ' onclick="if(typeof CharPopover!=='undefined'){CharPopover.toggle('' + String(ownChar.id) + '',this)}"'
+                    + ' title="' + (ownChar.name || 'Tu personaje') + '">'
+                    + '<span class="cp-name">' + (ownChar.name || '?') + '</span>'
+                    + '</button>';
+            } else {
+                list.innerHTML = '';
+            }
+            return;
+        }
 
         const lockMap    = topic
             ? Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {})
