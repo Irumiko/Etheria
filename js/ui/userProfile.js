@@ -447,11 +447,19 @@
         if (!participants || !participants.length) {
             const ownChar = _getOwnChar();
             if (ownChar) {
-                list.innerHTML = '<button type="button" class="cp-member cp-member--online"'
-                    + ' onclick="if(typeof CharPopover!=='undefined'){CharPopover.toggle('' + String(ownChar.id) + '',this)}"'
-                    + ' title="' + (ownChar.name || 'Tu personaje') + '">'
-                    + '<span class="cp-name">' + (ownChar.name || '?') + '</span>'
-                    + '</button>';
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'cp-member cp-member--online';
+                btn.title = ownChar.name || 'Tu personaje';
+                btn.dataset.charId = String(ownChar.id);
+                btn.innerHTML = '<span class="cp-name">' + _esc(ownChar.name || '?') + '</span>';
+                btn.addEventListener('click', function() {
+                    if (typeof CharPopover !== 'undefined') {
+                        CharPopover.toggle(btn.dataset.charId, btn);
+                    }
+                });
+                list.innerHTML = '';
+                list.appendChild(btn);
             } else {
                 list.innerHTML = '';
             }
