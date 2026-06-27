@@ -323,28 +323,35 @@ body.theme-classic #vnSection .vn-continue-btn:hover {
     border-color: var(--vns-p-lav);
 }
 
-/* ── Toolbar lateral — cápsula circular plateada ────────────────────── */
+/* ── Toolbar superior — fila horizontal plateada ─────────────────────── */
 body.theme-classic #vnSection .vn-toolbar.vn-classic-controls {
     position: absolute;
-    right: 18px;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 1rem;
+    right: 1rem;
     left: auto;
     bottom: auto;
     z-index: 12;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 8px;
-    padding: 12px 8px;
+    gap: 4px;
+    padding: 6px 10px;
     border-radius: 999px;
-    background: rgba(12,10,32,.55);
-    border: 1px solid rgba(220,214,240,.17);
+    background: rgba(12,10,32,.60);
+    border: 1px solid rgba(220,214,240,.18);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: none;
     max-height: none;
     overflow: visible;
+    transform: none;
+}
+/* Divider vertical en fila horizontal */
+body.theme-classic #vnSection .vn-classic-control-divider {
+    width: 1px;
+    height: 20px;
+    margin: 0 2px;
+    background: linear-gradient(180deg, transparent, rgba(220,214,240,.28), transparent);
 }
 
 body.theme-classic #vnSection .vn-classic-control-btn {
@@ -390,9 +397,9 @@ body.theme-classic #vnSection .vn-classic-control-btn.vn-btn-danger:hover {
    el código; solo se reestiliza y se posiciona aquí. ── */
 body.theme-classic #classicPartyShell {
     position: fixed !important;
-    top: 1.5rem !important;
-    right: 4.6rem !important;   /* separado de la toolbar del borde */
-    left: auto !important;
+    top: 1rem !important;
+    left: 0.85rem !important;
+    right: auto !important;
     bottom: auto !important;
     width: 188px !important;
     z-index: 800 !important;
@@ -403,9 +410,10 @@ body.theme-classic #vnPartyShell {
 }
 
 body.theme-classic #classicPartyShell .classic-party-panel {
-    background: linear-gradient(180deg, rgba(20,17,48,.74), rgba(9,8,26,.88)) !important;
-    border: 1px solid rgba(206,196,255,.2) !important;
+    background: linear-gradient(180deg, rgba(30,24,66,.90), rgba(16,12,40,.96)) !important;
+    border: 1px solid rgba(206,196,255,.36) !important;
     border-radius: 14px !important;
+    box-shadow: 0 4px 24px rgba(0,0,0,.55), 0 0 0 1px rgba(193,168,236,.08) !important;
 }
 body.theme-classic #classicPartyShell .classic-party-title {
     font-family: 'Cinzel', serif !important;
@@ -1991,6 +1999,36 @@ body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate::after { inset: 2px
     right: 1.3rem !important;
     left: auto !important;
 }
-/* ocultar la tarjeta de perfil redundante en Azar */
-body.theme-rpg #vnSection #vnInfoCard { display: none !important; }
+/* ocultar la tarjeta de perfil redundante en Azar y Clásico (party la reemplaza) */
+body.theme-rpg   #vnSection #vnInfoCard { display: none !important; }
+body.theme-classic #vnSection #vnInfoCard { display: none !important; }
+
+/* ── Sprite silueta en modo clásico: más claro, sin glow activo ─────── */
+/* La silueta por defecto es casi negra (brightness 0.08). En clásico la
+   subimos a gris pizarra oscuro y suprimimos el glow para que no brille. */
+body.mode-classic .shadow-silhouette-img {
+    filter:
+        brightness(0.30)
+        contrast(1.05)
+        drop-shadow(0 6px 14px rgba(0,0,0,.30)) !important;
+}
+body.mode-classic .vn-sprite.active .shadow-silhouette-img {
+    filter:
+        brightness(0.35)
+        contrast(1.05)
+        drop-shadow(0 8px 18px rgba(0,0,0,.35)) !important;
+}
+body.mode-classic .vn-sprite.inactive .shadow-silhouette-img {
+    filter:
+        brightness(0.18)
+        contrast(1.0)
+        blur(2px)
+        drop-shadow(0 4px 10px rgba(0,0,0,.25)) !important;
+    opacity: 0.45 !important;
+}
+/* Sin glow en clásico (solo se permite la animación de respiración) */
+body.mode-classic .shadow-glow,
+body.mode-classic .vn-sprite.active .shadow-glow {
+    opacity: 0 !important;
+}
 

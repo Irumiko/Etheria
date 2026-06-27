@@ -480,7 +480,15 @@
 
         // El orden NO cambia: participants ya viene ordenado por primer-mensaje (llegada)
         list.innerHTML = participants.map(p => {
-            const charId    = lockMap[p.user_index] || lockMap[String(p.user_index)];
+            // Buscar charId en lockMap por userIndex (local) o por owner_user_id (cloud)
+            let charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
+            if (!charId && p.user_id) {
+                const lockValues = Object.values(lockMap);
+                const owned = _allChars().find(c =>
+                    c.owner_user_id === p.user_id && lockValues.includes(String(c.id))
+                );
+                if (owned) charId = String(owned.id);
+            }
             const char      = charId ? _allChars().find(c => String(c.id) === String(charId)) : null;
             const name      = (char && char.name) || (p.profile && p.profile.name) || '?';
             const genderKey = (char && char.gender) || '';
@@ -519,11 +527,8 @@
                 ${statusIcon ? `<span class="cp-status-icon" aria-hidden="true">${statusIcon}</span>` : ''}
             </button>`;
         }).join('');
-        list.querySelectorAll('.cp-member').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                openUserProfileModal(btn.dataset.userId);
-            });
-        });
+        // El onclick inline de cada .cp-member ya llama a CharPopover.toggle (character info).
+        // No añadir listener adicional que abra el perfil de usuario.
     }
 
     // ── Expose globals ───────────────────────────────────────
