@@ -185,18 +185,6 @@
                 </aside>
             </div>
 
-    <!-- Panel de party modo clásico -->
-    <div id="classicPartyShell" class="classic-party-shell" style="display:none;" aria-label="Personajes en escena">
-        <div class="classic-party-panel">
-            <div class="classic-party-header">
-                <span class="classic-party-ornament">✦</span>
-                <span class="classic-party-title">En escena</span>
-                <span class="classic-party-ornament">✦</span>
-            </div>
-            <div id="classicPartyList" class="classic-party-list"></div>
-        </div>
-    </div>
-
     <!-- Modal de perfil de usuario -->
     <div id="userProfileModal" class="upm-overlay" onclick="if(event.target===this)closeUserProfileModal()" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="upmName">
         <div class="upm-card" id="upmCard">
@@ -890,6 +878,17 @@
 
     <!-- VN Section -->
     <div id="vnSection" class="game-section vn-section">
+        <!-- Panel de party modo clásico — dentro de vnSection para heredar --vns-* variables -->
+        <div id="classicPartyShell" class="classic-party-shell" style="display:none;" aria-label="Personajes en escena">
+            <div class="classic-party-panel">
+                <div class="classic-party-header">
+                    <span class="classic-party-ornament">✦</span>
+                    <span class="classic-party-title">En escena</span>
+                    <span class="classic-party-ornament">✦</span>
+                </div>
+                <div id="classicPartyList" class="classic-party-list"></div>
+            </div>
+        </div>
         <!-- Panel búsqueda de mensajes -->
         <div id="msgSearchPanel">
             <div class="msg-search-bar">
