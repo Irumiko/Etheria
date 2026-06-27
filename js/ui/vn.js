@@ -2078,10 +2078,13 @@ function showCurrentMessage(direction = 'forward') {
             namePlate.style.background = msg.charColor || 'var(--accent-wood)';
         }
         if (avatarBox) {
+            // Prefer the live avatar from appData over the one stored in the message,
+            // so avatar changes made after the message was sent are reflected immediately.
+            const liveAvatar = charData?.avatar || charData?.sprite || msg.charAvatar;
             // XSS fix: build img via DOM to avoid charName injection in onerror attribute
-            if (msg.charAvatar) {
+            if (liveAvatar) {
                 const _img2 = document.createElement('img');
-                _img2.src = msg.charAvatar;
+                _img2.src = liveAvatar;
                 _img2.alt = 'Avatar de ' + msg.charName;
                 _img2.onerror = function () {
                     this.style.display = 'none';
