@@ -492,8 +492,6 @@
                 } catch(e) { return null; }
             })();
 
-        console.log('[ClassicParty] selCharId=', _selCharId, 'allChars=', allChars.length, 'topic=', topic?.id);
-
         // 1. Personaje propio por selectedCharId (máxima prioridad)
         if (_selCharId) {
             const c = allChars.find(ch => String(ch.id) === String(_selCharId));

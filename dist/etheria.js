@@ -25172,8 +25172,6 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
                 } catch(e) { return null; }
             })();
 
-        console.log('[ClassicParty] selCharId=', _selCharId, 'allChars=', allChars.length, 'topic=', topic?.id);
-
         // 1. Personaje propio por selectedCharId (máxima prioridad)
         if (_selCharId) {
             const c = allChars.find(ch => String(ch.id) === String(_selCharId));
@@ -25358,27 +25356,34 @@ const CharPopover = (function () {
         return !!(topic?.mode === 'rpg' || document.body.classList.contains('theme-rpg'));
     }
 
+    // appData, selectedCharId, currentTopicId son `let` en state.js — no en window.
+    // Se acceden por closure desde el bundle concatenado.
+    function _ad() { return typeof appData !== 'undefined' ? appData : null; }
+
     function _getChar(charId) {
-        return (window.appData?.characters || []).find(c => String(c.id) === String(charId)) || null;
+        return (_ad()?.characters || []).find(c => String(c.id) === String(charId)) || null;
     }
 
     function _getMyCharId() {
-        return window.selectedCharId ? String(window.selectedCharId) : null;
+        const sid = (window.vnStore && window.vnStore.get().selectedCharId)
+            || (typeof selectedCharId !== 'undefined' ? selectedCharId : null);
+        return sid ? String(sid) : null;
     }
 
     function _getAffinityData(fromCharId, toCharId) {
         if (!fromCharId || !toCharId || fromCharId === toCharId) return null;
-        const topicId = window.currentTopicId;
+        const topicId = (typeof currentTopicId !== 'undefined' ? currentTopicId : null)
+            || (window.vnStore && window.vnStore.get().topicId);
         if (!topicId) return null;
 
         const key      = `${fromCharId}_${toCharId}`;
-        const value    = Number(window.appData?.affinities?.[topicId]?.[key]) || 0;
-        const relType  = window.appData?.affinityTypes?.[topicId]?.[key] || 'undefined';
+        const value    = Number(_ad()?.affinities?.[topicId]?.[key]) || 0;
+        const relType  = _ad()?.affinityTypes?.[topicId]?.[key] || 'undefined';
 
         // Usar reciprocidad si está disponible
         const reverseKey   = `${toCharId}_${fromCharId}`;
-        const otherValue   = Number(window.appData?.affinities?.[topicId]?.[reverseKey]) || 0;
-        const otherRelType = window.appData?.affinityTypes?.[topicId]?.[reverseKey] || 'undefined';
+        const otherValue   = Number(_ad()?.affinities?.[topicId]?.[reverseKey]) || 0;
+        const otherRelType = _ad()?.affinityTypes?.[topicId]?.[reverseKey] || 'undefined';
 
         const rankFn = typeof getAffinityRankInfoWithReciprocity === 'function'
             ? getAffinityRankInfoWithReciprocity
