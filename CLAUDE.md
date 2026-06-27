@@ -37,41 +37,68 @@ Etheria/
 │   ├── core/
 │   │   ├── store.js            # Store reactivo mínimo (vnStore: topicId, charId, etc.)
 │   │   └── events.js           # Bus de eventos global
+│   ├── ethy.js             # Mascota Ethy — widget interactivo + tutorial
+│   ├── collab-guard.js     # Coordinación colaborativa: merge de conflictos, broadcast Realtime
 │   ├── ui/
-│   │   ├── vn.js               # 272KB — motor VN completo (entrada de topic, mensajes, sprites)
-│   │   ├── topics.js           # 72KB — lista de historias, tarjetas tarot, CRUD topics
-│   │   ├── sheets.js           # 60KB — fichas de personaje RPG
-│   │   ├── app-ui.js           # 60KB — UI global: save/load, modal, theme, sync indicator
-│   │   ├── roleplay.js         # 56KB — sistema afinidad, modo rol, selección personaje
-│   │   ├── navigation.js       # 24KB — showSection, backToMenu, fadeTransition, galería
-│   │   ├── journal.js          # 24KB — diario
-│   │   ├── characters.js       # 28KB — editor de personajes, perfiles
-│   │   ├── sounds.js           # 20KB — sistema de audio
-│   │   ├── bonds-ui.js         # 20KB — vínculos entre personajes
-│   │   ├── effects.js          # 12KB — lluvia, niebla, emotes, clima
-│   │   ├── ui.js               # 12KB — tooltips, atajos de teclado, gestos táctiles
-│   │   ├── utils-ui.js         # 8KB — formatText, escapeHtml, validaciones
-│   │   ├── hub.js              # 8KB — menú principal, parallax, datos de usuario
-│   │   ├── affinity-atmosphere.js  # 8KB — atmósfera según afinidad
-│   │   ├── message-search.js   # 8KB — búsqueda de mensajes
-│   │   └── ethy.js             # 4KB — mascota Ethy
+│   │   ├── vn.js               # Motor VN completo (entrada de topic, mensajes, sprites)
+│   │   ├── topics.js           # Lista de historias, tarjetas tarot, CRUD topics
+│   │   ├── sheets.js           # Fichas de personaje RPG
+│   │   ├── app-ui.js           # UI global: save/load, modal, theme, sync indicator
+│   │   ├── roleplay.js         # Sistema afinidad, modo rol, selección personaje
+│   │   ├── navigation.js       # showSection, backToMenu, fadeTransition, galería
+│   │   ├── journal.js          # Diario e historial de mensajes
+│   │   ├── characters.js       # Editor de personajes, perfiles
+│   │   ├── sounds.js           # Sistema de audio
+│   │   ├── bonds-ui.js         # Vínculos entre personajes
+│   │   ├── effects.js          # Lluvia, niebla, emotes, clima
+│   │   ├── ui.js               # Tooltips, atajos de teclado, gestos táctiles
+│   │   ├── utils-ui.js         # formatText, escapeHtml, validaciones
+│   │   ├── hub.js              # Menú principal, parallax, datos de usuario
+│   │   ├── hub-luna.js         # Re-skin "Luna de Plata" del menú principal
+│   │   ├── affinity-atmosphere.js  # Atmósfera según afinidad
+│   │   ├── atmosphere.js       # Sistema de atmósferas (día/noche/clima)
+│   │   ├── message-search.js   # Búsqueda de mensajes
+│   │   ├── activityDashboard.js    # Panel de actividad de historia
+│   │   ├── toasts.js           # Sistema de notificaciones toast
+│   │   ├── storyExport.js      # Exportación de historias
+│   │   ├── options-luna.js     # Re-skin opciones "Luna de Plata"
+│   │   ├── vn-design.js        # Diseño y paneles del modo VN
+│   │   └── userProfile.js      # Modal de perfil de usuario
 │   ├── utils/
-│   │   ├── supabaseClient.js   # Singleton global: window.supabaseClient
+│   │   ├── supabaseClient.js       # Singleton global: window.supabaseClient
 │   │   ├── supabaseAuthHeaders.js  # Construcción de headers JWT para fetch directo
-│   │   ├── supabaseSync.js     # Sincronización bidireccional local↔cloud
-│   │   ├── supabaseMessages.js # CRUD mensajes realtime
-│   │   ├── supabasePresence.js # Presencia en tiempo real (canales Realtime)
-│   │   ├── supabaseStories.js  # CRUD historias (usa fetch + CASCADE, no SDK)
-│   │   ├── supabaseTurnNotifications.js
-│   │   ├── supabaseProfiles.js, supabaseCharacters.js, supabaseBonds.js ...
-│   │   ├── storage.js          # localStorage con migración automática
-│   │   ├── state.js            # Estado global de sesión (userIndex, etc.)
-│   │   └── logger.js, webVitals.js, pushNotifications.js
+│   │   ├── supabaseSync.js         # Sincronización bidireccional local↔cloud (LWW por campo)
+│   │   ├── supabaseMessages.js     # CRUD mensajes realtime
+│   │   ├── supabasePresence.js     # Presencia en tiempo real (canales Realtime)
+│   │   ├── supabaseStories.js      # CRUD historias (usa fetch + CASCADE, no SDK)
+│   │   ├── supabaseProfiles.js     # Gestión de perfiles de usuario
+│   │   ├── supabaseCharacters.js   # Personajes por perfil
+│   │   ├── supabaseBonds.js        # Vínculos entre personajes
+│   │   ├── supabaseAffinities.js   # Sistema de afinidad
+│   │   ├── supabaseAvatars.js      # Gestión de avatares
+│   │   ├── supabaseSlots.js        # Slots de perfil (sincroniza al login)
+│   │   ├── supabaseCycles.js       # Ciclos narrativos de historia
+│   │   ├── supabaseCycleViews.js   # Vistas de ciclos
+│   │   ├── supabaseExtras.js       # Extras de historia (acciones, lore…)
+│   │   ├── supabaseSettings.js     # Ajustes de usuario en la nube
+│   │   ├── supabaseSprites.js      # Gestión de sprites de personaje
+│   │   ├── supabaseFavorites.js    # Favoritos (mensajes, personajes, historias)
+│   │   ├── supabaseJournals.js     # Diarios de historia en la nube
+│   │   ├── supabaseInbox.js        # Buzón de notificaciones
+│   │   ├── supabaseTurnNotifications.js  # Notificaciones de turno
+│   │   ├── messageCache.js         # Caché IndexedDB de mensajes
+│   │   ├── imageCompressor.js      # Compresión de imágenes para avatares
+│   │   ├── pushNotifications.js    # Push notifications PWA
+│   │   ├── storage.js              # localStorage con migración automática
+│   │   ├── state.js                # Estado global de sesión (userIndex, etc.)
+│   │   └── logger.js, webVitals.js
 │   ├── rpg/
-│   │   ├── RPGEngine.js        # Motor de reglas D&D-lite
-│   │   ├── RPGRenderer.js      # Renderizado HUD RPG
-│   │   ├── RPGState.js         # Estado de combate/sesión RPG
-│   │   ├── SceneLoader.js      # Carga escenas JSON
+│   │   ├── RPGEngine.js            # Motor de reglas D&D-lite
+│   │   ├── RPGRenderer.js          # Renderizado HUD RPG
+│   │   ├── RPGState.js             # Estado de combate/sesión RPG
+│   │   ├── RPGDispatcher.js        # Registro y ejecución de consecuencias narrativas
+│   │   ├── RPGTriggerEvaluator.js  # Evaluador de triggers (cuándo disparar eventos)
+│   │   ├── SceneLoader.js          # Carga escenas JSON
 │   │   └── SceneValidator.js
 │   ├── config/
 │   │   └── supabase.js         # URL y anon key (leídas de window.SUPABASE_CONFIG)
@@ -186,8 +213,16 @@ problemas de propagación de sesión del SDK en ciertos contextos.
 - `app.js` (raíz, 17 líneas) — eliminado. Shim obsoleto; js/app.js ya se carga
   directamente desde index.html.
 - CI: `.github/workflows/ci.yml` — npm test + validate:build + build en cada push.
-- Tests: 18/18 pasan. Test de deleteStory corregido (usaba patrón SDK antiguo,
-  la implementación usa fetch + CASCADE).
+- Tests: 32/32 pasan.
+- **Auditoría de seguridad completa (58 bugs corregidos):**
+  - XSS via `innerHTML` con datos de usuario/Supabase sin escapar — ~42 instancias
+  - XSS via `onclick` con delimitador `'` y datos de Supabase — ~9 instancias
+  - `SupabasePresence.isOnline` no exportado → indicadores de presencia siempre apagados
+  - Circuit breaker `_available` en supabaseMessages se disparaba en 4xx → mensajes bloqueados
+  - Claves de stats RPG en minúsculas vs. mayúsculas → todos los valores mostraban `—`
+  - SW: `openWindow(notifData.url)` sin validar origen (open redirect via push)
+  - SRI hash añadido al CDN de supabase-js en index.html
+  - `collab-guard.js`: ediciones remotas no se persistían a localStorage
 
 ### 🟡 Pendiente — medio plazo
 - `css/components.css` (13.624 líneas) — dividir en módulos por componente.

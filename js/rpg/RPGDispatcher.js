@@ -169,11 +169,11 @@ const RPGDispatcher = (function () {
     // send_message — emite un mensaje narrativo al log de la historia.
     // El texto pasa por escapeHtml antes de persistir.
     register('send_message', async (c, ctx) => {
-        // Sanitizar
-        const rawText = String(c.template || c.text || '');
-        const text    = typeof escapeHtml === 'function' ? escapeHtml(rawText) : rawText;
+        // Texto crudo — el renderer y la BD aplican su propio escaping.
+        // Escapar aquí causaría doble-escape cuando el VN procese el contenido.
+        const text = String(c.template || c.text || '');
 
-        // Emitir por el bus para que vn.js / RPGRenderer lo puedan mostrar
+        // Emitir por el bus para que vn.js lo añada al feed en tiempo real
         if (window.eventBus) {
             eventBus.emit('rpg:narrator-message', {
                 text:    text,
@@ -183,7 +183,7 @@ const RPGDispatcher = (function () {
             });
         }
 
-        // Intentar persistir en Supabase si está disponible
+        // Persistir en Supabase si está disponible
         const sb = window.supabaseClient;
         if (sb && ctx?.storyId && ctx?.userId) {
             await sb.from('messages').insert({

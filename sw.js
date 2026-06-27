@@ -240,7 +240,14 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'dismiss') return;
 
   const notifData = event.notification.data || {};
-  const targetUrl = notifData.url || '/';
+  const rawUrl    = notifData.url || '/';
+  let targetUrl;
+  try {
+    const parsed = new URL(rawUrl, self.location.origin);
+    targetUrl = parsed.origin === self.location.origin ? parsed.href : '/';
+  } catch {
+    targetUrl = '/';
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {

@@ -30,6 +30,7 @@ const SupabaseAffinities = (function () {
     async function upsert(fromCharId, toCharId, topicId, value) {
         const uid = await _ensureUserId();
         if (!uid || !fromCharId || !toCharId || !topicId) return;
+        if (String(fromCharId) === String(toCharId)) return; // auto-afinidad no tiene sentido
 
         try {
             const { error } = await _client()
@@ -145,7 +146,8 @@ const SupabaseAffinities = (function () {
 
         // Actualizar también el vínculo en character_bonds
         if (typeof SupabaseBonds !== 'undefined') {
-            SupabaseBonds.syncAffinity(from_char_id, to_char_id, Number(value) || 0).catch(() => {});
+            const syncValue = payload.eventType === 'DELETE' ? 0 : (Number(value) || 0);
+            SupabaseBonds.syncAffinity(from_char_id, to_char_id, syncValue).catch(() => {});
         }
 
         window.EtheriaLogger?.info?.('supabaseAffinities',

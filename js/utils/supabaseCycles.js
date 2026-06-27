@@ -19,6 +19,7 @@ const SupabaseCycles = (function () {
     // Forma: { id, topic_id, started_at, closes_at, participants: number[] }
     let _cachedCycle   = null;
     let _cachedTopicId = null;
+    let _closing       = false;  // guard de reentrada para onMessageSent
 
     // ── Helpers ──────────────────────────────────────────────────────
 
@@ -144,8 +145,16 @@ const SupabaseCycles = (function () {
         let cycle = await _fetchOpenCycle(topicId);
 
         if (!cycle) {
-            // No hay ciclo abierto: crear el primero
-            cycle = await _createCycle(topicId, participants);
+            // No hay ciclo abierto. Solo crear si hay participantes reales —
+            // un ciclo con 0 participantes cierra inmediatamente al primer mensaje
+            // porque [].every(...) es siempre true.
+            if (participants.length > 0) {
+                cycle = await _createCycle(topicId, participants);
+                if (!cycle) {
+                    // Otro usuario creó uno primero (race) — re-leer
+                    cycle = await _fetchOpenCycle(topicId);
+                }
+            }
         } else {
             // Hay ciclo abierto: comprobar si ya expiró por tiempo
             if (new Date() > new Date(cycle.closes_at)) {
@@ -191,28 +200,42 @@ const SupabaseCycles = (function () {
         }
 
         // ── Comprobar cierre ─────────────────────────────────────────
-        const cycleMsgs = topicMessages.filter(
-            m => m.cycle_id === cycle.id && !m.isOptionResult
-        );
+        // Filtramos por timestamp >= started_at porque cycle_id no se almacena
+        // en los mensajes locales — es solo una referencia en Supabase.
+        const cycleStart = new Date(cycle.started_at || 0).getTime();
+        const cycleMsgs = topicMessages.filter(function (m) {
+            return !m.isOptionResult && !m.isNarrator &&
+                   m.timestamp && new Date(m.timestamp).getTime() >= cycleStart;
+        });
         const responders = new Set(cycleMsgs.map(m => Number(m.userIndex)));
         const allResponded = participantsArr.every(p => responders.has(p));
         const expired      = new Date() > new Date(cycle.closes_at);
 
         if (!allResponded && !expired) return;
+        if (_closing) return;  // guard de reentrada — evita doble cierre en ráfaga
 
         // ── Cerrar ciclo ─────────────────────────────────────────────
+        _closing     = true;
         _cachedCycle = null;
-        await _closeCycle(cycle.id);
+        try {
+            await _closeCycle(cycle.id);
 
-        // Notificar al caller para que resuelva affinidades
-        if (typeof onClose === 'function') {
-            try { onClose(cycle.id); } catch (e) { _warn('onClose error:', e.message); }
+            // Notificar al caller para que resuelva affinidades
+            if (typeof onClose === 'function') {
+                try { onClose(cycle.id); } catch (e) { _warn('onClose error:', e.message); }
+            }
+
+            // ── Abrir ciclo nuevo ────────────────────────────────────
+            const newParticipants = _deriveParticipants(topicMessages);
+            let newCycle = await _createCycle(topicId, newParticipants);
+            if (!newCycle) {
+                // Race: otro cliente creó uno primero — re-leer
+                newCycle = await _fetchOpenCycle(topicId);
+            }
+            _cachedCycle = newCycle;
+        } finally {
+            _closing = false;
         }
-
-        // ── Abrir ciclo nuevo ────────────────────────────────────────
-        const newParticipants = _deriveParticipants(topicMessages);
-        const newCycle = await _createCycle(topicId, newParticipants);
-        _cachedCycle = newCycle;
     }
 
     // ── Public: reset (al salir del topic) ───────────────────────────
@@ -220,6 +243,7 @@ const SupabaseCycles = (function () {
     function reset() {
         _cachedCycle   = null;
         _cachedTopicId = null;
+        _closing       = false;
     }
 
     // ── Public API ────────────────────────────────────────────────────

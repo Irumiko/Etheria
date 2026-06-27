@@ -255,7 +255,7 @@ function updateVnTurnBadge() {
         return;
     }
 
-    const participantNames = getTurnParticipantNames();
+    const participantNames = getTurnParticipantNames().map(n => escapeHtml(n));
     const namesPreview = participantNames.slice(0, 3).join(' · ');
     const rotationHint = participantNames.length > 3
         ? `${namesPreview}…`
@@ -1860,7 +1860,7 @@ async function _sbEnterTopic(topicId) {
         }
         // Limpiar listener cuando salgamos del topic
         if (currentTopicId !== topicId) {
-            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandler);
+            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
         }
     };
     window.addEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
@@ -2797,11 +2797,7 @@ function editCurrentMessage() {
     const replyText = document.getElementById('vnReplyText');
     if (replyText) replyText.value = msg.text || '';
 
-    const narratorMode = document.getElementById('narratorMode');
-    if (narratorMode) {
-        narratorMode.checked = !!msg.isNarrator;
-        toggleNarratorMode();
-    }
+    applyNarratorMode(!!msg.isNarrator);
 
     if (!msg.isNarrator && msg.characterId) {
         updateCharSelector();
@@ -2904,7 +2900,7 @@ function saveEditedMessage() {
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
         charAvatar: isNarratorMode ? null : char.avatar,
-        charSprite: isNarratorMode ? null : char.sprite,
+        charSprite: isNarratorMode ? null : (selectedSpriteOverride || char.sprite),
         text,
         isNarrator: isNarratorMode,
         options: options && options.length > 0 ? options : undefined,
@@ -3094,7 +3090,7 @@ function buildHistoryEntry(msg, idx, showFavBadge = false) {
         const summary = getReactionSummary(currentTopicId, String(msg.id));
         const chips = Object.entries(summary)
             .sort((a, b) => b[1] - a[1])
-            .map(([emoji, count]) => `<span class="history-reaction-chip">${emoji}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`)
+            .map(([emoji, count]) => `<span class="history-reaction-chip">${escapeHtml(String(emoji))}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`)
             .join('');
         if (chips) reactionRow = `<div class="history-reactions">${chips}</div>`;
     }
@@ -4051,12 +4047,18 @@ function _renderChallengeBar(challenge) {
     dcEl.textContent   = 'DC ' + challenge.dc + ' · ' + getRollTypeLabel(challenge.rollType) + ' · define el siguiente foco';
 
     const statLabels = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constit.', INT: 'Intelec.', WIS: 'Sabid.', CHA: 'Carisma' };
-    btnsCnt.innerHTML = challenge.stats.map(stat =>
-        '<button class="vn-challenge-stat-btn" onclick="acceptChallenge(' + "'" + stat + "'" + ')" title="' + (statLabels[stat] || stat) + '">' +
-        '<span class="vn-cs-key">' + stat + '</span>' +
-        '<span class="vn-cs-label">' + (statLabels[stat] || stat) + '</span>' +
-        '</button>'
-    ).join('');
+    const validStats = new Set(Object.keys(statLabels));
+    btnsCnt.innerHTML = '';
+    (challenge.stats || []).forEach(stat => {
+        if (!validStats.has(stat)) return;
+        const label = statLabels[stat];
+        const btn = document.createElement('button');
+        btn.className = 'vn-challenge-stat-btn';
+        btn.title = label;
+        btn.innerHTML = '<span class="vn-cs-key">' + stat + '</span><span class="vn-cs-label">' + label + '</span>';
+        btn.addEventListener('click', function() { acceptChallenge(stat); });
+        btnsCnt.appendChild(btn);
+    });
 
     bar.style.display = 'flex';
 }
@@ -4430,6 +4432,52 @@ window.addEventListener('etheria:dm-revive', function(e) {
     if (typeof updateIhp === 'function') updateIhp();
 });
 
+// Mensaje de narrador disparado por una consecuencia RPG — añadir al feed en tiempo real
+if (typeof eventBus !== 'undefined') {
+    eventBus.on('rpg:narrator-message', function(data) {
+        if (!data || !data.text || !currentTopicId) return;
+        if (data.storyId && currentStoryId && String(data.storyId) !== String(currentStoryId)) return;
+        const msgs = (appData && appData.messages && appData.messages[currentTopicId]) || [];
+        const newMsg = {
+            id:         'rpg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            timestamp:  new Date().toISOString(),
+            isNarrator: true,
+            text:       data.text,
+            charName:   null,
+            userIndex:  -1
+        };
+        msgs.push(newMsg);
+        appData.messages[currentTopicId] = msgs;
+        hasUnsavedChanges = true;
+        if (typeof save === 'function') save({ silent: true });
+        const isAtEnd = currentMessageIndex >= msgs.length - 2;
+        if (isAtEnd) {
+            currentMessageIndex = msgs.length - 1;
+            showCurrentMessage('forward');
+        }
+    });
+}
+
+// Ítem usado localmente: re-sincronizar RPGState para que el HUD refleje el HP nuevo
+window.addEventListener('etheria:rpg-item-used', function(e) {
+    const { charId, topicId } = e.detail || {};
+    if (!charId || topicId !== currentTopicId) return;
+    if (typeof RPGState === 'undefined' || typeof RPGState.syncFromCharacter !== 'function') return;
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char) return;
+    RPGState.syncFromCharacter(char, currentTopicId);
+});
+
+// Condición aplicada/eliminada localmente: re-sincronizar RPGState
+window.addEventListener('etheria:rpg-condition-changed', function(e) {
+    const { charId, topicId } = e.detail || {};
+    if (!charId || topicId !== currentTopicId) return;
+    if (typeof RPGState === 'undefined' || typeof RPGState.syncFromCharacter !== 'function') return;
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char) return;
+    RPGState.syncFromCharacter(char, currentTopicId);
+});
+
 window.addEventListener('etheria:story-participants-loaded', function(e) {
     if (e.detail?.storyId && currentStoryId && String(e.detail.storyId) !== String(currentStoryId)) return;
     updateVnTurnBadge();
@@ -4706,22 +4754,33 @@ function _showMasterRollBar(mr) {
     if (sitEl) sitEl.textContent = mr.situation || '…';
 
     if (optsEl) {
+        optsEl.innerHTML = '';
         const letters = ['A','B','C','D'];
-        optsEl.innerHTML = mr.options.map(function (opt, i) {
+        mr.options.forEach(function (opt, i) {
             const letter  = letters[i] || String(i + 1);
-            const hpClass = (opt.hpDelta !== null && opt.hpDelta !== undefined)
-                ? (opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg') : '';
-            const hpHtml  = (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta))
-                ? '<span class="vn-mr-opt-hp ' + hpClass + '">' +
-                  (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP</span>'
-                : '';
-            return '<button class="vn-mr-opt-btn" ' +
-                   'onclick="resolveMasterRoll(\'' + escapeHtml(mr.id) + '\',' + i + ')">' +
-                   '<span class="vn-mr-opt-letter">' + letter + '</span>' +
-                   '<span class="vn-mr-opt-text">' + escapeHtml(opt.label) + '</span>' +
-                   hpHtml +
-                   '</button>';
-        }).join('');
+            const btn = document.createElement('button');
+            btn.className = 'vn-mr-opt-btn';
+            btn.addEventListener('click', function() { resolveMasterRoll(mr.id, i); });
+
+            const letterSpan = document.createElement('span');
+            letterSpan.className = 'vn-mr-opt-letter';
+            letterSpan.textContent = letter;
+            btn.appendChild(letterSpan);
+
+            const textSpan = document.createElement('span');
+            textSpan.className = 'vn-mr-opt-text';
+            textSpan.textContent = opt.label;
+            btn.appendChild(textSpan);
+
+            if (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta)) {
+                const hpClass = opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg';
+                const hpSpan = document.createElement('span');
+                hpSpan.className = 'vn-mr-opt-hp ' + hpClass;
+                hpSpan.textContent = (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP';
+                btn.appendChild(hpSpan);
+            }
+            optsEl.appendChild(btn);
+        });
     }
 
     bar.style.display = 'flex';
@@ -5172,6 +5231,8 @@ function openReplyPanel() {
 
     updateCharSelector();
     updateSceneChangePreview();
+    vrpResetSpritePicker();
+    vrpLoadSpriteGallery(selectedCharId);
 
     // Actualizar botones de clima (nuevos vrp-weather-btn)
     vrpSyncWeatherButtons();
@@ -5217,6 +5278,150 @@ function toggleCharGrid() {
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.toggle('active');
 }
+
+// ── Sprite gallery ─────────────────────────────────────────────────────────────
+var selectedSpriteOverride = null;
+
+function vrpToggleSpritePicker() {
+    const picker = document.getElementById('spritePicker');
+    if (!picker) return;
+    const open = !picker.hidden;
+    picker.hidden = open;
+    const arrow = document.querySelector('.vrp-sprite-toggle-arrow');
+    if (arrow) arrow.textContent = open ? '▾' : '▴';
+}
+
+async function vrpLoadSpriteGallery(charId) {
+    const container = document.getElementById('spriteSelectorContainer');
+    if (!container) return;
+    if (!charId || isNarratorMode || typeof SupabaseSprites === 'undefined') {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'block';
+
+    const grid = document.getElementById('spritePickerGrid');
+    if (!grid) return;
+    grid.innerHTML = '<span class="vrp-sprite-loading">Cargando…</span>';
+
+    const sprites = await SupabaseSprites.listCharacterSprites(charId);
+    const char = appData.characters.find(function (c) { return String(c.id) === String(charId); });
+
+    grid.innerHTML = '';
+
+    // Botón "predeterminado" (quitar override)
+    var defaultBtn = document.createElement('button');
+    defaultBtn.type = 'button';
+    defaultBtn.className = 'vrp-sprite-thumb' + (selectedSpriteOverride === null ? ' selected' : '');
+    defaultBtn.title = 'Predeterminado';
+    defaultBtn.setAttribute('data-sprite-url', '');
+    defaultBtn.onclick = function () { vrpSelectSprite(null, charId); };
+    if (char && char.sprite) {
+        var dImg = document.createElement('img');
+        dImg.src = char.sprite;
+        dImg.alt = 'Predeterminado';
+        dImg.loading = 'lazy';
+        dImg.onerror = function () {
+            this.style.display = 'none';
+            var fb = document.createElement('span');
+            fb.className = 'vrp-sprite-thumb-empty';
+            fb.textContent = '✦';
+            defaultBtn.appendChild(fb);
+        };
+        defaultBtn.appendChild(dImg);
+    } else {
+        defaultBtn.innerHTML = '<span class="vrp-sprite-thumb-empty">✦</span>';
+    }
+    grid.appendChild(defaultBtn);
+
+    // Excluir el sprite que ya es el predeterminado (misma URL, ignorando ?t=... cache-busting)
+    var defaultBase = char && char.sprite ? char.sprite.split('?')[0] : null;
+    var extraSprites = sprites.filter(function (s) {
+        return !defaultBase || s.url.split('?')[0] !== defaultBase;
+    });
+
+    if (extraSprites.length === 0) {
+        var emptyMsg = document.createElement('span');
+        emptyMsg.className = 'vrp-sprite-empty';
+        emptyMsg.textContent = 'Sin poses extra. Sube más desde el editor de personaje.';
+        grid.appendChild(emptyMsg);
+        return;
+    }
+
+    extraSprites.forEach(function (sprite) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'vrp-sprite-thumb' + (selectedSpriteOverride === sprite.url ? ' selected' : '');
+        btn.title = sprite.name;
+        btn.setAttribute('data-sprite-url', sprite.url);
+        btn.onclick = function () { vrpSelectSprite(sprite.url, charId); };
+        var img = document.createElement('img');
+        img.src = sprite.url;
+        img.alt = sprite.name;
+        img.loading = 'lazy';
+        img.onerror = function () {
+            this.style.display = 'none';
+            var fallback = document.createElement('span');
+            fallback.className = 'vrp-sprite-thumb-empty';
+            fallback.textContent = '✦';
+            btn.appendChild(fallback);
+        };
+        btn.appendChild(img);
+        grid.appendChild(btn);
+    });
+}
+
+function vrpSelectSprite(url, charId) {
+    selectedSpriteOverride = url || null;
+
+    var grid = document.getElementById('spritePickerGrid');
+    if (grid) {
+        grid.querySelectorAll('.vrp-sprite-thumb').forEach(function (btn) {
+            var btnUrl = btn.getAttribute('data-sprite-url') || null;
+            btn.classList.toggle('selected', btnUrl === (url || ''));
+        });
+    }
+
+    var hint = document.getElementById('spritePickerHint');
+    if (hint) hint.textContent = url ? 'pose seleccionada ✓' : 'predeterminada';
+
+    var thumb = document.getElementById('spritePickerSelectedThumb');
+    if (thumb) {
+        thumb.innerHTML = '';
+        var srcUrl = url;
+        if (!srcUrl && charId) {
+            var c = appData.characters.find(function (ch) { return String(ch.id) === String(charId); });
+            srcUrl = c && c.sprite ? c.sprite : null;
+        }
+        if (srcUrl) {
+            var tImg = document.createElement('img');
+            tImg.src = srcUrl;
+            tImg.alt = '';
+            thumb.appendChild(tImg);
+        }
+    }
+
+    // Cerrar el picker después de seleccionar
+    var picker = document.getElementById('spritePicker');
+    if (picker) {
+        picker.hidden = true;
+        var arrow = document.querySelector('.vrp-sprite-toggle-arrow');
+        if (arrow) arrow.textContent = '▾';
+    }
+}
+
+function vrpResetSpritePicker() {
+    selectedSpriteOverride = null;
+    var hint = document.getElementById('spritePickerHint');
+    if (hint) hint.textContent = 'predeterminada';
+    var thumb = document.getElementById('spritePickerSelectedThumb');
+    if (thumb) thumb.innerHTML = '';
+    var picker = document.getElementById('spritePicker');
+    if (picker) picker.hidden = true;
+    var arrow = document.querySelector('.vrp-sprite-toggle-arrow');
+    if (arrow) arrow.textContent = '▾';
+}
+// ── /Sprite gallery ─────────────────────────────────────────────────────────────
 
 function updateCharSelector() {
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
@@ -5286,6 +5491,8 @@ function selectCharFromGrid(charId) {
     localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
     updateCharSelector();
     renderVnPartyPanel(true);
+    vrpResetSpritePicker();
+    vrpLoadSpriteGallery(charId);
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
@@ -5326,16 +5533,15 @@ function toggleOptionsFields() {
     }
 }
 
-function toggleNarratorMode() {
+function applyNarratorMode(active) {
     const topic = getCurrentTopic();
     if (!canUseNarratorMode(topic)) return;
 
-    const narratorMode = document.getElementById('narratorMode');
-    const toggle       = document.getElementById('narratorToggle');
+    const narratorModeEl = document.getElementById('narratorMode');
+    const toggle         = document.getElementById('narratorToggle');
 
-    // Toggle state: si el switch está activo se desactiva y viceversa
-    isNarratorMode = toggle ? !toggle.classList.contains('active') : false;
-    if (narratorMode) narratorMode.checked = isNarratorMode;
+    isNarratorMode = !!active;
+    if (narratorModeEl) narratorModeEl.checked = isNarratorMode;
 
     const container = document.getElementById('charSelectorContainer');
 
@@ -5343,11 +5549,19 @@ function toggleNarratorMode() {
         if (container) container.style.display = 'none';
         if (toggle) toggle.classList.add('active');
         selectedCharId = null;
+        vrpResetSpritePicker();
+        var spriteContainer = document.getElementById('spriteSelectorContainer');
+        if (spriteContainer) spriteContainer.style.display = 'none';
     } else {
         if (container) container.style.display = 'flex';
         if (toggle) toggle.classList.remove('active');
         updateCharSelector();
+        vrpLoadSpriteGallery(selectedCharId);
     }
+}
+
+function toggleNarratorMode() {
+    applyNarratorMode(!isNarratorMode);
 }
 
 
@@ -5533,7 +5747,7 @@ function postVNReply() {
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
         charAvatar: isNarratorMode ? null : char.avatar,
-        charSprite: isNarratorMode ? null : char.sprite,
+        charSprite: isNarratorMode ? null : (selectedSpriteOverride || char.sprite),
         text: finalText,
         isNarrator: isNarratorMode,
         userIndex: currentUserIndex,

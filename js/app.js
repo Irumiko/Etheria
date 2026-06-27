@@ -423,14 +423,21 @@ async function register() {
         : 'Cuenta creada correctamente.', false, 'authRegStatus');
 
     if (!needsConfirmation) {
-        hideLoginScreen();
-        initializeApp();
-        await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
-        // Cuenta nueva: intentar descargar datos (puede ser cuenta existente en otro dispositivo)
-        if (typeof SupabaseSync !== 'undefined') {
-            await SupabaseSync.downloadProfileData();
+        // Evitar que onAuthStateChange(SIGNED_IN) duplique la hidratación mientras
+        // register() ya está ejecutando el mismo flujo.
+        _loginHandling = true;
+        try {
+            hideLoginScreen();
+            initializeApp();
+            await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
+            // Cuenta nueva: intentar descargar datos (puede ser cuenta existente en otro dispositivo)
+            if (typeof SupabaseSync !== 'undefined') {
+                await SupabaseSync.downloadProfileData();
+            }
+            await hydrateCloudAfterAuth();
+        } finally {
+            _loginHandling = false;
         }
-        await hydrateCloudAfterAuth();
     }
 }
 
@@ -623,7 +630,8 @@ function initializeApp() {
     if (savedTheme) {
         document.documentElement.setAttribute('data-theme', savedTheme);
     } else {
-        document.documentElement.setAttribute('data-theme', 'light');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     }
     // Sincronizar botón de tema en pantalla de perfiles
     if (typeof updateProfileThemeBtn === 'function') updateProfileThemeBtn();

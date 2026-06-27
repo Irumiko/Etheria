@@ -75,16 +75,27 @@ function openRoleCharacterModal(topicId, options = {}) {
             ? `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}">`
             : `<div class="placeholder">${escapeHtml((c.name || '?')[0])}</div>`;
         const statsBtn = isRpgMode
-            ? `<button type="button" class="role-char-stats-btn" title="Stats de ${escapeHtml(c.name)}"
-                onclick="event.stopPropagation();openRpgStatsModalFromSelect('${topicId}','${c.id}')">⚔️ Stats</button>`
+            ? `<button type="button" class="role-char-stats-btn role-char-stats-btn--js" title="Stats de ${escapeHtml(c.name)}" data-char-id="${escapeHtml(String(c.id))}" data-topic-id="${escapeHtml(String(topicId))}">⚔️ Stats</button>`
             : '';
         return `<div class="role-char-card">
             <button type="button" class="role-char-bubble" title="${escapeHtml(c.name)}"
-                onclick="selectRoleCharacterForTopic('${topicId}', '${c.id}')">${visual}</button>
+                data-char-id="${escapeHtml(String(c.id))}" data-topic-id="${escapeHtml(String(topicId))}">${visual}</button>
             <span class="role-char-name">${escapeHtml(c.name)}</span>
             ${statsBtn}
         </div>`;
     }).join('');
+
+    grid.querySelectorAll('.role-char-bubble').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            selectRoleCharacterForTopic(btn.dataset.topicId, btn.dataset.charId);
+        });
+    });
+    grid.querySelectorAll('.role-char-stats-btn--js').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openRpgStatsModalFromSelect(btn.dataset.topicId, btn.dataset.charId);
+        });
+    });
 
     openModal('roleCharacterModal');
 }
@@ -822,8 +833,6 @@ function modifyAffinity(direction) {
         });
     } else {
         updateAffinityDisplay();
-        if (direction > 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-up' });
-        if (direction < 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-down' });
     }
 
     const rankInfo = getAffinityRankInfo(newValue);
@@ -1187,6 +1196,7 @@ function _refreshIhpInventory(charId) {
     if (!body || !charId) return;
     if (typeof renderInventoryPanel === 'function') {
         body.innerHTML = renderInventoryPanel(charId);
+        if (typeof bindInventoryPanelEvents === 'function') bindInventoryPanelEvents(body);
     }
     _updateIhpAutoHint(charId);
 }

@@ -297,9 +297,9 @@ function openSheet(id) {
     if (sheetQuickStats) {
         sheetQuickStats.innerHTML = [
             c.race      && `<span class="quick-stat-v2">${escapeHtml(c.race)}</span>`,
-            c.gender    && `<span class="quick-stat-v2">${c.gender}</span>`,
-            c.age       && `<span class="quick-stat-v2">${c.age} años</span>`,
-            c.alignment && `<span class="quick-stat-v2 qs-align" style="--align-color:${getAlignmentColor(c.alignment)}">${alignments[c.alignment] || c.alignment}</span>`,
+            c.gender    && `<span class="quick-stat-v2">${escapeHtml(c.gender)}</span>`,
+            c.age       && `<span class="quick-stat-v2">${escapeHtml(String(c.age))} años</span>`,
+            c.alignment && `<span class="quick-stat-v2 qs-align" style="--align-color:${getAlignmentColor(c.alignment)}">${escapeHtml(alignments[c.alignment] || c.alignment)}</span>`,
         ].filter(Boolean).join('');
     }
 
@@ -429,7 +429,7 @@ function renderRpgStatsModal(c) {
                 const mod    = rpgModStr(val);
                 const spent  = getRpgSpentPoints(profile);
                 const nextCost = rpgPointBuyCost(Math.min(RPG_STAT_MAX, val + 1)) - rpgPointBuyCost(val);
-                const canAdd = isOwn && val < RPG_STAT_MAX && (RPG_POINTS_POOL - spent) >= (rpgPointBuyCost(val + 1) - rpgPointBuyCost(val));
+                const canAdd = isOwn && val < RPG_STAT_MAX && (data.basePool - spent) >= (rpgPointBuyCost(val + 1) - rpgPointBuyCost(val));
                 const canSub = isOwn && val > RPG_STAT_BASE;
                 return `
                 <div class="rpg-stats-card" title="${RPG_STAT_DESC[key]}">
@@ -568,7 +568,8 @@ function adjustRpgStat(charId, stat, delta) {
     if (delta > 0) {
         const costIncrease = rpgPointBuyCost(newVal) - rpgPointBuyCost(current);
         const spent = getRpgSpentPoints(profile);
-        if (spent + costIncrease > RPG_POINTS_POOL) return; // no hay puntos suficientes
+        const data = getRpgSheetData(char, currentTopicId);
+        if (spent + costIncrease > data.basePool) return; // no hay puntos suficientes
     }
 
     profile.stats[stat] = newVal;
@@ -703,7 +704,7 @@ async function _uploadImageToStorage(bucket, charId, file) {
 
     const ext = extMatch[1].toLowerCase();
     const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
-    const path = `${charId}.${ext}`;
+    const path = bucket === 'sprites' ? `${charId}/${Date.now()}.${ext}` : `${charId}.${ext}`;
 
     try {
         const { error: uploadError } = await sb.storage
@@ -1052,14 +1053,16 @@ function renderInventoryPanel(charId) {
     return items.map(item => {
         const catalog = RPG_ITEM_CATALOG.find(c => c.id === item.id) || { icon: '📦', name: item.name || item.id, desc: '', effect: {}, type: 'tool' };
         const isUsable = isOwn && (catalog.type === 'consumable' || catalog.type === 'special');
+        const safeName     = escapeHtml(String(catalog.name || ''));
+        const safeDesc     = escapeHtml(String(catalog.desc || ''));
         const useBtn   = isUsable
-            ? `<button class="rpg-item-use-btn" onclick="useInventoryItem('${charId}','${item.id}')" title="Usar ${catalog.name}">Usar</button>`
+            ? `<button class="rpg-item-use-btn" data-char-id="${escapeHtml(String(charId))}" data-item-id="${escapeHtml(String(item.id))}" title="Usar ${safeName}">Usar</button>`
             : '';
-        return `<div class="rpg-inventory-item" title="${catalog.desc}">
+        return `<div class="rpg-inventory-item" title="${safeDesc}">
             <span class="rpg-item-icon">${catalog.icon || '📦'}</span>
             <div class="rpg-item-info">
-                <span class="rpg-item-name">${catalog.name}</span>
-                <span class="rpg-item-desc">${catalog.desc}</span>
+                <span class="rpg-item-name">${safeName}</span>
+                <span class="rpg-item-desc">${safeDesc}</span>
             </div>
             <span class="rpg-item-qty">×${item.qty}</span>
             ${useBtn}
@@ -1067,8 +1070,17 @@ function renderInventoryPanel(charId) {
     }).join('');
 }
 
-window.getProfileInventory = getProfileInventory;
+function bindInventoryPanelEvents(container) {
+    if (!container) return;
+    container.querySelectorAll('.rpg-item-use-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            useInventoryItem(btn.dataset.charId, btn.dataset.itemId);
+        });
+    });
+}
 
+window.getProfileInventory = getProfileInventory;
+window.bindInventoryPanelEvents = bindInventoryPanelEvents;
 window.useInventoryItem = useInventoryItem;
 
 // ── Habilidades pasivas de clase (disponibles desde nivel 3) ───────────────
@@ -1176,6 +1188,7 @@ function switchRpgStatsTab(tab, btnEl) {
             // Renderizar inventario del personaje activo
             const charId = document.getElementById('rpgStatsModal')?.dataset?.charId || '';
             invBody.innerHTML = renderInventoryPanel(charId);
+            bindInventoryPanelEvents(invBody);
         }
     } else {
         if (statsBody) statsBody.style.display = '';

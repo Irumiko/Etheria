@@ -986,11 +986,22 @@
                     .rpc('generate_invite_token');
                 token = tokenData;
 
-                // Guardar en la historia
-                await c
+                // Guardar solo si sigue sin token (evita race condition multi-usuario)
+                const { error: updateErr } = await c
                     .from('stories')
                     .update({ invite_token: token })
-                    .eq('id', storyId);
+                    .eq('id', storyId)
+                    .is('invite_token', null);
+
+                if (updateErr) {
+                    // Otro proceso ya guardó un token — usar el suyo
+                    const { data: refetch } = await c
+                        .from('stories')
+                        .select('invite_token')
+                        .eq('id', storyId)
+                        .single();
+                    token = refetch?.invite_token || token;
+                }
             }
 
             if (!token) return null;

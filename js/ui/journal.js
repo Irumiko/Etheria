@@ -422,13 +422,24 @@ function updateReactionDisplay() {
         return;
     }
 
-    display.innerHTML = entries
+    display.innerHTML = '';
+    entries
         .sort((a, b) => b[1] - a[1])
-        .map(([emoji, count]) => {
+        .forEach(([emoji, count]) => {
             const isMine = emoji === myReaction;
-            return `<span class="vn-reaction-chip${isMine ? ' mine' : ''}" onclick="toggleReaction('${emoji}')" title="${count} reacción${count > 1 ? 'es' : ''}">${emoji}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`;
-        })
-        .join('');
+            const chip = document.createElement('span');
+            chip.className = 'vn-reaction-chip' + (isMine ? ' mine' : '');
+            chip.title = `${count} reacción${count > 1 ? 'es' : ''}`;
+            chip.textContent = emoji;
+            if (count > 1) {
+                const countEl = document.createElement('span');
+                countEl.className = 'reaction-count';
+                countEl.textContent = count;
+                chip.appendChild(countEl);
+            }
+            chip.addEventListener('click', function() { toggleReaction(emoji); });
+            display.appendChild(chip);
+        });
 }
 
 // ============================================
@@ -449,6 +460,8 @@ function exportHistoryAsDocument() {
         return;
     }
 
+    try {
+
     const title   = topic?.title  || 'Historia sin título';
     const mode    = topic?.mode === 'rpg' ? 'RPG' : 'Clásico';
     const created = topic?.createdAt ? new Date(topic.createdAt).toLocaleDateString('es-ES') : '';
@@ -468,17 +481,19 @@ function exportHistoryAsDocument() {
     msgs.forEach((msg, i) => {
         // Separador de capítulo
         if (msg.chapter) {
+            const chapterTitle = (msg.chapter.title || 'Capítulo').toUpperCase();
             lines.push('');
             lines.push(`${'─'.repeat(50)}`);
-            lines.push(`  ✦  ${msg.chapter.title.toUpperCase()}  ✦`);
+            lines.push(`  ✦  ${chapterTitle}  ✦`);
             lines.push(`${'─'.repeat(50)}`);
             lines.push('');
         }
 
         // Separador de escena
         if (msg.sceneChange) {
+            const sceneTitle = msg.sceneChange.title || 'Nueva escena';
             lines.push('');
-            lines.push(`  [ ${msg.sceneChange.title} ]`);
+            lines.push(`  [ ${sceneTitle} ]`);
             lines.push('');
         }
 
@@ -504,9 +519,11 @@ function exportHistoryAsDocument() {
         }
 
         // Reacciones
-        const summary = getReactionSummary(currentTopicId, String(msg.id));
-        const reactionStr = Object.entries(summary).map(([e, c]) => c > 1 ? `${e}×${c}` : e).join(' ');
-        if (reactionStr) lines.push(`    [ ${reactionStr} ]`);
+        if (typeof getReactionSummary === 'function') {
+            const summary = getReactionSummary(currentTopicId, String(msg.id));
+            const reactionStr = Object.entries(summary || {}).map(([e, c]) => c > 1 ? `${e}×${c}` : e).join(' ');
+            if (reactionStr) lines.push(`    [ ${reactionStr} ]`);
+        }
 
         lines.push('');
     });
@@ -530,6 +547,11 @@ function exportHistoryAsDocument() {
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
 
     showAutosave(`📄 "${filename}" descargado`, 'saved');
+
+    } catch (e) {
+        showAutosave('Error al exportar la historia', 'error');
+        console.error('[export]', e);
+    }
 }
 
 // ============================================

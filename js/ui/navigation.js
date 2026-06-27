@@ -193,6 +193,13 @@ function resetVNTransientState({ clearTopic = false } = {}) {
         if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
         window.dispatchEvent(new CustomEvent('etheria:topic-leave'));
         if (typeof SupabaseCycles !== 'undefined') SupabaseCycles.reset();
+        // Cerrar canales Realtime de presencia y mensajes de la historia
+        if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.leaveStory === 'function') {
+            SupabaseStories.leaveStory();
+        } else if (typeof SupabasePresence !== 'undefined' && typeof SupabasePresence.leaveStory === 'function') {
+            SupabasePresence.leaveStory().catch(function () {});
+        }
+        window.dispatchEvent(new CustomEvent('etheria:story-left'));
         currentTopicId = null;
         currentMessageIndex = 0;
     }
@@ -455,8 +462,11 @@ function renderRaceTagPills() {
     const allRaces = [...new Set(appData.characters.map(c => c.race).filter(Boolean))].sort();
     if (allRaces.length === 0) { container.innerHTML = ''; return; }
     container.innerHTML = allRaces.map(r => `
-        <button class="race-pill ${_galleryActiveRaces.has(r) ? 'active' : ''}" onclick="toggleRaceFilter('${escapeHtml(r)}')">${escapeHtml(r)}</button>
+        <button class="race-pill ${_galleryActiveRaces.has(r) ? 'active' : ''}" data-race="${escapeHtml(r)}">${escapeHtml(r)}</button>
     `).join('');
+    container.querySelectorAll('.race-pill').forEach(function(btn) {
+        btn.addEventListener('click', function() { toggleRaceFilter(btn.dataset.race); });
+    });
 }
 
 
@@ -582,7 +592,7 @@ function renderGallery() {
 
 // Refrescar galería cuando cambia el estado de presencia
 // para que los puntos online/offline se actualicen en tiempo real
-window.addEventListener('etheria:presence-changed', function () {
+window.addEventListener('etheria:story-presence-changed', function () {
     const gallerySection = document.getElementById('gallerySection');
     if (gallerySection?.classList.contains('active')) {
         renderGallery();

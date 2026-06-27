@@ -170,23 +170,25 @@
             return;
         }
 
-        list.innerHTML = _notifications.map(n => {
+        list.innerHTML = '';
+        _notifications.forEach(n => {
             const date = n.created_at ? new Date(n.created_at) : null;
             const dateStr = date
                 ? date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                 : '';
             const unreadClass = !n.is_read ? 'inbox-item--unread' : '';
-            return `
-                <div class="inbox-item ${unreadClass}" onclick="EtheriaInbox.goToTopic('${n.topic_id || ''}')">
-                    <div class="inbox-item-icon">${n.is_read ? '✉' : '📬'}</div>
-                    <div class="inbox-item-body">
-                        <p class="inbox-item-title">${escapeHtml(n.title || 'Nueva notificación')}</p>
-                        <p class="inbox-item-text">${escapeHtml(n.body || '')}</p>
-                        ${dateStr ? `<p class="inbox-item-date">${dateStr}</p>` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
+            const item = document.createElement('div');
+            item.className = 'inbox-item ' + unreadClass;
+            item.addEventListener('click', function() { EtheriaInbox.goToTopic(n.topic_id || ''); });
+            item.innerHTML =
+                `<div class="inbox-item-icon">${n.is_read ? '✉' : '📬'}</div>` +
+                `<div class="inbox-item-body">` +
+                `<p class="inbox-item-title">${escapeHtml(n.title || 'Nueva notificación')}</p>` +
+                `<p class="inbox-item-text">${escapeHtml(n.body || '')}</p>` +
+                (dateStr ? `<p class="inbox-item-date">${escapeHtml(dateStr)}</p>` : '') +
+                `</div>`;
+            list.appendChild(item);
+        });
     }
 
     async function _markAllRead(ids) {

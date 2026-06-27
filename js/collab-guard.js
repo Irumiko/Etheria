@@ -190,12 +190,17 @@ const CollaborativeGuard = (function () {
                         const hasDraft = replyInput && replyInput.value.trim().length > 0;
 
                         if (hasDraft) {
-                            // Tiene borrador — ofrecer sin interrumpir
+                            // Capturar topicId ahora — el usuario puede navegar antes de hacer clic
+                            const capturedTopicId = _topicId;
                             if (typeof eventBus !== 'undefined') {
                                 eventBus.emit('ui:show-toast', {
                                     text: `${newMsgs.length} mensaje(s) de otro dispositivo`,
                                     action: 'Cargar',
-                                    onAction: () => { _doMerge(remoteMsgs); _refreshUI(); }
+                                    onAction: () => {
+                                        if (_topicId !== capturedTopicId) return;
+                                        _doMerge(remoteMsgs);
+                                        _refreshUI();
+                                    }
                                 });
                             }
                         } else {
@@ -264,6 +269,8 @@ const CollaborativeGuard = (function () {
         if (typeof appData !== 'undefined') {
             appData.messages[String(_topicId)] = msgs;
         }
+        if (typeof hasUnsavedChanges !== 'undefined') hasUnsavedChanges = true;
+        if (typeof save === 'function') save({ silent: true });
         _refreshUI();
         logger?.info('collab', `edición remota aplicada — msg ${payload.msgId}`);
     }

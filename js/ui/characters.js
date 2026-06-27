@@ -267,7 +267,7 @@ function renderUserCards() {
         const _activeIdx = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
         const avatarSrc = avatars[idx] || (idx === _activeIdx ? localStorage.getItem('etheria_cloud_avatar_url') || '' : '');
         const avatarHtml = avatarSrc
-            ? `<div class="user-avatar-wrap"><img src="${avatarSrc}" alt="Avatar" loading="lazy"></div>`
+            ? `<div class="user-avatar-wrap"><img src="${escapeHtml(avatarSrc)}" alt="Avatar" loading="lazy"></div>`
             : `<div class="user-avatar-wrap"><span class="user-avatar-initials">${(name||'?')[0].toUpperCase()}</span></div>`;
 
         // Género
@@ -275,7 +275,7 @@ function renderUserCards() {
         try { genders = JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         const gender = genders[idx] || '';
         const genderMap = { masculino:'Masculino', femenino:'Femenino', 'no-binario':'No binario', otro:'Otro' };
-        const genderBadge = gender ? `<div class="user-gender-badge">${genderMap[gender] || gender}</div>` : '';
+        const genderBadge = gender ? `<div class="user-gender-badge">${escapeHtml(genderMap[gender] || gender)}</div>` : '';
 
         // Cumpleaños
         let birthdays = [];

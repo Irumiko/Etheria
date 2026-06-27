@@ -208,7 +208,9 @@
             if (!res.ok) {
                 const detail = await res.text().catch(() => String(res.status));
                 logger?.warn('supabase:messages', 'send failed (' + res.status + '):', detail);
-                _available = false;
+                // Solo deshabilitar en errores de servidor (5xx); los errores 4xx
+                // indican un problema con la petición, no que el servicio no esté disponible.
+                if (res.status >= 500) _available = false;
                 return false;
             }
 
@@ -268,7 +270,7 @@
             );
 
             if (!res.ok) {
-                _available = false;
+                if (res.status >= 500) _available = false;
                 return null;
             }
 
@@ -594,9 +596,11 @@
             } catch (selectErr) {
                 logger?.warn('supabase:messages', 'editMessage select failed, using fallback:', selectErr?.message);
             }
-            // Fallback: if SELECT failed or content was unparseable, patch only text
+            // Si no se pudo leer el content actual, abortar — es mejor no editar
+            // que sobrescribir con un objeto parcial que destruye los metadatos del mensaje.
             if (!updatedContent) {
-                updatedContent = JSON.stringify({ text: newText });
+                logger?.warn('supabase:messages', 'editMessage abortado: no se pudo leer content actual');
+                return false;
             }
 
             const res = await fetch(

@@ -151,6 +151,7 @@
         joinStory,
         leaveStory,
         isUserOnline,
+        isOnline: isUserOnline,
         getOnlineUserIds,
         get activeStoryId() { return _storyId; }
     };

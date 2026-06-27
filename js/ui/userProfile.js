@@ -456,19 +456,23 @@
             const gIcon     = GENDER_ICON[genderKey] || '';
             const online    = _isOnline(p.user_id);
             const responded = respondedSet.has(p.user_id);
-            const uid       = _esc(p.user_id || '');
 
             const classes = ['cp-member'];
             if (online)    classes.push('cp-member--online');
             if (responded) classes.push('cp-member--responded');
 
             return `<button type="button" class="${classes.join(' ')}"
-                        onclick="openUserProfileModal('${uid}')"
+                        data-user-id="${_esc(String(p.user_id || ''))}"
                         title="${_esc(name)}${responded ? ' \xB7 Ya respondi\xF3' : ' \xB7 Esperando'}">
                 <span class="cp-name">${_esc(name)}</span>
                 ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
             </button>`;
         }).join('');
+        list.querySelectorAll('.cp-member').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openUserProfileModal(btn.dataset.userId);
+            });
+        });
     }
 
     // ── Expose globals ───────────────────────────────────────

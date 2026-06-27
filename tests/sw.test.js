@@ -37,3 +37,11 @@ test('built service worker has an injected cache version', () => {
   assert.match(built, /const CACHE_VERSION = '[a-z0-9]+';/);
   assert.match(built, /const CACHE_NAME\s*=\s*`etheria-\$\{CACHE_VERSION\}`;/);
 });
+
+test('service worker validates push notification URL against same origin before openWindow', () => {
+  const source = read('sw.js');
+  // Must parse the URL and compare origins before calling openWindow
+  assert.match(source, /new URL\(rawUrl/, 'must parse rawUrl with URL constructor');
+  assert.match(source, /\.origin\s*===\s*self\.location\.origin/, 'must compare origins');
+  assert.doesNotMatch(source, /openWindow\(notifData\.url/, 'must not pass notifData.url directly to openWindow');
+});

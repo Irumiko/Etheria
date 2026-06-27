@@ -229,6 +229,9 @@ const BondsUI = (function () {
         panel.querySelectorAll('.bond-note-cancel').forEach(btn => {
             btn.addEventListener('click', () => _cancelEdit(char));
         });
+        panel.querySelectorAll('.bond-history-toggle').forEach(btn => {
+            btn.addEventListener('click', () => toggleHistory(btn.dataset.from, btn.dataset.to, btn));
+        });
     }
 
     // ── Fila de vínculo ───────────────────────────────────────────────
@@ -291,7 +294,7 @@ const BondsUI = (function () {
                     <button class="bond-note-btn btn-sm btn-ghost" data-from="${myFromId}" data-to="${myToId}">
                         ✎ ${myNote ? 'Editar nota' : 'Añadir nota'}
                     </button>
-                    ${out ? `<button class="bond-history-toggle" onclick="BondsUI.toggleHistory('${myFromId}','${myToId}',this)">▸ Ver historial</button>
+                    ${out ? `<button class="bond-history-toggle" data-from="${myFromId}" data-to="${myToId}">▸ Ver historial</button>
                     <div class="bond-history-list" id="bond-hist-${editKey}" style="display:none;"></div>` : ''}
                 </div>`}
             </div>
@@ -375,7 +378,7 @@ const BondsUI = (function () {
                 return `<div class="bond-history-entry">
                     <span class="bond-history-arrow">${arrow}</span>
                     <span class="bond-history-rank" style="--rank-color:${color}">${escapeHtml(h.new_rank || '')}</span>
-                    <span style="opacity:0.4;font-size:0.67rem">${h.old_value}→${h.new_value}</span>
+                    <span style="opacity:0.4;font-size:0.67rem">${escapeHtml(String(h.old_value ?? ''))}→${escapeHtml(String(h.new_value ?? ''))}</span>
                     <span class="bond-history-date">${date}</span>
                 </div>`;
             }).join('');

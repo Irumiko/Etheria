@@ -323,7 +323,7 @@ const RPGRenderer = (function () {
                 '<div class="rpg-stat-row">' +
                     '<span class="rpg-stat-label">HP</span>' +
                     '<div class="rpg-stat-track"><span class="rpg-stat-fill rpg-stat-fill--hp" style="width:' + hpPct + '%"></span></div>' +
-                    '<span class="rpg-stat-value">' + hp.current + '/' + hp.max + '</span>' +
+                    '<span class="rpg-stat-value">' + (Number(hp.current) || 0) + '/' + (Number(hp.max) || 0) + '</span>' +
                 '</div>' +
                 '<div class="rpg-stat-row">' +
                     '<span class="rpg-stat-label">EXP</span>' +

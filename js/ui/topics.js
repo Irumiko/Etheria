@@ -1283,7 +1283,7 @@ function _gsRenderResults(results, cloudDone) {
                 const dateStr = r.timestamp
                     ? new Date(r.timestamp).toLocaleDateString('es-ES', { day:'numeric', month:'short' })
                     : '';
-                return `<div class="gs-result" onclick="gsGoToMessage('${escapeHtml(topicId)}','${escapeHtml(r.msgId)}')">
+                return `<div class="gs-result" data-topic-id="${escapeHtml(String(topicId))}" data-msg-id="${escapeHtml(String(r.msgId))}">
                     <div class="gs-result-meta">
                         <span class="gs-result-char">${escapeHtml(r.charName || 'Mensaje')}</span>
                         <span class="gs-result-date">${dateStr}</span>
@@ -1294,6 +1294,11 @@ function _gsRenderResults(results, cloudDone) {
             }).join('')}
         </div>
     `).join('');
+    body.querySelectorAll('.gs-result').forEach(function(el) {
+        el.addEventListener('click', function() {
+            gsGoToMessage(el.dataset.topicId, el.dataset.msgId);
+        });
+    });
 }
 
 // Ir al mensaje seleccionado

@@ -53,7 +53,7 @@ const SupabaseSprites = (function () {
         }
 
         const ext  = _ext(file);
-        const path = `${characterId}.${ext}`;
+        const path = `${characterId}/${Date.now()}.${ext}`;
 
         try {
             const sb = _client();
@@ -144,6 +144,34 @@ const SupabaseSprites = (function () {
     }
 
     /**
+     * Lista todos los sprites subidos para un personaje (carpeta {characterId}/).
+     * @param {string} characterId
+     * @returns {Promise<Array<{name: string, url: string}>>}
+     */
+    async function listCharacterSprites(characterId) {
+        if (!_isAvailable() || !characterId) return [];
+        try {
+            const sb = _client();
+            const { data, error } = await sb.storage
+                .from(BUCKET)
+                .list(String(characterId), { limit: 50, offset: 0 });
+            if (error || !data) return [];
+            return data
+                .filter(item => item.name && item.name !== '.emptyFolderPlaceholder')
+                .map(item => {
+                    const { data: urlData } = sb.storage
+                        .from(BUCKET)
+                        .getPublicUrl(`${characterId}/${item.name}`);
+                    return { name: item.name, url: urlData?.publicUrl || null };
+                })
+                .filter(item => item.url);
+        } catch (err) {
+            console.error('[SupabaseSprites] listCharacterSprites error:', err);
+            return [];
+        }
+    }
+
+    /**
      * Elimina el sprite de un personaje del bucket.
      * @param {string} characterId
      * @returns {Promise<{ok: boolean, error?: string}>}
@@ -154,8 +182,20 @@ const SupabaseSprites = (function () {
         }
         try {
             const sb = _client();
-            const paths = ['png', 'jpg', 'jpeg', 'webp', 'gif'].map(ext => `${characterId}.${ext}`);
-            await sb.storage.from(BUCKET).remove(paths);
+
+            // Eliminar archivos en el subfolder ({characterId}/{timestamp}.ext)
+            const { data: subFiles } = await sb.storage.from(BUCKET).list(String(characterId));
+            if (subFiles && subFiles.length > 0) {
+                const subPaths = subFiles
+                    .filter(f => f.name && f.name !== '.emptyFolderPlaceholder')
+                    .map(f => `${characterId}/${f.name}`);
+                if (subPaths.length > 0) await sb.storage.from(BUCKET).remove(subPaths);
+            }
+
+            // Eliminar archivos planos legacy ({characterId}.ext)
+            const flatPaths = ['png', 'jpg', 'jpeg', 'webp', 'gif'].map(ext => `${characterId}.${ext}`);
+            await sb.storage.from(BUCKET).remove(flatPaths);
+
             await sb.from('characters').update({ sprite_url: null }).eq('id', characterId);
             return { ok: true };
         } catch (err) {
@@ -189,6 +229,7 @@ const SupabaseSprites = (function () {
 
     return {
         uploadCharacterSprite,
+        listCharacterSprites,
         deleteCharacterSprite,
         getSpriteUrl
     };

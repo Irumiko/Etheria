@@ -190,15 +190,17 @@ const RPGState = (function () {
             return getFlag(condition.flag_equals.key) === condition.flag_equals.value;
         }
         if (condition.stat_gte) {
-            const val = condition.stat_gte.stat === 'HP'
+            const s = condition.stat_gte.stat;
+            const val = (s === 'HP' || s === 'HP_current')
                 ? _hp.current
-                : getStat(condition.stat_gte.stat);
+                : getStat(s);
             return val >= condition.stat_gte.value;
         }
         if (condition.stat_lte) {
-            const val = condition.stat_lte.stat === 'HP'
+            const s = condition.stat_lte.stat;
+            const val = (s === 'HP' || s === 'HP_current')
                 ? _hp.current
-                : getStat(condition.stat_lte.stat);
+                : getStat(s);
             return val <= condition.stat_lte.value;
         }
         if (condition.level_gte)  return _level >= condition.level_gte;

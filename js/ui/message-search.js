@@ -102,10 +102,13 @@ const MessageSearch = (function () {
         container.innerHTML = results.map((r, i) => {
             const text = r.text || r.content || '';
             const author = r.author || 'Narrador';
-            // Highlight
-            const highlighted = escapeHtml(text.slice(0, 120))
-                .replace(new RegExp(escapeHtml(lower), 'gi'),
-                    m => `<mark class="msg-search-mark">${m}</mark>`);
+            // Highlight — escapar metacaracteres regex antes de construir el patrón
+            const safeQuery = escapeHtml(lower).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const highlighted = safeQuery
+                ? escapeHtml(text.slice(0, 120)).replace(
+                    new RegExp(safeQuery, 'gi'),
+                    m => `<mark class="msg-search-mark">${m}</mark>`)
+                : escapeHtml(text.slice(0, 120));
             return `
             <div class="msg-search-result" onclick="MessageSearch.jumpTo(${i})">
                 <div class="msg-search-author">${escapeHtml(author)}</div>
@@ -119,10 +122,18 @@ const MessageSearch = (function () {
         const r = _results[resultIndex];
         if (!r) return;
 
-        // Si tiene índice local, navegar directamente
         if (typeof r._localIndex === 'number') {
+            // Resultado local — índice directo
             if (typeof currentMessageIndex !== 'undefined') {
                 currentMessageIndex = r._localIndex;
+                if (typeof showCurrentMessage === 'function') showCurrentMessage('init');
+            }
+        } else if (r.id) {
+            // Resultado de Supabase — buscar por ID en mensajes locales
+            const msgs = typeof getTopicMessages === 'function' ? (getTopicMessages(currentTopicId) || []) : [];
+            const localIdx = msgs.findIndex(m => String(m.id) === String(r.id));
+            if (localIdx !== -1 && typeof currentMessageIndex !== 'undefined') {
+                currentMessageIndex = localIdx;
                 if (typeof showCurrentMessage === 'function') showCurrentMessage('init');
             }
         }

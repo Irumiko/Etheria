@@ -316,7 +316,7 @@ const SupabaseProfiles = (function () {
             const status   = getProfileStatus(p);
             const label    = getProfileStatusLabel(p);
             const cssClass = getProfileStatusClass(p);
-            const initial  = (p.name || '?')[0].toUpperCase();
+            const initial  = escapeHtml((p.name || '?')[0].toUpperCase());
             const disabled = status === 'taken' ? 'disabled' : '';
             const statsHtml = showStats && p.stats
                 ? `<div class="cloud-profile-stats">${

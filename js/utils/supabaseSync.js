@@ -217,6 +217,31 @@ const SupabaseSync = (function () {
             }
         }
 
+        // ── settings ─────────────────────────────────────────────────────────
+        if (syncedData.settings && typeof syncedData.settings === 'object') {
+            if (_shouldApply('settings')) {
+                try {
+                    const s = syncedData.settings;
+                    if (s.theme) {
+                        document.documentElement.setAttribute('data-theme', s.theme);
+                        localStorage.setItem('etheria_theme', s.theme);
+                    }
+                    if (s.fontSize) {
+                        localStorage.setItem('etheria_font_size', String(s.fontSize));
+                        document.documentElement.style.setProperty('--font-size-base', s.fontSize + 'px');
+                    }
+                    if (s.textSpeed != null && typeof textSpeed !== 'undefined') {
+                        textSpeed = Number(s.textSpeed);
+                        localStorage.setItem('etheria_text_speed', String(s.textSpeed));
+                    }
+                } catch (e) {
+                    window.EtheriaLogger?.warn('supabaseSync', 'No se pudo restaurar settings:', e?.message);
+                }
+            } else {
+                window.EtheriaLogger?.info('[sync:merge]', 'settings: local más reciente → conservado');
+            }
+        }
+
         // ── Actualizar timestamps locales con el máximo de cada campo ────────
         // Después del merge, el registro local conoce el timestamp más alto visto,
         // ya sea del servidor o del propio dispositivo.
@@ -238,15 +263,20 @@ const SupabaseSync = (function () {
     /**
      * Sube los datos del perfil a Supabase
      */
-    // Debounce: evitar múltiples subidas en ráfaga (ej. guardar personaje + guardar topic al mismo tiempo)
-    let _uploadDebounceTimer = null;
+    // Debounce: evitar múltiples subidas en ráfaga (ej. guardar personaje + guardar topic al mismo tiempo).
+    // Todos los callers que coincidan en la ventana de 400ms reciben el mismo resultado
+    // (los resolvers se acumulan y se notifican todos cuando la subida termina).
+    let _uploadDebounceTimer   = null;
+    let _uploadPendingResolvers = [];
     function uploadProfileData() {
         return new Promise((resolve) => {
+            _uploadPendingResolvers.push(resolve);
             clearTimeout(_uploadDebounceTimer);
             _uploadDebounceTimer = setTimeout(async () => {
-                const result = await _doUploadProfileData();
-                resolve(result);
-            }, 400); // 400ms de debounce
+                const result    = await _doUploadProfileData();
+                const resolvers = _uploadPendingResolvers.splice(0);
+                for (const r of resolvers) r(result);
+            }, 400);
         });
     }
 
@@ -508,7 +538,11 @@ const SupabaseSync = (function () {
     }
 
     function _setupEventListeners() {
-        // Marcar cambios pendientes cuando se modifican datos
+        // Marcar cambios pendientes cuando se modifican datos.
+        // NOTA: etheria:data-changed no tiene emisor activo — nadie llama
+        // dispatchEvent('etheria:data-changed') en el codebase actual.
+        // Las mutaciones reales usan touchField() o markPending() directamente.
+        // Este listener existe como hook para código futuro; no eliminarlo.
         window.addEventListener('etheria:data-changed', () => {
             _pendingChanges = true;
         });

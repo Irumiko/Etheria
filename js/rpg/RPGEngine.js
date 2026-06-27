@@ -22,6 +22,7 @@ const RPGEngine = (function () {
     let _branch    = null;   // null → _scene.steps  |  string → rama activa
     let _variables = {};     // variables locales a esta sesión de escena
     let _running   = false;
+    let _loading   = false;  // true durante el await de SceneLoader.load — guard contra TOCTOU
     let _paused    = false;
     let _waitTimer = null;
 
@@ -37,15 +38,17 @@ const RPGEngine = (function () {
     // ── API pública ─────────────────────────────────────────────
 
     async function loadScene(sceneId) {
-        if (_running) {
-            console.warn('[RPGEngine] Escena en curso. Llama stop() antes de cargar otra.');
+        if (_running || _loading) {
+            console.warn('[RPGEngine] Escena en curso o cargando. Llama stop() antes de cargar otra.');
             return;
         }
+        _loading = true;
         _reset();
 
         // SceneLoader emite scene:error y devuelve null si falla —
         // no lanza, así que no necesitamos try/catch aquí.
         const scene = await SceneLoader.load(sceneId);
+        _loading = false;
         if (!scene) { _reset(); return; }   // el error ya fue emitido por el loader
 
         const { ok, errors } = SceneValidator.validate(scene);
@@ -345,7 +348,7 @@ const RPGEngine = (function () {
     function _reset() {
         if (_waitTimer) { clearTimeout(_waitTimer); _waitTimer = null; }
         _scene = null; _stepIndex = 0; _branch = null;
-        _variables = {}; _running = false; _paused = false;
+        _variables = {}; _running = false; _loading = false; _paused = false;
     }
 
     // ── Listeners de input desde el renderer ─────────────────────

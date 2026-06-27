@@ -405,12 +405,11 @@
         var stats = '';
         if (rpg && profile) {
             var s = profile.stats || {};
-            var labels = ['STR','DEX','CON','INT','WIS','CHA'];
-            var keys   = ['str','dex','con','int','wis','cha'];
+            var keys = ['STR','DEX','CON','INT','WIS','CHA'];
             stats = '<div class="vmpf-stats">' +
-                keys.map(function (k, i) {
+                keys.map(function (k) {
                     return '<div class="vmpf-stat">' +
-                        '<span class="vmpf-stat-label">' + labels[i] + '</span>' +
+                        '<span class="vmpf-stat-label">' + k + '</span>' +
                         '<span class="vmpf-stat-val">' + (s[k] !== undefined ? s[k] : '—') + '</span>' +
                     '</div>';
                 }).join('') +
