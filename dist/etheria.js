@@ -183,15 +183,147 @@ const alignments = {
     'CB': 'Caótico Bueno', 'CN': 'Caótico Neutral', 'CM': 'Caótico Malvado'
 };
 
-// Sistema de rangos de afinidad - Solo nombres, sin mostrar puntos
+// ── Sistema de rangos de afinidad con ramas ──────────────────────────────────
+//
+// Estructura en árbol:
+//   Tronco común    → Desconocido (0-15), Conocido (16-35), Amigo (36-60)
+//   [bifurcación al llegar a Amigo — el usuario elige la rama]
+//   Rama amistad    → Amigo cercano, Confidente, Mejor amigo
+//   Rama romance    → Admiración, Afecto, Devoción, Amor profundo
+//   Tronco negativo → Tensión (valor negativo, elecciones negativas)
+//   Rama rivalidad  → Rivalidad, Rival declarado, Némesis
+//   Rama enemistad  → Antipatía, Enemistad, Enemistad profunda
+//
+// increment: puntos que mueve cada elección (3 bajos, 2 medios, 1 altos)
+// bifurcation: true si este rango desbloquea el selector de rama
+// La relación es DIRECCIONAL: cada personaje elige su propia percepción.
+// ─────────────────────────────────────────────────────────────────────────────
 const affinityRanks = [
-    { name: 'Desconocidos', min: 0, max: 15, increment: 5, color: '#ffffff' },
-    { name: 'Conocidos', min: 16, max: 35, increment: 4, color: '#9b59b6' },
-    { name: 'Amigos', min: 36, max: 60, increment: 3, color: '#3498db' },
-    { name: 'Mejores Amigos', min: 61, max: 80, increment: 2, color: '#27ae60' },
-    { name: 'Interés Romántico', min: 81, max: 95, increment: 1, color: '#f1c40f' },
-    { name: 'Pareja', min: 96, max: 100, increment: 0.5, color: '#e74c3c' }
+    // ── Tronco común (siempre unilateral) ────────────────────────
+    { name: 'Desconocidos', branch: 'common',     min: 0,    max: 15,  increment: 3, color: '#8e9196', icon: '○' },
+    { name: 'Conocidos',    branch: 'common',     min: 16,   max: 35,  increment: 3, color: '#9b59b6', icon: '◎' },
+    { name: 'Amigos',       branch: 'common',     min: 36,   max: 60,  increment: 3, color: '#3498db', icon: '✦', bifurcation: true },
+
+    // ── Rama: Amistad ─────────────────────────────────────────────
+    // Techo unilateral: Buen amigo — no requiere reciprocidad
+    // Techo bilateral:  Mejor amigo — requiere que el otro también esté en rama amistad con value >= 88
+    { name: 'Amigo cercano', branch: 'friendship', min: 61,  max: 74,  increment: 2, color: '#2ecc71', icon: '♦' },
+    { name: 'Confidente',    branch: 'friendship', min: 75,  max: 87,  increment: 2, color: '#27ae60', icon: '♦♦' },
+    { name: 'Buen amigo',    branch: 'friendship', min: 88,  max: 94,  increment: 1, color: '#1e9e55', icon: '♦♦♦',
+      unilateralCap: true },   // techo unilateral: no se puede superar sin reciprocidad
+    { name: 'Mejor amigo',   branch: 'friendship', min: 95,  max: 100, increment: 1, color: '#1a8a4a', icon: '♦♦♦♦',
+      requiresReciprocity: true, reciprocityBranch: 'friendship', reciprocityMin: 88 },
+
+    // ── Rama: Romance ─────────────────────────────────────────────
+    // Techo unilateral: Amor platónico — puede quererte sin ser correspondido
+    // Techo bilateral:  Amor profundo — requiere que el otro también esté en rama romance con value >= 91
+    { name: 'Admiración',    branch: 'romance',    min: 61,  max: 70,  increment: 2, color: '#f39c12', icon: '♡' },
+    { name: 'Afecto',        branch: 'romance',    min: 71,  max: 80,  increment: 2, color: '#e67e22', icon: '♡♡' },
+    { name: 'Devoción',      branch: 'romance',    min: 81,  max: 90,  increment: 1, color: '#e74c3c', icon: '♥' },
+    { name: 'Amor platónico', branch: 'romance',   min: 91,  max: 95,  increment: 1, color: '#c0392b', icon: '♥♥',
+      unilateralCap: true },   // techo unilateral
+    { name: 'Amor profundo',  branch: 'romance',   min: 96,  max: 100, increment: 1, color: '#922b21', icon: '♥♥♥',
+      requiresReciprocity: true, reciprocityBranch: 'romance', reciprocityMin: 91 },
+
+    // ── Tronco negativo (siempre unilateral) ─────────────────────
+    { name: 'Tensión',       branch: 'negative',   min: -20, max: -1,  increment: 3, color: '#e67e22', icon: '⚡' },
+
+    // ── Rama: Rivalidad (toda unilateral — la hostilidad no necesita ser mutua) ──
+    { name: 'Rivalidad',       branch: 'rivalry',  min: -50, max: -21, increment: 2, color: '#d35400', icon: '⚔' },
+    { name: 'Rival declarado', branch: 'rivalry',  min: -75, max: -51, increment: 2, color: '#e74c3c', icon: '⚔⚔' },
+    { name: 'Némesis',         branch: 'rivalry',  min: -100,max: -76, increment: 1, color: '#c0392b', icon: '⚔⚔⚔' },
+
+    // ── Rama: Enemistad (toda unilateral) ────────────────────────
+    { name: 'Antipatía',          branch: 'enmity', min: -50, max: -21, increment: 2, color: '#7f8c8d', icon: '✗' },
+    { name: 'Enemistad',          branch: 'enmity', min: -75, max: -51, increment: 2, color: '#566573', icon: '✗✗' },
+    { name: 'Enemistad profunda',  branch: 'enmity', min: -100,max: -76, increment: 1, color: '#2c3e50', icon: '✗✗✗' },
 ];
+
+// ── Configuración del sistema de ciclos ──────────────────────────────────────
+const CYCLE_CONFIG = {
+    DURATION_HOURS:          72,   // horas hasta cierre automático del ciclo
+    MAX_PARTICIPANTS:         5,
+    BIFURCATION_MIN:         36,   // value >= 36 desbloquea el selector de rama
+    NEGATIVE_THRESHOLD:      -1,   // value < 0 entra en tronco negativo
+    NEGATIVE_BRANCH_UNLOCK: -21,   // value <= -21 bifurca rivalidad/enemistad
+};
+
+// Helper: dado un valor y un relation_type, devuelve el rank correcto.
+// Reemplaza la antigua getAffinityRankInfo(value) — ahora acepta relationType.
+// Retrocompatible: si no se pasa relationType, funciona igual que antes.
+function getAffinityRankInfo(value, relationType) {
+    const v   = Number(value) || 0;
+    const rel = relationType || 'undefined';
+
+    if (v < 0) {
+        if (v >= CYCLE_CONFIG.NEGATIVE_THRESHOLD) {
+            return affinityRanks.find(r => r.branch === 'negative');
+        }
+        const negBranch = (rel === 'enmity') ? 'enmity' : 'rivalry';
+        const neg = affinityRanks.filter(r => r.branch === negBranch);
+        return neg.find(r => v >= r.min && v <= r.max) || neg[0];
+    }
+
+    // Tronco común
+    const common = affinityRanks.filter(r => r.branch === 'common');
+    const inCommon = common.find(r => v >= r.min && v <= r.max);
+    if (inCommon) return inCommon;
+
+    // Rama positiva (solo si ya se eligió)
+    if (rel === 'undefined') return common[common.length - 1];
+    const branch = affinityRanks.filter(r => r.branch === rel);
+
+    // Si el rango exacto requiere reciprocidad y no se tiene, devolver el techo unilateral
+    const exact = branch.find(r => v >= r.min && v <= r.max);
+    if (exact?.requiresReciprocity) {
+        // getAffinityRankInfo no tiene acceso al valor del otro personaje aquí —
+        // la comprobación de reciprocidad se hace en getAffinityRankInfoWithReciprocity.
+        // Por defecto devolvemos el rango unilateral cap si existe, o el exact.
+        const cap = branch.find(r => r.unilateralCap);
+        return cap || exact;
+    }
+    return exact || branch[branch.length - 1];
+}
+
+// Versión extendida que comprueba reciprocidad.
+// otherValue: valor de afinidad del otro personaje hacia este
+// otherRelationType: relation_type del otro personaje
+function getAffinityRankInfoWithReciprocity(value, relationType, otherValue, otherRelationType) {
+    const v   = Number(value) || 0;
+    const rel = relationType || 'undefined';
+
+    if (v < 0 || rel === 'undefined') return getAffinityRankInfo(value, relationType);
+
+    const branch = affinityRanks.filter(r => r.branch === rel);
+    const exact  = branch.find(r => v >= r.min && v <= r.max);
+    if (!exact) return branch[branch.length - 1];
+
+    // Si requiere reciprocidad, comprobar si el otro la cumple
+    if (exact.requiresReciprocity) {
+        const otherV   = Number(otherValue) || 0;
+        const otherRel = otherRelationType || 'undefined';
+        const hasReciprocity = otherRel === exact.reciprocityBranch
+            && otherV >= (exact.reciprocityMin || 0);
+        if (!hasReciprocity) {
+            // Devolver el techo unilateral en su lugar
+            const cap = branch.find(r => r.unilateralCap);
+            return cap || branch.find(r => !r.requiresReciprocity && r.min <= v) || exact;
+        }
+    }
+    return exact;
+}
+
+window.getAffinityRankInfoWithReciprocity = getAffinityRankInfoWithReciprocity;
+
+// Helper: ¿está en el punto de bifurcación positiva?
+function isAtBifurcationPoint(value, relationType) {
+    return Number(value) >= CYCLE_CONFIG.BIFURCATION_MIN && (!relationType || relationType === 'undefined');
+}
+
+// Helper: ¿está en el punto de bifurcación negativa?
+function isAtNegativeBifurcation(value, relationType) {
+    return Number(value) <= CYCLE_CONFIG.NEGATIVE_BRANCH_UNLOCK && (!relationType || relationType === 'undefined');
+}
 
 // Emotes manga con símbolos
 const emoteConfig = {
@@ -207,7 +339,7 @@ const emoteConfig = {
     sleep: { symbol: '💤', class: 'emote-sleep', name: 'Sueño' }
 };
 
-let userNames = ['Jugador 1', 'Jugador 2', 'Jugador 3'];
+let userNames = []; // Nombres de perfil sincronizados con Supabase (user_data.data.userNames)
 let currentUserIndex = 0;
 let appData = {
     topics: [],
@@ -266,13 +398,7 @@ const LAST_PROFILE_KEY = 'lastProfileId';
 const LOCAL_PROFILE_UPDATED_PREFIX = 'etheria_profile_updated_';
 const AUTO_SYNC_INTERVAL = 30000;
 const OFFLINE_SYNC_INTERVAL = 60000;
-// Fix 5: JSONBin is DISABLED — Supabase handles all cloud persistence.
-// The config is kept as a stub so callers don't crash; ensureCloudConfig() blocks all calls.
-const JSONBIN_CONFIG = {
-    apiKey: '',
-    binId: '',
-    baseUrl: 'https://api.jsonbin.io/v3/b'
-};
+// Persistencia gestionada íntegramente por Supabase.
 let cloudSyncStatus = 'idle';
 let cloudSyncInterval = null;
 let cloudSyncInProgress = false;
@@ -283,6 +409,7 @@ let pendingRemoteProfileData = null;
 let pendingRemoteTimestamp = 0;
 let isOfflineMode = false;
 const cloudMigrationPendingProfiles = new Set();
+
 
 /* js/pwa-viewport.js */
 // PWA viewport helper: exposes --vh / --vvh with visualViewport support.
@@ -3750,6 +3877,16 @@ const AFFINITY_RANK_ICONS = {
 let _affinityMilestoneTimer = null;
 
 function showAffinityMilestone(rankInfo, activeCharId, targetCharId) {
+    // Log del hito de rango alcanzado
+    if (window.SupabaseExtras?.logActivity && rankInfo?.name) {
+        window.SupabaseExtras.logActivity('rank_reached', 'story', currentTopicId, {
+            rank:         rankInfo.name,
+            branch:       rankInfo.branch || 'common',
+            fromCharId:   String(activeCharId || ''),
+            toCharId:     String(targetCharId || ''),
+            bilateral:    !!rankInfo.requiresReciprocity
+        }).catch(() => {});
+    }
     const overlay   = document.getElementById('vnAffinityMilestone');
     const iconEl    = document.getElementById('vnAffinityMilestoneIcon');
     const rankEl    = document.getElementById('vnAffinityMilestoneRank');
@@ -3840,6 +3977,217 @@ window.toggleIhpInventory = toggleIhpInventory;
 window.openIhpInventory   = openIhpInventory;
 window.closeIhpInventory  = closeIhpInventory;
 window._refreshIhpInventory = _refreshIhpInventory;
+
+
+// ══════════════════════════════════════════════════════════════════
+// SISTEMA DE CICLOS — Listeners de EventBus
+// Conecta los eventos de SupabaseCycles con la UI de roleplay.
+// ══════════════════════════════════════════════════════════════════
+
+(function _initCycleListeners() {
+    if (window._cycleListenersReady) return;
+    window._cycleListenersReady = true;
+    if (typeof eventBus === 'undefined') return;
+
+    // ── Ciclo abierto ───────────────────────────────────────────
+    eventBus.on('cycle:opened', function (data) {
+        window.EtheriaLogger?.info?.('cycles-ui', 'Ciclo abierto:', data.cycle?.id);
+        _refreshCycleUI(data.topicId);
+    });
+
+    // ── Ciclo cerrado → mostrar panel "Ecos del ciclo" ─────────
+    eventBus.on('cycle:closed', function (data) {
+        window.EtheriaLogger?.info?.('cycles-ui', 'Ciclo cerrado:', data.cycleId);
+        _refreshCycleUI(data.topicId);
+        // El panel de Ecos se mostrará cuando llegue cycle:affinity-impacts
+    });
+
+    // ── Impactos de afinidad al cerrar → panel Ecos ─────────────
+    eventBus.on('cycle:affinity-impacts', function (data) {
+        if (!data.changes || data.changes.length === 0) return;
+        _showEcosPanel(data);
+        if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+    });
+
+    // ── Nueva elección disponible → refrescar panel ──────────────
+    eventBus.on('cycle:choice-created', function (data) {
+        _refreshChoicesUI(data.cycleId, data.topicId);
+    });
+
+    // ── Respuesta guardada ───────────────────────────────────────
+    eventBus.on('cycle:response-saved', function () {
+        if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+    });
+
+    // ── Rama elegida → refrescar display de afinidad ────────────
+    eventBus.on('cycle:branch-chosen', function (data) {
+        window.EtheriaLogger?.info?.('cycles-ui', 'Rama elegida:', data.relationType);
+        if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+    });
+
+})();
+
+// ── Helpers de UI de ciclos ──────────────────────────────────────────────────
+
+function _refreshCycleUI(topicId) {
+    // Refresca el indicador de ciclo activo si existe en el DOM
+    const badge = document.getElementById('cycleBadge');
+    if (!badge || !topicId) return;
+    if (typeof SupabaseCycles === 'undefined') return;
+
+    SupabaseCycles.getOpenCycle(topicId).then(cycle => {
+        if (cycle) {
+            badge.textContent = 'Ciclo activo';
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }).catch(() => {});
+}
+
+function _refreshChoicesUI(cycleId) {
+    // Carga y renderiza las elecciones abiertas del ciclo
+    if (!cycleId || typeof SupabaseCycles === 'undefined') return;
+    SupabaseCycles.loadChoicesForCycle(cycleId).then(choices => {
+        const container = document.getElementById('cycleChoicesContainer');
+        if (!container) return;
+        if (!choices || choices.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = choices.map(choice => _renderChoiceCard(choice)).join('');
+    }).catch(() => {});
+}
+
+function _renderChoiceCard(choice) {
+    const opts = (choice.cycle_choice_options || [])
+        .sort((a, b) => a.display_order - b.display_order);
+
+    const optsHtml = opts.map(opt => `
+        <button class="cycle-choice-opt" data-choice-id="${choice.id}" data-opt-id="${opt.id}">
+            <span class="cycle-choice-label">${opt.label}</span>
+            <span class="cycle-choice-text">${opt.option_text}</span>
+        </button>
+    `).join('');
+
+    return `
+        <div class="cycle-choice-card" data-choice-id="${choice.id}">
+            <p class="cycle-choice-question">✦ ${choice.question_text}</p>
+            <div class="cycle-choice-options">${optsHtml}</div>
+        </div>
+    `;
+}
+
+// Panel "Ecos del ciclo" — muestra solo los cambios de afinidad del
+// personaje activo del usuario. Los efectos de los demás permanecen ocultos.
+function _showEcosPanel(data) {
+    const activeCharId = window.selectedCharId;
+    if (!activeCharId) return;
+
+    // Filtrar solo los cambios que afectan al personaje activo del usuario
+    const myChanges = (data.changes || []).filter(c =>
+        c.fromCharId === String(activeCharId) ||
+        c.toCharId   === String(activeCharId)
+    );
+
+    if (myChanges.length === 0) return; // Sin cambios propios → no mostrar panel
+
+    // Construir el contenido del panel
+    const changesHtml = myChanges.map(c => {
+        const delta   = c.delta;
+        const sign    = delta > 0 ? '+' : '';
+        const cls     = delta > 0 ? 'eco-positive' : delta < 0 ? 'eco-negative' : 'eco-neutral';
+        const other   = c.fromCharId === String(activeCharId) ? c.toCharId : c.fromCharId;
+        const charName = _getCharName(other);
+        return `<div class="eco-item ${cls}">
+            <span class="eco-char">${charName}</span>
+            <span class="eco-delta">${sign}${delta}</span>
+        </div>`;
+    }).join('');
+
+    // Mostrar el panel (si existe en el DOM)
+    let panel = document.getElementById('cycleEcosPanel');
+    if (!panel) return;
+
+    panel.innerHTML = `
+        <div class="ecos-header">✦ Ecos del ciclo ✦</div>
+        <p class="ecos-sub">Solo tú ves estos cambios</p>
+        <div class="ecos-list">${changesHtml}</div>
+        <button class="ecos-close-btn" onclick="document.getElementById('cycleEcosPanel').classList.add('hidden')">
+            Cerrar
+        </button>
+    `;
+    panel.classList.remove('hidden');
+}
+
+function _getCharName(charId) {
+    const chars = window.appData?.characters || [];
+    const char  = chars.find(c => String(c.id) === String(charId));
+    return char?.name || 'Personaje';
+}
+
+// ── Modal de bifurcación de rama ─────────────────────────────────────────────
+// Se llama desde updateAffinityDisplay cuando isAtBifurcationPoint() es true.
+function showBranchSelectionModal(fromCharId, toCharId, topicId) {
+    let modal = document.getElementById('branchSelectionModal');
+    if (!modal) return;
+
+    const targetName = _getCharName(toCharId);
+
+    modal.innerHTML = `
+        <div class="branch-modal-inner">
+            <h3 class="branch-modal-title">✦ Un vínculo se forma ✦</h3>
+            <p class="branch-modal-sub">
+                ¿Cómo percibe tu personaje la relación con <strong>${targetName}</strong>?<br>
+                <em>Solo tú ves esta elección. Cada percepción es válida.</em>
+            </p>
+            <div class="branch-options">
+                <button class="branch-opt branch-friendship" data-type="friendship">
+                    <span class="branch-icon">♦</span>
+                    <span class="branch-name">Amistad</span>
+                    <span class="branch-desc">Lealtad, confianza, compañerismo</span>
+                </button>
+                <button class="branch-opt branch-romance" data-type="romance">
+                    <span class="branch-icon">♡</span>
+                    <span class="branch-name">Romance</span>
+                    <span class="branch-desc">Admiración, afecto, atracción</span>
+                </button>
+                <button class="branch-opt branch-rivalry" data-type="rivalry">
+                    <span class="branch-icon">⚔</span>
+                    <span class="branch-name">Rivalidad</span>
+                    <span class="branch-desc">Competencia, desafío, respeto tenso</span>
+                </button>
+                <button class="branch-opt branch-enmity" data-type="enmity">
+                    <span class="branch-icon">✗</span>
+                    <span class="branch-name">Enemistad</span>
+                    <span class="branch-desc">Antipatía, conflicto, rechazo</span>
+                </button>
+            </div>
+            <p class="branch-modal-footer">Podrás ver cómo te percibe el otro cuando la historia lo revele.</p>
+        </div>
+    `;
+
+    // Eventos de selección
+    modal.querySelectorAll('.branch-opt').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const relationType = this.dataset.type;
+            if (typeof SupabaseCycles !== 'undefined') {
+                SupabaseCycles.chooseBranch(fromCharId, toCharId, topicId, relationType)
+                    .then(ok => {
+                        if (ok) modal.classList.add('hidden');
+                    }).catch(() => {});
+            }
+        });
+    });
+
+    modal.classList.remove('hidden');
+}
+
+window.showBranchSelectionModal = showBranchSelectionModal;
+window._showEcosPanel           = _showEcosPanel;
+window._refreshCycleUI          = _refreshCycleUI;
+window._refreshChoicesUI        = _refreshChoicesUI;
+
 
 /* js/ui/affinity-atmosphere.js */
 // ═══════════════════════════════════════════════════════════════════
@@ -4052,9 +4400,38 @@ const BondsUI = (function () {
         return (appData?.characters || []).find(c => String(c.id) === String(id)) || null;
     }
 
-    function _rankColor(rankName) {
-        if (!window.affinityRanks) return '#ffffff';
-        return window.affinityRanks.find(r => r.name === rankName)?.color || '#ffffff';
+    // Devuelve el color del rank correcto teniendo en cuenta la rama.
+    // relationType: 'friendship'|'romance'|'rivalry'|'enmity'|'undefined'|null
+    function _rankColor(rankName, relationType) {
+        if (!window.affinityRanks) return '#8e9196';
+        const rel = relationType || 'undefined';
+        // Buscar primero dentro de la rama correcta para evitar colisiones
+        // entre rangos con el mismo nombre en ramas distintas (e.g. Tensión)
+        const inBranch = window.affinityRanks.find(r =>
+            r.name === rankName && (rel === 'undefined' || r.branch === rel || r.branch === 'common' || r.branch === 'negative')
+        );
+        return inBranch?.color || window.affinityRanks.find(r => r.name === rankName)?.color || '#8e9196';
+    }
+
+    // Devuelve el icono del rank según la rama.
+    function _rankIcon(rankName, relationType) {
+        if (!window.affinityRanks) return '';
+        const rel = relationType || 'undefined';
+        const rank = window.affinityRanks.find(r =>
+            r.name === rankName && (rel === 'undefined' || r.branch === rel || r.branch === 'common' || r.branch === 'negative')
+        ) || window.affinityRanks.find(r => r.name === rankName);
+        return rank?.icon || '';
+    }
+
+    // Devuelve la etiqueta de rama para mostrar al usuario.
+    function _branchLabel(relationType) {
+        const labels = {
+            friendship: '♦ Amistad',
+            romance:    '♡ Romance',
+            rivalry:    '⚔ Rivalidad',
+            enmity:     '✗ Enemistad',
+        };
+        return labels[relationType] || null;
     }
 
     function _isMyChar(charId) {
@@ -4287,13 +4664,24 @@ const BondsUI = (function () {
         const editKey   = `${myFromId}_${myToId}`;
         const isEditing = _editingKey === editKey;
 
-        const outRank  = out?.rank_name || 'Desconocidos';
-        const incRank  = inc?.rank_name || 'Desconocidos';
-        const outColor = _rankColor(outRank);
-        const incColor = _rankColor(incRank);
-        const outAff   = out?.affinity ?? '—';
-        const incAff   = inc?.affinity ?? '—';
-        const myNote   = out?.note || '';
+        const outRank     = out?.rank_name || 'Desconocidos';
+        const incRank     = inc?.rank_name || 'Desconocidos';
+
+        // relation_type: leído desde appData.affinityTypes (cargado por SupabaseCycles)
+        const topicId     = currentTopicId || null;
+        const affTypes    = topicId ? (window.appData?.affinityTypes?.[topicId] || {}) : {};
+        const outType     = out ? (affTypes[`${myChar.id}_${otherId}`] || 'undefined') : 'undefined';
+        const incType     = inc ? (affTypes[`${otherId}_${myChar.id}`] || 'undefined') : 'undefined';
+
+        const outColor    = _rankColor(outRank, outType);
+        const incColor    = _rankColor(incRank, incType);
+        const outIcon     = _rankIcon(outRank, outType);
+        const incIcon     = _rankIcon(incRank, incType);
+        const outBranch   = _branchLabel(outType);
+        const incBranch   = _branchLabel(incType);
+        const outAff      = out?.affinity ?? '—';
+        const incAff      = inc?.affinity ?? '—';
+        const myNote      = out?.note || '';
 
         return `
         <div class="bond-row" id="bond-row-${editKey}">
@@ -4306,12 +4694,16 @@ const BondsUI = (function () {
                 <div class="bond-affinities">
                     <div class="bond-aff-pill" style="--rank-color: ${outColor}" title="Lo que ${escapeHtml(myChar.name)} siente hacia ${otherName}">
                         <span class="bond-aff-arrow">→</span>
+                        <span class="bond-aff-icon">${outIcon}</span>
                         <span class="bond-aff-rank">${escapeHtml(outRank)}</span>
+                        ${outBranch ? `<span class="bond-aff-branch">${outBranch}</span>` : ''}
                         <span class="bond-aff-val">${outAff}</span>
                     </div>
                     <div class="bond-aff-pill bond-aff-incoming" style="--rank-color: ${incColor}" title="Lo que ${otherName} siente hacia ${escapeHtml(myChar.name)}">
                         <span class="bond-aff-arrow">←</span>
+                        <span class="bond-aff-icon">${incIcon}</span>
                         <span class="bond-aff-rank">${escapeHtml(incRank)}</span>
+                        ${incBranch ? `<span class="bond-aff-branch">${incBranch}</span>` : ''}
                         <span class="bond-aff-val">${incAff}</span>
                     </div>
                 </div>
@@ -4407,7 +4799,8 @@ const BondsUI = (function () {
             container.innerHTML = '<div class="bond-history-entry" style="font-style:italic;opacity:0.5">Sin cambios registrados</div>';
         } else {
             container.innerHTML = history.map(h => {
-                const color = _rankColor(h.new_rank || '');
+                // El historial no guarda relation_type, usamos el actual como aproximación
+                const color = _rankColor(h.new_rank || '', outType);
                 const date  = h.changed_at
                     ? new Date(h.changed_at).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'2-digit' })
                     : '';
@@ -4446,6 +4839,7 @@ const BondsUI = (function () {
 })();
 
 window.BondsUI = BondsUI;
+
 
 /* js/ui/message-search.js */
 // ═══════════════════════════════════════════════════════════════════
@@ -6958,8 +7352,8 @@ async function uploadAvatarForChar(fileInput) {
         showAutosave('El archivo debe ser una imagen', 'error');
         return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-        showAutosave('La imagen no puede superar 20 MB', 'error');
+    if (file.size > 5 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 5 MB', 'error');
         return;
     }
 
@@ -7020,8 +7414,8 @@ async function uploadSpriteForChar(fileInput) {
         showAutosave('El archivo debe ser una imagen', 'error');
         return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-        showAutosave('La imagen no puede superar 20 MB', 'error');
+    if (file.size > 10 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 10 MB', 'error');
         return;
     }
 
@@ -7517,7 +7911,7 @@ window.RPG_ITEM_CATALOG   = RPG_ITEM_CATALOG;
 // ============================================
 // SUPABASE SYNC — Sincronización completa de datos
 // ============================================
-// Reemplaza el sistema JSONBin con sincronización completa vía Supabase.
+// Sincronización completa vía Supabase.
 // Sincroniza: perfiles, topics, characters, mensajes, afinidades, favoritos.
 //
 // Tablas requeridas en Supabase:
@@ -8433,7 +8827,6 @@ window.SupabaseSync = SupabaseSync;
 // Tabla: id (uuid), session_id (text), author (text),
 //        content (text), created_at (timestamp).
 //
-// No sustituye localStorage ni jsonbin.io.
 // Si Supabase falla, la app continúa sin errores.
 // ============================================
 
@@ -8643,6 +9036,13 @@ window.SupabaseSync = SupabaseSync;
             }
 
             _available = true;
+            // Registrar en activity_log (fire-and-forget, no bloquea el envío)
+            if (global.SupabaseExtras?.logActivity) {
+                global.SupabaseExtras.logActivity('message_sent', 'story',
+                    String(sessionId),
+                    { isNarrator: !!msgObj.isNarrator, charId: String(msgObj.characterId || '') }
+                ).catch(() => {});
+            }
             return true;
 
         } catch (e) {
@@ -9120,6 +9520,7 @@ window.SupabaseSync = SupabaseSync;
     };
 
 }(window));
+
 
 /* js/utils/supabasePresence.js */
 // ============================================
@@ -10537,868 +10938,6 @@ window.SupabaseSync = SupabaseSync;
 
 })(window);
 
-/* js/ui/toasts.js */
-// ═══════════════════════════════════════════════════════════════════
-// TOASTS — Sistema de notificaciones reutilizable de Etheria
-//
-// API pública (window.Toasts):
-//   show({ type, title, body, duration })
-//     type: 'info' | 'success' | 'warning' | 'error'
-//     duration: ms, omitir para sticky (cierra con click)
-//
-//   showCycleEchos({ changes, onDismiss })
-//     changes: [{ charName, charAvatar, direction: 'up'|'down' }]
-//     onDismiss: función llamada al cerrar
-// ═══════════════════════════════════════════════════════════════════
-
-const Toasts = (function () {
-
-    // ── Estilos inyectados una sola vez ───────────────────────────────
-
-    let _stylesInjected = false;
-
-    function _injectStyles() {
-        if (_stylesInjected) return;
-        _stylesInjected = true;
-
-        const css = `
-/* ── Toasts base ─────────────────────────────────────── */
-.eth-toast {
-    position: fixed;
-    z-index: 9800;
-    bottom: 2rem;
-    left: 50%;
-    transform: translateX(-50%) translateY(calc(100% + 2rem));
-    max-width: min(480px, calc(100vw - 2rem));
-    width: 100%;
-    background: rgba(12, 9, 18, 0.97);
-    border: 1px solid var(--accent-gold, #c9a86c);
-    border-radius: 4px;
-    box-shadow:
-        0 0 0 1px rgba(201, 168, 108, 0.12),
-        0 8px 40px rgba(0, 0, 0, 0.7),
-        0 0 24px rgba(201, 168, 108, 0.08);
-    padding: 1.25rem 1.5rem 1.1rem;
-    font-family: var(--font-body, 'Crimson Text', Georgia, serif);
-    color: var(--text-primary, #e8dcc8);
-    cursor: pointer;
-    transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
-                opacity  0.38s ease;
-    opacity: 0;
-    pointer-events: none;
-    user-select: none;
-}
-.eth-toast.eth-toast--visible {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-    pointer-events: auto;
-}
-.eth-toast.eth-toast--leaving {
-    transform: translateX(-50%) translateY(calc(100% + 2rem));
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* ── Toast genérico ──────────────────────────────────── */
-.eth-toast__title {
-    font-family: var(--font-display, 'Cinzel', serif);
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--accent-gold, #c9a86c);
-    margin-bottom: 0.35rem;
-}
-.eth-toast__body {
-    font-size: 0.95rem;
-    line-height: 1.45;
-    opacity: 0.88;
-}
-.eth-toast--error   .eth-toast__title { color: #c07070; }
-.eth-toast--warning .eth-toast__title { color: #c0a040; }
-.eth-toast--success .eth-toast__title { color: #70a870; }
-
-/* ── Ecos del ciclo ──────────────────────────────────── */
-.eth-toast--echos {
-    padding: 1.4rem 1.6rem 1.3rem;
-}
-.eth-toast__echos-header {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.9rem;
-    border-bottom: 1px solid rgba(201, 168, 108, 0.18);
-    padding-bottom: 0.75rem;
-}
-.eth-toast__echos-icon {
-    font-size: 1.1rem;
-    opacity: 0.75;
-}
-.eth-toast__echos-titles {
-    flex: 1;
-}
-.eth-toast__echos-title {
-    font-family: var(--font-display, 'Cinzel', serif);
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--accent-gold, #c9a86c);
-    line-height: 1.2;
-}
-.eth-toast__echos-subtitle {
-    font-size: 0.8rem;
-    opacity: 0.5;
-    margin-top: 0.15rem;
-    font-style: italic;
-}
-.eth-toast__echos-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    margin-bottom: 1rem;
-}
-.eth-toast__echos-entry {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-.eth-toast__echos-avatar {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    border: 1px solid rgba(201, 168, 108, 0.3);
-    object-fit: cover;
-    flex-shrink: 0;
-    background: rgba(201, 168, 108, 0.08);
-}
-.eth-toast__echos-initial {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    border: 1px solid rgba(201, 168, 108, 0.3);
-    flex-shrink: 0;
-    background: rgba(201, 168, 108, 0.08);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-display, 'Cinzel', serif);
-    font-size: 0.75rem;
-    color: var(--accent-gold, #c9a86c);
-}
-.eth-toast__echos-name {
-    flex: 1;
-    font-size: 0.95rem;
-    font-weight: 500;
-}
-.eth-toast__echos-arrow {
-    font-size: 1.1rem;
-    font-weight: 700;
-    flex-shrink: 0;
-    line-height: 1;
-}
-.eth-toast__echos-arrow--up   { color: #c9a86c; }
-.eth-toast__echos-arrow--down { color: #8a5050; }
-.eth-toast__echos-hint {
-    text-align: center;
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    opacity: 0.35;
-    text-transform: uppercase;
-    font-family: var(--font-display, 'Cinzel', serif);
-}
-
-/* Ornamento Art Deco superior */
-.eth-toast--echos::before {
-    content: '';
-    display: block;
-    height: 2px;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(201, 168, 108, 0.6) 30%,
-        rgba(201, 168, 108, 0.9) 50%,
-        rgba(201, 168, 108, 0.6) 70%,
-        transparent
-    );
-    margin: -1.4rem -1.6rem 1.2rem;
-    border-radius: 4px 4px 0 0;
-}
-        `;
-
-        const style = document.createElement('style');
-        style.id = 'eth-toasts-styles';
-        style.textContent = css;
-        document.head.appendChild(style);
-    }
-
-    // ── Helpers DOM ───────────────────────────────────────────────────
-
-    function _create(extraClass) {
-        _injectStyles();
-        const el = document.createElement('div');
-        el.className = 'eth-toast' + (extraClass ? ' ' + extraClass : '');
-        document.body.appendChild(el);
-        return el;
-    }
-
-    function _show(el) {
-        // Forzar reflow antes de añadir la clase visible
-        void el.offsetWidth;
-        el.classList.add('eth-toast--visible');
-    }
-
-    function _dismiss(el, onDismiss) {
-        el.classList.remove('eth-toast--visible');
-        el.classList.add('eth-toast--leaving');
-        setTimeout(function () {
-            if (el.parentNode) el.parentNode.removeChild(el);
-            if (typeof onDismiss === 'function') onDismiss();
-        }, 420);
-    }
-
-    // ── show — toast genérico ─────────────────────────────────────────
-
-    function show(config) {
-        const { type = 'info', title, body, duration, onDismiss } = config || {};
-
-        const el = _create('eth-toast--' + type);
-        el.innerHTML = (title ? `<div class="eth-toast__title">${_esc(title)}</div>` : '') +
-                       (body  ? `<div class="eth-toast__body">${_esc(body)}</div>`   : '');
-
-        const close = function () { _dismiss(el, onDismiss); };
-
-        if (duration) {
-            setTimeout(close, duration);
-        } else {
-            el.addEventListener('click', close, { once: true });
-        }
-
-        _show(el);
-        return el;
-    }
-
-    // ── showCycleEchos — panel "Ecos del Ciclo" ───────────────────────
-
-    function showCycleEchos(config) {
-        const { changes = [], onDismiss } = config || {};
-        if (changes.length === 0) return null;
-
-        const el = _create('eth-toast--echos');
-
-        const entriesHtml = changes.map(function (c) {
-            const avatarHtml = c.charAvatar
-                ? `<img class="eth-toast__echos-avatar" src="${_esc(c.charAvatar)}" alt="${_esc(c.charName)}" loading="lazy">`
-                : `<div class="eth-toast__echos-initial">${_esc((c.charName || '?')[0].toUpperCase())}</div>`;
-
-            const arrowClass = c.direction === 'up'
-                ? 'eth-toast__echos-arrow--up'
-                : 'eth-toast__echos-arrow--down';
-            const arrowGlyph = c.direction === 'up' ? '▲' : '▼';
-
-            return `
-                <div class="eth-toast__echos-entry">
-                    ${avatarHtml}
-                    <span class="eth-toast__echos-name">${_esc(c.charName)}</span>
-                    <span class="eth-toast__echos-arrow ${arrowClass}" aria-label="${c.direction === 'up' ? 'subió' : 'bajó'}">${arrowGlyph}</span>
-                </div>`;
-        }).join('');
-
-        el.innerHTML = `
-            <div class="eth-toast__echos-header">
-                <span class="eth-toast__echos-icon">✦</span>
-                <div class="eth-toast__echos-titles">
-                    <div class="eth-toast__echos-title">Ecos del Ciclo</div>
-                    <div class="eth-toast__echos-subtitle">Los lazos del destino se han movido</div>
-                </div>
-            </div>
-            <div class="eth-toast__echos-list">${entriesHtml}</div>
-            <div class="eth-toast__echos-hint">Toca para cerrar</div>
-        `;
-
-        const close = function () { _dismiss(el, onDismiss); };
-        el.addEventListener('click', close, { once: true });
-
-        _show(el);
-        return el;
-    }
-
-    // ── Utilidad ──────────────────────────────────────────────────────
-
-    function _esc(str) {
-        return String(str || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
-    // ── Public API ────────────────────────────────────────────────────
-
-    return { show, showCycleEchos };
-
-})();
-
-window.Toasts = Toasts;
-
-/* js/ui/vn-design.js */
-// ═══════════════════════════════════════════════════════════════════
-// VN Design Layer — Senda de la Palabra & Senda del Azar
-//
-// Inyecta los ornamentos puramente decorativos que requieren DOM o
-// canvas animado: campo de estrellas (canvas), anillo zodiacal (SVG
-// en modo clásico), ruta de expedición (SVG en modo RPG).
-//
-// Se auto-activa cuando se entra a #vnSection y limpia al salir.
-// Respeta prefers-reduced-motion: sin animaciones ni canvas activo.
-// ═══════════════════════════════════════════════════════════════════
-
-(function () {
-    'use strict';
-
-    var _raf     = 0;
-    var _stars   = [];
-    var _canvas  = null;
-    var _ctx     = null;
-    var _running = false;
-    var _mode    = null; // 'classic' | 'rpg' | null
-    var _resizeHandler = null;
-
-    var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    // ── Helpers ─────────────────────────────────────────────────────
-
-    function _isClassic() { return document.body.classList.contains('mode-classic'); }
-    function _isRpg()     { return document.body.classList.contains('mode-rpg'); }
-
-    // ── Star field canvas ───────────────────────────────────────────
-
-    function _initCanvas(section) {
-        _canvas = document.getElementById('vnStarCanvas');
-        if (!_canvas) {
-            _canvas = document.createElement('canvas');
-            _canvas.id = 'vnStarCanvas';
-            _canvas.setAttribute('aria-hidden', 'true');
-            section.insertBefore(_canvas, section.firstChild);
-        }
-        _ctx = _canvas.getContext('2d');
-        _setupStars();
-    }
-
-    function _setupStars() {
-        var DPR  = Math.min(window.devicePixelRatio || 1, 2);
-        var warm = _isRpg();
-        var w = _canvas.clientWidth;
-        var h = _canvas.clientHeight;
-        _canvas.width  = Math.max(1, w * DPR);
-        _canvas.height = Math.max(1, h * DPR);
-        if (_ctx) _ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-        var n = Math.min(240, Math.round((w * h) / 8200));
-        _stars = [];
-        for (var i = 0; i < n; i++) {
-            var r = Math.random();
-            var hue = r < 0.16 ? 'c' : r < 0.30 ? 'b' : 'a';
-            _stars.push({
-                x:    Math.random() * w,
-                y:    Math.random() * h,
-                r:    Math.random() * 1.2 + 0.25,
-                base: Math.random() * 0.4 + 0.28,
-                amp:  Math.random() * 0.5 + 0.1,
-                sp:   Math.random() * 0.0015 + 0.0004,
-                ph:   Math.random() * 6.28,
-                hue:  hue,
-                warm: warm,
-            });
-        }
-    }
-
-    function _palRgb(s) {
-        var warm = s.warm;
-        if (s.hue === 'c') return warm ? '230,150,90'  : '150,170,240';
-        if (s.hue === 'b') return warm ? '240,200,150' : '206,188,250';
-        return                     warm ? '255,238,205' : '250,248,255';
-    }
-
-    function _drawStars(t) {
-        if (!_ctx || !_canvas) return;
-        var w = _canvas.width  / (window.devicePixelRatio || 1);
-        var h = _canvas.height / (window.devicePixelRatio || 1);
-        _ctx.clearRect(0, 0, w, h);
-        for (var i = 0; i < _stars.length; i++) {
-            var s = _stars[i];
-            var a = REDUCED
-                ? s.base + 0.12
-                : s.base + Math.sin(t * s.sp + s.ph) * s.amp;
-            a = Math.max(0, Math.min(1, a));
-            var rgb = _palRgb(s);
-            _ctx.beginPath();
-            _ctx.arc(s.x, s.y, s.r, 0, 6.2832);
-            _ctx.fillStyle   = 'rgba(' + rgb + ',' + a + ')';
-            _ctx.shadowBlur  = s.r * 3.5;
-            _ctx.shadowColor = 'rgba(' + rgb + ',' + (a * 0.7) + ')';
-            _ctx.fill();
-        }
-        _ctx.shadowBlur = 0;
-    }
-
-    function _loop(t) {
-        if (!_running) return;
-        _drawStars(t);
-        if (!REDUCED) _raf = requestAnimationFrame(_loop);
-    }
-
-    // ── Zodiac ring (classic) ───────────────────────────────────────
-
-    function _injectZodiacRing(section) {
-        if (document.getElementById('vnZodiacRing')) return;
-        var accent = '#c1a8ec';
-        var ns = 'http://www.w3.org/2000/svg';
-        var svg = document.createElementNS(ns, 'svg');
-        svg.id = 'vnZodiacRing';
-        svg.setAttribute('viewBox', '0 0 660 660');
-        svg.setAttribute('aria-hidden', 'true');
-
-        // outer ring
-        var c1 = document.createElementNS(ns, 'circle');
-        c1.setAttribute('cx', '330'); c1.setAttribute('cy', '330'); c1.setAttribute('r', '318');
-        c1.setAttribute('fill', 'none'); c1.setAttribute('stroke', accent);
-        c1.setAttribute('stroke-width', '0.7'); c1.setAttribute('opacity', '0.45');
-        svg.appendChild(c1);
-
-        // dashed inner ring
-        var c2 = document.createElementNS(ns, 'circle');
-        c2.setAttribute('cx', '330'); c2.setAttribute('cy', '330'); c2.setAttribute('r', '300');
-        c2.setAttribute('fill', 'none'); c2.setAttribute('stroke', accent);
-        c2.setAttribute('stroke-width', '0.5'); c2.setAttribute('stroke-dasharray', '1 10');
-        c2.setAttribute('opacity', '0.6');
-        svg.appendChild(c2);
-
-        // 12 star markers
-        var R = 309;
-        for (var i = 0; i < 12; i++) {
-            var ang = (i * 30 - 90) * Math.PI / 180;
-            var cx = 330 + Math.cos(ang) * R;
-            var cy = 330 + Math.sin(ang) * R;
-            var dot = document.createElementNS(ns, 'circle');
-            dot.setAttribute('cx', cx.toFixed(2));
-            dot.setAttribute('cy', cy.toFixed(2));
-            dot.setAttribute('r', i % 3 === 0 ? '2.4' : '1.4');
-            dot.setAttribute('fill', i % 3 === 0 ? '#fdf8ff' : accent);
-            dot.setAttribute('opacity', '0.9');
-            svg.appendChild(dot);
-        }
-
-        section.appendChild(svg);
-    }
-
-    // Soft moon glow element
-    function _injectMoonGlow(section) {
-        if (document.getElementById('vnMoonGlow')) return;
-        var div = document.createElement('div');
-        div.id = 'vnMoonGlow';
-        div.setAttribute('aria-hidden', 'true');
-        div.style.cssText = [
-            'position:absolute',
-            'left:50%', 'top:0',
-            'transform:translateX(-50%)',
-            'width:150px', 'height:150px',
-            'border-radius:50%',
-            'background:radial-gradient(circle at 42% 38%, rgba(245,242,255,0.9), rgba(206,196,255,0.4) 52%, transparent 72%)',
-            'filter:blur(2px)',
-            'pointer-events:none',
-            'z-index:2',
-        ].join(';');
-        section.appendChild(div);
-    }
-
-    // ── Expedition route hint (RPG) ─────────────────────────────────
-
-    function _injectRouteHint(section) {
-        if (document.getElementById('vnRouteHint')) return;
-        var ns = 'http://www.w3.org/2000/svg';
-        var svg = document.createElementNS(ns, 'svg');
-        svg.id = 'vnRouteHint';
-        svg.setAttribute('viewBox', '0 0 1600 900');
-        svg.setAttribute('preserveAspectRatio', 'none');
-        svg.setAttribute('aria-hidden', 'true');
-
-        var color = '#e3a24f';
-        var path  = document.createElementNS(ns, 'path');
-        path.setAttribute('d', 'M150 210 C 480 150, 760 300, 1050 230 S 1480 180, 1520 250');
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', color);
-        path.setAttribute('stroke-width', '1.5');
-        path.setAttribute('stroke-dasharray', '2 10');
-        path.setAttribute('stroke-linecap', 'round');
-        svg.appendChild(path);
-
-        [[150,210],[1050,230],[1520,250]].forEach(function(pt) {
-            var c = document.createElementNS(ns, 'circle');
-            c.setAttribute('cx', pt[0]); c.setAttribute('cy', pt[1]); c.setAttribute('r', '3.5');
-            c.setAttribute('fill', 'none'); c.setAttribute('stroke', color); c.setAttribute('stroke-width', '1.5');
-            svg.appendChild(c);
-        });
-
-        section.appendChild(svg);
-    }
-
-    // ── "Continuar" button injection (classic mode only) ────────────
-    // Adds a primary CTA next to pagination if not already present.
-
-    function _injectContinueBtn(section) {
-        if (document.getElementById('vnContinueReplyBtn')) return;
-        var counterWrap = section.querySelector('.vn-counter-dice-wrap');
-        if (!counterWrap) return;
-
-        var btn = document.createElement('button');
-        btn.id = 'vnContinueReplyBtn';
-        btn.type = 'button';
-        btn.setAttribute('aria-label', 'Continuar / Responder');
-        btn.setAttribute('title', 'Continuar / Responder');
-        btn.onclick = function () {
-            if (typeof openReplyPanel === 'function') openReplyPanel();
-        };
-        btn.innerHTML =
-            'Continuar ' +
-            '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-            '<path d="M5 12 H19 M14 7 L19 12 L14 17"/></svg>';
-
-        var actionsRight = section.querySelector('.vn-dialogue-actions-right');
-        if (actionsRight) {
-            actionsRight.style.display = '';
-            actionsRight.appendChild(btn);
-        } else {
-            counterWrap.parentNode.insertBefore(btn, counterWrap.nextSibling);
-        }
-    }
-
-    // ── Lifecycle ───────────────────────────────────────────────────
-
-    function _start() {
-        var section = document.getElementById('vnSection');
-        if (!section) return;
-
-        var classic = _isClassic();
-        var rpg     = _isRpg();
-        if (!classic && !rpg) return;
-
-        _mode    = classic ? 'classic' : 'rpg';
-        _running = true;
-
-        // Star canvas
-        if (!REDUCED) {
-            _initCanvas(section);
-            _raf = requestAnimationFrame(_loop);
-        }
-
-        // Ornaments
-        if (classic) {
-            _injectMoonGlow(section);
-            if (!REDUCED) _injectZodiacRing(section);
-            // _injectContinueBtn: eliminado per diseño v2 (prototipo no lo incluye)
-        } else if (rpg) {
-            _injectRouteHint(section);
-        }
-
-        // Resize
-        _resizeHandler = function () {
-            if (_canvas && _running) _setupStars();
-        };
-        window.addEventListener('resize', _resizeHandler);
-    }
-
-    function _stop() {
-        _running = false;
-        cancelAnimationFrame(_raf);
-        if (_resizeHandler) {
-            window.removeEventListener('resize', _resizeHandler);
-            _resizeHandler = null;
-        }
-        // Remove injected elements
-        ['vnStarCanvas','vnZodiacRing','vnMoonGlow','vnRouteHint'].forEach(function(id) {
-            var el = document.getElementById(id);
-            if (el && el.parentNode) el.parentNode.removeChild(el);
-        });
-        _canvas = null; _ctx = null; _stars = []; _mode = null;
-    }
-
-    // ── Event listeners ─────────────────────────────────────────────
-
-    // Listen to Etheria's own topic-enter / topic-leave events
-    window.addEventListener('etheria:topic-enter', function () {
-        _stop(); // clean previous
-        // Small delay to let mode class settle
-        setTimeout(_start, 100);
-
-        // Classic party: ensure renderClassicParty is called with participants.
-        // vn.js/_buildLocalClassicParticipants ignores legacy roleCharacterId;
-        // here we call renderClassicParty with currentStoryParticipants if
-        // available, or build a minimal fallback that also covers legacy format.
-        if (document.body.classList.contains('mode-rpg')) return;
-        if (typeof renderClassicParty !== 'function') return;
-
-        function _ensureClassicParty() {
-            if (document.body.classList.contains('mode-rpg')) return;
-            // currentStoryParticipants / currentTopicId / appData son `let` en state.js
-            // → accesibles como globales de script, pero NO como window.*
-            /* global currentStoryParticipants, currentTopicId, appData */
-            var pts = typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [];
-            if (Array.isArray(pts) && pts.length > 0) {
-                renderClassicParty(pts);
-                return;
-            }
-            // Fallback local: build from characterLocks + legacy roleCharacterId
-            var topicId = typeof currentTopicId !== 'undefined' ? currentTopicId : null;
-            var _data   = typeof appData !== 'undefined' ? appData : null;
-            var topic   = topicId && _data && _data.topics
-                ? _data.topics.find(function(t) { return String(t.id) === String(topicId); })
-                : null;
-            if (!topic) return;
-            var locks   = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
-            var chars   = (_data && _data.characters) || [];
-            var localPts = Object.entries(locks).map(function(entry) {
-                var uiStr = entry[0], charId = entry[1];
-                var ch    = chars.find(function(c) { return String(c.id) === String(charId); });
-                if (!ch) return null;
-                return { user_id: ch.owner_user_id || ('local-' + uiStr), user_index: parseInt(uiStr, 10), profile: { name: ch.name } };
-            }).filter(Boolean);
-            // Legacy classic: single creator char stored in roleCharacterId
-            if (!localPts.length && topic.roleCharacterId) {
-                var creatorUi = topic.createdByIndex !== undefined ? topic.createdByIndex : 0;
-                var legacyCh  = chars.find(function(c) { return String(c.id) === String(topic.roleCharacterId); });
-                if (legacyCh) localPts.push({ user_id: legacyCh.owner_user_id || ('local-' + creatorUi), user_index: creatorUi, profile: { name: legacyCh.name } });
-            }
-            if (localPts.length) renderClassicParty(localPts);
-        }
-
-        // Run once immediately (mode classes already set before this event fires)
-        _ensureClassicParty();
-    });
-
-    window.addEventListener('etheria:topic-leave', function () {
-        _stop();
-    });
-
-    // Fallback: observe body class changes (mode-classic / mode-rpg)
-    (function () {
-        if (!window.MutationObserver) return;
-        var prev = '';
-        var obs  = new MutationObserver(function () {
-            var now = document.body.className;
-            if (now === prev) return;
-            prev = now;
-            var inVn = !!document.querySelector('#vnSection.active, #vnSection.vn-section.active');
-            if (!inVn) return;
-            if (_mode !== null) _stop();
-            setTimeout(_start, 80);
-        });
-        obs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    }());
-
-    window.VnDesign = { start: _start, stop: _stop };
-
-}());
-
-// ═══════════════════════════════════════════════════════════════════
-// Perfil desplegable desde el party
-// Clic en el nombre de un miembro → abre/cierra ficha anclada.
-// Implementado con event delegation (no modifica vn.js ni userProfile.js).
-// ═══════════════════════════════════════════════════════════════════
-
-(function () {
-    'use strict';
-
-    var _activePanel = null;  // { charId, el }
-
-    function _esc(s) {
-        return String(s)
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    function _isRpg() { return document.body.classList.contains('mode-rpg'); }
-
-    function _getChar(charId) {
-        var chars = (window.appData && window.appData.characters) || [];
-        return chars.find(function (c) { return String(c.id) === String(charId); }) || null;
-    }
-
-    function _getProfile(char) {
-        if (!char || typeof ensureCharacterRpgProfile !== 'function') return null;
-        return ensureCharacterRpgProfile(char, window.currentTopicId || null);
-    }
-
-    function _isOwn(char) {
-        if (!char) return false;
-        return char.userIndex === window.currentUserIndex;
-    }
-
-    function _hpBar(cur, max, cls) {
-        var pct = max > 0 ? Math.max(0, Math.min(100, (cur / max) * 100)) : 0;
-        return '<div class="vmpf-bar-row">' +
-            '<span class="vmpf-bar-label">' + cls.toUpperCase() + '</span>' +
-            '<span class="vmpf-bar-track"><span class="vmpf-bar-fill' + (cls === 'exp' ? ' exp' : '') + '" style="width:' + pct + '%"></span></span>' +
-            '<span class="vmpf-bar-val">' + cur + '/' + max + '</span>' +
-        '</div>';
-    }
-
-    function _buildPanel(char, profile, anchorEl) {
-        var isOwn = _isOwn(char);
-        var rpg   = _isRpg();
-
-        var stats = '';
-        if (rpg && profile) {
-            var s = profile.stats || {};
-            var keys = ['STR','DEX','CON','INT','WIS','CHA'];
-            stats = '<div class="vmpf-stats">' +
-                keys.map(function (k) {
-                    return '<div class="vmpf-stat">' +
-                        '<span class="vmpf-stat-label">' + k + '</span>' +
-                        '<span class="vmpf-stat-val">' + (s[k] !== undefined ? s[k] : '—') + '</span>' +
-                    '</div>';
-                }).join('') +
-            '</div>';
-        }
-
-        var bars = '';
-        if (rpg && profile) {
-            bars = _hpBar(profile.hp || 0, profile.hpMax || 0, 'hp') +
-                   _hpBar(profile.exp || 0, profile.expMax || 0, 'exp');
-        }
-
-        var editBtn = (rpg && isOwn)
-            ? '<button type="button" class="vmpf-edit-btn" onclick="' +
-              (typeof openCurrentVnCharacterSheet === 'function'
-                  ? 'openCurrentVnCharacterSheet()'
-                  : 'openSheet && openSheet(\'' + _esc(char.id) + '\')') +
-              '; window._closeVnMemberProfile && window._closeVnMemberProfile();" >' +
-              'Editar ficha</button>'
-            : '';
-
-        var glyph = char.gender === 'female' ? '♀' : char.gender === 'male' ? '♂' : '';
-        var meta  = rpg && profile
-            ? _esc((profile.className || char.class_name || '')) + (profile.level ? ' · Nv.' + profile.level : '')
-            : (glyph || '');
-
-        var panel = document.createElement('div');
-        panel.className = 'vn-member-profile ' + (rpg ? 'vn-member-profile--rpg' : 'vn-member-profile--classic');
-        panel.setAttribute('role', 'dialog');
-        panel.setAttribute('aria-modal', 'true');
-        panel.setAttribute('data-vmpf-char', String(char.id));
-
-        var avatarText = char.avatar_emoji || char.avatar || (char.name ? char.name[0] : '?');
-        panel.innerHTML =
-            '<div class="vmpf-header">' +
-                '<span class="vmpf-avatar" aria-hidden="true">' + _esc(avatarText) + '</span>' +
-                '<div class="vmpf-header-info">' +
-                    '<span class="vmpf-name">' + _esc(char.name || '?') + '</span>' +
-                    (meta ? '<span class="vmpf-meta">' + meta + '</span>' : '') +
-                '</div>' +
-            '</div>' +
-            (bars ? '<div class="vmpf-bars">' + bars + '</div>' : '') +
-            stats +
-            editBtn;
-
-        // anchor below the row
-        var rect = anchorEl.getBoundingClientRect();
-        var vnRect = (document.getElementById('vnSection') || document.body).getBoundingClientRect();
-        panel.style.position = 'absolute';
-        panel.style.top  = (rect.bottom - vnRect.top + 6) + 'px';
-        panel.style.left = Math.max(4, rect.left - vnRect.left) + 'px';
-        panel.style.zIndex = '99';
-
-        return panel;
-    }
-
-    function _closePanel() {
-        if (_activePanel) {
-            if (_activePanel.el && _activePanel.el.parentNode) {
-                _activePanel.el.parentNode.removeChild(_activePanel.el);
-            }
-            _activePanel = null;
-        }
-    }
-    window._closeVnMemberProfile = _closePanel;
-
-    window.toggleVnMemberProfile = function (charId, anchorEl) {
-        if (_activePanel && String(_activePanel.charId) === String(charId)) {
-            _closePanel();
-            return;
-        }
-        _closePanel();
-
-        var char = _getChar(charId);
-        if (!char) return;
-        var profile = _getProfile(char);
-
-        var vnSection = document.getElementById('vnSection');
-        if (!vnSection) return;
-
-        var panel = _buildPanel(char, profile, anchorEl);
-        vnSection.appendChild(panel);
-        _activePanel = { charId: String(charId), el: panel };
-
-        // Close on outside click or Esc
-        setTimeout(function () {
-            document.addEventListener('click', _onOutside, true);
-            document.addEventListener('keydown', _onEsc, true);
-        }, 0);
-    };
-
-    function _onOutside(e) {
-        if (_activePanel && !_activePanel.el.contains(e.target)) {
-            _closePanel();
-            document.removeEventListener('click', _onOutside, true);
-            document.removeEventListener('keydown', _onEsc, true);
-        }
-    }
-
-    function _onEsc(e) {
-        if (e.key === 'Escape' && _activePanel) {
-            _closePanel();
-            document.removeEventListener('click', _onOutside, true);
-            document.removeEventListener('keydown', _onEsc, true);
-        }
-    }
-
-    // ── Event delegation — party RPG (.vn-party-name) y clásico (.cp-name) ──
-    document.addEventListener('click', function (e) {
-        var nameEl = e.target.closest('.vn-party-name, .cp-name');
-        if (!nameEl) return;
-
-        var memberEl = nameEl.closest('[data-char-id], .cp-member[onclick]');
-        var charId   = memberEl && memberEl.dataset.charId;
-
-        // Para clásico: extraer charId desde el onclick via currentStoryParticipants
-        if (!charId && nameEl.closest('.cp-member')) {
-            // En clásico no tenemos charId directo; usamos el nombre para buscar
-            var nameText = nameEl.textContent.trim();
-            var chars    = (window.appData && window.appData.characters) || [];
-            var found    = chars.find(function (c) { return c.name === nameText; });
-            if (found) charId = found.id;
-        }
-
-        if (!charId) return;
-        e.stopPropagation();
-        window.toggleVnMemberProfile(charId, memberEl || nameEl);
-    }, true);
-
-    // ── Hacer nombres clicables vía CSS pointer (ya cubierto por el delegation) ──
-    // Inyectamos el style solo una vez para que .vn-party-name y .cp-name muestren cursor pointer.
-    (function () {
-        if (document.getElementById('_vmpf-style')) return;
-        var s = document.createElement('style');
-        s.id  = '_vmpf-style';
-        s.textContent = [
-            '.vn-party-name, .cp-name { cursor: pointer; }',
-            '.vn-party-name:hover { opacity: .8; }',
-            '.cp-name:hover { opacity: .8; }',
-        ].join('\n');
-        document.head.appendChild(s);
-    }());
-
-}());
-
 /* js/ui/vn.js */
 // Modo novela visual: renderizado de mensajes, sprites, typewriter, reply panel, opciones y historial.
 // ============================================
@@ -11657,7 +11196,7 @@ function updateVnTurnBadge() {
         return;
     }
 
-    const participantNames = getTurnParticipantNames().map(n => escapeHtml(n));
+    const participantNames = getTurnParticipantNames();
     const namesPreview = participantNames.slice(0, 3).join(' · ');
     const rotationHint = participantNames.length > 3
         ? `${namesPreview}…`
@@ -12008,6 +11547,12 @@ function renderVnPartyPanel(force = false) {
     // Orden estable: slot 0 primero, slot 1 segundo, etc.
     const sortedCharIds = [...charIds].sort((a, b) => _charUserIndex(a) - _charUserIndex(b));
 
+    // ── Turno activo en el party RPG ────────────────────────────────────────
+    const _turnMode    = topic?.turnMode || topic?.turn_mode || 'off';
+    const _turnQueue   = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
+    const _activeTurn  = _turnMode !== 'off' && _turnQueue.length > 0 ? _turnQueue[0] : null;
+    const _myUid       = window._cachedUserId || null;
+
     list.innerHTML = sortedCharIds.map((charId, idx) => {
         const entry = snapshot[charId];
         if (!entry) return '';
@@ -12038,8 +11583,13 @@ function renderVnPartyPanel(force = false) {
             ? `<button type="button" class="vn-party-profile-btn" onclick="event.stopPropagation();openUserProfileModal('${ownerUserId}')" title="Ver perfil" aria-label="Ver perfil del jugador">👤</button>`
             : '';
 
+        const _ownerUidForTurn = _charOwnerUid(charId);
+        const _isActiveTurn    = _activeTurn && _ownerUidForTurn === _activeTurn;
+        const _isMyTurn        = _isActiveTurn && _ownerUidForTurn === _myUid;
+        const _turnClass       = _isActiveTurn ? ' vn-party-member--active-turn' : '';
+
         return `
-            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
+            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}${_turnClass}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="if(typeof CharPopover!=='undefined'){CharPopover.toggle('${escapeHtml(entry.charId)}',this)}else{highlightVnPartyCharacter('${escapeHtml(entry.charId)}')}" aria-label="${escapeHtml(entry.name)}">
                 <div class="vn-party-main">
                     <div class="vn-party-topline">
                         <div>
@@ -12062,6 +11612,7 @@ function renderVnPartyPanel(force = false) {
                     </div>
                 </div>
                 <span class="vn-party-turn-order">${turnNumber}</span>
+                ${_isActiveTurn ? `<span class="vn-party-turn-badge" title="${_isMyTurn ? 'Tu turno' : 'Turno activo'}">${_isMyTurn ? '✦' : '▶'}</span>` : ''}
                 ${profileBtn}
             </button>
         `;
@@ -12135,6 +11686,7 @@ function updateOracleFloatButton() {
     floatBtn.style.display = shouldShow ? 'inline-flex' : 'none';
     // Keep innkeeper button in sync too
     if (typeof updateNarrateButton === 'function') updateNarrateButton();
+    if (typeof updateTurnBanner === 'function') updateTurnBanner();
     floatBtn.classList.toggle('active', oracleModeActive);
     floatBtn.dataset.oracleActive = oracleModeActive ? 'true' : 'false';
 }
@@ -12993,14 +12545,6 @@ function _doEnterTopic(id, t, topicMode) {
     if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
         SupabaseMessages.subscribeGlobal(null, null, id);
     }
-    // Ciclos narrativos — solo modo clásico
-    if (topicMode !== 'rpg' && typeof SupabaseCycles !== 'undefined') {
-        SupabaseCycles.init(id, getTopicMessages(id)).catch(() => {});
-    }
-    // Ecos del ciclo: mostrar cambios de afinidad de ciclos cerrados no vistos
-    if (topicMode !== 'rpg' && typeof SupabaseCycleViews !== 'undefined') {
-        setTimeout(function () { _checkUnseenCycleEchos(id).catch(() => {}); }, 800);
-    }
     const _existingMsgs = getTopicMessages(id);
     // Si el tema tiene mensajes, posicionar en el último — no en el primero
     currentMessageIndex = _existingMsgs.length > 0 ? _existingMsgs.length - 1 : 0;
@@ -13262,7 +12806,7 @@ async function _sbEnterTopic(topicId) {
         }
         // Limpiar listener cuando salgamos del topic
         if (currentTopicId !== topicId) {
-            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandler);
         }
     };
     window.addEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
@@ -13475,10 +13019,13 @@ function showCurrentMessage(direction = 'forward') {
             namePlate.style.background = msg.charColor || 'var(--accent-wood)';
         }
         if (avatarBox) {
+            // Prefer the live avatar from appData over the one stored in the message,
+            // so avatar changes made after the message was sent are reflected immediately.
+            const liveAvatar = charData?.avatar || charData?.sprite || msg.charAvatar;
             // XSS fix: build img via DOM to avoid charName injection in onerror attribute
-            if (msg.charAvatar) {
+            if (liveAvatar) {
                 const _img2 = document.createElement('img');
-                _img2.src = msg.charAvatar;
+                _img2.src = liveAvatar;
                 _img2.alt = 'Avatar de ' + msg.charName;
                 _img2.onerror = function () {
                     this.style.display = 'none';
@@ -14199,7 +13746,11 @@ function editCurrentMessage() {
     const replyText = document.getElementById('vnReplyText');
     if (replyText) replyText.value = msg.text || '';
 
-    applyNarratorMode(!!msg.isNarrator);
+    const narratorMode = document.getElementById('narratorMode');
+    if (narratorMode) {
+        narratorMode.checked = !!msg.isNarrator;
+        toggleNarratorMode();
+    }
 
     if (!msg.isNarrator && msg.characterId) {
         updateCharSelector();
@@ -14218,12 +13769,10 @@ function editCurrentMessage() {
 
         msg.options.forEach((opt, idx) => {
             if (idx < 3) {
-                const textInput    = document.getElementById(`option${idx + 1}Text`);
-                const contInput    = document.getElementById(`option${idx + 1}Continuation`);
-                const impactSelect = document.getElementById(`option${idx + 1}AffinityImpact`);
-                if (textInput)    textInput.value    = opt.text         || '';
-                if (contInput)    contInput.value    = opt.continuation || '';
-                if (impactSelect) impactSelect.value = opt.affinityImpact || 'neutral';
+                const textInput = document.getElementById(`option${idx + 1}Text`);
+                const contInput = document.getElementById(`option${idx + 1}Continuation`);
+                if (textInput) textInput.value = opt.text || '';
+                if (contInput) contInput.value = opt.continuation || '';
             }
         });
     }
@@ -14278,15 +13827,9 @@ function saveEditedMessage() {
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
-            const impactSel = document.getElementById(`option${i}AffinityImpact`);
             const t = textInput?.value.trim() || '';
             const c = contInput?.value.trim() || '';
-            if(t && c) {
-                const opt = {text: t, continuation: c};
-                const impact = impactSel?.value;
-                if (impact && impact !== 'neutral') opt.affinityImpact = impact;
-                options.push(opt);
-            }
+            if(t && c) options.push({text: t, continuation: c});
         }
     }
 
@@ -14302,7 +13845,7 @@ function saveEditedMessage() {
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
         charAvatar: isNarratorMode ? null : char.avatar,
-        charSprite: isNarratorMode ? null : (selectedSpriteOverride || char.sprite),
+        charSprite: isNarratorMode ? null : char.sprite,
         text,
         isNarrator: isNarratorMode,
         options: options && options.length > 0 ? options : undefined,
@@ -14492,7 +14035,7 @@ function buildHistoryEntry(msg, idx, showFavBadge = false) {
         const summary = getReactionSummary(currentTopicId, String(msg.id));
         const chips = Object.entries(summary)
             .sort((a, b) => b[1] - a[1])
-            .map(([emoji, count]) => `<span class="history-reaction-chip">${escapeHtml(String(emoji))}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`)
+            .map(([emoji, count]) => `<span class="history-reaction-chip">${emoji}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`)
             .join('');
         if (chips) reactionRow = `<div class="history-reactions">${chips}</div>`;
     }
@@ -14554,9 +14097,28 @@ function renderVirtualizedHistory(msgs, container) {
         const oldest = allMsgs[0].timestamp;
         if (!oldest) return;
         container.dataset.loadingOlder = '1';
+
+        // Mostrar spinner en la parte superior del historial mientras carga
+        let _spinner = document.getElementById('historyOlderSpinner');
+        if (!_spinner) {
+            _spinner = document.createElement('div');
+            _spinner.id = 'historyOlderSpinner';
+            _spinner.className = 'history-older-spinner';
+            _spinner.innerHTML = '<span class="history-older-spinner-dot"></span>'
+                               + '<span class="history-older-spinner-dot"></span>'
+                               + '<span class="history-older-spinner-dot"></span>';
+            container.parentElement?.prepend(_spinner);
+        }
+        _spinner.classList.remove('hidden');
+
         SupabaseMessages.loadOlderMessages(currentTopicId, oldest)
             .then(function (older) {
-                if (!Array.isArray(older) || older.length === 0) return;
+                if (!Array.isArray(older) || older.length === 0) {
+                    // Sin mensajes anteriores — indicarlo brevemente
+                    _spinner.innerHTML = '<span class="history-older-end">✦ Inicio de la historia ✦</span>';
+                    setTimeout(function () { _spinner.classList.add('hidden'); }, 2200);
+                    return;
+                }
                 const existingIds = new Set(allMsgs.map(function (m) { return String(m.id); }));
                 const novel = older.filter(function (m) { return m.id && !existingIds.has(String(m.id)); });
                 if (novel.length > 0) {
@@ -14568,10 +14130,15 @@ function renderVirtualizedHistory(msgs, container) {
                         historyVirtualState.spacer.style.height = (allMsgs.length * historyVirtualState.rowHeight) + 'px';
                         paint();
                     }
-                    showSyncToast(novel.length + ' mensaje(s) anteriores cargados', 'OK');
                 }
             })
-            .finally(function () { container.dataset.loadingOlder = '0'; });
+            .finally(function () {
+                container.dataset.loadingOlder = '0';
+                const sp = document.getElementById('historyOlderSpinner');
+                if (sp && !sp.querySelector('.history-older-end')) {
+                    sp.classList.add('hidden');
+                }
+            });
     }, { passive: true });
     paint();
 }
@@ -15449,18 +15016,12 @@ function _renderChallengeBar(challenge) {
     dcEl.textContent   = 'DC ' + challenge.dc + ' · ' + getRollTypeLabel(challenge.rollType) + ' · define el siguiente foco';
 
     const statLabels = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constit.', INT: 'Intelec.', WIS: 'Sabid.', CHA: 'Carisma' };
-    const validStats = new Set(Object.keys(statLabels));
-    btnsCnt.innerHTML = '';
-    (challenge.stats || []).forEach(stat => {
-        if (!validStats.has(stat)) return;
-        const label = statLabels[stat];
-        const btn = document.createElement('button');
-        btn.className = 'vn-challenge-stat-btn';
-        btn.title = label;
-        btn.innerHTML = '<span class="vn-cs-key">' + stat + '</span><span class="vn-cs-label">' + label + '</span>';
-        btn.addEventListener('click', function() { acceptChallenge(stat); });
-        btnsCnt.appendChild(btn);
-    });
+    btnsCnt.innerHTML = challenge.stats.map(stat =>
+        '<button class="vn-challenge-stat-btn" onclick="acceptChallenge(' + "'" + stat + "'" + ')" title="' + (statLabels[stat] || stat) + '">' +
+        '<span class="vn-cs-key">' + stat + '</span>' +
+        '<span class="vn-cs-label">' + (statLabels[stat] || stat) + '</span>' +
+        '</button>'
+    ).join('');
 
     bar.style.display = 'flex';
 }
@@ -15834,52 +15395,6 @@ window.addEventListener('etheria:dm-revive', function(e) {
     if (typeof updateIhp === 'function') updateIhp();
 });
 
-// Mensaje de narrador disparado por una consecuencia RPG — añadir al feed en tiempo real
-if (typeof eventBus !== 'undefined') {
-    eventBus.on('rpg:narrator-message', function(data) {
-        if (!data || !data.text || !currentTopicId) return;
-        if (data.storyId && currentStoryId && String(data.storyId) !== String(currentStoryId)) return;
-        const msgs = (appData && appData.messages && appData.messages[currentTopicId]) || [];
-        const newMsg = {
-            id:         'rpg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-            timestamp:  new Date().toISOString(),
-            isNarrator: true,
-            text:       data.text,
-            charName:   null,
-            userIndex:  -1
-        };
-        msgs.push(newMsg);
-        appData.messages[currentTopicId] = msgs;
-        hasUnsavedChanges = true;
-        if (typeof save === 'function') save({ silent: true });
-        const isAtEnd = currentMessageIndex >= msgs.length - 2;
-        if (isAtEnd) {
-            currentMessageIndex = msgs.length - 1;
-            showCurrentMessage('forward');
-        }
-    });
-}
-
-// Ítem usado localmente: re-sincronizar RPGState para que el HUD refleje el HP nuevo
-window.addEventListener('etheria:rpg-item-used', function(e) {
-    const { charId, topicId } = e.detail || {};
-    if (!charId || topicId !== currentTopicId) return;
-    if (typeof RPGState === 'undefined' || typeof RPGState.syncFromCharacter !== 'function') return;
-    const char = appData.characters.find(c => String(c.id) === String(charId));
-    if (!char) return;
-    RPGState.syncFromCharacter(char, currentTopicId);
-});
-
-// Condición aplicada/eliminada localmente: re-sincronizar RPGState
-window.addEventListener('etheria:rpg-condition-changed', function(e) {
-    const { charId, topicId } = e.detail || {};
-    if (!charId || topicId !== currentTopicId) return;
-    if (typeof RPGState === 'undefined' || typeof RPGState.syncFromCharacter !== 'function') return;
-    const char = appData.characters.find(c => String(c.id) === String(charId));
-    if (!char) return;
-    RPGState.syncFromCharacter(char, currentTopicId);
-});
-
 window.addEventListener('etheria:story-participants-loaded', function(e) {
     if (e.detail?.storyId && currentStoryId && String(e.detail.storyId) !== String(currentStoryId)) return;
     updateVnTurnBadge();
@@ -16156,33 +15671,22 @@ function _showMasterRollBar(mr) {
     if (sitEl) sitEl.textContent = mr.situation || '…';
 
     if (optsEl) {
-        optsEl.innerHTML = '';
         const letters = ['A','B','C','D'];
-        mr.options.forEach(function (opt, i) {
+        optsEl.innerHTML = mr.options.map(function (opt, i) {
             const letter  = letters[i] || String(i + 1);
-            const btn = document.createElement('button');
-            btn.className = 'vn-mr-opt-btn';
-            btn.addEventListener('click', function() { resolveMasterRoll(mr.id, i); });
-
-            const letterSpan = document.createElement('span');
-            letterSpan.className = 'vn-mr-opt-letter';
-            letterSpan.textContent = letter;
-            btn.appendChild(letterSpan);
-
-            const textSpan = document.createElement('span');
-            textSpan.className = 'vn-mr-opt-text';
-            textSpan.textContent = opt.label;
-            btn.appendChild(textSpan);
-
-            if (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta)) {
-                const hpClass = opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg';
-                const hpSpan = document.createElement('span');
-                hpSpan.className = 'vn-mr-opt-hp ' + hpClass;
-                hpSpan.textContent = (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP';
-                btn.appendChild(hpSpan);
-            }
-            optsEl.appendChild(btn);
-        });
+            const hpClass = (opt.hpDelta !== null && opt.hpDelta !== undefined)
+                ? (opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg') : '';
+            const hpHtml  = (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta))
+                ? '<span class="vn-mr-opt-hp ' + hpClass + '">' +
+                  (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP</span>'
+                : '';
+            return '<button class="vn-mr-opt-btn" ' +
+                   'onclick="resolveMasterRoll(\'' + escapeHtml(mr.id) + '\',' + i + ')">' +
+                   '<span class="vn-mr-opt-letter">' + letter + '</span>' +
+                   '<span class="vn-mr-opt-text">' + escapeHtml(opt.label) + '</span>' +
+                   hpHtml +
+                   '</button>';
+        }).join('');
     }
 
     bar.style.display = 'flex';
@@ -16365,6 +15869,11 @@ function updateNarrateButton() {
     // ✒ Narrar en barra de controles: ya no necesario, quitar si existe
     document.querySelectorAll('[data-vn-control-slot="narrate"]').forEach((narrateCtrl) => {
         narrateCtrl.style.display = 'none';
+    });
+
+    // 📊 Dashboard de actividad: solo para el creador del topic
+    document.querySelectorAll('[data-vn-control="activity-dashboard"]').forEach((dashBtn) => {
+        dashBtn.style.display = isOwner ? 'inline-flex' : 'none';
     });
 
     _updateNarratePending();
@@ -16633,11 +16142,19 @@ function openReplyPanel() {
 
     updateCharSelector();
     updateSceneChangePreview();
-    vrpResetSpritePicker();
-    vrpLoadSpriteGallery(selectedCharId);
 
     // Actualizar botones de clima (nuevos vrp-weather-btn)
     vrpSyncWeatherButtons();
+
+    // ── Elecciones activas del ciclo (solo modo clásico) ──────────────────
+    // Carga las elecciones del ciclo abierto e inyecta el panel de respuesta
+    // dentro del reply panel, justo encima del textarea.
+    if (!isRpgModeMode() && !editingMessageId && currentTopicId
+            && typeof SupabaseCycles !== 'undefined') {
+        _loadAndRenderCycleChoicesInPanel(currentTopicId);
+    } else {
+        _hideCycleChoicesInPanel();
+    }
 
     // Foco al textarea después de la animación de entrada
     setTimeout(() => {
@@ -16647,6 +16164,7 @@ function openReplyPanel() {
 }
 
 function closeReplyPanel() {
+    _hideCycleChoicesInPanel();
     const panel = document.getElementById('vnReplyPanel');
     if (panel) panel.style.display = 'none';
     emitTypingState(false);
@@ -16680,150 +16198,6 @@ function toggleCharGrid() {
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.toggle('active');
 }
-
-// ── Sprite gallery ─────────────────────────────────────────────────────────────
-var selectedSpriteOverride = null;
-
-function vrpToggleSpritePicker() {
-    const picker = document.getElementById('spritePicker');
-    if (!picker) return;
-    const open = !picker.hidden;
-    picker.hidden = open;
-    const arrow = document.querySelector('.vrp-sprite-toggle-arrow');
-    if (arrow) arrow.textContent = open ? '▾' : '▴';
-}
-
-async function vrpLoadSpriteGallery(charId) {
-    const container = document.getElementById('spriteSelectorContainer');
-    if (!container) return;
-    if (!charId || isNarratorMode || typeof SupabaseSprites === 'undefined') {
-        container.style.display = 'none';
-        return;
-    }
-    container.style.display = 'block';
-
-    const grid = document.getElementById('spritePickerGrid');
-    if (!grid) return;
-    grid.innerHTML = '<span class="vrp-sprite-loading">Cargando…</span>';
-
-    const sprites = await SupabaseSprites.listCharacterSprites(charId);
-    const char = appData.characters.find(function (c) { return String(c.id) === String(charId); });
-
-    grid.innerHTML = '';
-
-    // Botón "predeterminado" (quitar override)
-    var defaultBtn = document.createElement('button');
-    defaultBtn.type = 'button';
-    defaultBtn.className = 'vrp-sprite-thumb' + (selectedSpriteOverride === null ? ' selected' : '');
-    defaultBtn.title = 'Predeterminado';
-    defaultBtn.setAttribute('data-sprite-url', '');
-    defaultBtn.onclick = function () { vrpSelectSprite(null, charId); };
-    if (char && char.sprite) {
-        var dImg = document.createElement('img');
-        dImg.src = char.sprite;
-        dImg.alt = 'Predeterminado';
-        dImg.loading = 'lazy';
-        dImg.onerror = function () {
-            this.style.display = 'none';
-            var fb = document.createElement('span');
-            fb.className = 'vrp-sprite-thumb-empty';
-            fb.textContent = '✦';
-            defaultBtn.appendChild(fb);
-        };
-        defaultBtn.appendChild(dImg);
-    } else {
-        defaultBtn.innerHTML = '<span class="vrp-sprite-thumb-empty">✦</span>';
-    }
-    grid.appendChild(defaultBtn);
-
-    // Excluir el sprite que ya es el predeterminado (misma URL, ignorando ?t=... cache-busting)
-    var defaultBase = char && char.sprite ? char.sprite.split('?')[0] : null;
-    var extraSprites = sprites.filter(function (s) {
-        return !defaultBase || s.url.split('?')[0] !== defaultBase;
-    });
-
-    if (extraSprites.length === 0) {
-        var emptyMsg = document.createElement('span');
-        emptyMsg.className = 'vrp-sprite-empty';
-        emptyMsg.textContent = 'Sin poses extra. Sube más desde el editor de personaje.';
-        grid.appendChild(emptyMsg);
-        return;
-    }
-
-    extraSprites.forEach(function (sprite) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'vrp-sprite-thumb' + (selectedSpriteOverride === sprite.url ? ' selected' : '');
-        btn.title = sprite.name;
-        btn.setAttribute('data-sprite-url', sprite.url);
-        btn.onclick = function () { vrpSelectSprite(sprite.url, charId); };
-        var img = document.createElement('img');
-        img.src = sprite.url;
-        img.alt = sprite.name;
-        img.loading = 'lazy';
-        img.onerror = function () {
-            this.style.display = 'none';
-            var fallback = document.createElement('span');
-            fallback.className = 'vrp-sprite-thumb-empty';
-            fallback.textContent = '✦';
-            btn.appendChild(fallback);
-        };
-        btn.appendChild(img);
-        grid.appendChild(btn);
-    });
-}
-
-function vrpSelectSprite(url, charId) {
-    selectedSpriteOverride = url || null;
-
-    var grid = document.getElementById('spritePickerGrid');
-    if (grid) {
-        grid.querySelectorAll('.vrp-sprite-thumb').forEach(function (btn) {
-            var btnUrl = btn.getAttribute('data-sprite-url') || null;
-            btn.classList.toggle('selected', btnUrl === (url || ''));
-        });
-    }
-
-    var hint = document.getElementById('spritePickerHint');
-    if (hint) hint.textContent = url ? 'pose seleccionada ✓' : 'predeterminada';
-
-    var thumb = document.getElementById('spritePickerSelectedThumb');
-    if (thumb) {
-        thumb.innerHTML = '';
-        var srcUrl = url;
-        if (!srcUrl && charId) {
-            var c = appData.characters.find(function (ch) { return String(ch.id) === String(charId); });
-            srcUrl = c && c.sprite ? c.sprite : null;
-        }
-        if (srcUrl) {
-            var tImg = document.createElement('img');
-            tImg.src = srcUrl;
-            tImg.alt = '';
-            thumb.appendChild(tImg);
-        }
-    }
-
-    // Cerrar el picker después de seleccionar
-    var picker = document.getElementById('spritePicker');
-    if (picker) {
-        picker.hidden = true;
-        var arrow = document.querySelector('.vrp-sprite-toggle-arrow');
-        if (arrow) arrow.textContent = '▾';
-    }
-}
-
-function vrpResetSpritePicker() {
-    selectedSpriteOverride = null;
-    var hint = document.getElementById('spritePickerHint');
-    if (hint) hint.textContent = 'predeterminada';
-    var thumb = document.getElementById('spritePickerSelectedThumb');
-    if (thumb) thumb.innerHTML = '';
-    var picker = document.getElementById('spritePicker');
-    if (picker) picker.hidden = true;
-    var arrow = document.querySelector('.vrp-sprite-toggle-arrow');
-    if (arrow) arrow.textContent = '▾';
-}
-// ── /Sprite gallery ─────────────────────────────────────────────────────────────
 
 function updateCharSelector() {
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
@@ -16893,8 +16267,6 @@ function selectCharFromGrid(charId) {
     localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
     updateCharSelector();
     renderVnPartyPanel(true);
-    vrpResetSpritePicker();
-    vrpLoadSpriteGallery(charId);
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
@@ -16923,27 +16295,26 @@ function toggleOptionsFields() {
         if (tempBranches.length > 0) {
             tempBranches.forEach((branch, idx) => {
                 if (idx < 3) {
-                    const textInput    = document.getElementById(`option${idx + 1}Text`);
-                    const contInput    = document.getElementById(`option${idx + 1}Continuation`);
-                    const impactSelect = document.getElementById(`option${idx + 1}AffinityImpact`);
-                    if (textInput)    textInput.value    = branch.text         || '';
-                    if (contInput)    contInput.value    = branch.continuation || '';
-                    if (impactSelect) impactSelect.value = branch.affinityImpact || 'neutral';
+                    const textInput = document.getElementById(`option${idx + 1}Text`);
+                    const contInput = document.getElementById(`option${idx + 1}Continuation`);
+                    if (textInput) textInput.value = branch.text || '';
+                    if (contInput) contInput.value = branch.continuation || '';
                 }
             });
         }
     }
 }
 
-function applyNarratorMode(active) {
+function toggleNarratorMode() {
     const topic = getCurrentTopic();
     if (!canUseNarratorMode(topic)) return;
 
-    const narratorModeEl = document.getElementById('narratorMode');
-    const toggle         = document.getElementById('narratorToggle');
+    const narratorMode = document.getElementById('narratorMode');
+    const toggle       = document.getElementById('narratorToggle');
 
-    isNarratorMode = !!active;
-    if (narratorModeEl) narratorModeEl.checked = isNarratorMode;
+    // Toggle state: si el switch está activo se desactiva y viceversa
+    isNarratorMode = toggle ? !toggle.classList.contains('active') : false;
+    if (narratorMode) narratorMode.checked = isNarratorMode;
 
     const container = document.getElementById('charSelectorContainer');
 
@@ -16951,19 +16322,11 @@ function applyNarratorMode(active) {
         if (container) container.style.display = 'none';
         if (toggle) toggle.classList.add('active');
         selectedCharId = null;
-        vrpResetSpritePicker();
-        var spriteContainer = document.getElementById('spriteSelectorContainer');
-        if (spriteContainer) spriteContainer.style.display = 'none';
     } else {
         if (container) container.style.display = 'flex';
         if (toggle) toggle.classList.remove('active');
         updateCharSelector();
-        vrpLoadSpriteGallery(selectedCharId);
     }
-}
-
-function toggleNarratorMode() {
-    applyNarratorMode(!isNarratorMode);
 }
 
 
@@ -17079,15 +16442,9 @@ function postVNReply() {
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
-            const impactSel = document.getElementById(`option${i}AffinityImpact`);
             const t = textInput?.value.trim() || '';
             const c = contInput?.value.trim() || '';
-            if(t && c) {
-                const opt = {text: t, continuation: c};
-                const impact = impactSel?.value;
-                if (impact && impact !== 'neutral') opt.affinityImpact = impact;
-                options.push(opt);
-            }
+            if(t && c) options.push({text: t, continuation: c});
         }
         if(options.length === 0) { showAutosave('Rellena al menos una opción con texto y continuación', 'error'); return; }
     }
@@ -17149,7 +16506,7 @@ function postVNReply() {
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
         charAvatar: isNarratorMode ? null : char.avatar,
-        charSprite: isNarratorMode ? null : (selectedSpriteOverride || char.sprite),
+        charSprite: isNarratorMode ? null : char.sprite,
         text: finalText,
         isNarrator: isNarratorMode,
         userIndex: currentUserIndex,
@@ -17190,27 +16547,11 @@ function postVNReply() {
         }
     }
 
-    // Ciclos narrativos: adjuntar cycle_id antes de guardar (solo modo clásico)
-    if (!isRpgModeMode() && typeof SupabaseCycles !== 'undefined') {
-        const _cycleId = SupabaseCycles.getActiveCycleId();
-        if (_cycleId) newMsg.cycle_id = _cycleId;
-    }
-
     topicMessages.push(newMsg);
 
     // Envío a Supabase (no bloquea — fallback local automático si falla)
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
-    }
-
-    // Ciclos narrativos: comprobar cierre del ciclo tras enviar (solo modo clásico)
-    if (!isRpgModeMode() && typeof SupabaseCycles !== 'undefined') {
-        SupabaseCycles.onMessageSent(
-            currentUserIndex,
-            getTopicMessages(currentTopicId),
-            currentTopicId,
-            function (closedCycleId) { _resolveCycleAffinities(closedCycleId, currentTopicId); }
-        ).catch(() => {});
     }
 
     notifyNextTurnIfNeeded(newMsg, topic, char).catch(() => {});
@@ -17230,161 +16571,6 @@ function postVNReply() {
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
     triggerDialogueFadeIn();
     showCurrentMessage('forward');
-}
-
-// ============================================
-// CICLOS NARRATIVOS — resolución de afinidad al cierre
-// Solo modo clásico. No toca nada de js/rpg/.
-// ============================================
-
-// Aplica un cambio de afinidad programático siguiendo exactamente
-// el mismo camino de datos que modifyAffinity() en roleplay.js:
-// appData.affinities → save → SupabaseBonds → eventBus('affinity:changed')
-function _applyAffinityForCycle(topicId, fromCharId, toCharId, direction) {
-    if (!topicId || !fromCharId || !toCharId || fromCharId === toCharId) return;
-    if (typeof getAffinityKey !== 'function' || typeof getAffinityIncrement !== 'function') return;
-
-    if (!appData.affinities) appData.affinities = {};
-    if (!appData.affinities[topicId]) appData.affinities[topicId] = {};
-
-    const key          = getAffinityKey(fromCharId, toCharId);
-    const currentValue = appData.affinities[topicId][key] || 0;
-    const newValue     = getAffinityIncrement(currentValue, direction);
-
-    if (newValue === currentValue) return;
-
-    appData.affinities[topicId][key] = newValue;
-    hasUnsavedChanges = true;
-    save({ silent: true });
-
-    if (typeof SupabaseBonds !== 'undefined' && typeof SupabaseBonds.upsertBond === 'function') {
-        SupabaseBonds.upsertBond({
-            fromCharId, toCharId, affinity: newValue, storyId: topicId
-        }).catch(() => {});
-    }
-
-    if (typeof eventBus !== 'undefined') {
-        eventBus.emit('affinity:changed', {
-            direction, newValue, topicId,
-            targetCharId: toCharId,
-            activeCharId: fromCharId
-        });
-    }
-}
-
-// Recorre los mensajes del ciclo cerrado, aplica affinityImpact de cada
-// opción seleccionada. El fromCharId se resuelve buscando el mensaje más
-// reciente del selector (msg.selectedBy) en el ciclo; si no hay, su
-// primer personaje en appData.characters.
-function _resolveCycleAffinities(cycleId, topicId) {
-    if (!cycleId || !topicId) return;
-
-    const msgs      = getTopicMessages(topicId);
-    const cycleMsgs = msgs.filter(m => m.cycle_id === cycleId && !m.isOptionResult);
-
-    cycleMsgs.forEach(function (msg) {
-        if (!msg.options || msg.selectedOptionIndex === undefined) return;
-
-        const selectedOpt = msg.options[msg.selectedOptionIndex];
-        if (!selectedOpt || !selectedOpt.affinityImpact || selectedOpt.affinityImpact === 'neutral') return;
-
-        const targetCharId = msg.characterId;
-        if (!targetCharId) return;
-
-        // Buscar el personaje que usó el selector en este ciclo
-        const selectorIdx  = msg.selectedBy;
-        const selectorMsgs = cycleMsgs.filter(
-            m => m.userIndex === selectorIdx && m.characterId && m.id !== msg.id
-        );
-        const fromCharId   = selectorMsgs.length > 0
-            ? selectorMsgs[selectorMsgs.length - 1].characterId
-            : (appData.characters.find(c => c.userIndex === selectorIdx)?.id || null);
-
-        if (!fromCharId) return;
-
-        const direction = selectedOpt.affinityImpact === 'positive' ? 1 : -1;
-        _applyAffinityForCycle(topicId, fromCharId, targetCharId, direction);
-    });
-}
-
-// ── Ecos del ciclo: detectar y mostrar cambios no vistos ─────────────
-// Consulta Supabase por ciclos cerrados no vistos, deriva los cambios
-// de afinidad que afectan al usuario activo, y muestra el panel.
-// Al cerrar el panel, registra todos los ciclos como vistos.
-
-async function _checkUnseenCycleEchos(topicId) {
-    if (!topicId || typeof SupabaseCycleViews === 'undefined') return;
-    if (typeof Toasts === 'undefined') return;
-
-    const unseenIds = await SupabaseCycleViews.getUnseenForTopic(topicId);
-    if (!unseenIds || unseenIds.length === 0) return;
-
-    const msgs    = getTopicMessages(topicId);
-    const myChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
-    const myIds   = new Set(myChars.map(c => String(c.id)));
-
-    // Acumular neto de impacto por personaje ajeno: charId → number (positivo = net up)
-    const netByOtherChar = {};
-
-    unseenIds.forEach(function (cycleId) {
-        const cycleMsgs = msgs.filter(m => m.cycle_id === cycleId && !m.isOptionResult);
-
-        cycleMsgs.forEach(function (msg) {
-            if (!msg.options || msg.selectedOptionIndex === undefined) return;
-
-            const selectedOpt = msg.options[msg.selectedOptionIndex];
-            if (!selectedOpt || !selectedOpt.affinityImpact || selectedOpt.affinityImpact === 'neutral') return;
-
-            const targetCharId = msg.characterId ? String(msg.characterId) : null;
-            if (!targetCharId) return;
-
-            const selectorIdx  = msg.selectedBy;
-            const selectorMsgs = cycleMsgs.filter(
-                m => m.userIndex === selectorIdx && m.characterId && m.id !== msg.id
-            );
-            const fromCharId = selectorMsgs.length > 0
-                ? String(selectorMsgs[selectorMsgs.length - 1].characterId)
-                : (appData.characters.find(c => c.userIndex === selectorIdx)?.id
-                    ? String(appData.characters.find(c => c.userIndex === selectorIdx).id)
-                    : null);
-
-            if (!fromCharId) return;
-
-            // ¿Afecta al usuario activo?
-            const myInvolved   = myIds.has(fromCharId) || myIds.has(targetCharId);
-            if (!myInvolved) return;
-
-            // El "otro" personaje es el que no es mío
-            const otherCharId  = myIds.has(fromCharId) ? targetCharId : fromCharId;
-            const delta        = selectedOpt.affinityImpact === 'positive' ? 1 : -1;
-
-            netByOtherChar[otherCharId] = (netByOtherChar[otherCharId] || 0) + delta;
-        });
-    });
-
-    const changes = Object.entries(netByOtherChar)
-        .filter(([, net]) => net !== 0)
-        .map(function ([charId, net]) {
-            const char = appData.characters.find(c => String(c.id) === charId);
-            return {
-                charName:   char?.name   || '—',
-                charAvatar: char?.avatar || null,
-                direction:  net > 0 ? 'up' : 'down',
-            };
-        });
-
-    if (changes.length === 0) {
-        // Sin cambios visibles para este usuario — marcar como vistos de todas formas
-        unseenIds.forEach(id => SupabaseCycleViews.markSeen(id).catch(() => {}));
-        return;
-    }
-
-    Toasts.showCycleEchos({
-        changes,
-        onDismiss: function () {
-            unseenIds.forEach(id => SupabaseCycleViews.markSeen(id).catch(() => {}));
-        },
-    });
 }
 
 // ============================================
@@ -17961,6 +17147,395 @@ function vrpSetWeatherBtn(clickedBtn) {
         _list.innerHTML = '';
     });
 }());
+
+
+// ── Menú de exportación ───────────────────────────────────────────────────────
+// Dropdown ligero que agrupa las dos opciones de exportar (txt y PDF).
+// Se cierra al hacer clic fuera o al elegir una opción.
+
+function toggleExportMenu(menuId, event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    const isOpen = !menu.classList.contains('hidden');
+    // Cerrar cualquier otro menú de exportación abierto
+    document.querySelectorAll('.export-menu').forEach(function (m) {
+        m.classList.add('hidden');
+    });
+    if (!isOpen) {
+        menu.classList.remove('hidden');
+        // Cerrar al hacer clic fuera
+        setTimeout(function () {
+            document.addEventListener('click', function _closeExport() {
+                closeExportMenu(menuId);
+                document.removeEventListener('click', _closeExport);
+            }, { once: true });
+        }, 0);
+    }
+}
+
+function closeExportMenu(menuId) {
+    const menu = document.getElementById(menuId || 'exportMenuClassic') ||
+                 document.getElementById('exportMenuRpg');
+    if (menu) menu.classList.add('hidden');
+}
+
+window.toggleExportMenu = toggleExportMenu;
+window.closeExportMenu  = closeExportMenu;
+
+// ── Elecciones del ciclo dentro del reply panel ──────────────────────────────
+// Al abrir el panel de respuesta en modo clásico, se cargan las elecciones
+// activas del ciclo y se muestran como tarjetas con opciones seleccionables.
+// El autor de cada elección NO ve su propia elección (no puede responderse).
+// Al seleccionar una opción se guarda en cycle_choice_responses via Supabase.
+
+async function _loadAndRenderCycleChoicesInPanel(topicId) {
+    const container = _getCycleInPanelContainer();
+    if (!container) return;
+
+    try {
+        const cycle = await SupabaseCycles.getOpenCycle(topicId);
+        if (!cycle) { _hideCycleChoicesInPanel(); return; }
+
+        const choices = await SupabaseCycles.loadChoicesForCycle(cycle.id);
+        const responses = await SupabaseCycles.loadResponsesForCycle(cycle.id);
+
+        // Filtrar: el usuario no ve sus propias elecciones
+        const uid = (await window.supabaseClient?.auth?.getUser())?.data?.user?.id;
+        const myCharId = String(selectedCharId || '');
+
+        // Elecciones respondibles: no son del usuario actual
+        const respondible = choices.filter(ch => ch.author_user_id !== uid);
+
+        if (respondible.length === 0) { _hideCycleChoicesInPanel(); return; }
+
+        // Respuestas ya dadas por el personaje activo
+        const myResponses = new Set(
+            responses
+                .filter(r => String(r.responder_char_id) === myCharId)
+                .map(r => r.choice_id)
+        );
+
+        // Renderizar
+        container.innerHTML = respondible.map(choice => {
+            const alreadyResponded = myResponses.has(choice.id);
+            const opts = (choice.cycle_choice_options || [])
+                .sort((a, b) => a.display_order - b.display_order);
+
+            const optsHtml = opts.map(opt => `
+                <button class="vrp-cycle-opt ${alreadyResponded ? 'vrp-cycle-opt-spent' : ''}"
+                        data-choice-id="${choice.id}"
+                        data-opt-id="${opt.id}"
+                        data-cycle-id="${cycle.id}"
+                        ${alreadyResponded ? 'disabled' : ''}
+                        onclick="_onCycleOptClick(this)">
+                    <span class="vrp-cycle-opt-label">${opt.label}</span>
+                    <span class="vrp-cycle-opt-text">${opt.option_text}</span>
+                </button>
+            `).join('');
+
+            return `
+                <div class="vrp-cycle-card ${alreadyResponded ? 'vrp-cycle-card-done' : ''}">
+                    <div class="vrp-cycle-card-header">
+                        <span class="vrp-cycle-icon">✦</span>
+                        <span class="vrp-cycle-question">${choice.question_text}</span>
+                        ${alreadyResponded
+                            ? '<span class="vrp-cycle-responded">Respondida ✓</span>'
+                            : ''}
+                    </div>
+                    <div class="vrp-cycle-opts">${optsHtml}</div>
+                </div>
+            `;
+        }).join('');
+
+        container.classList.remove('hidden');
+
+    } catch (err) {
+        window.EtheriaLogger?.warn('cycles-panel', 'Error cargando elecciones:', err?.message);
+        _hideCycleChoicesInPanel();
+    }
+}
+
+function _onCycleOptClick(btn) {
+    if (!btn || btn.disabled) return;
+    const choiceId = btn.dataset.choiceId;
+    const optId    = btn.dataset.optId;
+    const cycleId  = btn.dataset.cycleId;
+    if (!choiceId || !optId || !cycleId || !currentTopicId || !selectedCharId) return;
+
+    // Feedback visual inmediato
+    const card = btn.closest('.vrp-cycle-card');
+    if (card) {
+        card.querySelectorAll('.vrp-cycle-opt').forEach(b => { b.disabled = true; });
+        card.classList.add('vrp-cycle-card-done');
+        const responded = card.querySelector('.vrp-cycle-responded');
+        if (!responded) {
+            const header = card.querySelector('.vrp-cycle-card-header');
+            if (header) {
+                const span = document.createElement('span');
+                span.className = 'vrp-cycle-responded';
+                span.textContent = 'Respondida ✓';
+                header.appendChild(span);
+            }
+        }
+        // Marcar la opción elegida
+        btn.classList.add('vrp-cycle-opt-selected');
+    }
+
+    // Guardar en Supabase
+    if (typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.saveResponse(
+            choiceId, optId, cycleId, currentTopicId, String(selectedCharId)
+        ).then(ok => {
+            if (ok && typeof showAutosave === 'function') {
+                showAutosave('✦ Respuesta guardada — se revelará al cerrar el ciclo', 'saved');
+            }
+        }).catch(() => {});
+    }
+}
+
+function _getCycleInPanelContainer() {
+    let container = document.getElementById('vrpCycleChoices');
+    if (!container) {
+        // Crear el contenedor e insertarlo antes del vrp-body
+        container = document.createElement('div');
+        container.id = 'vrpCycleChoices';
+        container.className = 'vrp-cycle-choices hidden';
+        container.setAttribute('aria-label', 'Elecciones activas del ciclo');
+        // Insertarlo justo antes del vrp-write-pane
+        const writePane = document.querySelector('.vrp-write-pane');
+        if (writePane) {
+            writePane.closest('.vrp-split')?.parentElement?.insertBefore(container, writePane.closest('.vrp-split'));
+        }
+    }
+    return container;
+}
+
+function _hideCycleChoicesInPanel() {
+    const container = document.getElementById('vrpCycleChoices');
+    if (container) container.classList.add('hidden');
+}
+
+window._onCycleOptClick = _onCycleOptClick;
+
+// ── Indicador de turno — banner sobre la caja de diálogo ─────────────────────
+// Muestra discretamente a quién le toca responder cuando turn_mode está activo.
+// Si es el turno del usuario actual: "✦ Tu turno" (invita a responder)
+// Si es el turno de otro: "⏳ Turno de [nombre]" (espera)
+// Si turn_mode está off: banner oculto
+
+function updateTurnBanner() {
+    const banner = _getOrCreateTurnBanner();
+    if (!banner) return;
+
+    const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    if (!topic || !topic.turnMode || topic.turnMode === 'off'
+            || !Array.isArray(topic.turnOrder) || topic.turnOrder.length === 0) {
+        banner.classList.add('hidden');
+        return;
+    }
+
+    const me       = window._cachedUserId;
+    const current  = topic.turnOrder[0];
+    const isMyTurn = current === me;
+
+    if (isMyTurn) {
+        banner.className = 'vn-turn-banner vn-turn-mine';
+        banner.innerHTML = '<span class="turn-banner-icon">✦</span>'
+                         + '<span class="turn-banner-text">Tu turno</span>';
+    } else {
+        // Buscar el nombre del participante que tiene el turno
+        const participants = Array.isArray(window.currentStoryParticipants)
+            ? window.currentStoryParticipants : [];
+        const p = participants.find(p => p?.user_id === current);
+        const name = p?.profile?.name || p?.profile?.username
+            || (current ? current.slice(0, 8) + '…' : 'otro jugador');
+
+        banner.className = 'vn-turn-banner vn-turn-other';
+        banner.innerHTML = '<span class="turn-banner-icon">⏳</span>'
+                         + `<span class="turn-banner-text">Turno de <strong>${name}</strong></span>`;
+    }
+
+    banner.classList.remove('hidden');
+}
+
+function _getOrCreateTurnBanner() {
+    let banner = document.getElementById('vnTurnBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'vnTurnBanner';
+        banner.className = 'vn-turn-banner hidden';
+        // Insertar justo encima de la caja de diálogo (.bottom-panel)
+        const bottomPanel = document.querySelector('#vnSection .bottom-panel');
+        if (bottomPanel) {
+            bottomPanel.parentElement?.insertBefore(banner, bottomPanel);
+        }
+    }
+    return banner;
+}
+
+// Escuchar el evento de turno recibido para actualizar el banner en tiempo real
+window.addEventListener('etheria:turn-notification', function () {
+    if (typeof updateTurnBanner === 'function') updateTurnBanner();
+});
+
+window.updateTurnBanner = updateTurnBanner;
+
+// ── Panel de creación de elección (modo clásico exclusivamente) ───────────────
+// Estas funciones gestionan el botón ✦ Elección en la caja de diálogo y el
+// panel pergamino para crear elecciones de afinidad. Solo activas en modo clásico.
+
+// Muestra/oculta el botón según contexto. Solo visible en modo clásico cuando
+// el jugador tiene derecho a lanzar una elección en el ciclo activo.
+function updateChoiceButton() {
+    const btn = document.getElementById('vnChoiceDialogBtn');
+    if (!btn) return;
+
+    // Solo en modo clásico
+    const topic     = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    const isClassic = !isRpgTopicMode(topic?.mode);
+    const vnActive  = !!document.getElementById('vnSection')?.classList.contains('active');
+
+    if (!isClassic || !vnActive || !currentTopicId) {
+        btn.style.display = 'none';
+        return;
+    }
+
+    btn.style.display = 'inline-flex';
+
+    if (typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.getOpenCycle(currentTopicId).then(cycle => {
+            if (!cycle) {
+                btn.disabled = false;
+                btn.title    = 'Lanzar una elección al ciclo';
+                btn.classList.remove('choice-btn-spent');
+                return;
+            }
+            SupabaseCycles.canLaunchChoice(cycle.id).then(canLaunch => {
+                btn.disabled = !canLaunch;
+                btn.title    = canLaunch
+                    ? 'Lanzar una elección al ciclo'
+                    : 'Ya lanzaste una elección en este ciclo — disponible en el siguiente';
+                btn.classList.toggle('choice-btn-spent', !canLaunch);
+            }).catch(() => {});
+        }).catch(() => {});
+    }
+}
+
+// Abre el panel pergamino de creación de elección.
+function openChoicePanel() {
+    const panel = document.getElementById('choiceCreatorPanel');
+    if (!panel) return;
+    ['choiceQuestion','choiceOptA','choiceOptB','choiceOptC'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const note = document.getElementById('choiceCreatorNote');
+    if (note) note.textContent = '';
+    panel.classList.remove('hidden');
+    setTimeout(() => document.getElementById('choiceQuestion')?.focus(), 80);
+}
+
+// Cierra el panel sin lanzar nada.
+function closeChoicePanel() {
+    const panel = document.getElementById('choiceCreatorPanel');
+    if (panel) panel.classList.add('hidden');
+}
+
+// Valida y lanza la elección al ciclo activo (o abre uno si no hay).
+async function launchChoice() {
+    const question  = document.getElementById('choiceQuestion')?.value?.trim();
+    const optA      = document.getElementById('choiceOptA')?.value?.trim();
+    const optB      = document.getElementById('choiceOptB')?.value?.trim();
+    const optC      = document.getElementById('choiceOptC')?.value?.trim();
+    const note      = document.getElementById('choiceCreatorNote');
+    const launchBtn = document.getElementById('choiceLaunchBtn');
+
+    if (!question) { if (note) note.textContent = 'Escribe la pregunta para continuar.'; return; }
+    if (!optA || !optB || !optC) { if (note) note.textContent = 'Completa las tres opciones.'; return; }
+    if (!currentTopicId || !selectedCharId) { if (note) note.textContent = 'Entra en una historia con un personaje.'; return; }
+    if (typeof SupabaseCycles === 'undefined') return;
+
+    if (launchBtn) { launchBtn.disabled = true; launchBtn.textContent = 'Lanzando…'; }
+    if (note) note.textContent = '';
+
+    try {
+        let cycle = await SupabaseCycles.getOpenCycle(currentTopicId);
+        if (!cycle) {
+            const topic        = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+            const participants = topic?.participants || [];
+            cycle = await SupabaseCycles.openCycle(currentTopicId, participants);
+        }
+        if (!cycle) { if (note) note.textContent = 'No se pudo abrir el ciclo. Inténtalo de nuevo.'; return; }
+
+        // Tres opciones con impacto fijo, orden barajado para no revelar el impacto por posición
+        const opts = [
+            { label: 'A', text: optA, affinity_impact:  3 },
+            { label: 'B', text: optB, affinity_impact:  0 },
+            { label: 'C', text: optC, affinity_impact: -3 },
+        ];
+        opts.sort(() => Math.random() - .5);
+        opts.forEach((o, i) => { o.label = String.fromCharCode(65 + i); });
+
+        const choice = await SupabaseCycles.createChoice(
+            cycle.id, currentTopicId, selectedCharId, question, opts
+        );
+        if (!choice) { if (note) note.textContent = '¿Ya lanzaste una elección este ciclo?'; return; }
+
+        closeChoicePanel();
+        if (typeof showAutosave === 'function') showAutosave('✦ Elección lanzada al ciclo', 'saved');
+        updateChoiceButton();
+
+    } catch (err) {
+        window.EtheriaLogger?.warn('choicePanel', err?.message);
+        if (note) note.textContent = 'Error inesperado. Inténtalo de nuevo.';
+    } finally {
+        if (launchBtn) { launchBtn.disabled = false; launchBtn.textContent = '✦ Lanzar al ciclo'; }
+    }
+}
+
+// ── toggleExportMenu / closeExportMenu ────────────────────────────────────────
+function toggleExportMenu(menuId, event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    const isOpen = !menu.classList.contains('hidden');
+    document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden'));
+    if (!isOpen) {
+        menu.classList.remove('hidden');
+        setTimeout(function () {
+            document.addEventListener('click', function _closeExport() {
+                closeExportMenu(menuId);
+                document.removeEventListener('click', _closeExport);
+            }, { once: true });
+        }, 0);
+    }
+}
+
+function closeExportMenu(menuId) {
+    const menu = document.getElementById(menuId || 'exportMenuClassic') ||
+                 document.getElementById('exportMenuRpg');
+    if (menu) menu.classList.add('hidden');
+}
+
+window.openChoicePanel    = openChoicePanel;
+window.closeChoicePanel   = closeChoicePanel;
+window.launchChoice       = launchChoice;
+window.updateChoiceButton = updateChoiceButton;
+window.toggleExportMenu   = toggleExportMenu;
+window.closeExportMenu    = closeExportMenu;
+
+// ── Dashboard de actividad ────────────────────────────────────────────────────
+// Abre el dashboard solo si el usuario es el creador del topic (owner).
+function openActivityDashboard() {
+    const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    if (!topic || !currentTopicId) return;
+
+    if (typeof ActivityDashboard !== 'undefined') {
+        ActivityDashboard.open(currentTopicId);
+    }
+}
+window.openActivityDashboard = openActivityDashboard;
 
 /* js/ui/journal.js */
 // ============================================
@@ -18631,17 +18206,15 @@ window.openNoCharacterWarning = openNoCharacterWarning;
 function openBranchEditor() {
     tempBranches = [];
     for(let i=1; i<=3; i++) {
-        const textInput    = document.getElementById(`option${i}Text`);
-        const contInput    = document.getElementById(`option${i}Continuation`);
-        const impactSelect = document.getElementById(`option${i}AffinityImpact`);
+        const textInput = document.getElementById(`option${i}Text`);
+        const contInput = document.getElementById(`option${i}Continuation`);
         const t = textInput?.value.trim() || '';
         const c = contInput?.value.trim() || '';
         if(t || c) {
             tempBranches.push({
                 id: i,
                 text: t,
-                continuation: c,
-                affinityImpact: impactSelect?.value || 'neutral'
+                continuation: c
             });
         }
     }
@@ -18665,11 +18238,6 @@ function renderBranchEditor() {
                 </div>
                 <input type="text" class="branch-input" placeholder="Texto de la opción" value="${escapeHtml(branch.text)}" onchange="updateBranch(${branch.id}, 'text', this.value)">
                 <textarea class="branch-textarea" placeholder="Continuación narrativa..." onchange="updateBranch(${branch.id}, 'continuation', this.value)">${escapeHtml(branch.continuation)}</textarea>
-                <select class="option-affinity-select" onchange="updateBranch(${branch.id}, 'affinityImpact', this.value)">
-                    <option value="neutral" ${(branch.affinityImpact || 'neutral') === 'neutral' ? 'selected' : ''}>Sin efecto de afinidad</option>
-                    <option value="positive" ${branch.affinityImpact === 'positive' ? 'selected' : ''}>↑ Impacto positivo</option>
-                    <option value="negative" ${branch.affinityImpact === 'negative' ? 'selected' : ''}>↓ Impacto negativo</option>
-                </select>
             </div>
         `).join('');
     }
@@ -18680,8 +18248,7 @@ function addNewBranch() {
     tempBranches.push({
         id: newId,
         text: '',
-        continuation: '',
-        affinityImpact: 'neutral'
+        continuation: ''
     });
     renderBranchEditor();
 }
@@ -18707,18 +18274,15 @@ function saveBranches() {
     }
 
     for(let i=0; i<3; i++) {
-        const textInput    = document.getElementById(`option${i+1}Text`);
-        const contInput    = document.getElementById(`option${i+1}Continuation`);
-        const impactSelect = document.getElementById(`option${i+1}AffinityImpact`);
+        const textInput = document.getElementById(`option${i+1}Text`);
+        const contInput = document.getElementById(`option${i+1}Continuation`);
 
         if (i < validBranches.length) {
-            if (textInput)    textInput.value    = validBranches[i].text;
-            if (contInput)    contInput.value    = validBranches[i].continuation;
-            if (impactSelect) impactSelect.value = validBranches[i].affinityImpact || 'neutral';
+            if (textInput) textInput.value = validBranches[i].text;
+            if (contInput) contInput.value = validBranches[i].continuation;
         } else {
-            if (textInput)    textInput.value    = '';
-            if (contInput)    contInput.value    = '';
-            if (impactSelect) impactSelect.value = 'neutral';
+            if (textInput) textInput.value = '';
+            if (contInput) contInput.value = '';
         }
     }
 
@@ -19453,7 +19017,7 @@ async function openInviteJoinModal(token) {
         return;
     }
 
-    if (titleEl) titleEl.textContent = `"${storyTitle}"`;
+    if (titleEl) titleEl.textContent = storyTitle ? `"${storyTitle}"` : 'Historia compartida';
     if (msgEl)   msgEl.textContent   = 'Alguien te ha invitado a esta historia. ¿Quieres unirte?';
     if (btn) {
         btn.disabled    = false;
@@ -19882,7 +19446,7 @@ function _gsRenderResults(results, cloudDone) {
                 const dateStr = r.timestamp
                     ? new Date(r.timestamp).toLocaleDateString('es-ES', { day:'numeric', month:'short' })
                     : '';
-                return `<div class="gs-result" data-topic-id="${escapeHtml(String(topicId))}" data-msg-id="${escapeHtml(String(r.msgId))}">
+                return `<div class="gs-result" onclick="gsGoToMessage('${escapeHtml(topicId)}','${escapeHtml(r.msgId)}')">
                     <div class="gs-result-meta">
                         <span class="gs-result-char">${escapeHtml(r.charName || 'Mensaje')}</span>
                         <span class="gs-result-date">${dateStr}</span>
@@ -19893,11 +19457,6 @@ function _gsRenderResults(results, cloudDone) {
             }).join('')}
         </div>
     `).join('');
-    body.querySelectorAll('.gs-result').forEach(function(el) {
-        el.addEventListener('click', function() {
-            gsGoToMessage(el.dataset.topicId, el.dataset.msgId);
-        });
-    });
 }
 
 // Ir al mensaje seleccionado
@@ -19963,12 +19522,12 @@ document.addEventListener('keydown', function(e) {
 const _tw = { mode: null, charId: null, rpgClass: null, stats: null };
 
 const _TW_CLASSES = [
-    { id: 'fighter',   name: 'Guerrero',   glyph: '⚔',  desc: 'Ancla la presion fisica de la escena. Ideal para abrir paso y sostener el foco.' },
-    { id: 'ranger',    name: 'Explorador', glyph: '🏹', desc: 'Lee el entorno y encuentra rutas narrativas. Adelantate al peligro.' },
-    { id: 'rogue',     name: 'Picaro',     glyph: '🗡',  desc: 'Controla el ritmo desde la sombra. Brilla robando foco y forzando giros.' },
-    { id: 'cleric',    name: 'Clerigo',    glyph: '✚',  desc: 'Sostiene al grupo en momentos limite. Reordena la tension y protege la escena.' },
-    { id: 'wizard',    name: 'Mago',       glyph: '✦',  desc: 'Reencuadra la ficcion con conocimiento y magia. Tuerce el momento.' },
-    { id: 'barbarian', name: 'Barbaro',    glyph: '⚡', desc: 'Empuja la escena al limite. Convierte presion en impulso para romper bloqueos.' },
+    { id: 'fighter',   name: 'Guerrero',   glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M14.5 2L2 14.5l3.5 3.5L18 5.5M9 15l-3 3M18 6l-1 5 5-1"/><circle cx="19" cy="19" r="2.5"/></svg>',  desc: 'Ancla la presion fisica de la escena. Ideal para abrir paso y sostener el foco.' },
+    { id: 'ranger',    name: 'Explorador', glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M5 12 L19 5 L12 19 L11 13 Z"/><path d="M12 12 L5 19"/></svg>', desc: 'Lee el entorno y encuentra rutas narrativas. Adelantate al peligro.' },
+    { id: 'rogue',     name: 'Picaro',     glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M6 18L18 6M8 6h10v10"/><circle cx="6" cy="18" r="2"/></svg>',  desc: 'Controla el ritmo desde la sombra. Brilla robando foco y forzando giros.' },
+    { id: 'cleric',    name: 'Clerigo',    glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M12 2v20M2 12h20"/></svg>',  desc: 'Sostiene al grupo en momentos limite. Reordena la tension y protege la escena.' },
+    { id: 'wizard',    name: 'Mago',       glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M12 2L9 9H2l6 4-2.5 7L12 16l6.5 4L16 13l6-4h-7z"/></svg>',  desc: 'Reencuadra la ficcion con conocimiento y magia. Tuerce el momento.' },
+    { id: 'barbarian', name: 'Barbaro',    glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', desc: 'Empuja la escena al limite. Convierte presion en impulso para romper bloqueos.' },
 ];
 const _TW_STATS     = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 const _TW_STAT_NAME = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constitucion', INT: 'Inteligencia', WIS: 'Sabiduria', CHA: 'Carisma' };
@@ -20052,13 +19611,20 @@ function topicWizardNext() {
 function _twRenderRpgSheet() {
     var cg = document.getElementById('twClassGrid');
     if (cg) {
-        cg.innerHTML = _TW_CLASSES.map(function(cls) {
+                cg.innerHTML = '';
+        _TW_CLASSES.forEach(function(cls) {
             var sel = _tw.rpgClass === cls.id;
-            return '<button type="button" class="tw-class-card' + (sel ? ' tw-class-card--sel' : '') + '" data-class-id="' + escapeHtml(cls.id) + '" onclick="topicWizardSelectClass(this.dataset.classId)" title="' + escapeHtml(cls.desc) + '" aria-pressed="' + sel + '">'
-                + '<span class="tw-class-glyph">' + cls.glyph + '</span>'
-                + '<span class="tw-class-name">' + escapeHtml(cls.name) + '</span>'
-                + '</button>';
-        }).join('');
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'tw-class-card' + (sel ? ' tw-class-card--sel' : '');
+            btn.dataset.classId = cls.id;
+            btn.setAttribute('title', cls.desc);
+            btn.setAttribute('aria-pressed', String(sel));
+            btn.addEventListener('click', function() { topicWizardSelectClass(cls.id); });
+            btn.innerHTML = '<span class="tw-class-glyph" aria-hidden="true">' + cls.glyph + '</span>'
+                          + '<span class="tw-class-name">' + escapeHtml(cls.name) + '</span>';
+            cg.appendChild(btn);
+        });
     }
     _twRenderStats();
 }
@@ -20199,6 +19765,7 @@ window.topicWizardNext        = topicWizardNext;
 window.topicWizardSelectClass = topicWizardSelectClass;
 window.topicWizardAdjustStat  = topicWizardAdjustStat;
 window.createTopicFromWizard  = createTopicFromWizard;
+
 
 /* js/ui/app-ui.js */
 // Utilidades generales de app: guardado, modales, tema visual y ajustes de lectura.
@@ -21613,190 +21180,6 @@ function syncMenuFooterAvatar() {
     }
 }
 
-/* js/ui/activityDashboard.js */
-// ============================================================
-// ACTIVITY DASHBOARD — métricas de actividad de la historia
-// ============================================================
-// Solo modo clásico. Fuente de datos: mensajes locales + topic_cycles.
-// API pública: ActivityDashboard.open() / .close()
-// ============================================================
-
-const ActivityDashboard = (function () {
-
-    // ── helpers ──────────────────────────────────────────────
-
-    function _esc(str) {
-        return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    function _timeAgo(isoStr) {
-        if (!isoStr) return '';
-        const diff = Date.now() - new Date(isoStr).getTime();
-        if (diff < 60000)        return 'ahora mismo';
-        if (diff < 3600000)      return 'hace ' + Math.floor(diff / 60000) + ' min';
-        if (diff < 86400000)     return 'hace ' + Math.floor(diff / 3600000) + 'h';
-        if (diff < 2592000000)   return 'hace ' + Math.floor(diff / 86400000) + ' días';
-        return 'hace ' + Math.floor(diff / 2592000000) + ' meses';
-    }
-
-    function _cycleRemaining(cycle) {
-        if (!cycle || !cycle.closes_at) return null;
-        const ms = new Date(cycle.closes_at).getTime() - Date.now();
-        if (ms <= 0) return 'cerrando…';
-        if (ms < 3600000)  return Math.ceil(ms / 60000) + ' min';
-        if (ms < 86400000) {
-            const h = Math.floor(ms / 3600000);
-            const m = Math.ceil((ms % 3600000) / 60000);
-            return h + 'h ' + (m > 0 ? m + 'min' : '');
-        }
-        return Math.floor(ms / 86400000) + 'd';
-    }
-
-    // ── render helpers ───────────────────────────────────────
-
-    function _renderCycle(cycle) {
-        if (!cycle) {
-            return '<div class="adash-cycle adash-cycle--none">Sin ciclo activo en este momento</div>';
-        }
-        const remaining = _cycleRemaining(cycle);
-        return '<div class="adash-cycle adash-cycle--open">' +
-            '<span class="adash-cycle-dot"></span>' +
-            '<span class="adash-cycle-text">Ciclo activo — cierra en <strong>' + _esc(remaining) + '</strong></span>' +
-            '</div>';
-    }
-
-    function _renderParticipant(name, data, maxCount) {
-        const pct   = Math.round((data.count / maxCount) * 100);
-        const ago   = _timeAgo(data.lastAt);
-        const color = data.color || '#c9a86c';
-        const init  = _esc((name || '?')[0].toUpperCase());
-
-        const avatarHtml = data.avatar
-            ? '<img src="' + _esc(data.avatar) + '" alt="' + init + '" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
-              '<span style="display:none">' + init + '</span>'
-            : '<span>' + init + '</span>';
-
-        return '<div class="adash-participant">' +
-            '<div class="adash-p-avatar" style="--char-color:' + _esc(color) + '">' + avatarHtml + '</div>' +
-            '<div class="adash-p-info">' +
-                '<div class="adash-p-header">' +
-                    '<span class="adash-p-name" style="color:' + _esc(color) + '">' + _esc(name) + '</span>' +
-                    '<span class="adash-p-count">' + data.count + '</span>' +
-                    (ago ? '<span class="adash-p-ago">' + _esc(ago) + '</span>' : '') +
-                '</div>' +
-                '<div class="adash-p-bar-wrap"><div class="adash-p-bar" style="width:' + pct + '%;background:' + _esc(color) + '60"></div></div>' +
-            '</div>' +
-        '</div>';
-    }
-
-    // ── core ─────────────────────────────────────────────────
-
-    var _lastFocused = null;
-
-    function _onKeyDown(e) {
-        if (e.key === 'Escape') { e.stopPropagation(); close(); }
-    }
-
-    async function open() {
-        const modal = document.getElementById('activityDashboardModal');
-        if (!modal) return;
-        _lastFocused = document.activeElement;
-        modal.removeAttribute('hidden');
-        modal.classList.add('active');
-        document.body.classList.add('modal-open');
-        var firstFocusable = modal.querySelector('button, [href], input, [tabindex]:not([tabindex="-1"])');
-        if (firstFocusable) firstFocusable.focus();
-        document.addEventListener('keydown', _onKeyDown);
-        await _render();
-    }
-
-    function close() {
-        const modal = document.getElementById('activityDashboardModal');
-        if (modal) { modal.setAttribute('hidden', ''); modal.classList.remove('active'); }
-        document.removeEventListener('keydown', _onKeyDown);
-        var anyModalOpen = document.querySelector('.modal-overlay.active');
-        if (!anyModalOpen) document.body.classList.remove('modal-open');
-        if (_lastFocused && typeof _lastFocused.focus === 'function') _lastFocused.focus();
-        _lastFocused = null;
-    }
-
-    async function _render() {
-        const body = document.getElementById('activityDashboardBody');
-        if (!body) return;
-        body.innerHTML = '<div class="adash-loading">Calculando…</div>';
-
-        const topicId = typeof currentTopicId !== 'undefined' ? currentTopicId : null;
-        if (!topicId) {
-            body.innerHTML = '<p class="adash-empty">No hay historia activa.</p>';
-            return;
-        }
-
-        // Mensajes del tema (caché local — ya cargados al entrar en el tema)
-        const msgs = typeof getTopicMessages === 'function' ? (getTopicMessages(topicId) || []) : [];
-
-        // Agregar por nombre de personaje
-        const charMap = {};
-        for (var i = 0; i < msgs.length; i++) {
-            var msg = msgs[i];
-            if (msg.isNarrator || !msg.charName) continue;
-            var key = msg.charName;
-            if (!charMap[key]) {
-                charMap[key] = { count: 0, lastAt: null, color: msg.charColor || null, avatar: msg.charAvatar || null };
-            }
-            charMap[key].count++;
-            if (!charMap[key].lastAt || (msg.timestamp && msg.timestamp > charMap[key].lastAt)) {
-                charMap[key].lastAt = msg.timestamp || null;
-            }
-        }
-
-        var total         = msgs.filter(function (m) { return !m.isNarrator && m.charName; }).length;
-        var narratorCount = msgs.filter(function (m) { return  m.isNarrator || !m.charName; }).length;
-        var participants  = Object.keys(charMap).length;
-        var maxCount      = 1;
-        Object.values(charMap).forEach(function (d) { if (d.count > maxCount) maxCount = d.count; });
-
-        var sorted = Object.entries(charMap).sort(function (a, b) { return b[1].count - a[1].count; });
-
-        // Ciclo activo desde Supabase
-        var cycle = null;
-        var sb = window.supabaseClient;
-        if (sb) {
-            try {
-                var result = await sb.from('topic_cycles')
-                    .select('id, started_at, closes_at, status')
-                    .eq('topic_id', topicId)
-                    .eq('status', 'open')
-                    .order('started_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-                cycle = result.data || null;
-            } catch (e) {
-                // Sin ciclo — no es crítico
-            }
-        }
-
-        // Construir HTML
-        var statsRow = '<div class="adash-stats-row">' +
-            '<div class="adash-stat"><span class="adash-stat-value">' + total + '</span><span class="adash-stat-label">mensajes</span></div>' +
-            '<div class="adash-stat"><span class="adash-stat-value">' + participants + '</span><span class="adash-stat-label">personajes</span></div>' +
-            (narratorCount > 0 ? '<div class="adash-stat"><span class="adash-stat-value">' + narratorCount + '</span><span class="adash-stat-label">narrador</span></div>' : '') +
-            '</div>';
-
-        var participantsHtml = sorted.length > 0
-            ? '<div class="adash-participants">' + sorted.map(function (entry) { return _renderParticipant(entry[0], entry[1], maxCount); }).join('') + '</div>'
-            : '<p class="adash-empty">Sin mensajes aún.</p>';
-
-        body.innerHTML = statsRow + _renderCycle(cycle) + participantsHtml;
-    }
-
-    return { open: open, close: close };
-
-})();
-
-window.ActivityDashboard   = ActivityDashboard;
-window.openActivityDashboard  = function () { ActivityDashboard.open(); };
-window.closeActivityDashboard = function () { ActivityDashboard.close(); };
-
 /* js/utils/supabaseProfiles.js */
 // ============================================
 // SUPABASE PROFILES — Perfiles globales
@@ -23159,6 +22542,13 @@ const SupabaseAffinities = (function () {
 
             if (error) {
                 window.EtheriaLogger?.warn('supabaseAffinities', 'upsert failed:', error.message);
+            } else if (window.SupabaseExtras?.logActivity) {
+                // Log de cambio de afinidad — fire-and-forget
+                window.SupabaseExtras.logActivity('affinity_changed', 'story', String(topicId), {
+                    fromCharId: String(fromCharId),
+                    toCharId:   String(toCharId),
+                    value:      Math.max(0, Math.min(100, Number(value) || 0))
+                }).catch(() => {});
             }
         } catch (err) {
             window.EtheriaLogger?.warn('supabaseAffinities', 'upsert error:', err?.message);
@@ -23390,373 +22780,6 @@ const SupabaseAffinities = (function () {
 
 window.SupabaseAffinities = SupabaseAffinities;
 
-/* js/utils/supabaseCycles.js */
-// ═══════════════════════════════════════════════════════════════════
-// SUPABASE CYCLES — Ciclos narrativos del modo clásico
-//
-// Gestiona la tabla `topic_cycles`:
-//   - Obtener o crear el ciclo abierto de un tema
-//   - Registrar qué usuarios han respondido en el ciclo
-//   - Cerrar el ciclo cuando todos han respondido o han pasado 72h
-//   - Abrir inmediatamente un ciclo nuevo al cerrar
-//
-// No bloquea la UI. Si Supabase no está disponible, la app sigue
-// funcionando sin ciclos (sin errores visibles).
-// ═══════════════════════════════════════════════════════════════════
-
-const SupabaseCycles = (function () {
-
-    const CYCLE_DURATION_MS = 72 * 60 * 60 * 1000; // 72 horas en ms
-
-    // Ciclo en memoria para el topic activo.
-    // Forma: { id, topic_id, started_at, closes_at, participants: number[] }
-    let _cachedCycle   = null;
-    let _cachedTopicId = null;
-    let _closing       = false;  // guard de reentrada para onMessageSent
-
-    // ── Helpers ──────────────────────────────────────────────────────
-
-    function _client() { return window.supabaseClient || null; }
-    function _isAvailable() { return !!_client(); }
-
-    function _log(...args) {
-        window.EtheriaLogger?.info?.('supabaseCycles', ...args);
-    }
-    function _warn(...args) {
-        window.EtheriaLogger?.warn('supabaseCycles', ...args);
-    }
-
-    // ── Fetch: ciclo abierto de un topic ─────────────────────────────
-
-    async function _fetchOpenCycle(topicId) {
-        if (!_isAvailable() || !topicId) return null;
-        try {
-            const { data, error } = await _client()
-                .from('topic_cycles')
-                .select('*')
-                .eq('topic_id', String(topicId))
-                .eq('status', 'open')
-                .order('started_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (error) { _warn('fetchOpenCycle error:', error.message); return null; }
-            return data || null;
-        } catch (e) {
-            _warn('fetchOpenCycle exception:', e.message);
-            return null;
-        }
-    }
-
-    // ── Create: nuevo ciclo ───────────────────────────────────────────
-
-    async function _createCycle(topicId, participants) {
-        if (!_isAvailable() || !topicId) return null;
-        const now      = new Date();
-        const closesAt = new Date(now.getTime() + CYCLE_DURATION_MS);
-        try {
-            const { data, error } = await _client()
-                .from('topic_cycles')
-                .insert({
-                    topic_id:     String(topicId),
-                    started_at:   now.toISOString(),
-                    closes_at:    closesAt.toISOString(),
-                    status:       'open',
-                    participants: JSON.stringify(participants || []),
-                })
-                .select()
-                .single();
-
-            if (error) { _warn('createCycle error:', error.message); return null; }
-            _log(`Ciclo creado: ${data.id} (topic ${topicId}, ${participants.length} participantes)`);
-            return data;
-        } catch (e) {
-            _warn('createCycle exception:', e.message);
-            return null;
-        }
-    }
-
-    // ── Close: cerrar ciclo existente ─────────────────────────────────
-
-    async function _closeCycle(cycleId) {
-        if (!_isAvailable() || !cycleId) return;
-        try {
-            const { error } = await _client()
-                .from('topic_cycles')
-                .update({
-                    status:    'closed',
-                    closed_at: new Date().toISOString(),
-                })
-                .eq('id', cycleId);
-
-            if (error) { _warn('closeCycle error:', error.message); return; }
-            _log(`Ciclo cerrado: ${cycleId}`);
-        } catch (e) {
-            _warn('closeCycle exception:', e.message);
-        }
-    }
-
-    // ── Update participants in Supabase ───────────────────────────────
-    // Sincroniza el array de participantes del ciclo (solo si cambió).
-
-    async function _updateParticipants(cycleId, participants) {
-        if (!_isAvailable() || !cycleId) return;
-        try {
-            await _client()
-                .from('topic_cycles')
-                .update({ participants: JSON.stringify(participants) })
-                .eq('id', cycleId);
-        } catch (e) {
-            _warn('updateParticipants exception:', e.message);
-        }
-    }
-
-    // ── Derivar participantes de los mensajes del topic ───────────────
-    // Solo usuarios con al menos un mensaje real (no opciones-resultado).
-
-    function _deriveParticipants(topicMessages) {
-        const seen = new Set();
-        (topicMessages || []).forEach(m => {
-            if (m.userIndex !== undefined && !m.isOptionResult) {
-                seen.add(Number(m.userIndex));
-            }
-        });
-        return [...seen];
-    }
-
-    // ── Public: init ──────────────────────────────────────────────────
-    // Llamado al entrar en un topic en modo clásico.
-    // Busca el ciclo abierto o crea uno nuevo.
-
-    async function init(topicId, topicMessages) {
-        if (!topicId) return;
-        _cachedTopicId = String(topicId);
-        _cachedCycle   = null;
-
-        const participants = _deriveParticipants(topicMessages);
-
-        let cycle = await _fetchOpenCycle(topicId);
-
-        if (!cycle) {
-            // No hay ciclo abierto. Solo crear si hay participantes reales —
-            // un ciclo con 0 participantes cierra inmediatamente al primer mensaje
-            // porque [].every(...) es siempre true.
-            if (participants.length > 0) {
-                cycle = await _createCycle(topicId, participants);
-                if (!cycle) {
-                    // Otro usuario creó uno primero (race) — re-leer
-                    cycle = await _fetchOpenCycle(topicId);
-                }
-            }
-        } else {
-            // Hay ciclo abierto: comprobar si ya expiró por tiempo
-            if (new Date() > new Date(cycle.closes_at)) {
-                await _closeCycle(cycle.id);
-                cycle = await _createCycle(topicId, participants);
-            }
-        }
-
-        _cachedCycle = cycle;
-        _log(`Ciclo activo para topic ${topicId}:`, _cachedCycle?.id || 'ninguno');
-    }
-
-    // ── Public: getActiveCycleId ──────────────────────────────────────
-
-    function getActiveCycleId() {
-        return _cachedCycle?.id || null;
-    }
-
-    // ── Public: onMessageSent ─────────────────────────────────────────
-    // Llamado después de enviar un mensaje en modo clásico.
-    // Comprueba si el ciclo debe cerrarse. Si sí: cierra, llama onClose,
-    // abre un ciclo nuevo.
-    //
-    // @param {number}   userIndex      — quién envió el mensaje
-    // @param {Array}    topicMessages  — todos los mensajes del topic
-    // @param {string}   topicId
-    // @param {Function} onClose        — callback(cycleId) al cerrarse
-
-    async function onMessageSent(userIndex, topicMessages, topicId, onClose) {
-        if (!_cachedCycle || String(_cachedTopicId) !== String(topicId)) return;
-
-        const cycle = _cachedCycle;
-
-        // Añadir userIndex a participants si aún no está
-        const participantsArr = Array.isArray(cycle.participants)
-            ? cycle.participants
-            : (JSON.parse(cycle.participants || '[]'));
-
-        if (!participantsArr.includes(Number(userIndex))) {
-            participantsArr.push(Number(userIndex));
-            cycle.participants = participantsArr;
-            _updateParticipants(cycle.id, participantsArr).catch(() => {});
-        }
-
-        // ── Comprobar cierre ─────────────────────────────────────────
-        // Filtramos por timestamp >= started_at porque cycle_id no se almacena
-        // en los mensajes locales — es solo una referencia en Supabase.
-        const cycleStart = new Date(cycle.started_at || 0).getTime();
-        const cycleMsgs = topicMessages.filter(function (m) {
-            return !m.isOptionResult && !m.isNarrator &&
-                   m.timestamp && new Date(m.timestamp).getTime() >= cycleStart;
-        });
-        const responders = new Set(cycleMsgs.map(m => Number(m.userIndex)));
-        const allResponded = participantsArr.every(p => responders.has(p));
-        const expired      = new Date() > new Date(cycle.closes_at);
-
-        if (!allResponded && !expired) return;
-        if (_closing) return;  // guard de reentrada — evita doble cierre en ráfaga
-
-        // ── Cerrar ciclo ─────────────────────────────────────────────
-        _closing     = true;
-        _cachedCycle = null;
-        try {
-            await _closeCycle(cycle.id);
-
-            // Notificar al caller para que resuelva affinidades
-            if (typeof onClose === 'function') {
-                try { onClose(cycle.id); } catch (e) { _warn('onClose error:', e.message); }
-            }
-
-            // ── Abrir ciclo nuevo ────────────────────────────────────
-            const newParticipants = _deriveParticipants(topicMessages);
-            let newCycle = await _createCycle(topicId, newParticipants);
-            if (!newCycle) {
-                // Race: otro cliente creó uno primero — re-leer
-                newCycle = await _fetchOpenCycle(topicId);
-            }
-            _cachedCycle = newCycle;
-        } finally {
-            _closing = false;
-        }
-    }
-
-    // ── Public: reset (al salir del topic) ───────────────────────────
-
-    function reset() {
-        _cachedCycle   = null;
-        _cachedTopicId = null;
-        _closing       = false;
-    }
-
-    // ── Public API ────────────────────────────────────────────────────
-
-    return { init, getActiveCycleId, onMessageSent, reset };
-
-})();
-
-window.SupabaseCycles = SupabaseCycles;
-
-/* js/utils/supabaseCycleViews.js */
-// ═══════════════════════════════════════════════════════════════════
-// SUPABASE CYCLE VIEWS — Registro personal de Ecos del ciclo vistos
-//
-// Gestiona la tabla `cycle_views`:
-//   - getUnseenForTopic(topicId) → ciclos cerrados no vistos por el
-//     usuario activo en ese tema
-//   - markSeen(cycleId) → registra la visualización del panel
-//
-// Si Supabase no está disponible la app continúa sin errores.
-// ═══════════════════════════════════════════════════════════════════
-
-const SupabaseCycleViews = (function () {
-
-    function _client()      { return window.supabaseClient || null; }
-    function _isAvailable() { return !!_client(); }
-
-    function _warn(...args) {
-        window.EtheriaLogger?.warn('supabaseCycleViews', ...args);
-    }
-
-    // ── userId en caché ───────────────────────────────────────────────
-
-    let _userId = null;
-
-    async function _ensureUserId() {
-        if (_userId) return _userId;
-        try {
-            const { data } = await _client().auth.getUser();
-            _userId = data?.user?.id || null;
-        } catch { _userId = null; }
-        return _userId;
-    }
-
-    window.addEventListener('etheria:auth-changed', function (e) {
-        _userId = e.detail?.user?.id || null;
-    });
-
-    // ── getUnseenForTopic ─────────────────────────────────────────────
-    // Devuelve los ciclos cerrados del topic que el usuario actual
-    // no ha marcado como vistos todavía.
-
-    async function getUnseenForTopic(topicId) {
-        if (!_isAvailable() || !topicId) return [];
-
-        const uid = await _ensureUserId();
-        if (!uid) return [];
-
-        try {
-            // 1. Ciclos cerrados del topic
-            const { data: cycles, error: cyclesErr } = await _client()
-                .from('topic_cycles')
-                .select('id')
-                .eq('topic_id', String(topicId))
-                .eq('status', 'closed');
-
-            if (cyclesErr) { _warn('getUnseen cycles error:', cyclesErr.message); return []; }
-            if (!cycles || cycles.length === 0) return [];
-
-            const cycleIds = cycles.map(c => c.id);
-
-            // 2. De esos ciclos, cuáles ya ha visto este usuario
-            const { data: views, error: viewsErr } = await _client()
-                .from('cycle_views')
-                .select('cycle_id')
-                .eq('user_id', uid)
-                .in('cycle_id', cycleIds);
-
-            if (viewsErr) { _warn('getUnseen views error:', viewsErr.message); return []; }
-
-            const seenIds = new Set((views || []).map(v => v.cycle_id));
-            return cycleIds.filter(id => !seenIds.has(id));
-
-        } catch (e) {
-            _warn('getUnseenForTopic exception:', e.message);
-            return [];
-        }
-    }
-
-    // ── markSeen ──────────────────────────────────────────────────────
-    // Registra que el usuario actual ha visto el panel de un ciclo.
-    // Usa upsert para respetar la restricción única (cycle_id, user_id).
-
-    async function markSeen(cycleId) {
-        if (!_isAvailable() || !cycleId) return;
-
-        const uid = await _ensureUserId();
-        if (!uid) return;
-
-        try {
-            const { error } = await _client()
-                .from('cycle_views')
-                .upsert(
-                    { cycle_id: cycleId, user_id: uid, viewed_at: new Date().toISOString() },
-                    { onConflict: 'cycle_id,user_id' }
-                );
-
-            if (error) _warn('markSeen error:', error.message);
-        } catch (e) {
-            _warn('markSeen exception:', e.message);
-        }
-    }
-
-    // ── Public API ────────────────────────────────────────────────────
-
-    return { getUnseenForTopic, markSeen };
-
-})();
-
-window.SupabaseCycleViews = SupabaseCycleViews;
 
 /* js/utils/supabaseJournals.js */
 // ═══════════════════════════════════════════════════════════════════
@@ -25407,6 +24430,12 @@ const RPGTriggerEvaluator = (function () {
             eventBus.on('scene:step', function () {
                 if (_storyId) _scheduleEvaluation();
             });
+
+            // Cuando una variable de escena cambia (retransmitido por RPGRenderer)
+            // reevaluar triggers por si alguna condición depende de esa variable
+            eventBus.on('rpg:variable-updated', function () {
+                if (_storyId) _scheduleEvaluation();
+            });
         }
     }
 
@@ -25646,6 +24675,7 @@ const RPGTriggerEvaluator = (function () {
 })();
 
 window.RPGTriggerEvaluator = RPGTriggerEvaluator;
+
 
 /* js/ui/userProfile.js */
 // ============================================================
@@ -26088,8 +25118,33 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
 
         const topic       = _currentTopic();
         const isClassicMode = !_isRpg();
-        shell.style.display = isClassicMode && participants && participants.length > 0 ? '' : 'none';
-        if (!isClassicMode || !participants || !participants.length) return;
+        // Mostrar el party clásico desde el primer mensaje — aunque solo esté
+        // el personaje propio. La condición anterior requería participants.length > 0
+        // lo que ocultaba el panel hasta que alguien respondía.
+        shell.style.display = isClassicMode ? '' : 'none';
+        if (!isClassicMode) return;
+        // Si no hay participantes aún, mostrar solo el personaje propio como fallback
+        if (!participants || !participants.length) {
+            const ownChar = _getOwnChar();
+            if (ownChar) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'cp-member cp-member--online';
+                btn.title = ownChar.name || 'Tu personaje';
+                btn.dataset.charId = String(ownChar.id);
+                btn.innerHTML = '<span class="cp-name">' + _esc(ownChar.name || '?') + '</span>';
+                btn.addEventListener('click', function() {
+                    if (typeof CharPopover !== 'undefined') {
+                        CharPopover.toggle(btn.dataset.charId, btn);
+                    }
+                });
+                list.innerHTML = '';
+                list.appendChild(btn);
+            } else {
+                list.innerHTML = '';
+            }
+            return;
+        }
 
         const lockMap    = topic
             ? Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {})
@@ -26097,32 +25152,63 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
         // Quién ha respondido en el ciclo actual (detección por historial de mensajes)
         const respondedSet = _respondedThisCycle(participants);
 
+                // ── Estado de turno activo ──────────────────────────────────────────
+        const turnMode      = topic?.turnMode || topic?.turn_mode || 'off';
+        const turnQueue     = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
+        const activeTurnUid = turnMode !== 'off' && turnQueue.length > 0 ? turnQueue[0] : null;
+        const myUid         = window._cachedUserId || null;
+
         // El orden NO cambia: participants ya viene ordenado por primer-mensaje (llegada)
         list.innerHTML = participants.map(p => {
-            const charId    = lockMap[p.user_index] || lockMap[String(p.user_index)];
+            // Buscar charId en lockMap por userIndex (local) o por owner_user_id (cloud)
+            let charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
+            if (!charId && p.user_id) {
+                const lockValues = Object.values(lockMap);
+                const owned = _allChars().find(c =>
+                    c.owner_user_id === p.user_id && lockValues.includes(String(c.id))
+                );
+                if (owned) charId = String(owned.id);
+            }
             const char      = charId ? _allChars().find(c => String(c.id) === String(charId)) : null;
             const name      = (char && char.name) || (p.profile && p.profile.name) || '?';
             const genderKey = (char && char.gender) || '';
             const gIcon     = GENDER_ICON[genderKey] || '';
             const online    = _isOnline(p.user_id);
             const responded = respondedSet.has(p.user_id);
+            const isMyTurn  = activeTurnUid && p.user_id === activeTurnUid;
+            const isMe      = p.user_id === myUid;
+            const uid       = _esc(p.user_id || '');
 
             const classes = ['cp-member'];
             if (online)    classes.push('cp-member--online');
             if (responded) classes.push('cp-member--responded');
+            if (isMyTurn)  classes.push('cp-member--active-turn');
 
+            let statusIcon  = '';
+            let statusTitle = '';
+            if (isMyTurn) {
+                statusIcon  = isMe ? '✦' : '▶';
+                statusTitle = isMe ? 'Tu turno' : 'Turno activo';
+            } else if (responded) {
+                statusIcon  = '✓';
+                statusTitle = 'Ya respondió';
+            } else if (respondedSet.size > 0) {
+                statusIcon  = '·';
+                statusTitle = 'Esperando';
+            }
+
+            const cid = _esc(String(charId || ''));
             return `<button type="button" class="${classes.join(' ')}"
                         data-user-id="${_esc(String(p.user_id || ''))}"
-                        title="${_esc(name)}${responded ? ' \xB7 Ya respondi\xF3' : ' \xB7 Esperando'}">
+                        onclick="if(typeof CharPopover!=='undefined'){CharPopover.toggle('${cid}',this)}else{openUserProfileModal('${uid}')}"
+                        title="${_esc(name)} · ${statusTitle || (online ? 'En línea' : 'Desconectado')}">
                 <span class="cp-name">${_esc(name)}</span>
                 ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
+                ${statusIcon ? `<span class="cp-status-icon" aria-hidden="true">${statusIcon}</span>` : ''}
             </button>`;
         }).join('');
-        list.querySelectorAll('.cp-member').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                openUserProfileModal(btn.dataset.userId);
-            });
-        });
+        // El onclick inline de cada .cp-member ya llama a CharPopover.toggle (character info).
+        // No añadir listener adicional que abra el perfil de usuario.
     }
 
     // ── Expose globals ───────────────────────────────────────
@@ -26163,6 +25249,302 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
     });
 
 }(window));
+
+
+/* js/ui/charPopover.js */
+// ═══════════════════════════════════════════════════════════════════
+// CHAR POPOVER — Tarjeta visual de personaje para el party panel
+//
+// Muestra información básica del personaje al pulsar su tarjeta.
+// Puramente visual — sin botones de acción ni editores.
+//
+// Modo clásico: nombre, raza/género, afinidad unidireccional (solo
+//   cómo ve TU personaje al otro, nunca al revés).
+// Modo RPG: nombre, raza/género, stats compactos, HP/EXP minibarras.
+//
+// Arquitectura:
+//   - Comunica con el sistema de afinidad solo vía appData (lectura)
+//   - No importa nada de classic/ ni rpg/ directamente
+//   - Se cierra al pulsar fuera, con Escape, o al abrir otro popover
+//   - El DOM del popover se crea una vez y se reutiliza (singleton)
+// ═══════════════════════════════════════════════════════════════════
+
+const CharPopover = (function () {
+
+    let _popoverEl  = null;
+    let _currentCharId = null;
+    let _closeOnClick  = null;
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function _esc(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function _isRpg() {
+        const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+        return !!(topic?.mode === 'rpg' || document.body.classList.contains('theme-rpg'));
+    }
+
+    function _getChar(charId) {
+        return (window.appData?.characters || []).find(c => String(c.id) === String(charId)) || null;
+    }
+
+    function _getMyCharId() {
+        return window.selectedCharId ? String(window.selectedCharId) : null;
+    }
+
+    function _getAffinityData(fromCharId, toCharId) {
+        if (!fromCharId || !toCharId || fromCharId === toCharId) return null;
+        const topicId = window.currentTopicId;
+        if (!topicId) return null;
+
+        const key      = `${fromCharId}_${toCharId}`;
+        const value    = Number(window.appData?.affinities?.[topicId]?.[key]) || 0;
+        const relType  = window.appData?.affinityTypes?.[topicId]?.[key] || 'undefined';
+
+        // Usar reciprocidad si está disponible
+        const reverseKey   = `${toCharId}_${fromCharId}`;
+        const otherValue   = Number(window.appData?.affinities?.[topicId]?.[reverseKey]) || 0;
+        const otherRelType = window.appData?.affinityTypes?.[topicId]?.[reverseKey] || 'undefined';
+
+        const rankFn = typeof getAffinityRankInfoWithReciprocity === 'function'
+            ? getAffinityRankInfoWithReciprocity
+            : getAffinityRankInfo;
+
+        const rank = rankFn(value, relType, otherValue, otherRelType);
+
+        return { value, relType, rank };
+    }
+
+    function _getRpgStats(charId) {
+        if (typeof RPGState === 'undefined') return null;
+        try {
+            const snapshot = RPGState.getSnapshot ? RPGState.getSnapshot(charId) : null;
+            return snapshot;
+        } catch { return null; }
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────
+
+    function _buildContent(charId) {
+        const char    = _getChar(charId);
+        if (!char) return '<p class="cp-popover-empty">Personaje no encontrado</p>';
+
+        const isRpg   = _isRpg();
+        const myId    = _getMyCharId();
+        const isMe    = myId === String(charId);
+
+        // ── Cabecera: avatar + nombre ──────────────────────────────
+        const fullName = [char.name, char.lastName].filter(Boolean).join(' ');
+        const initial  = (char.name || '?')[0].toUpperCase();
+        const avatarSrc = char.avatar || char.sprite || '';
+
+        const avatarHtml = avatarSrc
+            ? `<img class="cp-popover-avatar" src="${_esc(avatarSrc)}" alt="${_esc(fullName)}"
+                     onerror="this.parentElement.innerHTML='<span class=\\'cp-popover-initial\\'>${_esc(initial)}</span>'">`
+            : `<span class="cp-popover-initial" style="--char-color:${_esc(char.color || '#9b59b6')}">${_esc(initial)}</span>`;
+
+        // ── Subtítulo: raza + género ───────────────────────────────
+        const sub = [char.race, char.gender].filter(Boolean).join(' · ');
+
+        // ── Cuerpo según modo ──────────────────────────────────────
+        let bodyHtml = '';
+
+        if (isRpg) {
+            // Stats compactos
+            const stats = char.stats || {};
+            const RPG_LABELS = window.RPG_STAT_LABELS || {
+                STR: 'FUE', DEX: 'DES', CON: 'CON', INT: 'INT'
+            };
+            const statRows = Object.entries(RPG_LABELS).map(([key, label]) => {
+                const val = Number(stats[key]) || 8;
+                return `<div class="cp-popover-stat">
+                    <span class="cp-popover-stat-label">${_esc(label)}</span>
+                    <span class="cp-popover-stat-val">${val}</span>
+                </div>`;
+            }).join('');
+
+            // HP y EXP minibarras
+            const hp     = Number(char.hp     || stats.hp     || 0);
+            const maxHp  = Number(char.maxHp  || stats.maxHp  || 20);
+            const exp    = Number(char.exp     || stats.exp    || 0);
+            const maxExp = Number(char.maxExp  || stats.maxExp || 100);
+            const hpPct  = Math.round(Math.min(100, Math.max(0, (hp  / (maxHp  || 1)) * 100)));
+            const expPct = Math.round(Math.min(100, Math.max(0, (exp / (maxExp || 1)) * 100)));
+            const level  = Number(char.level || stats.level || 1) || 1;
+
+            bodyHtml = `
+                <div class="cp-popover-stats">${statRows}</div>
+                <div class="cp-popover-bars">
+                    <div class="cp-popover-bar-row">
+                        <span class="cp-popover-bar-label">HP</span>
+                        <div class="cp-popover-bar">
+                            <div class="cp-popover-bar-fill cp-popover-bar-hp" style="width:${hpPct}%"></div>
+                        </div>
+                        <span class="cp-popover-bar-val">${hp}/${maxHp}</span>
+                    </div>
+                    <div class="cp-popover-bar-row">
+                        <span class="cp-popover-bar-label">EXP</span>
+                        <div class="cp-popover-bar">
+                            <div class="cp-popover-bar-fill cp-popover-bar-exp" style="width:${expPct}%"></div>
+                        </div>
+                        <span class="cp-popover-bar-val">Nv.${level}</span>
+                    </div>
+                </div>`;
+
+        } else {
+            // Afinidad unidireccional: cómo ve MI personaje a ESTE personaje
+            if (!isMe && myId) {
+                const aff = _getAffinityData(myId, String(charId));
+                if (aff && aff.rank) {
+                    const icon  = aff.rank.icon  || '';
+                    const rname = aff.rank.name   || '';
+                    const color = aff.rank.color  || '#9b59b6';
+                    const needsRecip = aff.rank.requiresReciprocity;
+                    const isUnilateralCap = aff.rank.unilateralCap;
+
+                    // Indicador sutil si estamos en el techo unilateral
+                    const capHint = isUnilateralCap
+                        ? `<span class="cp-popover-aff-hint">Sin reciprocidad</span>`
+                        : '';
+
+                    bodyHtml = `
+                        <div class="cp-popover-affinity" style="--aff-color:${_esc(color)}">
+                            <span class="cp-popover-aff-icon">${_esc(icon)}</span>
+                            <div class="cp-popover-aff-info">
+                                <span class="cp-popover-aff-name">${_esc(rname)}</span>
+                                ${capHint}
+                            </div>
+                        </div>`;
+                } else {
+                    bodyHtml = `<div class="cp-popover-affinity cp-popover-aff-unknown">
+                        <span class="cp-popover-aff-icon">○</span>
+                        <span class="cp-popover-aff-name">Desconocidos</span>
+                    </div>`;
+                }
+            } else if (isMe) {
+                bodyHtml = `<p class="cp-popover-me">Tu personaje</p>`;
+            }
+        }
+
+        return `
+            <div class="cp-popover-header">
+                <div class="cp-popover-avatar-wrap">${avatarHtml}</div>
+                <div class="cp-popover-meta">
+                    <span class="cp-popover-name">${_esc(fullName)}</span>
+                    ${sub ? `<span class="cp-popover-sub">${_esc(sub)}</span>` : ''}
+                    ${char.age ? `<span class="cp-popover-sub">${_esc(String(char.age))} años</span>` : ''}
+                </div>
+            </div>
+            ${bodyHtml ? `<div class="cp-popover-body">${bodyHtml}</div>` : ''}
+        `;
+    }
+
+    // ── DOM singleton ─────────────────────────────────────────────────────────
+
+    function _getOrCreatePopover() {
+        if (_popoverEl) return _popoverEl;
+
+        _popoverEl = document.createElement('div');
+        _popoverEl.id = 'charPopover';
+        _popoverEl.className = 'cp-popover hidden';
+        _popoverEl.setAttribute('role', 'tooltip');
+        document.getElementById('vnSection')?.appendChild(_popoverEl);
+
+        // Cerrar con Escape
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') close();
+        });
+
+        return _popoverEl;
+    }
+
+    // ── API pública ───────────────────────────────────────────────────────────
+
+    function open(charId, anchorEl) {
+        if (!charId) return;
+
+        const popover = _getOrCreatePopover();
+        _currentCharId = String(charId);
+
+        // Rellenar contenido
+        popover.innerHTML = _buildContent(charId);
+        popover.classList.remove('hidden');
+
+        // Posicionar anclado al elemento pulsado
+        _position(popover, anchorEl);
+
+        // Cerrar al hacer clic fuera
+        if (_closeOnClick) document.removeEventListener('click', _closeOnClick);
+        _closeOnClick = function (e) {
+            if (!popover.contains(e.target) && e.target !== anchorEl) {
+                close();
+            }
+        };
+        setTimeout(() => document.addEventListener('click', _closeOnClick), 0);
+    }
+
+    function close() {
+        if (_popoverEl) _popoverEl.classList.add('hidden');
+        if (_closeOnClick) {
+            document.removeEventListener('click', _closeOnClick);
+            _closeOnClick = null;
+        }
+        _currentCharId = null;
+    }
+
+    function toggle(charId, anchorEl) {
+        if (_currentCharId === String(charId) && !_popoverEl?.classList.contains('hidden')) {
+            close();
+        } else {
+            open(charId, anchorEl);
+        }
+    }
+
+    function _position(popover, anchor) {
+        if (!anchor) return;
+        const rect    = anchor.getBoundingClientRect();
+        const vnRect  = document.getElementById('vnSection')?.getBoundingClientRect() || { left: 0, top: 0 };
+        const popW    = 220;
+        const margin  = 8;
+
+        // Intentar a la derecha del anchor; si no cabe, a la izquierda
+        let left = rect.right - vnRect.left + margin;
+        if (left + popW > (vnRect.width || window.innerWidth)) {
+            left = rect.left - vnRect.left - popW - margin;
+        }
+        // Alinear verticalmente con el centro del anchor
+        let top = rect.top - vnRect.top + rect.height / 2;
+        // Clampar para que no salga por arriba/abajo
+        top = Math.max(8, Math.min(top, (vnRect.height || window.innerHeight) - 200));
+
+        popover.style.left = `${Math.round(left)}px`;
+        popover.style.top  = `${Math.round(top)}px`;
+    }
+
+    // ── Init: escuchar el EventBus para refresco al cambiar afinidad ──────────
+    (function _init() {
+        if (typeof eventBus === 'undefined') return;
+        eventBus.on('affinity:changed', function () {
+            // Si el popover está abierto, refrescar el contenido
+            if (_currentCharId && _popoverEl && !_popoverEl.classList.contains('hidden')) {
+                _popoverEl.innerHTML = _buildContent(_currentCharId);
+            }
+        });
+        eventBus.on('cycle:branch-chosen', function () {
+            if (_currentCharId && _popoverEl && !_popoverEl.classList.contains('hidden')) {
+                _popoverEl.innerHTML = _buildContent(_currentCharId);
+            }
+        });
+    })();
+
+    return { open, close, toggle };
+
+})();
+
+window.CharPopover = CharPopover;
+
 
 /* js/ui/hub.js */
 // Hub principal — datos de usuario y subtítulos dinámicos.
