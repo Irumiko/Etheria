@@ -323,11 +323,12 @@ body.theme-classic #vnSection .vn-continue-btn:hover {
     border-color: var(--vns-p-lav);
 }
 
-/* ── Toolbar superior — fila horizontal plateada ─────────────────────── */
+/* ── Toolbar derecha centrada — fila horizontal (en vez de columna) ─── */
 body.theme-classic #vnSection .vn-toolbar.vn-classic-controls {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
     left: auto;
     bottom: auto;
     z-index: 12;
@@ -344,7 +345,6 @@ body.theme-classic #vnSection .vn-toolbar.vn-classic-controls {
     box-shadow: none;
     max-height: none;
     overflow: visible;
-    transform: none;
 }
 /* Divider vertical en fila horizontal */
 body.theme-classic #vnSection .vn-classic-control-divider {
