@@ -482,8 +482,17 @@
             entries.push({ char, userId: userId || null });
         }
 
-        // selectedCharId es `let` en state.js — acceso por closure, no via window
-        const _selCharId = typeof selectedCharId !== 'undefined' ? selectedCharId : null;
+        // selectedCharId: primero vnStore (window), luego closure, luego localStorage
+        const _selCharId = (global.vnStore && global.vnStore.get().selectedCharId)
+            || (typeof selectedCharId !== 'undefined' ? selectedCharId : null)
+            || (function() {
+                try {
+                    const idx = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
+                    return localStorage.getItem('etheria_selected_char_' + idx);
+                } catch(e) { return null; }
+            })();
+
+        console.log('[ClassicParty] selCharId=', _selCharId, 'allChars=', allChars.length, 'topic=', topic?.id);
 
         // 1. Personaje propio por selectedCharId (máxima prioridad)
         if (_selCharId) {
