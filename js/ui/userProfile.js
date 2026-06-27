@@ -18,8 +18,10 @@
     function _client()  { return global.supabaseClient || null; }
     function _isRpg()   { return document.body.classList.contains('mode-rpg'); }
     function _currentTopic() {
-        if (!global.currentTopicId || !global.appData) return null;
-        return (global.appData.topics || []).find(t => String(t.id) === String(global.currentTopicId)) || null;
+        // currentTopicId y appData son `let` en state.js — closure directo
+        if (typeof currentTopicId === 'undefined' || !currentTopicId) return null;
+        if (typeof appData === 'undefined' || !appData) return null;
+        return (appData.topics || []).find(t => String(t.id) === String(currentTopicId)) || null;
     }
     function _isOnline(userId) {
         return typeof SupabasePresence !== 'undefined'
@@ -38,7 +40,7 @@
     function _respondedThisCycle(participants) {
         const pIds = participants.map(p => p.user_id).filter(Boolean);
         if (!pIds.length) return new Set();
-        const msgs = (global.appData?.messages?.[global.currentTopicId] || []);
+        const msgs = (typeof appData !== 'undefined' && appData?.messages?.[currentTopicId] || []);
         const responded = new Set();
         for (let i = msgs.length - 1; i >= 0; i--) {
             const uid = msgs[i]?.userId || msgs[i]?.user_id;
@@ -52,20 +54,22 @@
         }
         return responded;
     }
+    // appData y selectedCharId son `let` en state.js — no están en window,
+    // se acceden por closure directo (no via global.xxx).
     function _allChars() {
-        return global.appData && global.appData.characters ? global.appData.characters : [];
+        return typeof appData !== 'undefined' && appData && appData.characters ? appData.characters : [];
     }
     function _getOwnChar() {
         const topic = _currentTopic();
         const myUid = global._cachedUserId;
-        // Prioridad: selectedCharId global
-        if (global.selectedCharId) {
-            return _allChars().find(c => String(c.id) === String(global.selectedCharId)) || null;
+        // Prioridad: selectedCharId por closure (es `let`, no está en window)
+        if (typeof selectedCharId !== 'undefined' && selectedCharId) {
+            return _allChars().find(c => String(c.id) === String(selectedCharId)) || null;
         }
         if (!topic) return null;
         const lockMap = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
-        // Por userIndex local
-        const myIndex = global.userIndex != null ? global.userIndex : null;
+        // Por currentUserIndex (también `let` en state.js)
+        const myIndex = typeof currentUserIndex !== 'undefined' ? currentUserIndex : null;
         if (myIndex != null) {
             const charId = lockMap[myIndex] || lockMap[String(myIndex)];
             if (charId) return _allChars().find(c => String(c.id) === String(charId)) || null;
@@ -478,9 +482,12 @@
             entries.push({ char, userId: userId || null });
         }
 
+        // selectedCharId es `let` en state.js — acceso por closure, no via window
+        const _selCharId = typeof selectedCharId !== 'undefined' ? selectedCharId : null;
+
         // 1. Personaje propio por selectedCharId (máxima prioridad)
-        if (global.selectedCharId) {
-            const c = allChars.find(ch => String(ch.id) === String(global.selectedCharId));
+        if (_selCharId) {
+            const c = allChars.find(ch => String(ch.id) === String(_selCharId));
             _addChar(c, myUid);
         }
 
@@ -498,8 +505,8 @@
                 }
                 if (!p.user_id) return;
                 // 2b. Usuario propio por selectedCharId
-                if (p.user_id === myUid && global.selectedCharId) {
-                    const c = allChars.find(ch => String(ch.id) === String(global.selectedCharId));
+                if (p.user_id === myUid && _selCharId) {
+                    const c = allChars.find(ch => String(ch.id) === String(_selCharId));
                     _addChar(c, myUid); return;
                 }
                 // 2c. Por owner_user_id cruzado con lockMap
