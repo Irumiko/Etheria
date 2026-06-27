@@ -51,6 +51,7 @@ const SupabaseCycles = (function () {
             .from('topic_cycles')
             .insert({
                 topic_id:     String(topicId),
+                created_by:   uid,
                 closes_at:    closesAt.toISOString(),
                 status:       'open',
                 participants: participantUserIds,

@@ -8,6 +8,7 @@
 create table if not exists public.topic_cycles (
     id           uuid        primary key default gen_random_uuid(),
     topic_id     text        not null,
+    created_by   uuid        references auth.users(id) on delete set null,
     started_at   timestamptz not null default now(),
     closes_at    timestamptz not null,
     closed_at    timestamptz,
@@ -15,6 +16,12 @@ create table if not exists public.topic_cycles (
                              check (status in ('open', 'closed')),
     participants jsonb       not null default '[]'::jsonb
 );
+
+-- Si la tabla ya existe, añadir la columna created_by si no está
+do $$ begin
+    alter table public.topic_cycles add column created_by uuid references auth.users(id) on delete set null;
+exception when duplicate_column then null;
+end $$;
 
 -- Índice para buscar el ciclo abierto de un tema eficientemente
 create index if not exists idx_topic_cycles_topic_status
@@ -43,6 +50,12 @@ do $$ begin
     create policy "Authenticated users can update topic_cycles"
         on public.topic_cycles for update
         to authenticated
-        using (true);
+        using (
+            -- Solo el creador puede cerrar/modificar un ciclo.
+            -- La edge function usa service role y no pasa por RLS.
+            auth.uid() = created_by
+            -- Fallback: participantes también pueden si created_by es null (ciclos legacy)
+            or created_by is null
+        );
 exception when duplicate_object then null;
 end $$;

@@ -28,11 +28,12 @@ Deno.serve(async (req: Request) => {
 
   // Verificar secret del cron para evitar invocaciones no autorizadas
   const cronSecret = Deno.env.get('CRON_SECRET');
-  if (cronSecret) {
-    const incoming = req.headers.get('x-cron-secret');
-    if (incoming !== cronSecret) {
-      return new Response('Unauthorized', { status: 401 });
-    }
+  if (!cronSecret) {
+    return new Response('Server misconfiguration: CRON_SECRET not set', { status: 500 });
+  }
+  const incoming = req.headers.get('x-cron-secret');
+  if (incoming !== cronSecret) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;

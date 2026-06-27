@@ -843,7 +843,7 @@ async function openInviteJoinModal(token) {
         return;
     }
 
-    if (titleEl) titleEl.textContent = `"${storyTitle}"`;
+    if (titleEl) titleEl.textContent = storyTitle ? `"${storyTitle}"` : 'Historia compartida';
     if (msgEl)   msgEl.textContent   = 'Alguien te ha invitado a esta historia. ¿Quieres unirte?';
     if (btn) {
         btn.disabled    = false;
