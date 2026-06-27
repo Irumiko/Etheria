@@ -11,16 +11,6 @@
     function backupState() {
         try {
             if (typeof save === 'function') save({ silent: true });
-
-            const backup = {
-                ts: Date.now(),
-                currentTopicId: (typeof currentTopicId !== 'undefined') ? currentTopicId : null,
-                affinities: (typeof appData !== 'undefined' && appData?.affinities) ? appData.affinities : {},
-                rpg: (typeof RPGState !== 'undefined' && typeof RPGState.getSnapshot === 'function')
-                    ? RPGState.getSnapshot()
-                    : null,
-            };
-            localStorage.setItem('etheria_pwa_backup', JSON.stringify(backup));
         } catch (error) { logger?.warn('pwa:lifecycle', 'backupState failed:', error?.message || error); }
     }
 

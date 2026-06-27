@@ -403,16 +403,6 @@ const cloudMigrationPendingProfiles = new Set();
     function backupState() {
         try {
             if (typeof save === 'function') save({ silent: true });
-
-            const backup = {
-                ts: Date.now(),
-                currentTopicId: (typeof currentTopicId !== 'undefined') ? currentTopicId : null,
-                affinities: (typeof appData !== 'undefined' && appData?.affinities) ? appData.affinities : {},
-                rpg: (typeof RPGState !== 'undefined' && typeof RPGState.getSnapshot === 'function')
-                    ? RPGState.getSnapshot()
-                    : null,
-            };
-            localStorage.setItem('etheria_pwa_backup', JSON.stringify(backup));
         } catch (error) { logger?.warn('pwa:lifecycle', 'backupState failed:', error?.message || error); }
     }
 
@@ -2710,16 +2700,27 @@ function openRoleCharacterModal(topicId, options = {}) {
             ? `<img src="${escapeHtml(c.avatar)}" alt="Avatar de ${escapeHtml(c.name)}">`
             : `<div class="placeholder">${escapeHtml((c.name || '?')[0])}</div>`;
         const statsBtn = isRpgMode
-            ? `<button type="button" class="role-char-stats-btn" title="Stats de ${escapeHtml(c.name)}"
-                onclick="event.stopPropagation();openRpgStatsModalFromSelect('${topicId}','${c.id}')">⚔️ Stats</button>`
+            ? `<button type="button" class="role-char-stats-btn role-char-stats-btn--js" title="Stats de ${escapeHtml(c.name)}" data-char-id="${escapeHtml(String(c.id))}" data-topic-id="${escapeHtml(String(topicId))}">⚔️ Stats</button>`
             : '';
         return `<div class="role-char-card">
             <button type="button" class="role-char-bubble" title="${escapeHtml(c.name)}"
-                onclick="selectRoleCharacterForTopic('${topicId}', '${c.id}')">${visual}</button>
+                data-char-id="${escapeHtml(String(c.id))}" data-topic-id="${escapeHtml(String(topicId))}">${visual}</button>
             <span class="role-char-name">${escapeHtml(c.name)}</span>
             ${statsBtn}
         </div>`;
     }).join('');
+
+    grid.querySelectorAll('.role-char-bubble').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            selectRoleCharacterForTopic(btn.dataset.topicId, btn.dataset.charId);
+        });
+    });
+    grid.querySelectorAll('.role-char-stats-btn--js').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openRpgStatsModalFromSelect(btn.dataset.topicId, btn.dataset.charId);
+        });
+    });
 
     openModal('roleCharacterModal');
 }
@@ -3457,8 +3458,6 @@ function modifyAffinity(direction) {
         });
     } else {
         updateAffinityDisplay();
-        if (direction > 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-up' });
-        if (direction < 0) eventBus.emit('audio:play-sfx', { sfx: 'affinity-down' });
     }
 
     const rankInfo = getAffinityRankInfo(newValue);
@@ -3822,6 +3821,7 @@ function _refreshIhpInventory(charId) {
     if (!body || !charId) return;
     if (typeof renderInventoryPanel === 'function') {
         body.innerHTML = renderInventoryPanel(charId);
+        if (typeof bindInventoryPanelEvents === 'function') bindInventoryPanelEvents(body);
     }
     _updateIhpAutoHint(charId);
 }
@@ -4266,6 +4266,9 @@ const BondsUI = (function () {
         panel.querySelectorAll('.bond-note-cancel').forEach(btn => {
             btn.addEventListener('click', () => _cancelEdit(char));
         });
+        panel.querySelectorAll('.bond-history-toggle').forEach(btn => {
+            btn.addEventListener('click', () => toggleHistory(btn.dataset.from, btn.dataset.to, btn));
+        });
     }
 
     // ── Fila de vínculo ───────────────────────────────────────────────
@@ -4328,7 +4331,7 @@ const BondsUI = (function () {
                     <button class="bond-note-btn btn-sm btn-ghost" data-from="${myFromId}" data-to="${myToId}">
                         ✎ ${myNote ? 'Editar nota' : 'Añadir nota'}
                     </button>
-                    ${out ? `<button class="bond-history-toggle" onclick="BondsUI.toggleHistory('${myFromId}','${myToId}',this)">▸ Ver historial</button>
+                    ${out ? `<button class="bond-history-toggle" data-from="${myFromId}" data-to="${myToId}">▸ Ver historial</button>
                     <div class="bond-history-list" id="bond-hist-${editKey}" style="display:none;"></div>` : ''}
                 </div>`}
             </div>
@@ -4412,7 +4415,7 @@ const BondsUI = (function () {
                 return `<div class="bond-history-entry">
                     <span class="bond-history-arrow">${arrow}</span>
                     <span class="bond-history-rank" style="--rank-color:${color}">${escapeHtml(h.new_rank || '')}</span>
-                    <span style="opacity:0.4;font-size:0.67rem">${h.old_value}→${h.new_value}</span>
+                    <span style="opacity:0.4;font-size:0.67rem">${escapeHtml(String(h.old_value ?? ''))}→${escapeHtml(String(h.new_value ?? ''))}</span>
                     <span class="bond-history-date">${date}</span>
                 </div>`;
             }).join('');
@@ -4549,10 +4552,13 @@ const MessageSearch = (function () {
         container.innerHTML = results.map((r, i) => {
             const text = r.text || r.content || '';
             const author = r.author || 'Narrador';
-            // Highlight
-            const highlighted = escapeHtml(text.slice(0, 120))
-                .replace(new RegExp(escapeHtml(lower), 'gi'),
-                    m => `<mark class="msg-search-mark">${m}</mark>`);
+            // Highlight — escapar metacaracteres regex antes de construir el patrón
+            const safeQuery = escapeHtml(lower).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const highlighted = safeQuery
+                ? escapeHtml(text.slice(0, 120)).replace(
+                    new RegExp(safeQuery, 'gi'),
+                    m => `<mark class="msg-search-mark">${m}</mark>`)
+                : escapeHtml(text.slice(0, 120));
             return `
             <div class="msg-search-result" onclick="MessageSearch.jumpTo(${i})">
                 <div class="msg-search-author">${escapeHtml(author)}</div>
@@ -4566,10 +4572,18 @@ const MessageSearch = (function () {
         const r = _results[resultIndex];
         if (!r) return;
 
-        // Si tiene índice local, navegar directamente
         if (typeof r._localIndex === 'number') {
+            // Resultado local — índice directo
             if (typeof currentMessageIndex !== 'undefined') {
                 currentMessageIndex = r._localIndex;
+                if (typeof showCurrentMessage === 'function') showCurrentMessage('init');
+            }
+        } else if (r.id) {
+            // Resultado de Supabase — buscar por ID en mensajes locales
+            const msgs = typeof getTopicMessages === 'function' ? (getTopicMessages(currentTopicId) || []) : [];
+            const localIdx = msgs.findIndex(m => String(m.id) === String(r.id));
+            if (localIdx !== -1 && typeof currentMessageIndex !== 'undefined') {
+                currentMessageIndex = localIdx;
                 if (typeof showCurrentMessage === 'function') showCurrentMessage('init');
             }
         }
@@ -4868,7 +4882,7 @@ function renderUserCards() {
         const _activeIdx = typeof currentUserIndex !== 'undefined' ? currentUserIndex : 0;
         const avatarSrc = avatars[idx] || (idx === _activeIdx ? localStorage.getItem('etheria_cloud_avatar_url') || '' : '');
         const avatarHtml = avatarSrc
-            ? `<div class="user-avatar-wrap"><img src="${avatarSrc}" alt="Avatar" loading="lazy"></div>`
+            ? `<div class="user-avatar-wrap"><img src="${escapeHtml(avatarSrc)}" alt="Avatar" loading="lazy"></div>`
             : `<div class="user-avatar-wrap"><span class="user-avatar-initials">${(name||'?')[0].toUpperCase()}</span></div>`;
 
         // Género
@@ -4876,7 +4890,7 @@ function renderUserCards() {
         try { genders = JSON.parse(localStorage.getItem('etheria_user_genders') || '[]'); } catch (error) { window.EtheriaLogger?.warn('app', 'operation failed:', error?.message || error); }
         const gender = genders[idx] || '';
         const genderMap = { masculino:'Masculino', femenino:'Femenino', 'no-binario':'No binario', otro:'Otro' };
-        const genderBadge = gender ? `<div class="user-gender-badge">${genderMap[gender] || gender}</div>` : '';
+        const genderBadge = gender ? `<div class="user-gender-badge">${escapeHtml(genderMap[gender] || gender)}</div>` : '';
 
         // Cumpleaños
         let birthdays = [];
@@ -5514,6 +5528,13 @@ function resetVNTransientState({ clearTopic = false } = {}) {
         if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
         window.dispatchEvent(new CustomEvent('etheria:topic-leave'));
         if (typeof SupabaseCycles !== 'undefined') SupabaseCycles.reset();
+        // Cerrar canales Realtime de presencia y mensajes de la historia
+        if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.leaveStory === 'function') {
+            SupabaseStories.leaveStory();
+        } else if (typeof SupabasePresence !== 'undefined' && typeof SupabasePresence.leaveStory === 'function') {
+            SupabasePresence.leaveStory().catch(function () {});
+        }
+        window.dispatchEvent(new CustomEvent('etheria:story-left'));
         currentTopicId = null;
         currentMessageIndex = 0;
     }
@@ -5776,8 +5797,11 @@ function renderRaceTagPills() {
     const allRaces = [...new Set(appData.characters.map(c => c.race).filter(Boolean))].sort();
     if (allRaces.length === 0) { container.innerHTML = ''; return; }
     container.innerHTML = allRaces.map(r => `
-        <button class="race-pill ${_galleryActiveRaces.has(r) ? 'active' : ''}" onclick="toggleRaceFilter('${escapeHtml(r)}')">${escapeHtml(r)}</button>
+        <button class="race-pill ${_galleryActiveRaces.has(r) ? 'active' : ''}" data-race="${escapeHtml(r)}">${escapeHtml(r)}</button>
     `).join('');
+    container.querySelectorAll('.race-pill').forEach(function(btn) {
+        btn.addEventListener('click', function() { toggleRaceFilter(btn.dataset.race); });
+    });
 }
 
 
@@ -5903,7 +5927,7 @@ function renderGallery() {
 
 // Refrescar galería cuando cambia el estado de presencia
 // para que los puntos online/offline se actualicen en tiempo real
-window.addEventListener('etheria:presence-changed', function () {
+window.addEventListener('etheria:story-presence-changed', function () {
     const gallerySection = document.getElementById('gallerySection');
     if (gallerySection?.classList.contains('active')) {
         renderGallery();
@@ -6483,9 +6507,9 @@ function openSheet(id) {
     if (sheetQuickStats) {
         sheetQuickStats.innerHTML = [
             c.race      && `<span class="quick-stat-v2">${escapeHtml(c.race)}</span>`,
-            c.gender    && `<span class="quick-stat-v2">${c.gender}</span>`,
-            c.age       && `<span class="quick-stat-v2">${c.age} años</span>`,
-            c.alignment && `<span class="quick-stat-v2 qs-align" style="--align-color:${getAlignmentColor(c.alignment)}">${alignments[c.alignment] || c.alignment}</span>`,
+            c.gender    && `<span class="quick-stat-v2">${escapeHtml(c.gender)}</span>`,
+            c.age       && `<span class="quick-stat-v2">${escapeHtml(String(c.age))} años</span>`,
+            c.alignment && `<span class="quick-stat-v2 qs-align" style="--align-color:${getAlignmentColor(c.alignment)}">${escapeHtml(alignments[c.alignment] || c.alignment)}</span>`,
         ].filter(Boolean).join('');
     }
 
@@ -6615,7 +6639,7 @@ function renderRpgStatsModal(c) {
                 const mod    = rpgModStr(val);
                 const spent  = getRpgSpentPoints(profile);
                 const nextCost = rpgPointBuyCost(Math.min(RPG_STAT_MAX, val + 1)) - rpgPointBuyCost(val);
-                const canAdd = isOwn && val < RPG_STAT_MAX && (RPG_POINTS_POOL - spent) >= (rpgPointBuyCost(val + 1) - rpgPointBuyCost(val));
+                const canAdd = isOwn && val < RPG_STAT_MAX && (data.basePool - spent) >= (rpgPointBuyCost(val + 1) - rpgPointBuyCost(val));
                 const canSub = isOwn && val > RPG_STAT_BASE;
                 return `
                 <div class="rpg-stats-card" title="${RPG_STAT_DESC[key]}">
@@ -6754,7 +6778,8 @@ function adjustRpgStat(charId, stat, delta) {
     if (delta > 0) {
         const costIncrease = rpgPointBuyCost(newVal) - rpgPointBuyCost(current);
         const spent = getRpgSpentPoints(profile);
-        if (spent + costIncrease > RPG_POINTS_POOL) return; // no hay puntos suficientes
+        const data = getRpgSheetData(char, currentTopicId);
+        if (spent + costIncrease > data.basePool) return; // no hay puntos suficientes
     }
 
     profile.stats[stat] = newVal;
@@ -6889,7 +6914,7 @@ async function _uploadImageToStorage(bucket, charId, file) {
 
     const ext = extMatch[1].toLowerCase();
     const mimeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
-    const path = `${charId}.${ext}`;
+    const path = bucket === 'sprites' ? `${charId}/${Date.now()}.${ext}` : `${charId}.${ext}`;
 
     try {
         const { error: uploadError } = await sb.storage
@@ -7238,14 +7263,16 @@ function renderInventoryPanel(charId) {
     return items.map(item => {
         const catalog = RPG_ITEM_CATALOG.find(c => c.id === item.id) || { icon: '📦', name: item.name || item.id, desc: '', effect: {}, type: 'tool' };
         const isUsable = isOwn && (catalog.type === 'consumable' || catalog.type === 'special');
+        const safeName     = escapeHtml(String(catalog.name || ''));
+        const safeDesc     = escapeHtml(String(catalog.desc || ''));
         const useBtn   = isUsable
-            ? `<button class="rpg-item-use-btn" onclick="useInventoryItem('${charId}','${item.id}')" title="Usar ${catalog.name}">Usar</button>`
+            ? `<button class="rpg-item-use-btn" data-char-id="${escapeHtml(String(charId))}" data-item-id="${escapeHtml(String(item.id))}" title="Usar ${safeName}">Usar</button>`
             : '';
-        return `<div class="rpg-inventory-item" title="${catalog.desc}">
+        return `<div class="rpg-inventory-item" title="${safeDesc}">
             <span class="rpg-item-icon">${catalog.icon || '📦'}</span>
             <div class="rpg-item-info">
-                <span class="rpg-item-name">${catalog.name}</span>
-                <span class="rpg-item-desc">${catalog.desc}</span>
+                <span class="rpg-item-name">${safeName}</span>
+                <span class="rpg-item-desc">${safeDesc}</span>
             </div>
             <span class="rpg-item-qty">×${item.qty}</span>
             ${useBtn}
@@ -7253,8 +7280,17 @@ function renderInventoryPanel(charId) {
     }).join('');
 }
 
-window.getProfileInventory = getProfileInventory;
+function bindInventoryPanelEvents(container) {
+    if (!container) return;
+    container.querySelectorAll('.rpg-item-use-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            useInventoryItem(btn.dataset.charId, btn.dataset.itemId);
+        });
+    });
+}
 
+window.getProfileInventory = getProfileInventory;
+window.bindInventoryPanelEvents = bindInventoryPanelEvents;
 window.useInventoryItem = useInventoryItem;
 
 // ── Habilidades pasivas de clase (disponibles desde nivel 3) ───────────────
@@ -7362,6 +7398,7 @@ function switchRpgStatsTab(tab, btnEl) {
             // Renderizar inventario del personaje activo
             const charId = document.getElementById('rpgStatsModal')?.dataset?.charId || '';
             invBody.innerHTML = renderInventoryPanel(charId);
+            bindInventoryPanelEvents(invBody);
         }
     } else {
         if (statsBody) statsBody.style.display = '';
@@ -7696,6 +7733,31 @@ const SupabaseSync = (function () {
             }
         }
 
+        // ── settings ─────────────────────────────────────────────────────────
+        if (syncedData.settings && typeof syncedData.settings === 'object') {
+            if (_shouldApply('settings')) {
+                try {
+                    const s = syncedData.settings;
+                    if (s.theme) {
+                        document.documentElement.setAttribute('data-theme', s.theme);
+                        localStorage.setItem('etheria_theme', s.theme);
+                    }
+                    if (s.fontSize) {
+                        localStorage.setItem('etheria_font_size', String(s.fontSize));
+                        document.documentElement.style.setProperty('--font-size-base', s.fontSize + 'px');
+                    }
+                    if (s.textSpeed != null && typeof textSpeed !== 'undefined') {
+                        textSpeed = Number(s.textSpeed);
+                        localStorage.setItem('etheria_text_speed', String(s.textSpeed));
+                    }
+                } catch (e) {
+                    window.EtheriaLogger?.warn('supabaseSync', 'No se pudo restaurar settings:', e?.message);
+                }
+            } else {
+                window.EtheriaLogger?.info('[sync:merge]', 'settings: local más reciente → conservado');
+            }
+        }
+
         // ── Actualizar timestamps locales con el máximo de cada campo ────────
         // Después del merge, el registro local conoce el timestamp más alto visto,
         // ya sea del servidor o del propio dispositivo.
@@ -7717,15 +7779,20 @@ const SupabaseSync = (function () {
     /**
      * Sube los datos del perfil a Supabase
      */
-    // Debounce: evitar múltiples subidas en ráfaga (ej. guardar personaje + guardar topic al mismo tiempo)
-    let _uploadDebounceTimer = null;
+    // Debounce: evitar múltiples subidas en ráfaga (ej. guardar personaje + guardar topic al mismo tiempo).
+    // Todos los callers que coincidan en la ventana de 400ms reciben el mismo resultado
+    // (los resolvers se acumulan y se notifican todos cuando la subida termina).
+    let _uploadDebounceTimer   = null;
+    let _uploadPendingResolvers = [];
     function uploadProfileData() {
         return new Promise((resolve) => {
+            _uploadPendingResolvers.push(resolve);
             clearTimeout(_uploadDebounceTimer);
             _uploadDebounceTimer = setTimeout(async () => {
-                const result = await _doUploadProfileData();
-                resolve(result);
-            }, 400); // 400ms de debounce
+                const result    = await _doUploadProfileData();
+                const resolvers = _uploadPendingResolvers.splice(0);
+                for (const r of resolvers) r(result);
+            }, 400);
         });
     }
 
@@ -7987,7 +8054,11 @@ const SupabaseSync = (function () {
     }
 
     function _setupEventListeners() {
-        // Marcar cambios pendientes cuando se modifican datos
+        // Marcar cambios pendientes cuando se modifican datos.
+        // NOTA: etheria:data-changed no tiene emisor activo — nadie llama
+        // dispatchEvent('etheria:data-changed') en el codebase actual.
+        // Las mutaciones reales usan touchField() o markPending() directamente.
+        // Este listener existe como hook para código futuro; no eliminarlo.
         window.addEventListener('etheria:data-changed', () => {
             _pendingChanges = true;
         });
@@ -8565,7 +8636,9 @@ window.SupabaseSync = SupabaseSync;
             if (!res.ok) {
                 const detail = await res.text().catch(() => String(res.status));
                 logger?.warn('supabase:messages', 'send failed (' + res.status + '):', detail);
-                _available = false;
+                // Solo deshabilitar en errores de servidor (5xx); los errores 4xx
+                // indican un problema con la petición, no que el servicio no esté disponible.
+                if (res.status >= 500) _available = false;
                 return false;
             }
 
@@ -8625,7 +8698,7 @@ window.SupabaseSync = SupabaseSync;
             );
 
             if (!res.ok) {
-                _available = false;
+                if (res.status >= 500) _available = false;
                 return null;
             }
 
@@ -8951,9 +9024,11 @@ window.SupabaseSync = SupabaseSync;
             } catch (selectErr) {
                 logger?.warn('supabase:messages', 'editMessage select failed, using fallback:', selectErr?.message);
             }
-            // Fallback: if SELECT failed or content was unparseable, patch only text
+            // Si no se pudo leer el content actual, abortar — es mejor no editar
+            // que sobrescribir con un objeto parcial que destruye los metadatos del mensaje.
             if (!updatedContent) {
-                updatedContent = JSON.stringify({ text: newText });
+                logger?.warn('supabase:messages', 'editMessage abortado: no se pudo leer content actual');
+                return false;
             }
 
             const res = await fetch(
@@ -9200,6 +9275,7 @@ window.SupabaseSync = SupabaseSync;
         joinStory,
         leaveStory,
         isUserOnline,
+        isOnline: isUserOnline,
         getOnlineUserIds,
         get activeStoryId() { return _storyId; }
     };
@@ -9572,23 +9648,25 @@ window.SupabaseSync = SupabaseSync;
             return;
         }
 
-        list.innerHTML = _notifications.map(n => {
+        list.innerHTML = '';
+        _notifications.forEach(n => {
             const date = n.created_at ? new Date(n.created_at) : null;
             const dateStr = date
                 ? date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                 : '';
             const unreadClass = !n.is_read ? 'inbox-item--unread' : '';
-            return `
-                <div class="inbox-item ${unreadClass}" onclick="EtheriaInbox.goToTopic('${n.topic_id || ''}')">
-                    <div class="inbox-item-icon">${n.is_read ? '✉' : '📬'}</div>
-                    <div class="inbox-item-body">
-                        <p class="inbox-item-title">${escapeHtml(n.title || 'Nueva notificación')}</p>
-                        <p class="inbox-item-text">${escapeHtml(n.body || '')}</p>
-                        ${dateStr ? `<p class="inbox-item-date">${dateStr}</p>` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
+            const item = document.createElement('div');
+            item.className = 'inbox-item ' + unreadClass;
+            item.addEventListener('click', function() { EtheriaInbox.goToTopic(n.topic_id || ''); });
+            item.innerHTML =
+                `<div class="inbox-item-icon">${n.is_read ? '✉' : '📬'}</div>` +
+                `<div class="inbox-item-body">` +
+                `<p class="inbox-item-title">${escapeHtml(n.title || 'Nueva notificación')}</p>` +
+                `<p class="inbox-item-text">${escapeHtml(n.body || '')}</p>` +
+                (dateStr ? `<p class="inbox-item-date">${escapeHtml(dateStr)}</p>` : '') +
+                `</div>`;
+            list.appendChild(item);
+        });
     }
 
     async function _markAllRead(ids) {
@@ -11017,7 +11095,7 @@ window.Toasts = Toasts;
         if (classic) {
             _injectMoonGlow(section);
             if (!REDUCED) _injectZodiacRing(section);
-            _injectContinueBtn(section);
+            // _injectContinueBtn: eliminado per diseño v2 (prototipo no lo incluye)
         } else if (rpg) {
             _injectRouteHint(section);
         }
@@ -11051,6 +11129,50 @@ window.Toasts = Toasts;
         _stop(); // clean previous
         // Small delay to let mode class settle
         setTimeout(_start, 100);
+
+        // Classic party: ensure renderClassicParty is called with participants.
+        // vn.js/_buildLocalClassicParticipants ignores legacy roleCharacterId;
+        // here we call renderClassicParty with currentStoryParticipants if
+        // available, or build a minimal fallback that also covers legacy format.
+        if (document.body.classList.contains('mode-rpg')) return;
+        if (typeof renderClassicParty !== 'function') return;
+
+        function _ensureClassicParty() {
+            if (document.body.classList.contains('mode-rpg')) return;
+            // currentStoryParticipants / currentTopicId / appData son `let` en state.js
+            // → accesibles como globales de script, pero NO como window.*
+            /* global currentStoryParticipants, currentTopicId, appData */
+            var pts = typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : [];
+            if (Array.isArray(pts) && pts.length > 0) {
+                renderClassicParty(pts);
+                return;
+            }
+            // Fallback local: build from characterLocks + legacy roleCharacterId
+            var topicId = typeof currentTopicId !== 'undefined' ? currentTopicId : null;
+            var _data   = typeof appData !== 'undefined' ? appData : null;
+            var topic   = topicId && _data && _data.topics
+                ? _data.topics.find(function(t) { return String(t.id) === String(topicId); })
+                : null;
+            if (!topic) return;
+            var locks   = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
+            var chars   = (_data && _data.characters) || [];
+            var localPts = Object.entries(locks).map(function(entry) {
+                var uiStr = entry[0], charId = entry[1];
+                var ch    = chars.find(function(c) { return String(c.id) === String(charId); });
+                if (!ch) return null;
+                return { user_id: ch.owner_user_id || ('local-' + uiStr), user_index: parseInt(uiStr, 10), profile: { name: ch.name } };
+            }).filter(Boolean);
+            // Legacy classic: single creator char stored in roleCharacterId
+            if (!localPts.length && topic.roleCharacterId) {
+                var creatorUi = topic.createdByIndex !== undefined ? topic.createdByIndex : 0;
+                var legacyCh  = chars.find(function(c) { return String(c.id) === String(topic.roleCharacterId); });
+                if (legacyCh) localPts.push({ user_id: legacyCh.owner_user_id || ('local-' + creatorUi), user_index: creatorUi, profile: { name: legacyCh.name } });
+            }
+            if (localPts.length) renderClassicParty(localPts);
+        }
+
+        // Run once immediately (mode classes already set before this event fires)
+        _ensureClassicParty();
     });
 
     window.addEventListener('etheria:topic-leave', function () {
@@ -11074,6 +11196,206 @@ window.Toasts = Toasts;
     }());
 
     window.VnDesign = { start: _start, stop: _stop };
+
+}());
+
+// ═══════════════════════════════════════════════════════════════════
+// Perfil desplegable desde el party
+// Clic en el nombre de un miembro → abre/cierra ficha anclada.
+// Implementado con event delegation (no modifica vn.js ni userProfile.js).
+// ═══════════════════════════════════════════════════════════════════
+
+(function () {
+    'use strict';
+
+    var _activePanel = null;  // { charId, el }
+
+    function _esc(s) {
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function _isRpg() { return document.body.classList.contains('mode-rpg'); }
+
+    function _getChar(charId) {
+        var chars = (window.appData && window.appData.characters) || [];
+        return chars.find(function (c) { return String(c.id) === String(charId); }) || null;
+    }
+
+    function _getProfile(char) {
+        if (!char || typeof ensureCharacterRpgProfile !== 'function') return null;
+        return ensureCharacterRpgProfile(char, window.currentTopicId || null);
+    }
+
+    function _isOwn(char) {
+        if (!char) return false;
+        return char.userIndex === window.currentUserIndex;
+    }
+
+    function _hpBar(cur, max, cls) {
+        var pct = max > 0 ? Math.max(0, Math.min(100, (cur / max) * 100)) : 0;
+        return '<div class="vmpf-bar-row">' +
+            '<span class="vmpf-bar-label">' + cls.toUpperCase() + '</span>' +
+            '<span class="vmpf-bar-track"><span class="vmpf-bar-fill' + (cls === 'exp' ? ' exp' : '') + '" style="width:' + pct + '%"></span></span>' +
+            '<span class="vmpf-bar-val">' + cur + '/' + max + '</span>' +
+        '</div>';
+    }
+
+    function _buildPanel(char, profile, anchorEl) {
+        var isOwn = _isOwn(char);
+        var rpg   = _isRpg();
+
+        var stats = '';
+        if (rpg && profile) {
+            var s = profile.stats || {};
+            var keys = ['STR','DEX','CON','INT','WIS','CHA'];
+            stats = '<div class="vmpf-stats">' +
+                keys.map(function (k) {
+                    return '<div class="vmpf-stat">' +
+                        '<span class="vmpf-stat-label">' + k + '</span>' +
+                        '<span class="vmpf-stat-val">' + (s[k] !== undefined ? s[k] : '—') + '</span>' +
+                    '</div>';
+                }).join('') +
+            '</div>';
+        }
+
+        var bars = '';
+        if (rpg && profile) {
+            bars = _hpBar(profile.hp || 0, profile.hpMax || 0, 'hp') +
+                   _hpBar(profile.exp || 0, profile.expMax || 0, 'exp');
+        }
+
+        var editBtn = (rpg && isOwn)
+            ? '<button type="button" class="vmpf-edit-btn" onclick="' +
+              (typeof openCurrentVnCharacterSheet === 'function'
+                  ? 'openCurrentVnCharacterSheet()'
+                  : 'openSheet && openSheet(\'' + _esc(char.id) + '\')') +
+              '; window._closeVnMemberProfile && window._closeVnMemberProfile();" >' +
+              'Editar ficha</button>'
+            : '';
+
+        var glyph = char.gender === 'female' ? '♀' : char.gender === 'male' ? '♂' : '';
+        var meta  = rpg && profile
+            ? _esc((profile.className || char.class_name || '')) + (profile.level ? ' · Nv.' + profile.level : '')
+            : (glyph || '');
+
+        var panel = document.createElement('div');
+        panel.className = 'vn-member-profile ' + (rpg ? 'vn-member-profile--rpg' : 'vn-member-profile--classic');
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-modal', 'true');
+        panel.setAttribute('data-vmpf-char', String(char.id));
+
+        var avatarText = char.avatar_emoji || char.avatar || (char.name ? char.name[0] : '?');
+        panel.innerHTML =
+            '<div class="vmpf-header">' +
+                '<span class="vmpf-avatar" aria-hidden="true">' + _esc(avatarText) + '</span>' +
+                '<div class="vmpf-header-info">' +
+                    '<span class="vmpf-name">' + _esc(char.name || '?') + '</span>' +
+                    (meta ? '<span class="vmpf-meta">' + meta + '</span>' : '') +
+                '</div>' +
+            '</div>' +
+            (bars ? '<div class="vmpf-bars">' + bars + '</div>' : '') +
+            stats +
+            editBtn;
+
+        // anchor below the row
+        var rect = anchorEl.getBoundingClientRect();
+        var vnRect = (document.getElementById('vnSection') || document.body).getBoundingClientRect();
+        panel.style.position = 'absolute';
+        panel.style.top  = (rect.bottom - vnRect.top + 6) + 'px';
+        panel.style.left = Math.max(4, rect.left - vnRect.left) + 'px';
+        panel.style.zIndex = '99';
+
+        return panel;
+    }
+
+    function _closePanel() {
+        if (_activePanel) {
+            if (_activePanel.el && _activePanel.el.parentNode) {
+                _activePanel.el.parentNode.removeChild(_activePanel.el);
+            }
+            _activePanel = null;
+        }
+    }
+    window._closeVnMemberProfile = _closePanel;
+
+    window.toggleVnMemberProfile = function (charId, anchorEl) {
+        if (_activePanel && String(_activePanel.charId) === String(charId)) {
+            _closePanel();
+            return;
+        }
+        _closePanel();
+
+        var char = _getChar(charId);
+        if (!char) return;
+        var profile = _getProfile(char);
+
+        var vnSection = document.getElementById('vnSection');
+        if (!vnSection) return;
+
+        var panel = _buildPanel(char, profile, anchorEl);
+        vnSection.appendChild(panel);
+        _activePanel = { charId: String(charId), el: panel };
+
+        // Close on outside click or Esc
+        setTimeout(function () {
+            document.addEventListener('click', _onOutside, true);
+            document.addEventListener('keydown', _onEsc, true);
+        }, 0);
+    };
+
+    function _onOutside(e) {
+        if (_activePanel && !_activePanel.el.contains(e.target)) {
+            _closePanel();
+            document.removeEventListener('click', _onOutside, true);
+            document.removeEventListener('keydown', _onEsc, true);
+        }
+    }
+
+    function _onEsc(e) {
+        if (e.key === 'Escape' && _activePanel) {
+            _closePanel();
+            document.removeEventListener('click', _onOutside, true);
+            document.removeEventListener('keydown', _onEsc, true);
+        }
+    }
+
+    // ── Event delegation — party RPG (.vn-party-name) y clásico (.cp-name) ──
+    document.addEventListener('click', function (e) {
+        var nameEl = e.target.closest('.vn-party-name, .cp-name');
+        if (!nameEl) return;
+
+        var memberEl = nameEl.closest('[data-char-id], .cp-member[onclick]');
+        var charId   = memberEl && memberEl.dataset.charId;
+
+        // Para clásico: extraer charId desde el onclick via currentStoryParticipants
+        if (!charId && nameEl.closest('.cp-member')) {
+            // En clásico no tenemos charId directo; usamos el nombre para buscar
+            var nameText = nameEl.textContent.trim();
+            var chars    = (window.appData && window.appData.characters) || [];
+            var found    = chars.find(function (c) { return c.name === nameText; });
+            if (found) charId = found.id;
+        }
+
+        if (!charId) return;
+        e.stopPropagation();
+        window.toggleVnMemberProfile(charId, memberEl || nameEl);
+    }, true);
+
+    // ── Hacer nombres clicables vía CSS pointer (ya cubierto por el delegation) ──
+    // Inyectamos el style solo una vez para que .vn-party-name y .cp-name muestren cursor pointer.
+    (function () {
+        if (document.getElementById('_vmpf-style')) return;
+        var s = document.createElement('style');
+        s.id  = '_vmpf-style';
+        s.textContent = [
+            '.vn-party-name, .cp-name { cursor: pointer; }',
+            '.vn-party-name:hover { opacity: .8; }',
+            '.cp-name:hover { opacity: .8; }',
+        ].join('\n');
+        document.head.appendChild(s);
+    }());
 
 }());
 
@@ -11335,7 +11657,7 @@ function updateVnTurnBadge() {
         return;
     }
 
-    const participantNames = getTurnParticipantNames();
+    const participantNames = getTurnParticipantNames().map(n => escapeHtml(n));
     const namesPreview = participantNames.slice(0, 3).join(' · ');
     const rotationHint = participantNames.length > 3
         ? `${namesPreview}…`
@@ -12940,7 +13262,7 @@ async function _sbEnterTopic(topicId) {
         }
         // Limpiar listener cuando salgamos del topic
         if (currentTopicId !== topicId) {
-            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandler);
+            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
         }
     };
     window.addEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
@@ -13877,11 +14199,7 @@ function editCurrentMessage() {
     const replyText = document.getElementById('vnReplyText');
     if (replyText) replyText.value = msg.text || '';
 
-    const narratorMode = document.getElementById('narratorMode');
-    if (narratorMode) {
-        narratorMode.checked = !!msg.isNarrator;
-        toggleNarratorMode();
-    }
+    applyNarratorMode(!!msg.isNarrator);
 
     if (!msg.isNarrator && msg.characterId) {
         updateCharSelector();
@@ -13984,7 +14302,7 @@ function saveEditedMessage() {
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
         charAvatar: isNarratorMode ? null : char.avatar,
-        charSprite: isNarratorMode ? null : char.sprite,
+        charSprite: isNarratorMode ? null : (selectedSpriteOverride || char.sprite),
         text,
         isNarrator: isNarratorMode,
         options: options && options.length > 0 ? options : undefined,
@@ -14174,7 +14492,7 @@ function buildHistoryEntry(msg, idx, showFavBadge = false) {
         const summary = getReactionSummary(currentTopicId, String(msg.id));
         const chips = Object.entries(summary)
             .sort((a, b) => b[1] - a[1])
-            .map(([emoji, count]) => `<span class="history-reaction-chip">${emoji}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`)
+            .map(([emoji, count]) => `<span class="history-reaction-chip">${escapeHtml(String(emoji))}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`)
             .join('');
         if (chips) reactionRow = `<div class="history-reactions">${chips}</div>`;
     }
@@ -15131,12 +15449,18 @@ function _renderChallengeBar(challenge) {
     dcEl.textContent   = 'DC ' + challenge.dc + ' · ' + getRollTypeLabel(challenge.rollType) + ' · define el siguiente foco';
 
     const statLabels = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constit.', INT: 'Intelec.', WIS: 'Sabid.', CHA: 'Carisma' };
-    btnsCnt.innerHTML = challenge.stats.map(stat =>
-        '<button class="vn-challenge-stat-btn" onclick="acceptChallenge(' + "'" + stat + "'" + ')" title="' + (statLabels[stat] || stat) + '">' +
-        '<span class="vn-cs-key">' + stat + '</span>' +
-        '<span class="vn-cs-label">' + (statLabels[stat] || stat) + '</span>' +
-        '</button>'
-    ).join('');
+    const validStats = new Set(Object.keys(statLabels));
+    btnsCnt.innerHTML = '';
+    (challenge.stats || []).forEach(stat => {
+        if (!validStats.has(stat)) return;
+        const label = statLabels[stat];
+        const btn = document.createElement('button');
+        btn.className = 'vn-challenge-stat-btn';
+        btn.title = label;
+        btn.innerHTML = '<span class="vn-cs-key">' + stat + '</span><span class="vn-cs-label">' + label + '</span>';
+        btn.addEventListener('click', function() { acceptChallenge(stat); });
+        btnsCnt.appendChild(btn);
+    });
 
     bar.style.display = 'flex';
 }
@@ -15510,6 +15834,52 @@ window.addEventListener('etheria:dm-revive', function(e) {
     if (typeof updateIhp === 'function') updateIhp();
 });
 
+// Mensaje de narrador disparado por una consecuencia RPG — añadir al feed en tiempo real
+if (typeof eventBus !== 'undefined') {
+    eventBus.on('rpg:narrator-message', function(data) {
+        if (!data || !data.text || !currentTopicId) return;
+        if (data.storyId && currentStoryId && String(data.storyId) !== String(currentStoryId)) return;
+        const msgs = (appData && appData.messages && appData.messages[currentTopicId]) || [];
+        const newMsg = {
+            id:         'rpg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+            timestamp:  new Date().toISOString(),
+            isNarrator: true,
+            text:       data.text,
+            charName:   null,
+            userIndex:  -1
+        };
+        msgs.push(newMsg);
+        appData.messages[currentTopicId] = msgs;
+        hasUnsavedChanges = true;
+        if (typeof save === 'function') save({ silent: true });
+        const isAtEnd = currentMessageIndex >= msgs.length - 2;
+        if (isAtEnd) {
+            currentMessageIndex = msgs.length - 1;
+            showCurrentMessage('forward');
+        }
+    });
+}
+
+// Ítem usado localmente: re-sincronizar RPGState para que el HUD refleje el HP nuevo
+window.addEventListener('etheria:rpg-item-used', function(e) {
+    const { charId, topicId } = e.detail || {};
+    if (!charId || topicId !== currentTopicId) return;
+    if (typeof RPGState === 'undefined' || typeof RPGState.syncFromCharacter !== 'function') return;
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char) return;
+    RPGState.syncFromCharacter(char, currentTopicId);
+});
+
+// Condición aplicada/eliminada localmente: re-sincronizar RPGState
+window.addEventListener('etheria:rpg-condition-changed', function(e) {
+    const { charId, topicId } = e.detail || {};
+    if (!charId || topicId !== currentTopicId) return;
+    if (typeof RPGState === 'undefined' || typeof RPGState.syncFromCharacter !== 'function') return;
+    const char = appData.characters.find(c => String(c.id) === String(charId));
+    if (!char) return;
+    RPGState.syncFromCharacter(char, currentTopicId);
+});
+
 window.addEventListener('etheria:story-participants-loaded', function(e) {
     if (e.detail?.storyId && currentStoryId && String(e.detail.storyId) !== String(currentStoryId)) return;
     updateVnTurnBadge();
@@ -15786,22 +16156,33 @@ function _showMasterRollBar(mr) {
     if (sitEl) sitEl.textContent = mr.situation || '…';
 
     if (optsEl) {
+        optsEl.innerHTML = '';
         const letters = ['A','B','C','D'];
-        optsEl.innerHTML = mr.options.map(function (opt, i) {
+        mr.options.forEach(function (opt, i) {
             const letter  = letters[i] || String(i + 1);
-            const hpClass = (opt.hpDelta !== null && opt.hpDelta !== undefined)
-                ? (opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg') : '';
-            const hpHtml  = (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta))
-                ? '<span class="vn-mr-opt-hp ' + hpClass + '">' +
-                  (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP</span>'
-                : '';
-            return '<button class="vn-mr-opt-btn" ' +
-                   'onclick="resolveMasterRoll(\'' + escapeHtml(mr.id) + '\',' + i + ')">' +
-                   '<span class="vn-mr-opt-letter">' + letter + '</span>' +
-                   '<span class="vn-mr-opt-text">' + escapeHtml(opt.label) + '</span>' +
-                   hpHtml +
-                   '</button>';
-        }).join('');
+            const btn = document.createElement('button');
+            btn.className = 'vn-mr-opt-btn';
+            btn.addEventListener('click', function() { resolveMasterRoll(mr.id, i); });
+
+            const letterSpan = document.createElement('span');
+            letterSpan.className = 'vn-mr-opt-letter';
+            letterSpan.textContent = letter;
+            btn.appendChild(letterSpan);
+
+            const textSpan = document.createElement('span');
+            textSpan.className = 'vn-mr-opt-text';
+            textSpan.textContent = opt.label;
+            btn.appendChild(textSpan);
+
+            if (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta)) {
+                const hpClass = opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg';
+                const hpSpan = document.createElement('span');
+                hpSpan.className = 'vn-mr-opt-hp ' + hpClass;
+                hpSpan.textContent = (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP';
+                btn.appendChild(hpSpan);
+            }
+            optsEl.appendChild(btn);
+        });
     }
 
     bar.style.display = 'flex';
@@ -16252,6 +16633,8 @@ function openReplyPanel() {
 
     updateCharSelector();
     updateSceneChangePreview();
+    vrpResetSpritePicker();
+    vrpLoadSpriteGallery(selectedCharId);
 
     // Actualizar botones de clima (nuevos vrp-weather-btn)
     vrpSyncWeatherButtons();
@@ -16297,6 +16680,150 @@ function toggleCharGrid() {
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.toggle('active');
 }
+
+// ── Sprite gallery ─────────────────────────────────────────────────────────────
+var selectedSpriteOverride = null;
+
+function vrpToggleSpritePicker() {
+    const picker = document.getElementById('spritePicker');
+    if (!picker) return;
+    const open = !picker.hidden;
+    picker.hidden = open;
+    const arrow = document.querySelector('.vrp-sprite-toggle-arrow');
+    if (arrow) arrow.textContent = open ? '▾' : '▴';
+}
+
+async function vrpLoadSpriteGallery(charId) {
+    const container = document.getElementById('spriteSelectorContainer');
+    if (!container) return;
+    if (!charId || isNarratorMode || typeof SupabaseSprites === 'undefined') {
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'block';
+
+    const grid = document.getElementById('spritePickerGrid');
+    if (!grid) return;
+    grid.innerHTML = '<span class="vrp-sprite-loading">Cargando…</span>';
+
+    const sprites = await SupabaseSprites.listCharacterSprites(charId);
+    const char = appData.characters.find(function (c) { return String(c.id) === String(charId); });
+
+    grid.innerHTML = '';
+
+    // Botón "predeterminado" (quitar override)
+    var defaultBtn = document.createElement('button');
+    defaultBtn.type = 'button';
+    defaultBtn.className = 'vrp-sprite-thumb' + (selectedSpriteOverride === null ? ' selected' : '');
+    defaultBtn.title = 'Predeterminado';
+    defaultBtn.setAttribute('data-sprite-url', '');
+    defaultBtn.onclick = function () { vrpSelectSprite(null, charId); };
+    if (char && char.sprite) {
+        var dImg = document.createElement('img');
+        dImg.src = char.sprite;
+        dImg.alt = 'Predeterminado';
+        dImg.loading = 'lazy';
+        dImg.onerror = function () {
+            this.style.display = 'none';
+            var fb = document.createElement('span');
+            fb.className = 'vrp-sprite-thumb-empty';
+            fb.textContent = '✦';
+            defaultBtn.appendChild(fb);
+        };
+        defaultBtn.appendChild(dImg);
+    } else {
+        defaultBtn.innerHTML = '<span class="vrp-sprite-thumb-empty">✦</span>';
+    }
+    grid.appendChild(defaultBtn);
+
+    // Excluir el sprite que ya es el predeterminado (misma URL, ignorando ?t=... cache-busting)
+    var defaultBase = char && char.sprite ? char.sprite.split('?')[0] : null;
+    var extraSprites = sprites.filter(function (s) {
+        return !defaultBase || s.url.split('?')[0] !== defaultBase;
+    });
+
+    if (extraSprites.length === 0) {
+        var emptyMsg = document.createElement('span');
+        emptyMsg.className = 'vrp-sprite-empty';
+        emptyMsg.textContent = 'Sin poses extra. Sube más desde el editor de personaje.';
+        grid.appendChild(emptyMsg);
+        return;
+    }
+
+    extraSprites.forEach(function (sprite) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'vrp-sprite-thumb' + (selectedSpriteOverride === sprite.url ? ' selected' : '');
+        btn.title = sprite.name;
+        btn.setAttribute('data-sprite-url', sprite.url);
+        btn.onclick = function () { vrpSelectSprite(sprite.url, charId); };
+        var img = document.createElement('img');
+        img.src = sprite.url;
+        img.alt = sprite.name;
+        img.loading = 'lazy';
+        img.onerror = function () {
+            this.style.display = 'none';
+            var fallback = document.createElement('span');
+            fallback.className = 'vrp-sprite-thumb-empty';
+            fallback.textContent = '✦';
+            btn.appendChild(fallback);
+        };
+        btn.appendChild(img);
+        grid.appendChild(btn);
+    });
+}
+
+function vrpSelectSprite(url, charId) {
+    selectedSpriteOverride = url || null;
+
+    var grid = document.getElementById('spritePickerGrid');
+    if (grid) {
+        grid.querySelectorAll('.vrp-sprite-thumb').forEach(function (btn) {
+            var btnUrl = btn.getAttribute('data-sprite-url') || null;
+            btn.classList.toggle('selected', btnUrl === (url || ''));
+        });
+    }
+
+    var hint = document.getElementById('spritePickerHint');
+    if (hint) hint.textContent = url ? 'pose seleccionada ✓' : 'predeterminada';
+
+    var thumb = document.getElementById('spritePickerSelectedThumb');
+    if (thumb) {
+        thumb.innerHTML = '';
+        var srcUrl = url;
+        if (!srcUrl && charId) {
+            var c = appData.characters.find(function (ch) { return String(ch.id) === String(charId); });
+            srcUrl = c && c.sprite ? c.sprite : null;
+        }
+        if (srcUrl) {
+            var tImg = document.createElement('img');
+            tImg.src = srcUrl;
+            tImg.alt = '';
+            thumb.appendChild(tImg);
+        }
+    }
+
+    // Cerrar el picker después de seleccionar
+    var picker = document.getElementById('spritePicker');
+    if (picker) {
+        picker.hidden = true;
+        var arrow = document.querySelector('.vrp-sprite-toggle-arrow');
+        if (arrow) arrow.textContent = '▾';
+    }
+}
+
+function vrpResetSpritePicker() {
+    selectedSpriteOverride = null;
+    var hint = document.getElementById('spritePickerHint');
+    if (hint) hint.textContent = 'predeterminada';
+    var thumb = document.getElementById('spritePickerSelectedThumb');
+    if (thumb) thumb.innerHTML = '';
+    var picker = document.getElementById('spritePicker');
+    if (picker) picker.hidden = true;
+    var arrow = document.querySelector('.vrp-sprite-toggle-arrow');
+    if (arrow) arrow.textContent = '▾';
+}
+// ── /Sprite gallery ─────────────────────────────────────────────────────────────
 
 function updateCharSelector() {
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
@@ -16366,6 +16893,8 @@ function selectCharFromGrid(charId) {
     localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
     updateCharSelector();
     renderVnPartyPanel(true);
+    vrpResetSpritePicker();
+    vrpLoadSpriteGallery(charId);
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
@@ -16406,16 +16935,15 @@ function toggleOptionsFields() {
     }
 }
 
-function toggleNarratorMode() {
+function applyNarratorMode(active) {
     const topic = getCurrentTopic();
     if (!canUseNarratorMode(topic)) return;
 
-    const narratorMode = document.getElementById('narratorMode');
-    const toggle       = document.getElementById('narratorToggle');
+    const narratorModeEl = document.getElementById('narratorMode');
+    const toggle         = document.getElementById('narratorToggle');
 
-    // Toggle state: si el switch está activo se desactiva y viceversa
-    isNarratorMode = toggle ? !toggle.classList.contains('active') : false;
-    if (narratorMode) narratorMode.checked = isNarratorMode;
+    isNarratorMode = !!active;
+    if (narratorModeEl) narratorModeEl.checked = isNarratorMode;
 
     const container = document.getElementById('charSelectorContainer');
 
@@ -16423,11 +16951,19 @@ function toggleNarratorMode() {
         if (container) container.style.display = 'none';
         if (toggle) toggle.classList.add('active');
         selectedCharId = null;
+        vrpResetSpritePicker();
+        var spriteContainer = document.getElementById('spriteSelectorContainer');
+        if (spriteContainer) spriteContainer.style.display = 'none';
     } else {
         if (container) container.style.display = 'flex';
         if (toggle) toggle.classList.remove('active');
         updateCharSelector();
+        vrpLoadSpriteGallery(selectedCharId);
     }
+}
+
+function toggleNarratorMode() {
+    applyNarratorMode(!isNarratorMode);
 }
 
 
@@ -16613,7 +17149,7 @@ function postVNReply() {
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
         charAvatar: isNarratorMode ? null : char.avatar,
-        charSprite: isNarratorMode ? null : char.sprite,
+        charSprite: isNarratorMode ? null : (selectedSpriteOverride || char.sprite),
         text: finalText,
         isNarrator: isNarratorMode,
         userIndex: currentUserIndex,
@@ -17851,13 +18387,24 @@ function updateReactionDisplay() {
         return;
     }
 
-    display.innerHTML = entries
+    display.innerHTML = '';
+    entries
         .sort((a, b) => b[1] - a[1])
-        .map(([emoji, count]) => {
+        .forEach(([emoji, count]) => {
             const isMine = emoji === myReaction;
-            return `<span class="vn-reaction-chip${isMine ? ' mine' : ''}" onclick="toggleReaction('${emoji}')" title="${count} reacción${count > 1 ? 'es' : ''}">${emoji}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`;
-        })
-        .join('');
+            const chip = document.createElement('span');
+            chip.className = 'vn-reaction-chip' + (isMine ? ' mine' : '');
+            chip.title = `${count} reacción${count > 1 ? 'es' : ''}`;
+            chip.textContent = emoji;
+            if (count > 1) {
+                const countEl = document.createElement('span');
+                countEl.className = 'reaction-count';
+                countEl.textContent = count;
+                chip.appendChild(countEl);
+            }
+            chip.addEventListener('click', function() { toggleReaction(emoji); });
+            display.appendChild(chip);
+        });
 }
 
 // ============================================
@@ -17878,6 +18425,8 @@ function exportHistoryAsDocument() {
         return;
     }
 
+    try {
+
     const title   = topic?.title  || 'Historia sin título';
     const mode    = topic?.mode === 'rpg' ? 'RPG' : 'Clásico';
     const created = topic?.createdAt ? new Date(topic.createdAt).toLocaleDateString('es-ES') : '';
@@ -17897,17 +18446,19 @@ function exportHistoryAsDocument() {
     msgs.forEach((msg, i) => {
         // Separador de capítulo
         if (msg.chapter) {
+            const chapterTitle = (msg.chapter.title || 'Capítulo').toUpperCase();
             lines.push('');
             lines.push(`${'─'.repeat(50)}`);
-            lines.push(`  ✦  ${msg.chapter.title.toUpperCase()}  ✦`);
+            lines.push(`  ✦  ${chapterTitle}  ✦`);
             lines.push(`${'─'.repeat(50)}`);
             lines.push('');
         }
 
         // Separador de escena
         if (msg.sceneChange) {
+            const sceneTitle = msg.sceneChange.title || 'Nueva escena';
             lines.push('');
-            lines.push(`  [ ${msg.sceneChange.title} ]`);
+            lines.push(`  [ ${sceneTitle} ]`);
             lines.push('');
         }
 
@@ -17933,9 +18484,11 @@ function exportHistoryAsDocument() {
         }
 
         // Reacciones
-        const summary = getReactionSummary(currentTopicId, String(msg.id));
-        const reactionStr = Object.entries(summary).map(([e, c]) => c > 1 ? `${e}×${c}` : e).join(' ');
-        if (reactionStr) lines.push(`    [ ${reactionStr} ]`);
+        if (typeof getReactionSummary === 'function') {
+            const summary = getReactionSummary(currentTopicId, String(msg.id));
+            const reactionStr = Object.entries(summary || {}).map(([e, c]) => c > 1 ? `${e}×${c}` : e).join(' ');
+            if (reactionStr) lines.push(`    [ ${reactionStr} ]`);
+        }
 
         lines.push('');
     });
@@ -17959,6 +18512,11 @@ function exportHistoryAsDocument() {
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
 
     showAutosave(`📄 "${filename}" descargado`, 'saved');
+
+    } catch (e) {
+        showAutosave('Error al exportar la historia', 'error');
+        console.error('[export]', e);
+    }
 }
 
 // ============================================
@@ -19324,7 +19882,7 @@ function _gsRenderResults(results, cloudDone) {
                 const dateStr = r.timestamp
                     ? new Date(r.timestamp).toLocaleDateString('es-ES', { day:'numeric', month:'short' })
                     : '';
-                return `<div class="gs-result" onclick="gsGoToMessage('${escapeHtml(topicId)}','${escapeHtml(r.msgId)}')">
+                return `<div class="gs-result" data-topic-id="${escapeHtml(String(topicId))}" data-msg-id="${escapeHtml(String(r.msgId))}">
                     <div class="gs-result-meta">
                         <span class="gs-result-char">${escapeHtml(r.charName || 'Mensaje')}</span>
                         <span class="gs-result-date">${dateStr}</span>
@@ -19335,6 +19893,11 @@ function _gsRenderResults(results, cloudDone) {
             }).join('')}
         </div>
     `).join('');
+    body.querySelectorAll('.gs-result').forEach(function(el) {
+        el.addEventListener('click', function() {
+            gsGoToMessage(el.dataset.topicId, el.dataset.msgId);
+        });
+    });
 }
 
 // Ir al mensaje seleccionado
@@ -21050,6 +21613,190 @@ function syncMenuFooterAvatar() {
     }
 }
 
+/* js/ui/activityDashboard.js */
+// ============================================================
+// ACTIVITY DASHBOARD — métricas de actividad de la historia
+// ============================================================
+// Solo modo clásico. Fuente de datos: mensajes locales + topic_cycles.
+// API pública: ActivityDashboard.open() / .close()
+// ============================================================
+
+const ActivityDashboard = (function () {
+
+    // ── helpers ──────────────────────────────────────────────
+
+    function _esc(str) {
+        return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function _timeAgo(isoStr) {
+        if (!isoStr) return '';
+        const diff = Date.now() - new Date(isoStr).getTime();
+        if (diff < 60000)        return 'ahora mismo';
+        if (diff < 3600000)      return 'hace ' + Math.floor(diff / 60000) + ' min';
+        if (diff < 86400000)     return 'hace ' + Math.floor(diff / 3600000) + 'h';
+        if (diff < 2592000000)   return 'hace ' + Math.floor(diff / 86400000) + ' días';
+        return 'hace ' + Math.floor(diff / 2592000000) + ' meses';
+    }
+
+    function _cycleRemaining(cycle) {
+        if (!cycle || !cycle.closes_at) return null;
+        const ms = new Date(cycle.closes_at).getTime() - Date.now();
+        if (ms <= 0) return 'cerrando…';
+        if (ms < 3600000)  return Math.ceil(ms / 60000) + ' min';
+        if (ms < 86400000) {
+            const h = Math.floor(ms / 3600000);
+            const m = Math.ceil((ms % 3600000) / 60000);
+            return h + 'h ' + (m > 0 ? m + 'min' : '');
+        }
+        return Math.floor(ms / 86400000) + 'd';
+    }
+
+    // ── render helpers ───────────────────────────────────────
+
+    function _renderCycle(cycle) {
+        if (!cycle) {
+            return '<div class="adash-cycle adash-cycle--none">Sin ciclo activo en este momento</div>';
+        }
+        const remaining = _cycleRemaining(cycle);
+        return '<div class="adash-cycle adash-cycle--open">' +
+            '<span class="adash-cycle-dot"></span>' +
+            '<span class="adash-cycle-text">Ciclo activo — cierra en <strong>' + _esc(remaining) + '</strong></span>' +
+            '</div>';
+    }
+
+    function _renderParticipant(name, data, maxCount) {
+        const pct   = Math.round((data.count / maxCount) * 100);
+        const ago   = _timeAgo(data.lastAt);
+        const color = data.color || '#c9a86c';
+        const init  = _esc((name || '?')[0].toUpperCase());
+
+        const avatarHtml = data.avatar
+            ? '<img src="' + _esc(data.avatar) + '" alt="' + init + '" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
+              '<span style="display:none">' + init + '</span>'
+            : '<span>' + init + '</span>';
+
+        return '<div class="adash-participant">' +
+            '<div class="adash-p-avatar" style="--char-color:' + _esc(color) + '">' + avatarHtml + '</div>' +
+            '<div class="adash-p-info">' +
+                '<div class="adash-p-header">' +
+                    '<span class="adash-p-name" style="color:' + _esc(color) + '">' + _esc(name) + '</span>' +
+                    '<span class="adash-p-count">' + data.count + '</span>' +
+                    (ago ? '<span class="adash-p-ago">' + _esc(ago) + '</span>' : '') +
+                '</div>' +
+                '<div class="adash-p-bar-wrap"><div class="adash-p-bar" style="width:' + pct + '%;background:' + _esc(color) + '60"></div></div>' +
+            '</div>' +
+        '</div>';
+    }
+
+    // ── core ─────────────────────────────────────────────────
+
+    var _lastFocused = null;
+
+    function _onKeyDown(e) {
+        if (e.key === 'Escape') { e.stopPropagation(); close(); }
+    }
+
+    async function open() {
+        const modal = document.getElementById('activityDashboardModal');
+        if (!modal) return;
+        _lastFocused = document.activeElement;
+        modal.removeAttribute('hidden');
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+        var firstFocusable = modal.querySelector('button, [href], input, [tabindex]:not([tabindex="-1"])');
+        if (firstFocusable) firstFocusable.focus();
+        document.addEventListener('keydown', _onKeyDown);
+        await _render();
+    }
+
+    function close() {
+        const modal = document.getElementById('activityDashboardModal');
+        if (modal) { modal.setAttribute('hidden', ''); modal.classList.remove('active'); }
+        document.removeEventListener('keydown', _onKeyDown);
+        var anyModalOpen = document.querySelector('.modal-overlay.active');
+        if (!anyModalOpen) document.body.classList.remove('modal-open');
+        if (_lastFocused && typeof _lastFocused.focus === 'function') _lastFocused.focus();
+        _lastFocused = null;
+    }
+
+    async function _render() {
+        const body = document.getElementById('activityDashboardBody');
+        if (!body) return;
+        body.innerHTML = '<div class="adash-loading">Calculando…</div>';
+
+        const topicId = typeof currentTopicId !== 'undefined' ? currentTopicId : null;
+        if (!topicId) {
+            body.innerHTML = '<p class="adash-empty">No hay historia activa.</p>';
+            return;
+        }
+
+        // Mensajes del tema (caché local — ya cargados al entrar en el tema)
+        const msgs = typeof getTopicMessages === 'function' ? (getTopicMessages(topicId) || []) : [];
+
+        // Agregar por nombre de personaje
+        const charMap = {};
+        for (var i = 0; i < msgs.length; i++) {
+            var msg = msgs[i];
+            if (msg.isNarrator || !msg.charName) continue;
+            var key = msg.charName;
+            if (!charMap[key]) {
+                charMap[key] = { count: 0, lastAt: null, color: msg.charColor || null, avatar: msg.charAvatar || null };
+            }
+            charMap[key].count++;
+            if (!charMap[key].lastAt || (msg.timestamp && msg.timestamp > charMap[key].lastAt)) {
+                charMap[key].lastAt = msg.timestamp || null;
+            }
+        }
+
+        var total         = msgs.filter(function (m) { return !m.isNarrator && m.charName; }).length;
+        var narratorCount = msgs.filter(function (m) { return  m.isNarrator || !m.charName; }).length;
+        var participants  = Object.keys(charMap).length;
+        var maxCount      = 1;
+        Object.values(charMap).forEach(function (d) { if (d.count > maxCount) maxCount = d.count; });
+
+        var sorted = Object.entries(charMap).sort(function (a, b) { return b[1].count - a[1].count; });
+
+        // Ciclo activo desde Supabase
+        var cycle = null;
+        var sb = window.supabaseClient;
+        if (sb) {
+            try {
+                var result = await sb.from('topic_cycles')
+                    .select('id, started_at, closes_at, status')
+                    .eq('topic_id', topicId)
+                    .eq('status', 'open')
+                    .order('started_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+                cycle = result.data || null;
+            } catch (e) {
+                // Sin ciclo — no es crítico
+            }
+        }
+
+        // Construir HTML
+        var statsRow = '<div class="adash-stats-row">' +
+            '<div class="adash-stat"><span class="adash-stat-value">' + total + '</span><span class="adash-stat-label">mensajes</span></div>' +
+            '<div class="adash-stat"><span class="adash-stat-value">' + participants + '</span><span class="adash-stat-label">personajes</span></div>' +
+            (narratorCount > 0 ? '<div class="adash-stat"><span class="adash-stat-value">' + narratorCount + '</span><span class="adash-stat-label">narrador</span></div>' : '') +
+            '</div>';
+
+        var participantsHtml = sorted.length > 0
+            ? '<div class="adash-participants">' + sorted.map(function (entry) { return _renderParticipant(entry[0], entry[1], maxCount); }).join('') + '</div>'
+            : '<p class="adash-empty">Sin mensajes aún.</p>';
+
+        body.innerHTML = statsRow + _renderCycle(cycle) + participantsHtml;
+    }
+
+    return { open: open, close: close };
+
+})();
+
+window.ActivityDashboard   = ActivityDashboard;
+window.openActivityDashboard  = function () { ActivityDashboard.open(); };
+window.closeActivityDashboard = function () { ActivityDashboard.close(); };
+
 /* js/utils/supabaseProfiles.js */
 // ============================================
 // SUPABASE PROFILES — Perfiles globales
@@ -21369,7 +22116,7 @@ const SupabaseProfiles = (function () {
             const status   = getProfileStatus(p);
             const label    = getProfileStatusLabel(p);
             const cssClass = getProfileStatusClass(p);
-            const initial  = (p.name || '?')[0].toUpperCase();
+            const initial  = escapeHtml((p.name || '?')[0].toUpperCase());
             const disabled = status === 'taken' ? 'disabled' : '';
             const statsHtml = showStats && p.stats
                 ? `<div class="cloud-profile-stats">${
@@ -22396,6 +23143,7 @@ const SupabaseAffinities = (function () {
     async function upsert(fromCharId, toCharId, topicId, value) {
         const uid = await _ensureUserId();
         if (!uid || !fromCharId || !toCharId || !topicId) return;
+        if (String(fromCharId) === String(toCharId)) return; // auto-afinidad no tiene sentido
 
         try {
             const { error } = await _client()
@@ -22511,7 +23259,8 @@ const SupabaseAffinities = (function () {
 
         // Actualizar también el vínculo en character_bonds
         if (typeof SupabaseBonds !== 'undefined') {
-            SupabaseBonds.syncAffinity(from_char_id, to_char_id, Number(value) || 0).catch(() => {});
+            const syncValue = payload.eventType === 'DELETE' ? 0 : (Number(value) || 0);
+            SupabaseBonds.syncAffinity(from_char_id, to_char_id, syncValue).catch(() => {});
         }
 
         window.EtheriaLogger?.info?.('supabaseAffinities',
@@ -22663,6 +23412,7 @@ const SupabaseCycles = (function () {
     // Forma: { id, topic_id, started_at, closes_at, participants: number[] }
     let _cachedCycle   = null;
     let _cachedTopicId = null;
+    let _closing       = false;  // guard de reentrada para onMessageSent
 
     // ── Helpers ──────────────────────────────────────────────────────
 
@@ -22788,8 +23538,16 @@ const SupabaseCycles = (function () {
         let cycle = await _fetchOpenCycle(topicId);
 
         if (!cycle) {
-            // No hay ciclo abierto: crear el primero
-            cycle = await _createCycle(topicId, participants);
+            // No hay ciclo abierto. Solo crear si hay participantes reales —
+            // un ciclo con 0 participantes cierra inmediatamente al primer mensaje
+            // porque [].every(...) es siempre true.
+            if (participants.length > 0) {
+                cycle = await _createCycle(topicId, participants);
+                if (!cycle) {
+                    // Otro usuario creó uno primero (race) — re-leer
+                    cycle = await _fetchOpenCycle(topicId);
+                }
+            }
         } else {
             // Hay ciclo abierto: comprobar si ya expiró por tiempo
             if (new Date() > new Date(cycle.closes_at)) {
@@ -22835,28 +23593,42 @@ const SupabaseCycles = (function () {
         }
 
         // ── Comprobar cierre ─────────────────────────────────────────
-        const cycleMsgs = topicMessages.filter(
-            m => m.cycle_id === cycle.id && !m.isOptionResult
-        );
+        // Filtramos por timestamp >= started_at porque cycle_id no se almacena
+        // en los mensajes locales — es solo una referencia en Supabase.
+        const cycleStart = new Date(cycle.started_at || 0).getTime();
+        const cycleMsgs = topicMessages.filter(function (m) {
+            return !m.isOptionResult && !m.isNarrator &&
+                   m.timestamp && new Date(m.timestamp).getTime() >= cycleStart;
+        });
         const responders = new Set(cycleMsgs.map(m => Number(m.userIndex)));
         const allResponded = participantsArr.every(p => responders.has(p));
         const expired      = new Date() > new Date(cycle.closes_at);
 
         if (!allResponded && !expired) return;
+        if (_closing) return;  // guard de reentrada — evita doble cierre en ráfaga
 
         // ── Cerrar ciclo ─────────────────────────────────────────────
+        _closing     = true;
         _cachedCycle = null;
-        await _closeCycle(cycle.id);
+        try {
+            await _closeCycle(cycle.id);
 
-        // Notificar al caller para que resuelva affinidades
-        if (typeof onClose === 'function') {
-            try { onClose(cycle.id); } catch (e) { _warn('onClose error:', e.message); }
+            // Notificar al caller para que resuelva affinidades
+            if (typeof onClose === 'function') {
+                try { onClose(cycle.id); } catch (e) { _warn('onClose error:', e.message); }
+            }
+
+            // ── Abrir ciclo nuevo ────────────────────────────────────
+            const newParticipants = _deriveParticipants(topicMessages);
+            let newCycle = await _createCycle(topicId, newParticipants);
+            if (!newCycle) {
+                // Race: otro cliente creó uno primero — re-leer
+                newCycle = await _fetchOpenCycle(topicId);
+            }
+            _cachedCycle = newCycle;
+        } finally {
+            _closing = false;
         }
-
-        // ── Abrir ciclo nuevo ────────────────────────────────────────
-        const newParticipants = _deriveParticipants(topicMessages);
-        const newCycle = await _createCycle(topicId, newParticipants);
-        _cachedCycle = newCycle;
     }
 
     // ── Public: reset (al salir del topic) ───────────────────────────
@@ -22864,6 +23636,7 @@ const SupabaseCycles = (function () {
     function reset() {
         _cachedCycle   = null;
         _cachedTopicId = null;
+        _closing       = false;
     }
 
     // ── Public API ────────────────────────────────────────────────────
@@ -23719,7 +24492,7 @@ const SupabaseSprites = (function () {
         }
 
         const ext  = _ext(file);
-        const path = `${characterId}.${ext}`;
+        const path = `${characterId}/${Date.now()}.${ext}`;
 
         try {
             const sb = _client();
@@ -23810,6 +24583,34 @@ const SupabaseSprites = (function () {
     }
 
     /**
+     * Lista todos los sprites subidos para un personaje (carpeta {characterId}/).
+     * @param {string} characterId
+     * @returns {Promise<Array<{name: string, url: string}>>}
+     */
+    async function listCharacterSprites(characterId) {
+        if (!_isAvailable() || !characterId) return [];
+        try {
+            const sb = _client();
+            const { data, error } = await sb.storage
+                .from(BUCKET)
+                .list(String(characterId), { limit: 50, offset: 0 });
+            if (error || !data) return [];
+            return data
+                .filter(item => item.name && item.name !== '.emptyFolderPlaceholder')
+                .map(item => {
+                    const { data: urlData } = sb.storage
+                        .from(BUCKET)
+                        .getPublicUrl(`${characterId}/${item.name}`);
+                    return { name: item.name, url: urlData?.publicUrl || null };
+                })
+                .filter(item => item.url);
+        } catch (err) {
+            console.error('[SupabaseSprites] listCharacterSprites error:', err);
+            return [];
+        }
+    }
+
+    /**
      * Elimina el sprite de un personaje del bucket.
      * @param {string} characterId
      * @returns {Promise<{ok: boolean, error?: string}>}
@@ -23820,8 +24621,20 @@ const SupabaseSprites = (function () {
         }
         try {
             const sb = _client();
-            const paths = ['png', 'jpg', 'jpeg', 'webp', 'gif'].map(ext => `${characterId}.${ext}`);
-            await sb.storage.from(BUCKET).remove(paths);
+
+            // Eliminar archivos en el subfolder ({characterId}/{timestamp}.ext)
+            const { data: subFiles } = await sb.storage.from(BUCKET).list(String(characterId));
+            if (subFiles && subFiles.length > 0) {
+                const subPaths = subFiles
+                    .filter(f => f.name && f.name !== '.emptyFolderPlaceholder')
+                    .map(f => `${characterId}/${f.name}`);
+                if (subPaths.length > 0) await sb.storage.from(BUCKET).remove(subPaths);
+            }
+
+            // Eliminar archivos planos legacy ({characterId}.ext)
+            const flatPaths = ['png', 'jpg', 'jpeg', 'webp', 'gif'].map(ext => `${characterId}.${ext}`);
+            await sb.storage.from(BUCKET).remove(flatPaths);
+
             await sb.from('characters').update({ sprite_url: null }).eq('id', characterId);
             return { ok: true };
         } catch (err) {
@@ -23855,6 +24668,7 @@ const SupabaseSprites = (function () {
 
     return {
         uploadCharacterSprite,
+        listCharacterSprites,
         deleteCharacterSprite,
         getSpriteUrl
     };
@@ -24056,12 +24870,17 @@ const CollaborativeGuard = (function () {
                         const hasDraft = replyInput && replyInput.value.trim().length > 0;
 
                         if (hasDraft) {
-                            // Tiene borrador — ofrecer sin interrumpir
+                            // Capturar topicId ahora — el usuario puede navegar antes de hacer clic
+                            const capturedTopicId = _topicId;
                             if (typeof eventBus !== 'undefined') {
                                 eventBus.emit('ui:show-toast', {
                                     text: `${newMsgs.length} mensaje(s) de otro dispositivo`,
                                     action: 'Cargar',
-                                    onAction: () => { _doMerge(remoteMsgs); _refreshUI(); }
+                                    onAction: () => {
+                                        if (_topicId !== capturedTopicId) return;
+                                        _doMerge(remoteMsgs);
+                                        _refreshUI();
+                                    }
                                 });
                             }
                         } else {
@@ -24130,6 +24949,8 @@ const CollaborativeGuard = (function () {
         if (typeof appData !== 'undefined') {
             appData.messages[String(_topicId)] = msgs;
         }
+        if (typeof hasUnsavedChanges !== 'undefined') hasUnsavedChanges = true;
+        if (typeof save === 'function') save({ silent: true });
         _refreshUI();
         logger?.info('collab', `edición remota aplicada — msg ${payload.msgId}`);
     }
@@ -24469,11 +25290,11 @@ const RPGDispatcher = (function () {
     // send_message — emite un mensaje narrativo al log de la historia.
     // El texto pasa por escapeHtml antes de persistir.
     register('send_message', async (c, ctx) => {
-        // Sanitizar
-        const rawText = String(c.template || c.text || '');
-        const text    = typeof escapeHtml === 'function' ? escapeHtml(rawText) : rawText;
+        // Texto crudo — el renderer y la BD aplican su propio escaping.
+        // Escapar aquí causaría doble-escape cuando el VN procese el contenido.
+        const text = String(c.template || c.text || '');
 
-        // Emitir por el bus para que vn.js / RPGRenderer lo puedan mostrar
+        // Emitir por el bus para que vn.js lo añada al feed en tiempo real
         if (window.eventBus) {
             eventBus.emit('rpg:narrator-message', {
                 text:    text,
@@ -24483,7 +25304,7 @@ const RPGDispatcher = (function () {
             });
         }
 
-        // Intentar persistir en Supabase si está disponible
+        // Persistir en Supabase si está disponible
         const sb = window.supabaseClient;
         if (sb && ctx?.storyId && ctx?.userId) {
             await sb.from('messages').insert({
@@ -25285,19 +26106,23 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
             const gIcon     = GENDER_ICON[genderKey] || '';
             const online    = _isOnline(p.user_id);
             const responded = respondedSet.has(p.user_id);
-            const uid       = _esc(p.user_id || '');
 
             const classes = ['cp-member'];
             if (online)    classes.push('cp-member--online');
             if (responded) classes.push('cp-member--responded');
 
             return `<button type="button" class="${classes.join(' ')}"
-                        onclick="openUserProfileModal('${uid}')"
+                        data-user-id="${_esc(String(p.user_id || ''))}"
                         title="${_esc(name)}${responded ? ' \xB7 Ya respondi\xF3' : ' \xB7 Esperando'}">
                 <span class="cp-name">${_esc(name)}</span>
                 ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
             </button>`;
         }).join('');
+        list.querySelectorAll('.cp-member').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openUserProfileModal(btn.dataset.userId);
+            });
+        });
     }
 
     // ── Expose globals ───────────────────────────────────────
@@ -26368,14 +27193,21 @@ async function register() {
         : 'Cuenta creada correctamente.', false, 'authRegStatus');
 
     if (!needsConfirmation) {
-        hideLoginScreen();
-        initializeApp();
-        await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
-        // Cuenta nueva: intentar descargar datos (puede ser cuenta existente en otro dispositivo)
-        if (typeof SupabaseSync !== 'undefined') {
-            await SupabaseSync.downloadProfileData();
+        // Evitar que onAuthStateChange(SIGNED_IN) duplique la hidratación mientras
+        // register() ya está ejecutando el mismo flujo.
+        _loginHandling = true;
+        try {
+            hideLoginScreen();
+            initializeApp();
+            await ensureProfile();  // inicializa SupabaseProfiles + dispara auth-changed
+            // Cuenta nueva: intentar descargar datos (puede ser cuenta existente en otro dispositivo)
+            if (typeof SupabaseSync !== 'undefined') {
+                await SupabaseSync.downloadProfileData();
+            }
+            await hydrateCloudAfterAuth();
+        } finally {
+            _loginHandling = false;
         }
-        await hydrateCloudAfterAuth();
     }
 }
 
@@ -26568,7 +27400,8 @@ function initializeApp() {
     if (savedTheme) {
         document.documentElement.setAttribute('data-theme', savedTheme);
     } else {
-        document.documentElement.setAttribute('data-theme', 'light');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     }
     // Sincronizar botón de tema en pantalla de perfiles
     if (typeof updateProfileThemeBtn === 'function') updateProfileThemeBtn();
@@ -29586,11 +30419,22 @@ window.Ethy = Ethy;
                     .rpc('generate_invite_token');
                 token = tokenData;
 
-                // Guardar en la historia
-                await c
+                // Guardar solo si sigue sin token (evita race condition multi-usuario)
+                const { error: updateErr } = await c
                     .from('stories')
                     .update({ invite_token: token })
-                    .eq('id', storyId);
+                    .eq('id', storyId)
+                    .is('invite_token', null);
+
+                if (updateErr) {
+                    // Otro proceso ya guardó un token — usar el suyo
+                    const { data: refetch } = await c
+                        .from('stories')
+                        .select('invite_token')
+                        .eq('id', storyId)
+                        .single();
+                    token = refetch?.invite_token || token;
+                }
             }
 
             if (!token) return null;

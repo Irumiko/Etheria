@@ -2,10 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "etheria-dist",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "dist", "-p", "4321", "--no-clipboard"],
-      "port": 4321
+      "name": "etheria",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "process.chdir('C:\\\\Users\\\\Irune\\\\Downloads\\\\Etheria-main\\\\Etheria-main'); require('child_process').spawn('npx', ['serve', 'dist', '-p', '5500', '--no-clipboard'], {stdio:'inherit', shell:true})"],
+      "port": 5500
     }
   ]
 }

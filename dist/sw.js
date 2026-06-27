@@ -10,7 +10,7 @@
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
 // Incrementar manualmente para forzar invalidación de caché en dev.
-const CACHE_VERSION = 'mqco8g5d';
+const CACHE_VERSION = 'mqvcqze7';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
 const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];
@@ -240,7 +240,14 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'dismiss') return;
 
   const notifData = event.notification.data || {};
-  const targetUrl = notifData.url || '/';
+  const rawUrl    = notifData.url || '/';
+  let targetUrl;
+  try {
+    const parsed = new URL(rawUrl, self.location.origin);
+    targetUrl = parsed.origin === self.location.origin ? parsed.href : '/';
+  } catch {
+    targetUrl = '/';
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {

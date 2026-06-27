@@ -64,6 +64,7 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/sections/hub.css',          /* Menú principal: paleta purple/crystal unificada */
   'css/sections/hub-luna.css',     /* Re-skin "Luna de Plata": cielo · sellos arcanos */
   'css/sections/options-luna.css', /* Re-skin Opciones "Luna de Plata" + atmósferas */
+  'css/sections/vn-scene.css',     /* Reskin VN: Senda de la Palabra + Senda del Azar */
 ];
 
 const CSS_ORDER = [...CRITICAL_CSS_ORDER, ...NON_CRITICAL_CSS_ORDER];
@@ -288,6 +289,8 @@ const swDist = path.join(distDir, 'sw.js');
 if (fs.existsSync(swDist)) {
   let sw = fs.readFileSync(swDist, 'utf8');
   sw = sw.replace('__ETHERIA_SW_VERSION__', buildVer);
+  sw = sw.replace(/\r\n/g, '\n');
+  sw = sw.replace(/[ \t]+$/gm, '');
   fs.writeFileSync(swDist, sw, 'utf8');
   console.log(`\n  PWA cache: etheria-${buildVer}`);
 }
