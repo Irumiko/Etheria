@@ -32,17 +32,15 @@ window.openNoCharacterWarning = openNoCharacterWarning;
 function openBranchEditor() {
     tempBranches = [];
     for(let i=1; i<=3; i++) {
-        const textInput    = document.getElementById(`option${i}Text`);
-        const contInput    = document.getElementById(`option${i}Continuation`);
-        const impactSelect = document.getElementById(`option${i}AffinityImpact`);
+        const textInput = document.getElementById(`option${i}Text`);
+        const contInput = document.getElementById(`option${i}Continuation`);
         const t = textInput?.value.trim() || '';
         const c = contInput?.value.trim() || '';
         if(t || c) {
             tempBranches.push({
                 id: i,
                 text: t,
-                continuation: c,
-                affinityImpact: impactSelect?.value || 'neutral'
+                continuation: c
             });
         }
     }
@@ -66,11 +64,6 @@ function renderBranchEditor() {
                 </div>
                 <input type="text" class="branch-input" placeholder="Texto de la opción" value="${escapeHtml(branch.text)}" onchange="updateBranch(${branch.id}, 'text', this.value)">
                 <textarea class="branch-textarea" placeholder="Continuación narrativa..." onchange="updateBranch(${branch.id}, 'continuation', this.value)">${escapeHtml(branch.continuation)}</textarea>
-                <select class="option-affinity-select" onchange="updateBranch(${branch.id}, 'affinityImpact', this.value)">
-                    <option value="neutral" ${(branch.affinityImpact || 'neutral') === 'neutral' ? 'selected' : ''}>Sin efecto de afinidad</option>
-                    <option value="positive" ${branch.affinityImpact === 'positive' ? 'selected' : ''}>↑ Impacto positivo</option>
-                    <option value="negative" ${branch.affinityImpact === 'negative' ? 'selected' : ''}>↓ Impacto negativo</option>
-                </select>
             </div>
         `).join('');
     }
@@ -81,8 +74,7 @@ function addNewBranch() {
     tempBranches.push({
         id: newId,
         text: '',
-        continuation: '',
-        affinityImpact: 'neutral'
+        continuation: ''
     });
     renderBranchEditor();
 }
@@ -108,18 +100,15 @@ function saveBranches() {
     }
 
     for(let i=0; i<3; i++) {
-        const textInput    = document.getElementById(`option${i+1}Text`);
-        const contInput    = document.getElementById(`option${i+1}Continuation`);
-        const impactSelect = document.getElementById(`option${i+1}AffinityImpact`);
+        const textInput = document.getElementById(`option${i+1}Text`);
+        const contInput = document.getElementById(`option${i+1}Continuation`);
 
         if (i < validBranches.length) {
-            if (textInput)    textInput.value    = validBranches[i].text;
-            if (contInput)    contInput.value    = validBranches[i].continuation;
-            if (impactSelect) impactSelect.value = validBranches[i].affinityImpact || 'neutral';
+            if (textInput) textInput.value = validBranches[i].text;
+            if (contInput) contInput.value = validBranches[i].continuation;
         } else {
-            if (textInput)    textInput.value    = '';
-            if (contInput)    contInput.value    = '';
-            if (impactSelect) impactSelect.value = 'neutral';
+            if (textInput) textInput.value = '';
+            if (contInput) contInput.value = '';
         }
     }
 
@@ -1283,7 +1272,7 @@ function _gsRenderResults(results, cloudDone) {
                 const dateStr = r.timestamp
                     ? new Date(r.timestamp).toLocaleDateString('es-ES', { day:'numeric', month:'short' })
                     : '';
-                return `<div class="gs-result" data-topic-id="${escapeHtml(String(topicId))}" data-msg-id="${escapeHtml(String(r.msgId))}">
+                return `<div class="gs-result" onclick="gsGoToMessage('${escapeHtml(topicId)}','${escapeHtml(r.msgId)}')">
                     <div class="gs-result-meta">
                         <span class="gs-result-char">${escapeHtml(r.charName || 'Mensaje')}</span>
                         <span class="gs-result-date">${dateStr}</span>
@@ -1294,11 +1283,6 @@ function _gsRenderResults(results, cloudDone) {
             }).join('')}
         </div>
     `).join('');
-    body.querySelectorAll('.gs-result').forEach(function(el) {
-        el.addEventListener('click', function() {
-            gsGoToMessage(el.dataset.topicId, el.dataset.msgId);
-        });
-    });
 }
 
 // Ir al mensaje seleccionado
@@ -1364,12 +1348,12 @@ document.addEventListener('keydown', function(e) {
 const _tw = { mode: null, charId: null, rpgClass: null, stats: null };
 
 const _TW_CLASSES = [
-    { id: 'fighter',   name: 'Guerrero',   glyph: '⚔',  desc: 'Ancla la presion fisica de la escena. Ideal para abrir paso y sostener el foco.' },
-    { id: 'ranger',    name: 'Explorador', glyph: '🏹', desc: 'Lee el entorno y encuentra rutas narrativas. Adelantate al peligro.' },
-    { id: 'rogue',     name: 'Picaro',     glyph: '🗡',  desc: 'Controla el ritmo desde la sombra. Brilla robando foco y forzando giros.' },
-    { id: 'cleric',    name: 'Clerigo',    glyph: '✚',  desc: 'Sostiene al grupo en momentos limite. Reordena la tension y protege la escena.' },
-    { id: 'wizard',    name: 'Mago',       glyph: '✦',  desc: 'Reencuadra la ficcion con conocimiento y magia. Tuerce el momento.' },
-    { id: 'barbarian', name: 'Barbaro',    glyph: '⚡', desc: 'Empuja la escena al limite. Convierte presion en impulso para romper bloqueos.' },
+    { id: 'fighter',   name: 'Guerrero',   glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M14.5 2L2 14.5l3.5 3.5L18 5.5M9 15l-3 3M18 6l-1 5 5-1"/><circle cx="19" cy="19" r="2.5"/></svg>',  desc: 'Ancla la presion fisica de la escena. Ideal para abrir paso y sostener el foco.' },
+    { id: 'ranger',    name: 'Explorador', glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M5 12 L19 5 L12 19 L11 13 Z"/><path d="M12 12 L5 19"/></svg>', desc: 'Lee el entorno y encuentra rutas narrativas. Adelantate al peligro.' },
+    { id: 'rogue',     name: 'Picaro',     glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M6 18L18 6M8 6h10v10"/><circle cx="6" cy="18" r="2"/></svg>',  desc: 'Controla el ritmo desde la sombra. Brilla robando foco y forzando giros.' },
+    { id: 'cleric',    name: 'Clerigo',    glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M12 2v20M2 12h20"/></svg>',  desc: 'Sostiene al grupo en momentos limite. Reordena la tension y protege la escena.' },
+    { id: 'wizard',    name: 'Mago',       glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M12 2L9 9H2l6 4-2.5 7L12 16l6.5 4L16 13l6-4h-7z"/></svg>',  desc: 'Reencuadra la ficcion con conocimiento y magia. Tuerce el momento.' },
+    { id: 'barbarian', name: 'Barbaro',    glyph: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="28" height="28"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', desc: 'Empuja la escena al limite. Convierte presion en impulso para romper bloqueos.' },
 ];
 const _TW_STATS     = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 const _TW_STAT_NAME = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constitucion', INT: 'Inteligencia', WIS: 'Sabiduria', CHA: 'Carisma' };
@@ -1453,13 +1437,20 @@ function topicWizardNext() {
 function _twRenderRpgSheet() {
     var cg = document.getElementById('twClassGrid');
     if (cg) {
-        cg.innerHTML = _TW_CLASSES.map(function(cls) {
+                cg.innerHTML = '';
+        _TW_CLASSES.forEach(function(cls) {
             var sel = _tw.rpgClass === cls.id;
-            return '<button type="button" class="tw-class-card' + (sel ? ' tw-class-card--sel' : '') + '" data-class-id="' + escapeHtml(cls.id) + '" onclick="topicWizardSelectClass(this.dataset.classId)" title="' + escapeHtml(cls.desc) + '" aria-pressed="' + sel + '">'
-                + '<span class="tw-class-glyph">' + cls.glyph + '</span>'
-                + '<span class="tw-class-name">' + escapeHtml(cls.name) + '</span>'
-                + '</button>';
-        }).join('');
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'tw-class-card' + (sel ? ' tw-class-card--sel' : '');
+            btn.dataset.classId = cls.id;
+            btn.setAttribute('title', cls.desc);
+            btn.setAttribute('aria-pressed', String(sel));
+            btn.addEventListener('click', function() { topicWizardSelectClass(cls.id); });
+            btn.innerHTML = '<span class="tw-class-glyph" aria-hidden="true">' + cls.glyph + '</span>'
+                          + '<span class="tw-class-name">' + escapeHtml(cls.name) + '</span>';
+            cg.appendChild(btn);
+        });
     }
     _twRenderStats();
 }
@@ -1600,3 +1591,4 @@ window.topicWizardNext        = topicWizardNext;
 window.topicWizardSelectClass = topicWizardSelectClass;
 window.topicWizardAdjustStat  = topicWizardAdjustStat;
 window.createTopicFromWizard  = createTopicFromWizard;
+

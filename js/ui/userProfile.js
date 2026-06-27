@@ -438,14 +438,45 @@
 
         const topic       = _currentTopic();
         const isClassicMode = !_isRpg();
-        shell.style.display = isClassicMode && participants && participants.length > 0 ? '' : 'none';
-        if (!isClassicMode || !participants || !participants.length) return;
+        // Mostrar el party clásico desde el primer mensaje — aunque solo esté
+        // el personaje propio. La condición anterior requería participants.length > 0
+        // lo que ocultaba el panel hasta que alguien respondía.
+        shell.style.display = isClassicMode ? '' : 'none';
+        if (!isClassicMode) return;
+        // Si no hay participantes aún, mostrar solo el personaje propio como fallback
+        if (!participants || !participants.length) {
+            const ownChar = _getOwnChar();
+            if (ownChar) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'cp-member cp-member--online';
+                btn.title = ownChar.name || 'Tu personaje';
+                btn.dataset.charId = String(ownChar.id);
+                btn.innerHTML = '<span class="cp-name">' + _esc(ownChar.name || '?') + '</span>';
+                btn.addEventListener('click', function() {
+                    if (typeof CharPopover !== 'undefined') {
+                        CharPopover.toggle(btn.dataset.charId, btn);
+                    }
+                });
+                list.innerHTML = '';
+                list.appendChild(btn);
+            } else {
+                list.innerHTML = '';
+            }
+            return;
+        }
 
         const lockMap    = topic
             ? Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {})
             : {};
         // Quién ha respondido en el ciclo actual (detección por historial de mensajes)
         const respondedSet = _respondedThisCycle(participants);
+
+                // ── Estado de turno activo ──────────────────────────────────────────
+        const turnMode      = topic?.turnMode || topic?.turn_mode || 'off';
+        const turnQueue     = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
+        const activeTurnUid = turnMode !== 'off' && turnQueue.length > 0 ? turnQueue[0] : null;
+        const myUid         = window._cachedUserId || null;
 
         // El orden NO cambia: participants ya viene ordenado por primer-mensaje (llegada)
         list.innerHTML = participants.map(p => {
@@ -456,16 +487,36 @@
             const gIcon     = GENDER_ICON[genderKey] || '';
             const online    = _isOnline(p.user_id);
             const responded = respondedSet.has(p.user_id);
+            const isMyTurn  = activeTurnUid && p.user_id === activeTurnUid;
+            const isMe      = p.user_id === myUid;
+            const uid       = _esc(p.user_id || '');
 
             const classes = ['cp-member'];
             if (online)    classes.push('cp-member--online');
             if (responded) classes.push('cp-member--responded');
+            if (isMyTurn)  classes.push('cp-member--active-turn');
 
+            let statusIcon  = '';
+            let statusTitle = '';
+            if (isMyTurn) {
+                statusIcon  = isMe ? '✦' : '▶';
+                statusTitle = isMe ? 'Tu turno' : 'Turno activo';
+            } else if (responded) {
+                statusIcon  = '✓';
+                statusTitle = 'Ya respondió';
+            } else if (respondedSet.size > 0) {
+                statusIcon  = '·';
+                statusTitle = 'Esperando';
+            }
+
+            const cid = _esc(String(charId || ''));
             return `<button type="button" class="${classes.join(' ')}"
                         data-user-id="${_esc(String(p.user_id || ''))}"
-                        title="${_esc(name)}${responded ? ' \xB7 Ya respondi\xF3' : ' \xB7 Esperando'}">
+                        onclick="if(typeof CharPopover!=='undefined'){CharPopover.toggle('${cid}',this)}else{openUserProfileModal('${uid}')}"
+                        title="${_esc(name)} · ${statusTitle || (online ? 'En línea' : 'Desconectado')}">
                 <span class="cp-name">${_esc(name)}</span>
                 ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
+                ${statusIcon ? `<span class="cp-status-icon" aria-hidden="true">${statusIcon}</span>` : ''}
             </button>`;
         }).join('');
         list.querySelectorAll('.cp-member').forEach(function(btn) {
@@ -513,3 +564,4 @@
     });
 
 }(window));
+

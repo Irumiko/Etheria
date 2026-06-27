@@ -1,182 +1,214 @@
-// ============================================================
-// ACTIVITY DASHBOARD — métricas de actividad de la historia
-// ============================================================
-// Solo modo clásico. Fuente de datos: mensajes locales + topic_cycles.
-// API pública: ActivityDashboard.open() / .close()
-// ============================================================
+// ═══════════════════════════════════════════════════════════════════
+// ACTIVITY DASHBOARD — Visualización del activity_log
+//
+// Muestra estadísticas de uso por historia: mensajes enviados,
+// ciclos cerrados, elecciones lanzadas, rangos alcanzados y
+// ramas de relación elegidas.
+//
+// Solo accesible para el creador de la historia (topic owner).
+// Arquitectura: módulo IIFE, comunica via eventBus, sin imports directos.
+// ═══════════════════════════════════════════════════════════════════
 
 const ActivityDashboard = (function () {
 
-    // ── helpers ──────────────────────────────────────────────
+    // ── Helpers ──────────────────────────────────────────────────────────────
 
-    function _esc(str) {
-        return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    function _client() { return window.supabaseClient || null; }
+    function _esc(s)   { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-    function _timeAgo(isoStr) {
-        if (!isoStr) return '';
-        const diff = Date.now() - new Date(isoStr).getTime();
-        if (diff < 60000)        return 'ahora mismo';
-        if (diff < 3600000)      return 'hace ' + Math.floor(diff / 60000) + ' min';
-        if (diff < 86400000)     return 'hace ' + Math.floor(diff / 3600000) + 'h';
-        if (diff < 2592000000)   return 'hace ' + Math.floor(diff / 86400000) + ' días';
-        return 'hace ' + Math.floor(diff / 2592000000) + ' meses';
-    }
+    async function _fetchLogs(topicId, days = 30) {
+        if (!_client() || !topicId) return [];
+        const since = new Date(Date.now() - days * 86400 * 1000).toISOString();
 
-    function _cycleRemaining(cycle) {
-        if (!cycle || !cycle.closes_at) return null;
-        const ms = new Date(cycle.closes_at).getTime() - Date.now();
-        if (ms <= 0) return 'cerrando…';
-        if (ms < 3600000)  return Math.ceil(ms / 60000) + ' min';
-        if (ms < 86400000) {
-            const h = Math.floor(ms / 3600000);
-            const m = Math.ceil((ms % 3600000) / 60000);
-            return h + 'h ' + (m > 0 ? m + 'min' : '');
+        const { data, error } = await _client()
+            .from('activity_log')
+            .select('action, entity_type, entity_id, metadata, created_at, user_id')
+            .eq('entity_id', String(topicId))
+            .gte('created_at', since)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            window.EtheriaLogger?.warn('dashboard', error.message);
+            return [];
         }
-        return Math.floor(ms / 86400000) + 'd';
+        return data || [];
     }
 
-    // ── render helpers ───────────────────────────────────────
+    // ── Análisis de logs ──────────────────────────────────────────────────────
 
-    function _renderCycle(cycle) {
-        if (!cycle) {
-            return '<div class="adash-cycle adash-cycle--none">Sin ciclo activo en este momento</div>';
-        }
-        const remaining = _cycleRemaining(cycle);
-        return '<div class="adash-cycle adash-cycle--open">' +
-            '<span class="adash-cycle-dot"></span>' +
-            '<span class="adash-cycle-text">Ciclo activo — cierra en <strong>' + _esc(remaining) + '</strong></span>' +
-            '</div>';
+    function _analyze(logs) {
+        const counts = {
+            message_sent:     0,
+            cycle_closed:     0,
+            choice_launched:  0,
+            choice_responded: 0,
+            affinity_changed: 0,
+            rank_reached:     0,
+            branch_chosen:    0,
+        };
+
+        const byDay    = {};  // { 'YYYY-MM-DD': { messages, cycles, choices } }
+        const ranks    = {};  // { rankName: count }
+        const branches = {};  // { branchType: count }
+        const bilateral = []; // rangos bilaterales alcanzados
+
+        logs.forEach(log => {
+            const action = log.action;
+            if (counts[action] !== undefined) counts[action]++;
+
+            // Agrupar por día
+            const day = log.created_at?.slice(0, 10);
+            if (day) {
+                if (!byDay[day]) byDay[day] = { messages: 0, cycles: 0, choices: 0 };
+                if (action === 'message_sent')    byDay[day].messages++;
+                if (action === 'cycle_closed')    byDay[day].cycles++;
+                if (action === 'choice_launched') byDay[day].choices++;
+            }
+
+            // Rangos alcanzados
+            if (action === 'rank_reached' && log.metadata?.rank) {
+                const rank = log.metadata.rank;
+                ranks[rank] = (ranks[rank] || 0) + 1;
+                if (log.metadata.bilateral) bilateral.push(rank);
+            }
+
+            // Ramas elegidas
+            if (action === 'branch_chosen' && log.metadata?.relationType) {
+                const b = log.metadata.relationType;
+                branches[b] = (branches[b] || 0) + 1;
+            }
+        });
+
+        return { counts, byDay, ranks, branches, bilateral };
     }
 
-    function _renderParticipant(name, data, maxCount) {
-        const pct   = Math.round((data.count / maxCount) * 100);
-        const ago   = _timeAgo(data.lastAt);
-        const color = data.color || '#c9a86c';
-        const init  = _esc((name || '?')[0].toUpperCase());
+    // ── Render ────────────────────────────────────────────────────────────────
 
-        const avatarHtml = data.avatar
-            ? '<img src="' + _esc(data.avatar) + '" alt="' + init + '" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">' +
-              '<span style="display:none">' + init + '</span>'
-            : '<span>' + init + '</span>';
+    function _renderDashboard(topicId, logs) {
+        const { counts, byDay, ranks, branches, bilateral } = _analyze(logs);
 
-        return '<div class="adash-participant">' +
-            '<div class="adash-p-avatar" style="--char-color:' + _esc(color) + '">' + avatarHtml + '</div>' +
-            '<div class="adash-p-info">' +
-                '<div class="adash-p-header">' +
-                    '<span class="adash-p-name" style="color:' + _esc(color) + '">' + _esc(name) + '</span>' +
-                    '<span class="adash-p-count">' + data.count + '</span>' +
-                    (ago ? '<span class="adash-p-ago">' + _esc(ago) + '</span>' : '') +
-                '</div>' +
-                '<div class="adash-p-bar-wrap"><div class="adash-p-bar" style="width:' + pct + '%;background:' + _esc(color) + '60"></div></div>' +
-            '</div>' +
-        '</div>';
+        // ── Métricas principales ──────────────────────────────────────────────
+        const metricsHtml = [
+            { label: 'Mensajes',   value: counts.message_sent,     icon: '✉' },
+            { label: 'Ciclos',     value: counts.cycle_closed,     icon: '◎' },
+            { label: 'Elecciones', value: counts.choice_launched,  icon: '✦' },
+            { label: 'Respuestas', value: counts.choice_responded, icon: '↩' },
+            { label: 'Hitos',      value: counts.rank_reached,     icon: '♦' },
+        ].map(m => `
+            <div class="adb-metric">
+                <span class="adb-metric-icon">${m.icon}</span>
+                <span class="adb-metric-val">${m.value}</span>
+                <span class="adb-metric-label">${m.label}</span>
+            </div>
+        `).join('');
+
+        // ── Actividad por día (últimos 14 días visibles) ──────────────────────
+        const days = Object.keys(byDay).sort().slice(-14);
+        const maxMsgs = Math.max(1, ...days.map(d => byDay[d]?.messages || 0));
+
+        const barsHtml = days.length ? days.map(d => {
+            const msgs = byDay[d]?.messages || 0;
+            const pct  = Math.round((msgs / maxMsgs) * 100);
+            const label = d.slice(5); // MM-DD
+            return `
+                <div class="adb-bar-col">
+                    <div class="adb-bar-wrap">
+                        <div class="adb-bar-fill" style="height:${pct}%" title="${msgs} mensajes el ${d}"></div>
+                    </div>
+                    <span class="adb-bar-label">${label}</span>
+                </div>
+            `;
+        }).join('') : '<p class="adb-empty">Sin actividad en los últimos 30 días</p>';
+
+        // ── Rangos más alcanzados ─────────────────────────────────────────────
+        const topRanks = Object.entries(ranks)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        const ranksHtml = topRanks.length ? topRanks.map(([name, count]) => `
+            <div class="adb-rank-row">
+                <span class="adb-rank-name">${_esc(name)}</span>
+                <span class="adb-rank-count">${count}×</span>
+            </div>
+        `).join('') : '<p class="adb-empty">Sin hitos registrados</p>';
+
+        // ── Ramas elegidas ────────────────────────────────────────────────────
+        const BRANCH_LABELS = {
+            friendship: '♦ Amistad',
+            romance:    '♡ Romance',
+            rivalry:    '⚔ Rivalidad',
+            enmity:     '✗ Enemistad',
+        };
+        const branchesHtml = Object.keys(branches).length
+            ? Object.entries(branches).map(([type, count]) => `
+                <div class="adb-branch-row">
+                    <span class="adb-branch-label">${_esc(BRANCH_LABELS[type] || type)}</span>
+                    <span class="adb-branch-count">${count}</span>
+                </div>
+            `).join('')
+            : '<p class="adb-empty">Sin ramas elegidas aún</p>';
+
+        // ── Hitos bilaterales ─────────────────────────────────────────────────
+        const bilateralHtml = bilateral.length
+            ? `<p class="adb-bilateral-note">✦ ${bilateral.length} vínculo${bilateral.length > 1 ? 's' : ''} bilateral${bilateral.length > 1 ? 'es' : ''} alcanzado${bilateral.length > 1 ? 's' : ''}: ${bilateral.slice(0, 3).map(_esc).join(', ')}${bilateral.length > 3 ? '…' : ''}</p>`
+            : '';
+
+        return `
+            <div class="adb-root">
+                <div class="adb-header">
+                    <span class="adb-title">✦ Actividad de la historia ✦</span>
+                    <span class="adb-period">Últimos 30 días</span>
+                </div>
+
+                <div class="adb-metrics">${metricsHtml}</div>
+
+                ${bilateralHtml}
+
+                <div class="adb-section">
+                    <span class="adb-section-label">Mensajes por día</span>
+                    <div class="adb-bars">${barsHtml}</div>
+                </div>
+
+                <div class="adb-cols">
+                    <div class="adb-col">
+                        <span class="adb-section-label">Hitos de rango</span>
+                        <div class="adb-ranks">${ranksHtml}</div>
+                    </div>
+                    <div class="adb-col">
+                        <span class="adb-section-label">Ramas elegidas</span>
+                        <div class="adb-branches">${branchesHtml}</div>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
-    // ── core ─────────────────────────────────────────────────
+    // ── API pública ───────────────────────────────────────────────────────────
 
-    var _lastFocused = null;
-
-    function _onKeyDown(e) {
-        if (e.key === 'Escape') { e.stopPropagation(); close(); }
-    }
-
-    async function open() {
+    async function open(topicId) {
         const modal = document.getElementById('activityDashboardModal');
-        if (!modal) return;
-        _lastFocused = document.activeElement;
-        modal.removeAttribute('hidden');
-        modal.classList.add('active');
-        document.body.classList.add('modal-open');
-        var firstFocusable = modal.querySelector('button, [href], input, [tabindex]:not([tabindex="-1"])');
-        if (firstFocusable) firstFocusable.focus();
-        document.addEventListener('keydown', _onKeyDown);
-        await _render();
+        const body  = document.getElementById('activityDashboardBody');
+        if (!modal || !body) return;
+
+        // Loading
+        body.innerHTML = '<div class="adb-loading"><span class="adb-spinner"></span> Cargando actividad…</div>';
+        modal.classList.remove('hidden');
+
+        try {
+            const logs = await _fetchLogs(topicId, 30);
+            body.innerHTML = _renderDashboard(topicId, logs);
+        } catch (err) {
+            body.innerHTML = '<p class="adb-empty">Error cargando los datos.</p>';
+            window.EtheriaLogger?.warn('dashboard', err?.message);
+        }
     }
 
     function close() {
-        const modal = document.getElementById('activityDashboardModal');
-        if (modal) { modal.setAttribute('hidden', ''); modal.classList.remove('active'); }
-        document.removeEventListener('keydown', _onKeyDown);
-        var anyModalOpen = document.querySelector('.modal-overlay.active');
-        if (!anyModalOpen) document.body.classList.remove('modal-open');
-        if (_lastFocused && typeof _lastFocused.focus === 'function') _lastFocused.focus();
-        _lastFocused = null;
+        document.getElementById('activityDashboardModal')?.classList.add('hidden');
     }
 
-    async function _render() {
-        const body = document.getElementById('activityDashboardBody');
-        if (!body) return;
-        body.innerHTML = '<div class="adash-loading">Calculando…</div>';
-
-        const topicId = typeof currentTopicId !== 'undefined' ? currentTopicId : null;
-        if (!topicId) {
-            body.innerHTML = '<p class="adash-empty">No hay historia activa.</p>';
-            return;
-        }
-
-        // Mensajes del tema (caché local — ya cargados al entrar en el tema)
-        const msgs = typeof getTopicMessages === 'function' ? (getTopicMessages(topicId) || []) : [];
-
-        // Agregar por nombre de personaje
-        const charMap = {};
-        for (var i = 0; i < msgs.length; i++) {
-            var msg = msgs[i];
-            if (msg.isNarrator || !msg.charName) continue;
-            var key = msg.charName;
-            if (!charMap[key]) {
-                charMap[key] = { count: 0, lastAt: null, color: msg.charColor || null, avatar: msg.charAvatar || null };
-            }
-            charMap[key].count++;
-            if (!charMap[key].lastAt || (msg.timestamp && msg.timestamp > charMap[key].lastAt)) {
-                charMap[key].lastAt = msg.timestamp || null;
-            }
-        }
-
-        var total         = msgs.filter(function (m) { return !m.isNarrator && m.charName; }).length;
-        var narratorCount = msgs.filter(function (m) { return  m.isNarrator || !m.charName; }).length;
-        var participants  = Object.keys(charMap).length;
-        var maxCount      = 1;
-        Object.values(charMap).forEach(function (d) { if (d.count > maxCount) maxCount = d.count; });
-
-        var sorted = Object.entries(charMap).sort(function (a, b) { return b[1].count - a[1].count; });
-
-        // Ciclo activo desde Supabase
-        var cycle = null;
-        var sb = window.supabaseClient;
-        if (sb) {
-            try {
-                var result = await sb.from('topic_cycles')
-                    .select('id, started_at, closes_at, status')
-                    .eq('topic_id', topicId)
-                    .eq('status', 'open')
-                    .order('started_at', { ascending: false })
-                    .limit(1)
-                    .maybeSingle();
-                cycle = result.data || null;
-            } catch (e) {
-                // Sin ciclo — no es crítico
-            }
-        }
-
-        // Construir HTML
-        var statsRow = '<div class="adash-stats-row">' +
-            '<div class="adash-stat"><span class="adash-stat-value">' + total + '</span><span class="adash-stat-label">mensajes</span></div>' +
-            '<div class="adash-stat"><span class="adash-stat-value">' + participants + '</span><span class="adash-stat-label">personajes</span></div>' +
-            (narratorCount > 0 ? '<div class="adash-stat"><span class="adash-stat-value">' + narratorCount + '</span><span class="adash-stat-label">narrador</span></div>' : '') +
-            '</div>';
-
-        var participantsHtml = sorted.length > 0
-            ? '<div class="adash-participants">' + sorted.map(function (entry) { return _renderParticipant(entry[0], entry[1], maxCount); }).join('') + '</div>'
-            : '<p class="adash-empty">Sin mensajes aún.</p>';
-
-        body.innerHTML = statsRow + _renderCycle(cycle) + participantsHtml;
-    }
-
-    return { open: open, close: close };
+    return { open, close };
 
 })();
 
-window.ActivityDashboard   = ActivityDashboard;
-window.openActivityDashboard  = function () { ActivityDashboard.open(); };
-window.closeActivityDashboard = function () { ActivityDashboard.close(); };
+window.ActivityDashboard = ActivityDashboard;

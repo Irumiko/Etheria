@@ -255,7 +255,7 @@ function updateVnTurnBadge() {
         return;
     }
 
-    const participantNames = getTurnParticipantNames().map(n => escapeHtml(n));
+    const participantNames = getTurnParticipantNames();
     const namesPreview = participantNames.slice(0, 3).join(' · ');
     const rotationHint = participantNames.length > 3
         ? `${namesPreview}…`
@@ -606,6 +606,12 @@ function renderVnPartyPanel(force = false) {
     // Orden estable: slot 0 primero, slot 1 segundo, etc.
     const sortedCharIds = [...charIds].sort((a, b) => _charUserIndex(a) - _charUserIndex(b));
 
+    // ── Turno activo en el party RPG ────────────────────────────────────────
+    const _turnMode    = topic?.turnMode || topic?.turn_mode || 'off';
+    const _turnQueue   = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
+    const _activeTurn  = _turnMode !== 'off' && _turnQueue.length > 0 ? _turnQueue[0] : null;
+    const _myUid       = window._cachedUserId || null;
+
     list.innerHTML = sortedCharIds.map((charId, idx) => {
         const entry = snapshot[charId];
         if (!entry) return '';
@@ -636,8 +642,13 @@ function renderVnPartyPanel(force = false) {
             ? `<button type="button" class="vn-party-profile-btn" onclick="event.stopPropagation();openUserProfileModal('${ownerUserId}')" title="Ver perfil" aria-label="Ver perfil del jugador">👤</button>`
             : '';
 
+        const _ownerUidForTurn = _charOwnerUid(charId);
+        const _isActiveTurn    = _activeTurn && _ownerUidForTurn === _activeTurn;
+        const _isMyTurn        = _isActiveTurn && _ownerUidForTurn === _myUid;
+        const _turnClass       = _isActiveTurn ? ' vn-party-member--active-turn' : '';
+
         return `
-            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="highlightVnPartyCharacter('${escapeHtml(entry.charId)}')" aria-label="Resaltar a ${escapeHtml(entry.name)}">
+            <button type="button" class="vn-party-member${hasResponded ? ' vn-party-member--responded' : ''}${_turnClass}" data-char-id="${escapeHtml(entry.charId)}" data-state="${escapeHtml(state)}" onclick="if(typeof CharPopover!=='undefined'){CharPopover.toggle('${escapeHtml(entry.charId)}',this)}else{highlightVnPartyCharacter('${escapeHtml(entry.charId)}')}" aria-label="${escapeHtml(entry.name)}">
                 <div class="vn-party-main">
                     <div class="vn-party-topline">
                         <div>
@@ -660,6 +671,7 @@ function renderVnPartyPanel(force = false) {
                     </div>
                 </div>
                 <span class="vn-party-turn-order">${turnNumber}</span>
+                ${_isActiveTurn ? `<span class="vn-party-turn-badge" title="${_isMyTurn ? 'Tu turno' : 'Turno activo'}">${_isMyTurn ? '✦' : '▶'}</span>` : ''}
                 ${profileBtn}
             </button>
         `;
@@ -733,6 +745,7 @@ function updateOracleFloatButton() {
     floatBtn.style.display = shouldShow ? 'inline-flex' : 'none';
     // Keep innkeeper button in sync too
     if (typeof updateNarrateButton === 'function') updateNarrateButton();
+    if (typeof updateTurnBanner === 'function') updateTurnBanner();
     floatBtn.classList.toggle('active', oracleModeActive);
     floatBtn.dataset.oracleActive = oracleModeActive ? 'true' : 'false';
 }
@@ -1591,14 +1604,6 @@ function _doEnterTopic(id, t, topicMode) {
     if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
         SupabaseMessages.subscribeGlobal(null, null, id);
     }
-    // Ciclos narrativos — solo modo clásico
-    if (topicMode !== 'rpg' && typeof SupabaseCycles !== 'undefined') {
-        SupabaseCycles.init(id, getTopicMessages(id)).catch(() => {});
-    }
-    // Ecos del ciclo: mostrar cambios de afinidad de ciclos cerrados no vistos
-    if (topicMode !== 'rpg' && typeof SupabaseCycleViews !== 'undefined') {
-        setTimeout(function () { _checkUnseenCycleEchos(id).catch(() => {}); }, 800);
-    }
     const _existingMsgs = getTopicMessages(id);
     // Si el tema tiene mensajes, posicionar en el último — no en el primero
     currentMessageIndex = _existingMsgs.length > 0 ? _existingMsgs.length - 1 : 0;
@@ -1860,7 +1865,7 @@ async function _sbEnterTopic(topicId) {
         }
         // Limpiar listener cuando salgamos del topic
         if (currentTopicId !== topicId) {
-            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
+            window.removeEventListener('etheria:realtime-message', _globalRealtimeHandler);
         }
     };
     window.addEventListener('etheria:realtime-message', _globalRealtimeHandlerRef);
@@ -2797,7 +2802,11 @@ function editCurrentMessage() {
     const replyText = document.getElementById('vnReplyText');
     if (replyText) replyText.value = msg.text || '';
 
-    applyNarratorMode(!!msg.isNarrator);
+    const narratorMode = document.getElementById('narratorMode');
+    if (narratorMode) {
+        narratorMode.checked = !!msg.isNarrator;
+        toggleNarratorMode();
+    }
 
     if (!msg.isNarrator && msg.characterId) {
         updateCharSelector();
@@ -2816,12 +2825,10 @@ function editCurrentMessage() {
 
         msg.options.forEach((opt, idx) => {
             if (idx < 3) {
-                const textInput    = document.getElementById(`option${idx + 1}Text`);
-                const contInput    = document.getElementById(`option${idx + 1}Continuation`);
-                const impactSelect = document.getElementById(`option${idx + 1}AffinityImpact`);
-                if (textInput)    textInput.value    = opt.text         || '';
-                if (contInput)    contInput.value    = opt.continuation || '';
-                if (impactSelect) impactSelect.value = opt.affinityImpact || 'neutral';
+                const textInput = document.getElementById(`option${idx + 1}Text`);
+                const contInput = document.getElementById(`option${idx + 1}Continuation`);
+                if (textInput) textInput.value = opt.text || '';
+                if (contInput) contInput.value = opt.continuation || '';
             }
         });
     }
@@ -2876,15 +2883,9 @@ function saveEditedMessage() {
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
-            const impactSel = document.getElementById(`option${i}AffinityImpact`);
             const t = textInput?.value.trim() || '';
             const c = contInput?.value.trim() || '';
-            if(t && c) {
-                const opt = {text: t, continuation: c};
-                const impact = impactSel?.value;
-                if (impact && impact !== 'neutral') opt.affinityImpact = impact;
-                options.push(opt);
-            }
+            if(t && c) options.push({text: t, continuation: c});
         }
     }
 
@@ -2900,7 +2901,7 @@ function saveEditedMessage() {
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
         charAvatar: isNarratorMode ? null : char.avatar,
-        charSprite: isNarratorMode ? null : (selectedSpriteOverride || char.sprite),
+        charSprite: isNarratorMode ? null : char.sprite,
         text,
         isNarrator: isNarratorMode,
         options: options && options.length > 0 ? options : undefined,
@@ -3090,7 +3091,7 @@ function buildHistoryEntry(msg, idx, showFavBadge = false) {
         const summary = getReactionSummary(currentTopicId, String(msg.id));
         const chips = Object.entries(summary)
             .sort((a, b) => b[1] - a[1])
-            .map(([emoji, count]) => `<span class="history-reaction-chip">${escapeHtml(String(emoji))}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`)
+            .map(([emoji, count]) => `<span class="history-reaction-chip">${emoji}${count > 1 ? `<span class="reaction-count">${count}</span>` : ''}</span>`)
             .join('');
         if (chips) reactionRow = `<div class="history-reactions">${chips}</div>`;
     }
@@ -3152,9 +3153,28 @@ function renderVirtualizedHistory(msgs, container) {
         const oldest = allMsgs[0].timestamp;
         if (!oldest) return;
         container.dataset.loadingOlder = '1';
+
+        // Mostrar spinner en la parte superior del historial mientras carga
+        let _spinner = document.getElementById('historyOlderSpinner');
+        if (!_spinner) {
+            _spinner = document.createElement('div');
+            _spinner.id = 'historyOlderSpinner';
+            _spinner.className = 'history-older-spinner';
+            _spinner.innerHTML = '<span class="history-older-spinner-dot"></span>'
+                               + '<span class="history-older-spinner-dot"></span>'
+                               + '<span class="history-older-spinner-dot"></span>';
+            container.parentElement?.prepend(_spinner);
+        }
+        _spinner.classList.remove('hidden');
+
         SupabaseMessages.loadOlderMessages(currentTopicId, oldest)
             .then(function (older) {
-                if (!Array.isArray(older) || older.length === 0) return;
+                if (!Array.isArray(older) || older.length === 0) {
+                    // Sin mensajes anteriores — indicarlo brevemente
+                    _spinner.innerHTML = '<span class="history-older-end">✦ Inicio de la historia ✦</span>';
+                    setTimeout(function () { _spinner.classList.add('hidden'); }, 2200);
+                    return;
+                }
                 const existingIds = new Set(allMsgs.map(function (m) { return String(m.id); }));
                 const novel = older.filter(function (m) { return m.id && !existingIds.has(String(m.id)); });
                 if (novel.length > 0) {
@@ -3166,10 +3186,15 @@ function renderVirtualizedHistory(msgs, container) {
                         historyVirtualState.spacer.style.height = (allMsgs.length * historyVirtualState.rowHeight) + 'px';
                         paint();
                     }
-                    showSyncToast(novel.length + ' mensaje(s) anteriores cargados', 'OK');
                 }
             })
-            .finally(function () { container.dataset.loadingOlder = '0'; });
+            .finally(function () {
+                container.dataset.loadingOlder = '0';
+                const sp = document.getElementById('historyOlderSpinner');
+                if (sp && !sp.querySelector('.history-older-end')) {
+                    sp.classList.add('hidden');
+                }
+            });
     }, { passive: true });
     paint();
 }
@@ -4047,18 +4072,12 @@ function _renderChallengeBar(challenge) {
     dcEl.textContent   = 'DC ' + challenge.dc + ' · ' + getRollTypeLabel(challenge.rollType) + ' · define el siguiente foco';
 
     const statLabels = { STR: 'Fuerza', DEX: 'Destreza', CON: 'Constit.', INT: 'Intelec.', WIS: 'Sabid.', CHA: 'Carisma' };
-    const validStats = new Set(Object.keys(statLabels));
-    btnsCnt.innerHTML = '';
-    (challenge.stats || []).forEach(stat => {
-        if (!validStats.has(stat)) return;
-        const label = statLabels[stat];
-        const btn = document.createElement('button');
-        btn.className = 'vn-challenge-stat-btn';
-        btn.title = label;
-        btn.innerHTML = '<span class="vn-cs-key">' + stat + '</span><span class="vn-cs-label">' + label + '</span>';
-        btn.addEventListener('click', function() { acceptChallenge(stat); });
-        btnsCnt.appendChild(btn);
-    });
+    btnsCnt.innerHTML = challenge.stats.map(stat =>
+        '<button class="vn-challenge-stat-btn" onclick="acceptChallenge(' + "'" + stat + "'" + ')" title="' + (statLabels[stat] || stat) + '">' +
+        '<span class="vn-cs-key">' + stat + '</span>' +
+        '<span class="vn-cs-label">' + (statLabels[stat] || stat) + '</span>' +
+        '</button>'
+    ).join('');
 
     bar.style.display = 'flex';
 }
@@ -4432,52 +4451,6 @@ window.addEventListener('etheria:dm-revive', function(e) {
     if (typeof updateIhp === 'function') updateIhp();
 });
 
-// Mensaje de narrador disparado por una consecuencia RPG — añadir al feed en tiempo real
-if (typeof eventBus !== 'undefined') {
-    eventBus.on('rpg:narrator-message', function(data) {
-        if (!data || !data.text || !currentTopicId) return;
-        if (data.storyId && currentStoryId && String(data.storyId) !== String(currentStoryId)) return;
-        const msgs = (appData && appData.messages && appData.messages[currentTopicId]) || [];
-        const newMsg = {
-            id:         'rpg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-            timestamp:  new Date().toISOString(),
-            isNarrator: true,
-            text:       data.text,
-            charName:   null,
-            userIndex:  -1
-        };
-        msgs.push(newMsg);
-        appData.messages[currentTopicId] = msgs;
-        hasUnsavedChanges = true;
-        if (typeof save === 'function') save({ silent: true });
-        const isAtEnd = currentMessageIndex >= msgs.length - 2;
-        if (isAtEnd) {
-            currentMessageIndex = msgs.length - 1;
-            showCurrentMessage('forward');
-        }
-    });
-}
-
-// Ítem usado localmente: re-sincronizar RPGState para que el HUD refleje el HP nuevo
-window.addEventListener('etheria:rpg-item-used', function(e) {
-    const { charId, topicId } = e.detail || {};
-    if (!charId || topicId !== currentTopicId) return;
-    if (typeof RPGState === 'undefined' || typeof RPGState.syncFromCharacter !== 'function') return;
-    const char = appData.characters.find(c => String(c.id) === String(charId));
-    if (!char) return;
-    RPGState.syncFromCharacter(char, currentTopicId);
-});
-
-// Condición aplicada/eliminada localmente: re-sincronizar RPGState
-window.addEventListener('etheria:rpg-condition-changed', function(e) {
-    const { charId, topicId } = e.detail || {};
-    if (!charId || topicId !== currentTopicId) return;
-    if (typeof RPGState === 'undefined' || typeof RPGState.syncFromCharacter !== 'function') return;
-    const char = appData.characters.find(c => String(c.id) === String(charId));
-    if (!char) return;
-    RPGState.syncFromCharacter(char, currentTopicId);
-});
-
 window.addEventListener('etheria:story-participants-loaded', function(e) {
     if (e.detail?.storyId && currentStoryId && String(e.detail.storyId) !== String(currentStoryId)) return;
     updateVnTurnBadge();
@@ -4754,33 +4727,22 @@ function _showMasterRollBar(mr) {
     if (sitEl) sitEl.textContent = mr.situation || '…';
 
     if (optsEl) {
-        optsEl.innerHTML = '';
         const letters = ['A','B','C','D'];
-        mr.options.forEach(function (opt, i) {
+        optsEl.innerHTML = mr.options.map(function (opt, i) {
             const letter  = letters[i] || String(i + 1);
-            const btn = document.createElement('button');
-            btn.className = 'vn-mr-opt-btn';
-            btn.addEventListener('click', function() { resolveMasterRoll(mr.id, i); });
-
-            const letterSpan = document.createElement('span');
-            letterSpan.className = 'vn-mr-opt-letter';
-            letterSpan.textContent = letter;
-            btn.appendChild(letterSpan);
-
-            const textSpan = document.createElement('span');
-            textSpan.className = 'vn-mr-opt-text';
-            textSpan.textContent = opt.label;
-            btn.appendChild(textSpan);
-
-            if (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta)) {
-                const hpClass = opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg';
-                const hpSpan = document.createElement('span');
-                hpSpan.className = 'vn-mr-opt-hp ' + hpClass;
-                hpSpan.textContent = (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP';
-                btn.appendChild(hpSpan);
-            }
-            optsEl.appendChild(btn);
-        });
+            const hpClass = (opt.hpDelta !== null && opt.hpDelta !== undefined)
+                ? (opt.hpDelta >= 0 ? 'vn-mr-hp-pos' : 'vn-mr-hp-neg') : '';
+            const hpHtml  = (opt.hpDelta !== null && opt.hpDelta !== undefined && !isNaN(opt.hpDelta))
+                ? '<span class="vn-mr-opt-hp ' + hpClass + '">' +
+                  (opt.hpDelta >= 0 ? '+' : '') + opt.hpDelta + ' HP</span>'
+                : '';
+            return '<button class="vn-mr-opt-btn" ' +
+                   'onclick="resolveMasterRoll(\'' + escapeHtml(mr.id) + '\',' + i + ')">' +
+                   '<span class="vn-mr-opt-letter">' + letter + '</span>' +
+                   '<span class="vn-mr-opt-text">' + escapeHtml(opt.label) + '</span>' +
+                   hpHtml +
+                   '</button>';
+        }).join('');
     }
 
     bar.style.display = 'flex';
@@ -5231,11 +5193,19 @@ function openReplyPanel() {
 
     updateCharSelector();
     updateSceneChangePreview();
-    vrpResetSpritePicker();
-    vrpLoadSpriteGallery(selectedCharId);
 
     // Actualizar botones de clima (nuevos vrp-weather-btn)
     vrpSyncWeatherButtons();
+
+    // ── Elecciones activas del ciclo (solo modo clásico) ──────────────────
+    // Carga las elecciones del ciclo abierto e inyecta el panel de respuesta
+    // dentro del reply panel, justo encima del textarea.
+    if (!isRpgModeMode() && !editingMessageId && currentTopicId
+            && typeof SupabaseCycles !== 'undefined') {
+        _loadAndRenderCycleChoicesInPanel(currentTopicId);
+    } else {
+        _hideCycleChoicesInPanel();
+    }
 
     // Foco al textarea después de la animación de entrada
     setTimeout(() => {
@@ -5245,6 +5215,7 @@ function openReplyPanel() {
 }
 
 function closeReplyPanel() {
+    _hideCycleChoicesInPanel();
     const panel = document.getElementById('vnReplyPanel');
     if (panel) panel.style.display = 'none';
     emitTypingState(false);
@@ -5278,150 +5249,6 @@ function toggleCharGrid() {
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.toggle('active');
 }
-
-// ── Sprite gallery ─────────────────────────────────────────────────────────────
-var selectedSpriteOverride = null;
-
-function vrpToggleSpritePicker() {
-    const picker = document.getElementById('spritePicker');
-    if (!picker) return;
-    const open = !picker.hidden;
-    picker.hidden = open;
-    const arrow = document.querySelector('.vrp-sprite-toggle-arrow');
-    if (arrow) arrow.textContent = open ? '▾' : '▴';
-}
-
-async function vrpLoadSpriteGallery(charId) {
-    const container = document.getElementById('spriteSelectorContainer');
-    if (!container) return;
-    if (!charId || isNarratorMode || typeof SupabaseSprites === 'undefined') {
-        container.style.display = 'none';
-        return;
-    }
-    container.style.display = 'block';
-
-    const grid = document.getElementById('spritePickerGrid');
-    if (!grid) return;
-    grid.innerHTML = '<span class="vrp-sprite-loading">Cargando…</span>';
-
-    const sprites = await SupabaseSprites.listCharacterSprites(charId);
-    const char = appData.characters.find(function (c) { return String(c.id) === String(charId); });
-
-    grid.innerHTML = '';
-
-    // Botón "predeterminado" (quitar override)
-    var defaultBtn = document.createElement('button');
-    defaultBtn.type = 'button';
-    defaultBtn.className = 'vrp-sprite-thumb' + (selectedSpriteOverride === null ? ' selected' : '');
-    defaultBtn.title = 'Predeterminado';
-    defaultBtn.setAttribute('data-sprite-url', '');
-    defaultBtn.onclick = function () { vrpSelectSprite(null, charId); };
-    if (char && char.sprite) {
-        var dImg = document.createElement('img');
-        dImg.src = char.sprite;
-        dImg.alt = 'Predeterminado';
-        dImg.loading = 'lazy';
-        dImg.onerror = function () {
-            this.style.display = 'none';
-            var fb = document.createElement('span');
-            fb.className = 'vrp-sprite-thumb-empty';
-            fb.textContent = '✦';
-            defaultBtn.appendChild(fb);
-        };
-        defaultBtn.appendChild(dImg);
-    } else {
-        defaultBtn.innerHTML = '<span class="vrp-sprite-thumb-empty">✦</span>';
-    }
-    grid.appendChild(defaultBtn);
-
-    // Excluir el sprite que ya es el predeterminado (misma URL, ignorando ?t=... cache-busting)
-    var defaultBase = char && char.sprite ? char.sprite.split('?')[0] : null;
-    var extraSprites = sprites.filter(function (s) {
-        return !defaultBase || s.url.split('?')[0] !== defaultBase;
-    });
-
-    if (extraSprites.length === 0) {
-        var emptyMsg = document.createElement('span');
-        emptyMsg.className = 'vrp-sprite-empty';
-        emptyMsg.textContent = 'Sin poses extra. Sube más desde el editor de personaje.';
-        grid.appendChild(emptyMsg);
-        return;
-    }
-
-    extraSprites.forEach(function (sprite) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'vrp-sprite-thumb' + (selectedSpriteOverride === sprite.url ? ' selected' : '');
-        btn.title = sprite.name;
-        btn.setAttribute('data-sprite-url', sprite.url);
-        btn.onclick = function () { vrpSelectSprite(sprite.url, charId); };
-        var img = document.createElement('img');
-        img.src = sprite.url;
-        img.alt = sprite.name;
-        img.loading = 'lazy';
-        img.onerror = function () {
-            this.style.display = 'none';
-            var fallback = document.createElement('span');
-            fallback.className = 'vrp-sprite-thumb-empty';
-            fallback.textContent = '✦';
-            btn.appendChild(fallback);
-        };
-        btn.appendChild(img);
-        grid.appendChild(btn);
-    });
-}
-
-function vrpSelectSprite(url, charId) {
-    selectedSpriteOverride = url || null;
-
-    var grid = document.getElementById('spritePickerGrid');
-    if (grid) {
-        grid.querySelectorAll('.vrp-sprite-thumb').forEach(function (btn) {
-            var btnUrl = btn.getAttribute('data-sprite-url') || null;
-            btn.classList.toggle('selected', btnUrl === (url || ''));
-        });
-    }
-
-    var hint = document.getElementById('spritePickerHint');
-    if (hint) hint.textContent = url ? 'pose seleccionada ✓' : 'predeterminada';
-
-    var thumb = document.getElementById('spritePickerSelectedThumb');
-    if (thumb) {
-        thumb.innerHTML = '';
-        var srcUrl = url;
-        if (!srcUrl && charId) {
-            var c = appData.characters.find(function (ch) { return String(ch.id) === String(charId); });
-            srcUrl = c && c.sprite ? c.sprite : null;
-        }
-        if (srcUrl) {
-            var tImg = document.createElement('img');
-            tImg.src = srcUrl;
-            tImg.alt = '';
-            thumb.appendChild(tImg);
-        }
-    }
-
-    // Cerrar el picker después de seleccionar
-    var picker = document.getElementById('spritePicker');
-    if (picker) {
-        picker.hidden = true;
-        var arrow = document.querySelector('.vrp-sprite-toggle-arrow');
-        if (arrow) arrow.textContent = '▾';
-    }
-}
-
-function vrpResetSpritePicker() {
-    selectedSpriteOverride = null;
-    var hint = document.getElementById('spritePickerHint');
-    if (hint) hint.textContent = 'predeterminada';
-    var thumb = document.getElementById('spritePickerSelectedThumb');
-    if (thumb) thumb.innerHTML = '';
-    var picker = document.getElementById('spritePicker');
-    if (picker) picker.hidden = true;
-    var arrow = document.querySelector('.vrp-sprite-toggle-arrow');
-    if (arrow) arrow.textContent = '▾';
-}
-// ── /Sprite gallery ─────────────────────────────────────────────────────────────
 
 function updateCharSelector() {
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
@@ -5491,8 +5318,6 @@ function selectCharFromGrid(charId) {
     localStorage.setItem(`etheria_selected_char_${currentUserIndex}`, charId);
     updateCharSelector();
     renderVnPartyPanel(true);
-    vrpResetSpritePicker();
-    vrpLoadSpriteGallery(charId);
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
@@ -5521,27 +5346,26 @@ function toggleOptionsFields() {
         if (tempBranches.length > 0) {
             tempBranches.forEach((branch, idx) => {
                 if (idx < 3) {
-                    const textInput    = document.getElementById(`option${idx + 1}Text`);
-                    const contInput    = document.getElementById(`option${idx + 1}Continuation`);
-                    const impactSelect = document.getElementById(`option${idx + 1}AffinityImpact`);
-                    if (textInput)    textInput.value    = branch.text         || '';
-                    if (contInput)    contInput.value    = branch.continuation || '';
-                    if (impactSelect) impactSelect.value = branch.affinityImpact || 'neutral';
+                    const textInput = document.getElementById(`option${idx + 1}Text`);
+                    const contInput = document.getElementById(`option${idx + 1}Continuation`);
+                    if (textInput) textInput.value = branch.text || '';
+                    if (contInput) contInput.value = branch.continuation || '';
                 }
             });
         }
     }
 }
 
-function applyNarratorMode(active) {
+function toggleNarratorMode() {
     const topic = getCurrentTopic();
     if (!canUseNarratorMode(topic)) return;
 
-    const narratorModeEl = document.getElementById('narratorMode');
-    const toggle         = document.getElementById('narratorToggle');
+    const narratorMode = document.getElementById('narratorMode');
+    const toggle       = document.getElementById('narratorToggle');
 
-    isNarratorMode = !!active;
-    if (narratorModeEl) narratorModeEl.checked = isNarratorMode;
+    // Toggle state: si el switch está activo se desactiva y viceversa
+    isNarratorMode = toggle ? !toggle.classList.contains('active') : false;
+    if (narratorMode) narratorMode.checked = isNarratorMode;
 
     const container = document.getElementById('charSelectorContainer');
 
@@ -5549,19 +5373,11 @@ function applyNarratorMode(active) {
         if (container) container.style.display = 'none';
         if (toggle) toggle.classList.add('active');
         selectedCharId = null;
-        vrpResetSpritePicker();
-        var spriteContainer = document.getElementById('spriteSelectorContainer');
-        if (spriteContainer) spriteContainer.style.display = 'none';
     } else {
         if (container) container.style.display = 'flex';
         if (toggle) toggle.classList.remove('active');
         updateCharSelector();
-        vrpLoadSpriteGallery(selectedCharId);
     }
-}
-
-function toggleNarratorMode() {
-    applyNarratorMode(!isNarratorMode);
 }
 
 
@@ -5677,15 +5493,9 @@ function postVNReply() {
         for(let i=1; i<=3; i++) {
             const textInput = document.getElementById(`option${i}Text`);
             const contInput = document.getElementById(`option${i}Continuation`);
-            const impactSel = document.getElementById(`option${i}AffinityImpact`);
             const t = textInput?.value.trim() || '';
             const c = contInput?.value.trim() || '';
-            if(t && c) {
-                const opt = {text: t, continuation: c};
-                const impact = impactSel?.value;
-                if (impact && impact !== 'neutral') opt.affinityImpact = impact;
-                options.push(opt);
-            }
+            if(t && c) options.push({text: t, continuation: c});
         }
         if(options.length === 0) { showAutosave('Rellena al menos una opción con texto y continuación', 'error'); return; }
     }
@@ -5747,7 +5557,7 @@ function postVNReply() {
         charName: isNarratorMode ? 'Narrador' : char.name,
         charColor: isNarratorMode ? null : char.color,
         charAvatar: isNarratorMode ? null : char.avatar,
-        charSprite: isNarratorMode ? null : (selectedSpriteOverride || char.sprite),
+        charSprite: isNarratorMode ? null : char.sprite,
         text: finalText,
         isNarrator: isNarratorMode,
         userIndex: currentUserIndex,
@@ -5788,27 +5598,11 @@ function postVNReply() {
         }
     }
 
-    // Ciclos narrativos: adjuntar cycle_id antes de guardar (solo modo clásico)
-    if (!isRpgModeMode() && typeof SupabaseCycles !== 'undefined') {
-        const _cycleId = SupabaseCycles.getActiveCycleId();
-        if (_cycleId) newMsg.cycle_id = _cycleId;
-    }
-
     topicMessages.push(newMsg);
 
     // Envío a Supabase (no bloquea — fallback local automático si falla)
     if (typeof SupabaseMessages !== 'undefined' && currentTopicId) {
         SupabaseMessages.send(currentTopicId, newMsg).catch(() => {});
-    }
-
-    // Ciclos narrativos: comprobar cierre del ciclo tras enviar (solo modo clásico)
-    if (!isRpgModeMode() && typeof SupabaseCycles !== 'undefined') {
-        SupabaseCycles.onMessageSent(
-            currentUserIndex,
-            getTopicMessages(currentTopicId),
-            currentTopicId,
-            function (closedCycleId) { _resolveCycleAffinities(closedCycleId, currentTopicId); }
-        ).catch(() => {});
     }
 
     notifyNextTurnIfNeeded(newMsg, topic, char).catch(() => {});
@@ -5828,161 +5622,6 @@ function postVNReply() {
     currentMessageIndex = getTopicMessages(currentTopicId).length - 1;
     triggerDialogueFadeIn();
     showCurrentMessage('forward');
-}
-
-// ============================================
-// CICLOS NARRATIVOS — resolución de afinidad al cierre
-// Solo modo clásico. No toca nada de js/rpg/.
-// ============================================
-
-// Aplica un cambio de afinidad programático siguiendo exactamente
-// el mismo camino de datos que modifyAffinity() en roleplay.js:
-// appData.affinities → save → SupabaseBonds → eventBus('affinity:changed')
-function _applyAffinityForCycle(topicId, fromCharId, toCharId, direction) {
-    if (!topicId || !fromCharId || !toCharId || fromCharId === toCharId) return;
-    if (typeof getAffinityKey !== 'function' || typeof getAffinityIncrement !== 'function') return;
-
-    if (!appData.affinities) appData.affinities = {};
-    if (!appData.affinities[topicId]) appData.affinities[topicId] = {};
-
-    const key          = getAffinityKey(fromCharId, toCharId);
-    const currentValue = appData.affinities[topicId][key] || 0;
-    const newValue     = getAffinityIncrement(currentValue, direction);
-
-    if (newValue === currentValue) return;
-
-    appData.affinities[topicId][key] = newValue;
-    hasUnsavedChanges = true;
-    save({ silent: true });
-
-    if (typeof SupabaseBonds !== 'undefined' && typeof SupabaseBonds.upsertBond === 'function') {
-        SupabaseBonds.upsertBond({
-            fromCharId, toCharId, affinity: newValue, storyId: topicId
-        }).catch(() => {});
-    }
-
-    if (typeof eventBus !== 'undefined') {
-        eventBus.emit('affinity:changed', {
-            direction, newValue, topicId,
-            targetCharId: toCharId,
-            activeCharId: fromCharId
-        });
-    }
-}
-
-// Recorre los mensajes del ciclo cerrado, aplica affinityImpact de cada
-// opción seleccionada. El fromCharId se resuelve buscando el mensaje más
-// reciente del selector (msg.selectedBy) en el ciclo; si no hay, su
-// primer personaje en appData.characters.
-function _resolveCycleAffinities(cycleId, topicId) {
-    if (!cycleId || !topicId) return;
-
-    const msgs      = getTopicMessages(topicId);
-    const cycleMsgs = msgs.filter(m => m.cycle_id === cycleId && !m.isOptionResult);
-
-    cycleMsgs.forEach(function (msg) {
-        if (!msg.options || msg.selectedOptionIndex === undefined) return;
-
-        const selectedOpt = msg.options[msg.selectedOptionIndex];
-        if (!selectedOpt || !selectedOpt.affinityImpact || selectedOpt.affinityImpact === 'neutral') return;
-
-        const targetCharId = msg.characterId;
-        if (!targetCharId) return;
-
-        // Buscar el personaje que usó el selector en este ciclo
-        const selectorIdx  = msg.selectedBy;
-        const selectorMsgs = cycleMsgs.filter(
-            m => m.userIndex === selectorIdx && m.characterId && m.id !== msg.id
-        );
-        const fromCharId   = selectorMsgs.length > 0
-            ? selectorMsgs[selectorMsgs.length - 1].characterId
-            : (appData.characters.find(c => c.userIndex === selectorIdx)?.id || null);
-
-        if (!fromCharId) return;
-
-        const direction = selectedOpt.affinityImpact === 'positive' ? 1 : -1;
-        _applyAffinityForCycle(topicId, fromCharId, targetCharId, direction);
-    });
-}
-
-// ── Ecos del ciclo: detectar y mostrar cambios no vistos ─────────────
-// Consulta Supabase por ciclos cerrados no vistos, deriva los cambios
-// de afinidad que afectan al usuario activo, y muestra el panel.
-// Al cerrar el panel, registra todos los ciclos como vistos.
-
-async function _checkUnseenCycleEchos(topicId) {
-    if (!topicId || typeof SupabaseCycleViews === 'undefined') return;
-    if (typeof Toasts === 'undefined') return;
-
-    const unseenIds = await SupabaseCycleViews.getUnseenForTopic(topicId);
-    if (!unseenIds || unseenIds.length === 0) return;
-
-    const msgs    = getTopicMessages(topicId);
-    const myChars = appData.characters.filter(c => c.userIndex === currentUserIndex);
-    const myIds   = new Set(myChars.map(c => String(c.id)));
-
-    // Acumular neto de impacto por personaje ajeno: charId → number (positivo = net up)
-    const netByOtherChar = {};
-
-    unseenIds.forEach(function (cycleId) {
-        const cycleMsgs = msgs.filter(m => m.cycle_id === cycleId && !m.isOptionResult);
-
-        cycleMsgs.forEach(function (msg) {
-            if (!msg.options || msg.selectedOptionIndex === undefined) return;
-
-            const selectedOpt = msg.options[msg.selectedOptionIndex];
-            if (!selectedOpt || !selectedOpt.affinityImpact || selectedOpt.affinityImpact === 'neutral') return;
-
-            const targetCharId = msg.characterId ? String(msg.characterId) : null;
-            if (!targetCharId) return;
-
-            const selectorIdx  = msg.selectedBy;
-            const selectorMsgs = cycleMsgs.filter(
-                m => m.userIndex === selectorIdx && m.characterId && m.id !== msg.id
-            );
-            const fromCharId = selectorMsgs.length > 0
-                ? String(selectorMsgs[selectorMsgs.length - 1].characterId)
-                : (appData.characters.find(c => c.userIndex === selectorIdx)?.id
-                    ? String(appData.characters.find(c => c.userIndex === selectorIdx).id)
-                    : null);
-
-            if (!fromCharId) return;
-
-            // ¿Afecta al usuario activo?
-            const myInvolved   = myIds.has(fromCharId) || myIds.has(targetCharId);
-            if (!myInvolved) return;
-
-            // El "otro" personaje es el que no es mío
-            const otherCharId  = myIds.has(fromCharId) ? targetCharId : fromCharId;
-            const delta        = selectedOpt.affinityImpact === 'positive' ? 1 : -1;
-
-            netByOtherChar[otherCharId] = (netByOtherChar[otherCharId] || 0) + delta;
-        });
-    });
-
-    const changes = Object.entries(netByOtherChar)
-        .filter(([, net]) => net !== 0)
-        .map(function ([charId, net]) {
-            const char = appData.characters.find(c => String(c.id) === charId);
-            return {
-                charName:   char?.name   || '—',
-                charAvatar: char?.avatar || null,
-                direction:  net > 0 ? 'up' : 'down',
-            };
-        });
-
-    if (changes.length === 0) {
-        // Sin cambios visibles para este usuario — marcar como vistos de todas formas
-        unseenIds.forEach(id => SupabaseCycleViews.markSeen(id).catch(() => {}));
-        return;
-    }
-
-    Toasts.showCycleEchos({
-        changes,
-        onDismiss: function () {
-            unseenIds.forEach(id => SupabaseCycleViews.markSeen(id).catch(() => {}));
-        },
-    });
 }
 
 // ============================================
@@ -6559,3 +6198,392 @@ function vrpSetWeatherBtn(clickedBtn) {
         _list.innerHTML = '';
     });
 }());
+
+
+// ── Menú de exportación ───────────────────────────────────────────────────────
+// Dropdown ligero que agrupa las dos opciones de exportar (txt y PDF).
+// Se cierra al hacer clic fuera o al elegir una opción.
+
+function toggleExportMenu(menuId, event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    const isOpen = !menu.classList.contains('hidden');
+    // Cerrar cualquier otro menú de exportación abierto
+    document.querySelectorAll('.export-menu').forEach(function (m) {
+        m.classList.add('hidden');
+    });
+    if (!isOpen) {
+        menu.classList.remove('hidden');
+        // Cerrar al hacer clic fuera
+        setTimeout(function () {
+            document.addEventListener('click', function _closeExport() {
+                closeExportMenu(menuId);
+                document.removeEventListener('click', _closeExport);
+            }, { once: true });
+        }, 0);
+    }
+}
+
+function closeExportMenu(menuId) {
+    const menu = document.getElementById(menuId || 'exportMenuClassic') ||
+                 document.getElementById('exportMenuRpg');
+    if (menu) menu.classList.add('hidden');
+}
+
+window.toggleExportMenu = toggleExportMenu;
+window.closeExportMenu  = closeExportMenu;
+
+// ── Elecciones del ciclo dentro del reply panel ──────────────────────────────
+// Al abrir el panel de respuesta en modo clásico, se cargan las elecciones
+// activas del ciclo y se muestran como tarjetas con opciones seleccionables.
+// El autor de cada elección NO ve su propia elección (no puede responderse).
+// Al seleccionar una opción se guarda en cycle_choice_responses via Supabase.
+
+async function _loadAndRenderCycleChoicesInPanel(topicId) {
+    const container = _getCycleInPanelContainer();
+    if (!container) return;
+
+    try {
+        const cycle = await SupabaseCycles.getOpenCycle(topicId);
+        if (!cycle) { _hideCycleChoicesInPanel(); return; }
+
+        const choices = await SupabaseCycles.loadChoicesForCycle(cycle.id);
+        const responses = await SupabaseCycles.loadResponsesForCycle(cycle.id);
+
+        // Filtrar: el usuario no ve sus propias elecciones
+        const uid = (await window.supabaseClient?.auth?.getUser())?.data?.user?.id;
+        const myCharId = String(selectedCharId || '');
+
+        // Elecciones respondibles: no son del usuario actual
+        const respondible = choices.filter(ch => ch.author_user_id !== uid);
+
+        if (respondible.length === 0) { _hideCycleChoicesInPanel(); return; }
+
+        // Respuestas ya dadas por el personaje activo
+        const myResponses = new Set(
+            responses
+                .filter(r => String(r.responder_char_id) === myCharId)
+                .map(r => r.choice_id)
+        );
+
+        // Renderizar
+        container.innerHTML = respondible.map(choice => {
+            const alreadyResponded = myResponses.has(choice.id);
+            const opts = (choice.cycle_choice_options || [])
+                .sort((a, b) => a.display_order - b.display_order);
+
+            const optsHtml = opts.map(opt => `
+                <button class="vrp-cycle-opt ${alreadyResponded ? 'vrp-cycle-opt-spent' : ''}"
+                        data-choice-id="${choice.id}"
+                        data-opt-id="${opt.id}"
+                        data-cycle-id="${cycle.id}"
+                        ${alreadyResponded ? 'disabled' : ''}
+                        onclick="_onCycleOptClick(this)">
+                    <span class="vrp-cycle-opt-label">${opt.label}</span>
+                    <span class="vrp-cycle-opt-text">${opt.option_text}</span>
+                </button>
+            `).join('');
+
+            return `
+                <div class="vrp-cycle-card ${alreadyResponded ? 'vrp-cycle-card-done' : ''}">
+                    <div class="vrp-cycle-card-header">
+                        <span class="vrp-cycle-icon">✦</span>
+                        <span class="vrp-cycle-question">${choice.question_text}</span>
+                        ${alreadyResponded
+                            ? '<span class="vrp-cycle-responded">Respondida ✓</span>'
+                            : ''}
+                    </div>
+                    <div class="vrp-cycle-opts">${optsHtml}</div>
+                </div>
+            `;
+        }).join('');
+
+        container.classList.remove('hidden');
+
+    } catch (err) {
+        window.EtheriaLogger?.warn('cycles-panel', 'Error cargando elecciones:', err?.message);
+        _hideCycleChoicesInPanel();
+    }
+}
+
+function _onCycleOptClick(btn) {
+    if (!btn || btn.disabled) return;
+    const choiceId = btn.dataset.choiceId;
+    const optId    = btn.dataset.optId;
+    const cycleId  = btn.dataset.cycleId;
+    if (!choiceId || !optId || !cycleId || !currentTopicId || !selectedCharId) return;
+
+    // Feedback visual inmediato
+    const card = btn.closest('.vrp-cycle-card');
+    if (card) {
+        card.querySelectorAll('.vrp-cycle-opt').forEach(b => { b.disabled = true; });
+        card.classList.add('vrp-cycle-card-done');
+        const responded = card.querySelector('.vrp-cycle-responded');
+        if (!responded) {
+            const header = card.querySelector('.vrp-cycle-card-header');
+            if (header) {
+                const span = document.createElement('span');
+                span.className = 'vrp-cycle-responded';
+                span.textContent = 'Respondida ✓';
+                header.appendChild(span);
+            }
+        }
+        // Marcar la opción elegida
+        btn.classList.add('vrp-cycle-opt-selected');
+    }
+
+    // Guardar en Supabase
+    if (typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.saveResponse(
+            choiceId, optId, cycleId, currentTopicId, String(selectedCharId)
+        ).then(ok => {
+            if (ok && typeof showAutosave === 'function') {
+                showAutosave('✦ Respuesta guardada — se revelará al cerrar el ciclo', 'saved');
+            }
+        }).catch(() => {});
+    }
+}
+
+function _getCycleInPanelContainer() {
+    let container = document.getElementById('vrpCycleChoices');
+    if (!container) {
+        // Crear el contenedor e insertarlo antes del vrp-body
+        container = document.createElement('div');
+        container.id = 'vrpCycleChoices';
+        container.className = 'vrp-cycle-choices hidden';
+        container.setAttribute('aria-label', 'Elecciones activas del ciclo');
+        // Insertarlo justo antes del vrp-write-pane
+        const writePane = document.querySelector('.vrp-write-pane');
+        if (writePane) {
+            writePane.closest('.vrp-split')?.parentElement?.insertBefore(container, writePane.closest('.vrp-split'));
+        }
+    }
+    return container;
+}
+
+function _hideCycleChoicesInPanel() {
+    const container = document.getElementById('vrpCycleChoices');
+    if (container) container.classList.add('hidden');
+}
+
+window._onCycleOptClick = _onCycleOptClick;
+
+// ── Indicador de turno — banner sobre la caja de diálogo ─────────────────────
+// Muestra discretamente a quién le toca responder cuando turn_mode está activo.
+// Si es el turno del usuario actual: "✦ Tu turno" (invita a responder)
+// Si es el turno de otro: "⏳ Turno de [nombre]" (espera)
+// Si turn_mode está off: banner oculto
+
+function updateTurnBanner() {
+    const banner = _getOrCreateTurnBanner();
+    if (!banner) return;
+
+    const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    if (!topic || !topic.turnMode || topic.turnMode === 'off'
+            || !Array.isArray(topic.turnOrder) || topic.turnOrder.length === 0) {
+        banner.classList.add('hidden');
+        return;
+    }
+
+    const me       = window._cachedUserId;
+    const current  = topic.turnOrder[0];
+    const isMyTurn = current === me;
+
+    if (isMyTurn) {
+        banner.className = 'vn-turn-banner vn-turn-mine';
+        banner.innerHTML = '<span class="turn-banner-icon">✦</span>'
+                         + '<span class="turn-banner-text">Tu turno</span>';
+    } else {
+        // Buscar el nombre del participante que tiene el turno
+        const participants = Array.isArray(window.currentStoryParticipants)
+            ? window.currentStoryParticipants : [];
+        const p = participants.find(p => p?.user_id === current);
+        const name = p?.profile?.name || p?.profile?.username
+            || (current ? current.slice(0, 8) + '…' : 'otro jugador');
+
+        banner.className = 'vn-turn-banner vn-turn-other';
+        banner.innerHTML = '<span class="turn-banner-icon">⏳</span>'
+                         + `<span class="turn-banner-text">Turno de <strong>${name}</strong></span>`;
+    }
+
+    banner.classList.remove('hidden');
+}
+
+function _getOrCreateTurnBanner() {
+    let banner = document.getElementById('vnTurnBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'vnTurnBanner';
+        banner.className = 'vn-turn-banner hidden';
+        // Insertar justo encima de la caja de diálogo (.bottom-panel)
+        const bottomPanel = document.querySelector('#vnSection .bottom-panel');
+        if (bottomPanel) {
+            bottomPanel.parentElement?.insertBefore(banner, bottomPanel);
+        }
+    }
+    return banner;
+}
+
+// Escuchar el evento de turno recibido para actualizar el banner en tiempo real
+window.addEventListener('etheria:turn-notification', function () {
+    if (typeof updateTurnBanner === 'function') updateTurnBanner();
+});
+
+window.updateTurnBanner = updateTurnBanner;
+
+// ── Panel de creación de elección (modo clásico exclusivamente) ───────────────
+// Estas funciones gestionan el botón ✦ Elección en la caja de diálogo y el
+// panel pergamino para crear elecciones de afinidad. Solo activas en modo clásico.
+
+// Muestra/oculta el botón según contexto. Solo visible en modo clásico cuando
+// el jugador tiene derecho a lanzar una elección en el ciclo activo.
+function updateChoiceButton() {
+    const btn = document.getElementById('vnChoiceDialogBtn');
+    if (!btn) return;
+
+    // Solo en modo clásico
+    const topic     = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    const isClassic = !isRpgTopicMode(topic?.mode);
+    const vnActive  = !!document.getElementById('vnSection')?.classList.contains('active');
+
+    if (!isClassic || !vnActive || !currentTopicId) {
+        btn.style.display = 'none';
+        return;
+    }
+
+    btn.style.display = 'inline-flex';
+
+    if (typeof SupabaseCycles !== 'undefined') {
+        SupabaseCycles.getOpenCycle(currentTopicId).then(cycle => {
+            if (!cycle) {
+                btn.disabled = false;
+                btn.title    = 'Lanzar una elección al ciclo';
+                btn.classList.remove('choice-btn-spent');
+                return;
+            }
+            SupabaseCycles.canLaunchChoice(cycle.id).then(canLaunch => {
+                btn.disabled = !canLaunch;
+                btn.title    = canLaunch
+                    ? 'Lanzar una elección al ciclo'
+                    : 'Ya lanzaste una elección en este ciclo — disponible en el siguiente';
+                btn.classList.toggle('choice-btn-spent', !canLaunch);
+            }).catch(() => {});
+        }).catch(() => {});
+    }
+}
+
+// Abre el panel pergamino de creación de elección.
+function openChoicePanel() {
+    const panel = document.getElementById('choiceCreatorPanel');
+    if (!panel) return;
+    ['choiceQuestion','choiceOptA','choiceOptB','choiceOptC'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    const note = document.getElementById('choiceCreatorNote');
+    if (note) note.textContent = '';
+    panel.classList.remove('hidden');
+    setTimeout(() => document.getElementById('choiceQuestion')?.focus(), 80);
+}
+
+// Cierra el panel sin lanzar nada.
+function closeChoicePanel() {
+    const panel = document.getElementById('choiceCreatorPanel');
+    if (panel) panel.classList.add('hidden');
+}
+
+// Valida y lanza la elección al ciclo activo (o abre uno si no hay).
+async function launchChoice() {
+    const question  = document.getElementById('choiceQuestion')?.value?.trim();
+    const optA      = document.getElementById('choiceOptA')?.value?.trim();
+    const optB      = document.getElementById('choiceOptB')?.value?.trim();
+    const optC      = document.getElementById('choiceOptC')?.value?.trim();
+    const note      = document.getElementById('choiceCreatorNote');
+    const launchBtn = document.getElementById('choiceLaunchBtn');
+
+    if (!question) { if (note) note.textContent = 'Escribe la pregunta para continuar.'; return; }
+    if (!optA || !optB || !optC) { if (note) note.textContent = 'Completa las tres opciones.'; return; }
+    if (!currentTopicId || !selectedCharId) { if (note) note.textContent = 'Entra en una historia con un personaje.'; return; }
+    if (typeof SupabaseCycles === 'undefined') return;
+
+    if (launchBtn) { launchBtn.disabled = true; launchBtn.textContent = 'Lanzando…'; }
+    if (note) note.textContent = '';
+
+    try {
+        let cycle = await SupabaseCycles.getOpenCycle(currentTopicId);
+        if (!cycle) {
+            const topic        = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+            const participants = topic?.participants || [];
+            cycle = await SupabaseCycles.openCycle(currentTopicId, participants);
+        }
+        if (!cycle) { if (note) note.textContent = 'No se pudo abrir el ciclo. Inténtalo de nuevo.'; return; }
+
+        // Tres opciones con impacto fijo, orden barajado para no revelar el impacto por posición
+        const opts = [
+            { label: 'A', text: optA, affinity_impact:  3 },
+            { label: 'B', text: optB, affinity_impact:  0 },
+            { label: 'C', text: optC, affinity_impact: -3 },
+        ];
+        opts.sort(() => Math.random() - .5);
+        opts.forEach((o, i) => { o.label = String.fromCharCode(65 + i); });
+
+        const choice = await SupabaseCycles.createChoice(
+            cycle.id, currentTopicId, selectedCharId, question, opts
+        );
+        if (!choice) { if (note) note.textContent = '¿Ya lanzaste una elección este ciclo?'; return; }
+
+        closeChoicePanel();
+        if (typeof showAutosave === 'function') showAutosave('✦ Elección lanzada al ciclo', 'saved');
+        updateChoiceButton();
+
+    } catch (err) {
+        window.EtheriaLogger?.warn('choicePanel', err?.message);
+        if (note) note.textContent = 'Error inesperado. Inténtalo de nuevo.';
+    } finally {
+        if (launchBtn) { launchBtn.disabled = false; launchBtn.textContent = '✦ Lanzar al ciclo'; }
+    }
+}
+
+// ── toggleExportMenu / closeExportMenu ────────────────────────────────────────
+function toggleExportMenu(menuId, event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+    const isOpen = !menu.classList.contains('hidden');
+    document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden'));
+    if (!isOpen) {
+        menu.classList.remove('hidden');
+        setTimeout(function () {
+            document.addEventListener('click', function _closeExport() {
+                closeExportMenu(menuId);
+                document.removeEventListener('click', _closeExport);
+            }, { once: true });
+        }, 0);
+    }
+}
+
+function closeExportMenu(menuId) {
+    const menu = document.getElementById(menuId || 'exportMenuClassic') ||
+                 document.getElementById('exportMenuRpg');
+    if (menu) menu.classList.add('hidden');
+}
+
+window.openChoicePanel    = openChoicePanel;
+window.closeChoicePanel   = closeChoicePanel;
+window.launchChoice       = launchChoice;
+window.updateChoiceButton = updateChoiceButton;
+window.toggleExportMenu   = toggleExportMenu;
+window.closeExportMenu    = closeExportMenu;
+
+// ── Dashboard de actividad ────────────────────────────────────────────────────
+// Abre el dashboard solo si el usuario es el creador del topic (owner).
+function openActivityDashboard() {
+    const topic = typeof getCurrentTopic === 'function' ? getCurrentTopic() : null;
+    if (!topic || !currentTopicId) return;
+
+    if (typeof ActivityDashboard !== 'undefined') {
+        ActivityDashboard.open(currentTopicId);
+    }
+}
+window.openActivityDashboard = openActivityDashboard;

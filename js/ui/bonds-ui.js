@@ -15,9 +15,38 @@ const BondsUI = (function () {
         return (appData?.characters || []).find(c => String(c.id) === String(id)) || null;
     }
 
-    function _rankColor(rankName) {
-        if (!window.affinityRanks) return '#ffffff';
-        return window.affinityRanks.find(r => r.name === rankName)?.color || '#ffffff';
+    // Devuelve el color del rank correcto teniendo en cuenta la rama.
+    // relationType: 'friendship'|'romance'|'rivalry'|'enmity'|'undefined'|null
+    function _rankColor(rankName, relationType) {
+        if (!window.affinityRanks) return '#8e9196';
+        const rel = relationType || 'undefined';
+        // Buscar primero dentro de la rama correcta para evitar colisiones
+        // entre rangos con el mismo nombre en ramas distintas (e.g. Tensión)
+        const inBranch = window.affinityRanks.find(r =>
+            r.name === rankName && (rel === 'undefined' || r.branch === rel || r.branch === 'common' || r.branch === 'negative')
+        );
+        return inBranch?.color || window.affinityRanks.find(r => r.name === rankName)?.color || '#8e9196';
+    }
+
+    // Devuelve el icono del rank según la rama.
+    function _rankIcon(rankName, relationType) {
+        if (!window.affinityRanks) return '';
+        const rel = relationType || 'undefined';
+        const rank = window.affinityRanks.find(r =>
+            r.name === rankName && (rel === 'undefined' || r.branch === rel || r.branch === 'common' || r.branch === 'negative')
+        ) || window.affinityRanks.find(r => r.name === rankName);
+        return rank?.icon || '';
+    }
+
+    // Devuelve la etiqueta de rama para mostrar al usuario.
+    function _branchLabel(relationType) {
+        const labels = {
+            friendship: '♦ Amistad',
+            romance:    '♡ Romance',
+            rivalry:    '⚔ Rivalidad',
+            enmity:     '✗ Enemistad',
+        };
+        return labels[relationType] || null;
     }
 
     function _isMyChar(charId) {
@@ -250,13 +279,24 @@ const BondsUI = (function () {
         const editKey   = `${myFromId}_${myToId}`;
         const isEditing = _editingKey === editKey;
 
-        const outRank  = out?.rank_name || 'Desconocidos';
-        const incRank  = inc?.rank_name || 'Desconocidos';
-        const outColor = _rankColor(outRank);
-        const incColor = _rankColor(incRank);
-        const outAff   = out?.affinity ?? '—';
-        const incAff   = inc?.affinity ?? '—';
-        const myNote   = out?.note || '';
+        const outRank     = out?.rank_name || 'Desconocidos';
+        const incRank     = inc?.rank_name || 'Desconocidos';
+
+        // relation_type: leído desde appData.affinityTypes (cargado por SupabaseCycles)
+        const topicId     = currentTopicId || null;
+        const affTypes    = topicId ? (window.appData?.affinityTypes?.[topicId] || {}) : {};
+        const outType     = out ? (affTypes[`${myChar.id}_${otherId}`] || 'undefined') : 'undefined';
+        const incType     = inc ? (affTypes[`${otherId}_${myChar.id}`] || 'undefined') : 'undefined';
+
+        const outColor    = _rankColor(outRank, outType);
+        const incColor    = _rankColor(incRank, incType);
+        const outIcon     = _rankIcon(outRank, outType);
+        const incIcon     = _rankIcon(incRank, incType);
+        const outBranch   = _branchLabel(outType);
+        const incBranch   = _branchLabel(incType);
+        const outAff      = out?.affinity ?? '—';
+        const incAff      = inc?.affinity ?? '—';
+        const myNote      = out?.note || '';
 
         return `
         <div class="bond-row" id="bond-row-${editKey}">
@@ -269,12 +309,16 @@ const BondsUI = (function () {
                 <div class="bond-affinities">
                     <div class="bond-aff-pill" style="--rank-color: ${outColor}" title="Lo que ${escapeHtml(myChar.name)} siente hacia ${otherName}">
                         <span class="bond-aff-arrow">→</span>
+                        <span class="bond-aff-icon">${outIcon}</span>
                         <span class="bond-aff-rank">${escapeHtml(outRank)}</span>
+                        ${outBranch ? `<span class="bond-aff-branch">${outBranch}</span>` : ''}
                         <span class="bond-aff-val">${outAff}</span>
                     </div>
                     <div class="bond-aff-pill bond-aff-incoming" style="--rank-color: ${incColor}" title="Lo que ${otherName} siente hacia ${escapeHtml(myChar.name)}">
                         <span class="bond-aff-arrow">←</span>
+                        <span class="bond-aff-icon">${incIcon}</span>
                         <span class="bond-aff-rank">${escapeHtml(incRank)}</span>
+                        ${incBranch ? `<span class="bond-aff-branch">${incBranch}</span>` : ''}
                         <span class="bond-aff-val">${incAff}</span>
                     </div>
                 </div>
@@ -370,7 +414,8 @@ const BondsUI = (function () {
             container.innerHTML = '<div class="bond-history-entry" style="font-style:italic;opacity:0.5">Sin cambios registrados</div>';
         } else {
             container.innerHTML = history.map(h => {
-                const color = _rankColor(h.new_rank || '');
+                // El historial no guarda relation_type, usamos el actual como aproximación
+                const color = _rankColor(h.new_rank || '', outType);
                 const date  = h.changed_at
                     ? new Date(h.changed_at).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'2-digit' })
                     : '';
@@ -409,3 +454,4 @@ const BondsUI = (function () {
 })();
 
 window.BondsUI = BondsUI;
+

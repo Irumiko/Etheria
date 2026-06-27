@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "etheria-dist",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "dist", "--no-clipboard", "-l", "3333"],
+      "port": 3333
+    }
+  ]
+}

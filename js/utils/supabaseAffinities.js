@@ -46,6 +46,13 @@ const SupabaseAffinities = (function () {
 
             if (error) {
                 window.EtheriaLogger?.warn('supabaseAffinities', 'upsert failed:', error.message);
+            } else if (window.SupabaseExtras?.logActivity) {
+                // Log de cambio de afinidad — fire-and-forget
+                window.SupabaseExtras.logActivity('affinity_changed', 'story', String(topicId), {
+                    fromCharId: String(fromCharId),
+                    toCharId:   String(toCharId),
+                    value:      Math.max(0, Math.min(100, Number(value) || 0))
+                }).catch(() => {});
             }
         } catch (err) {
             window.EtheriaLogger?.warn('supabaseAffinities', 'upsert error:', err?.message);
@@ -276,3 +283,4 @@ const SupabaseAffinities = (function () {
 })();
 
 window.SupabaseAffinities = SupabaseAffinities;
+

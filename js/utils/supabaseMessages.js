@@ -5,7 +5,6 @@
 // Tabla: id (uuid), session_id (text), author (text),
 //        content (text), created_at (timestamp).
 //
-// No sustituye localStorage ni jsonbin.io.
 // Si Supabase falla, la app continúa sin errores.
 // ============================================
 
@@ -215,6 +214,13 @@
             }
 
             _available = true;
+            // Registrar en activity_log (fire-and-forget, no bloquea el envío)
+            if (global.SupabaseExtras?.logActivity) {
+                global.SupabaseExtras.logActivity('message_sent', 'story',
+                    String(sessionId),
+                    { isNarrator: !!msgObj.isNarrator, charId: String(msgObj.characterId || '') }
+                ).catch(() => {});
+            }
             return true;
 
         } catch (e) {
@@ -692,3 +698,4 @@
     };
 
 }(window));
+

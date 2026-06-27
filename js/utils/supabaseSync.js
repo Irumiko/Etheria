@@ -1,7 +1,7 @@
 // ============================================
 // SUPABASE SYNC — Sincronización completa de datos
 // ============================================
-// Reemplaza el sistema JSONBin con sincronización completa vía Supabase.
+// Sincronización completa vía Supabase.
 // Sincroniza: perfiles, topics, characters, mensajes, afinidades, favoritos.
 //
 // Tablas requeridas en Supabase:

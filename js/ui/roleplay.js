@@ -1125,6 +1125,16 @@ const AFFINITY_RANK_ICONS = {
 let _affinityMilestoneTimer = null;
 
 function showAffinityMilestone(rankInfo, activeCharId, targetCharId) {
+    // Log del hito de rango alcanzado
+    if (window.SupabaseExtras?.logActivity && rankInfo?.name) {
+        window.SupabaseExtras.logActivity('rank_reached', 'story', currentTopicId, {
+            rank:         rankInfo.name,
+            branch:       rankInfo.branch || 'common',
+            fromCharId:   String(activeCharId || ''),
+            toCharId:     String(targetCharId || ''),
+            bilateral:    !!rankInfo.requiresReciprocity
+        }).catch(() => {});
+    }
     const overlay   = document.getElementById('vnAffinityMilestone');
     const iconEl    = document.getElementById('vnAffinityMilestoneIcon');
     const rankEl    = document.getElementById('vnAffinityMilestoneRank');
@@ -1215,3 +1225,214 @@ window.toggleIhpInventory = toggleIhpInventory;
 window.openIhpInventory   = openIhpInventory;
 window.closeIhpInventory  = closeIhpInventory;
 window._refreshIhpInventory = _refreshIhpInventory;
+
+
+// ══════════════════════════════════════════════════════════════════
+// SISTEMA DE CICLOS — Listeners de EventBus
+// Conecta los eventos de SupabaseCycles con la UI de roleplay.
+// ══════════════════════════════════════════════════════════════════
+
+(function _initCycleListeners() {
+    if (window._cycleListenersReady) return;
+    window._cycleListenersReady = true;
+    if (typeof eventBus === 'undefined') return;
+
+    // ── Ciclo abierto ───────────────────────────────────────────
+    eventBus.on('cycle:opened', function (data) {
+        window.EtheriaLogger?.info?.('cycles-ui', 'Ciclo abierto:', data.cycle?.id);
+        _refreshCycleUI(data.topicId);
+    });
+
+    // ── Ciclo cerrado → mostrar panel "Ecos del ciclo" ─────────
+    eventBus.on('cycle:closed', function (data) {
+        window.EtheriaLogger?.info?.('cycles-ui', 'Ciclo cerrado:', data.cycleId);
+        _refreshCycleUI(data.topicId);
+        // El panel de Ecos se mostrará cuando llegue cycle:affinity-impacts
+    });
+
+    // ── Impactos de afinidad al cerrar → panel Ecos ─────────────
+    eventBus.on('cycle:affinity-impacts', function (data) {
+        if (!data.changes || data.changes.length === 0) return;
+        _showEcosPanel(data);
+        if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+    });
+
+    // ── Nueva elección disponible → refrescar panel ──────────────
+    eventBus.on('cycle:choice-created', function (data) {
+        _refreshChoicesUI(data.cycleId, data.topicId);
+    });
+
+    // ── Respuesta guardada ───────────────────────────────────────
+    eventBus.on('cycle:response-saved', function () {
+        if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+    });
+
+    // ── Rama elegida → refrescar display de afinidad ────────────
+    eventBus.on('cycle:branch-chosen', function (data) {
+        window.EtheriaLogger?.info?.('cycles-ui', 'Rama elegida:', data.relationType);
+        if (typeof updateAffinityDisplay === 'function') updateAffinityDisplay();
+    });
+
+})();
+
+// ── Helpers de UI de ciclos ──────────────────────────────────────────────────
+
+function _refreshCycleUI(topicId) {
+    // Refresca el indicador de ciclo activo si existe en el DOM
+    const badge = document.getElementById('cycleBadge');
+    if (!badge || !topicId) return;
+    if (typeof SupabaseCycles === 'undefined') return;
+
+    SupabaseCycles.getOpenCycle(topicId).then(cycle => {
+        if (cycle) {
+            badge.textContent = 'Ciclo activo';
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }).catch(() => {});
+}
+
+function _refreshChoicesUI(cycleId) {
+    // Carga y renderiza las elecciones abiertas del ciclo
+    if (!cycleId || typeof SupabaseCycles === 'undefined') return;
+    SupabaseCycles.loadChoicesForCycle(cycleId).then(choices => {
+        const container = document.getElementById('cycleChoicesContainer');
+        if (!container) return;
+        if (!choices || choices.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        container.innerHTML = choices.map(choice => _renderChoiceCard(choice)).join('');
+    }).catch(() => {});
+}
+
+function _renderChoiceCard(choice) {
+    const opts = (choice.cycle_choice_options || [])
+        .sort((a, b) => a.display_order - b.display_order);
+
+    const optsHtml = opts.map(opt => `
+        <button class="cycle-choice-opt" data-choice-id="${choice.id}" data-opt-id="${opt.id}">
+            <span class="cycle-choice-label">${opt.label}</span>
+            <span class="cycle-choice-text">${opt.option_text}</span>
+        </button>
+    `).join('');
+
+    return `
+        <div class="cycle-choice-card" data-choice-id="${choice.id}">
+            <p class="cycle-choice-question">✦ ${choice.question_text}</p>
+            <div class="cycle-choice-options">${optsHtml}</div>
+        </div>
+    `;
+}
+
+// Panel "Ecos del ciclo" — muestra solo los cambios de afinidad del
+// personaje activo del usuario. Los efectos de los demás permanecen ocultos.
+function _showEcosPanel(data) {
+    const activeCharId = window.selectedCharId;
+    if (!activeCharId) return;
+
+    // Filtrar solo los cambios que afectan al personaje activo del usuario
+    const myChanges = (data.changes || []).filter(c =>
+        c.fromCharId === String(activeCharId) ||
+        c.toCharId   === String(activeCharId)
+    );
+
+    if (myChanges.length === 0) return; // Sin cambios propios → no mostrar panel
+
+    // Construir el contenido del panel
+    const changesHtml = myChanges.map(c => {
+        const delta   = c.delta;
+        const sign    = delta > 0 ? '+' : '';
+        const cls     = delta > 0 ? 'eco-positive' : delta < 0 ? 'eco-negative' : 'eco-neutral';
+        const other   = c.fromCharId === String(activeCharId) ? c.toCharId : c.fromCharId;
+        const charName = _getCharName(other);
+        return `<div class="eco-item ${cls}">
+            <span class="eco-char">${charName}</span>
+            <span class="eco-delta">${sign}${delta}</span>
+        </div>`;
+    }).join('');
+
+    // Mostrar el panel (si existe en el DOM)
+    let panel = document.getElementById('cycleEcosPanel');
+    if (!panel) return;
+
+    panel.innerHTML = `
+        <div class="ecos-header">✦ Ecos del ciclo ✦</div>
+        <p class="ecos-sub">Solo tú ves estos cambios</p>
+        <div class="ecos-list">${changesHtml}</div>
+        <button class="ecos-close-btn" onclick="document.getElementById('cycleEcosPanel').classList.add('hidden')">
+            Cerrar
+        </button>
+    `;
+    panel.classList.remove('hidden');
+}
+
+function _getCharName(charId) {
+    const chars = window.appData?.characters || [];
+    const char  = chars.find(c => String(c.id) === String(charId));
+    return char?.name || 'Personaje';
+}
+
+// ── Modal de bifurcación de rama ─────────────────────────────────────────────
+// Se llama desde updateAffinityDisplay cuando isAtBifurcationPoint() es true.
+function showBranchSelectionModal(fromCharId, toCharId, topicId) {
+    let modal = document.getElementById('branchSelectionModal');
+    if (!modal) return;
+
+    const targetName = _getCharName(toCharId);
+
+    modal.innerHTML = `
+        <div class="branch-modal-inner">
+            <h3 class="branch-modal-title">✦ Un vínculo se forma ✦</h3>
+            <p class="branch-modal-sub">
+                ¿Cómo percibe tu personaje la relación con <strong>${targetName}</strong>?<br>
+                <em>Solo tú ves esta elección. Cada percepción es válida.</em>
+            </p>
+            <div class="branch-options">
+                <button class="branch-opt branch-friendship" data-type="friendship">
+                    <span class="branch-icon">♦</span>
+                    <span class="branch-name">Amistad</span>
+                    <span class="branch-desc">Lealtad, confianza, compañerismo</span>
+                </button>
+                <button class="branch-opt branch-romance" data-type="romance">
+                    <span class="branch-icon">♡</span>
+                    <span class="branch-name">Romance</span>
+                    <span class="branch-desc">Admiración, afecto, atracción</span>
+                </button>
+                <button class="branch-opt branch-rivalry" data-type="rivalry">
+                    <span class="branch-icon">⚔</span>
+                    <span class="branch-name">Rivalidad</span>
+                    <span class="branch-desc">Competencia, desafío, respeto tenso</span>
+                </button>
+                <button class="branch-opt branch-enmity" data-type="enmity">
+                    <span class="branch-icon">✗</span>
+                    <span class="branch-name">Enemistad</span>
+                    <span class="branch-desc">Antipatía, conflicto, rechazo</span>
+                </button>
+            </div>
+            <p class="branch-modal-footer">Podrás ver cómo te percibe el otro cuando la historia lo revele.</p>
+        </div>
+    `;
+
+    // Eventos de selección
+    modal.querySelectorAll('.branch-opt').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const relationType = this.dataset.type;
+            if (typeof SupabaseCycles !== 'undefined') {
+                SupabaseCycles.chooseBranch(fromCharId, toCharId, topicId, relationType)
+                    .then(ok => {
+                        if (ok) modal.classList.add('hidden');
+                    }).catch(() => {});
+            }
+        });
+    });
+
+    modal.classList.remove('hidden');
+}
+
+window.showBranchSelectionModal = showBranchSelectionModal;
+window._showEcosPanel           = _showEcosPanel;
+window._refreshCycleUI          = _refreshCycleUI;
+window._refreshChoicesUI        = _refreshChoicesUI;
+

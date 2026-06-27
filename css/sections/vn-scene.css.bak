@@ -18,7 +18,39 @@
 
 /* ══════════════════════════════════════════════════════════════════════
    COMPARTIDO: variables locales del VN
+   Se declaran en body.theme-* además de #vnSection para que los elementos
+   fuera del árbol de #vnSection (p.ej. #classicPartyShell) las hereden.
    ══════════════════════════════════════════════════════════════════════ */
+body.theme-classic,
+body.theme-rpg {
+    --vns-cream:  #f3ecda;
+    --vns-gold:   #c9a86c;
+    --vns-goldlt: #f0d898;
+    --vns-hp:     #d9694e;
+    --vns-exp:    #6fae9c;
+
+    --vns-p-deep:   #0b0a24;
+    --vns-p-mid:    #181a44;
+    --vns-p-sky1:   #231c52;
+    --vns-p-sky2:   #0c0a26;
+    --vns-p-silver: #dcd6f0;
+    --vns-p-lav:    #c1a8ec;
+    --vns-p-peri:   #9aa6ee;
+    --vns-p-line:   rgba(206,196,255,.55);
+    --vns-p-glow:   rgba(197,168,232,.45);
+
+    --vns-a-deep:   #160d06;
+    --vns-a-mid:    #39200e;
+    --vns-a-sky1:   #4a2c12;
+    --vns-a-sky2:   #140a05;
+    --vns-a-amber:  #e3a24f;
+    --vns-a-bronze: #b0763a;
+    --vns-a-parch:  #e7d3a3;
+    --vns-a-ember:  #e08a5c;
+    --vns-a-line:   rgba(224,162,79,.5);
+    --vns-a-glow:   rgba(224,162,79,.4);
+}
+
 #vnSection {
     --vns-cream:  #f3ecda;
     --vns-gold:   #c9a86c;
@@ -78,6 +110,65 @@ body.theme-classic #vnSection::after {
     z-index: 1;
 }
 
+/* ── Tarjeta de info (arriba-izq) — paleta Palabra ─────────────────── */
+body.theme-classic #vnSection .vn-info-card {
+    background: linear-gradient(160deg, rgba(18,14,44,.82), rgba(9,7,28,.9)) !important;
+    border: 1px solid rgba(193,168,236,.28) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,.45), inset 0 1px 0 rgba(220,214,240,.06) !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-name {
+    color: var(--vns-cream) !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 14px !important;
+    letter-spacing: .06em !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-subtitle {
+    color: var(--vns-p-lav) !important;
+    font-family: 'EB Garamond', serif !important;
+    font-style: italic !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-pill {
+    background: rgba(193,168,236,.1) !important;
+    border: 1px solid rgba(193,168,236,.25) !important;
+    color: var(--vns-p-silver) !important;
+    font-size: 10px !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-pill-sep {
+    color: rgba(193,168,236,.4) !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-affection-bar-fill {
+    background: linear-gradient(90deg, #9aa6ee, #c1a8ec) !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-hover-details {
+    background: rgba(9,7,26,.96) !important;
+    border: 1px solid rgba(193,168,236,.22) !important;
+}
+body.theme-classic #vnSection .vn-info-card .vn-info-avatar {
+    border: 2px solid rgba(193,168,236,.4) !important;
+    box-shadow: 0 0 14px rgba(145,108,220,.3) !important;
+}
+
+/* ── Chapter reveal — Palabra (lavanda en vez de dorado) ────────────── */
+body.theme-classic #vnSection #vnChapterReveal .vn-chapter-reveal-line {
+    background: linear-gradient(90deg, transparent, rgba(193,168,236,.7), transparent) !important;
+    width: 260px !important;
+    margin: 0.8rem 0 !important;
+}
+body.theme-classic #vnSection #vnChapterReveal .vn-chapter-reveal-title {
+    color: var(--vns-p-silver) !important;
+    font-size: 1.6rem !important;
+    letter-spacing: .2em !important;
+    text-shadow: 0 0 40px rgba(193,168,236,.5), 0 0 80px rgba(145,108,220,.3) !important;
+}
+/* Fondo del reveal — oscuro casi negro para que el texto destaque */
+body.theme-classic #vnSection #vnChapterReveal {
+    background: rgba(7,6,23,.88) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
 /* ── Caja de diálogo — Palabra ──────────────────────────────────────── */
 /* Spec (1,3,1): body.theme-classic + #vnSection + .bottom-panel + .vn-dialogue-box
    Supera a 07-overrides (1,2,0) incluso en propiedades !important */
@@ -131,6 +222,25 @@ body.theme-classic #vnSection .bottom-panel .vn-dialogue-box::after {
 /* ── Placa de nombre — píldora engastada en el borde ────────────────── */
 body.theme-classic #vnSection .vn-speaker-plate {
     position: absolute;
+    top: 0;
+    left: 52px;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 26px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #2e2968, #171340);
+    border: 1px solid rgba(220,214,240,.53);
+    box-shadow:
+        0 4px 16px rgba(0,0,0,.5),
+        0 0 22px var(--vns-p-glow),
+        inset 0 1px 0 rgba(255,255,255,.1);
+    font-family: 'Cinzel', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: #fdfaef;
+    letter-spacing: .14em;
     text-shadow: 0 0 12px var(--vns-p-glow);
     text-transform: none;
     white-space: nowrap;
@@ -383,57 +493,135 @@ body.theme-classic #vnSection .vn-classic-control-btn.vn-btn-danger:hover {
     background: rgba(50,15,10,.7);
 }
 
-/* ── Party clásica (derecha) ─────────────────────────────────────────── */
 /* ── Party clásica (derecha, arriba) — #classicPartyShell + .cp-member ──────
-   OJO: el JS (userProfile.js → renderClassicParty) genera .cp-member / .cp-name
-   / .cp-gender. NO uses .classic-party-entry (no existe). El panel ya existe en
-   el código; solo se reestiliza y se posiciona aquí. ── */
+   JS (userProfile.js → renderClassicParty) genera .cp-member / .cp-name / .cp-gender.
+   El avatar circular se construye con ::before porque el JS no emite ese elemento. ── */
 body.theme-classic #classicPartyShell {
     position: fixed !important;
     top: 1.5rem !important;
-    right: 4.6rem !important;   /* separado de la toolbar del borde */
+    right: 4.6rem !important;
     left: auto !important;
     bottom: auto !important;
-    width: 188px !important;
+    width: 196px !important;
     z-index: 800 !important;
 }
 
-body.theme-classic #vnPartyShell {
-    display: none;
-}
+body.theme-classic #vnPartyShell { display: none; }
 
 body.theme-classic #classicPartyShell .classic-party-panel {
-    background: linear-gradient(180deg, rgba(20,17,48,.74), rgba(9,8,26,.88)) !important;
-    border: 1px solid rgba(206,196,255,.2) !important;
-    border-radius: 14px !important;
+    background: linear-gradient(160deg, rgba(18,14,44,.88) 0%, rgba(8,6,26,.94) 100%) !important;
+    border: 1px solid rgba(193,168,236,.22) !important;
+    border-radius: 16px !important;
+    padding: 10px 10px 12px !important;
+    backdrop-filter: blur(12px) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(220,214,240,.07) !important;
 }
+
+/* cabecera "EN ESCENA ✦" */
 body.theme-classic #classicPartyShell .classic-party-title {
     font-family: 'Cinzel', serif !important;
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    letter-spacing: .36em !important;
+    text-transform: uppercase !important;
     color: var(--vns-p-lav) !important;
-    letter-spacing: .26em !important;
+    text-align: center !important;
+    padding: 2px 0 8px !important;
 }
-body.theme-classic #classicPartyShell .classic-party-ornament { color: var(--vns-p-lav) !important; }
+body.theme-classic #classicPartyShell .classic-party-ornament {
+    color: var(--vns-p-lav) !important;
+    opacity: .7 !important;
+}
 
-/* miembros reales (.cp-member / .cp-name / .cp-gender) */
+/* lista sin margen extra */
+body.theme-classic #classicPartyShell #classicPartyList {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+}
+
+/* fila de miembro */
 body.theme-classic #classicPartyShell .cp-member {
-    background: rgba(34,28,72,.3) !important;
-    border: 1px solid rgba(206,196,255,.14) !important;
-    border-radius: 8px !important;
-    color: var(--vns-cream) !important;
-    font-family: 'Crimson Text', serif !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+    width: 100% !important;
+    padding: 5px 8px 5px 5px !important;
+    background: rgba(193,168,236,.07) !important;
+    border: 1px solid rgba(193,168,236,.12) !important;
+    border-radius: 10px !important;
+    cursor: pointer !important;
+    transition: background .15s, border-color .15s !important;
+    text-align: left !important;
+    position: relative !important;
 }
 body.theme-classic #classicPartyShell .cp-member:hover {
-    background: rgba(193,168,236,.12) !important;
-    border-color: rgba(193,168,236,.5) !important;
+    background: rgba(193,168,236,.16) !important;
+    border-color: rgba(193,168,236,.42) !important;
 }
-body.theme-classic #classicPartyShell .cp-member--responded { border-color: rgba(193,168,236,.4) !important; }
+body.theme-classic #classicPartyShell .cp-member--responded {
+    border-color: rgba(193,168,236,.35) !important;
+}
+body.theme-classic #classicPartyShell .cp-member--responded::after {
+    content: '✦' !important;
+    position: absolute !important;
+    right: 6px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    font-size: 7px !important;
+    color: var(--vns-p-lav) !important;
+    opacity: .6 !important;
+}
+
+/* avatar circular (pseudo-elemento — JS no lo emite) */
+body.theme-classic #classicPartyShell .cp-member::before {
+    content: '' !important;
+    display: block !important;
+    flex-shrink: 0 !important;
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    background: linear-gradient(135deg, #9275d4, #5b4a9a) !important;
+    border: 1.5px solid rgba(193,168,236,.45) !important;
+    box-shadow: 0 0 10px rgba(145,108,220,.35) !important;
+}
+body.theme-classic #classicPartyShell .cp-member:nth-child(2)::before {
+    background: linear-gradient(135deg, #c18ec2, #7a4e95) !important;
+    box-shadow: 0 0 10px rgba(193,142,194,.35) !important;
+}
+body.theme-classic #classicPartyShell .cp-member:nth-child(3)::before {
+    background: linear-gradient(135deg, #7892d8, #3e5aab) !important;
+    box-shadow: 0 0 10px rgba(100,130,216,.35) !important;
+}
+body.theme-classic #classicPartyShell .cp-member:nth-child(4)::before {
+    background: linear-gradient(135deg, #b87cbf, #6b3d8a) !important;
+    box-shadow: 0 0 10px rgba(184,124,191,.35) !important;
+}
+body.theme-classic #classicPartyShell .cp-member:nth-child(5)::before {
+    background: linear-gradient(135deg, #5e6bb8, #2e3876) !important;
+    box-shadow: 0 0 10px rgba(94,107,184,.35) !important;
+}
+
+/* nombre */
 body.theme-classic #classicPartyShell .cp-name {
     font-family: 'Cinzel', serif !important;
-    font-size: 14px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
     color: var(--vns-cream) !important;
-    letter-spacing: .02em !important;
+    letter-spacing: .04em !important;
+    flex: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
 }
-body.theme-classic #classicPartyShell .cp-gender { color: var(--vns-p-lav) !important; }
+
+/* símbolo de género */
+body.theme-classic #classicPartyShell .cp-gender {
+    font-size: 13px !important;
+    color: var(--vns-p-lav) !important;
+    flex-shrink: 0 !important;
+    opacity: .85 !important;
+}
 
 /* ── Opciones de respuesta — píldoras con nodo-estrella ─────────────── */
 body.theme-classic #vnSection .vn-options-container {
@@ -1391,6 +1579,17 @@ body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap {
 /* Placa de nombre — afinada: medallón translúcido plata (clásico), menos
    índigo plano. (Si la prefieres distinta, este es el bloque a tocar.) */
 body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate {
+    background: linear-gradient(180deg, rgba(28,26,68,.92), rgba(12,11,34,.95)) !important;
+    border: 1px solid rgba(220,214,240,.45) !important;
+    box-shadow: 0 4px 18px rgba(0,0,0,.5), 0 0 18px var(--vns-p-glow) !important;
+    font-size: 15px !important;
+    letter-spacing: .22em !important;
+    padding: 7px 24px !important;
+    color: #f3ecda !important;
+}
+body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate::before {
+    inset: 4px !important;
+    border-color: rgba(220,214,240,.16) !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -1404,6 +1603,13 @@ body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap,
 body.theme-rpg     #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap {
     display: none !important;
 }
+/* Aro propio del avatar — Palabra (plata/lavanda) */
+body.theme-classic #vnSection .vn-dialogue-box #vnSpeakerAvatar {
+    box-shadow:
+        0 0 0 1px rgba(220,214,240,.55),
+        0 0 0 5px rgba(193,168,236,.14),
+        0 8px 20px rgba(0,0,0,.5),
+        0 0 18px -4px var(--vns-p-glow) !important;
 }
 /* Aro propio del avatar — Azar (ámbar/bronce) */
 body.theme-rpg #vnSection .vn-dialogue-box #vnSpeakerAvatar {
@@ -1991,6 +2197,266 @@ body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-plate::after { inset: 2px
     right: 1.3rem !important;
     left: auto !important;
 }
-/* ocultar la tarjeta de perfil redundante en Azar */
-body.theme-rpg #vnSection #vnInfoCard { display: none !important; }
+/* ocultar la tarjeta de perfil redundante en Azar Y Clásico
+   (en clásico el perfil es accesible desde el party panel → cp-name click) */
+body.theme-rpg #vnSection #vnInfoCard,
+body.theme-classic #vnSection #vnInfoCard { display: none !important; }
 
+/* ══════════════════════════════════════════════════════════════════════
+   PERFIL DESPLEGABLE — .vn-member-profile (generado por vn-design.js)
+   Dos variantes: --rpg (Azar, ámbar/bronce) y --classic (Palabra, plata/lavanda).
+   El panel se posiciona via JS; aquí solo estilo.
+   ══════════════════════════════════════════════════════════════════════ */
+.vn-member-profile {
+    position: fixed;
+    z-index: 1200;
+    min-width: 210px;
+    max-width: 270px;
+    border-radius: 14px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,.65), 0 2px 0 rgba(255,255,255,.04);
+    animation: _vmpf-in .18s ease-out both;
+}
+@keyframes _vmpf-in {
+    from { opacity: 0; transform: translateY(-6px) scale(.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+/* ── Modo Azar (RPG) ──────────────────────────────────── */
+.vn-member-profile--rpg {
+    background: linear-gradient(180deg, rgba(28,18,8,.97) 0%, rgba(18,10,4,.99) 100%);
+    border: 1px solid rgba(176,118,58,.55);
+}
+.vn-member-profile--rpg .vmpf-header {
+    background: linear-gradient(180deg, rgba(74,44,18,.6), rgba(40,22,6,.4));
+    border-bottom: 1px solid rgba(176,118,58,.3);
+    padding: 14px 14px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.vn-member-profile--rpg .vmpf-avatar {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #c9883f, #7a4c18);
+    border: 2px solid rgba(227,162,79,.6);
+    box-shadow: 0 0 14px rgba(200,136,63,.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; line-height: 1;
+    flex-shrink: 0;
+    color: #fff6e6;
+}
+.vn-member-profile--rpg .vmpf-name {
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--vns-a-parch, #e7d3a3);
+    letter-spacing: .06em;
+    display: block;
+}
+.vn-member-profile--rpg .vmpf-meta {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--vns-a-amber, #e3a24f);
+    display: block;
+    margin-top: 2px;
+}
+.vn-member-profile--rpg .vmpf-bars {
+    padding: 10px 14px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border-bottom: 1px solid rgba(176,118,58,.15);
+}
+.vn-member-profile--rpg .vmpf-bar-row {
+    display: flex; align-items: center; gap: 7px;
+}
+.vn-member-profile--rpg .vmpf-bar-label {
+    font-family: 'Cinzel', serif;
+    font-size: 9px; letter-spacing: .1em;
+    color: var(--vns-a-amber, #e3a24f);
+    width: 24px; flex-shrink: 0;
+}
+.vn-member-profile--rpg .vmpf-bar-track {
+    flex: 1; height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,.08);
+    overflow: hidden;
+}
+.vn-member-profile--rpg .vmpf-bar-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #d9694e, #e8855e);
+}
+.vn-member-profile--rpg .vmpf-bar-fill.exp {
+    background: linear-gradient(90deg, #4a9e8c, #6fae9c);
+}
+.vn-member-profile--rpg .vmpf-bar-val {
+    font-size: 10px; color: rgba(231,211,163,.6);
+    width: 38px; text-align: right; flex-shrink: 0;
+    font-family: 'Crimson Text', serif;
+}
+.vn-member-profile--rpg .vmpf-stats {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 5px; padding: 8px 14px 4px;
+}
+.vn-member-profile--rpg .vmpf-stat {
+    background: rgba(176,118,58,.1);
+    border: 1px solid rgba(176,118,58,.2);
+    border-radius: 6px;
+    padding: 5px 4px;
+    text-align: center;
+}
+.vn-member-profile--rpg .vmpf-stat-label {
+    display: block;
+    font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: .08em;
+    color: var(--vns-a-amber, #e3a24f); margin-bottom: 2px;
+}
+.vn-member-profile--rpg .vmpf-stat-val {
+    display: block;
+    font-family: 'Crimson Text', serif; font-size: 14px; font-weight: 600;
+    color: var(--vns-a-parch, #e7d3a3);
+}
+.vn-member-profile--rpg .vmpf-edit-btn {
+    display: block; width: calc(100% - 28px); margin: 8px 14px 12px;
+    padding: 7px 0;
+    background: linear-gradient(180deg, rgba(176,118,58,.3), rgba(120,76,26,.2));
+    border: 1px solid rgba(176,118,58,.5);
+    border-radius: 8px;
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--vns-a-parch, #e7d3a3);
+    cursor: pointer; transition: filter .15s;
+}
+.vn-member-profile--rpg .vmpf-edit-btn:hover { filter: brightness(1.15); }
+
+/* ── Modo Palabra (clásico) ───────────────────────────── */
+.vn-member-profile--classic {
+    background: linear-gradient(180deg, rgba(16,13,40,.97) 0%, rgba(9,7,26,.99) 100%);
+    border: 1px solid rgba(193,168,236,.35);
+}
+.vn-member-profile--classic .vmpf-header {
+    background: linear-gradient(180deg, rgba(40,32,88,.5), rgba(18,14,48,.3));
+    border-bottom: 1px solid rgba(193,168,236,.18);
+    padding: 16px 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+.vn-member-profile--classic .vmpf-avatar {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7a62c0, #3e2e80);
+    border: 2px solid rgba(193,168,236,.55);
+    box-shadow: 0 0 16px rgba(145,108,220,.4), inset 0 1px 0 rgba(220,214,240,.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; line-height: 1;
+    flex-shrink: 0;
+    color: var(--vns-cream, #f3ecda);
+}
+.vn-member-profile--classic .vmpf-name {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--vns-cream, #f3ecda);
+    letter-spacing: .08em;
+    display: block;
+}
+.vn-member-profile--classic .vmpf-meta {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--vns-p-lav, #c1a8ec);
+    display: block;
+    margin-top: 3px;
+}
+/* En clásico no hay bars ni stats, solo header + (opcional) botón editar */
+.vn-member-profile--classic .vmpf-edit-btn {
+    display: block; width: calc(100% - 32px); margin: 4px 16px 14px;
+    padding: 7px 0;
+    background: rgba(193,168,236,.1);
+    border: 1px solid rgba(193,168,236,.35);
+    border-radius: 8px;
+    font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--vns-p-silver, #dcd6f0);
+    cursor: pointer; transition: background .15s, border-color .15s;
+}
+.vn-member-profile--classic .vmpf-edit-btn:hover {
+    background: rgba(193,168,236,.2);
+    border-color: rgba(193,168,236,.6);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   FINAL · CORRECCIONES vn-modos
+   Palabra usa pildoras fantasma plateadas/lavanda y no CTA "Continuar".
+   ══════════════════════════════════════════════════════════════════════ */
+body.theme-classic #vnSection #vnContinueBtn,
+body.theme-classic #vnSection #vnContinueReplyBtn,
+body.theme-classic #vnSection .vn-continue-btn {
+    display: none !important;
+}
+
+body.theme-classic #vnSection .vn-msg-actions .vma-btn,
+body.theme-classic #vnSection .vn-dialogue-action-btn,
+body.theme-classic #vnSection .vn-adv-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    padding: 7px 15px !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    border: 1px solid rgba(220,214,240,.40) !important;
+    color: #f3ecda !important;
+    font-family: 'Cinzel', serif !important;
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    letter-spacing: .16em !important;
+    line-height: 1.1 !important;
+    text-transform: uppercase !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    clip-path: none !important;
+    cursor: pointer;
+    transition: border-color .25s ease, background .25s ease;
+}
+
+body.theme-classic #vnSection .vn-msg-actions .vma-reply {
+    background: rgba(193,168,236,.11) !important;
+    border-color: rgba(193,168,236,.53) !important;
+}
+
+body.theme-classic #vnSection .vn-msg-actions .vma-delete {
+    border-color: rgba(217,105,78,.45) !important;
+}
+
+body.theme-classic #vnSection .vn-msg-actions .vma-delete .vma-icon {
+    color: #d9694e !important;
+}
+
+body.theme-classic #vnSection .vn-msg-actions .vma-btn:hover,
+body.theme-classic #vnSection .vn-dialogue-action-btn:hover,
+body.theme-classic #vnSection .vn-adv-btn:hover {
+    border-color: rgba(193,168,236,.8) !important;
+    background: rgba(193,168,236,.08) !important;
+    box-shadow: none !important;
+}
+
+body.theme-classic #vnSection .vn-msg-actions .vma-btn .vma-icon {
+    color: #dcd6f0 !important;
+    font-size: 12px !important;
+    transform: none !important;
+    opacity: 1 !important;
+}
+
+body.theme-classic #vnSection .vn-msg-actions .vma-reply .vma-icon {
+    color: #c1a8ec !important;
+}
+
+body.theme-classic #vnSection .vn-nav-mini-btn {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 50% !important;
+    border: 1px solid rgba(220,214,240,.30) !important;
+    background: transparent !important;
+    color: #dcd6f0 !important;
+    box-shadow: none !important;
+}
