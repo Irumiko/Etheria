@@ -29457,7 +29457,7 @@ body.theme-classic #vnSection .vn-continue-btn:hover {
     border-color: var(--vns-p-lav);
 }
 
-/* ── Toolbar derecha centrada — fila horizontal (en vez de columna) ─── */
+/* ── Toolbar derecha centrada — columna vertical ─── */
 body.theme-classic #vnSection .vn-toolbar.vn-classic-controls {
     position: absolute;
     right: 18px;
@@ -29467,10 +29467,10 @@ body.theme-classic #vnSection .vn-toolbar.vn-classic-controls {
     bottom: auto;
     z-index: 12;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 6px 10px;
+    padding: 10px 6px;
     border-radius: 999px;
     background: rgba(12,10,32,.60);
     border: 1px solid rgba(220,214,240,.18);
@@ -29480,12 +29480,12 @@ body.theme-classic #vnSection .vn-toolbar.vn-classic-controls {
     max-height: none;
     overflow: visible;
 }
-/* Divider vertical en fila horizontal */
+/* Divider horizontal en columna vertical */
 body.theme-classic #vnSection .vn-classic-control-divider {
-    width: 1px;
-    height: 20px;
-    margin: 0 2px;
-    background: linear-gradient(180deg, transparent, rgba(220,214,240,.28), transparent);
+    width: 20px;
+    height: 1px;
+    margin: 2px 0;
+    background: linear-gradient(90deg, transparent, rgba(220,214,240,.28), transparent);
 }
 
 body.theme-classic #vnSection .vn-classic-control-btn {

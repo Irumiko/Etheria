@@ -55,6 +55,28 @@
     function _allChars() {
         return global.appData && global.appData.characters ? global.appData.characters : [];
     }
+    function _getOwnChar() {
+        const topic = _currentTopic();
+        const myUid = global._cachedUserId;
+        // Prioridad: selectedCharId global
+        if (global.selectedCharId) {
+            return _allChars().find(c => String(c.id) === String(global.selectedCharId)) || null;
+        }
+        if (!topic) return null;
+        const lockMap = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
+        // Por userIndex local
+        const myIndex = global.userIndex != null ? global.userIndex : null;
+        if (myIndex != null) {
+            const charId = lockMap[myIndex] || lockMap[String(myIndex)];
+            if (charId) return _allChars().find(c => String(c.id) === String(charId)) || null;
+        }
+        // Por owner_user_id
+        if (myUid) {
+            const lockValues = Object.values(lockMap).map(String);
+            return _allChars().find(c => c.owner_user_id === myUid && lockValues.includes(String(c.id))) || null;
+        }
+        return null;
+    }
 
     // ── Estado del modal ─────────────────────────────────────
     let _currentProfileUserId = null;
@@ -483,11 +505,16 @@
             // Buscar charId en lockMap por userIndex (local) o por owner_user_id (cloud)
             let charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
             if (!charId && p.user_id) {
-                const lockValues = Object.values(lockMap);
-                const owned = _allChars().find(c =>
-                    c.owner_user_id === p.user_id && lockValues.includes(String(c.id))
-                );
-                if (owned) charId = String(owned.id);
+                // Para el usuario local, usar selectedCharId directamente
+                if (p.user_id === myUid && global.selectedCharId) {
+                    charId = String(global.selectedCharId);
+                } else {
+                    const lockValues = Object.values(lockMap).map(String);
+                    const owned = _allChars().find(c =>
+                        c.owner_user_id === p.user_id && lockValues.includes(String(c.id))
+                    );
+                    if (owned) charId = String(owned.id);
+                }
             }
             const char      = charId ? _allChars().find(c => String(c.id) === String(charId)) : null;
             const name      = (char && char.name) || (p.profile && p.profile.name) || '?';
