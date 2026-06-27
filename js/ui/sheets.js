@@ -748,8 +748,8 @@ async function uploadAvatarForChar(fileInput) {
         showAutosave('El archivo debe ser una imagen', 'error');
         return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-        showAutosave('La imagen no puede superar 20 MB', 'error');
+    if (file.size > 5 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 5 MB', 'error');
         return;
     }
 
@@ -810,8 +810,8 @@ async function uploadSpriteForChar(fileInput) {
         showAutosave('El archivo debe ser una imagen', 'error');
         return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-        showAutosave('La imagen no puede superar 20 MB', 'error');
+    if (file.size > 10 * 1024 * 1024) {
+        showAutosave('La imagen no puede superar 10 MB', 'error');
         return;
     }
 

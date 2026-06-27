@@ -1185,11 +1185,19 @@ body,
                     <div class="affinity-rank-row">
                         <div class="affinity-rank-name" id="affinityRankName">Desconocidos</div>
                         <div class="affinity-controls-inline">
+                            <button class="affinity-btn-inline affinity-btn-minus" onclick="modifyAffinity(-1)" title="Disminuir afinidad" aria-label="Bajar afinidad">−</button>
+                            <button class="affinity-btn-inline affinity-btn-plus" onclick="modifyAffinity(1)" title="Aumentar afinidad" aria-label="Subir afinidad">+</button>
                             <button class="affinity-btn-inline" onclick="openRelationshipGraph()" title="Ver grafo de relaciones">✶</button>
                         </div>
                     </div>
                     <div class="affinity-feedback" id="affinityFeedback"></div>
                 </div>
+                <!-- Badge de ciclo activo — visible cuando hay un ciclo abierto -->
+                <div id="cycleBadge" class="cycle-badge hidden" title="Ciclo activo en esta historia">
+                    <span class="cycle-badge-dot"></span>
+                    <span class="cycle-badge-label">Ciclo activo</span>
+                </div>
+
                 <div class="vn-info-affection" id="vnInfoAffection" style="display:none;">
                     <span>❤️</span><span id="vnAffectionValue">0</span>
                 </div>
@@ -1499,11 +1507,19 @@ body,
 
             <!-- ── ZONA MEDIA: registros (Historial, acceso al Diario desde dentro) ── -->
             <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="openActivityDashboard()" aria-label="Actividad de la historia" title="Actividad de la historia">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="9" width="3" height="5.5" rx="0.5"/><rect x="6.5" y="5.5" width="3" height="9" rx="0.5"/><rect x="11.5" y="2" width="3" height="12.5" rx="0.5"/><line x1="1.5" y1="1.5" x2="14.5" y2="1.5"/></svg></span>
+                <button class="vn-classic-control-btn" id="activityDashboardBtn"
+                        data-vn-control="activity-dashboard"
+                        onclick="openActivityDashboard()" aria-label="Actividad de la historia"
+                        title="Ver actividad de la historia" style="display:none;">
+                    <span class="vn-classic-control-icon">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="1" y="10" width="3" height="4" rx=".5"/>
+                            <rect x="6" y="6"  width="3" height="8" rx=".5"/>
+                            <rect x="11" y="2" width="3" height="12" rx=".5"/>
+                        </svg>
+                    </span>
                 </button>
-            </div>
-            <div class="vn-classic-control-slot">
                 <button class="vn-classic-control-btn" onclick="openHistoryLog()" aria-label="Historial y notas">
                     <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12" height="9" rx="1"/><path d="M2 4.5 l1.2-3 h9.6 l1.2 3"/><line x1="5.5" y1="8.5" x2="10.5" y2="8.5"/><line x1="5.5" y1="11" x2="8.5" y2="11"/></svg></span>
                 </button>
@@ -1518,15 +1534,20 @@ body,
                     <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg></span>
                 </button>
             </div>
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="EtheriaExport.exportText()" aria-label="Exportar historia como texto" title="Exportar como .txt">
+            <div class="vn-classic-control-slot" style="position:relative;">
+                <button class="vn-classic-control-btn" onclick="toggleExportMenu('exportMenuClassic', event)" aria-label="Exportar historia" title="Exportar historia" aria-haspopup="true">
                     <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 v8"/><path d="M5 7 l3 3 l3-3"/><line x1="3" y1="13" x2="13" y2="13"/></svg></span>
                 </button>
-            </div>
-            <div class="vn-classic-control-slot">
-                <button class="vn-classic-control-btn" onclick="EtheriaExport.printHTML()" aria-label="Exportar historia para imprimir / PDF" title="Imprimir / guardar como PDF">
-                    <span class="vn-classic-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="10" height="7" rx="1"/><path d="M5 6 V3 h6 v3"/><line x1="5.5" y1="10" x2="10.5" y2="10"/><line x1="5.5" y1="12" x2="8.5" y2="12"/></svg></span>
-                </button>
+                <div id="exportMenuClassic" class="export-menu hidden" role="menu">
+                    <button class="export-menu-item" role="menuitem" onclick="EtheriaExport.exportText(); closeExportMenu('exportMenuClassic')">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M2 4h12M2 8h8M2 12h6"/></svg>
+                        Texto plano (.txt)
+                    </button>
+                    <button class="export-menu-item" role="menuitem" onclick="EtheriaExport.printHTML(); closeExportMenu('exportMenuClassic')">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="6" width="10" height="7" rx="1"/><path d="M5 6 V3 h6 v3"/><line x1="5.5" y1="10" x2="10.5" y2="10"/></svg>
+                        Imprimir / guardar PDF
+                    </button>
+                </div>
             </div>
 
             <div class="vn-classic-control-divider"></div>
@@ -1576,6 +1597,20 @@ body,
 
             <!-- ── ZONA MEDIA: registros (Historial, acceso al Diario desde dentro) ── -->
             <div class="vn-rpg-control-slot">
+                <button class="vn-rpg-control-btn" data-vn-control="activity-dashboard"
+                        onclick="openActivityDashboard()" aria-label="Actividad de la historia"
+                        title="Ver actividad de la historia" style="display:none;">
+                    <span class="vn-rpg-control-icon">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="1" y="10" width="3" height="4" rx=".5"/>
+                            <rect x="6" y="6"  width="3" height="8" rx=".5"/>
+                            <rect x="11" y="2" width="3" height="12" rx=".5"/>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+            <div class="vn-rpg-control-slot">
                 <button class="vn-rpg-control-btn" onclick="openHistoryLog()" aria-label="Historial y notas">
                     <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4.5" width="12" height="9" rx="1"/><path d="M2 4.5 l1.2-3 h9.6 l1.2 3"/><line x1="5.5" y1="8.5" x2="10.5" y2="8.5"/><line x1="5.5" y1="11" x2="8.5" y2="11"/></svg></span>
                 </button>
@@ -1590,15 +1625,20 @@ body,
                     <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="6.5" r="4"/><line x1="10" y1="10" x2="14" y2="14"/></svg></span>
                 </button>
             </div>
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="EtheriaExport.exportText()" aria-label="Exportar historia como texto" title="Exportar como .txt">
+            <div class="vn-rpg-control-slot" style="position:relative;">
+                <button class="vn-rpg-control-btn" onclick="toggleExportMenu('exportMenuRpg', event)" aria-label="Exportar historia" title="Exportar historia" aria-haspopup="true">
                     <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2 v8"/><path d="M5 7 l3 3 l3-3"/><line x1="3" y1="13" x2="13" y2="13"/></svg></span>
                 </button>
-            </div>
-            <div class="vn-rpg-control-slot">
-                <button class="vn-rpg-control-btn" onclick="EtheriaExport.printHTML()" aria-label="Exportar historia para imprimir / PDF" title="Imprimir / guardar como PDF">
-                    <span class="vn-rpg-control-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="10" height="7" rx="1"/><path d="M5 6 V3 h6 v3"/><line x1="5.5" y1="10" x2="10.5" y2="10"/><line x1="5.5" y1="12" x2="8.5" y2="12"/></svg></span>
-                </button>
+                <div id="exportMenuRpg" class="export-menu hidden" role="menu">
+                    <button class="export-menu-item" role="menuitem" onclick="EtheriaExport.exportText(); closeExportMenu('exportMenuRpg')">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M2 4h12M2 8h8M2 12h6"/></svg>
+                        Texto plano (.txt)
+                    </button>
+                    <button class="export-menu-item" role="menuitem" onclick="EtheriaExport.printHTML(); closeExportMenu('exportMenuRpg')">
+                        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="6" width="10" height="7" rx="1"/><path d="M5 6 V3 h6 v3"/><line x1="5.5" y1="10" x2="10.5" y2="10"/></svg>
+                        Imprimir / guardar PDF
+                    </button>
+                </div>
             </div>
 
             <div class="vn-rpg-control-divider"></div>
@@ -1765,6 +1805,13 @@ body,
                         <button id="vnNarrateDialogBtn" class="vn-dialogue-action-btn narrate-action-btn" type="button" onclick="handleActionButtonClick(event); prepareChapter()" style="display:none;" title="Nueva escena" aria-label="Nueva escena">
                             <span class="action-icon">✒</span><span class="action-label">Escena</span>
                         </button>
+                        <!-- Elección de afinidad (solo modo clásico, si puede lanzar) -->
+                        <button id="vnChoiceDialogBtn" class="vn-dialogue-action-btn choice-action-btn" type="button"
+                                onclick="handleActionButtonClick(event); openChoicePanel()"
+                                style="display:none;"
+                                title="Lanzar una elección al ciclo" aria-label="Lanzar elección">
+                            <span class="action-icon">✦</span><span class="action-label">Elección</span>
+                        </button>
                         <!-- Emotes (ambos modos) -->
                         <button id="vnEmoteDialogBtn" class="vn-dialogue-action-btn emote-action-btn" type="button" onclick="handleActionButtonClick(event); toggleVnDialogEmotePicker(event)" title="Emotes" aria-label="Emotes">
                             <span class="action-icon">🎭</span><span class="action-label">Emotes</span>
@@ -1891,19 +1938,6 @@ body,
                         <div class="char-grid-dropdown" id="charGridDropdown"></div>
                     </div>
 
-                    <!-- Selector de pose/sprite -->
-                    <div id="spriteSelectorContainer" style="display:none;">
-                        <div class="vrp-sprite-toggle" onclick="vrpToggleSpritePicker()" title="Cambiar pose del personaje para este mensaje">
-                            <span class="vrp-sprite-toggle-thumb" id="spritePickerSelectedThumb"></span>
-                            <span class="vrp-sprite-toggle-label">🎭 Pose del personaje</span>
-                            <span class="vrp-sprite-toggle-hint" id="spritePickerHint">predeterminada</span>
-                            <span class="vrp-sprite-toggle-arrow">▾</span>
-                        </div>
-                        <div id="spritePicker" class="vrp-sprite-picker" hidden>
-                            <div id="spritePickerGrid" class="vrp-sprite-grid"></div>
-                        </div>
-                    </div>
-
                     <!-- Split pane: izquierda = escritura, derecha = preview -->
                     <div class="vrp-split">
 
@@ -1968,31 +2002,16 @@ body,
                                 <div class="option-field-header"><span>①</span><span>Opción 1</span></div>
                                 <input type="text" id="option1Text" class="option-input" placeholder="Texto de la opción">
                                 <textarea id="option1Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
-                                <select id="option1AffinityImpact" class="option-affinity-select">
-                                    <option value="neutral">Sin efecto de afinidad</option>
-                                    <option value="positive">↑ Impacto positivo</option>
-                                    <option value="negative">↓ Impacto negativo</option>
-                                </select>
                             </div>
                             <div class="option-field-group">
                                 <div class="option-field-header"><span>②</span><span>Opción 2</span></div>
                                 <input type="text" id="option2Text" class="option-input" placeholder="Texto de la opción">
                                 <textarea id="option2Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
-                                <select id="option2AffinityImpact" class="option-affinity-select">
-                                    <option value="neutral">Sin efecto de afinidad</option>
-                                    <option value="positive">↑ Impacto positivo</option>
-                                    <option value="negative">↓ Impacto negativo</option>
-                                </select>
                             </div>
                             <div class="option-field-group">
                                 <div class="option-field-header"><span>③</span><span>Opción 3</span></div>
                                 <input type="text" id="option3Text" class="option-input" placeholder="Texto de la opción">
                                 <textarea id="option3Continuation" class="option-textarea" placeholder="Continuación narrativa..."></textarea>
-                                <select id="option3AffinityImpact" class="option-affinity-select">
-                                    <option value="neutral">Sin efecto de afinidad</option>
-                                    <option value="positive">↑ Impacto positivo</option>
-                                    <option value="negative">↓ Impacto negativo</option>
-                                </select>
                             </div>
                             <button class="branch-editor-btn" onclick="openBranchEditor()">
                                 <span>🌿</span><span>Editor Avanzado de Ramas</span>
@@ -2050,20 +2069,23 @@ body,
 
     <!-- Character Editor -->
 
-    </div><!-- /vnSection -->
-
-<!-- ── Activity Dashboard Modal ──────────────────────────────────────────── -->
-<div id="activityDashboardModal" class="modal-overlay" hidden onclick="if(event.target===this) closeActivityDashboard()" role="dialog" aria-modal="true" aria-labelledby="adashTitle">
-    <div class="adash-modal">
-        <div class="adash-header">
-            <h3 id="adashTitle" class="adash-title">📊 Actividad de la historia</h3>
-            <button class="adash-close-btn" onclick="closeActivityDashboard()" aria-label="Cerrar">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
-            </button>
-        </div>
-        <div class="adash-body" id="activityDashboardBody"></div>
+    <!-- ══ Modal: Bifurcación de rama de relación ══════════════════════════ -->
+    <div id="branchSelectionModal" class="branch-modal-overlay hidden" role="dialog"
+         aria-modal="true" aria-labelledby="branchModalTitle">
     </div>
-</div>
+
+    <!-- ══ Panel: Ecos del ciclo (cambios de afinidad al cerrar) ═══════════ -->
+    <div id="cycleEcosPanel" class="cycle-ecos-panel hidden" role="status" aria-live="polite">
+    </div>
+
+    <!-- ══ Modal: Dashboard de actividad ══════════════════════════════════ -->
+    <div id="activityDashboardModal" class="hidden" role="dialog"
+         aria-modal="true" aria-label="Actividad de la historia"
+         onclick="if(event.target===this) ActivityDashboard.close()">
+        <div id="activityDashboardBody"></div>
+    </div>
+
+    </div><!-- /vnSection -->
 
 <div id="shortcutsModal" class="modal-overlay" onclick="if(event.target === this) closeModal('shortcutsModal')" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
         <div class="shortcuts-modal">
@@ -2601,11 +2623,6 @@ body,
 
 
 
-
-
-
-
-
     
 
 
@@ -2634,6 +2651,8 @@ body,
             <div id="graphAffinityControls" class="graph-affinity-controls hidden">
                 <span class="graph-affinity-label">Afinidad con <strong id="graphAffinityTargetName">—</strong>:</span>
                 <span class="graph-affinity-rank" id="graphAffinityRankName">—</span>
+                <button class="graph-affinity-btn minus" onclick="modifyAffinity(-1); refreshRelationshipGraph();" title="Disminuir afinidad">−</button>
+                <button class="graph-affinity-btn plus" onclick="modifyAffinity(1); refreshRelationshipGraph();" title="Aumentar afinidad">+</button>
             </div>
             <div id="relationshipGraphCanvas" class="relationship-constellation"></div>
             <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.6rem;">★ = nivel de afinidad (0-5). Las flechas A→B y B→A pueden ser distintas. Grosor de línea = interacciones recientes.</div>
@@ -2899,3 +2918,4 @@ body,
 </script>
 </body>
 </html>
+

@@ -4927,6 +4927,11 @@ function updateNarrateButton() {
         narrateCtrl.style.display = 'none';
     });
 
+    // 📊 Dashboard de actividad: solo para el creador del topic
+    document.querySelectorAll('[data-vn-control="activity-dashboard"]').forEach((dashBtn) => {
+        dashBtn.style.display = isOwner ? 'inline-flex' : 'none';
+    });
+
     _updateNarratePending();
 }
 
