@@ -29554,14 +29554,14 @@ body.theme-classic #classicPartyShell .classic-party-title {
     color: var(--vns-p-lav) !important;
     letter-spacing: .26em !important;
 }
-body.theme-classic #classicPartyShell .classic-party-ornament { color: var(--vns-p-lav) !important; }
+body.theme-classic #classicPartyShell .classic-party-ornament { color: #c1a8ec !important; }
 
 /* miembros reales (.cp-member / .cp-name / .cp-gender) */
 body.theme-classic #classicPartyShell .cp-member {
     background: rgba(34,28,72,.3) !important;
     border: 1px solid rgba(206,196,255,.14) !important;
     border-radius: 8px !important;
-    color: var(--vns-cream) !important;
+    color: #f3ecda !important;
     font-family: 'Crimson Text', serif !important;
 }
 body.theme-classic #classicPartyShell .cp-member:hover {
@@ -29572,10 +29572,10 @@ body.theme-classic #classicPartyShell .cp-member--responded { border-color: rgba
 body.theme-classic #classicPartyShell .cp-name {
     font-family: 'Cinzel', serif !important;
     font-size: 14px !important;
-    color: var(--vns-cream) !important;
+    color: #f3ecda !important;
     letter-spacing: .02em !important;
 }
-body.theme-classic #classicPartyShell .cp-gender { color: var(--vns-p-lav) !important; }
+body.theme-classic #classicPartyShell .cp-gender { color: #c1a8ec !important; }
 
 /* ── Opciones de respuesta — píldoras con nodo-estrella ─────────────── */
 body.theme-classic #vnSection .vn-options-container {
