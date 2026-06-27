@@ -25138,104 +25138,133 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
         const list  = document.getElementById('classicPartyList');
         if (!shell || !list) return;
 
-        const topic       = _currentTopic();
-        const isClassicMode = !_isRpg();
-        // Mostrar el party clásico desde el primer mensaje — aunque solo esté
-        // el personaje propio. La condición anterior requería participants.length > 0
-        // lo que ocultaba el panel hasta que alguien respondía.
-        shell.style.display = isClassicMode ? '' : 'none';
-        if (!isClassicMode) return;
-        // Si no hay participantes aún, mostrar solo el personaje propio como fallback
-        if (!participants || !participants.length) {
-            const ownChar = _getOwnChar();
-            if (ownChar) {
-                var btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'cp-member cp-member--online';
-                btn.title = ownChar.name || 'Tu personaje';
-                btn.dataset.charId = String(ownChar.id);
-                btn.innerHTML = '<span class="cp-name">' + _esc(ownChar.name || '?') + '</span>';
-                btn.addEventListener('click', function() {
-                    if (typeof CharPopover !== 'undefined') {
-                        CharPopover.toggle(btn.dataset.charId, btn);
-                    }
-                });
-                list.innerHTML = '';
-                list.appendChild(btn);
-            } else {
-                list.innerHTML = '';
-            }
-            return;
+        if (_isRpg()) { shell.style.display = 'none'; return; }
+
+        const topic    = _currentTopic();
+        const myUid    = global._cachedUserId || null;
+        const lockMap  = topic ? Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {}) : {};
+        const allChars = _allChars();
+        const lockValues = Object.values(lockMap).map(String);
+
+        // ── Construir lista de entradas { char, userId } sin duplicados ──────
+        const entries    = [];
+        const seenCids   = new Set();
+
+        function _addChar(char, userId) {
+            if (!char) return;
+            const cid = String(char.id);
+            if (seenCids.has(cid)) return;
+            seenCids.add(cid);
+            entries.push({ char, userId: userId || null });
         }
 
-        const lockMap    = topic
-            ? Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {})
-            : {};
-        // Quién ha respondido en el ciclo actual (detección por historial de mensajes)
-        const respondedSet = _respondedThisCycle(participants);
+        // 1. Personaje propio por selectedCharId (máxima prioridad)
+        if (global.selectedCharId) {
+            const c = allChars.find(ch => String(ch.id) === String(global.selectedCharId));
+            _addChar(c, myUid);
+        }
 
-                // ── Estado de turno activo ──────────────────────────────────────────
+        // 2. Participantes (cloud o local)
+        if (Array.isArray(participants) && participants.length > 0) {
+            participants.forEach(function(p) {
+                if (!p) return;
+                // 2a. Por lockMap + user_index
+                if (p.user_index != null) {
+                    const cid = lockMap[p.user_index] || lockMap[String(p.user_index)];
+                    if (cid) {
+                        const c = allChars.find(ch => String(ch.id) === String(cid));
+                        _addChar(c, p.user_id); return;
+                    }
+                }
+                if (!p.user_id) return;
+                // 2b. Usuario propio por selectedCharId
+                if (p.user_id === myUid && global.selectedCharId) {
+                    const c = allChars.find(ch => String(ch.id) === String(global.selectedCharId));
+                    _addChar(c, myUid); return;
+                }
+                // 2c. Por owner_user_id cruzado con lockMap
+                const inLock = allChars.find(ch => ch.owner_user_id === p.user_id && lockValues.includes(String(ch.id)));
+                if (inLock) { _addChar(inLock, p.user_id); return; }
+                // 2d. Cualquier personaje del usuario (sin restricción de lockMap)
+                const anyChar = allChars.find(ch => ch.owner_user_id === p.user_id);
+                if (anyChar) _addChar(anyChar, p.user_id);
+            });
+        }
+
+        // 3. Fallback final: todos los personajes en lockMap si aún no hay nada
+        if (entries.length === 0 && lockValues.length > 0) {
+            lockValues.forEach(function(cid) {
+                const c = allChars.find(ch => String(ch.id) === cid);
+                _addChar(c, c && c.owner_user_id ? c.owner_user_id : null);
+            });
+        }
+
+        shell.style.display = entries.length > 0 ? '' : 'none';
+        list.innerHTML = '';
+        if (entries.length === 0) return;
+
+        // ── Estado de turno y ciclo ──────────────────────────────────────────
+        const respondedSet  = Array.isArray(participants) && participants.length > 0
+            ? _respondedThisCycle(participants) : new Set();
         const turnMode      = topic?.turnMode || topic?.turn_mode || 'off';
         const turnQueue     = Array.isArray(topic?.turnOrder) ? topic.turnOrder : [];
         const activeTurnUid = turnMode !== 'off' && turnQueue.length > 0 ? turnQueue[0] : null;
-        const myUid         = window._cachedUserId || null;
 
-        // El orden NO cambia: participants ya viene ordenado por primer-mensaje (llegada)
-        list.innerHTML = participants.map(p => {
-            // Buscar charId en lockMap por userIndex (local) o por owner_user_id (cloud)
-            let charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
-            if (!charId && p.user_id) {
-                // Para el usuario local, usar selectedCharId directamente
-                if (p.user_id === myUid && global.selectedCharId) {
-                    charId = String(global.selectedCharId);
-                } else {
-                    const lockValues = Object.values(lockMap).map(String);
-                    const owned = _allChars().find(c =>
-                        c.owner_user_id === p.user_id && lockValues.includes(String(c.id))
-                    );
-                    if (owned) charId = String(owned.id);
-                }
-            }
-            const char      = charId ? _allChars().find(c => String(c.id) === String(charId)) : null;
-            const name      = (char && char.name) || (p.profile && p.profile.name) || '?';
-            const genderKey = (char && char.gender) || '';
-            const gIcon     = GENDER_ICON[genderKey] || '';
-            const online    = _isOnline(p.user_id);
-            const responded = respondedSet.has(p.user_id);
-            const isMyTurn  = activeTurnUid && p.user_id === activeTurnUid;
-            const isMe      = p.user_id === myUid;
-            const uid       = _esc(p.user_id || '');
+        entries.forEach(function({ char, userId }) {
+            const btn      = document.createElement('button');
+            btn.type       = 'button';
+            const name     = char.name || '?';
+            const online   = _isOnline(userId);
+            const responded = userId ? respondedSet.has(userId) : false;
+            const isMyTurn = !!(activeTurnUid && userId === activeTurnUid);
+            const isMe     = userId === myUid;
 
             const classes = ['cp-member'];
             if (online)    classes.push('cp-member--online');
             if (responded) classes.push('cp-member--responded');
             if (isMyTurn)  classes.push('cp-member--active-turn');
+            btn.className = classes.join(' ');
 
-            let statusIcon  = '';
-            let statusTitle = '';
-            if (isMyTurn) {
-                statusIcon  = isMe ? '✦' : '▶';
-                statusTitle = isMe ? 'Tu turno' : 'Turno activo';
-            } else if (responded) {
-                statusIcon  = '✓';
-                statusTitle = 'Ya respondió';
-            } else if (respondedSet.size > 0) {
-                statusIcon  = '·';
-                statusTitle = 'Esperando';
+            let statusIcon = '';
+            if (isMyTurn)        statusIcon = isMe ? '✦' : '▶';
+            else if (responded)  statusIcon = '✓';
+            else if (respondedSet.size > 0) statusIcon = '·';
+
+            const gIcon = GENDER_ICON[char.gender] || '';
+            btn.title = name + (isMyTurn ? ' · ' + (isMe ? 'Tu turno' : 'Turno activo') : '');
+            btn.dataset.charId = String(char.id);
+            if (userId) btn.dataset.userId = userId;
+
+            const spanName = document.createElement('span');
+            spanName.className = 'cp-name';
+            spanName.textContent = name;
+            btn.appendChild(spanName);
+
+            if (gIcon) {
+                const spanG = document.createElement('span');
+                spanG.className = 'cp-gender';
+                spanG.setAttribute('aria-label', char.gender || '');
+                spanG.textContent = gIcon;
+                btn.appendChild(spanG);
+            }
+            if (statusIcon) {
+                const spanS = document.createElement('span');
+                spanS.className = 'cp-status-icon';
+                spanS.setAttribute('aria-hidden', 'true');
+                spanS.textContent = statusIcon;
+                btn.appendChild(spanS);
             }
 
-            const cid = _esc(String(charId || ''));
-            return `<button type="button" class="${classes.join(' ')}"
-                        data-user-id="${_esc(String(p.user_id || ''))}"
-                        onclick="if(typeof CharPopover!=='undefined'){CharPopover.toggle('${cid}',this)}else{openUserProfileModal('${uid}')}"
-                        title="${_esc(name)} · ${statusTitle || (online ? 'En línea' : 'Desconectado')}">
-                <span class="cp-name">${_esc(name)}</span>
-                ${gIcon ? `<span class="cp-gender" aria-label="${_esc(genderKey)}">${gIcon}</span>` : ''}
-                ${statusIcon ? `<span class="cp-status-icon" aria-hidden="true">${statusIcon}</span>` : ''}
-            </button>`;
-        }).join('');
-        // El onclick inline de cada .cp-member ya llama a CharPopover.toggle (character info).
-        // No añadir listener adicional que abra el perfil de usuario.
+            btn.addEventListener('click', function() {
+                if (typeof CharPopover !== 'undefined') {
+                    CharPopover.toggle(String(char.id), btn);
+                } else if (userId && typeof openUserProfileModal === 'function') {
+                    openUserProfileModal(userId);
+                }
+            });
+
+            list.appendChild(btn);
+        });
     }
 
     // ── Expose globals ───────────────────────────────────────
