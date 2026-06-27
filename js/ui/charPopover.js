@@ -104,7 +104,7 @@ const CharPopover = (function () {
                 STR: 'FUE', DEX: 'DES', CON: 'CON', INT: 'INT'
             };
             const statRows = Object.entries(RPG_LABELS).map(([key, label]) => {
-                const val = stats[key] || 8;
+                const val = Number(stats[key]) || 8;
                 return `<div class="cp-popover-stat">
                     <span class="cp-popover-stat-label">${_esc(label)}</span>
                     <span class="cp-popover-stat-val">${val}</span>
@@ -118,7 +118,7 @@ const CharPopover = (function () {
             const maxExp = Number(char.maxExp  || stats.maxExp || 100);
             const hpPct  = Math.round(Math.min(100, Math.max(0, (hp  / (maxHp  || 1)) * 100)));
             const expPct = Math.round(Math.min(100, Math.max(0, (exp / (maxExp || 1)) * 100)));
-            const level  = char.level || stats.level || 1;
+            const level  = Number(char.level || stats.level || 1) || 1;
 
             bodyHtml = `
                 <div class="cp-popover-stats">${statRows}</div>

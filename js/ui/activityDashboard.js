@@ -14,7 +14,7 @@ const ActivityDashboard = (function () {
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     function _client() { return window.supabaseClient || null; }
-    function _esc(s)   { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function _esc(s)   { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
     async function _fetchLogs(topicId, days = 30) {
         if (!_client() || !topicId) return [];
