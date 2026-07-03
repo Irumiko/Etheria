@@ -12,55 +12,59 @@ body.mode-classic .vn-info-card {
         border-color 0.8s ease;
 }
 
-/* ── Rangos: temperatura del fondo del panel ──
-   Fix: #vnSection + !important necesarios para ganar a 07-overrides.css,
-   que fija background/border/box-shadow de la info card con !important
-   y mayor especificidad (#vnSection). ── */
-body.mode-classic.affinity-conocidos #vnSection .vn-info-card {
-    background: linear-gradient(135deg,
-        rgba(48, 38, 22, 0.96),
-        rgba(38, 28, 12, 0.98)) !important;
-    border-color: rgba(180, 150, 80, 0.4) !important;
-}
-body.mode-classic.affinity-amigos #vnSection .vn-info-card {
-    background: linear-gradient(135deg,
-        rgba(30, 48, 56, 0.96),
-        rgba(22, 36, 44, 0.98)) !important;
-    border-color: rgba(90, 160, 200, 0.45) !important;
+/* ── Ramas: temperatura del fondo del panel ──
+   Clases del body: affinity-branch-<rama> + affinity-tier-<n>, con
+   --affinity-rgb = color canónico del rango (fijado por affinity-atmosphere.js
+   desde window.affinityRanks — única fuente de verdad).
+   Fix cascada: #vnSection + !important necesarios para ganar a
+   07-overrides.css, que fija estas propiedades con !important y #vnSection. ── */
+
+/* Intensidad del glow según profundidad del rango en su rama */
+body.affinity-tier-1 { --affinity-glow: 0.10; }
+body.affinity-tier-2 { --affinity-glow: 0.16; }
+body.affinity-tier-3 { --affinity-glow: 0.22; }
+body.affinity-tier-4 { --affinity-glow: 0.28; }
+body.affinity-tier-5 { --affinity-glow: 0.34; }
+
+/* Borde y glow comunes a todas las ramas — color canónico del rango */
+body.mode-classic[class*="affinity-branch-"] #vnSection .vn-info-card {
+    border-color: rgba(var(--affinity-rgb), 0.5) !important;
     box-shadow:
-        0 12px 36px rgba(0,0,0,0.45),
-        0 0 0 1px rgba(90,160,200,0.10),
-        0 0 20px -4px rgba(52,152,219,0.20) !important;
+        0 12px 36px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(var(--affinity-rgb), 0.12),
+        0 0 24px -4px rgba(var(--affinity-rgb), var(--affinity-glow, 0.15)) !important;
 }
-body.mode-classic.affinity-mejores-amigos #vnSection .vn-info-card {
+
+/* Temperatura de fondo por rama */
+body.mode-classic.affinity-branch-common #vnSection .vn-info-card {
     background: linear-gradient(135deg,
-        rgba(22, 46, 32, 0.96),
-        rgba(16, 36, 22, 0.98)) !important;
-    border-color: rgba(80, 180, 100, 0.45) !important;
-    box-shadow:
-        0 12px 36px rgba(0,0,0,0.45),
-        0 0 0 1px rgba(80,180,100,0.10),
-        0 0 20px -4px rgba(39,174,96,0.22) !important;
+        rgba(38, 34, 46, 0.96),
+        rgba(28, 24, 36, 0.98)) !important;
 }
-body.mode-classic.affinity-interes-romantico #vnSection .vn-info-card {
+body.mode-classic.affinity-branch-friendship #vnSection .vn-info-card {
     background: linear-gradient(135deg,
-        rgba(54, 36, 18, 0.97),
-        rgba(42, 24, 8, 0.99)) !important;
-    border-color: rgba(241, 193, 80, 0.55) !important;
-    box-shadow:
-        0 12px 36px rgba(0,0,0,0.45),
-        0 0 0 1px rgba(241,193,80,0.12),
-        0 0 24px -4px rgba(230,160,20,0.30) !important;
+        rgba(20, 44, 32, 0.96),
+        rgba(14, 34, 24, 0.98)) !important;
 }
-body.mode-classic.affinity-pareja #vnSection .vn-info-card {
+body.mode-classic.affinity-branch-romance #vnSection .vn-info-card {
     background: linear-gradient(135deg,
-        rgba(54, 22, 22, 0.97),
-        rgba(42, 14, 14, 0.99)) !important;
-    border-color: rgba(231, 76, 80, 0.5) !important;
-    box-shadow:
-        0 12px 36px rgba(0,0,0,0.50),
-        0 0 0 1px rgba(231,76,80,0.12),
-        0 0 28px -4px rgba(220,50,50,0.28) !important;
+        rgba(54, 30, 18, 0.97),
+        rgba(44, 18, 12, 0.99)) !important;
+}
+body.mode-classic.affinity-branch-negative #vnSection .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(46, 36, 16, 0.96),
+        rgba(34, 26, 10, 0.98)) !important;
+}
+body.mode-classic.affinity-branch-rivalry #vnSection .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(52, 26, 14, 0.97),
+        rgba(38, 16, 8, 0.99)) !important;
+}
+body.mode-classic.affinity-branch-enmity #vnSection .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(30, 34, 40, 0.97),
+        rgba(20, 24, 30, 0.99)) !important;
 }
 
 /* ── Adorno del avatar: contenedor relativo para posicionar el ornamento ── */
@@ -83,37 +87,43 @@ body.mode-classic.affinity-pareja #vnSection .vn-info-card {
     opacity: 1;
 }
 
-/* Amigos: estrellitas sutiles en las esquinas */
-.vn-affinity-ornament.ornament-amigos {
-    top: -4px;
-    right: -4px;
-    font-size: 9px;
-    filter: drop-shadow(0 0 3px rgba(52,152,219,0.7));
-    animation: ornament-twinkle 2.5s ease-in-out infinite;
-}
-/* Mejores Amigos: dos destellos */
-.vn-affinity-ornament.ornament-mejores-amigos {
+/* Ornamentos por rama — el emoji es el icon canónico del rango,
+   el color del halo llega vía --affinity-rgb */
+.vn-affinity-ornament.ornament-common,
+.vn-affinity-ornament.ornament-friendship {
     top: -5px;
     right: -5px;
-    font-size: 11px;
-    filter: drop-shadow(0 0 4px rgba(39,174,96,0.8));
-    animation: ornament-twinkle 2s ease-in-out infinite;
+    font-size: 10px;
+    filter: drop-shadow(0 0 4px rgba(var(--affinity-rgb, 52,152,219), 0.8));
+    animation: ornament-twinkle 2.4s ease-in-out infinite;
 }
-/* Interés Romántico: mariposa */
-.vn-affinity-ornament.ornament-interes-romantico {
-    top: -8px;
-    right: -6px;
-    font-size: 14px;
-    filter: drop-shadow(0 0 5px rgba(241,193,80,0.8));
-    animation: ornament-butterfly 3s ease-in-out infinite;
-}
-/* Pareja: dos corazones */
-.vn-affinity-ornament.ornament-pareja {
+.vn-affinity-ornament.ornament-romance {
     top: -8px;
     right: -6px;
     font-size: 13px;
-    filter: drop-shadow(0 0 6px rgba(231,76,80,0.9));
+    filter: drop-shadow(0 0 6px rgba(var(--affinity-rgb, 231,76,80), 0.9));
     animation: ornament-heartbeat 1.4s ease-in-out infinite;
+}
+.vn-affinity-ornament.ornament-negative {
+    top: -6px;
+    right: -5px;
+    font-size: 11px;
+    filter: drop-shadow(0 0 4px rgba(var(--affinity-rgb, 230,126,34), 0.85));
+    animation: ornament-flicker 1.8s steps(2, jump-none) infinite;
+}
+.vn-affinity-ornament.ornament-rivalry {
+    top: -7px;
+    right: -6px;
+    font-size: 12px;
+    filter: drop-shadow(0 0 5px rgba(var(--affinity-rgb, 211,84,0), 0.9));
+    animation: ornament-clash 2.2s ease-in-out infinite;
+}
+.vn-affinity-ornament.ornament-enmity {
+    top: -6px;
+    right: -5px;
+    font-size: 11px;
+    filter: drop-shadow(0 0 4px rgba(var(--affinity-rgb, 86,101,115), 0.9));
+    animation: ornament-dim 3.2s ease-in-out infinite;
 }
 
 @keyframes ornament-twinkle {
@@ -132,6 +142,20 @@ body.mode-classic.affinity-pareja #vnSection .vn-info-card {
     45%       { transform: scale(1.15); }
     60%       { transform: scale(1); }
 }
+@keyframes ornament-flicker {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.45; }
+}
+@keyframes ornament-clash {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    40%       { transform: rotate(-12deg) scale(1.1); }
+    55%       { transform: rotate(8deg) scale(1.05); }
+    70%       { transform: rotate(0deg) scale(1); }
+}
+@keyframes ornament-dim {
+    0%, 100% { opacity: 1;    transform: scale(1); }
+    50%       { opacity: 0.55; transform: scale(0.94); }
+}
 
 /* ── Partículas de afinidad — contenedor sobre el info-card ── */
 .vn-affinity-particles {
@@ -147,4 +171,11 @@ body.mode-classic.affinity-pareja #vnSection .vn-info-card {
     inset: 0;
     width: 100%;
     height: 100%;
+}
+
+/* ── Reduced motion: ornamentos estáticos ── */
+@media (prefers-reduced-motion: reduce) {
+    .vn-affinity-ornament {
+        animation: none !important;
+    }
 }
