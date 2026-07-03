@@ -12,52 +12,55 @@ body.mode-classic .vn-info-card {
         border-color 0.8s ease;
 }
 
-/* ── Rangos: temperatura del fondo del panel ── */
-body.mode-classic.affinity-conocidos .vn-info-card {
+/* ── Rangos: temperatura del fondo del panel ──
+   Fix: #vnSection + !important necesarios para ganar a 07-overrides.css,
+   que fija background/border/box-shadow de la info card con !important
+   y mayor especificidad (#vnSection). ── */
+body.mode-classic.affinity-conocidos #vnSection .vn-info-card {
     background: linear-gradient(135deg,
         rgba(48, 38, 22, 0.96),
-        rgba(38, 28, 12, 0.98));
-    border-color: rgba(180, 150, 80, 0.4);
+        rgba(38, 28, 12, 0.98)) !important;
+    border-color: rgba(180, 150, 80, 0.4) !important;
 }
-body.mode-classic.affinity-amigos .vn-info-card {
+body.mode-classic.affinity-amigos #vnSection .vn-info-card {
     background: linear-gradient(135deg,
         rgba(30, 48, 56, 0.96),
-        rgba(22, 36, 44, 0.98));
-    border-color: rgba(90, 160, 200, 0.45);
+        rgba(22, 36, 44, 0.98)) !important;
+    border-color: rgba(90, 160, 200, 0.45) !important;
     box-shadow:
         0 12px 36px rgba(0,0,0,0.45),
         0 0 0 1px rgba(90,160,200,0.10),
-        0 0 20px -4px rgba(52,152,219,0.20);
+        0 0 20px -4px rgba(52,152,219,0.20) !important;
 }
-body.mode-classic.affinity-mejores-amigos .vn-info-card {
+body.mode-classic.affinity-mejores-amigos #vnSection .vn-info-card {
     background: linear-gradient(135deg,
         rgba(22, 46, 32, 0.96),
-        rgba(16, 36, 22, 0.98));
-    border-color: rgba(80, 180, 100, 0.45);
+        rgba(16, 36, 22, 0.98)) !important;
+    border-color: rgba(80, 180, 100, 0.45) !important;
     box-shadow:
         0 12px 36px rgba(0,0,0,0.45),
         0 0 0 1px rgba(80,180,100,0.10),
-        0 0 20px -4px rgba(39,174,96,0.22);
+        0 0 20px -4px rgba(39,174,96,0.22) !important;
 }
-body.mode-classic.affinity-interes-romantico .vn-info-card {
+body.mode-classic.affinity-interes-romantico #vnSection .vn-info-card {
     background: linear-gradient(135deg,
         rgba(54, 36, 18, 0.97),
-        rgba(42, 24, 8, 0.99));
-    border-color: rgba(241, 193, 80, 0.55);
+        rgba(42, 24, 8, 0.99)) !important;
+    border-color: rgba(241, 193, 80, 0.55) !important;
     box-shadow:
         0 12px 36px rgba(0,0,0,0.45),
         0 0 0 1px rgba(241,193,80,0.12),
-        0 0 24px -4px rgba(230,160,20,0.30);
+        0 0 24px -4px rgba(230,160,20,0.30) !important;
 }
-body.mode-classic.affinity-pareja .vn-info-card {
+body.mode-classic.affinity-pareja #vnSection .vn-info-card {
     background: linear-gradient(135deg,
         rgba(54, 22, 22, 0.97),
-        rgba(42, 14, 14, 0.99));
-    border-color: rgba(231, 76, 80, 0.5);
+        rgba(42, 14, 14, 0.99)) !important;
+    border-color: rgba(231, 76, 80, 0.5) !important;
     box-shadow:
         0 12px 36px rgba(0,0,0,0.50),
         0 0 0 1px rgba(231,76,80,0.12),
-        0 0 28px -4px rgba(220,50,50,0.28);
+        0 0 28px -4px rgba(220,50,50,0.28) !important;
 }
 
 /* ── Adorno del avatar: contenedor relativo para posicionar el ornamento ── */
