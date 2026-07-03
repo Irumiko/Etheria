@@ -1,0 +1,181 @@
+/* ── vn-mode-identity.css ─────────────────────────────────────────────────
+   FASE 1 — Identidad por modo para la periferia de la pantalla VN:
+   barra de controles (.vn-controls) y panel Responder (.vn-reply-panel).
+
+   Capa ADITIVA: no modifica layout, estructura ni comportamiento.
+   Solo re-skinea sobre los estilos base de 10-vn-controls.css y
+   05-reply-panel.css, extendiendo las dos identidades ya establecidas
+   en vn-themes.css:
+
+     body.theme-classic → "Constelaciones" (cristal nocturno · plata · ✦)
+     body.theme-rpg     → "Pergamino/Tarot" (pergamino oscuro · oro · ⚜)
+
+   Registrado en non-critical.css y en NON_CRITICAL_CSS_ORDER (build.js)
+   inmediatamente después de vn-themes.css.
+   ───────────────────────────────────────────────────────────────────────── */
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   MODO CLÁSICO — Constelaciones
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── Barra de controles: cristal estelar ─────────────────────────────────── */
+body.theme-classic #vnSection .vn-controls {
+    background: rgba(7, 11, 34, 0.62) !important;
+    backdrop-filter: blur(18px) saturate(1.3) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.3) !important;
+    border: 1px solid rgba(155, 195, 255, 0.24) !important;
+    box-shadow:
+        0 0 0 1px rgba(130, 175, 255, 0.06) inset,
+        0 0 42px -12px rgba(70, 115, 255, 0.16),
+        0 10px 34px rgba(0, 0, 30, 0.5) !important;
+}
+
+/* Divisor: hilo de plata */
+body.theme-classic #vnSection .vn-control-divider {
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(150, 195, 255, 0.38) 30%,
+        rgba(150, 195, 255, 0.38) 70%,
+        transparent
+    ) !important;
+}
+
+/* Botones: frío celestial */
+body.theme-classic #vnSection .vn-control-btn {
+    color: rgba(196, 216, 255, 0.72) !important;
+}
+
+body.theme-classic #vnSection .vn-control-btn:hover {
+    background: rgba(120, 165, 255, 0.12) !important;
+    border-color: rgba(150, 195, 255, 0.32) !important;
+    color: #dcE9ff !important;
+    box-shadow: 0 0 14px rgba(90, 140, 255, 0.22) !important;
+}
+
+body.theme-classic #vnSection .vn-control-btn:active {
+    background: rgba(120, 165, 255, 0.2) !important;
+}
+
+/* ── Panel Responder: cristal nocturno ───────────────────────────────────── */
+body.theme-classic .vn-reply-panel {
+    background: linear-gradient(180deg,
+        rgba(9, 14, 42, 0.94) 0%,
+        rgba(5, 8, 26, 0.98) 100%) !important;
+    border-top: 1px solid rgba(155, 195, 255, 0.30) !important;
+    box-shadow:
+        0 -2px 0 0 rgba(130, 175, 255, 0.16),
+        0 -12px 48px rgba(0, 0, 30, 0.6),
+        0 -1px 0 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+body.theme-classic .vn-reply-header {
+    border-bottom: 1px solid rgba(150, 195, 255, 0.12) !important;
+    background: linear-gradient(90deg,
+        rgba(120, 165, 255, 0.08) 0%,
+        transparent 60%) !important;
+}
+
+body.theme-classic .vn-reply-title {
+    color: rgba(196, 216, 255, 0.9) !important;
+    letter-spacing: 0.1em !important;
+}
+
+/* Estrella titilante junto al título del panel */
+body.theme-classic .vn-reply-title::before {
+    content: '✦';
+    font-size: 0.7em;
+    color: rgba(155, 200, 255, 0.55);
+    animation: vmi-twinkle 3s ease-in-out infinite;
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   MODO RPG — Pergamino / Tarot
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── Barra de controles: madera y oro ────────────────────────────────────── */
+body.theme-rpg #vnSection .vn-controls {
+    background: linear-gradient(180deg,
+        rgba(44, 32, 18, 0.94) 0%,
+        rgba(30, 21, 12, 0.97) 100%) !important;
+    border: 1px solid rgba(198, 154, 62, 0.42) !important;
+    box-shadow:
+        0 0 0 1px rgba(120, 88, 30, 0.25) inset,
+        0 0 32px -10px rgba(198, 154, 62, 0.18),
+        0 10px 34px rgba(10, 5, 0, 0.55) !important;
+}
+
+/* Divisor: filete dorado */
+body.theme-rpg #vnSection .vn-control-divider {
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(198, 154, 62, 0.5) 30%,
+        rgba(198, 154, 62, 0.5) 70%,
+        transparent
+    ) !important;
+}
+
+/* Botones: ocre cálido */
+body.theme-rpg #vnSection .vn-control-btn {
+    color: rgba(226, 196, 138, 0.75) !important;
+}
+
+body.theme-rpg #vnSection .vn-control-btn:hover {
+    background: rgba(198, 154, 62, 0.14) !important;
+    border-color: rgba(198, 154, 62, 0.42) !important;
+    color: #f3ddad !important;
+    box-shadow: 0 0 12px rgba(198, 154, 62, 0.24) !important;
+}
+
+body.theme-rpg #vnSection .vn-control-btn:active {
+    background: rgba(198, 154, 62, 0.22) !important;
+}
+
+/* ── Panel Responder: pergamino oscuro con marco dorado ──────────────────── */
+body.theme-rpg .vn-reply-panel {
+    background: linear-gradient(180deg,
+        rgba(42, 30, 17, 0.96) 0%,
+        rgba(26, 18, 10, 0.99) 100%) !important;
+    border-top: 1px solid rgba(198, 154, 62, 0.5) !important;
+    box-shadow:
+        0 -2px 0 0 rgba(198, 154, 62, 0.22),
+        0 -12px 48px rgba(10, 5, 0, 0.6),
+        0 -1px 0 0 rgba(255, 240, 200, 0.05) !important;
+}
+
+body.theme-rpg .vn-reply-header {
+    border-bottom: 1px solid rgba(198, 154, 62, 0.16) !important;
+    background: linear-gradient(90deg,
+        rgba(198, 154, 62, 0.09) 0%,
+        transparent 60%) !important;
+}
+
+body.theme-rpg .vn-reply-title {
+    color: rgba(232, 202, 142, 0.92) !important;
+    letter-spacing: 0.08em !important;
+}
+
+/* Flor de lis dorada junto al título del panel */
+body.theme-rpg .vn-reply-title::before {
+    content: '⚜';
+    font-size: 0.8em;
+    color: rgba(198, 154, 62, 0.7);
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   Keyframes propios (prefijo vmi- para no acoplarse a vn-themes.css)
+   ═════════════════════════════════════════════════════════════════════════ */
+@keyframes vmi-twinkle {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50%      { opacity: 0.9;  transform: scale(1.1);  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.theme-classic .vn-reply-title::before {
+        animation: none !important;
+    }
+}
