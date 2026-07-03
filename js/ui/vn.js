@@ -1527,6 +1527,17 @@ function _applyModeClasses(vnSection, topicMode) {
         corners.innerHTML = '<i></i><i></i><i></i><i></i>';
         dbox.appendChild(corners);
     }
+    // Inyectar .vn-ambient-layer (atmósfera ambiental por modo) si no existe aún.
+    // Capa puramente presentacional: 12 <i> animados por CSS según body.theme-*.
+    // Primer hijo de .scene-layer para quedar bajo clima, sprites y opciones.
+    const sceneLayer = vnSection.querySelector('.scene-layer');
+    if (sceneLayer && !sceneLayer.querySelector('.vn-ambient-layer')) {
+        const ambient = document.createElement('div');
+        ambient.className = 'vn-ambient-layer';
+        ambient.setAttribute('aria-hidden', 'true');
+        ambient.innerHTML = '<i></i>'.repeat(12);
+        sceneLayer.insertBefore(ambient, sceneLayer.firstChild);
+    }
     if (topicMode === 'rpg') {
         vnSection.classList.remove('classic-mode', 'mode-classic');
         vnSection.classList.add('mode-rpg');
