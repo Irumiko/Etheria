@@ -5253,17 +5253,22 @@ async function _tryEnterProfile(idx) {
         : (window._cachedUserId || null);
     const slotOwner = owners[idx] || null;
 
-    // Muro 1: perfil reclamado por otra cuenta — bloqueo absoluto, sin importar el estado de sesión
-    if (slotOwner && slotOwner !== myUserId) {
-        if (typeof showAutosave === 'function') showAutosave('Este perfil pertenece a otra cuenta', 'error');
-        return false;
-    }
-
-    // Muro 2: sin sesión activa — pedir login antes de dejar entrar
+    // Muro 1: sin identidad resuelta — pedir login antes de cualquier veredicto.
+    // Va PRIMERO a propósito: con sesión caducada (refresh token muerto),
+    // auth.getUser() devuelve null aunque la UI muestre "sesión iniciada".
+    // Comparar propiedad con myUserId=null acusaba falsamente de "otra cuenta"
+    // al dueño legítimo; identidad desconocida ≠ identidad ajena.
     if (!myUserId) {
         window._pendingProfileIndex = idx;
         if (typeof showLoginScreen === 'function') showLoginScreen();
         if (typeof showAuthMain === 'function') showAuthMain();
+        return false;
+    }
+
+    // Muro 2: perfil reclamado por otra cuenta — solo con dos identidades
+    // reales y distintas. Bloqueo absoluto.
+    if (slotOwner && slotOwner !== myUserId) {
+        if (typeof showAutosave === 'function') showAutosave('Este perfil pertenece a otra cuenta', 'error');
         return false;
     }
 
