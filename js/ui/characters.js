@@ -180,9 +180,17 @@ async function selectUser(idx, options = {}) {
 // Comprueba si el usuario puede entrar al perfil idx.
 // Devuelve true si puede, false si no (muestra feedback y, si falta sesión, abre el login).
 // Esta función es la única puerta de entrada a selectUser() — debe ser infranqueable.
-function _tryEnterProfile(idx) {
+//
+// ASYNC a propósito: la identidad se resuelve vía getEtheriaUserId() (accessor
+// canónico de app.js) en lugar de leer window._cachedUserId en crudo. Leerlo
+// síncronamente provocaba una race en arranque: con sesión válida pero caché
+// aún no poblado, myUserId era null y el Muro 1 confundía "identidad aún
+// desconocida" con "perfil de otra cuenta", bloqueando al dueño legítimo.
+async function _tryEnterProfile(idx) {
     const owners    = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
-    const myUserId  = window._cachedUserId || null;
+    const myUserId  = typeof getEtheriaUserId === 'function'
+        ? (await getEtheriaUserId() || null)
+        : (window._cachedUserId || null);
     const slotOwner = owners[idx] || null;
 
     // Muro 1: perfil reclamado por otra cuenta — bloqueo absoluto, sin importar el estado de sesión
@@ -330,9 +338,9 @@ function renderUserCards() {
         // Botón continuar — stopPropagation para no activar selectUser a la vez
         const btn = card.querySelector('.user-continue-btn');
         if (btn) {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                if (!_tryEnterProfile(idx)) return;
+                if (!(await _tryEnterProfile(idx))) return;
                 selectUser(idx).then(() => {
                     if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
                     eventBus.emit('audio:stop-menu-music');
@@ -341,8 +349,8 @@ function renderUserCards() {
             });
         }
 
-        card.onclick = () => {
-            if (!_tryEnterProfile(idx)) return;
+        card.onclick = async () => {
+            if (!(await _tryEnterProfile(idx))) return;
             if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
             selectUser(idx);
         };
