@@ -4200,18 +4200,67 @@ window._refreshChoicesUI        = _refreshChoicesUI;
 
 const AffinityAtmosphere = (function () {
 
-    // Mapa de rango → datos del efecto
-    const RANK_CONFIG = {
-        'Desconocidos':       { bodyClass: null,                    ornament: null,  particles: null },
-        'Conocidos':          { bodyClass: 'affinity-conocidos',    ornament: null,  particles: null },
-        'Amigos':             { bodyClass: 'affinity-amigos',       ornament: { emoji: '✦', cls: 'ornament-amigos' },        particles: { color: '52,152,219',  count: 5,  speed: 0.3 } },
-        'Mejores Amigos':     { bodyClass: 'affinity-mejores-amigos', ornament: { emoji: '✦✦', cls: 'ornament-mejores-amigos' }, particles: { color: '39,174,96',  count: 8,  speed: 0.4 } },
-        'Interés Romántico':  { bodyClass: 'affinity-interes-romantico', ornament: { emoji: '🦋', cls: 'ornament-interes-romantico' }, particles: { color: '241,193,80', count: 10, speed: 0.5 } },
-        'Pareja':             { bodyClass: 'affinity-pareja',       ornament: { emoji: '🌸', cls: 'ornament-pareja' },       particles: { color: '231,76,80',   count: 14, speed: 0.6 } },
+    // Config derivada de la tabla canónica window.affinityRanks (state.js).
+    // Única fuente de verdad: rangos, ramas, colores e iconos viven allí;
+    // este módulo solo traduce (rango → rama + tier + color) a efectos.
+    //
+    // Clases aplicadas al body:
+    //   affinity-branch-<branch>  (common|friendship|romance|negative|rivalry|enmity)
+    //   affinity-tier-<n>         (posición 1-based del rango dentro de su rama)
+    // Custom property en body: --affinity-rgb = color canónico del rango (r,g,b)
+
+    const ORNAMENT_CLS = {
+        common:     'ornament-common',
+        friendship: 'ornament-friendship',
+        romance:    'ornament-romance',
+        negative:   'ornament-negative',
+        rivalry:    'ornament-rivalry',
+        enmity:     'ornament-enmity',
     };
 
-    const BODY_CLASSES = Object.values(RANK_CONFIG)
-        .map(c => c.bodyClass).filter(Boolean);
+    function _hexToRgb(hex) {
+        const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '');
+        return m ? `${parseInt(m[1],16)},${parseInt(m[2],16)},${parseInt(m[3],16)}` : '142,145,150';
+    }
+
+    // rango → { rank, branch, tier } o null si no está en la tabla
+    function _rankInfo(rankName) {
+        const table = window.affinityRanks;
+        if (!Array.isArray(table)) return null;
+        const rank = table.find(r => r.name === rankName);
+        if (!rank) return null;
+        const siblings = table.filter(r => r.branch === rank.branch);
+        return { rank, branch: rank.branch, tier: siblings.indexOf(rank) + 1 };
+    }
+
+    // rango → config de efectos { bodyClasses, rgb, ornament, particles }
+    function _configFor(rankName) {
+        const info = _rankInfo(rankName);
+        if (!info) return null;
+        const { rank, branch, tier } = info;
+        const rgb = _hexToRgb(rank.color);
+
+        // Sin efectos en la base del tronco común (Desconocidos / Conocidos solo tinte)
+        const hasEffects = !(branch === 'common' && tier < 3);
+
+        return {
+            bodyClasses: [`affinity-branch-${branch}`, `affinity-tier-${tier}`],
+            rgb,
+            ornament: hasEffects
+                ? { emoji: rank.icon || '✦', cls: ORNAMENT_CLS[branch] || 'ornament-common' }
+                : null,
+            particles: hasEffects
+                ? { color: rgb, count: 3 + tier * 3, speed: 0.22 + tier * 0.09 }
+                : null,
+        };
+    }
+
+    function _clearBodyState() {
+        [...document.body.classList]
+            .filter(c => c.startsWith('affinity-'))
+            .forEach(c => document.body.classList.remove(c));
+        document.body.style.removeProperty('--affinity-rgb');
+    }
 
     let _currentRank   = null;
     let _particleAnim  = null;  // requestAnimationFrame id
@@ -4220,11 +4269,13 @@ const AffinityAtmosphere = (function () {
     let _ctx           = null;
     let _panelEl       = null;
 
-    // ── Clase de body ────────────────────────────────────────────────
+    // ── Clase de body + color canónico ───────────────────────────────
     function _setBodyClass(rankName) {
-        BODY_CLASSES.forEach(c => document.body.classList.remove(c));
-        const cfg = RANK_CONFIG[rankName];
-        if (cfg?.bodyClass) document.body.classList.add(cfg.bodyClass);
+        _clearBodyState();
+        const cfg = _configFor(rankName);
+        if (!cfg) return;
+        cfg.bodyClasses.forEach(c => document.body.classList.add(c));
+        document.body.style.setProperty('--affinity-rgb', cfg.rgb);
     }
 
     // ── Ornamento del avatar ─────────────────────────────────────────
@@ -4232,7 +4283,7 @@ const AffinityAtmosphere = (function () {
         // Eliminar ornamento anterior
         document.querySelectorAll('.vn-affinity-ornament').forEach(el => el.remove());
 
-        const cfg = RANK_CONFIG[rankName];
+        const cfg = _configFor(rankName);
         if (!cfg?.ornament) return;
 
         const avatar = document.getElementById('vnInfoAvatar');
@@ -4267,7 +4318,7 @@ const AffinityAtmosphere = (function () {
     function _startParticles(rankName) {
         _stopParticles();
 
-        const cfg = RANK_CONFIG[rankName];
+        const cfg = _configFor(rankName);
         if (!cfg?.particles) return;
 
         _panelEl = document.getElementById('vnInfoCard');
@@ -4369,7 +4420,7 @@ const AffinityAtmosphere = (function () {
     // Limpiar todos los efectos (al salir de una historia, cambiar de modo, etc.)
     function clear() {
         _currentRank = null;
-        BODY_CLASSES.forEach(c => document.body.classList.remove(c));
+        _clearBodyState();
         document.querySelectorAll('.vn-affinity-ornament').forEach(el => el.remove());
         _stopParticles();
         // Limpiar contenedor de partículas
@@ -5189,9 +5240,17 @@ async function selectUser(idx, options = {}) {
 // Comprueba si el usuario puede entrar al perfil idx.
 // Devuelve true si puede, false si no (muestra feedback y, si falta sesión, abre el login).
 // Esta función es la única puerta de entrada a selectUser() — debe ser infranqueable.
-function _tryEnterProfile(idx) {
+//
+// ASYNC a propósito: la identidad se resuelve vía getEtheriaUserId() (accessor
+// canónico de app.js) en lugar de leer window._cachedUserId en crudo. Leerlo
+// síncronamente provocaba una race en arranque: con sesión válida pero caché
+// aún no poblado, myUserId era null y el Muro 1 confundía "identidad aún
+// desconocida" con "perfil de otra cuenta", bloqueando al dueño legítimo.
+async function _tryEnterProfile(idx) {
     const owners    = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
-    const myUserId  = window._cachedUserId || null;
+    const myUserId  = typeof getEtheriaUserId === 'function'
+        ? (await getEtheriaUserId() || null)
+        : (window._cachedUserId || null);
     const slotOwner = owners[idx] || null;
 
     // Muro 1: perfil reclamado por otra cuenta — bloqueo absoluto, sin importar el estado de sesión
@@ -5339,9 +5398,9 @@ function renderUserCards() {
         // Botón continuar — stopPropagation para no activar selectUser a la vez
         const btn = card.querySelector('.user-continue-btn');
         if (btn) {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-                if (!_tryEnterProfile(idx)) return;
+                if (!(await _tryEnterProfile(idx))) return;
                 selectUser(idx).then(() => {
                     if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
                     eventBus.emit('audio:stop-menu-music');
@@ -5350,8 +5409,8 @@ function renderUserCards() {
             });
         }
 
-        card.onclick = () => {
-            if (!_tryEnterProfile(idx)) return;
+        card.onclick = async () => {
+            if (!(await _tryEnterProfile(idx))) return;
             if (typeof _skipNextFadeTransition !== 'undefined') _skipNextFadeTransition = true;
             selectUser(idx);
         };
@@ -12467,6 +12526,17 @@ function _applyModeClasses(vnSection, topicMode) {
         corners.setAttribute('aria-hidden', 'true');
         corners.innerHTML = '<i></i><i></i><i></i><i></i>';
         dbox.appendChild(corners);
+    }
+    // Inyectar .vn-ambient-layer (atmósfera ambiental por modo) si no existe aún.
+    // Capa puramente presentacional: 12 <i> animados por CSS según body.theme-*.
+    // Primer hijo de .scene-layer para quedar bajo clima, sprites y opciones.
+    const sceneLayer = vnSection.querySelector('.scene-layer');
+    if (sceneLayer && !sceneLayer.querySelector('.vn-ambient-layer')) {
+        const ambient = document.createElement('div');
+        ambient.className = 'vn-ambient-layer';
+        ambient.setAttribute('aria-hidden', 'true');
+        ambient.innerHTML = '<i></i>'.repeat(12);
+        sceneLayer.insertBefore(ambient, sceneLayer.firstChild);
     }
     if (topicMode === 'rpg') {
         vnSection.classList.remove('classic-mode', 'mode-classic');

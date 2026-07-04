@@ -23953,52 +23953,59 @@ body.mode-classic .vn-info-card {
         border-color 0.8s ease;
 }
 
-/* ── Rangos: temperatura del fondo del panel ── */
-body.mode-classic.affinity-conocidos .vn-info-card {
-    background: linear-gradient(135deg,
-        rgba(48, 38, 22, 0.96),
-        rgba(38, 28, 12, 0.98));
-    border-color: rgba(180, 150, 80, 0.4);
-}
-body.mode-classic.affinity-amigos .vn-info-card {
-    background: linear-gradient(135deg,
-        rgba(30, 48, 56, 0.96),
-        rgba(22, 36, 44, 0.98));
-    border-color: rgba(90, 160, 200, 0.45);
+/* ── Ramas: temperatura del fondo del panel ──
+   Clases del body: affinity-branch-<rama> + affinity-tier-<n>, con
+   --affinity-rgb = color canónico del rango (fijado por affinity-atmosphere.js
+   desde window.affinityRanks — única fuente de verdad).
+   Fix cascada: #vnSection + !important necesarios para ganar a
+   07-overrides.css, que fija estas propiedades con !important y #vnSection. ── */
+
+/* Intensidad del glow según profundidad del rango en su rama */
+body.affinity-tier-1 { --affinity-glow: 0.10; }
+body.affinity-tier-2 { --affinity-glow: 0.16; }
+body.affinity-tier-3 { --affinity-glow: 0.22; }
+body.affinity-tier-4 { --affinity-glow: 0.28; }
+body.affinity-tier-5 { --affinity-glow: 0.34; }
+
+/* Borde y glow comunes a todas las ramas — color canónico del rango */
+body.mode-classic[class*="affinity-branch-"] #vnSection .vn-info-card {
+    border-color: rgba(var(--affinity-rgb), 0.5) !important;
     box-shadow:
-        0 12px 36px rgba(0,0,0,0.45),
-        0 0 0 1px rgba(90,160,200,0.10),
-        0 0 20px -4px rgba(52,152,219,0.20);
+        0 12px 36px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(var(--affinity-rgb), 0.12),
+        0 0 24px -4px rgba(var(--affinity-rgb), var(--affinity-glow, 0.15)) !important;
 }
-body.mode-classic.affinity-mejores-amigos .vn-info-card {
+
+/* Temperatura de fondo por rama */
+body.mode-classic.affinity-branch-common #vnSection .vn-info-card {
     background: linear-gradient(135deg,
-        rgba(22, 46, 32, 0.96),
-        rgba(16, 36, 22, 0.98));
-    border-color: rgba(80, 180, 100, 0.45);
-    box-shadow:
-        0 12px 36px rgba(0,0,0,0.45),
-        0 0 0 1px rgba(80,180,100,0.10),
-        0 0 20px -4px rgba(39,174,96,0.22);
+        rgba(38, 34, 46, 0.96),
+        rgba(28, 24, 36, 0.98)) !important;
 }
-body.mode-classic.affinity-interes-romantico .vn-info-card {
+body.mode-classic.affinity-branch-friendship #vnSection .vn-info-card {
     background: linear-gradient(135deg,
-        rgba(54, 36, 18, 0.97),
-        rgba(42, 24, 8, 0.99));
-    border-color: rgba(241, 193, 80, 0.55);
-    box-shadow:
-        0 12px 36px rgba(0,0,0,0.45),
-        0 0 0 1px rgba(241,193,80,0.12),
-        0 0 24px -4px rgba(230,160,20,0.30);
+        rgba(20, 44, 32, 0.96),
+        rgba(14, 34, 24, 0.98)) !important;
 }
-body.mode-classic.affinity-pareja .vn-info-card {
+body.mode-classic.affinity-branch-romance #vnSection .vn-info-card {
     background: linear-gradient(135deg,
-        rgba(54, 22, 22, 0.97),
-        rgba(42, 14, 14, 0.99));
-    border-color: rgba(231, 76, 80, 0.5);
-    box-shadow:
-        0 12px 36px rgba(0,0,0,0.50),
-        0 0 0 1px rgba(231,76,80,0.12),
-        0 0 28px -4px rgba(220,50,50,0.28);
+        rgba(54, 30, 18, 0.97),
+        rgba(44, 18, 12, 0.99)) !important;
+}
+body.mode-classic.affinity-branch-negative #vnSection .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(46, 36, 16, 0.96),
+        rgba(34, 26, 10, 0.98)) !important;
+}
+body.mode-classic.affinity-branch-rivalry #vnSection .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(52, 26, 14, 0.97),
+        rgba(38, 16, 8, 0.99)) !important;
+}
+body.mode-classic.affinity-branch-enmity #vnSection .vn-info-card {
+    background: linear-gradient(135deg,
+        rgba(30, 34, 40, 0.97),
+        rgba(20, 24, 30, 0.99)) !important;
 }
 
 /* ── Adorno del avatar: contenedor relativo para posicionar el ornamento ── */
@@ -24021,37 +24028,43 @@ body.mode-classic.affinity-pareja .vn-info-card {
     opacity: 1;
 }
 
-/* Amigos: estrellitas sutiles en las esquinas */
-.vn-affinity-ornament.ornament-amigos {
-    top: -4px;
-    right: -4px;
-    font-size: 9px;
-    filter: drop-shadow(0 0 3px rgba(52,152,219,0.7));
-    animation: ornament-twinkle 2.5s ease-in-out infinite;
-}
-/* Mejores Amigos: dos destellos */
-.vn-affinity-ornament.ornament-mejores-amigos {
+/* Ornamentos por rama — el emoji es el icon canónico del rango,
+   el color del halo llega vía --affinity-rgb */
+.vn-affinity-ornament.ornament-common,
+.vn-affinity-ornament.ornament-friendship {
     top: -5px;
     right: -5px;
-    font-size: 11px;
-    filter: drop-shadow(0 0 4px rgba(39,174,96,0.8));
-    animation: ornament-twinkle 2s ease-in-out infinite;
+    font-size: 10px;
+    filter: drop-shadow(0 0 4px rgba(var(--affinity-rgb, 52,152,219), 0.8));
+    animation: ornament-twinkle 2.4s ease-in-out infinite;
 }
-/* Interés Romántico: mariposa */
-.vn-affinity-ornament.ornament-interes-romantico {
-    top: -8px;
-    right: -6px;
-    font-size: 14px;
-    filter: drop-shadow(0 0 5px rgba(241,193,80,0.8));
-    animation: ornament-butterfly 3s ease-in-out infinite;
-}
-/* Pareja: dos corazones */
-.vn-affinity-ornament.ornament-pareja {
+.vn-affinity-ornament.ornament-romance {
     top: -8px;
     right: -6px;
     font-size: 13px;
-    filter: drop-shadow(0 0 6px rgba(231,76,80,0.9));
+    filter: drop-shadow(0 0 6px rgba(var(--affinity-rgb, 231,76,80), 0.9));
     animation: ornament-heartbeat 1.4s ease-in-out infinite;
+}
+.vn-affinity-ornament.ornament-negative {
+    top: -6px;
+    right: -5px;
+    font-size: 11px;
+    filter: drop-shadow(0 0 4px rgba(var(--affinity-rgb, 230,126,34), 0.85));
+    animation: ornament-flicker 1.8s steps(2, jump-none) infinite;
+}
+.vn-affinity-ornament.ornament-rivalry {
+    top: -7px;
+    right: -6px;
+    font-size: 12px;
+    filter: drop-shadow(0 0 5px rgba(var(--affinity-rgb, 211,84,0), 0.9));
+    animation: ornament-clash 2.2s ease-in-out infinite;
+}
+.vn-affinity-ornament.ornament-enmity {
+    top: -6px;
+    right: -5px;
+    font-size: 11px;
+    filter: drop-shadow(0 0 4px rgba(var(--affinity-rgb, 86,101,115), 0.9));
+    animation: ornament-dim 3.2s ease-in-out infinite;
 }
 
 @keyframes ornament-twinkle {
@@ -24070,6 +24083,20 @@ body.mode-classic.affinity-pareja .vn-info-card {
     45%       { transform: scale(1.15); }
     60%       { transform: scale(1); }
 }
+@keyframes ornament-flicker {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.45; }
+}
+@keyframes ornament-clash {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    40%       { transform: rotate(-12deg) scale(1.1); }
+    55%       { transform: rotate(8deg) scale(1.05); }
+    70%       { transform: rotate(0deg) scale(1); }
+}
+@keyframes ornament-dim {
+    0%, 100% { opacity: 1;    transform: scale(1); }
+    50%       { opacity: 0.55; transform: scale(0.94); }
+}
 
 /* ── Partículas de afinidad — contenedor sobre el info-card ── */
 .vn-affinity-particles {
@@ -24085,6 +24112,13 @@ body.mode-classic.affinity-pareja .vn-info-card {
     inset: 0;
     width: 100%;
     height: 100%;
+}
+
+/* ── Reduced motion: ornamentos estáticos ── */
+@media (prefers-reduced-motion: reduce) {
+    .vn-affinity-ornament {
+        animation: none !important;
+    }
 }
 
 /* -- css/bonds.css -- */
@@ -26193,6 +26227,640 @@ body.theme-rpg .vrp-modal .vrp-narrator-switch.active .vrp-switch-track {
     .tw-card-desc { display: none; }
     .tw-class-grid { grid-template-columns: repeat(2, 1fr); }
     .tw-stat-row { grid-template-columns: 5.5rem 28px 2.1rem 28px 2.4rem; }
+}
+
+/* -- css/features/vn-mode-identity.css -- */
+/* ── vn-mode-identity.css ─────────────────────────────────────────────────
+   FASE 1 — Identidad por modo para la periferia de la pantalla VN:
+   barra de controles (.vn-controls) y panel Responder (.vn-reply-panel).
+
+   Capa ADITIVA: no modifica layout, estructura ni comportamiento.
+   Solo re-skinea sobre los estilos base de 10-vn-controls.css y
+   05-reply-panel.css, extendiendo las dos identidades ya establecidas
+   en vn-themes.css:
+
+     body.theme-classic → "Constelaciones" (cristal nocturno · plata · ✦)
+     body.theme-rpg     → "Pergamino/Tarot" (pergamino oscuro · oro · ⚜)
+
+   Registrado en non-critical.css y en NON_CRITICAL_CSS_ORDER (build.js)
+   inmediatamente después de vn-themes.css.
+   ───────────────────────────────────────────────────────────────────────── */
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   MODO CLÁSICO — Constelaciones
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── Barra de controles: cristal estelar ─────────────────────────────────── */
+body.theme-classic #vnSection .vn-controls {
+    background: rgba(7, 11, 34, 0.62) !important;
+    backdrop-filter: blur(18px) saturate(1.3) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(1.3) !important;
+    border: 1px solid rgba(155, 195, 255, 0.24) !important;
+    box-shadow:
+        0 0 0 1px rgba(130, 175, 255, 0.06) inset,
+        0 0 42px -12px rgba(70, 115, 255, 0.16),
+        0 10px 34px rgba(0, 0, 30, 0.5) !important;
+}
+
+/* Divisor: hilo de plata */
+body.theme-classic #vnSection .vn-control-divider {
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(150, 195, 255, 0.38) 30%,
+        rgba(150, 195, 255, 0.38) 70%,
+        transparent
+    ) !important;
+}
+
+/* Botones: frío celestial */
+body.theme-classic #vnSection .vn-control-btn {
+    color: rgba(196, 216, 255, 0.72) !important;
+}
+
+body.theme-classic #vnSection .vn-control-btn:hover {
+    background: rgba(120, 165, 255, 0.12) !important;
+    border-color: rgba(150, 195, 255, 0.32) !important;
+    color: #dcE9ff !important;
+    box-shadow: 0 0 14px rgba(90, 140, 255, 0.22) !important;
+}
+
+body.theme-classic #vnSection .vn-control-btn:active {
+    background: rgba(120, 165, 255, 0.2) !important;
+}
+
+/* ── Panel Responder: cristal nocturno ───────────────────────────────────── */
+body.theme-classic .vn-reply-panel {
+    background: linear-gradient(180deg,
+        rgba(9, 14, 42, 0.94) 0%,
+        rgba(5, 8, 26, 0.98) 100%) !important;
+    border-top: 1px solid rgba(155, 195, 255, 0.30) !important;
+    box-shadow:
+        0 -2px 0 0 rgba(130, 175, 255, 0.16),
+        0 -12px 48px rgba(0, 0, 30, 0.6),
+        0 -1px 0 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+body.theme-classic .vn-reply-header {
+    border-bottom: 1px solid rgba(150, 195, 255, 0.12) !important;
+    background: linear-gradient(90deg,
+        rgba(120, 165, 255, 0.08) 0%,
+        transparent 60%) !important;
+}
+
+body.theme-classic .vn-reply-title {
+    color: rgba(196, 216, 255, 0.9) !important;
+    letter-spacing: 0.1em !important;
+}
+
+/* Estrella titilante junto al título del panel */
+body.theme-classic .vn-reply-title::before {
+    content: '✦';
+    font-size: 0.7em;
+    color: rgba(155, 200, 255, 0.55);
+    animation: vmi-twinkle 3s ease-in-out infinite;
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   MODO RPG — Pergamino / Tarot
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── Barra de controles: madera y oro ────────────────────────────────────── */
+body.theme-rpg #vnSection .vn-controls {
+    background: linear-gradient(180deg,
+        rgba(44, 32, 18, 0.94) 0%,
+        rgba(30, 21, 12, 0.97) 100%) !important;
+    border: 1px solid rgba(198, 154, 62, 0.42) !important;
+    box-shadow:
+        0 0 0 1px rgba(120, 88, 30, 0.25) inset,
+        0 0 32px -10px rgba(198, 154, 62, 0.18),
+        0 10px 34px rgba(10, 5, 0, 0.55) !important;
+}
+
+/* Divisor: filete dorado */
+body.theme-rpg #vnSection .vn-control-divider {
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(198, 154, 62, 0.5) 30%,
+        rgba(198, 154, 62, 0.5) 70%,
+        transparent
+    ) !important;
+}
+
+/* Botones: ocre cálido */
+body.theme-rpg #vnSection .vn-control-btn {
+    color: rgba(226, 196, 138, 0.75) !important;
+}
+
+body.theme-rpg #vnSection .vn-control-btn:hover {
+    background: rgba(198, 154, 62, 0.14) !important;
+    border-color: rgba(198, 154, 62, 0.42) !important;
+    color: #f3ddad !important;
+    box-shadow: 0 0 12px rgba(198, 154, 62, 0.24) !important;
+}
+
+body.theme-rpg #vnSection .vn-control-btn:active {
+    background: rgba(198, 154, 62, 0.22) !important;
+}
+
+/* ── Panel Responder: pergamino oscuro con marco dorado ──────────────────── */
+body.theme-rpg .vn-reply-panel {
+    background: linear-gradient(180deg,
+        rgba(42, 30, 17, 0.96) 0%,
+        rgba(26, 18, 10, 0.99) 100%) !important;
+    border-top: 1px solid rgba(198, 154, 62, 0.5) !important;
+    box-shadow:
+        0 -2px 0 0 rgba(198, 154, 62, 0.22),
+        0 -12px 48px rgba(10, 5, 0, 0.6),
+        0 -1px 0 0 rgba(255, 240, 200, 0.05) !important;
+}
+
+body.theme-rpg .vn-reply-header {
+    border-bottom: 1px solid rgba(198, 154, 62, 0.16) !important;
+    background: linear-gradient(90deg,
+        rgba(198, 154, 62, 0.09) 0%,
+        transparent 60%) !important;
+}
+
+body.theme-rpg .vn-reply-title {
+    color: rgba(232, 202, 142, 0.92) !important;
+    letter-spacing: 0.08em !important;
+}
+
+/* Flor de lis dorada junto al título del panel */
+body.theme-rpg .vn-reply-title::before {
+    content: '⚜';
+    font-size: 0.8em;
+    color: rgba(198, 154, 62, 0.7);
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   Keyframes propios (prefijo vmi- para no acoplarse a vn-themes.css)
+   ═════════════════════════════════════════════════════════════════════════ */
+@keyframes vmi-twinkle {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50%      { opacity: 0.9;  transform: scale(1.1);  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.theme-classic .vn-reply-title::before {
+        animation: none !important;
+    }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 2 — Cinemáticas: chapter reveal y transición de escena
+   Capa aditiva sobre 07-tone-story.css (.vn-chapter-reveal) y
+   03-topic-cards.css (.vn-scene-transition). Solo re-color y ornamento;
+   no toca timings, z-index ni la lógica de .active/.wipe.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── CLÁSICO · "Constelaciones" — revelación de capítulo ─────────────────── */
+
+/* Velo nocturno sutil detrás del título */
+body.theme-classic .vn-chapter-reveal.active {
+    background: radial-gradient(ellipse at center,
+        rgba(10, 16, 46, 0.55) 0%,
+        rgba(3, 5, 18, 0.0) 70%) !important;
+}
+
+/* Líneas: plata etérea en lugar de oro */
+body.theme-classic .vn-chapter-reveal-line {
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(165, 200, 255, 0.85),
+        transparent) !important;
+    box-shadow: 0 0 14px rgba(120, 165, 255, 0.35) !important;
+}
+
+/* Título: plata fría celestial */
+body.theme-classic .vn-chapter-reveal-title {
+    color: rgba(214, 230, 255, 0.96) !important;
+    text-shadow:
+        0 0 34px rgba(110, 160, 255, 0.55),
+        0 1px 2px rgba(0, 0, 30, 0.6) !important;
+}
+
+/* Estrellas ✦ flanqueando el título */
+body.theme-classic .vn-chapter-reveal-title::before {
+    content: '✦  ' !important;
+    color: rgba(160, 205, 255, 0.7) !important;
+    font-size: 0.8em !important;
+    animation: vmi-twinkle 2.8s ease-in-out infinite !important;
+    display: inline-block !important;
+}
+
+body.theme-classic .vn-chapter-reveal-title::after {
+    content: '  ✦' !important;
+    color: rgba(160, 205, 255, 0.7) !important;
+    font-size: 0.8em !important;
+    animation: vmi-twinkle 2.8s ease-in-out infinite 1.4s !important;
+    display: inline-block !important;
+}
+
+/* ── CLÁSICO — transición de escena: noche estelar ───────────────────────── */
+
+body.theme-classic .vn-scene-transition {
+    background: radial-gradient(ellipse at center,
+        rgba(8, 12, 38, 0.6) 0%,
+        rgba(2, 3, 14, 0.98) 100%) !important;
+}
+
+/* Wipe: barrido con filo plateado */
+body.theme-classic .vn-scene-transition.wipe {
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(120, 160, 255, 0.10) 42%,
+        rgba(4, 7, 26, 0.97) 50%,
+        rgba(120, 160, 255, 0.10) 58%,
+        transparent 100%) !important;
+}
+
+/* ── RPG · "Pergamino/Tarot" — revelación de capítulo ────────────────────── */
+
+/* Velo sepia cálido */
+body.theme-rpg .vn-chapter-reveal.active {
+    background: radial-gradient(ellipse at center,
+        rgba(46, 30, 10, 0.5) 0%,
+        rgba(16, 10, 3, 0.0) 70%) !important;
+}
+
+/* Líneas: oro viejo más denso, con doble brillo */
+body.theme-rpg .vn-chapter-reveal-line {
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(222, 178, 92, 0.95),
+        transparent) !important;
+    box-shadow:
+        0 0 12px rgba(196, 145, 50, 0.5),
+        0 2px 0 rgba(120, 82, 22, 0.35) !important;
+}
+
+/* Título: ámbar solemne */
+body.theme-rpg .vn-chapter-reveal-title {
+    color: rgba(240, 206, 138, 0.98) !important;
+    text-shadow:
+        0 0 30px rgba(200, 140, 40, 0.6),
+        0 2px 3px rgba(20, 10, 0, 0.7) !important;
+}
+
+/* Flores de lis ⚜ flanqueando el título */
+body.theme-rpg .vn-chapter-reveal-title::before {
+    content: '⚜  ' !important;
+    color: rgba(214, 168, 78, 0.85) !important;
+    font-size: 0.85em !important;
+    display: inline-block !important;
+}
+
+body.theme-rpg .vn-chapter-reveal-title::after {
+    content: '  ⚜' !important;
+    color: rgba(214, 168, 78, 0.85) !important;
+    font-size: 0.85em !important;
+    display: inline-block !important;
+}
+
+/* ── RPG — transición de escena: sepia de pergamino ──────────────────────── */
+
+body.theme-rpg .vn-scene-transition {
+    background: radial-gradient(ellipse at center,
+        rgba(34, 22, 8, 0.6) 0%,
+        rgba(8, 5, 1, 0.98) 100%) !important;
+}
+
+/* Wipe: barrido con filo dorado */
+body.theme-rpg .vn-scene-transition.wipe {
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(214, 165, 70, 0.12) 42%,
+        rgba(14, 9, 2, 0.97) 50%,
+        rgba(214, 165, 70, 0.12) 58%,
+        transparent 100%) !important;
+}
+
+/* ── Reduced motion: apagar el twinkle decorativo ────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    body.theme-classic .vn-chapter-reveal-title::before,
+    body.theme-classic .vn-chapter-reveal-title::after {
+        animation: none !important;
+    }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 4 — Atmósfera ambiental de escena
+   Capa .vn-ambient-layer inyectada por vn.js como primer hijo de
+   .scene-layer (12 <i> vacíos). 100% CSS: solo transform/opacity.
+   Oculta por defecto; cada tema la activa con su propia identidad.
+     Clásico → polvo estelar plateado (deriva lenta + twinkle)
+     RPG     → motas doradas ascendentes (ascuas de pergamino)
+   ═════════════════════════════════════════════════════════════════════════ */
+
+.vn-ambient-layer {
+    display: none;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.vn-ambient-layer i {
+    position: absolute;
+    display: block;
+    border-radius: 50%;
+    will-change: transform, opacity;
+}
+
+/* Distribución horizontal compartida */
+.vn-ambient-layer i:nth-child(1)  { left: 6%; }
+.vn-ambient-layer i:nth-child(2)  { left: 14%; }
+.vn-ambient-layer i:nth-child(3)  { left: 23%; }
+.vn-ambient-layer i:nth-child(4)  { left: 31%; }
+.vn-ambient-layer i:nth-child(5)  { left: 42%; }
+.vn-ambient-layer i:nth-child(6)  { left: 50%; }
+.vn-ambient-layer i:nth-child(7)  { left: 58%; }
+.vn-ambient-layer i:nth-child(8)  { left: 67%; }
+.vn-ambient-layer i:nth-child(9)  { left: 74%; }
+.vn-ambient-layer i:nth-child(10) { left: 82%; }
+.vn-ambient-layer i:nth-child(11) { left: 90%; }
+.vn-ambient-layer i:nth-child(12) { left: 96%; }
+
+/* ── CLÁSICO · polvo estelar ─────────────────────────────────────────────── */
+
+body.theme-classic .vn-ambient-layer { display: block; }
+
+body.theme-classic .vn-ambient-layer i {
+    width: 3px;
+    height: 3px;
+    background: rgba(190, 215, 255, 0.85);
+    box-shadow: 0 0 6px 1px rgba(140, 180, 255, 0.45);
+    animation: vmi-star-drift ease-in-out infinite;
+}
+
+/* Alturas y tempos variados para romper el patrón */
+body.theme-classic .vn-ambient-layer i:nth-child(1)  { top: 18%; animation-duration: 13s; }
+body.theme-classic .vn-ambient-layer i:nth-child(2)  { top: 64%; animation-duration: 17s; animation-delay: -4s; }
+body.theme-classic .vn-ambient-layer i:nth-child(3)  { top: 32%; animation-duration: 11s; animation-delay: -7s; width: 2px; height: 2px; }
+body.theme-classic .vn-ambient-layer i:nth-child(4)  { top: 76%; animation-duration: 19s; animation-delay: -2s; }
+body.theme-classic .vn-ambient-layer i:nth-child(5)  { top: 12%; animation-duration: 15s; animation-delay: -9s; width: 4px; height: 4px; }
+body.theme-classic .vn-ambient-layer i:nth-child(6)  { top: 48%; animation-duration: 12s; animation-delay: -5s; width: 2px; height: 2px; }
+body.theme-classic .vn-ambient-layer i:nth-child(7)  { top: 70%; animation-duration: 18s; animation-delay: -11s; }
+body.theme-classic .vn-ambient-layer i:nth-child(8)  { top: 26%; animation-duration: 14s; animation-delay: -3s; }
+body.theme-classic .vn-ambient-layer i:nth-child(9)  { top: 55%; animation-duration: 16s; animation-delay: -8s; width: 2px; height: 2px; }
+body.theme-classic .vn-ambient-layer i:nth-child(10) { top: 38%; animation-duration: 20s; animation-delay: -13s; }
+body.theme-classic .vn-ambient-layer i:nth-child(11) { top: 82%; animation-duration: 13s; animation-delay: -6s; width: 4px; height: 4px; }
+body.theme-classic .vn-ambient-layer i:nth-child(12) { top: 21%; animation-duration: 17s; animation-delay: -10s; }
+
+@keyframes vmi-star-drift {
+    0%, 100% { transform: translate(0, 0);       opacity: 0.15; }
+    25%       { transform: translate(9px, -7px);  opacity: 0.65; }
+    50%       { transform: translate(-5px, 5px);  opacity: 0.3; }
+    75%       { transform: translate(7px, 9px);   opacity: 0.55; }
+}
+
+/* ── RPG · motas doradas ascendentes ─────────────────────────────────────── */
+
+body.theme-rpg .vn-ambient-layer { display: block; }
+
+body.theme-rpg .vn-ambient-layer i {
+    bottom: -8px;
+    width: 3px;
+    height: 3px;
+    background: rgba(226, 182, 96, 0.8);
+    box-shadow: 0 0 6px 1px rgba(200, 145, 45, 0.4);
+    animation: vmi-mote-rise linear infinite;
+}
+
+body.theme-rpg .vn-ambient-layer i:nth-child(1)  { animation-duration: 16s; }
+body.theme-rpg .vn-ambient-layer i:nth-child(2)  { animation-duration: 21s; animation-delay: -6s;  width: 2px; height: 2px; }
+body.theme-rpg .vn-ambient-layer i:nth-child(3)  { animation-duration: 14s; animation-delay: -10s; }
+body.theme-rpg .vn-ambient-layer i:nth-child(4)  { animation-duration: 23s; animation-delay: -3s;  width: 4px; height: 4px; }
+body.theme-rpg .vn-ambient-layer i:nth-child(5)  { animation-duration: 17s; animation-delay: -13s; width: 2px; height: 2px; }
+body.theme-rpg .vn-ambient-layer i:nth-child(6)  { animation-duration: 20s; animation-delay: -8s; }
+body.theme-rpg .vn-ambient-layer i:nth-child(7)  { animation-duration: 15s; animation-delay: -5s;  width: 2px; height: 2px; }
+body.theme-rpg .vn-ambient-layer i:nth-child(8)  { animation-duration: 24s; animation-delay: -16s; }
+body.theme-rpg .vn-ambient-layer i:nth-child(9)  { animation-duration: 18s; animation-delay: -2s;  width: 4px; height: 4px; }
+body.theme-rpg .vn-ambient-layer i:nth-child(10) { animation-duration: 22s; animation-delay: -11s; }
+body.theme-rpg .vn-ambient-layer i:nth-child(11) { animation-duration: 16s; animation-delay: -7s;  width: 2px; height: 2px; }
+body.theme-rpg .vn-ambient-layer i:nth-child(12) { animation-duration: 19s; animation-delay: -14s; }
+
+@keyframes vmi-mote-rise {
+    0%   { transform: translate(0, 0);           opacity: 0; }
+    8%   { opacity: 0.6; }
+    50%  { transform: translate(10px, -55vh);    opacity: 0.45; }
+    92%  { opacity: 0.5; }
+    100% { transform: translate(-6px, -108vh);   opacity: 0; }
+}
+
+/* ── Rendimiento: convenciones de mobile-perf ────────────────────────────── */
+
+/* Móvil: mitad de partículas y tempos más lentos */
+@media (max-width: 767px) {
+    .vn-ambient-layer i:nth-child(2n) { display: none; }
+    .vn-ambient-layer i { animation-duration: 28s !important; }
+}
+
+/* Reduced motion y gama baja: capa apagada por completo */
+@media (prefers-reduced-motion: reduce) {
+    .vn-ambient-layer { display: none !important; }
+}
+body.low-spec .vn-ambient-layer { display: none !important; }
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 5 — Modales con identidad + detalle celestial del Clásico
+   Capa aditiva sobre el sistema genérico de modales (.modal /
+   .character-modal, base en 03-topic-cards.css) y micro-ornamentos
+   en la info card. Sin HTML nuevo: solo pseudo-elementos.
+     Clásico → cristal nocturno · plata · constelaciones (✦ ☾)
+     RPG     → naipe de tarot · pergamino · oro (☾ ★)
+   Los pseudos de .vn-dialogue-box están ocupados (07-overrides,
+   06-vn-mobile-rpg) — no se tocan.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── CLÁSICO · modales "carta estelar" ───────────────────────────────────── */
+
+body.theme-classic .modal,
+body.theme-classic .character-modal {
+    position: relative !important;
+    border-color: rgba(168, 198, 255, 0.5) !important;
+    background: linear-gradient(160deg,
+        rgba(15, 21, 50, 0.93),
+        rgba(8, 12, 32, 0.97)) !important;
+    box-shadow:
+        0 40px 80px rgba(0, 0, 12, 0.6),
+        0 0 0 1px rgba(140, 175, 255, 0.14),
+        inset 0 0 60px rgba(55, 85, 175, 0.10) !important;
+}
+
+/* Constelación en la franja superior: puntos unidos por un trazo fino */
+body.theme-classic .modal::before,
+body.theme-classic .character-modal::before {
+    content: '' !important;
+    position: absolute;
+    top: 12px;
+    left: 14%;
+    right: 14%;
+    height: 10px;
+    pointer-events: none;
+    background:
+        radial-gradient(circle 2.2px at 6% 60%,  rgba(198, 220, 255, 0.95), transparent 70%),
+        radial-gradient(circle 1.4px at 24% 25%, rgba(178, 205, 255, 0.8),  transparent 70%),
+        radial-gradient(circle 1.8px at 45% 70%, rgba(198, 220, 255, 0.9),  transparent 70%),
+        radial-gradient(circle 1.3px at 64% 30%, rgba(178, 205, 255, 0.75), transparent 70%),
+        radial-gradient(circle 2.4px at 82% 55%, rgba(205, 225, 255, 0.95), transparent 70%),
+        radial-gradient(circle 1.5px at 96% 35%, rgba(178, 205, 255, 0.8),  transparent 70%),
+        linear-gradient(90deg,
+            transparent,
+            rgba(150, 185, 255, 0.28) 12%,
+            rgba(150, 185, 255, 0.28) 88%,
+            transparent) center / 100% 1px no-repeat;
+}
+
+/* Constelación espejada al pie */
+body.theme-classic .modal::after,
+body.theme-classic .character-modal::after {
+    content: '' !important;
+    position: absolute;
+    bottom: 12px;
+    left: 20%;
+    right: 20%;
+    height: 10px;
+    pointer-events: none;
+    background:
+        radial-gradient(circle 1.6px at 10% 45%, rgba(178, 205, 255, 0.8), transparent 70%),
+        radial-gradient(circle 2.1px at 50% 60%, rgba(198, 220, 255, 0.9), transparent 70%),
+        radial-gradient(circle 1.6px at 90% 40%, rgba(178, 205, 255, 0.8), transparent 70%),
+        linear-gradient(90deg,
+            transparent,
+            rgba(150, 185, 255, 0.22) 18%,
+            rgba(150, 185, 255, 0.22) 82%,
+            transparent) center / 100% 1px no-repeat;
+}
+
+/* Títulos de modal: plata celestial con ✦ */
+body.theme-classic .modal h3,
+body.theme-classic .character-modal h3 {
+    color: rgba(214, 230, 255, 0.96) !important;
+    text-shadow: 0 0 22px rgba(110, 160, 255, 0.45) !important;
+}
+
+body.theme-classic .modal h3::before,
+body.theme-classic .character-modal h3::before {
+    content: '✦ ' !important;
+    color: rgba(160, 205, 255, 0.65) !important;
+    font-size: 0.75em !important;
+    animation: vmi-twinkle 2.8s ease-in-out infinite !important;
+    display: inline-block !important;
+}
+
+body.theme-classic .modal h3::after,
+body.theme-classic .character-modal h3::after {
+    content: ' ✦' !important;
+    color: rgba(160, 205, 255, 0.65) !important;
+    font-size: 0.75em !important;
+    animation: vmi-twinkle 2.8s ease-in-out infinite 1.4s !important;
+    display: inline-block !important;
+}
+
+/* ── CLÁSICO · micro-detalle otome-celestial en la info card ─────────────── */
+
+/* Pills con destello ✧ */
+body.theme-classic #vnSection .vn-info-pill::before {
+    content: '✧ ' !important;
+    color: rgba(160, 200, 255, 0.55) !important;
+    font-size: 0.85em !important;
+}
+
+/* Subtítulo con trazo de constelación bajo el texto */
+body.theme-classic #vnSection .vn-info-subtitle {
+    padding-bottom: 5px !important;
+    background:
+        radial-gradient(circle 1.5px at 12% 100%, rgba(178, 205, 255, 0.7), transparent 70%),
+        radial-gradient(circle 1.5px at 88% 100%, rgba(178, 205, 255, 0.7), transparent 70%),
+        linear-gradient(90deg,
+            transparent,
+            rgba(150, 185, 255, 0.25) 15%,
+            rgba(150, 185, 255, 0.25) 85%,
+            transparent) left bottom / 100% 1px no-repeat !important;
+}
+
+/* ── RPG · modales "naipe de tarot" ──────────────────────────────────────── */
+
+body.theme-rpg .modal,
+body.theme-rpg .character-modal {
+    position: relative !important;
+    border-color: rgba(200, 152, 62, 0.68) !important;
+    background: linear-gradient(160deg,
+        rgba(41, 29, 13, 0.94),
+        rgba(23, 15, 6, 0.97)) !important;
+    box-shadow:
+        0 40px 80px rgba(8, 4, 0, 0.65),
+        0 0 0 1px rgba(190, 140, 55, 0.16),
+        inset 0 0 55px rgba(125, 85, 22, 0.12) !important;
+}
+
+/* Marco interior de naipe */
+body.theme-rpg .modal::before,
+body.theme-rpg .character-modal::before {
+    content: '' !important;
+    position: absolute;
+    inset: 9px;
+    pointer-events: none;
+    border: 1px solid rgba(200, 155, 70, 0.32);
+    border-radius: 16px;
+}
+
+/* Estrella del arcano en el borde superior */
+body.theme-rpg .modal::after,
+body.theme-rpg .character-modal::after {
+    content: '★' !important;
+    position: absolute;
+    top: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    font-size: 11px;
+    color: rgba(222, 175, 85, 0.85);
+    text-shadow: 0 0 8px rgba(200, 140, 40, 0.6);
+}
+
+/* Títulos de modal: ámbar con lunas de tarot */
+body.theme-rpg .modal h3,
+body.theme-rpg .character-modal h3 {
+    color: rgba(240, 206, 138, 0.97) !important;
+    text-shadow: 0 0 20px rgba(200, 140, 40, 0.5) !important;
+}
+
+body.theme-rpg .modal h3::before,
+body.theme-rpg .character-modal h3::before {
+    content: '☾ ' !important;
+    color: rgba(214, 168, 78, 0.8) !important;
+    font-size: 0.8em !important;
+    display: inline-block !important;
+}
+
+body.theme-rpg .modal h3::after,
+body.theme-rpg .character-modal h3::after {
+    content: ' ☽' !important;
+    color: rgba(214, 168, 78, 0.8) !important;
+    font-size: 0.8em !important;
+    display: inline-block !important;
+}
+
+/* ── Reduced motion: destellos estáticos en títulos ──────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    body.theme-classic .modal h3::before,
+    body.theme-classic .modal h3::after,
+    body.theme-classic .character-modal h3::before,
+    body.theme-classic .character-modal h3::after {
+        animation: none !important;
+    }
 }
 
 /* -- css/menu-gamefeel.css -- */
