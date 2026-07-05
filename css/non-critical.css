@@ -32,6 +32,7 @@
 @import url('./vn-cinematic.css');
 @import url('./features/vn-themes.css');
 @import url('./features/vn-mode-identity.css');
+@import url('./features/vn-compose-bar.css');
 @import url('./menu-gamefeel.css');
 @import url('./options-gamefeel.css');
 /* Estancias aisladas — SIEMPRE AL FINAL (especificidad #sectionId .selector) */

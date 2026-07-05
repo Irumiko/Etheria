@@ -26863,6 +26863,388 @@ body.theme-rpg .character-modal h3::after {
     }
 }
 
+/* -- css/features/vn-compose-bar.css -- */
+/* ── vn-compose-bar.css ───────────────────────────────────────────────────
+   Rediseño del panel Responder/Editar: de modal centrado a BARRA COMPACTA
+   anclada justo encima de la caja de diálogo.
+
+   Capa ADITIVA: reposiciona y reestructura #vnReplyPanel vía CSS y añade
+   estilo a los controles nuevos (tipos de acción + formato) que inyecta
+   js/ui/vn-compose.js. NO altera la lógica de openReplyPanel/postVNReply
+   ni ningún ID; todos los elementos originales siguen presentes.
+
+     body.theme-classic → "Susurrar bajo las estrellas" (plata · ✦ · ｢｣)
+     body.theme-rpg     → "Inscribir en el pergamino"   (oro · ⚜ · ★)
+
+   Registrado en non-critical.css y NON_CRITICAL_CSS_ORDER (build.js) tras
+   vn-mode-identity.css.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ═════════════════════════════════════════════════════════════════════════
+   1 · ESTRUCTURA — de overlay centrado a barra anclada abajo
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* El panel deja de ser un overlay a pantalla completa: se ancla al viewport
+   por su parte inferior, justo por encima de la zona de la caja de diálogo. */
+body.compose-bar #vnReplyPanel {
+    position: fixed !important;
+    inset: auto 0 0 0 !important;
+    display: none;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 0 clamp(88px, 14vh, 150px) !important;
+    background: none !important;
+    pointer-events: none;
+    z-index: 1200;
+}
+
+body.compose-bar #vnReplyPanel[style*="flex"] { display: flex !important; }
+
+/* Backdrop: apenas un velo suave que no tapa la escena (ya no es un modal) */
+body.compose-bar #vnReplyPanel .vrp-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    pointer-events: auto;
+}
+
+/* El "modal" pasa a ser la barra compacta */
+body.compose-bar #vnReplyPanel .vrp-modal {
+    position: relative !important;
+    pointer-events: auto;
+    width: min(880px, 94vw) !important;
+    max-width: 94vw !important;
+    max-height: min(70vh, 560px) !important;
+    margin: 0 !important;
+    border-radius: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    animation: vcb-rise 0.32s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+@keyframes vcb-rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Header compacto: una sola fila */
+body.compose-bar #vnReplyPanel .vrp-header {
+    padding: 10px 14px 8px !important;
+    flex-shrink: 0;
+}
+
+/* Cuerpo con scroll propio si crece (opciones/clima expandidos) */
+body.compose-bar #vnReplyPanel .vrp-body {
+    padding: 4px 14px 10px !important;
+    overflow-y: auto !important;
+    flex: 1 1 auto;
+}
+
+/* Split → una sola columna (la preview queda como toggle) */
+body.compose-bar #vnReplyPanel .vrp-split {
+    display: block !important;
+}
+body.compose-bar #vnReplyPanel .vrp-preview-pane { display: none !important; }
+body.compose-bar #vnReplyPanel.show-preview .vrp-preview-pane {
+    display: block !important;
+    margin-top: 8px;
+}
+
+/* Textarea más contenido, crece con el contenido */
+body.compose-bar #vnReplyPanel .vn-reply-textarea {
+    min-height: 64px !important;
+    max-height: 220px !important;
+    font-size: 0.98rem !important;
+    line-height: 1.6 !important;
+}
+
+/* Footer compacto */
+body.compose-bar #vnReplyPanel .vrp-footer {
+    padding: 8px 14px 12px !important;
+    flex-shrink: 0;
+}
+
+/* La etiqueta con los hints de markdown ocupa demasiado: se oculta,
+   los toggles de formato la sustituyen */
+body.compose-bar #vnReplyPanel .vrp-format-hints { display: none !important; }
+
+/* ═════════════════════════════════════════════════════════════════════════
+   2 · CONTROLES NUEVOS — tipos de acción + formato (inyectados por JS)
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* Fila de tipos de acción: Hablar · Actuar · Pensar */
+.vcb-action-row {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.vcb-action-btn {
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+/* Fila de formato: normal · cursiva · negrita */
+.vcb-format-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 6px 0 2px;
+}
+
+.vcb-format-btn {
+    width: 30px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.82rem;
+    transition: all 0.16s ease;
+}
+.vcb-format-btn[data-fmt="bold"]   { font-weight: 800; }
+.vcb-format-btn[data-fmt="italic"] { font-style: italic; font-family: Georgia, serif; }
+
+.vcb-format-spacer { flex: 1; }
+
+/* Estilo del textarea según tipo de acción activo (SOLO visual) */
+.vn-reply-textarea.vcb-mode-think {
+    font-style: italic !important;
+    opacity: 0.94;
+}
+.vn-reply-textarea.vcb-mode-act {
+    font-style: italic !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   3 · CLÁSICO · "Susurrar bajo las estrellas"
+   ═════════════════════════════════════════════════════════════════════════ */
+
+body.theme-classic.compose-bar #vnReplyPanel .vrp-modal {
+    background: linear-gradient(160deg,
+        rgba(17, 23, 54, 0.96),
+        rgba(9, 13, 34, 0.98)) !important;
+    border: 1px solid rgba(168, 198, 255, 0.4) !important;
+    box-shadow:
+        0 30px 60px rgba(0, 0, 14, 0.55),
+        0 0 0 1px rgba(140, 175, 255, 0.12),
+        inset 0 1px 0 rgba(180, 205, 255, 0.14) !important;
+}
+
+/* Voz del personaje en pill con filete ｢ ｣ */
+body.theme-classic.compose-bar #vnReplyPanel .vrp-title {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: rgba(214, 230, 255, 0.96) !important;
+    text-shadow: 0 0 18px rgba(110, 160, 255, 0.4);
+}
+body.theme-classic.compose-bar #vnReplyPanel .vrp-title::before { content: '｢ '; color: rgba(150, 190, 255, 0.6); }
+body.theme-classic.compose-bar #vnReplyPanel .vrp-title::after  { content: ' ｣'; color: rgba(150, 190, 255, 0.6); }
+
+body.theme-classic.compose-bar #vnReplyPanel .vrp-icon { filter: grayscale(1) brightness(2.4); opacity: 0.7; }
+
+/* Subtítulo poético bajo la voz */
+body.theme-classic.compose-bar #vnReplyPanel .vrp-header-left::after {
+    content: 'teje tu respuesta bajo las estrellas';
+    position: absolute;
+    left: 14px;
+    top: 30px;
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-style: italic;
+    font-size: 0.68rem;
+    color: rgba(150, 180, 235, 0.5);
+    letter-spacing: 0.02em;
+}
+body.theme-classic.compose-bar #vnReplyPanel .vrp-header { padding-bottom: 22px !important; position: relative; }
+
+/* Textarea: cristal nocturno */
+body.theme-classic.compose-bar #vnReplyPanel .vn-reply-textarea {
+    background: rgba(8, 12, 30, 0.6) !important;
+    border: 1px solid rgba(150, 185, 255, 0.3) !important;
+    border-radius: 12px !important;
+    color: rgba(226, 236, 255, 0.96) !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+}
+body.theme-classic.compose-bar #vnReplyPanel .vn-reply-textarea:focus {
+    border-color: rgba(170, 205, 255, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(120, 160, 255, 0.14), 0 0 22px -6px rgba(120, 160, 255, 0.4) !important;
+}
+
+/* Tipos de acción — Clásico */
+body.theme-classic .vcb-action-btn {
+    color: rgba(180, 205, 255, 0.7);
+    border-color: rgba(150, 185, 255, 0.28);
+}
+body.theme-classic .vcb-action-btn:hover { color: rgba(214, 230, 255, 0.95); border-color: rgba(150, 185, 255, 0.5); }
+body.theme-classic .vcb-action-btn.active {
+    color: rgba(226, 238, 255, 0.98);
+    border-color: rgba(170, 205, 255, 0.7);
+    background: rgba(120, 160, 255, 0.14);
+    box-shadow: 0 0 14px -3px rgba(120, 160, 255, 0.5);
+}
+
+/* Formato — Clásico */
+body.theme-classic .vcb-format-btn {
+    color: rgba(170, 200, 255, 0.65);
+    border-color: rgba(150, 185, 255, 0.22);
+}
+body.theme-classic .vcb-format-btn:hover,
+body.theme-classic .vcb-format-btn.active {
+    color: rgba(220, 234, 255, 0.98);
+    border-color: rgba(170, 205, 255, 0.6);
+    background: rgba(120, 160, 255, 0.12);
+}
+
+/* Botón enviar → "Susurrar", con ✦ */
+body.theme-classic.compose-bar #vnReplyPanel .vrp-btn-send {
+    background: linear-gradient(135deg, rgba(72, 104, 190, 0.5), rgba(120, 150, 230, 0.32)) !important;
+    border: 1px solid rgba(170, 205, 255, 0.6) !important;
+    color: rgba(228, 238, 255, 0.98) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+}
+body.theme-classic.compose-bar #vnReplyPanel .vrp-btn-send::before { content: '✦ '; opacity: 0.7; }
+body.theme-classic.compose-bar #vnReplyPanel .vrp-btn-send:hover {
+    box-shadow: 0 0 22px -4px rgba(130, 170, 255, 0.6) !important;
+}
+
+/* Cancelar → discreto */
+body.theme-classic.compose-bar #vnReplyPanel .vrp-btn-cancel {
+    background: transparent !important;
+    color: rgba(170, 195, 245, 0.7) !important;
+    border: 1px solid rgba(150, 185, 255, 0.22) !important;
+    font-variant: small-caps;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   4 · RPG · "Inscribir en el pergamino"
+   ═════════════════════════════════════════════════════════════════════════ */
+
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-modal {
+    background: linear-gradient(160deg,
+        rgba(43, 30, 13, 0.97),
+        rgba(24, 16, 6, 0.98)) !important;
+    border: 1px solid rgba(200, 152, 62, 0.6) !important;
+    box-shadow:
+        0 30px 60px rgba(8, 4, 0, 0.6),
+        0 0 0 1px rgba(190, 140, 55, 0.16),
+        inset 0 1px 0 rgba(220, 175, 90, 0.16) !important;
+}
+
+/* Voz del personaje con lunas ☾ ☽ */
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-title {
+    font-family: var(--font-serif, 'Cinzel', serif) !important;
+    letter-spacing: 0.08em;
+    color: rgba(240, 206, 138, 0.97) !important;
+    text-shadow: 0 0 16px rgba(200, 140, 40, 0.45);
+}
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-title::before { content: '☾ '; color: rgba(214, 168, 78, 0.75); }
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-title::after  { content: ' ☽'; color: rgba(214, 168, 78, 0.75); }
+
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-icon { filter: sepia(1) saturate(2) hue-rotate(5deg) brightness(1.1); opacity: 0.8; }
+
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-header-left::after {
+    content: 'inscribe tu acción en la crónica';
+    position: absolute;
+    left: 14px;
+    top: 30px;
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-style: italic;
+    font-size: 0.68rem;
+    color: rgba(200, 165, 100, 0.5);
+    letter-spacing: 0.02em;
+}
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-header { padding-bottom: 22px !important; position: relative; }
+
+body.theme-rpg.compose-bar #vnReplyPanel .vn-reply-textarea {
+    background: rgba(20, 13, 4, 0.6) !important;
+    border: 1px solid rgba(200, 155, 70, 0.35) !important;
+    border-radius: 10px !important;
+    color: rgba(244, 226, 190, 0.97) !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+}
+body.theme-rpg.compose-bar #vnReplyPanel .vn-reply-textarea:focus {
+    border-color: rgba(220, 170, 80, 0.65) !important;
+    box-shadow: 0 0 0 3px rgba(200, 140, 45, 0.14), 0 0 22px -6px rgba(200, 140, 45, 0.4) !important;
+}
+
+body.theme-rpg .vcb-action-btn {
+    color: rgba(214, 175, 100, 0.7);
+    border-color: rgba(200, 155, 70, 0.3);
+}
+body.theme-rpg .vcb-action-btn:hover { color: rgba(240, 206, 138, 0.96); border-color: rgba(200, 155, 70, 0.55); }
+body.theme-rpg .vcb-action-btn.active {
+    color: rgba(244, 214, 150, 0.98);
+    border-color: rgba(220, 170, 80, 0.7);
+    background: rgba(200, 140, 45, 0.16);
+    box-shadow: 0 0 14px -3px rgba(200, 140, 45, 0.5);
+}
+
+body.theme-rpg .vcb-format-btn {
+    color: rgba(210, 170, 100, 0.65);
+    border-color: rgba(200, 155, 70, 0.25);
+}
+body.theme-rpg .vcb-format-btn:hover,
+body.theme-rpg .vcb-format-btn.active {
+    color: rgba(244, 214, 150, 0.98);
+    border-color: rgba(220, 170, 80, 0.6);
+    background: rgba(200, 140, 45, 0.14);
+}
+
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-btn-send {
+    background: linear-gradient(135deg, rgba(150, 100, 30, 0.55), rgba(190, 140, 55, 0.35)) !important;
+    border: 1px solid rgba(220, 170, 80, 0.6) !important;
+    color: rgba(246, 224, 175, 0.98) !important;
+    letter-spacing: 0.06em;
+}
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-btn-send::before { content: '⚜ '; opacity: 0.8; }
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-btn-send:hover {
+    box-shadow: 0 0 22px -4px rgba(210, 150, 50, 0.6) !important;
+}
+
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-btn-cancel {
+    background: transparent !important;
+    color: rgba(205, 170, 110, 0.7) !important;
+    border: 1px solid rgba(200, 155, 70, 0.25) !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   5 · Responsive + rendimiento
+   ═════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 767px) {
+    body.compose-bar #vnReplyPanel {
+        padding-bottom: clamp(70px, 12vh, 120px) !important;
+    }
+    body.compose-bar #vnReplyPanel .vrp-modal {
+        width: 96vw !important;
+        max-height: 62vh !important;
+    }
+    .vcb-action-btn { padding: 4px 9px; font-size: 0.64rem; }
+    /* En móvil, el subtítulo poético estorba: se oculta */
+    body.compose-bar #vnReplyPanel .vrp-header-left::after { display: none !important; }
+    body.compose-bar #vnReplyPanel .vrp-header { padding-bottom: 8px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.compose-bar #vnReplyPanel .vrp-modal { animation: none !important; }
+}
+
 /* -- css/menu-gamefeel.css -- */
 /* Game-like polish for menus and topic management */
 

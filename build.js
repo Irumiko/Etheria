@@ -57,6 +57,7 @@ const NON_CRITICAL_CSS_ORDER = [
   'css/vn-cinematic.css',
   'css/features/vn-themes.css',
   'css/features/vn-mode-identity.css',
+  'css/features/vn-compose-bar.css',
   'css/menu-gamefeel.css',
   'css/options-gamefeel.css',
   /* ── Estancias aisladas: SIEMPRE al final — ganan todos los conflictos de cascada ── */
