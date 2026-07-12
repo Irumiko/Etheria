@@ -27062,6 +27062,116 @@ body.theme-rpg.compose-bar #vnReplyPanel .vrp-btn-cancel {
 }
 
 
+/* ═════════════════════════════════════════════════════════════════════════
+   6 · PASADA DE DENSIDAD — estado inicial mínimo, secundario plegado
+   El concepto pide: voz + tipos de acción + textarea + Descartar/Enviar.
+   Todo lo demás se aligera o se pliega hasta que se toca.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* Etiqueta "✍ ESCRIBE": decorativa, fuera */
+body.compose-bar #vnReplyPanel .vrp-pane-label { display: none !important; }
+
+/* Selector de personaje: de bloque a chip discreto en una línea */
+body.compose-bar #vnReplyPanel .char-selector-container {
+    margin: 0 0 6px !important;
+}
+body.compose-bar #vnReplyPanel .char-selector-main {
+    padding: 4px 10px !important;
+    border-radius: 999px !important;
+    display: inline-flex !important;
+    width: auto !important;
+}
+body.compose-bar #vnReplyPanel .char-selected-name {
+    font-size: 0.78rem !important;
+}
+
+/* Vista previa: de botón a enlace pequeño, alineado con el formato */
+body.compose-bar #vnReplyPanel .vrp-preview-toggle {
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 6px !important;
+    font-size: 0.7rem !important;
+    opacity: 0.55;
+    letter-spacing: 0.04em;
+}
+body.compose-bar #vnReplyPanel .vrp-preview-toggle:hover { opacity: 0.9; }
+
+/* Opciones de elección: fila fina, sin caja aparatosa */
+body.compose-bar #vnReplyPanel .options-toggle-container {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 4px 0 0 !important;
+}
+body.compose-bar #vnReplyPanel .options-toggle {
+    padding: 5px 10px !important;
+    border-radius: 999px !important;
+    display: inline-flex !important;
+    font-size: 0.74rem !important;
+    opacity: 0.75;
+}
+body.compose-bar #vnReplyPanel .options-toggle:hover { opacity: 1; }
+
+/* Clima: SIEMPRE plegado por defecto en modo barra; se abre con su toggle */
+body.compose-bar #vnReplyPanel #weatherSelectorContainer .vrp-weather-row {
+    display: none !important;
+}
+body.compose-bar #vnReplyPanel #weatherSelectorContainer.vrp-weather-expanded .vrp-weather-row {
+    display: flex !important;
+    gap: 6px;
+}
+/* Su cabecera, como chip pequeño en línea con el de opciones */
+body.compose-bar #vnReplyPanel #weatherSelectorContainer .vrp-section-label {
+    padding: 5px 10px !important;
+    border-radius: 999px !important;
+    display: inline-flex !important;
+    font-size: 0.74rem !important;
+    opacity: 0.75;
+    margin: 4px 0 0 !important;
+}
+body.compose-bar #vnReplyPanel #weatherSelectorContainer .vrp-section-label:hover { opacity: 1; }
+
+/* Tarjetas de clima más pequeñas cuando se expanden */
+body.compose-bar #vnReplyPanel .vrp-weather-btn {
+    padding: 8px 10px !important;
+    min-width: 0 !important;
+}
+body.compose-bar #vnReplyPanel .vrp-weather-icon { font-size: 1.1rem !important; }
+body.compose-bar #vnReplyPanel .vrp-weather-name { font-size: 0.66rem !important; }
+
+/* Footer: nota poética a la izquierda, botones a la derecha */
+body.compose-bar #vnReplyPanel .vrp-footer {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px;
+}
+body.compose-bar #vnReplyPanel .vrp-footer::before {
+    flex: 1;
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-style: italic;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+    text-align: left;
+}
+body.theme-classic.compose-bar #vnReplyPanel .vrp-footer::before {
+    content: 'cada palabra teje un vínculo que aún no puedes ver';
+    color: rgba(150, 180, 235, 0.45);
+}
+body.theme-rpg.compose-bar #vnReplyPanel .vrp-footer::before {
+    content: 'el destino de tu acción permanece velado';
+    color: rgba(200, 165, 100, 0.45);
+}
+
+/* Aligerar espaciados generales del cuerpo */
+body.compose-bar #vnReplyPanel .vrp-body > * + * { margin-top: 6px !important; }
+body.compose-bar #vnReplyPanel .vn-reply-textarea { min-height: 58px !important; }
+
+/* En móvil, la nota poética del footer estorba */
+@media (max-width: 767px) {
+    body.compose-bar #vnReplyPanel .vrp-footer::before { display: none !important; }
+}
+
+
 /* -- css/menu-gamefeel.css -- */
 /* Game-like polish for menus and topic management */
 

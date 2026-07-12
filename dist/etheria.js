@@ -17722,6 +17722,27 @@ window.openActivityDashboard = openActivityDashboard;
         span.textContent = rpg ? 'Inscribir' : 'Susurrar';
     }
 
+    // ── Pasada de densidad: estado inicial mínimo (concepto) ─────────────
+    function compactPass() {
+        // Placeholder poético y breve, por senda (el largo con la lista de
+        // comandos apelotonaba el estado inicial)
+        var ta = textarea();
+        if (ta) {
+            var rpg = (typeof isRpgModeMode === 'function') && isRpgModeMode();
+            ta.placeholder = rpg
+                ? 'Inscribe tu acción en la crónica…'
+                : 'Teje tu respuesta bajo las estrellas…';
+        }
+        // Cancelar → Descartar (misma función, otra voz)
+        var cancel = document.querySelector('#vnReplyPanel .vrp-btn-cancel');
+        if (cancel && cancel.textContent.trim() === 'Cancelar') {
+            cancel.textContent = 'Descartar';
+        }
+        // Clima siempre plegado al abrir (se expande con su propio toggle)
+        var weather = document.getElementById('weatherSelectorContainer');
+        if (weather) weather.classList.remove('vrp-weather-expanded');
+    }
+
     // ── Enganchar openReplyPanel sin modificar su fuente ─────────────────
     function hookOpen() {
         if (typeof window.openReplyPanel !== 'function') return false;
@@ -17732,6 +17753,7 @@ window.openActivityDashboard = openActivityDashboard;
                 injectControls();
                 setActionType('speak');
                 relabelSend();
+                compactPass();
             } catch (err) { console.warn('[vn-compose] hook:', err); }
             return r;
         };
