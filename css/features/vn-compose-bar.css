@@ -488,3 +488,70 @@ body.compose-bar #vnReplyPanel .vn-reply-textarea { min-height: 58px !important;
 @media (max-width: 767px) {
     body.compose-bar #vnReplyPanel .vrp-footer::before { display: none !important; }
 }
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   7 · JERARQUÍA DEL CONCEPTO — tres zonas: cabecera · texto · pie
+   (layoutPass en vn-compose.js reordena los nodos; aquí su estilo)
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* Panel más contenido, como la tarjeta del mockup */
+body.compose-bar #vnReplyPanel .vrp-modal {
+    width: min(760px, 94vw) !important;
+}
+
+/* Cabecera: título + chip de personaje en línea; fuera el icono 💬 */
+body.compose-bar #vnReplyPanel .vrp-icon { display: none !important; }
+body.compose-bar #vnReplyPanel .vrp-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px;
+}
+body.compose-bar #vnReplyPanel .vrp-header-left .char-selector-container {
+    margin: 0 !important;
+}
+
+/* Textarea a la altura del mockup */
+body.compose-bar #vnReplyPanel .vn-reply-textarea {
+    min-height: 52px !important;
+}
+
+/* Fila A: utilidades minúsculas en una sola línea */
+.vcb-utility-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+.vcb-utility-row .vcb-format-row { margin: 0 !important; flex: 0 0 auto; }
+.vcb-utility-row .vcb-format-spacer { display: none; }
+body.compose-bar #vnReplyPanel .vcb-utility-row .vrp-preview-toggle {
+    margin: 0 !important;
+}
+/* Narrador compactado, empujado a la derecha */
+.vcb-utility-row .vrp-narrator-switch {
+    margin-left: auto !important;
+    transform: scale(0.88);
+    transform-origin: right center;
+}
+
+/* Fila B: chips plegados lado a lado; al expandirse ocupan todo el ancho */
+.vcb-secondary-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 6px;
+}
+.vcb-secondary-row > * { flex: 0 0 auto; margin: 0 !important; }
+.vcb-secondary-row .options-toggle-container:has(#enableOptions:checked) {
+    flex: 1 1 100%;
+}
+.vcb-secondary-row #weatherSelectorContainer.vrp-weather-expanded {
+    flex: 1 1 100%;
+}
+
+/* En móvil, narrador vuelve a tamaño táctil */
+@media (max-width: 767px) {
+    .vcb-utility-row .vrp-narrator-switch { transform: none; }
+}

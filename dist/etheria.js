@@ -17724,23 +17724,70 @@ window.openActivityDashboard = openActivityDashboard;
 
     // ── Pasada de densidad: estado inicial mínimo (concepto) ─────────────
     function compactPass() {
-        // Placeholder poético y breve, por senda (el largo con la lista de
-        // comandos apelotonaba el estado inicial)
+        var rpg = (typeof isRpgModeMode === 'function') && isRpgModeMode();
+
+        // Placeholder poético y breve, por senda
         var ta = textarea();
         if (ta) {
-            var rpg = (typeof isRpgModeMode === 'function') && isRpgModeMode();
             ta.placeholder = rpg
                 ? 'Inscribe tu acción en la crónica…'
                 : 'Teje tu respuesta bajo las estrellas…';
         }
+
+        // Título con la voz de la senda (solo si no estamos editando)
+        var title = document.getElementById('replyPanelTitle');
+        if (title && title.textContent.trim() === 'Responder') {
+            title.textContent = rpg ? 'Tu turno' : 'Tu voz';
+        }
+
         // Cancelar → Descartar (misma función, otra voz)
         var cancel = document.querySelector('#vnReplyPanel .vrp-btn-cancel');
         if (cancel && cancel.textContent.trim() === 'Cancelar') {
             cancel.textContent = 'Descartar';
         }
-        // Clima siempre plegado al abrir (se expande con su propio toggle)
+
+        // Clima siempre plegado al abrir
         var weather = document.getElementById('weatherSelectorContainer');
         if (weather) weather.classList.remove('vrp-weather-expanded');
+
+        layoutPass();
+    }
+
+    // ── Reordenación de layout: de filas apiladas a la jerarquía del
+    //    concepto. Mueve nodos EXISTENTES (conservan listeners e IDs);
+    //    idempotente gracias a los guards. ──────────────────────────────
+    function layoutPass() {
+        var panel = document.getElementById('vnReplyPanel');
+        if (!panel || panel.querySelector('.vcb-utility-row')) return;
+
+        var body = panel.querySelector('.vrp-body');
+        var split = panel.querySelector('.vrp-split');
+        if (!body || !split) return;
+
+        // Selector de personaje → chip junto al título, en la cabecera
+        var headerLeft = panel.querySelector('.vrp-header-left');
+        var charSel = document.getElementById('charSelectorContainer');
+        if (headerLeft && charSel) headerLeft.appendChild(charSel);
+
+        // Fila A: formato + vista previa + narrador, bajo el textarea
+        var rowA = document.createElement('div');
+        rowA.className = 'vcb-utility-row';
+        split.insertAdjacentElement('afterend', rowA);
+        var fmt = panel.querySelector('.vcb-format-row');
+        if (fmt) rowA.appendChild(fmt);
+        var preview = document.getElementById('vrpPreviewToggle');
+        if (preview) rowA.appendChild(preview);
+        var narrator = document.getElementById('narratorToggle');
+        if (narrator) rowA.appendChild(narrator);
+
+        // Fila B: chips plegados de opciones y clima, lado a lado
+        var rowB = document.createElement('div');
+        rowB.className = 'vcb-secondary-row';
+        rowA.insertAdjacentElement('afterend', rowB);
+        var opts = document.getElementById('optionsToggleContainer');
+        if (opts) rowB.appendChild(opts);
+        var weather = document.getElementById('weatherSelectorContainer');
+        if (weather) rowB.appendChild(weather);
     }
 
     // ── Enganchar openReplyPanel sin modificar su fuente ─────────────────
