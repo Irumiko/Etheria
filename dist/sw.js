@@ -10,7 +10,7 @@
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
 // Incrementar manualmente para forzar invalidación de caché en dev.
-const CACHE_VERSION = 'mrhnc1i7';
+const CACHE_VERSION = 'mri18vhn';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
 const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];
@@ -20,6 +20,7 @@ const PRECACHE_URLS = [
   './',
   './index.html',
   './manifest.json',
+  './assets/vendor/supabase-2.110.0.js',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/backgrounds/default_background.jpg',

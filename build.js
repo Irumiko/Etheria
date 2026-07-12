@@ -95,6 +95,7 @@ const STATIC_ASSETS = [
   ['assets/parallax/layer_mid_night.png', 'assets/parallax/layer_mid_night.png'],
   ['assets/parallax/layer_fg_night.png', 'assets/parallax/layer_fg_night.png'],
   ['assets/ui/ethy.svg', 'assets/ui/ethy.svg'],
+  ['assets/vendor/supabase-2.110.0.js', 'assets/vendor/supabase-2.110.0.js'],
   ['assets/backgrounds/hub-valley.png', 'assets/backgrounds/hub-valley.png'],
 ];
 

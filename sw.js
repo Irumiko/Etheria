@@ -20,6 +20,7 @@ const PRECACHE_URLS = [
   './',
   './index.html',
   './manifest.json',
+  './assets/vendor/supabase-2.110.0.js',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/backgrounds/default_background.jpg',
