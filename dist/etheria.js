@@ -13996,9 +13996,10 @@ function showOptions(options) {
     });
 
     const total = normalizedOptions.length;
+    const answered = currentMsg.selectedOptionIndex !== undefined;
+    const LETTERS = 'ABCDEFGH';
     const optionButtons = normalizedOptions.map((opt, idx) => {
         const selected = currentMsg.selectedOptionIndex === idx;
-        const disabled = currentMsg.selectedOptionIndex !== undefined;
         const optionLabel = `${opt.text}, opción ${idx + 1} de ${total}`;
         return `
         <button class="vn-option-btn ${selected ? 'chosen' : ''}"
@@ -14006,16 +14007,25 @@ function showOptions(options) {
                 aria-pressed="${selected ? 'true' : 'false'}"
                 aria-label="${escapeHtml(optionLabel)}"
                 onclick="selectOption(${idx})"
-                ${disabled ? 'disabled' : ''}>
-            ${escapeHtml(opt.text)}
+                ${answered ? 'disabled' : ''}>
+            <span class="vn-opt-letter" aria-hidden="true">${LETTERS[idx] || (idx + 1)}</span>
+            <span class="vn-opt-text">${escapeHtml(opt.text)}</span>
+            <span class="vn-opt-chevron" aria-hidden="true">›</span>
         </button>
     `;
     }).join('');
 
+    // "Guardar silencio": oculta las opciones sin elegir. No persiste nada;
+    // si el lector vuelve al mensaje, las opciones reaparecen intactas.
+    const silenceBtn = answered ? '' : `
+        <button class="vn-opt-silence" type="button" onclick="dismissOptions()">✕ Guardar silencio</button>
+    `;
+
     container.innerHTML = `
-        <div class="vn-options-title">🎭 Reacciones sugeridas</div>
-        <div class="vn-options-subtitle">Elige una ruta propuesta por quien abrió la escena.</div>
+        <div class="vn-options-title">✦ &nbsp;¿Qué respondes?&nbsp; ✦</div>
+        <div class="vn-options-subtitle">cada palabra teje un vínculo que aún no puedes ver</div>
         ${optionButtons}
+        ${silenceBtn}
     `;
 
     container.classList.add('active');
@@ -14023,6 +14033,16 @@ function showOptions(options) {
     const vnSection = document.getElementById('vnSection');
     if (vnSection) vnSection.classList.add('suspense-mode');
 }
+
+// Cierra el panel de elecciones sin seleccionar (concepto: "guardar
+// silencio"). Puramente visual: selectedOptionIndex no se toca.
+function dismissOptions() {
+    const container = document.getElementById('vnOptionsContainer');
+    if (container) container.classList.remove('active');
+    const vnSectionEl = document.getElementById('vnSection');
+    if (vnSectionEl) vnSectionEl.classList.remove('suspense-mode');
+}
+window.dismissOptions = dismissOptions;
 
 function selectOption(idx) {
     // Quitar efecto suspense al seleccionar (absorbido de mejoras.js)
