@@ -61,9 +61,32 @@
         if (typeof vrpAutoResize === 'function') vrpAutoResize(ta);
     }
 
+    // Opciones: delega en toggleOptionsFields() y sincroniza el estado
+    // visual del contenedor (expansión a ancho completo)
+    function toggleOptions() {
+        if (typeof toggleOptionsFields === 'function') toggleOptionsFields();
+        var c = document.getElementById('optionsToggleContainer');
+        var fields = document.getElementById('optionsFields');
+        var open = !!(fields && fields.classList.contains('active'));
+        if (c) c.classList.toggle('vcb-open', open);
+        var chip = document.getElementById('vcbOptionsChip');
+        if (chip) chip.classList.toggle('active', open);
+    }
+
+    // Clima: pliega/despliega su fila reutilizando la clase existente
+    function toggleWeather() {
+        var c = document.getElementById('weatherSelectorContainer');
+        if (!c) return;
+        var open = c.classList.toggle('vrp-weather-expanded');
+        var chip = document.getElementById('vcbWeatherChip');
+        if (chip) chip.classList.toggle('active', open);
+    }
+
     // Exponer para los onclick inline (el test de integridad los valida)
     window.vcbSetActionType = setActionType;
     window.vcbWrapFormat = wrapSelection;
+    window.vcbToggleOptions = toggleOptions;
+    window.vcbToggleWeather = toggleWeather;
 
     // ── Inyección única de los controles nuevos ──────────────────────────
     function injectControls() {
@@ -131,9 +154,17 @@
             cancel.textContent = 'Descartar';
         }
 
-        // Clima siempre plegado al abrir
+        // Clima siempre plegado al abrir; chips en estado inicial
         var weather = document.getElementById('weatherSelectorContainer');
         if (weather) weather.classList.remove('vrp-weather-expanded');
+        var wChip = document.getElementById('vcbWeatherChip');
+        if (wChip) wChip.classList.remove('active');
+        var opts = document.getElementById('optionsToggleContainer');
+        var fields = document.getElementById('optionsFields');
+        var open = !!(fields && fields.classList.contains('active'));
+        if (opts) opts.classList.toggle('vcb-open', open);
+        var oChip = document.getElementById('vcbOptionsChip');
+        if (oChip) oChip.classList.toggle('active', open);
 
         layoutPass();
     }
@@ -170,9 +201,27 @@
         rowB.className = 'vcb-secondary-row';
         rowA.insertAdjacentElement('afterend', rowB);
         var opts = document.getElementById('optionsToggleContainer');
-        if (opts) rowB.appendChild(opts);
+        if (opts) {
+            rowB.appendChild(opts);
+            var oChip = document.createElement('button');
+            oChip.type = 'button';
+            oChip.id = 'vcbOptionsChip';
+            oChip.className = 'vcb-chip';
+            oChip.setAttribute('onclick', 'vcbToggleOptions()');
+            oChip.innerHTML = '✦ Opciones de elección';
+            opts.insertBefore(oChip, opts.firstChild);
+        }
         var weather = document.getElementById('weatherSelectorContainer');
-        if (weather) rowB.appendChild(weather);
+        if (weather) {
+            rowB.appendChild(weather);
+            var wChip = document.createElement('button');
+            wChip.type = 'button';
+            wChip.id = 'vcbWeatherChip';
+            wChip.className = 'vcb-chip';
+            wChip.setAttribute('onclick', 'vcbToggleWeather()');
+            wChip.innerHTML = '☾ Clima de la escena';
+            weather.insertBefore(wChip, weather.firstChild);
+        }
     }
 
     // ── Enganchar openReplyPanel sin modificar su fuente ─────────────────
