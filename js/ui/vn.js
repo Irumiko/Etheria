@@ -2964,6 +2964,21 @@ function showOptions(options) {
         return;
     }
 
+    // Silenciadas ("guardar silencio"): nunca vuelven a mostrarse
+    if (currentMsg && currentMsg.optionsSkipped) {
+        container.classList.remove('active');
+        return;
+    }
+
+    // Caducadas: sin responder y el topic ya avanzó (no es el último
+    // mensaje) → la ventana de decisión pasó; no se reabre
+    const isAnswered = currentMsg && currentMsg.selectedOptionIndex !== undefined;
+    const isLastMsg = currentMessageIndex === msgs.length - 1;
+    if (!isAnswered && !isLastMsg) {
+        container.classList.remove('active');
+        return;
+    }
+
     // Guard: normalizar opciones que vengan en formatos legacy o corruptos
     const normalizedOptions = options.map((opt, i) => {
         if (opt && typeof opt === 'object' && typeof opt.text === 'string') return opt;
@@ -3017,9 +3032,19 @@ function showOptions(options) {
     if (vnSection) vnSection.classList.add('suspense-mode');
 }
 
-// Cierra el panel de elecciones sin seleccionar (concepto: "guardar
-// silencio"). Puramente visual: selectedOptionIndex no se toca.
+// "Guardar silencio": skip PERSISTENTE de esa tanda de elecciones.
+// No elige opción (selectedOptionIndex queda undefined) pero marca el
+// mensaje como silenciado: las opciones no vuelven a mostrarse a nadie.
+// Mismo mecanismo de persistencia/sync que selectOption.
 function dismissOptions() {
+    const msgs = getTopicMessages(currentTopicId);
+    const msg = msgs[currentMessageIndex];
+    if (msg && msg.selectedOptionIndex === undefined && !msg.optionsSkipped) {
+        msg.optionsSkipped = true;
+        msg.skippedBy = currentUserIndex;
+        hasUnsavedChanges = true;
+        save({ silent: true });
+    }
     const container = document.getElementById('vnOptionsContainer');
     if (container) container.classList.remove('active');
     const vnSectionEl = document.getElementById('vnSection');
@@ -6272,6 +6297,56 @@ function closeExportMenu(menuId) {
 
 window.toggleExportMenu = toggleExportMenu;
 window.closeExportMenu  = closeExportMenu;
+
+// ── Eco del narrador: registro permanente de los impactos de afinidad ────────
+// Al cerrar un ciclo, cycle:affinity-impacts trae los cambios aplicados.
+// Además del panel efímero de Ecos, se inserta UN mensaje de narrador en el
+// diálogo para que las acciones de ciclos pasados queden registradas y sean
+// revisables al navegar el historial. Id determinista por ciclo → si varios
+// clientes cierran a la vez, el duplicado se detecta y no se re-inserta.
+if (typeof eventBus !== 'undefined') {
+    eventBus.on('cycle:affinity-impacts', function (data) {
+        try {
+            if (!data || !data.changes || !data.changes.length) return;
+            if (String(data.topicId) !== String(currentTopicId)) return;
+
+            const msgs = getTopicMessages(currentTopicId);
+            const echoId = 'cycle-echo-' + data.cycleId;
+            if (msgs.some(m => m.id === echoId)) return; // ya registrado
+
+            const charName = (id) => {
+                const c = (appData.characters || []).find(x => String(x.id) === String(id));
+                return c ? c.name : 'Alguien';
+            };
+
+            const lines = data.changes.map(ch => {
+                const a = charName(ch.fromCharId);
+                const b = charName(ch.toCharId);
+                if (ch.delta > 0) return `✦ El vínculo entre ${a} y ${b} se estrecha (+${ch.delta})`;
+                if (ch.delta < 0) return `☄ El vínculo entre ${a} y ${b} se resiente (${ch.delta})`;
+                return `· El vínculo entre ${a} y ${b} permanece inmutable`;
+            });
+
+            msgs.push({
+                id: echoId,
+                characterId: null,
+                charName: 'Narrador',
+                charColor: null,
+                charAvatar: null,
+                charSprite: null,
+                text: '— Ecos del ciclo —\n' + lines.join('\n'),
+                isNarrator: true,
+                isCycleEcho: true,
+                userIndex: currentUserIndex,
+                timestamp: new Date().toISOString()
+            });
+            hasUnsavedChanges = true;
+            save({ silent: true });
+        } catch (err) {
+            window.EtheriaLogger?.warn('cycle-echo', 'Error registrando ecos:', err?.message);
+        }
+    });
+}
 
 // ── Elecciones del ciclo dentro del reply panel ──────────────────────────────
 // Al abrir el panel de respuesta en modo clásico, se cargan las elecciones
