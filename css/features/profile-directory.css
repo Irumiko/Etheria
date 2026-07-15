@@ -1,0 +1,23 @@
+/* ── profile-directory.css ────────────────────────────────────────────────
+   Tarjetas del directorio público en el selector de perfiles: perfiles
+   registrados de otras cuentas, visibles incluso sin sesión (vista
+   profiles_directory). Reutilizan la base .user-card.profile-foreign;
+   aquí solo el matiz que las distingue.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.user-card.profile-directory {
+    cursor: pointer;
+}
+
+.user-directory-badge {
+    margin-top: 6px;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(168, 198, 255, 0.55);
+    text-align: center;
+}
+
+.user-card.profile-directory:hover .user-directory-badge {
+    color: rgba(214, 230, 255, 0.85);
+}

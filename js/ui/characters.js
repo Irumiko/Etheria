@@ -384,6 +384,70 @@ function renderUserCards() {
         highlightActiveProfile(null);
         toggleWelcomeOverlay(true);
     }
+
+    // Directorio público: perfiles registrados de otras cuentas, visibles
+    // incluso sin sesión — el selector transmite que Etheria está habitada
+    _renderDirectoryCards(container).catch(() => {});
+}
+
+// ── Directorio público de perfiles ────────────────────────────────────────
+// Lee la vista profiles_directory (solo nombre + avatar, legible por anon)
+// y añade tarjetas informativas para los perfiles que NO están ya
+// representados localmente. Clic → login (son de otras cuentas).
+let _directoryCache = { at: 0, rows: [] };
+
+async function _renderDirectoryCards(container) {
+    if (!window.supabaseClient || !container) return;
+
+    // Caché de 60 s para no repetir la consulta en cada re-render
+    if (Date.now() - _directoryCache.at > 60000) {
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('profiles_directory')
+                .select('id, name, avatar')
+                .order('created_at', { ascending: true })
+                .limit(24);
+            if (error || !data) return;
+            _directoryCache = { at: Date.now(), rows: data };
+        } catch (_) { return; }
+    }
+
+    // El render pudo cambiar mientras esperábamos: limpiar duplicados previos
+    container.querySelectorAll('.profile-directory').forEach(el => el.remove());
+
+    const localNames = new Set(userNames.map(n => (n || '').trim().toLowerCase()));
+    const addCard = document.getElementById('addProfileCard');
+
+    _directoryCache.rows.forEach(p => {
+        const pname = (p.name || '').trim();
+        if (!pname || localNames.has(pname.toLowerCase())) return;
+
+        const card = document.createElement('div');
+        card.className = 'user-card profile-foreign profile-directory';
+        const avatarHtml = p.avatar
+            ? `<div class="user-avatar-wrap"><img src="${escapeHtml(p.avatar)}" alt="" loading="lazy"></div>`
+            : `<div class="user-avatar-wrap"><span class="user-avatar-initials">${escapeHtml(pname[0].toUpperCase())}</span></div>`;
+        card.innerHTML = `
+            ${avatarHtml}
+            <div class="user-name">${escapeHtml(pname)}</div>
+            <div class="user-directory-badge">✦ Viajero de Etheria</div>
+        `;
+        card.onclick = () => {
+            if (!window._cachedUserId) {
+                if (typeof showAutosave === 'function') showAutosave('Inicia sesión para continuar', 'info');
+                if (typeof showLoginScreen === 'function') showLoginScreen();
+                if (typeof showAuthMain === 'function') showAuthMain();
+            } else {
+                if (typeof showAutosave === 'function') showAutosave('Este perfil pertenece a otra cuenta', 'error');
+            }
+        };
+
+        if (addCard && addCard.parentElement === container) {
+            container.insertBefore(card, addCard);
+        } else {
+            container.appendChild(card);
+        }
+    });
 }
 
 // Re-render avatars cuando los settings llegan de Supabase (timing asíncrono)
