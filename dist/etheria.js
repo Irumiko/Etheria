@@ -13023,8 +13023,14 @@ function showCurrentMessage(direction = 'forward') {
     const namePlate = document.getElementById('vnSpeakerPlate');
     const avatarBox = document.getElementById('vnSpeakerAvatar');
 
+    // Los ecos de ciclo guardan los cambios como DATOS y cada cliente
+    // renderiza solo lo que atañe a su personaje (spec: ecos personales)
+    const displayText = (msg.isCycleEcho && Array.isArray(msg.cycleChanges))
+        ? buildCycleEchoText(msg)
+        : msg.text;
+
     // Parsear emotes del mensaje
-    const { emotes, text: cleanText } = parseEmotes(msg.text);
+    const { emotes, text: cleanText } = parseEmotes(displayText);
     const activeEmote = emotes.length > 0 ? emotes[0] : null;
 
     // Actualizar sprites y mostrar emote
@@ -16567,6 +16573,12 @@ function postVNReply() {
         persistTopicLockedCharacter(topic, selectedCharId);
     }
 
+    // Ciclo-turno (Clásico): si ya actuaste este ciclo, quedas en espera
+    if (_checkCycleTurnGuard(topic) === 'waiting') {
+        showAutosave('✦ Tu palabra ya está tejida este ciclo — aguarda a que los demás completen su turno', 'error');
+        return;
+    }
+
     let options = null;
     const enableOptions = document.getElementById('enableOptions');
     if(enableOptions && enableOptions.checked && !isRpgModeMode()) {
@@ -16687,6 +16699,7 @@ function postVNReply() {
     }
 
     notifyNextTurnIfNeeded(newMsg, topic, char).catch(() => {});
+    _ensureCycleAndMaybeClose(topic).catch(() => {});
 
     // Notificar a Ethy del mensaje enviado
     window.dispatchEvent(new CustomEvent('etheria:message-sent', {
@@ -17124,9 +17137,17 @@ function vrpSetWeatherBtn(clickedBtn) {
             this.disabled = true;
             this.textContent = 'Solicitando…';
             try {
+                // El saltado es quien encabeza la cola en este momento
+                const skippedUid = getCurrentTopic()?.turnOrder?.[0] || null;
                 const result = await SupabaseStories.skipTurn(storyId);
                 if (result && result.ok) {
                     if (typeof showAutosave === 'function') showAutosave('✅ Turno solicitado con éxito', 'success');
+                    if (skippedUid && _cycleCache.cycle && typeof SupabaseCycles !== 'undefined'
+                            && typeof SupabaseCycles.excuseParticipant === 'function') {
+                        SupabaseCycles.excuseParticipant(_cycleCache.cycle.id, skippedUid)
+                            .then(() => _ensureCycleAndMaybeClose(getCurrentTopic()))
+                            .catch(() => {});
+                    }
                     _hideBanner();
                 } else {
                     if (typeof showAutosave === 'function') {
@@ -17315,6 +17336,138 @@ function closeExportMenu(menuId) {
 window.toggleExportMenu = toggleExportMenu;
 window.closeExportMenu  = closeExportMenu;
 
+// ── Ciclo-turno (Clásico): una acción por participante y por ciclo ───────────
+// Modelo: dentro de un ciclo abierto, cada participante escribe UNA respuesta
+// en el orden que quiera; al hacerlo queda "en espera" (no puede escribir más,
+// pero SÍ responder elecciones). Cuando todos han actuado — o han sido
+// excusados por inactividad — el ciclo se cierra (impactos + eco) y se abre
+// el siguiente, desbloqueando a todos. Las 72 h de closes_at siguen como red
+// de seguridad para topics abandonados.
+// "Quién actuó" se deriva de los mensajes desde started_at → sin esquema nuevo.
+// NOTA: el guard aplica solo a postVNReply (mensajes nuevos); editar un
+// mensaje existente no cuenta como nueva acción del ciclo.
+
+let _cycleCache = { topicId: null, cycle: null };
+
+async function _refreshCycleCache(topicId) {
+    if (!topicId || typeof SupabaseCycles === 'undefined') return null;
+    try {
+        const cycle = await SupabaseCycles.getOpenCycle(topicId);
+        _cycleCache = { topicId: String(topicId), cycle };
+        return cycle;
+    } catch (_) { return null; }
+}
+
+function _cycleParticipantIds(cycle) {
+    if (cycle && Array.isArray(cycle.participants) && cycle.participants.length) {
+        return cycle.participants.map(String);
+    }
+    const parts = Array.isArray(window.currentStoryParticipants) ? window.currentStoryParticipants : [];
+    return parts.map(p => p?.user_id).filter(Boolean).map(String);
+}
+
+function _cycleActedUserIds(cycle) {
+    const owners = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
+    const started = cycle ? new Date(cycle.started_at || cycle.created_at || 0) : new Date(0);
+    const acted = new Set();
+    getTopicMessages(currentTopicId).forEach(m => {
+        if (m.isCycleEcho) return;
+        if (new Date(m.timestamp) <= started) return;
+        const uid = owners[m.userIndex];
+        if (uid) acted.add(String(uid));
+    });
+    return acted;
+}
+
+// Guard síncrono para el envío (usa el caché; sin caché → no bloquea,
+// la red de 72 h cubre el peor caso)
+function _checkCycleTurnGuard(topic) {
+    if (!topic || isRpgTopicMode(topic.mode)) return 'ok';
+    const cycle = (_cycleCache.topicId === String(currentTopicId)) ? _cycleCache.cycle : null;
+    if (!cycle) return 'ok';
+    const participants = _cycleParticipantIds(cycle);
+    if (participants.length < 2) return 'ok'; // en solitario no hay espera
+    const me = window._cachedUserId ? String(window._cachedUserId) : null;
+    if (!me || !participants.includes(me)) return 'ok';
+    const acted = _cycleActedUserIds(cycle);
+    if (acted.has(me) && !participants.every(p => acted.has(p))) return 'waiting';
+    return 'ok';
+}
+
+// Tras cada envío: garantizar ciclo abierto y cerrarlo si todos actuaron
+async function _ensureCycleAndMaybeClose(topic) {
+    if (!topic || isRpgTopicMode(topic.mode) || !currentTopicId) return;
+    if (typeof SupabaseCycles === 'undefined') return;
+    try {
+        let cycle = await _refreshCycleCache(currentTopicId);
+        if (!cycle) {
+            cycle = await SupabaseCycles.openCycle(currentTopicId, _cycleParticipantIds(null));
+            _cycleCache = { topicId: String(currentTopicId), cycle };
+            return;
+        }
+        const participants = _cycleParticipantIds(cycle);
+        if (participants.length < 2) return; // solo tiempo en solitario
+        const acted = _cycleActedUserIds(cycle);
+        if (participants.every(p => acted.has(p))) {
+            await SupabaseCycles.closeCycle(cycle.id, currentTopicId);
+            const fresh = await SupabaseCycles.openCycle(currentTopicId, _cycleParticipantIds(null));
+            _cycleCache = { topicId: String(currentTopicId), cycle: fresh };
+            if (typeof updateChoiceButton === 'function') updateChoiceButton();
+        }
+    } catch (err) {
+        window.EtheriaLogger?.warn('cycle-turn', 'ensure/close:', err?.message);
+    }
+}
+
+if (typeof eventBus !== 'undefined') {
+    eventBus.on('cycle:opened', (d) => {
+        if (String(d?.topicId) === String(currentTopicId)) {
+            _cycleCache = { topicId: String(d.topicId), cycle: d.cycle };
+        }
+    });
+    eventBus.on('cycle:closed', (d) => {
+        if (String(d?.topicId) === String(currentTopicId)) {
+            _cycleCache = { topicId: String(d.topicId), cycle: null };
+        }
+    });
+}
+
+// Construye el texto del eco para el ESPECTADOR actual: solo los cambios
+// que involucran a su personaje, agregados a delta neto por interlocutor.
+// Sin cambios propios → línea genérica (el registro existe, pero no revela
+// las afinidades ajenas).
+function buildCycleEchoText(msg) {
+    const myId = String(selectedCharId || '');
+    const mine = (msg.cycleChanges || []).filter(ch =>
+        String(ch.fromCharId) === myId || String(ch.toCharId) === myId
+    );
+
+    if (!myId || mine.length === 0) {
+        return '— Los ecos del ciclo resuenan, pero ninguno te nombra —';
+    }
+
+    // Delta neto por "el otro" personaje
+    const net = {};
+    mine.forEach(ch => {
+        const other = String(ch.fromCharId) === myId ? ch.toCharId : ch.fromCharId;
+        net[other] = (net[other] || 0) + (Number(ch.delta) || 0);
+    });
+
+    const charName = (id) => {
+        const c = (appData.characters || []).find(x => String(x.id) === String(id));
+        return c ? c.name : 'Alguien';
+    };
+
+    const lines = Object.entries(net).map(([other, delta]) => {
+        const name = charName(other);
+        if (delta > 0) return `✦ Tu vínculo con ${name} se estrecha (+${delta})`;
+        if (delta < 0) return `☄ Tu vínculo con ${name} se resiente (${delta})`;
+        return `· Tu vínculo con ${name} permanece inmutable`;
+    });
+
+    return '— Ecos del ciclo —\n' + lines.join('\n');
+}
+
 // ── Eco del narrador: registro permanente de los impactos de afinidad ────────
 // Al cerrar un ciclo, cycle:affinity-impacts trae los cambios aplicados.
 // Además del panel efímero de Ecos, se inserta UN mensaje de narrador en el
@@ -17331,19 +17484,6 @@ if (typeof eventBus !== 'undefined') {
             const echoId = 'cycle-echo-' + data.cycleId;
             if (msgs.some(m => m.id === echoId)) return; // ya registrado
 
-            const charName = (id) => {
-                const c = (appData.characters || []).find(x => String(x.id) === String(id));
-                return c ? c.name : 'Alguien';
-            };
-
-            const lines = data.changes.map(ch => {
-                const a = charName(ch.fromCharId);
-                const b = charName(ch.toCharId);
-                if (ch.delta > 0) return `✦ El vínculo entre ${a} y ${b} se estrecha (+${ch.delta})`;
-                if (ch.delta < 0) return `☄ El vínculo entre ${a} y ${b} se resiente (${ch.delta})`;
-                return `· El vínculo entre ${a} y ${b} permanece inmutable`;
-            });
-
             msgs.push({
                 id: echoId,
                 characterId: null,
@@ -17351,7 +17491,10 @@ if (typeof eventBus !== 'undefined') {
                 charColor: null,
                 charAvatar: null,
                 charSprite: null,
-                text: '— Ecos del ciclo —\n' + lines.join('\n'),
+                // Texto de reserva (exports, clientes antiguos); el render
+                // real lo personaliza buildCycleEchoText por espectador
+                text: '— Ecos del ciclo —',
+                cycleChanges: data.changes,
                 isNarrator: true,
                 isCycleEcho: true,
                 userIndex: currentUserIndex,
@@ -17377,6 +17520,7 @@ async function _loadAndRenderCycleChoicesInPanel(topicId) {
 
     try {
         const cycle = await SupabaseCycles.getOpenCycle(topicId);
+        _cycleCache = { topicId: String(topicId), cycle: cycle || null };
         if (!cycle) { _hideCycleChoicesInPanel(); return; }
 
         const choices = await SupabaseCycles.loadChoicesForCycle(cycle.id);
@@ -17662,7 +17806,7 @@ async function launchChoice() {
         const choice = await SupabaseCycles.createChoice(
             cycle.id, currentTopicId, selectedCharId, question, opts
         );
-        if (!choice) { if (note) note.textContent = '¿Ya lanzaste una elección este ciclo?'; return; }
+        if (!choice) { if (note) note.textContent = 'No puedes lanzar: ya hay una elección tuya este ciclo o en el anterior (descanso de un ciclo).'; return; }
 
         closeChoicePanel();
         if (typeof showAutosave === 'function') showAutosave('✦ Elección lanzada al ciclo', 'saved');
