@@ -559,6 +559,12 @@ async function _uploadProfileAvatarToCloud(file) {
     const publicUrl = urlData?.publicUrl || '';
     if (!publicUrl) return { ok: false, error: 'No se pudo obtener la URL pública del avatar.' };
 
+    // Reflejar en profiles.avatar (alimenta el directorio público del selector)
+    window.supabaseClient.from('profiles')
+        .update({ avatar: publicUrl })
+        .eq('owner_user_id', userId)
+        .then(() => {}, () => {});
+
     if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
         await SupabaseSettings.saveUserSettings({ avatar_url: publicUrl });
     }
@@ -572,6 +578,8 @@ async function _removeProfileAvatarFromCloud() {
 
     const paths = ['png', 'jpg', 'jpeg', 'gif', 'webp'].map(ext => `${userId}/profile.${ext}`);
     try { await window.supabaseClient.storage.from('user-avatars').remove(paths); } catch {}
+    // Limpiar también el directorio público
+    try { await window.supabaseClient.from('profiles').update({ avatar: null }).eq('owner_user_id', userId); } catch {}
     if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
         await SupabaseSettings.saveUserSettings({ avatar_url: '' });
     }
@@ -639,13 +647,22 @@ function _updateBirthdayHint(bday) {
 async function handleAvatarUpload(input) {
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 1.2 * 1024 * 1024) {
-        showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
+    // Tope generoso: el compresor (512px) reduce fotos grandes antes de subir.
+    // El límite estricto de 1 MB aplica SOLO al fallback local sin sesión
+    // (base64 en localStorage, cuota ~5 MB).
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen es demasiado grande (máx. 20 MB)', 'error');
         return;
     }
 
     showAutosave('Guardando avatar...', 'info');
     const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (!userId && file.size > 1.2 * 1024 * 1024) {
+        showAutosave('Sin sesión el avatar se guarda localmente (máx. 1 MB). Inicia sesión para subir fotos grandes.', 'error');
+        input.value = '';
+        return;
+    }
 
     if (userId) {
         const cloud = await _uploadProfileAvatarToCloud(file);
@@ -1336,13 +1353,22 @@ function saveProfileModalName() {
 async function handleProfileModalAvatar(input) {
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 1.2 * 1024 * 1024) {
-        showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
+    // Tope generoso: el compresor (512px) reduce fotos grandes antes de subir.
+    // El límite estricto de 1 MB aplica SOLO al fallback local sin sesión
+    // (base64 en localStorage, cuota ~5 MB).
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen es demasiado grande (máx. 20 MB)', 'error');
         return;
     }
 
     showAutosave('Guardando avatar...', 'info');
     const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (!userId && file.size > 1.2 * 1024 * 1024) {
+        showAutosave('Sin sesión el avatar se guarda localmente (máx. 1 MB). Inicia sesión para subir fotos grandes.', 'error');
+        input.value = '';
+        return;
+    }
 
     if (userId) {
         const cloud = await _uploadProfileAvatarToCloud(file);
