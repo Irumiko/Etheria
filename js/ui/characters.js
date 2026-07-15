@@ -684,15 +684,31 @@ function initMenuParallax() {
 // Kept as no-op stub so legacy call sites don't throw
 function animateFireflies() { /* no-op: Canvas system active */ }
 
-function addNewProfile() {
+// Crear perfil EXIGE sesión: sin ella, el perfil sería un fantasma local
+// (sin dueño ni nube) que se pierde con cualquier borrado de caché. El flujo
+// correcto: login/registro primero → crear → reclamar propiedad (slot ligado
+// a la cuenta y sincronizado a Supabase, cross-device).
+async function addNewProfile() {
     if (userNames.length >= 10) {
         showAutosave('Máximo de 10 perfiles alcanzado', 'error');
         return;
     }
+
+    const uid = typeof getEtheriaUserId === 'function' ? await getEtheriaUserId() : null;
+    if (!uid) {
+        window._pendingAddProfile = true;
+        if (typeof showAutosave === 'function') showAutosave('Inicia sesión o regístrate para crear tu perfil', 'info');
+        if (typeof showLoginScreen === 'function') showLoginScreen();
+        if (typeof showAuthMain === 'function') showAuthMain();
+        return;
+    }
+
     const newName = prompt('Nombre del nuevo perfil:');
     if (newName && newName.trim()) {
         userNames.push(newName.trim());
         localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+        const newIdx = userNames.length - 1;
+        if (typeof _claimProfile === 'function') _claimProfile(newIdx, uid);
         renderUserCards();
     }
 }

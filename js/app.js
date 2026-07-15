@@ -369,6 +369,11 @@ async function login() {
             _claimProfile(targetIdx, userId);
             if (typeof renderUserCards === 'function') renderUserCards(); // refleja el bloqueo en otras tarjetas
             selectUser(targetIdx, { autoLoad: true, instant: true }).catch(() => {});
+        } else if (window._pendingAddProfile) {
+            // El usuario quería CREAR un perfil antes de autenticarse:
+            // reanudar la creación ahora que hay sesión.
+            window._pendingAddProfile = false;
+            if (typeof addNewProfile === 'function') addNewProfile();
         }
     } finally {
         _loginHandling = false;
