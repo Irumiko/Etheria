@@ -309,11 +309,25 @@ function closeModal(id) {
     }
 }
 
+// Refleja el nombre del perfil en public.profiles (directorio público).
+// Solo si hay sesión y el slot actual pertenece a esta cuenta.
+function _syncProfileNameToCloud(name) {
+    const uid = window._cachedUserId;
+    if (!uid || !window.supabaseClient || !name || name.includes('@')) return;
+    const owners = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
+    if (owners[currentUserIndex] !== uid) return;
+    window.supabaseClient.from('profiles')
+        .update({ name: name })
+        .eq('owner_user_id', uid)
+        .then(() => {}, () => {});
+}
+
 function changeUser() {
     const newName = prompt('Nuevo nombre:', userNames[currentUserIndex]);
     if(newName?.trim()) {
         userNames[currentUserIndex] = newName.trim();
         localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+        _syncProfileNameToCloud(newName.trim());
 
         const currentUserDisplay = document.getElementById('currentUserDisplay');
         if (currentUserDisplay) currentUserDisplay.textContent = newName.trim();
@@ -447,6 +461,7 @@ function saveProfileNameFromOptions() {
     if (!name) { showAutosave('Escribe un nombre', 'error'); return; }
     userNames[currentUserIndex] = name;
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    _syncProfileNameToCloud(name);
     const display = document.getElementById('currentUserDisplay');
     if (display) display.textContent = name;
     if (typeof SupabaseSync !== 'undefined') {
@@ -1332,6 +1347,7 @@ function saveProfileModalName() {
     if (!name) { showAutosave('Escribe un nombre', 'error'); return; }
     userNames[currentUserIndex] = name;
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    _syncProfileNameToCloud(name);
     if (typeof SupabaseSync !== 'undefined') {
         if (typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('userNames');
         else if (typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();

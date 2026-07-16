@@ -412,7 +412,9 @@ const SupabaseProfiles = (function () {
         // Opción 3: el usuario no tiene ningún perfil — crear uno automáticamente
         // Esto cubre usuarios nuevos cuyo trigger aún no haya corrido o falle silenciosamente
         try {
-            const displayName = user.email?.split('@')[0] || 'Jugador';
+            // Nunca derivar el nombre público del email (PII): placeholder
+            // neutro; el nombre real se sincroniza al bautizar el perfil.
+            const displayName = 'Viajero sin nombre';
             const { data, error } = await _client()
                 .from('profiles')
                 .insert({ name: displayName, owner_user_id: user.id })
