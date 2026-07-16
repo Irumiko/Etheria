@@ -9,6 +9,7 @@
         radial-gradient(circle at 78% 18%, rgba(201, 168, 108, 0.1) 0%, transparent 52%),
         radial-gradient(circle at 18% 84%, rgba(130, 80, 38, 0.08) 0%, transparent 48%);
     min-height: 100vh;
+    min-height: 100dvh;
     /* display gestionado por .game-section { display:none } y .game-section.active { display:flex }
        NO sobreescribir aquí — un ID selector tiene mayor especificidad que .game-section
        y causaría que la sección fuera siempre visible. */

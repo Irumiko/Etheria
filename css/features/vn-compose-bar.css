@@ -825,3 +825,31 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 @media (prefers-reduced-motion: reduce) {
     .vcb-popover.open { animation: none !important; }
 }
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   11 · AJUSTE PWA MÓVIL — teclado y safe-areas
+   pwa-viewport.js expone --keyboard-height y html.keyboard-open a partir
+   de visualViewport; aquí el panel reacciona.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 767px) {
+    /* Con el teclado abierto, el panel se eleva justo por encima de él */
+    html.keyboard-open body.compose-bar #vnReplyPanel {
+        padding-bottom: calc(var(--keyboard-height, 0px) + 8px) !important;
+    }
+    html.keyboard-open body.compose-bar #vnReplyPanel .vrp-modal {
+        max-height: calc(var(--vvh, 1vh) * 100 - 24px) !important;
+    }
+
+    /* Sin teclado: respetar la safe-area inferior (gesto de home) */
+    body.compose-bar #vnReplyPanel {
+        padding-bottom: max(clamp(70px, 12vh, 120px), calc(env(safe-area-inset-bottom, 0px) + 64px)) !important;
+    }
+
+    /* Los popovers laterales también se apartan del teclado */
+    html.keyboard-open .vcb-popover {
+        top: 6px !important;
+        max-height: calc(var(--vvh, 1vh) * 100 - 12px) !important;
+    }
+}
