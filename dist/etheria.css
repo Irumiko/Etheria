@@ -27725,6 +27725,97 @@ body.compose-bar #vnReplyPanel .vn-reply-textarea-wrap {
     }
 }
 
+
+/* ═════════════════════════════════════════════════════════════════════════
+   10 · POPOVERS LATERALES INDEPENDIENTES — anulan la sección 9.
+   Viven en document.body con position:fixed en el costado derecho:
+   inmunes a scroll/overflow/anclajes del panel. Cero solapamiento.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+.vcb-popover {
+    display: none;
+    position: fixed !important;
+    top: 50% !important;
+    right: 18px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: translateY(-50%);
+    width: min(400px, 92vw);
+    max-height: 72vh;
+    overflow-y: auto;
+    padding: 14px;
+    border-radius: 16px;
+    z-index: 1300; /* sobre el panel (1200) */
+}
+
+.vcb-popover.open {
+    display: block;
+    animation: vcb-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes vcb-slide-in {
+    from { opacity: 0; transform: translateY(-50%) translateX(24px); }
+    to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+/* Cabecera del popover */
+.vcb-popover-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.vcb-popover-title {
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    font-size: 0.9rem;
+}
+
+.vcb-popover-close {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.16s ease;
+}
+
+body.theme-classic .vcb-popover-title { color: rgba(214, 230, 255, 0.95); text-shadow: 0 0 14px rgba(110,160,255,0.35); }
+body.theme-classic .vcb-popover-close { color: rgba(170, 200, 255, 0.6); }
+body.theme-classic .vcb-popover-close:hover { color: rgba(226, 238, 255, 0.95); border-color: rgba(150,185,255,0.4); }
+
+body.theme-rpg .vcb-popover-title { color: rgba(240, 206, 138, 0.96); text-shadow: 0 0 14px rgba(200,140,40,0.4); }
+body.theme-rpg .vcb-popover-close { color: rgba(214, 175, 100, 0.6); }
+body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); border-color: rgba(200,155,70,0.45); }
+
+/* En móvil no hay costado: sábana centrada en la mitad superior */
+@media (max-width: 767px) {
+    .vcb-popover {
+        top: 8vh !important;
+        right: 4vw !important;
+        left: 4vw !important;
+        transform: none;
+        width: auto;
+        max-height: 58vh;
+    }
+    @keyframes vcb-slide-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vcb-popover.open { animation: none !important; }
+}
+
 /* -- css/features/profile-directory.css -- */
 /* ── profile-directory.css ────────────────────────────────────────────────
    Tarjetas del directorio público en el selector de perfiles: perfiles
