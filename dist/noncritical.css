@@ -1418,6 +1418,100 @@ body.is-pwa .menu-exit-btn:active {
     }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   LANDSCAPE COMPACTO II — hub (#mainMenu) y escena VN (#vnSection)
+   Mismo rango que el selector: móvil apaisado de viewport bajo.
+   ═══════════════════════════════════════════════════════════════ */
+@media (orientation: landscape) and (max-height: 520px) {
+
+    /* ── Selector: refuerzo (garantizar columna y anclaje arriba) ── */
+    .user-select-screen {
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+    .game-title, .game-subtitle { text-align: center !important; }
+
+    /* ── HUB · barra superior compacta ── */
+    #mainMenu .cel-topbar { top: 8px !important; left: 12px !important; right: 12px !important; }
+    #mainMenu .menu-profile-btn { padding: 4px 12px 4px 4px !important; gap: 8px !important; }
+    #mainMenu .menu-profile-avatar { width: 36px !important; height: 36px !important; font-size: 15px !important; }
+    #mainMenu .menu-profile-name { font-size: 14px !important; }
+    #mainMenu .menu-profile-hint { display: none !important; }
+
+    /* Acciones (buzón/backup/tema): compactas y SIN pisar las cards */
+    #mainMenu .menu-top-actions { gap: 6px !important; }
+    #mainMenu .cel-round-btn {
+        width: 34px !important;
+        height: 34px !important;
+        transform: none !important;
+    }
+
+    /* Marca y cita: contenidas a la mitad izquierda */
+    #mainMenu .menu-brand { max-width: 46vw !important; }
+    #mainMenu .menu-brand h1, #mainMenu .brand-title {
+        font-size: clamp(2rem, 14vh, 3.2rem) !important;
+        line-height: 1 !important;
+    }
+
+    /* Columna de cards: empieza bajo la topbar, scrollea contenida */
+    #mainMenu .menu-container {
+        top: 56px !important;
+        bottom: 8px !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        padding-bottom: 8px !important;
+    }
+    #mainMenu .menu-container .menu-card,
+    #mainMenu .menu-container .menu-item { padding: 10px 14px !important; }
+
+    /* Estado, Ethy y ruido inferior: fuera; Salir compacto en su esquina */
+    #mainMenu .cel-status { display: none !important; }
+    #mainMenu .cel-ethy { display: none !important; }
+    #mainMenu .menu-exit-btn {
+        right: 10px !important;
+        bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+        left: auto !important;
+        width: auto !important;
+        padding: 6px 12px !important;
+        font-size: 9.5px !important;
+    }
+
+    /* ── ESCENA VN · caja y satélites contenidos ── */
+    /* Placa del hablante: pegada a la esquina del box, sin flotar */
+    #vnSection .vn-speaker-plate {
+        top: -12px !important;
+        left: 14px !important;
+        transform: none !important;
+        font-size: 0.8rem !important;
+        padding: 4px 14px !important;
+    }
+
+    /* Avatar del hablante: de gigante a discreto */
+    #vnSection .vn-speaker-avatar-wrap,
+    #vnSection .vn-speaker-avatar {
+        width: 64px !important;
+        height: 64px !important;
+    }
+
+    /* La caja aprovecha el ancho; menos aire interno */
+    #vnSection .vn-dialogue-box { padding: 16px 18px 12px !important; }
+
+    /* FAB de navegación: dentro del viewport, sobre la safe-area */
+    #vnSection .vn-mobile-fab-nav,
+    .vn-mobile-fab-nav {
+        bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    .vn-mobile-fab-btn { width: 40px !important; height: 40px !important; }
+    .vn-mobile-fab-btn.main { width: 46px !important; height: 46px !important; }
+
+    /* Toolbar lateral derecha: compacta y pegada al borde */
+    #vnSection .vn-toolbar {
+        right: 2px !important;
+        transform: scale(0.82) !important;
+        transform-origin: right center !important;
+    }
+}
+
 
 /* -- css/auth.css -- */
 /* ============================================
