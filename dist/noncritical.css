@@ -1512,6 +1512,46 @@ body.is-pwa .menu-exit-btn:active {
     }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   APTITUD MÓVIL (vertical, ≤767px) — legibilidad, tacto y modales
+   Pase genérico: tipografía de lectura más cómoda, objetivos
+   táctiles ≥40px y modales como hoja amplia en vez de ventanita.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) and (orientation: portrait) {
+
+    /* ── Lectura: el texto del relato es el protagonista ── */
+    #vnSection .vn-dialogue-text {
+        font-size: 1.05rem !important;
+        line-height: 1.68 !important;
+    }
+    #vnSection .vn-options-subtitle { font-size: 0.76rem !important; }
+    body.theme-classic #vnSection .vn-opt-text { font-size: 1rem !important; }
+
+    /* ── Modales: hoja casi completa, con aire y safe-areas ── */
+    .modal, .character-modal {
+        width: 96vw !important;
+        max-width: 96vw !important;
+        max-height: calc(92dvh - env(safe-area-inset-top, 0px)) !important;
+        border-radius: 18px !important;
+    }
+
+    /* ── Objetivos táctiles ≥40px en los controles que se tocan mucho ── */
+    .vcb-chip,
+    .vcb-action-btn {
+        min-height: 40px !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+    .vcb-format-btn { width: 38px !important; height: 36px !important; }
+    body.theme-classic #vnSection .vn-option-btn { min-height: 48px !important; }
+    #vnSection .vn-dialogue-actions button { min-height: 38px !important; }
+
+    /* ── El pie del diálogo respira sobre el gesto de home ── */
+    #vnSection .vn-dialogue-footer {
+        padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
+    }
+}
+
 
 /* -- css/auth.css -- */
 /* ============================================
