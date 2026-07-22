@@ -923,12 +923,14 @@ body.is-pwa .menu-exit-btn:active {
         line-height: 1 !important;
     }
 
-    /* Columna de cards: empieza bajo la topbar, scrollea contenida.
-       CRÍTICO: anular el translateY(-50%) del centrado base — con top
-       fijo, ese transform expulsaba la primera card (Continuar) por
-       encima del viewport. */
-    #mainMenu .menu-container {
-        top: 56px !important;
+    /* Columna de cards: empieza bajo la topbar, contenida.
+       hub-luna fija top:50% + translateY(-50%) con !important y
+       especificidad id+2clases (#mainMenu.cel-hub .menu-container) —
+       ese transform expulsaba "Continuar" por encima del viewport.
+       Ganamos con id+3clases (.menu-container doblada). */
+    #mainMenu.cel-hub .menu-container.menu-container,
+    #mainMenu .menu-container.menu-container {
+        top: 52px !important;
         bottom: 8px !important;
         transform: none !important;
         z-index: 5 !important;
@@ -938,11 +940,24 @@ body.is-pwa .menu-exit-btn:active {
         gap: 8px !important;
     }
 
-    /* Cards compactas: sin subtítulo poético, todo cabe sin scroll */
+    /* Cards compactas (idea de Irune: en pantalla pequeña, ornamentos
+       pequeños): sin subtítulo, icono-rombo reducido, sello decorativo
+       de 118px fuera, padding contenido. Misma especificidad ganadora. */
     #mainMenu .hub-item-sub { display: none !important; }
-    #mainMenu .hub-menu-item { padding: 9px 14px !important; }
-    #mainMenu .hub-item-arcana { font-size: 0.6rem !important; }
-    #mainMenu .menu-label { font-size: 1.05rem !important; }
+    #mainMenu.cel-hub .hub-menu-item.hub-menu-item,
+    #mainMenu .hub-menu-item.hub-menu-item {
+        padding: 8px 12px !important;
+        gap: 10px !important;
+    }
+    #mainMenu.cel-hub .hub-item-icon.hub-item-icon,
+    #mainMenu .hub-item-icon.hub-item-icon {
+        width: 30px !important;
+        height: 30px !important;
+    }
+    #mainMenu .hub-item-icon svg { width: 13px !important; height: 13px !important; }
+    #mainMenu .hub-menu-item .seal { display: none !important; }
+    #mainMenu .hub-item-arcana { font-size: 0.58rem !important; }
+    #mainMenu .menu-label { font-size: 1rem !important; }
     #mainMenu .menu-container .menu-card,
     #mainMenu .menu-container .menu-item { padding: 10px 14px !important; }
 
