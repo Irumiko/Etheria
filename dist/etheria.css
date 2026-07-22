@@ -1572,7 +1572,7 @@ body.is-pwa .menu-exit-btn:active {
    de alto el título desborda, las cards se estiran a toda altura y
    los widgets flotantes pisan los botones. Capa aditiva de compactado.
    ═══════════════════════════════════════════════════════════════ */
-@media (orientation: landscape) and (max-height: 640px) and (pointer: coarse) {
+@media (orientation: landscape) and (max-height: 640px) and (any-pointer: coarse) {
 
     .user-select-screen {
         padding: 6px 14px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
@@ -1639,7 +1639,7 @@ body.is-pwa .menu-exit-btn:active {
    LANDSCAPE COMPACTO II — hub (#mainMenu) y escena VN (#vnSection)
    Mismo rango que el selector: móvil apaisado de viewport bajo.
    ═══════════════════════════════════════════════════════════════ */
-@media (orientation: landscape) and (max-height: 640px) and (pointer: coarse) {
+@media (orientation: landscape) and (max-height: 640px) and (any-pointer: coarse) {
 
     /* ── Selector: refuerzo (garantizar columna y anclaje arriba) ── */
     .user-select-screen {
