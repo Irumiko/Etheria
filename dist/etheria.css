@@ -1572,7 +1572,7 @@ body.is-pwa .menu-exit-btn:active {
    de alto el título desborda, las cards se estiran a toda altura y
    los widgets flotantes pisan los botones. Capa aditiva de compactado.
    ═══════════════════════════════════════════════════════════════ */
-@media (orientation: landscape) and (max-height: 520px) {
+@media (orientation: landscape) and (max-height: 640px) and (pointer: coarse) {
 
     .user-select-screen {
         padding: 6px 14px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
@@ -1639,7 +1639,7 @@ body.is-pwa .menu-exit-btn:active {
    LANDSCAPE COMPACTO II — hub (#mainMenu) y escena VN (#vnSection)
    Mismo rango que el selector: móvil apaisado de viewport bajo.
    ═══════════════════════════════════════════════════════════════ */
-@media (orientation: landscape) and (max-height: 520px) {
+@media (orientation: landscape) and (max-height: 640px) and (pointer: coarse) {
 
     /* ── Selector: refuerzo (garantizar columna y anclaje arriba) ── */
     .user-select-screen {
@@ -1670,14 +1670,26 @@ body.is-pwa .menu-exit-btn:active {
         line-height: 1 !important;
     }
 
-    /* Columna de cards: empieza bajo la topbar, scrollea contenida */
+    /* Columna de cards: empieza bajo la topbar, scrollea contenida.
+       CRÍTICO: anular el translateY(-50%) del centrado base — con top
+       fijo, ese transform expulsaba la primera card (Continuar) por
+       encima del viewport. */
     #mainMenu .menu-container {
         top: 56px !important;
         bottom: 8px !important;
+        transform: none !important;
+        z-index: 5 !important;
         max-height: none !important;
         overflow-y: auto !important;
         padding-bottom: 8px !important;
+        gap: 8px !important;
     }
+
+    /* Cards compactas: sin subtítulo poético, todo cabe sin scroll */
+    #mainMenu .hub-item-sub { display: none !important; }
+    #mainMenu .hub-menu-item { padding: 9px 14px !important; }
+    #mainMenu .hub-item-arcana { font-size: 0.6rem !important; }
+    #mainMenu .menu-label { font-size: 1.05rem !important; }
     #mainMenu .menu-container .menu-card,
     #mainMenu .menu-container .menu-item { padding: 10px 14px !important; }
 
