@@ -930,7 +930,9 @@ body.is-pwa .menu-exit-btn:active {
        Ganamos con id+3clases (.menu-container doblada). */
     #mainMenu.cel-hub .menu-container.menu-container,
     #mainMenu .menu-container.menu-container {
-        top: 52px !important;
+        top: 68px !important;
+        right: 14px !important;
+        width: min(360px, 44vw) !important;
         bottom: 8px !important;
         transform: none !important;
         z-index: 5 !important;
@@ -1007,6 +1009,63 @@ body.is-pwa .menu-exit-btn:active {
         transform: scale(0.82) !important;
         transform-origin: right center !important;
     }
+
+    /* ── VN · descompresión (feedback Irune) ── */
+    /* Los FAB inferiores son redundantes (la caja tiene sus flechas ‹ ›
+       y el botón Responder) y taparían los sprites: fuera en apaisado */
+    #vnSection .vn-mobile-fab-nav,
+    .vn-mobile-fab-nav { display: none !important; }
+
+    /* Caja más contenida: aire para los sprites por encima */
+    #vnSection .vn-dialogue-box {
+        max-height: 46vh !important;
+        margin-bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    #vnSection .vn-dialogue-text {
+        font-size: 0.95rem !important;
+        line-height: 1.5 !important;
+    }
+    #vnSection .vn-dialogue-actions button {
+        padding: 4px 12px !important;
+        font-size: 0.68rem !important;
+    }
+    #vnSection .vn-dialogue-footer { padding-top: 4px !important; }
+
+    /* ── TEMAS · scroll solo en la lista, no en toda la pantalla ── */
+    #topicsSection {
+        height: 100dvh !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    #topicsSection .section-content {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+    }
+    #topicsSection .topics-layout {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+    #topicsSection .topics-main {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        height: 100% !important;
+    }
+    #topicsSection .topics-panel-title { flex-shrink: 0; margin: 4px 0 !important; }
+    #topicsSection .topics-command-bar { flex-shrink: 0; padding: 4px 0 !important; }
+    #topicsSection .topics-grid-wrap {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    /* El panel lateral de estadísticas cede el sitio en apaisado corto */
+    #topicsSection .topics-sidebar,
+    #topicsSection .topics-side-panel { display: none !important; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
