@@ -1,269 +1,219 @@
 /* ═════════════════════════════════════════════════════════════════════════
-   character-atelier.css — El Elenco y el Atelier
-   Reskin aditivo de la galería de personajes y del creador/editor para
-   alinearlos con el lenguaje de Las Crónicas y el hub. Cero cambios de
-   estructura: solo piel sobre las clases existentes.
+   character-atelier.css — El Elenco y el Atelier (v2, sobre tokens)
+   Reskin de galería y creador usando las VARIABLES DE TEMA de la casa
+   (variables.css): se adapta solo a claro/oscuro. Naipes contenidos y
+   centrados; scroll confinado al panel.
    ═════════════════════════════════════════════════════════════════════════ */
 
-/* ── GALERÍA · cabecera ─────────────────────────────────────────────── */
-#gallerySection .gallery-section-title {
-    font-family: var(--font-serif, 'EB Garamond', serif) !important;
-    font-variant: small-caps;
-    letter-spacing: 0.12em !important;
-    font-weight: 500 !important;
-    color: rgba(222, 233, 255, 0.95) !important;
-    text-shadow: 0 0 20px rgba(120, 160, 255, 0.35);
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-}
-#gallerySection .gallery-section-title::before { content: '✦'; font-size: 0.7em; opacity: 0.6; }
-#gallerySection .gallery-section-title::after  { content: '✦'; font-size: 0.7em; opacity: 0.6; }
+/* ── Sección: el único scroll vive dentro del panel ── */
+#gallerySection { overflow: hidden !important; }
 
-#gallerySection .gallery-count-badge {
-    font-size: 0.68rem !important;
-    letter-spacing: 0.08em;
-    padding: 3px 12px !important;
-    border-radius: 999px !important;
-    background: rgba(120, 160, 255, 0.1) !important;
-    border: 1px solid rgba(150, 185, 255, 0.3) !important;
-    color: rgba(190, 214, 255, 0.85) !important;
-}
-
-#gallerySection .gallery-new-btn {
-    border-radius: 999px !important;
-    border: 1px solid rgba(170, 205, 255, 0.45) !important;
-    background: linear-gradient(160deg, rgba(90, 125, 255, 0.25), rgba(60, 80, 200, 0.15)) !important;
-    color: rgba(222, 233, 255, 0.95) !important;
-    letter-spacing: 0.06em;
-    transition: all 0.2s ease !important;
-}
-#gallerySection .gallery-new-btn:hover {
-    border-color: rgba(190, 215, 255, 0.7) !important;
-    box-shadow: 0 0 18px -4px rgba(120, 160, 255, 0.5) !important;
-    transform: translateY(-1px);
-}
-
-/* ── GALERÍA · toolbar de búsqueda y filtros ────────────────────────── */
-#gallerySection .gallery-toolbar-v2 {
-    background: rgba(10, 14, 34, 0.55) !important;
-    border: 1px solid rgba(150, 185, 255, 0.18) !important;
-    border-radius: 14px !important;
-    backdrop-filter: blur(8px);
-}
-#gallerySection .gallery-search-input {
-    background: rgba(8, 12, 30, 0.6) !important;
-    border: 1px solid rgba(150, 185, 255, 0.22) !important;
-    border-radius: 999px !important;
-    color: rgba(222, 233, 255, 0.92) !important;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
-}
-#gallerySection .gallery-search-input:focus {
-    border-color: rgba(170, 205, 255, 0.6) !important;
-    box-shadow: 0 0 14px -4px rgba(120, 160, 255, 0.45) !important;
-    outline: none !important;
-}
-#gallerySection .gallery-search-input::placeholder {
-    color: rgba(150, 180, 235, 0.45) !important;
-    font-style: italic;
-}
-
-/* ── GALERÍA · naipes de personaje ──────────────────────────────────── */
-.char-card-v2 {
-    border-radius: 14px !important;
-    border: 1px solid color-mix(in srgb, var(--card-color, #7a9aff) 35%, transparent) !important;
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-        0 4px 18px rgba(0, 0, 12, 0.45) !important;
-    transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease !important;
-    overflow: hidden;
-}
-.char-card-v2:hover {
-    transform: translateY(-4px) !important;
-    border-color: color-mix(in srgb, var(--card-color, #7a9aff) 70%, white 10%) !important;
-    box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-        0 10px 28px rgba(0, 0, 12, 0.55),
-        0 0 24px -6px color-mix(in srgb, var(--card-color, #7a9aff) 60%, transparent) !important;
-}
-
-/* Esquinas ornamentales del naipe */
-.char-card-v2::before,
-.char-card-v2::after {
-    content: '' !important;
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    border: 1px solid color-mix(in srgb, var(--card-color, #a8c6ff) 65%, white 10%);
-    opacity: 0.55;
-    pointer-events: none;
-    z-index: 3;
-    transition: opacity 0.2s ease;
-}
-.char-card-v2::before { top: 7px; left: 7px; border-right: none; border-bottom: none; }
-.char-card-v2::after  { bottom: 7px; right: 7px; border-left: none; border-top: none; }
-.char-card-v2:hover::before, .char-card-v2:hover::after { opacity: 0.95; }
-
-.char-card-v2 .char-card-name {
-    font-family: var(--font-serif, 'EB Garamond', serif) !important;
-    font-variant: small-caps;
-    letter-spacing: 0.06em !important;
-}
-.char-card-v2 .char-card-top-badge {
-    border-radius: 999px !important;
-    font-size: 0.62rem !important;
-    letter-spacing: 0.07em;
-    backdrop-filter: blur(6px);
-}
-.char-card-v2 .char-card-top-badge.own {
-    background: rgba(120, 160, 255, 0.18) !important;
-    border: 1px solid rgba(170, 205, 255, 0.5) !important;
-    color: rgba(222, 238, 255, 0.95) !important;
-}
-.char-card-v2 .char-card-meta span {
-    border-radius: 999px !important;
-    font-size: 0.62rem !important;
-}
-
-/* Naipe de invocación (crear nuevo) */
-.char-card-v2--new {
-    border: 1.5px dashed rgba(150, 185, 255, 0.35) !important;
-    background: rgba(10, 14, 34, 0.35) !important;
-}
-.char-card-v2--new::before, .char-card-v2--new::after { display: none; }
-.char-card-v2--new:hover {
-    border-color: rgba(190, 215, 255, 0.65) !important;
-    background: rgba(120, 160, 255, 0.08) !important;
-}
-.char-card-v2--new .char-card-new-plus {
-    font-size: 2.2rem !important;
-    color: rgba(190, 214, 255, 0.7) !important;
-    text-shadow: 0 0 16px rgba(120, 160, 255, 0.5);
-}
-.char-card-v2--new .char-card-new-text {
-    font-family: var(--font-serif, 'EB Garamond', serif) !important;
-    font-variant: small-caps;
-    letter-spacing: 0.08em;
-    color: rgba(190, 214, 255, 0.7) !important;
-}
-
-/* ── ATELIER · el creador/editor ────────────────────────────────────── */
-#characterModal .editor-tabs {
-    gap: 6px !important;
-    border-bottom: 1px solid rgba(150, 185, 255, 0.18) !important;
-    padding-bottom: 8px !important;
-}
-#characterModal .editor-tab {
-    border-radius: 999px !important;
-    border: 1px solid transparent !important;
-    background: transparent !important;
-    font-family: var(--font-serif, 'EB Garamond', serif) !important;
-    font-variant: small-caps;
-    letter-spacing: 0.07em !important;
-    color: rgba(170, 195, 245, 0.6) !important;
-    transition: all 0.2s ease !important;
-}
-#characterModal .editor-tab:hover { color: rgba(214, 230, 255, 0.9) !important; }
-#characterModal .editor-tab.active {
-    color: rgba(226, 238, 255, 0.98) !important;
-    border-color: rgba(170, 205, 255, 0.5) !important;
-    background: rgba(120, 160, 255, 0.12) !important;
-    box-shadow: 0 0 14px -6px rgba(120, 160, 255, 0.5);
-}
-
-#characterModal label {
-    font-variant: small-caps;
-    letter-spacing: 0.08em !important;
-    font-size: 0.72rem !important;
-    color: rgba(170, 198, 250, 0.75) !important;
-}
-
-#characterModal input[type="text"],
-#characterModal input[type="number"],
-#characterModal select,
-#characterModal textarea {
-    background: rgba(8, 12, 30, 0.6) !important;
-    border: 1px solid rgba(150, 185, 255, 0.22) !important;
-    border-radius: 10px !important;
-    color: rgba(222, 233, 255, 0.94) !important;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
-}
-#characterModal input:focus,
-#characterModal select:focus,
-#characterModal textarea:focus {
-    border-color: rgba(170, 205, 255, 0.6) !important;
-    box-shadow: 0 0 14px -4px rgba(120, 160, 255, 0.4) !important;
-    outline: none !important;
-}
-#characterModal ::placeholder { color: rgba(150, 180, 235, 0.4) !important; font-style: italic; }
-
-/* Retratos enmarcados: zonas de avatar y sprite */
-#characterModal .avatar-upload-zone,
-#characterModal .sprite-upload-zone,
-#characterModal [class*="upload"] {
-    border: 1.5px dashed rgba(150, 185, 255, 0.35) !important;
-    border-radius: 12px !important;
-    background: rgba(10, 14, 34, 0.4) !important;
-    transition: all 0.2s ease !important;
-}
-#characterModal [class*="upload"]:hover {
-    border-color: rgba(190, 215, 255, 0.6) !important;
-    background: rgba(120, 160, 255, 0.07) !important;
-}
-
-/* La senda del Azar tiñe el atelier de oro */
-body.theme-rpg #characterModal .editor-tab.active {
-    border-color: rgba(220, 170, 80, 0.55) !important;
-    background: rgba(200, 140, 45, 0.13) !important;
-    color: rgba(244, 214, 150, 0.98) !important;
-    box-shadow: 0 0 14px -6px rgba(200, 140, 45, 0.5);
-}
-body.theme-rpg #characterModal input:focus,
-body.theme-rpg #characterModal select:focus,
-body.theme-rpg #characterModal textarea:focus {
-    border-color: rgba(220, 175, 85, 0.6) !important;
-    box-shadow: 0 0 14px -4px rgba(200, 140, 45, 0.4) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .char-card-v2, .char-card-v2:hover { transform: none !important; transition: none !important; }
-}
-
-
-/* ── AJUSTE 2 · El gran panel de El Elenco + hover sin scroll fantasma ── */
-
-/* Como Las Crónicas: todo el contenido envuelto en un panel de cristal,
-   nada de naipes flotando a la intemperie sobre el fondo */
 #gallerySection .section-content {
-    background: linear-gradient(175deg, rgba(13, 18, 44, 0.6), rgba(8, 11, 28, 0.72)) !important;
-    border: 1px solid rgba(150, 185, 255, 0.16) !important;
+    background: color-mix(in srgb, var(--bg-card, #130e22) 88%, transparent) !important;
+    border: 1px solid var(--border-color, #2a2048) !important;
     border-radius: 18px !important;
-    margin: 8px 16px 16px !important;
-    padding: 14px 16px !important;
-    backdrop-filter: blur(10px);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 8px 32px rgba(0, 0, 12, 0.4);
+    width: min(1240px, 94vw);
+    margin: 6px auto 14px !important;
+    padding: 14px 18px !important;
+    max-height: calc(100dvh - 84px);
+    overflow-y: auto;
     scrollbar-gutter: stable;
-}
-
-/* Esquina ornamental del panel (eco del ⌜ de Las Crónicas) */
-#gallerySection .section-content {
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
     position: relative;
 }
 #gallerySection .section-content::before {
     content: '';
     position: absolute;
     top: 10px; left: 10px;
-    width: 22px; height: 22px;
-    border-top: 1px solid rgba(170, 205, 255, 0.5);
-    border-left: 1px solid rgba(170, 205, 255, 0.5);
+    width: 20px; height: 20px;
+    border-top: 1px solid color-mix(in srgb, var(--accent-wood, #a080e0) 70%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--accent-wood, #a080e0) 70%, transparent);
     pointer-events: none;
 }
 
-/* Hover del naipe: elevación por escala (no desplaza el área de scroll,
-   que era lo que hacía aparecer la barra al pasar el ratón) */
-.char-card-v2:hover {
-    transform: scale(1.02) !important;
+/* ── Cabecera ── */
+#gallerySection .gallery-section-title {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.12em !important;
+    font-weight: 500 !important;
+    color: var(--text-primary) !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
 }
+#gallerySection .gallery-section-title::before,
+#gallerySection .gallery-section-title::after {
+    content: '✦';
+    font-size: 0.65em;
+    color: var(--accent-wood, #a080e0);
+    opacity: 0.8;
+}
+
+#gallerySection .gallery-count-badge {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.07em;
+    padding: 3px 12px !important;
+    border-radius: 999px !important;
+    background: color-mix(in srgb, var(--accent-wood, #a080e0) 14%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--accent-wood, #a080e0) 40%, transparent) !important;
+    color: var(--text-primary) !important;
+}
+
+#gallerySection .gallery-new-btn {
+    border-radius: 999px !important;
+    border: 1px solid color-mix(in srgb, var(--accent-wood, #a080e0) 55%, transparent) !important;
+    background: color-mix(in srgb, var(--accent-wood, #a080e0) 20%, var(--bg-card, transparent)) !important;
+    color: var(--text-primary) !important;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease !important;
+}
+#gallerySection .gallery-new-btn:hover {
+    border-color: var(--accent-wood, #a080e0) !important;
+    box-shadow: 0 0 16px -5px var(--accent-wood, #a080e0) !important;
+}
+
+/* ── Toolbar ── */
+#gallerySection .gallery-toolbar-v2 {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 10px !important;
+}
+#gallerySection .gallery-search-input {
+    background: color-mix(in srgb, var(--bg-primary, #0e0c1c) 75%, transparent) !important;
+    border: 1px solid var(--border-color, #2a2048) !important;
+    border-radius: 999px !important;
+    color: var(--text-primary) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+#gallerySection .gallery-search-input:focus {
+    border-color: var(--accent-wood, #a080e0) !important;
+    box-shadow: 0 0 12px -5px var(--accent-wood, #a080e0) !important;
+    outline: none !important;
+}
+#gallerySection .gallery-search-input::placeholder {
+    color: color-mix(in srgb, var(--text-primary) 45%, transparent) !important;
+    font-style: italic;
+}
+
+/* ── Rejilla: naipes contenidos y centrados ── */
+#gallerySection .gallery-grid {
+    grid-template-columns: repeat(auto-fill, 158px) !important;
+    justify-content: center !important;
+    gap: 14px !important;
+}
+
+/* ── Naipes ── */
+.char-card-v2 {
+    border-radius: 12px !important;
+    border: 1px solid color-mix(in srgb, var(--card-color, var(--accent-wood)) 45%, var(--border-color)) !important;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+    overflow: hidden;
+}
+.char-card-v2:hover {
+    transform: scale(1.025) !important;
+    border-color: var(--card-color, var(--accent-wood)) !important;
+    box-shadow:
+        0 8px 22px rgba(0, 0, 0, 0.38),
+        0 0 18px -6px var(--card-color, var(--accent-wood)) !important;
+}
+
+.char-card-v2::before,
+.char-card-v2::after {
+    content: '' !important;
+    position: absolute;
+    width: 12px; height: 12px;
+    border: 1px solid color-mix(in srgb, var(--card-color, var(--accent-wood)) 80%, white 8%);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 3;
+    transition: opacity 0.2s ease;
+}
+.char-card-v2::before { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+.char-card-v2::after  { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+.char-card-v2:hover::before, .char-card-v2:hover::after { opacity: 0.95; }
+
+.char-card-v2 .char-card-name {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.05em !important;
+}
+.char-card-v2 .char-card-top-badge { border-radius: 999px !important; font-size: 0.6rem !important; }
+
+.char-card-v2--new {
+    border: 1.5px dashed color-mix(in srgb, var(--accent-wood, #a080e0) 50%, transparent) !important;
+    background: color-mix(in srgb, var(--bg-primary, #0e0c1c) 40%, transparent) !important;
+}
+.char-card-v2--new::before, .char-card-v2--new::after { display: none; }
+.char-card-v2--new:hover {
+    border-color: var(--accent-wood, #a080e0) !important;
+    background: color-mix(in srgb, var(--accent-wood, #a080e0) 10%, transparent) !important;
+}
+.char-card-v2--new .char-card-new-plus { color: var(--accent-wood, #a080e0) !important; font-size: 1.9rem !important; }
+.char-card-v2--new .char-card-new-text {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    color: color-mix(in srgb, var(--text-primary) 75%, transparent) !important;
+}
+
+/* ── ATELIER (creador) sobre tokens ── */
+#characterModal .editor-tab {
+    border-radius: 999px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.06em !important;
+    color: color-mix(in srgb, var(--text-primary) 55%, transparent) !important;
+    transition: all 0.2s ease !important;
+}
+#characterModal .editor-tab:hover { color: var(--text-primary) !important; }
+#characterModal .editor-tab.active {
+    color: var(--text-primary) !important;
+    border-color: color-mix(in srgb, var(--accent-wood, #a080e0) 55%, transparent) !important;
+    background: color-mix(in srgb, var(--accent-wood, #a080e0) 14%, transparent) !important;
+}
+
+#characterModal label {
+    font-variant: small-caps;
+    letter-spacing: 0.07em !important;
+    font-size: 0.72rem !important;
+    color: color-mix(in srgb, var(--text-primary) 70%, transparent) !important;
+}
+
+#characterModal input[type="text"],
+#characterModal input[type="number"],
+#characterModal select,
+#characterModal textarea {
+    background: color-mix(in srgb, var(--bg-primary, #0e0c1c) 70%, transparent) !important;
+    border: 1px solid var(--border-color, #2a2048) !important;
+    border-radius: 10px !important;
+    color: var(--text-primary) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+#characterModal input:focus,
+#characterModal select:focus,
+#characterModal textarea:focus {
+    border-color: var(--accent-wood, #a080e0) !important;
+    box-shadow: 0 0 12px -5px var(--accent-wood, #a080e0) !important;
+    outline: none !important;
+}
+#characterModal ::placeholder {
+    color: color-mix(in srgb, var(--text-primary) 40%, transparent) !important;
+    font-style: italic;
+}
+
+#characterModal [class*="upload"] {
+    border: 1.5px dashed color-mix(in srgb, var(--accent-wood, #a080e0) 50%, transparent) !important;
+    border-radius: 12px !important;
+    transition: all 0.2s ease !important;
+}
+#characterModal [class*="upload"]:hover {
+    border-color: var(--accent-wood, #a080e0) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .char-card-v2:hover { transform: none !important; }
 }
