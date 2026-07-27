@@ -28110,7 +28110,11 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 
 /* Noche mística propia (como Las Crónicas): índigo-violeta fijo,
    independiente del tema claro/oscuro, con polvo de constelación */
-#gallerySection {
+/* CRÍTICO: scoped a .active — sin esto, esta regla (id + !important)
+   gana SIEMPRE a la base ".game-section { display:none }" y fuerza la
+   sección a visible incluso tras salir de ella, tapando y bloqueando
+   clics de CUALQUIER otro botón del hub (bug real, detectado en vivo). */
+#gallerySection.active {
     height: 100dvh !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
