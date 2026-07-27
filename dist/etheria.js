@@ -26042,7 +26042,16 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
     // Render inicial del party clásico cuando se cargan los participantes de la historia
     // (etheria:story-participants-loaded se emite en supabaseStories.js de forma async,
     //  antes de que renderVnPartyPanel se llame con la lista rellena)
+    // GUARD: estos eventos llegan de forma asíncrona (Supabase realtime) y
+    // pueden resolver DESPUÉS de que el usuario ya haya navegado fuera de la
+    // escena VN (p.ej. a la Galería). Sin comprobar la sección activa, el
+    // panel "En escena" reaparecía flotando sobre cualquier pantalla.
+    function _inVnScene() {
+        return !!document.getElementById('vnSection')?.classList.contains('active');
+    }
+
     window.addEventListener('etheria:story-participants-loaded', function (e) {
+        if (!_inVnScene()) return;
         if (!_isRpg() && e.detail && e.detail.participants) {
             renderClassicParty(e.detail.participants);
         }
@@ -26050,6 +26059,7 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
 
     // Actualizar party clásico cuando cambia la presencia online (usuarios entran/salen)
     window.addEventListener('etheria:story-presence-changed', function () {
+        if (!_inVnScene()) return;
         if (!_isRpg() && global.currentStoryParticipants) {
             renderClassicParty(global.currentStoryParticipants);
         }
