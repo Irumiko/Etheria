@@ -28462,6 +28462,10 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 /* Carta de invocación: reverso de tarot — presencia propia sin robar
    protagonismo (brillo latente, sello ✦, marco doble) */
 .char-card-v2--new {
+    /* Siempre primera, fija: el JS la añade al final del grid, pero
+       en un contenedor grid `order` reordena visualmente sin tocar
+       el DOM ni el código de render */
+    order: -1 !important;
     border: 1px solid rgba(180, 150, 240, 0.45) !important;
     background:
         radial-gradient(1px 1px at 30% 25%, rgba(220, 205, 255, 0.6), transparent),
