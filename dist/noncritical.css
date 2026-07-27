@@ -28108,18 +28108,33 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 /* ── Sección: el único scroll vive dentro del panel ── */
 #gallerySection { overflow: hidden !important; }
 
+/* Noche mística propia (como Las Crónicas): índigo-violeta fijo,
+   independiente del tema claro/oscuro, con polvo de constelación */
+#gallerySection {
+    height: 100dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+#gallerySection .gallery-header-bar { flex-shrink: 0; }
+
 #gallerySection .section-content {
-    background: color-mix(in srgb, var(--bg-card, #130e22) 88%, transparent) !important;
-    border: 1px solid var(--border-color, #2a2048) !important;
+    background:
+        radial-gradient(1px 1px at 18% 22%, rgba(220, 205, 255, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 71% 15%, rgba(220, 205, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 45% 68%, rgba(220, 205, 255, 0.35), transparent),
+        radial-gradient(1px 1px at 87% 55%, rgba(220, 205, 255, 0.3), transparent),
+        linear-gradient(175deg, rgba(30, 23, 58, 0.94), rgba(15, 11, 32, 0.97)) !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
     border-radius: 18px !important;
     width: min(1240px, 94vw);
+    flex: 1 1 auto;
+    min-height: 0;
     margin: 6px auto 14px !important;
     padding: 14px 18px !important;
-    max-height: calc(100dvh - 84px);
     overflow-y: auto;
     scrollbar-gutter: stable;
     backdrop-filter: blur(10px);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 8px 32px rgba(5, 0, 20, 0.5), inset 0 0 60px rgba(100, 70, 180, 0.06);
     position: relative;
 }
 #gallerySection .section-content::before {
@@ -28127,8 +28142,8 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     position: absolute;
     top: 10px; left: 10px;
     width: 20px; height: 20px;
-    border-top: 1px solid color-mix(in srgb, var(--accent-wood, #a080e0) 70%, transparent);
-    border-left: 1px solid color-mix(in srgb, var(--accent-wood, #a080e0) 70%, transparent);
+    border-top: 1px solid rgba(180, 150, 240, 0.6);
+    border-left: 1px solid rgba(180, 150, 240, 0.6);
     pointer-events: none;
 }
 
@@ -28138,7 +28153,8 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     font-variant: small-caps;
     letter-spacing: 0.12em !important;
     font-weight: 500 !important;
-    color: var(--text-primary) !important;
+    color: #ede8f5 !important;
+    text-shadow: 0 0 18px rgba(160, 128, 224, 0.5);
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -28156,16 +28172,16 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     letter-spacing: 0.07em;
     padding: 3px 12px !important;
     border-radius: 999px !important;
-    background: color-mix(in srgb, var(--accent-wood, #a080e0) 14%, transparent) !important;
-    border: 1px solid color-mix(in srgb, var(--accent-wood, #a080e0) 40%, transparent) !important;
-    color: var(--text-primary) !important;
+    background: rgba(160, 128, 224, 0.14) !important;
+    border: 1px solid rgba(160, 128, 224, 0.45) !important;
+    color: #ede8f5 !important;
 }
 
 #gallerySection .gallery-new-btn {
     border-radius: 999px !important;
-    border: 1px solid color-mix(in srgb, var(--accent-wood, #a080e0) 55%, transparent) !important;
-    background: color-mix(in srgb, var(--accent-wood, #a080e0) 20%, var(--bg-card, transparent)) !important;
-    color: var(--text-primary) !important;
+    border: 1px solid rgba(180, 150, 240, 0.55) !important;
+    background: linear-gradient(160deg, rgba(140, 100, 220, 0.35), rgba(90, 60, 170, 0.25)) !important;
+    color: #ede8f5 !important;
     letter-spacing: 0.05em;
     transition: all 0.2s ease !important;
 }
@@ -28181,8 +28197,8 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     padding: 0 0 10px !important;
 }
 #gallerySection .gallery-search-input {
-    background: color-mix(in srgb, var(--bg-primary, #0e0c1c) 75%, transparent) !important;
-    border: 1px solid var(--border-color, #2a2048) !important;
+    background: rgba(12, 8, 26, 0.7) !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
     border-radius: 999px !important;
     color: var(--text-primary) !important;
     transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
@@ -28193,7 +28209,7 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     outline: none !important;
 }
 #gallerySection .gallery-search-input::placeholder {
-    color: color-mix(in srgb, var(--text-primary) 45%, transparent) !important;
+    color: rgba(200, 185, 235, 0.5) !important;
     font-style: italic;
 }
 
@@ -28213,11 +28229,20 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     overflow: hidden;
 }
 .char-card-v2:hover {
-    transform: scale(1.025) !important;
-    border-color: var(--card-color, var(--accent-wood)) !important;
+    transform: none !important; /* sin cambio de geometría → sin scroll */
+    border-color: var(--card-color, #a080e0) !important;
     box-shadow:
-        0 8px 22px rgba(0, 0, 0, 0.38),
-        0 0 18px -6px var(--card-color, var(--accent-wood)) !important;
+        0 8px 22px rgba(5, 0, 20, 0.45),
+        0 0 22px -4px var(--card-color, #a080e0) !important;
+}
+/* La vida del hover ocurre DENTRO del naipe: zoom del retrato, recortado */
+.char-card-v2 .char-card-img,
+.char-card-v2 .char-card-initial {
+    transition: transform 0.35s ease !important;
+}
+.char-card-v2:hover .char-card-img,
+.char-card-v2:hover .char-card-initial {
+    transform: scale(1.06) !important;
 }
 
 .char-card-v2::before,
@@ -28242,20 +28267,43 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 }
 .char-card-v2 .char-card-top-badge { border-radius: 999px !important; font-size: 0.6rem !important; }
 
+/* Carta de invocación: reverso de tarot — presencia propia sin robar
+   protagonismo (brillo latente, sello ✦, marco doble) */
 .char-card-v2--new {
-    border: 1.5px dashed color-mix(in srgb, var(--accent-wood, #a080e0) 50%, transparent) !important;
-    background: color-mix(in srgb, var(--bg-primary, #0e0c1c) 40%, transparent) !important;
+    border: 1px solid rgba(180, 150, 240, 0.45) !important;
+    background:
+        radial-gradient(1px 1px at 30% 25%, rgba(220, 205, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 68% 60%, rgba(220, 205, 255, 0.45), transparent),
+        radial-gradient(1.5px 1.5px at 50% 80%, rgba(220, 205, 255, 0.4), transparent),
+        linear-gradient(165deg, rgba(60, 42, 110, 0.5), rgba(28, 18, 58, 0.7)) !important;
+    box-shadow: inset 0 0 24px rgba(140, 100, 220, 0.15) !important;
+    animation: invocation-pulse 4s ease-in-out infinite;
 }
-.char-card-v2--new::before, .char-card-v2--new::after { display: none; }
+.char-card-v2--new::before, .char-card-v2--new::after {
+    display: block !important;
+    border-color: rgba(190, 160, 250, 0.55) !important;
+}
 .char-card-v2--new:hover {
-    border-color: var(--accent-wood, #a080e0) !important;
-    background: color-mix(in srgb, var(--accent-wood, #a080e0) 10%, transparent) !important;
+    border-color: rgba(210, 185, 255, 0.85) !important;
+    box-shadow:
+        inset 0 0 30px rgba(150, 110, 235, 0.25),
+        0 0 26px -4px rgba(160, 128, 224, 0.6) !important;
+    animation-play-state: paused;
 }
-.char-card-v2--new .char-card-new-plus { color: var(--accent-wood, #a080e0) !important; font-size: 1.9rem !important; }
+.char-card-v2--new .char-card-new-plus {
+    color: rgba(215, 195, 255, 0.95) !important;
+    font-size: 2rem !important;
+    text-shadow: 0 0 18px rgba(160, 128, 224, 0.8);
+}
 .char-card-v2--new .char-card-new-text {
     font-family: var(--font-serif, 'EB Garamond', serif) !important;
     font-variant: small-caps;
-    color: color-mix(in srgb, var(--text-primary) 75%, transparent) !important;
+    letter-spacing: 0.09em;
+    color: rgba(215, 200, 245, 0.85) !important;
+}
+@keyframes invocation-pulse {
+    0%, 100% { box-shadow: inset 0 0 24px rgba(140, 100, 220, 0.12), 0 0 12px -6px rgba(160, 128, 224, 0.3); }
+    50%      { box-shadow: inset 0 0 30px rgba(140, 100, 220, 0.22), 0 0 20px -4px rgba(160, 128, 224, 0.55); }
 }
 
 /* ── ATELIER (creador) sobre tokens ── */
@@ -28315,7 +28363,9 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .char-card-v2:hover { transform: none !important; }
+    .char-card-v2:hover .char-card-img,
+    .char-card-v2:hover .char-card-initial { transform: none !important; }
+    .char-card-v2--new { animation: none !important; }
 }
 
 
