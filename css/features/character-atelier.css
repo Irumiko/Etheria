@@ -12,12 +12,21 @@
    independiente del tema claro/oscuro, con polvo de constelación */
 #gallerySection {
     height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
 }
 #gallerySection .gallery-header-bar { flex-shrink: 0; }
 
+/* Anular la altura fija legacy (07-tone-story.css: calc(100dvh - 56px)
+   sin !important) que desbordaba la página entera al no encajar en el
+   flex de arriba — causa real del scroll fantasma en toda la sección */
 #gallerySection .section-content {
+    height: auto !important;
+}
+
+#gallerySection .section-content.section-content {
     background:
         radial-gradient(1px 1px at 18% 22%, rgba(220, 205, 255, 0.5), transparent),
         radial-gradient(1.5px 1.5px at 71% 15%, rgba(220, 205, 255, 0.4), transparent),
@@ -177,19 +186,25 @@
         radial-gradient(1.5px 1.5px at 50% 80%, rgba(220, 205, 255, 0.4), transparent),
         linear-gradient(165deg, rgba(60, 42, 110, 0.5), rgba(28, 18, 58, 0.7)) !important;
     box-shadow: inset 0 0 24px rgba(140, 100, 220, 0.15) !important;
-    animation: invocation-pulse 4s ease-in-out infinite;
+    position: relative;
 }
-.char-card-v2--new::before, .char-card-v2--new::after {
+/* Pulso por OPACITY en un pseudo-elemento (no box-shadow animado: evita
+   repintado continuo que, combinado con el backdrop-filter del panel,
+   podía disparar el scroll fantasma en algunos WebView Android) */
+.char-card-v2--new::before {
     display: block !important;
     border-color: rgba(190, 160, 250, 0.55) !important;
 }
+.char-card-v2--new::after {
+    display: block !important;
+    border-color: rgba(190, 160, 250, 0.55) !important;
+    animation: invocation-pulse 4s ease-in-out infinite;
+}
 .char-card-v2--new:hover {
     border-color: rgba(210, 185, 255, 0.85) !important;
-    box-shadow:
-        inset 0 0 30px rgba(150, 110, 235, 0.25),
-        0 0 26px -4px rgba(160, 128, 224, 0.6) !important;
-    animation-play-state: paused;
+    box-shadow: inset 0 0 30px rgba(150, 110, 235, 0.25) !important;
 }
+.char-card-v2--new:hover::after { animation-play-state: paused; opacity: 0.95 !important; }
 .char-card-v2--new .char-card-new-plus {
     color: rgba(215, 195, 255, 0.95) !important;
     font-size: 2rem !important;
@@ -202,8 +217,8 @@
     color: rgba(215, 200, 245, 0.85) !important;
 }
 @keyframes invocation-pulse {
-    0%, 100% { box-shadow: inset 0 0 24px rgba(140, 100, 220, 0.12), 0 0 12px -6px rgba(160, 128, 224, 0.3); }
-    50%      { box-shadow: inset 0 0 30px rgba(140, 100, 220, 0.22), 0 0 20px -4px rgba(160, 128, 224, 0.55); }
+    0%, 100% { opacity: 0.5; }
+    50%      { opacity: 0.95; }
 }
 
 /* ── ATELIER (creador) sobre tokens ── */
