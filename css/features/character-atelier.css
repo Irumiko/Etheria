@@ -286,3 +286,83 @@
     .char-card-v2:hover .char-card-initial { transform: none !important; }
     .char-card-v2--new { animation: none !important; }
 }
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 5 — Chips de raza con espacio propio + decoración general
+   El chip de raza flotaba a un dedo del borde de las cartas (parecía
+   escapado de la primera). Le damos una fila propia con separador, y
+   se añade ornamentación al panel para igualar el resto de la casa.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+#gallerySection .gallery-race-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin: 2px 0 14px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid rgba(160, 128, 224, 0.18) !important;
+    position: relative;
+}
+/* Pequeño rombo centrado en el separador, eco del ornamento de Las Crónicas */
+#gallerySection .gallery-race-tags:not(:empty)::after {
+    content: '◆';
+    position: absolute;
+    left: 50%;
+    bottom: -7px;
+    transform: translateX(-50%) rotate(0deg);
+    font-size: 0.5rem;
+    color: rgba(180, 150, 240, 0.55);
+    background: rgba(22, 16, 46, 0.9);
+    padding: 0 8px;
+}
+
+#gallerySection .race-pill {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.04em;
+    padding: 4px 12px !important;
+    border-radius: 999px !important;
+    background: rgba(18, 13, 38, 0.6) !important;
+    border: 1px solid rgba(160, 128, 224, 0.28) !important;
+    color: rgba(200, 185, 235, 0.7) !important;
+    transition: all 0.18s ease !important;
+}
+#gallerySection .race-pill:hover {
+    color: #ede8f5 !important;
+    border-color: rgba(180, 150, 240, 0.55) !important;
+}
+#gallerySection .race-pill.active {
+    background: rgba(160, 128, 224, 0.22) !important;
+    border-color: rgba(190, 160, 250, 0.7) !important;
+    color: #ede8f5 !important;
+    box-shadow: 0 0 12px -4px rgba(160, 128, 224, 0.5) !important;
+}
+
+/* ── Decoración general del panel: las 4 esquinas ornamentales ─────────
+   ::before ya dibuja la superior-izquierda (definida arriba); aquí las
+   3 restantes en un único ::after via el truco de 2 gradientes por
+   esquina (línea vertical + horizontal), sin tocar el DOM. ── */
+#gallerySection .section-content.section-content::after {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    pointer-events: none;
+    --cc: rgba(180, 150, 240, 0.5);
+    background-image:
+        /* superior-derecha */
+        linear-gradient(to left, var(--cc) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--cc) 1px, transparent 1px),
+        /* inferior-izquierda */
+        linear-gradient(to right, var(--cc) 1px, transparent 1px),
+        linear-gradient(to top, var(--cc) 1px, transparent 1px),
+        /* inferior-derecha */
+        linear-gradient(to left, var(--cc) 1px, transparent 1px),
+        linear-gradient(to top, var(--cc) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-repeat: no-repeat;
+    background-position:
+        top right, top right,
+        bottom left, bottom left,
+        bottom right, bottom right;
+}
