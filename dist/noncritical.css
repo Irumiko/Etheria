@@ -28476,6 +28476,259 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 }
 
 
+/* ═════════════════════════════════════════════════════════════════════════
+   EL ATELIER — reskin estructural del modal de creación/edición
+   Layout: retrato + esenciales en un costado fijo, contenido narrativo en
+   el otro. Piel violeta mística (misma familia que El Elenco/Crónicas).
+   character-atelier.js mueve género/color/subidas al panel lateral;
+   aquí su estilo.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── El modal entero: noche mística con polvo de constelación ── */
+#characterModal .character-modal {
+    background:
+        radial-gradient(1px 1px at 15% 20%, rgba(220, 205, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 80% 65%, rgba(220, 205, 255, 0.32), transparent),
+        radial-gradient(1.5px 1.5px at 55% 85%, rgba(220, 205, 255, 0.3), transparent),
+        linear-gradient(175deg, rgba(28, 21, 54, 0.97), rgba(14, 10, 30, 0.98)) !important;
+    border: 1px solid rgba(160, 128, 224, 0.32) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 60px rgba(5, 0, 20, 0.6), inset 0 0 80px rgba(100, 70, 180, 0.05) !important;
+    max-width: 880px !important;
+    width: min(880px, 94vw) !important;
+}
+
+#characterModal .editor-container {
+    display: grid !important;
+    grid-template-columns: 240px 1fr !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+}
+
+/* ── COSTADO IZQUIERDO: el retrato ── */
+#characterModal .editor-preview {
+    background: linear-gradient(180deg, rgba(50, 36, 90, 0.35), rgba(20, 14, 40, 0.5)) !important;
+    border-right: 1px solid rgba(160, 128, 224, 0.22) !important;
+    border-radius: 20px 0 0 20px !important;
+    padding: 26px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 14px !important;
+    position: relative;
+}
+/* Esquinas ornamentales del costado (eco del naipe de tarot) */
+#characterModal .editor-preview::before,
+#characterModal .editor-preview::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    border: 1px solid rgba(180, 150, 240, 0.5);
+    pointer-events: none;
+}
+#characterModal .editor-preview::before { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+#characterModal .editor-preview::after  { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+
+/* Retrato: marco circular con anillo de constelación */
+#characterModal .editor-preview-image {
+    width: 128px !important;
+    height: 128px !important;
+    border-radius: 50% !important;
+    border: 2px solid rgba(180, 150, 240, 0.5) !important;
+    background: radial-gradient(circle at 35% 30%, rgba(90, 65, 160, 0.4), rgba(15, 10, 30, 0.8)) !important;
+    box-shadow:
+        0 0 0 4px rgba(20, 14, 34, 0.6),
+        0 0 24px -4px rgba(160, 128, 224, 0.6),
+        inset 0 0 20px rgba(0, 0, 0, 0.4) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden;
+    position: relative;
+}
+#characterModal .editor-preview-image img { width: 100%; height: 100%; object-fit: cover; }
+.atelier-placeholder-glyph {
+    font-size: 3rem;
+    color: rgba(200, 175, 240, 0.4);
+    text-shadow: 0 0 20px rgba(160, 128, 224, 0.5);
+}
+
+#characterModal .editor-preview-name {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.06em !important;
+    font-size: 1.15rem !important;
+    color: #ede8f5 !important;
+    text-align: center;
+    text-shadow: 0 0 16px rgba(160, 128, 224, 0.4);
+}
+#characterModal .editor-preview-hint {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-style: italic;
+    font-size: 0.72rem !important;
+    color: rgba(200, 185, 235, 0.5) !important;
+    text-align: center;
+    margin-top: -8px;
+}
+
+/* Extras trasladados aquí por character-atelier.js: género, color, subidas */
+.atelier-side-extras {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(160, 128, 224, 0.18);
+}
+.atelier-side-extras label {
+    font-variant: small-caps;
+    letter-spacing: 0.08em !important;
+    font-size: 0.66rem !important;
+    color: rgba(190, 175, 230, 0.6) !important;
+    text-align: center;
+    display: block;
+}
+.atelier-side-extras .gender-selector { justify-content: center !important; }
+.atelier-side-extras .gender-option {
+    border: 1px solid rgba(160, 128, 224, 0.28) !important;
+    background: rgba(18, 13, 38, 0.5) !important;
+    transition: all 0.18s ease !important;
+}
+.atelier-side-extras .gender-option:hover {
+    border-color: rgba(190, 160, 250, 0.6) !important;
+}
+.atelier-side-extras .gender-option.selected {
+    border-color: rgba(200, 175, 250, 0.85) !important;
+    background: rgba(160, 128, 224, 0.2) !important;
+    box-shadow: 0 0 12px -3px rgba(160, 128, 224, 0.6) !important;
+}
+.atelier-side-extras input[type="color"] {
+    width: 100% !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    background: rgba(18, 13, 38, 0.5) !important;
+    cursor: pointer;
+}
+.atelier-upload-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.atelier-upload-row .avatar-upload-btn {
+    border: 1px solid rgba(160, 128, 224, 0.35) !important;
+    border-radius: 999px !important;
+    background: rgba(90, 60, 170, 0.15) !important;
+    color: rgba(210, 195, 245, 0.85) !important;
+    text-align: center;
+    justify-content: center;
+    display: flex !important;
+    width: 100% !important;
+    transition: all 0.18s ease !important;
+}
+.atelier-upload-row .avatar-upload-btn:hover {
+    border-color: rgba(190, 160, 250, 0.6) !important;
+    background: rgba(120, 90, 200, 0.22) !important;
+}
+
+/* ── COSTADO DERECHO: formulario narrativo ── */
+#characterModal .editor-form { padding: 22px 24px !important; }
+
+#characterModal .editor-tabs {
+    gap: 6px !important;
+    border-bottom: 1px solid rgba(160, 128, 224, 0.2) !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 16px !important;
+}
+#characterModal .editor-tab {
+    border-radius: 999px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.07em !important;
+    color: rgba(190, 175, 230, 0.6) !important;
+    transition: all 0.2s ease !important;
+}
+#characterModal .editor-tab:hover { color: #ede8f5 !important; }
+#characterModal .editor-tab.active {
+    color: #ede8f5 !important;
+    border-color: rgba(180, 150, 240, 0.55) !important;
+    background: rgba(160, 128, 224, 0.14) !important;
+    box-shadow: 0 0 14px -6px rgba(160, 128, 224, 0.5);
+}
+
+#characterModal label {
+    font-variant: small-caps;
+    letter-spacing: 0.07em !important;
+    font-size: 0.72rem !important;
+    color: rgba(190, 175, 230, 0.7) !important;
+}
+#characterModal input[type="text"],
+#characterModal select,
+#characterModal textarea {
+    background: rgba(14, 10, 30, 0.6) !important;
+    border: 1px solid rgba(160, 128, 224, 0.25) !important;
+    border-radius: 10px !important;
+    color: #ede8f5 !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+#characterModal input:focus,
+#characterModal select:focus,
+#characterModal textarea:focus {
+    border-color: rgba(190, 160, 250, 0.6) !important;
+    box-shadow: 0 0 12px -4px rgba(160, 128, 224, 0.45) !important;
+    outline: none !important;
+}
+#characterModal ::placeholder {
+    color: rgba(190, 175, 230, 0.35) !important;
+    font-style: italic;
+}
+
+/* El botón de subida que queda en el formulario derecho (si alguno no
+   se trasladó) también respira la piel violeta */
+#characterModal .editor-form .avatar-upload-btn {
+    border-color: rgba(160, 128, 224, 0.3) !important;
+    color: rgba(210, 195, 245, 0.8) !important;
+}
+
+#characterModal .editor-actions {
+    border-top: 1px solid rgba(160, 128, 224, 0.18) !important;
+    padding-top: 16px !important;
+    margin-top: 18px !important;
+}
+#characterModal .btn-primary {
+    background: linear-gradient(160deg, rgba(140, 100, 220, 0.4), rgba(90, 60, 170, 0.3)) !important;
+    border: 1px solid rgba(190, 160, 250, 0.5) !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    letter-spacing: 0.04em;
+}
+#characterModal .btn-primary:hover {
+    box-shadow: 0 0 18px -4px rgba(160, 128, 224, 0.6) !important;
+}
+#characterModal .btn-secondary {
+    background: transparent !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    color: rgba(210, 195, 245, 0.8) !important;
+}
+
+@media (max-width: 767px) {
+    #characterModal .editor-container { grid-template-columns: 1fr !important; }
+    #characterModal .editor-preview {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(160, 128, 224, 0.22) !important;
+        border-radius: 20px 20px 0 0 !important;
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 18px !important;
+    }
+    #characterModal .editor-preview-image { width: 88px !important; height: 88px !important; }
+    .atelier-side-extras { border-top: none; margin-top: 0; }
+}
+
+
 /* -- css/menu-gamefeel.css -- */
 /* Game-like polish for menus and topic management */
 

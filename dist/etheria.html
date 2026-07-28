@@ -2328,10 +2328,10 @@ body,
             <div class="editor-container">
                 <div class="editor-preview">
                     <div class="editor-preview-image" id="editorPreviewImage">
-                        <span style="font-size: 5rem;">👤</span>
+                        <span class="atelier-placeholder-glyph">✦</span>
                     </div>
-                    <div class="editor-preview-name" id="editorPreviewName">Nuevo Personaje</div>
-                    <div class="editor-preview-hint">Vista previa en tiempo real</div>
+                    <div class="editor-preview-name" id="editorPreviewName">Alma sin nombre</div>
+                    <div class="editor-preview-hint">el retrato cobra forma al escribir</div>
                 </div>
 
                 <div class="editor-form">
@@ -2339,13 +2339,13 @@ body,
 
                     <div class="editor-tabs">
                         <button class="editor-tab active" onclick="switchEditorTab('identity', this)">
-                            <span>👤</span> Identidad
+                            <span>✦</span> Identidad
                         </button>
                         <button class="editor-tab" onclick="switchEditorTab('biography', this)">
-                            <span>📖</span> Biografía
+                            <span>☾</span> Biografía
                         </button>
                         <button class="editor-tab" onclick="switchEditorTab('notes', this)">
-                            <span>📝</span> Notas
+                            <span>⚜</span> Notas
                         </button>
                     </div>
 
@@ -2415,7 +2415,7 @@ body,
                                     <div style="display:flex; gap:0.5rem; align-items:center;">
                                         <input type="text" id="charAvatar" oninput="updatePreview()" style="flex:1;">
                                         <label class="avatar-upload-btn" title="Subir imagen a Supabase Storage" style="cursor:pointer; padding:0.4rem 0.7rem; border:1px solid rgba(201,168,108,0.35); border-radius:8px; font-size:0.75rem; color:rgba(201,168,108,0.85); white-space:nowrap; flex-shrink:0;">
-                                            ⬆ Subir
+                                            ✦ Retrato
                                             <input type="file" accept="image/*" style="display:none;" onchange="uploadAvatarForChar(this)">
                                         </label>
                                     </div>
@@ -2427,7 +2427,7 @@ body,
                                 <div style="display:flex; gap:0.5rem; align-items:center;">
                                     <input type="text" id="charSprite" style="flex:1;">
                                     <label class="avatar-upload-btn" title="Subir sprite a Supabase Storage" style="cursor:pointer; padding:0.4rem 0.7rem; border:1px solid rgba(201,168,108,0.35); border-radius:8px; font-size:0.75rem; color:rgba(201,168,108,0.85); white-space:nowrap; flex-shrink:0;">
-                                        ⬆ Subir
+                                        ☾ Completo
                                         <input type="file" accept="image/*" style="display:none;" onchange="uploadSpriteForChar(this)">
                                     </label>
                                 </div>
@@ -2458,9 +2458,9 @@ body,
                     </div>
 
                     <div class="editor-actions">
-                        <button onclick="closeModal('characterModal')" class="btn-secondary">Cancelar</button>
-                        <button id="deleteCharBtn" onclick="deleteCharFromModal()" class="btn-danger" style="display: none;">🗑️ Borrar</button>
-                        <button onclick="saveCharacter()" class="btn-primary">💾 Guardar Personaje</button>
+                        <button onclick="closeModal('characterModal')" class="btn-secondary">Cerrar</button>
+                        <button id="deleteCharBtn" onclick="deleteCharFromModal()" class="btn-danger" style="display: none;">✕ Borrar</button>
+                        <button onclick="saveCharacter()" class="btn-primary">✦ Sellar personaje</button>
                     </div>
                 </div>
             </div>
@@ -2593,6 +2593,7 @@ body,
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js" integrity="sha512-jB0TkTBeQC9ZSkBqDhdmfTv1qdfbWpGE72yJ/01Srq6hEzZIz2xkz1e57p9ai7IeHMwEG7HpzG6NdptChif5Pg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
 
 
 
