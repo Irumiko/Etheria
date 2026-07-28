@@ -6804,29 +6804,6 @@ async function launchChoice() {
 }
 
 // ── toggleExportMenu / closeExportMenu ────────────────────────────────────────
-function toggleExportMenu(menuId, event) {
-    if (event) event.stopPropagation();
-    const menu = document.getElementById(menuId);
-    if (!menu) return;
-    const isOpen = !menu.classList.contains('hidden');
-    document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden'));
-    if (!isOpen) {
-        menu.classList.remove('hidden');
-        setTimeout(function () {
-            document.addEventListener('click', function _closeExport() {
-                closeExportMenu(menuId);
-                document.removeEventListener('click', _closeExport);
-            }, { once: true });
-        }, 0);
-    }
-}
-
-function closeExportMenu(menuId) {
-    const menu = document.getElementById(menuId || 'exportMenuClassic') ||
-                 document.getElementById('exportMenuRpg');
-    if (menu) menu.classList.add('hidden');
-}
-
 window.openChoicePanel    = openChoicePanel;
 window.closeChoicePanel   = closeChoicePanel;
 window.launchChoice       = launchChoice;
