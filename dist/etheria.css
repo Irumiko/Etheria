@@ -1778,8 +1778,12 @@ body.is-pwa .menu-exit-btn:active {
     }
     #vnSection .vn-dialogue-footer { padding-top: 4px !important; }
 
-    /* ── TEMAS · scroll solo en la lista, no en toda la pantalla ── */
-    #topicsSection {
+    /* ── TEMAS · scroll solo en la lista, no en toda la pantalla ──
+       CRÍTICO: scoped a .active — sin esto, id+!important gana siempre
+       a la base ".game-section{display:none}" y fuerza la sección
+       visible para siempre tras visitarla, bloqueando el resto del
+       hub (mismo bug real que #gallerySection, detectado en vivo). */
+    #topicsSection.active {
         height: 100dvh !important;
         overflow: hidden !important;
         display: flex !important;
