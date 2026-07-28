@@ -20913,8 +20913,10 @@ function _updateSyncButtonStateDOM(status, message) {
     });
 }
 
-// Modal de confirmación genérico — reemplaza confirm() nativo
-function openConfirmModal(message, okLabel = 'Confirmar') {
+// Modal de confirmación genérico — reemplaza confirm() nativo.
+// cancelLabel permite reutilizarlo para elecciones de dos vías reales
+// (no solo confirmar/abortar), p.ej. "Continuar historia" vs "Elegir tema".
+function openConfirmModal(message, okLabel = 'Confirmar', cancelLabel = 'Cancelar') {
     return new Promise((resolve) => {
         const modal     = document.getElementById('confirmModal');
         const titleEl   = document.getElementById('confirmModalTitle');
@@ -20928,6 +20930,7 @@ function openConfirmModal(message, okLabel = 'Confirmar') {
 
         titleEl.textContent = message;
         btnOk.textContent = okLabel;
+        btnCancel.textContent = cancelLabel;
 
         const cleanup = (result) => {
             modal.classList.remove('active');
@@ -27008,19 +27011,43 @@ window.CharPopover = CharPopover;
       const last  = topics[topics.length - 1];
       const title = last.title ? last.title.substring(0, 34) : null;
       if (continueSub) continueSub.textContent = title || 'Retoma el hilo de tu última historia';
-      if (continueBtn) continueBtn.onclick = () => {
+      if (continueBtn) continueBtn.onclick = async () => {
         // Re-lee appData en el momento del clic para evitar cierres sobre IDs obsoletos.
-        // Si el último topic fue eliminado o el array se refrescó desde Supabase,
-        // el ID capturado en el closure anterior ya no existe → caemos en showSection.
         const currentTopics = (typeof appData !== 'undefined' && Array.isArray(appData?.topics))
           ? appData.topics : [];
         const latest = currentTopics.length > 0
           ? currentTopics[currentTopics.length - 1] : null;
-        if (latest?.id && typeof enterTopic === 'function') {
+
+        const goToLatest = () => {
           const mainMenu = document.getElementById('mainMenu');
           if (mainMenu) mainMenu.classList.add('hidden');
           eventBus.emit('audio:stop-menu-music');
           enterTopic(latest.id);
+        };
+
+        if (!latest?.id || typeof enterTopic !== 'function') {
+          if (typeof showSection === 'function') showSection('topics');
+          return;
+        }
+
+        // Con un único tema, saltar directo sigue siendo lo más intuitivo
+        // (no hay ambigüedad sobre "cuál" se retoma).
+        if (currentTopics.length === 1) {
+          goToLatest();
+          return;
+        }
+
+        // Con varios temas, "el último" deja de ser obvio para quien mira
+        // el botón — preguntar evita que parezca un bug (feedback de Irune).
+        const title = latest.title ? latest.title.substring(0, 40) : 'tu última historia';
+        if (typeof openConfirmModal === 'function') {
+          const wantsLatest = await openConfirmModal(
+            `¿Retomar «${title}» o elegir entre tus historias?`,
+            'Retomar esta',
+            'Elegir tema'
+          );
+          if (wantsLatest) goToLatest();
+          else if (typeof showSection === 'function') showSection('topics');
         } else if (typeof showSection === 'function') {
           showSection('topics');
         }

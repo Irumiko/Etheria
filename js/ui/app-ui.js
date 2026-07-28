@@ -232,8 +232,10 @@ function _updateSyncButtonStateDOM(status, message) {
     });
 }
 
-// Modal de confirmación genérico — reemplaza confirm() nativo
-function openConfirmModal(message, okLabel = 'Confirmar') {
+// Modal de confirmación genérico — reemplaza confirm() nativo.
+// cancelLabel permite reutilizarlo para elecciones de dos vías reales
+// (no solo confirmar/abortar), p.ej. "Continuar historia" vs "Elegir tema".
+function openConfirmModal(message, okLabel = 'Confirmar', cancelLabel = 'Cancelar') {
     return new Promise((resolve) => {
         const modal     = document.getElementById('confirmModal');
         const titleEl   = document.getElementById('confirmModalTitle');
@@ -247,6 +249,7 @@ function openConfirmModal(message, okLabel = 'Confirmar') {
 
         titleEl.textContent = message;
         btnOk.textContent = okLabel;
+        btnCancel.textContent = cancelLabel;
 
         const cleanup = (result) => {
             modal.classList.remove('active');
