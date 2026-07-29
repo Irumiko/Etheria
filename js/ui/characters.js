@@ -434,9 +434,13 @@ async function _renderDirectoryCards(container) {
         `;
         card.onclick = () => {
             if (!window._cachedUserId) {
-                if (typeof showAutosave === 'function') showAutosave('Inicia sesión para continuar', 'info');
+                // Es un perfil YA existente: se asume que quien pulsa tiene
+                // cuenta, así que va directo al formulario de login (no al
+                // menú genérico) — evita el paso extra de "elegir opción".
+                if (typeof showAutosave === 'function') showAutosave('Inicia sesión con tu cuenta', 'info');
                 if (typeof showLoginScreen === 'function') showLoginScreen();
-                if (typeof showAuthMain === 'function') showAuthMain();
+                if (typeof showAuthForm === 'function') showAuthForm('login');
+                else if (typeof showAuthMain === 'function') showAuthMain();
             } else {
                 if (typeof showAutosave === 'function') showAutosave('Este perfil pertenece a otra cuenta', 'error');
             }
@@ -761,9 +765,15 @@ async function addNewProfile() {
     const uid = typeof getEtheriaUserId === 'function' ? await getEtheriaUserId() : null;
     if (!uid) {
         window._pendingAddProfile = true;
-        if (typeof showAutosave === 'function') showAutosave('Inicia sesión o regístrate para crear tu perfil', 'info');
+        // "Nuevo Archivo" es para cuentas nuevas: directo a Crear Cuenta.
+        // Si ya tienes cuenta, sigue disponible el enlace "Iniciar sesión"
+        // dentro de esa misma pantalla — pero el destino por defecto ya
+        // no es el menú genérico, sino el formulario que de verdad se
+        // corresponde con la intención de esta tarjeta.
+        if (typeof showAutosave === 'function') showAutosave('Crea tu cuenta para empezar', 'info');
         if (typeof showLoginScreen === 'function') showLoginScreen();
-        if (typeof showAuthMain === 'function') showAuthMain();
+        if (typeof showAuthForm === 'function') showAuthForm('register');
+        else if (typeof showAuthMain === 'function') showAuthMain();
         return;
     }
 

@@ -28267,8 +28267,14 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
    aquí solo el matiz que las distingue.
    ───────────────────────────────────────────────────────────────────────── */
 
+/* Las tarjetas del directorio reutilizan la piel atenuada de .profile-foreign
+   (opacidad, saturación reducida) pero, a diferencia de un perfil GENUINAMENTE
+   bloqueado por otra cuenta, SÍ deben ser interactivas: al pulsarlas se abre
+   el login. .profile-foreign fija pointer-events:none ("el click no llega ni
+   al JS") — hay que revertirlo aquí explícitamente. */
 .user-card.profile-directory {
-    cursor: pointer;
+    cursor: pointer !important;
+    pointer-events: auto !important;
 }
 
 .user-directory-badge {
