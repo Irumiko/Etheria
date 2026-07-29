@@ -29115,6 +29115,7 @@ const Ethy = (function() {
             _setSectionExpression('mainMenu'); // expresión inicial aleatoria
             _startIdleSystem();               // arrancar idle dinámico
             _resetSleepTimer();               // arrancar sleep timer
+            _watchUserSelectScreen();         // vigilante "¿sigues ahí?" del selector
         }, 1000);
     }
 
@@ -29637,6 +29638,48 @@ const Ethy = (function() {
             if (_isSleeping) _wakeUp(true);
         }
         try { localStorage.setItem(MINIMIZED_KEY, _isMinimized ? '1' : '0'); } catch (error) { logger?.warn('ethy', 'minimize state save failed:', error?.message || error); }
+    }
+
+    // ── "¿Sigues ahí?" — aviso contextual en el selector de perfil ────────────
+    // Si el usuario lleva un rato en el selector sin tocar ninguna tarjeta,
+    // Ethy sugiere que cualquier perfil (incluido uno ajeno visible en el
+    // directorio) sirve para llegar al login — solo hace falta poner las
+    // credenciales correctas. Una vez por visita a la pantalla, no insiste.
+    const STUCK_DELAY = 22000; // 22s sin actividad en esta pantalla
+    let _stuckTimeout = null;
+    let _stuckTipShownThisVisit = false;
+
+    function _armStuckWatcher() {
+        if (_stuckTimeout) clearTimeout(_stuckTimeout);
+        if (_stuckTipShownThisVisit) return;
+        _stuckTimeout = setTimeout(() => {
+            const screen = document.getElementById('userSelectScreen');
+            if (!screen || screen.classList.contains('hidden')) return;
+            if (_isMinimized || _bubble.classList.contains('visible')) return;
+            _stuckTipShownThisVisit = true;
+            say('¿Buscas tu cuenta? Toca cualquier archivo — incluido uno que no sea el tuyo — y podrás iniciar sesión con tus propias credenciales desde ahí.', { expression: 'thoughtful' });
+        }, STUCK_DELAY);
+    }
+
+    function _disarmStuckWatcher() {
+        if (_stuckTimeout) { clearTimeout(_stuckTimeout); _stuckTimeout = null; }
+    }
+
+    function _watchUserSelectScreen() {
+        const screen = document.getElementById('userSelectScreen');
+        if (!screen) return;
+        const sync = () => {
+            if (screen.classList.contains('hidden')) {
+                _disarmStuckWatcher();
+                _stuckTipShownThisVisit = false; // rearmar para la próxima visita
+            } else {
+                _armStuckWatcher();
+            }
+        };
+        sync();
+        new MutationObserver(sync).observe(screen, { attributes: true, attributeFilter: ['class'] });
+        // Cualquier interacción dentro del selector cuenta como "no estoy atascada"
+        screen.addEventListener('click', () => { _stuckTipShownThisVisit = true; _disarmStuckWatcher(); }, { passive: true });
     }
 
     // ── Sistema de duermevela ─────────────────────────────────────────────────
@@ -30169,6 +30212,7 @@ const Ethy = (function() {
             if (!el) return false;
             return el.classList.contains('active') || _isVisible(id);
         }
+        if (_isVisible('userSelectScreen')) return 'userSelect';
         if (_isVisible('mainMenu') || _isActive('mainMenu')) return 'mainMenu';
         if (_isActive('gallerySection')) return 'gallery';
         if (_isActive('topicsSection')) return 'topics';
