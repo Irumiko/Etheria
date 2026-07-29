@@ -828,7 +828,7 @@ const Ethy = (function() {
             if (!screen || screen.classList.contains('hidden')) return;
             if (_isMinimized || _bubble.classList.contains('visible')) return;
             _stuckTipShownThisVisit = true;
-            say('¿Buscas tu cuenta? Toca cualquier archivo — incluido uno que no sea el tuyo — y podrás iniciar sesión con tus propias credenciales desde ahí.', { expression: 'thoughtful' });
+            say('Ninguno de estos archivos tiene que ser el tuyo para abrirte paso. Toca cualquiera y entra con tu propio nombre y llave.', { expression: 'wink' });
         }, STUCK_DELAY);
     }
 
