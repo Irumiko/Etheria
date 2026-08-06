@@ -27751,9 +27751,17 @@ window.claimProfile = _claimProfile;
 // Verificar si hay una sesión existente
 async function checkExistingSession() {
     if (!window.supabaseClient) return false;
-    
+
     try {
-        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        // Timeout de seguridad: esta llamada es la PRIMERA del arranque tras
+        // renderizar el selector — si se cuelga sin timeout (fetch de red sin
+        // límite en conexión inestable), nada de lo que viene detrás se
+        // ejecuta jamás. _withTimeout() se define más abajo en este archivo,
+        // pero las declaraciones function son hoisted — disponible aquí.
+        const result = await (typeof _withTimeout === 'function'
+            ? _withTimeout(window.supabaseClient.auth.getSession(), 8000, 'auth.getSession()')
+            : window.supabaseClient.auth.getSession());
+        const session = result?.data?.session;
         return !!session;
     } catch (e) {
         logger?.warn('app:auth', 'checkExistingSession failed:', e?.message || e);
@@ -28153,12 +28161,30 @@ async function register() {
     }
 }
 
+// Helper: envuelve una promesa con un plazo máximo. Si no resuelve a
+// tiempo, se resuelve como si hubiera fallado en vez de colgarse para
+// siempre — CRÍTICO en llamadas de red durante el arranque, donde una
+// conexión móvil inestable puede dejar un fetch() sin respuesta ni error
+// indefinidamente, bloqueando el resto del arranque sin ninguna excepción
+// visible (bug real: dejaba la pantalla de carga atascada para siempre).
+function _withTimeout(promise, ms, label) {
+    return Promise.race([
+        promise,
+        new Promise((resolve) => setTimeout(() => {
+            window.EtheriaLogger?.warn('app:timeout', `${label || 'operación'} superó ${ms}ms — continuando sin bloquear`);
+            resolve({ data: null, error: new Error('timeout') });
+        }, ms))
+    ]);
+}
+
 async function ensureProfile() {
     // ensureProfile ya no crea perfiles automáticamente.
     // Los perfiles globales se crean explícitamente por el usuario via SupabaseProfiles.
     // Esta función solo inicializa los módulos Supabase tras el login.
     try {
-        const { data: userData, error: userError } = await window.supabaseClient.auth.getUser();
+        const { data: userData, error: userError } = await _withTimeout(
+            window.supabaseClient.auth.getUser(), 8000, 'auth.getUser()'
+        );
         if (userError || !userData?.user) return;
 
         const userId = userData.user.id;
@@ -28649,8 +28675,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (hasExistingSession) {
         _showLoadingOverlay('Cargando tu partida...');
         try {
-            await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
-            await hydrateCloudAfterAuth();
+            // Red de seguridad global: aunque algo interno se quedara colgado
+            // sin excepción (bug real detectado: un fetch() de red sin timeout
+            // dejaba esta pantalla atascada para siempre en conexiones
+            // inestables), este límite garantiza que el overlay SIEMPRE se
+            // oculte y el selector de perfiles ya renderizado quede visible.
+            await Promise.race([
+                (async () => {
+                    await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
+                    await hydrateCloudAfterAuth();
+                })(),
+                new Promise(resolve => setTimeout(resolve, 12000))
+            ]);
         } finally {
             _hideLoadingOverlay();
         }
