@@ -138,6 +138,41 @@ function continueAsGuest() {
     isOfflineMode = true;
 }
 
+// Purga la caché de la aplicación (service worker + Cache API) sin tocar
+// localStorage (sesión, preferencias, perfiles locales) — para cuando el
+// bundle instalado se queda "atascado" en una versión vieja y el doble
+// cierre/apertura habitual no basta. Especialmente útil en PWA instalado,
+// donde el almacenamiento vive aislado del navegador normal.
+async function forceAppUpdate() {
+    const btn = document.getElementById('optForceUpdateBtn');
+    const status = document.getElementById('optForceUpdateStatus');
+    if (btn) btn.disabled = true;
+    if (status) status.textContent = 'Purificando...';
+
+    try {
+        // 1) Desregistrar todos los service workers de este origen
+        if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+        }
+        // 2) Borrar todas las Cache Storage (los bundles JS/CSS/HTML cacheados)
+        if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k).catch(() => {})));
+        }
+        if (status) status.textContent = 'Hecho. Recargando…';
+    } catch (err) {
+        window.EtheriaLogger?.warn('forceAppUpdate', err?.message);
+        if (status) status.textContent = 'Hecho lo posible. Recargando…';
+    }
+
+    // 3) Recarga forzada, sin caché de navegador para este documento
+    setTimeout(() => {
+        location.href = location.origin + location.pathname + '?_refresh=' + Date.now();
+    }, 400);
+}
+window.forceAppUpdate = forceAppUpdate;
+
 async function logout() {
     if (!window.supabaseClient) {
         setAuthStatus('Sin conexión. No se pudo cerrar sesión.', true);

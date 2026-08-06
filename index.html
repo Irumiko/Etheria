@@ -711,6 +711,18 @@
                             <span class="opt-label" id="optProfileStats" style="font-size:11px;color:var(--cel-text-muted)"></span>
                         </div>
 
+                        <div class="opt-subhead">Mantenimiento</div>
+                        <div class="opt-row opt-row-stacked">
+                            <span class="opt-label">Forzar actualización</span>
+                            <p class="opt-status-note" style="margin-bottom:8px;">
+                                Si la app se ve desactualizada o "atascada" tras un cambio,
+                                esto limpia la memoria guardada de la aplicación (sin tocar
+                                tu sesión ni tus datos, que viven en la nube) y recarga limpio.
+                            </p>
+                            <button class="opt-btn" id="optForceUpdateBtn" onclick="forceAppUpdate()">✦ Purificar y recargar</button>
+                            <p id="optForceUpdateStatus" class="opt-status-note"></p>
+                        </div>
+
                         <div class="opt-subhead">Seguridad</div>
                         <div class="opt-row opt-row-stacked">
                             <span class="opt-label">Cambiar email</span>
