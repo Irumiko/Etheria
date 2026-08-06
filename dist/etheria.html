@@ -2,6 +2,47 @@
 <html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <script>
+    /* ── Capturador de errores de emergencia ──────────────────────────────
+       Si algo en el arranque de la app lanza una excepción no atrapada,
+       la pantalla se queda en blanco sin ninguna pista visible. Este script
+       corre ANTES que cualquier otro: si algo revienta, muestra el error
+       como texto legible en pantalla en vez de dejar solo el fondo.
+       No afecta al funcionamiento normal si todo va bien — se borra solo
+       en cuanto la app arranca correctamente. ── */
+    (function () {
+        var shown = false;
+        function showFatal(msg, src, line, col) {
+            if (shown) return;
+            shown = true;
+            var box = document.createElement('div');
+            box.id = 'etheriaFatalError';
+            box.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(8,6,20,0.97);' +
+                'color:#f0e6ff;font:13px/1.5 monospace;padding:20px;overflow:auto;white-space:pre-wrap;' +
+                'word-break:break-word;';
+            box.textContent = '⚠ Error al iniciar Etheria\n\n' +
+                'Mensaje: ' + msg + '\n' +
+                (src ? 'Archivo: ' + src + '\n' : '') +
+                (line ? 'Línea: ' + line + (col ? ':' + col : '') + '\n' : '') +
+                '\n— Haz una captura de esta pantalla y compártela para poder arreglarlo. —';
+            document.body ? document.body.appendChild(box) : document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(box); });
+        }
+        window.addEventListener('error', function (e) {
+            showFatal(e.message, e.filename, e.lineno, e.colno);
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+            var reason = e.reason;
+            showFatal((reason && (reason.message || reason.toString())) || 'Promesa rechazada sin motivo', null, null, null);
+        });
+        // Si la app arranca con éxito, quitar el aviso (por si hubo un error
+        // no fatal recuperado) al cabo de unos segundos de actividad normal
+        window.addEventListener('etheria:section-changed', function () {
+            var box = document.getElementById('etheriaFatalError');
+            if (box) box.remove();
+            shown = false;
+        });
+    })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#1a1815">
     <!-- PWA -->
