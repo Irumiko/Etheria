@@ -1183,7 +1183,7 @@ const Ethy = (function() {
         prev.style.visibility = _tutorialStep > 0 ? 'visible' : 'hidden';
 
         if (_tutorialStep === total - 1) {
-            next.textContent = '¡Entendido! ✓';
+            next.textContent = 'Entendido ✓';
             next.classList.add('ethy-tp-finish');
         } else {
             next.textContent = 'Siguiente →';
@@ -1243,7 +1243,7 @@ const Ethy = (function() {
         // Mensaje breve de despedida (solo si no está minimizado)
         if (!_isMinimized) {
             setTimeout(() => {
-                say('¡Estoy aquí si me necesitas! Solo haz clic en mí. 😊', {
+                say('Aquí me quedo. Un clic, si me necesitas.', {
                     expression: 'wink',
                     duration: 3000
                 });
@@ -1351,7 +1351,7 @@ const Ethy = (function() {
     function showHelpMenu() {
         const currentSection = _detectCurrentSection();
         
-        say('¿En qué puedo ayudarte? 🎭', {
+        say('¿En qué puedo ayudarte?', {
             expression: 'happy',
             buttons: [
                 { text: 'Ver tutorial', primary: true, close: false, action: () => {
@@ -1360,7 +1360,7 @@ const Ethy = (function() {
                         _seenTutorials.delete(currentSection);
                         startTutorial(currentSection);
                     } else {
-                        say('No hay tutorial disponible para esta sección. 😅', { expression: 'sad', duration: 3000 });
+                        say('Para esta sección aún no tengo nada que enseñarte.', { expression: 'sad', duration: 3000 });
                     }
                 }},
                 { text: 'Consejo rápido', close: false, action: () => showRandomTip() },
@@ -1507,7 +1507,7 @@ const Ethy = (function() {
     function resetTutorials() {
         _seenTutorials.clear();
         _saveSeenTutorials();
-        say('¡Tutoriales reiniciados! Volveré a explicarlo todo. 😊', {
+        say('Tutoriales reiniciados. Empezaremos de nuevo, paso a paso.', {
             expression: 'happy',
             duration: 3000
         });
