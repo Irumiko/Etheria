@@ -4118,6 +4118,10 @@ function _showEcosPanel(data) {
         </button>
     `;
     panel.classList.remove('hidden');
+
+    if (typeof SupabaseCycleViews !== 'undefined' && data.cycleId) {
+        SupabaseCycleViews.markSeen(data.cycleId);
+    }
 }
 
 function _getCharName(charId) {
@@ -12740,6 +12744,23 @@ function _doEnterTopic(id, t, topicMode) {
                 SupabaseBonds.ensureStoryBonds(_storyId || id, _participantCharIds).catch(() => {});
             }
         }
+    }
+
+    // ── Ecos del ciclo pendientes de ver (p. ej. si estuvo offline al cerrarse) ──
+    if (typeof SupabaseCycleViews !== 'undefined') {
+        SupabaseCycleViews.getUnseenForTopic(id).then(function(unseenCycleIds) {
+            if (!unseenCycleIds || unseenCycleIds.length === 0) return;
+            if (typeof Toasts !== 'undefined') {
+                Toasts.show({
+                    type: 'info',
+                    title: '✦ Ecos del ciclo ✦',
+                    body: unseenCycleIds.length === 1
+                        ? 'Un ciclo se cerró mientras no estabas.'
+                        : `${unseenCycleIds.length} ciclos se cerraron mientras no estabas.`,
+                });
+            }
+            unseenCycleIds.forEach(function(cycleId) { SupabaseCycleViews.markSeen(cycleId); });
+        }).catch(() => {});
     }
 }
 
@@ -21412,6 +21433,310 @@ function syncMenuFooterAvatar() {
     }
 }
 
+/* js/ui/toasts.js */
+// ═══════════════════════════════════════════════════════════════════
+// TOASTS — Sistema de notificaciones reutilizable de Etheria
+//
+// API pública (window.Toasts):
+//   show({ type, title, body, duration })
+//     type: 'info' | 'success' | 'warning' | 'error'
+//     duration: ms, omitir para sticky (cierra con click)
+//
+//   showCycleEchos({ changes, onDismiss })
+//     changes: [{ charName, charAvatar, direction: 'up'|'down' }]
+//     onDismiss: función llamada al cerrar
+// ═══════════════════════════════════════════════════════════════════
+
+const Toasts = (function () {
+
+    // ── Estilos inyectados una sola vez ───────────────────────────────
+
+    let _stylesInjected = false;
+
+    function _injectStyles() {
+        if (_stylesInjected) return;
+        _stylesInjected = true;
+
+        const css = `
+/* ── Toasts base ─────────────────────────────────────── */
+.eth-toast {
+    position: fixed;
+    z-index: 9800;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(calc(100% + 2rem));
+    max-width: min(480px, calc(100vw - 2rem));
+    width: 100%;
+    background: rgba(12, 9, 18, 0.97);
+    border: 1px solid var(--accent-gold, #c9a86c);
+    border-radius: 4px;
+    box-shadow:
+        0 0 0 1px rgba(201, 168, 108, 0.12),
+        0 8px 40px rgba(0, 0, 0, 0.7),
+        0 0 24px rgba(201, 168, 108, 0.08);
+    padding: 1.25rem 1.5rem 1.1rem;
+    font-family: var(--font-body, 'Crimson Text', Georgia, serif);
+    color: var(--text-primary, #e8dcc8);
+    cursor: pointer;
+    transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity  0.38s ease;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+}
+.eth-toast.eth-toast--visible {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+.eth-toast.eth-toast--leaving {
+    transform: translateX(-50%) translateY(calc(100% + 2rem));
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ── Toast genérico ──────────────────────────────────── */
+.eth-toast__title {
+    font-family: var(--font-display, 'Cinzel', serif);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-gold, #c9a86c);
+    margin-bottom: 0.35rem;
+}
+.eth-toast__body {
+    font-size: 0.95rem;
+    line-height: 1.45;
+    opacity: 0.88;
+}
+.eth-toast--error   .eth-toast__title { color: #c07070; }
+.eth-toast--warning .eth-toast__title { color: #c0a040; }
+.eth-toast--success .eth-toast__title { color: #70a870; }
+
+/* ── Ecos del ciclo ──────────────────────────────────── */
+.eth-toast--echos {
+    padding: 1.4rem 1.6rem 1.3rem;
+}
+.eth-toast__echos-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+    border-bottom: 1px solid rgba(201, 168, 108, 0.18);
+    padding-bottom: 0.75rem;
+}
+.eth-toast__echos-icon {
+    font-size: 1.1rem;
+    opacity: 0.75;
+}
+.eth-toast__echos-titles {
+    flex: 1;
+}
+.eth-toast__echos-title {
+    font-family: var(--font-display, 'Cinzel', serif);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-gold, #c9a86c);
+    line-height: 1.2;
+}
+.eth-toast__echos-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.5;
+    margin-top: 0.15rem;
+    font-style: italic;
+}
+.eth-toast__echos-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    margin-bottom: 1rem;
+}
+.eth-toast__echos-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.eth-toast__echos-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    object-fit: cover;
+    flex-shrink: 0;
+    background: rgba(201, 168, 108, 0.08);
+}
+.eth-toast__echos-initial {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 1px solid rgba(201, 168, 108, 0.3);
+    flex-shrink: 0;
+    background: rgba(201, 168, 108, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display, 'Cinzel', serif);
+    font-size: 0.75rem;
+    color: var(--accent-gold, #c9a86c);
+}
+.eth-toast__echos-name {
+    flex: 1;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+.eth-toast__echos-arrow {
+    font-size: 1.1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    line-height: 1;
+}
+.eth-toast__echos-arrow--up   { color: #c9a86c; }
+.eth-toast__echos-arrow--down { color: #8a5050; }
+.eth-toast__echos-hint {
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    opacity: 0.35;
+    text-transform: uppercase;
+    font-family: var(--font-display, 'Cinzel', serif);
+}
+
+/* Ornamento Art Deco superior */
+.eth-toast--echos::before {
+    content: '';
+    display: block;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(201, 168, 108, 0.6) 30%,
+        rgba(201, 168, 108, 0.9) 50%,
+        rgba(201, 168, 108, 0.6) 70%,
+        transparent
+    );
+    margin: -1.4rem -1.6rem 1.2rem;
+    border-radius: 4px 4px 0 0;
+}
+        `;
+
+        const style = document.createElement('style');
+        style.id = 'eth-toasts-styles';
+        style.textContent = css;
+        document.head.appendChild(style);
+    }
+
+    // ── Helpers DOM ───────────────────────────────────────────────────
+
+    function _create(extraClass) {
+        _injectStyles();
+        const el = document.createElement('div');
+        el.className = 'eth-toast' + (extraClass ? ' ' + extraClass : '');
+        document.body.appendChild(el);
+        return el;
+    }
+
+    function _show(el) {
+        // Forzar reflow antes de añadir la clase visible
+        void el.offsetWidth;
+        el.classList.add('eth-toast--visible');
+    }
+
+    function _dismiss(el, onDismiss) {
+        el.classList.remove('eth-toast--visible');
+        el.classList.add('eth-toast--leaving');
+        setTimeout(function () {
+            if (el.parentNode) el.parentNode.removeChild(el);
+            if (typeof onDismiss === 'function') onDismiss();
+        }, 420);
+    }
+
+    // ── show — toast genérico ─────────────────────────────────────────
+
+    function show(config) {
+        const { type = 'info', title, body, duration, onDismiss } = config || {};
+
+        const el = _create('eth-toast--' + type);
+        el.innerHTML = (title ? `<div class="eth-toast__title">${_esc(title)}</div>` : '') +
+                       (body  ? `<div class="eth-toast__body">${_esc(body)}</div>`   : '');
+
+        const close = function () { _dismiss(el, onDismiss); };
+
+        if (duration) {
+            setTimeout(close, duration);
+        } else {
+            el.addEventListener('click', close, { once: true });
+        }
+
+        _show(el);
+        return el;
+    }
+
+    // ── showCycleEchos — panel "Ecos del Ciclo" ───────────────────────
+
+    function showCycleEchos(config) {
+        const { changes = [], onDismiss } = config || {};
+        if (changes.length === 0) return null;
+
+        const el = _create('eth-toast--echos');
+
+        const entriesHtml = changes.map(function (c) {
+            const avatarHtml = c.charAvatar
+                ? `<img class="eth-toast__echos-avatar" src="${_esc(c.charAvatar)}" alt="${_esc(c.charName)}" loading="lazy">`
+                : `<div class="eth-toast__echos-initial">${_esc((c.charName || '?')[0].toUpperCase())}</div>`;
+
+            const arrowClass = c.direction === 'up'
+                ? 'eth-toast__echos-arrow--up'
+                : 'eth-toast__echos-arrow--down';
+            const arrowGlyph = c.direction === 'up' ? '▲' : '▼';
+
+            return `
+                <div class="eth-toast__echos-entry">
+                    ${avatarHtml}
+                    <span class="eth-toast__echos-name">${_esc(c.charName)}</span>
+                    <span class="eth-toast__echos-arrow ${arrowClass}" aria-label="${c.direction === 'up' ? 'subió' : 'bajó'}">${arrowGlyph}</span>
+                </div>`;
+        }).join('');
+
+        el.innerHTML = `
+            <div class="eth-toast__echos-header">
+                <span class="eth-toast__echos-icon">✦</span>
+                <div class="eth-toast__echos-titles">
+                    <div class="eth-toast__echos-title">Ecos del Ciclo</div>
+                    <div class="eth-toast__echos-subtitle">Los lazos del destino se han movido</div>
+                </div>
+            </div>
+            <div class="eth-toast__echos-list">${entriesHtml}</div>
+            <div class="eth-toast__echos-hint">Toca para cerrar</div>
+        `;
+
+        const close = function () { _dismiss(el, onDismiss); };
+        el.addEventListener('click', close, { once: true });
+
+        _show(el);
+        return el;
+    }
+
+    // ── Utilidad ──────────────────────────────────────────────────────
+
+    function _esc(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // ── Public API ────────────────────────────────────────────────────
+
+    return { show, showCycleEchos };
+
+})();
+
+window.Toasts = Toasts;
+
 /* js/utils/supabaseProfiles.js */
 // ============================================
 // SUPABASE PROFILES — Perfiles globales
@@ -23931,6 +24256,675 @@ const SupabaseSprites = (function () {
 })();
 
 window.SupabaseSprites = SupabaseSprites;
+
+/* js/utils/supabaseCycles.js */
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE CYCLES — Sistema de ciclos, elecciones y bifurcación de ramas
+//
+// Gestiona:
+//   - Ciclos de tema (topic_cycles): apertura, cierre, participantes
+//   - Elecciones (cycle_choices + cycle_choice_options): crear, responder
+//   - Respuestas (cycle_choice_responses): ocultas hasta cierre del ciclo
+//   - Panel "Ecos del ciclo": muestra cambios de afinidad al cerrar
+//   - Bifurcación de rama: modal de selección cuando value >= BIFURCATION_MIN
+//   - Sincronización Realtime de ciclos y elecciones abiertas
+//
+// Arquitectura:
+//   - No importa nada de classic/ ni rpg/
+//   - Comunica cambios vía eventBus ('cycle:opened', 'cycle:closed',
+//     'cycle:choice-created', 'cycle:response-saved', 'cycle:branch-chosen')
+//   - La UI (roleplay.js / vn.js) escucha esos eventos para refrescar
+// ═══════════════════════════════════════════════════════════════════
+
+const SupabaseCycles = (function () {
+
+    let _userId       = null;
+    let _channel      = null;
+    let _currentTopic = null;
+
+    function _client() { return window.supabaseClient || null; }
+    function _cfg()    { return window.CYCLE_CONFIG || {}; }
+
+    async function _ensureUserId() {
+        if (_userId) return _userId;
+        try {
+            const { data } = await _client().auth.getUser();
+            _userId = data?.user?.id || null;
+        } catch { _userId = null; }
+        return _userId;
+    }
+
+    // ── Ciclos ───────────────────────────────────────────────────────────────
+
+    // Abre un nuevo ciclo para un topic. Solo si no hay uno abierto.
+    async function openCycle(topicId, participantUserIds = []) {
+        const uid = await _ensureUserId();
+        if (!uid || !topicId) return null;
+
+        // Comprobar si ya hay uno abierto
+        const existing = await getOpenCycle(topicId);
+        if (existing) return existing;
+
+        const closesAt = new Date(Date.now() + (_cfg().DURATION_HOURS || 72) * 3600 * 1000);
+
+        const { data, error } = await _client()
+            .from('topic_cycles')
+            .insert({
+                topic_id:     String(topicId),
+                created_by:   uid,
+                closes_at:    closesAt.toISOString(),
+                status:       'open',
+                participants: participantUserIds,
+            })
+            .select()
+            .single();
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'openCycle error:', error.message);
+            return null;
+        }
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:opened', { topicId, cycle: data });
+        }
+
+        window.EtheriaLogger?.info?.('SupabaseCycles', `Ciclo abierto: ${data.id}`);
+        return data;
+    }
+
+    // Devuelve el ciclo abierto de un topic, o null si no hay ninguno.
+    async function getOpenCycle(topicId) {
+        if (!_client() || !topicId) return null;
+        const { data, error } = await _client()
+            .from('topic_cycles')
+            .select('*')
+            .eq('topic_id', String(topicId))
+            .eq('status', 'open')
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'getOpenCycle error:', error.message);
+            return null;
+        }
+        return data;
+    }
+
+    // Cierra un ciclo y emite el evento para mostrar los "Ecos del ciclo".
+    async function closeCycle(cycleId, topicId) {
+        if (!_client() || !cycleId) return false;
+
+        const { error } = await _client()
+            .from('topic_cycles')
+            .update({ status: 'closed', closed_at: new Date().toISOString() })
+            .eq('id', cycleId);
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'closeCycle error:', error.message);
+            return false;
+        }
+
+        // Resolver todas las elecciones abiertas del ciclo
+        await _client()
+            .from('cycle_choices')
+            .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+            .eq('cycle_id', cycleId)
+            .eq('status', 'open');
+
+        // Calcular y aplicar los impactos de afinidad del ciclo
+        await _applyAffinityImpacts(cycleId, topicId);
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:closed', { cycleId, topicId });
+        }
+
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('cycle_closed', 'story', String(topicId),
+                { cycleId }).catch(() => {});
+        }
+
+        window.EtheriaLogger?.info?.('SupabaseCycles', `Ciclo cerrado: ${cycleId}`);
+        return true;
+    }
+
+    // Comprueba si todos los participantes han respondido → cierre automático.
+    async function checkAutoClose(cycleId, topicId) {
+        if (!_client() || !cycleId) return;
+
+        const cycle = await _client()
+            .from('topic_cycles')
+            .select('participants, status')
+            .eq('id', cycleId)
+            .single();
+
+        if (cycle.error || cycle.data?.status !== 'open') return;
+
+        const participants = cycle.data.participants || [];
+        if (participants.length === 0) return;
+
+        // Ver si todos los participantes tienen al menos un mensaje en este ciclo
+        // (simplificado: verificar via cycle_choice_responses o mensajes desde started_at)
+        // Por ahora: cierre por tiempo (closes_at) lo maneja el backend/cron.
+        // El cierre manual lo puede triggerar el creador del topic.
+
+        // Cierre automático por tiempo — comparar closes_at con now()
+        const { data: cycleData } = await _client()
+            .from('topic_cycles')
+            .select('closes_at')
+            .eq('id', cycleId)
+            .single();
+
+        if (cycleData && new Date(cycleData.closes_at) < new Date()) {
+            await closeCycle(cycleId, topicId);
+        }
+    }
+
+    // ── Elecciones ───────────────────────────────────────────────────────────
+
+    // Crea una elección en el ciclo activo.
+    // options: [{ label: 'A', text: '...', affinity_impact: 2 }, ...]
+    async function createChoice(cycleId, topicId, authorCharId, questionText, options = []) {
+        const uid = await _ensureUserId();
+        if (!uid || !cycleId) return null;
+
+        // Validar que el usuario no haya lanzado ya una elección en este ciclo
+        const canCreate = await canLaunchChoice(cycleId);
+        if (!canCreate) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'Ya lanzaste una elección en este ciclo');
+            return null;
+        }
+
+        // Crear la elección
+        const { data: choice, error: choiceErr } = await _client()
+            .from('cycle_choices')
+            .insert({
+                cycle_id:       cycleId,
+                topic_id:       String(topicId),
+                author_char_id: String(authorCharId),
+                author_user_id: uid,
+                question_text:  questionText,
+                status:         'open',
+            })
+            .select()
+            .single();
+
+        if (choiceErr) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'createChoice error:', choiceErr.message);
+            return null;
+        }
+
+        // Crear las opciones
+        const optRows = options.map((opt, i) => ({
+            choice_id:       choice.id,
+            label:           opt.label || String.fromCharCode(65 + i), // A, B, C...
+            option_text:     opt.text,
+            affinity_impact: Math.max(-3, Math.min(3, Number(opt.affinity_impact) || 0)),
+            display_order:   i,
+        }));
+
+        const { error: optsErr } = await _client()
+            .from('cycle_choice_options')
+            .insert(optRows);
+
+        if (optsErr) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'createOptions error:', optsErr.message);
+        }
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:choice-created', { topicId, cycleId, choice });
+        }
+
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('choice_launched', 'story', String(topicId),
+                { cycleId, choiceId: choice.id, authorCharId }).catch(() => {});
+        }
+
+        window.EtheriaLogger?.info?.('SupabaseCycles', `Elección creada: ${choice.id}`);
+        return choice;
+    }
+
+    // Guarda la respuesta de un personaje a una elección.
+    async function saveResponse(choiceId, optionId, cycleId, topicId, responderCharId) {
+        const uid = await _ensureUserId();
+        if (!uid || !choiceId || !optionId) return false;
+
+        const { error } = await _client()
+            .from('cycle_choice_responses')
+            .upsert({
+                choice_id:          choiceId,
+                option_id:          optionId,
+                cycle_id:           cycleId,
+                topic_id:           String(topicId),
+                responder_char_id:  String(responderCharId),
+                responder_user_id:  uid,
+            }, { onConflict: 'choice_id,responder_char_id' });
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'saveResponse error:', error.message);
+            return false;
+        }
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:response-saved', { choiceId, optionId, topicId });
+        }
+
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('choice_responded', 'story', String(topicId),
+                { choiceId, cycleId, responderCharId }).catch(() => {});
+        }
+
+        return true;
+    }
+
+    // Carga las elecciones abiertas de un ciclo (visibles para todos).
+    async function loadChoicesForCycle(cycleId) {
+        if (!_client() || !cycleId) return [];
+
+        const { data, error } = await _client()
+            .from('cycle_choices')
+            .select(`
+                *,
+                cycle_choice_options (*)
+            `)
+            .eq('cycle_id', cycleId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'loadChoices error:', error.message);
+            return [];
+        }
+
+        return data || [];
+    }
+
+    // Carga las respuestas visibles del ciclo.
+    // Mientras el ciclo está abierto: RLS solo devuelve las propias.
+    // Cuando está cerrado: devuelve todas.
+    async function loadResponsesForCycle(cycleId) {
+        if (!_client() || !cycleId) return [];
+
+        const { data, error } = await _client()
+            .from('cycle_choice_responses')
+            .select('*')
+            .eq('cycle_id', cycleId);
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'loadResponses error:', error.message);
+            return [];
+        }
+
+        return data || [];
+    }
+
+    // ¿Puede el usuario actual lanzar una elección en este ciclo?
+    // Regla: solo si no ha lanzado ya una en este ciclo.
+    async function canLaunchChoice(cycleId) {
+        const uid = await _ensureUserId();
+        if (!uid || !cycleId) return false;
+
+        const { data, error } = await _client()
+            .from('cycle_choices')
+            .select('id')
+            .eq('cycle_id', cycleId)
+            .eq('author_user_id', uid)
+            .limit(1);
+
+        if (error) return false;
+        return !data || data.length === 0;
+    }
+
+    // ── Impactos de afinidad al cerrar el ciclo ──────────────────────────────
+    // Solo afecta al autor de la elección y a quienes respondieron.
+    async function _applyAffinityImpacts(cycleId, topicId) {
+        const uid = await _ensureUserId();
+        if (!uid) return;
+
+        // Cargar elecciones y respuestas del ciclo
+        const choices = await loadChoicesForCycle(cycleId);
+        const responses = await loadResponsesForCycle(cycleId);
+
+        if (!choices.length || !responses.length) return;
+
+        // Para cada elección, calcular el impacto entre el autor y cada respondedor
+        const affinityChanges = []; // { fromCharId, toCharId, delta }
+
+        for (const choice of choices) {
+            const opts = (choice.cycle_choice_options || []).reduce((acc, o) => {
+                acc[o.id] = o;
+                return acc;
+            }, {});
+
+            const choiceResponses = responses.filter(r => r.choice_id === choice.id);
+
+            for (const resp of choiceResponses) {
+                const opt = opts[resp.option_id];
+                if (!opt) continue;
+
+                // La afinidad cambia entre el autor de la elección y el respondedor
+                affinityChanges.push({
+                    fromCharId: choice.author_char_id,
+                    toCharId:   resp.responder_char_id,
+                    delta:      opt.affinity_impact,
+                });
+            }
+        }
+
+        // Aplicar los cambios acumulados en la tabla affinities
+        for (const change of affinityChanges) {
+            if (typeof SupabaseAffinities !== 'undefined') {
+                const key    = `${change.fromCharId}_${change.toCharId}`;
+                const topicAff = (window.appData?.affinities?.[topicId] || {});
+                const current  = Number(topicAff[key]) || 0;
+                const newVal   = Math.max(-100, Math.min(100, current + change.delta));
+
+                await SupabaseAffinities.upsert(
+                    change.fromCharId,
+                    change.toCharId,
+                    topicId,
+                    newVal
+                );
+
+                // Actualizar en memoria para el panel de Ecos
+                if (window.appData?.affinities?.[topicId]) {
+                    window.appData.affinities[topicId][key] = newVal;
+                }
+            }
+        }
+
+        // Emitir los cambios para el panel "Ecos del ciclo"
+        if (typeof eventBus !== 'undefined' && affinityChanges.length > 0) {
+            eventBus.emit('cycle:affinity-impacts', {
+                cycleId,
+                topicId,
+                changes: affinityChanges,
+            });
+        }
+    }
+
+    // ── Bifurcación de rama ──────────────────────────────────────────────────
+    // Guarda la elección de rama del usuario para un par de personajes.
+    async function chooseBranch(fromCharId, toCharId, topicId, relationType) {
+        const uid = await _ensureUserId();
+        if (!uid || !fromCharId || !toCharId || !topicId) return false;
+
+        const validTypes = ['friendship', 'romance', 'rivalry', 'enmity'];
+        if (!validTypes.includes(relationType)) return false;
+
+        const { error } = await _client()
+            .from('affinities')
+            .update({
+                relation_type:    relationType,
+                branch_chosen_at: new Date().toISOString(),
+            })
+            .eq('from_char_id', String(fromCharId))
+            .eq('to_char_id',   String(toCharId))
+            .eq('topic_id',     String(topicId))
+            .eq('owner_user_id', uid);
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'chooseBranch error:', error.message);
+            return false;
+        }
+
+        // Actualizar en memoria
+        const key = `${fromCharId}_${toCharId}`;
+        if (window.appData?.affinities?.[topicId]) {
+            // Guardar el relation_type en memoria junto al valor
+            if (!window.appData.affinityTypes) window.appData.affinityTypes = {};
+            if (!window.appData.affinityTypes[topicId]) window.appData.affinityTypes[topicId] = {};
+            window.appData.affinityTypes[topicId][key] = relationType;
+        }
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:branch-chosen', {
+                fromCharId, toCharId, topicId, relationType
+            });
+        }
+
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('branch_chosen', 'story', String(topicId),
+                { fromCharId, toCharId, relationType }).catch(() => {});
+        }
+
+        window.EtheriaLogger?.info?.('SupabaseCycles',
+            `Rama elegida: ${fromCharId}→${toCharId} = ${relationType}`);
+        return true;
+    }
+
+    // Carga los relation_types del topic activo junto con los valores.
+    async function loadRelationTypesForTopic(topicId) {
+        if (!_client() || !topicId) return;
+
+        const { data, error } = await _client()
+            .from('affinities')
+            .select('from_char_id, to_char_id, relation_type')
+            .eq('topic_id', String(topicId))
+            .neq('relation_type', 'undefined');
+
+        if (error || !data) return;
+
+        if (!window.appData.affinityTypes) window.appData.affinityTypes = {};
+        if (!window.appData.affinityTypes[topicId]) window.appData.affinityTypes[topicId] = {};
+
+        data.forEach(row => {
+            const key = `${row.from_char_id}_${row.to_char_id}`;
+            window.appData.affinityTypes[topicId][key] = row.relation_type;
+        });
+    }
+
+    // ── Realtime ─────────────────────────────────────────────────────────────
+    // Escucha nuevas elecciones en el topic activo para mostrarlas en tiempo real.
+    function subscribeToTopic(topicId) {
+        if (!_client() || !topicId) return;
+        if (_currentTopic === String(topicId) && _channel) return;
+
+        _unsubscribe();
+        _currentTopic = String(topicId);
+
+        _channel = _client()
+            .channel(`cycles:${topicId}`)
+            .on('postgres_changes', {
+                event:  'INSERT',
+                schema: 'public',
+                table:  'cycle_choices',
+                filter: `topic_id=eq.${topicId}`,
+            }, _onNewChoice)
+            .on('postgres_changes', {
+                event:  'UPDATE',
+                schema: 'public',
+                table:  'topic_cycles',
+                filter: `topic_id=eq.${topicId}`,
+            }, _onCycleUpdate)
+            .subscribe();
+    }
+
+    function _onNewChoice(payload) {
+        const choice = payload.new;
+        if (!choice) return;
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:choice-created', {
+                topicId: choice.topic_id,
+                cycleId: choice.cycle_id,
+                choice,
+                fromRealtime: true,
+            });
+        }
+    }
+
+    function _onCycleUpdate(payload) {
+        const cycle = payload.new;
+        if (!cycle) return;
+        if (cycle.status === 'closed' && typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:closed', {
+                cycleId:      cycle.id,
+                topicId:      cycle.topic_id,
+                fromRealtime: true,
+            });
+        }
+    }
+
+    function _unsubscribe() {
+        if (_channel && _client()) {
+            try { _client().removeChannel(_channel); } catch {}
+            _channel = null;
+        }
+        _currentTopic = null;
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    (function _init() {
+        window.addEventListener('etheria:auth-changed', async function (e) {
+            if (e.detail?.user) {
+                _userId = e.detail.user.id || null;
+            } else {
+                _userId = null;
+                _unsubscribe();
+            }
+        });
+
+        window.addEventListener('etheria:topic-enter', function (e) {
+            const topicId = e.detail?.topicId;
+            if (!topicId) return;
+            loadRelationTypesForTopic(topicId).catch(() => {});
+            subscribeToTopic(topicId);
+        });
+
+        window.addEventListener('etheria:topic-leave', function () {
+            _unsubscribe();
+        });
+    })();
+
+    return {
+        openCycle,
+        getOpenCycle,
+        closeCycle,
+        checkAutoClose,
+        createChoice,
+        saveResponse,
+        loadChoicesForCycle,
+        loadResponsesForCycle,
+        canLaunchChoice,
+        chooseBranch,
+        loadRelationTypesForTopic,
+        subscribeToTopic,
+    };
+
+})();
+
+window.SupabaseCycles = SupabaseCycles;
+
+
+/* js/utils/supabaseCycleViews.js */
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE CYCLE VIEWS — Registro personal de Ecos del ciclo vistos
+//
+// Gestiona la tabla `cycle_views`:
+//   - getUnseenForTopic(topicId) → ciclos cerrados no vistos por el
+//     usuario activo en ese tema
+//   - markSeen(cycleId) → registra la visualización del panel
+//
+// Si Supabase no está disponible la app continúa sin errores.
+// ═══════════════════════════════════════════════════════════════════
+
+const SupabaseCycleViews = (function () {
+
+    function _client()      { return window.supabaseClient || null; }
+    function _isAvailable() { return !!_client(); }
+
+    function _warn(...args) {
+        window.EtheriaLogger?.warn('supabaseCycleViews', ...args);
+    }
+
+    // ── userId en caché ───────────────────────────────────────────────
+
+    let _userId = null;
+
+    async function _ensureUserId() {
+        if (_userId) return _userId;
+        try {
+            const { data } = await _client().auth.getUser();
+            _userId = data?.user?.id || null;
+        } catch { _userId = null; }
+        return _userId;
+    }
+
+    window.addEventListener('etheria:auth-changed', function (e) {
+        _userId = e.detail?.user?.id || null;
+    });
+
+    // ── getUnseenForTopic ─────────────────────────────────────────────
+    // Devuelve los ciclos cerrados del topic que el usuario actual
+    // no ha marcado como vistos todavía.
+
+    async function getUnseenForTopic(topicId) {
+        if (!_isAvailable() || !topicId) return [];
+
+        const uid = await _ensureUserId();
+        if (!uid) return [];
+
+        try {
+            // 1. Ciclos cerrados del topic
+            const { data: cycles, error: cyclesErr } = await _client()
+                .from('topic_cycles')
+                .select('id')
+                .eq('topic_id', String(topicId))
+                .eq('status', 'closed');
+
+            if (cyclesErr) { _warn('getUnseen cycles error:', cyclesErr.message); return []; }
+            if (!cycles || cycles.length === 0) return [];
+
+            const cycleIds = cycles.map(c => c.id);
+
+            // 2. De esos ciclos, cuáles ya ha visto este usuario
+            const { data: views, error: viewsErr } = await _client()
+                .from('cycle_views')
+                .select('cycle_id')
+                .eq('user_id', uid)
+                .in('cycle_id', cycleIds);
+
+            if (viewsErr) { _warn('getUnseen views error:', viewsErr.message); return []; }
+
+            const seenIds = new Set((views || []).map(v => v.cycle_id));
+            return cycleIds.filter(id => !seenIds.has(id));
+
+        } catch (e) {
+            _warn('getUnseenForTopic exception:', e.message);
+            return [];
+        }
+    }
+
+    // ── markSeen ──────────────────────────────────────────────────────
+    // Registra que el usuario actual ha visto el panel de un ciclo.
+    // Usa upsert para respetar la restricción única (cycle_id, user_id).
+
+    async function markSeen(cycleId) {
+        if (!_isAvailable() || !cycleId) return;
+
+        const uid = await _ensureUserId();
+        if (!uid) return;
+
+        try {
+            const { error } = await _client()
+                .from('cycle_views')
+                .upsert(
+                    { cycle_id: cycleId, user_id: uid, viewed_at: new Date().toISOString() },
+                    { onConflict: 'cycle_id,user_id' }
+                );
+
+            if (error) _warn('markSeen error:', error.message);
+        } catch (e) {
+            _warn('markSeen exception:', e.message);
+        }
+    }
+
+    // ── Public API ────────────────────────────────────────────────────
+
+    return { getUnseenForTopic, markSeen };
+
+})();
+
+window.SupabaseCycleViews = SupabaseCycleViews;
 
 /* js/collab-guard.js */
 // ============================================

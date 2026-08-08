@@ -1366,6 +1366,10 @@ function _showEcosPanel(data) {
         </button>
     `;
     panel.classList.remove('hidden');
+
+    if (typeof SupabaseCycleViews !== 'undefined' && data.cycleId) {
+        SupabaseCycleViews.markSeen(data.cycleId);
+    }
 }
 
 function _getCharName(charId) {

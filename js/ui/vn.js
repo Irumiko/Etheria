@@ -1736,6 +1736,23 @@ function _doEnterTopic(id, t, topicMode) {
             }
         }
     }
+
+    // ── Ecos del ciclo pendientes de ver (p. ej. si estuvo offline al cerrarse) ──
+    if (typeof SupabaseCycleViews !== 'undefined') {
+        SupabaseCycleViews.getUnseenForTopic(id).then(function(unseenCycleIds) {
+            if (!unseenCycleIds || unseenCycleIds.length === 0) return;
+            if (typeof Toasts !== 'undefined') {
+                Toasts.show({
+                    type: 'info',
+                    title: '✦ Ecos del ciclo ✦',
+                    body: unseenCycleIds.length === 1
+                        ? 'Un ciclo se cerró mientras no estabas.'
+                        : `${unseenCycleIds.length} ciclos se cerraron mientras no estabas.`,
+                });
+            }
+            unseenCycleIds.forEach(function(cycleId) { SupabaseCycleViews.markSeen(cycleId); });
+        }).catch(() => {});
+    }
 }
 
 // Memory leak fix: store handler reference so it can be removed before re-adding
