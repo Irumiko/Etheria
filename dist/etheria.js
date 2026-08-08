@@ -5448,6 +5448,74 @@ function renderUserCards() {
         highlightActiveProfile(null);
         toggleWelcomeOverlay(true);
     }
+
+    // Directorio público: perfiles registrados de otras cuentas, visibles
+    // incluso sin sesión — el selector transmite que Etheria está habitada
+    _renderDirectoryCards(container).catch(() => {});
+}
+
+// ── Directorio público de perfiles ────────────────────────────────────────
+// Lee la vista profiles_directory (solo nombre + avatar, legible por anon)
+// y añade tarjetas informativas para los perfiles que NO están ya
+// representados localmente. Clic → login (son de otras cuentas).
+let _directoryCache = { at: 0, rows: [] };
+
+async function _renderDirectoryCards(container) {
+    if (!window.supabaseClient || !container) return;
+
+    // Caché de 60 s para no repetir la consulta en cada re-render
+    if (Date.now() - _directoryCache.at > 60000) {
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('profiles_directory')
+                .select('id, name, avatar')
+                .order('created_at', { ascending: true })
+                .limit(24);
+            if (error || !data) return;
+            _directoryCache = { at: Date.now(), rows: data };
+        } catch (_) { return; }
+    }
+
+    // El render pudo cambiar mientras esperábamos: limpiar duplicados previos
+    container.querySelectorAll('.profile-directory').forEach(el => el.remove());
+
+    const localNames = new Set(userNames.map(n => (n || '').trim().toLowerCase()));
+    const addCard = document.getElementById('addProfileCard');
+
+    _directoryCache.rows.forEach(p => {
+        const pname = (p.name || '').trim();
+        if (!pname || localNames.has(pname.toLowerCase())) return;
+
+        const card = document.createElement('div');
+        card.className = 'user-card profile-foreign profile-directory';
+        const avatarHtml = p.avatar
+            ? `<div class="user-avatar-wrap"><img src="${escapeHtml(p.avatar)}" alt="" loading="lazy"></div>`
+            : `<div class="user-avatar-wrap"><span class="user-avatar-initials">${escapeHtml(pname[0].toUpperCase())}</span></div>`;
+        card.innerHTML = `
+            ${avatarHtml}
+            <div class="user-name">${escapeHtml(pname)}</div>
+            <div class="user-directory-badge">✦ Viajero de Etheria</div>
+        `;
+        card.onclick = () => {
+            if (!window._cachedUserId) {
+                // Es un perfil YA existente: se asume que quien pulsa tiene
+                // cuenta, así que va directo al formulario de login (no al
+                // menú genérico) — evita el paso extra de "elegir opción".
+                if (typeof showAutosave === 'function') showAutosave('Inicia sesión con tu cuenta', 'info');
+                if (typeof showLoginScreen === 'function') showLoginScreen();
+                if (typeof showAuthForm === 'function') showAuthForm('login');
+                else if (typeof showAuthMain === 'function') showAuthMain();
+            } else {
+                if (typeof showAutosave === 'function') showAutosave('Este perfil pertenece a otra cuenta', 'error');
+            }
+        };
+
+        if (addCard && addCard.parentElement === container) {
+            container.insertBefore(card, addCard);
+        } else {
+            container.appendChild(card);
+        }
+    });
 }
 
 // Re-render avatars cuando los settings llegan de Supabase (timing asíncrono)
@@ -5748,15 +5816,37 @@ function initMenuParallax() {
 // Kept as no-op stub so legacy call sites don't throw
 function animateFireflies() { /* no-op: Canvas system active */ }
 
-function addNewProfile() {
+// Crear perfil EXIGE sesión: sin ella, el perfil sería un fantasma local
+// (sin dueño ni nube) que se pierde con cualquier borrado de caché. El flujo
+// correcto: login/registro primero → crear → reclamar propiedad (slot ligado
+// a la cuenta y sincronizado a Supabase, cross-device).
+async function addNewProfile() {
     if (userNames.length >= 10) {
         showAutosave('Máximo de 10 perfiles alcanzado', 'error');
         return;
     }
+
+    const uid = typeof getEtheriaUserId === 'function' ? await getEtheriaUserId() : null;
+    if (!uid) {
+        window._pendingAddProfile = true;
+        // "Nuevo Archivo" es para cuentas nuevas: directo a Crear Cuenta.
+        // Si ya tienes cuenta, sigue disponible el enlace "Iniciar sesión"
+        // dentro de esa misma pantalla — pero el destino por defecto ya
+        // no es el menú genérico, sino el formulario que de verdad se
+        // corresponde con la intención de esta tarjeta.
+        if (typeof showAutosave === 'function') showAutosave('Crea tu cuenta para empezar', 'info');
+        if (typeof showLoginScreen === 'function') showLoginScreen();
+        if (typeof showAuthForm === 'function') showAuthForm('register');
+        else if (typeof showAuthMain === 'function') showAuthMain();
+        return;
+    }
+
     const newName = prompt('Nombre del nuevo perfil:');
     if (newName && newName.trim()) {
         userNames.push(newName.trim());
         localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+        const newIdx = userNames.length - 1;
+        if (typeof _claimProfile === 'function') _claimProfile(newIdx, uid);
         renderUserCards();
     }
 }
@@ -5793,6 +5883,71 @@ function generateParticles() {
 }
 
 // ============================================
+
+/* js/ui/character-atelier.js */
+// character-atelier.js — Reorganización del Atelier (modal de personaje)
+// Mueve (NO duplica) los campos "sobre el retrato" al panel lateral
+// izquierdo, junto al avatar: género, color, y las subidas de avatar/sprite.
+// Todos conservan su id, atributos y listeners intactos — updatePreview(),
+// selectGender(), saveCharacter() siguen leyendo los mismos elementos.
+// Patrón idéntico al layoutPass() de vn-compose.js: idempotente, aditivo.
+(function () {
+    'use strict';
+
+    function layoutAtelier() {
+        const preview = document.querySelector('#characterModal .editor-preview');
+        if (!preview || preview.querySelector('.atelier-side-extras')) return; // ya hecho
+
+        const identityTab = document.getElementById('editor-tab-identity');
+        if (!identityTab) return;
+
+        const extras = document.createElement('div');
+        extras.className = 'atelier-side-extras';
+
+        // Género: todo el form-group (label + selector + input hidden)
+        const genderGroup = identityTab.querySelector('#charGender')?.closest('.form-group');
+        if (genderGroup) extras.appendChild(genderGroup);
+
+        // Color: solo su propio form-group, no toda la fila (el otro miembro
+        // de la fila, Avatar URL, se queda a la derecha)
+        const colorInput = identityTab.querySelector('#charColor');
+        const colorGroup = colorInput?.closest('.form-group');
+        if (colorGroup) extras.appendChild(colorGroup);
+
+        // Botones de subida (avatar + sprite): extraídos de sus filas:
+        // el input de texto URL se queda en el formulario, el botón de
+        // subida se archiva aquí como acceso directo sobre el retrato
+        const avatarUploadLabel = identityTab.querySelector('.avatar-upload-btn');
+        const spriteUploadLabel = identityTab.querySelectorAll('.avatar-upload-btn')[1];
+        const uploadsRow = document.createElement('div');
+        uploadsRow.className = 'atelier-upload-row';
+        if (avatarUploadLabel) uploadsRow.appendChild(avatarUploadLabel);
+        if (spriteUploadLabel) uploadsRow.appendChild(spriteUploadLabel);
+        if (uploadsRow.children.length) extras.appendChild(uploadsRow);
+
+        preview.appendChild(extras);
+    }
+
+    // Enganchar tras cada apertura del editor (idempotente: si ya se movió,
+    // layoutAtelier() no hace nada en la siguiente llamada)
+    function hookOpen() {
+        if (typeof window.openCharacterEditor !== 'function') return false;
+        const orig = window.openCharacterEditor;
+        window.openCharacterEditor = function (...args) {
+            const r = orig.apply(this, args);
+            layoutAtelier();
+            return r;
+        };
+        return true;
+    }
+
+    if (!hookOpen()) {
+        let tries = 0;
+        const iv = setInterval(() => {
+            if (hookOpen() || ++tries > 40) clearInterval(iv);
+        }, 100);
+    }
+})();
 
 /* js/ui/navigation.js */
 
@@ -7944,6 +8099,18 @@ window._rpgStatsUpdateConfirmState = _rpgStatsUpdateConfirmState;
 window.RPG_CLASS_PASSIVES = RPG_CLASS_PASSIVES;
 window.RPG_ITEM_CATALOG   = RPG_ITEM_CATALOG;
 
+/* assets/vendor/supabase-2.110.0.js */
+var supabase=(function(e){function t(e,t){var n={};for(var r in e)Object.prototype.hasOwnProperty.call(e,r)&&t.indexOf(r)<0&&(n[r]=e[r]);if(e!=null&&typeof Object.getOwnPropertySymbols==`function`)for(var i=0,r=Object.getOwnPropertySymbols(e);i<r.length;i++)t.indexOf(r[i])<0&&Object.prototype.propertyIsEnumerable.call(e,r[i])&&(n[r[i]]=e[r[i]]);return n}function n(e,t,n,r){function i(e){return e instanceof n?e:new n(function(t){t(e)})}return new(n||=Promise)(function(n,a){function o(e){try{c(r.next(e))}catch(e){a(e)}}function s(e){try{c(r.throw(e))}catch(e){a(e)}}function c(e){e.done?n(e.value):i(e.value).then(o,s)}c((r=r.apply(e,t||[])).next())})}let r=e=>e?(...t)=>e(...t):(...e)=>fetch(...e);var i=class extends Error{constructor(e,t=`FunctionsError`,n){super(e),this.name=t,this.context=n}toJSON(){return{name:this.name,message:this.message,context:this.context}}},a=class extends i{constructor(e){super(`Failed to send a request to the Edge Function`,`FunctionsFetchError`,e)}},o=class extends i{constructor(e){super(`Relay Error invoking the Edge Function`,`FunctionsRelayError`,e)}},s=class extends i{constructor(e){super(`Edge Function returned a non-2xx status code`,`FunctionsHttpError`,e)}},c;(function(e){e.Any=`any`,e.ApNortheast1=`ap-northeast-1`,e.ApNortheast2=`ap-northeast-2`,e.ApSouth1=`ap-south-1`,e.ApSoutheast1=`ap-southeast-1`,e.ApSoutheast2=`ap-southeast-2`,e.CaCentral1=`ca-central-1`,e.EuCentral1=`eu-central-1`,e.EuWest1=`eu-west-1`,e.EuWest2=`eu-west-2`,e.EuWest3=`eu-west-3`,e.SaEast1=`sa-east-1`,e.UsEast1=`us-east-1`,e.UsWest1=`us-west-1`,e.UsWest2=`us-west-2`})(c||={});var l=class{constructor(e,{headers:t={},customFetch:n,region:i=c.Any}={}){this.url=e,this.headers=t,this.region=i,this.fetch=r(n)}setAuth(e){this.headers.Authorization=`Bearer ${e}`}invoke(e){return n(this,arguments,void 0,function*(e,t={}){let n,r;try{let{headers:i,method:c,body:l,signal:u,timeout:d}=t,f={},{region:p}=t;p||=this.region;let m=new URL(`${this.url}/${e}`);p&&p!==`any`&&(f[`x-region`]=p,m.searchParams.set(`forceFunctionRegion`,p));let h,ee=!!i&&Object.keys(i).some(e=>e.toLowerCase()===`content-type`);l&&!ee?typeof Blob<`u`&&l instanceof Blob||l instanceof ArrayBuffer?(f[`Content-Type`]=`application/octet-stream`,h=l):typeof l==`string`?(f[`Content-Type`]=`text/plain`,h=l):typeof FormData<`u`&&l instanceof FormData?h=l:(f[`Content-Type`]=`application/json`,h=JSON.stringify(l)):h=l&&typeof l!=`string`&&!(typeof Blob<`u`&&l instanceof Blob)&&!(l instanceof ArrayBuffer)&&!(typeof FormData<`u`&&l instanceof FormData)?JSON.stringify(l):l;let te=u;d&&(r=new AbortController,n=setTimeout(()=>r.abort(),d),u?(te=r.signal,u.addEventListener(`abort`,()=>r.abort())):te=r.signal);let g=yield this.fetch(m.toString(),{method:c||`POST`,headers:Object.assign(Object.assign(Object.assign({},f),this.headers),i),body:h,signal:te}).catch(e=>{throw new a(e)}),_=g.headers.get(`x-relay-error`);if(_&&_===`true`)throw new o(g);if(!g.ok)throw new s(g);let v=(g.headers.get(`Content-Type`)??`text/plain`).split(`;`)[0].trim(),y;return y=v===`application/json`?yield g.json():v===`application/octet-stream`||v===`application/pdf`?yield g.blob():v===`text/event-stream`?g:v===`multipart/form-data`?yield g.formData():yield g.text(),{data:y,error:null,response:g}}catch(e){return{data:null,error:e,response:e instanceof s||e instanceof o?e.context:void 0}}finally{n&&clearTimeout(n)}})}};let u=e=>Math.min(1e3*2**e,3e4),d=[520,503],f=[`GET`,`HEAD`,`OPTIONS`];var p=class extends Error{constructor(e){super(e.message),this.name=`PostgrestError`,this.details=e.details,this.hint=e.hint,this.code=e.code}toJSON(){return{name:this.name,message:this.message,details:this.details,hint:this.hint,code:this.code}}};function m(e,t){return new Promise(n=>{if(t?.aborted){n();return}let r=setTimeout(()=>{t?.removeEventListener(`abort`,i),n()},e);function i(){clearTimeout(r),n()}t?.addEventListener(`abort`,i)})}function h(e,t,n,r){return!(!r||n>=3||!f.includes(e)||!d.includes(t))}var ee=class{constructor(e){this.shouldThrowOnError=!1,this.retryEnabled=!0,this.method=e.method,this.url=e.url,this.headers=new Headers(e.headers),this.schema=e.schema,this.body=e.body,this.shouldThrowOnError=e.shouldThrowOnError??!1,this.signal=e.signal,this.isMaybeSingle=e.isMaybeSingle??!1,this.shouldStripNulls=e.shouldStripNulls??!1,this.urlLengthLimit=e.urlLengthLimit??8e3,this.retryEnabled=e.retry??!0,e.fetch?this.fetch=e.fetch:this.fetch=fetch}throwOnError(){return this.shouldThrowOnError=!0,this}stripNulls(){if(this.headers.get(`Accept`)===`text/csv`)throw Error(`stripNulls() cannot be used with csv()`);return this.shouldStripNulls=!0,this}setHeader(e,t){return this.headers=new Headers(this.headers),this.headers.set(e,t),this}retry(e){return this.retryEnabled=e,this}then(e,t){var n=this;if(this.schema===void 0||([`GET`,`HEAD`].includes(this.method)?this.headers.set(`Accept-Profile`,this.schema):this.headers.set(`Content-Profile`,this.schema)),this.method!==`GET`&&this.method!==`HEAD`&&this.headers.set(`Content-Type`,`application/json`),this.shouldStripNulls){let e=this.headers.get(`Accept`);e===`application/vnd.pgrst.object+json`?this.headers.set(`Accept`,`application/vnd.pgrst.object+json;nulls=stripped`):(!e||e===`application/json`)&&this.headers.set(`Accept`,`application/vnd.pgrst.array+json;nulls=stripped`)}let r=this.fetch,i=(async()=>{let e=0;for(;;){let t={};n.headers.forEach((e,n)=>{t[n]=e}),e>0&&(t[`X-Retry-Count`]=String(e));let i;try{i=await r(n.url.toString(),{method:n.method,headers:t,body:JSON.stringify(n.body,(e,t)=>typeof t==`bigint`?t.toString():t),signal:n.signal})}catch(t){if(t?.name===`AbortError`||t?.code===`ABORT_ERR`||!f.includes(n.method))throw t;if(n.retryEnabled&&e<3){let t=u(e);e++,await m(t,n.signal);continue}throw t}if(h(n.method,i.status,e,n.retryEnabled)){let t=i.headers?.get(`Retry-After`)??null,r=t===null?u(e):Math.max(0,parseInt(t,10)||0)*1e3;await i.text(),e++,await m(r,n.signal);continue}return await n.processResponse(i)}})();return this.shouldThrowOnError||(i=i.catch(e=>{let t=``,n=``,r=``,i=e?.cause;if(i){let n=i?.message??``,r=i?.code??``;t=`${e?.name??`FetchError`}: ${e?.message}`,t+=`\n\nCaused by: ${i?.name??`Error`}: ${n}`,r&&(t+=` (${r})`),i?.stack&&(t+=`\n${i.stack}`)}else t=e?.stack??``;let a=this.url.toString().length;return e?.name===`AbortError`||e?.code===`ABORT_ERR`?(r=``,n=`Request was aborted (timeout or manual cancellation)`,a>this.urlLengthLimit&&(n+=`. Note: Your request URL is ${a} characters, which may exceed server limits. If selecting many fields, consider using views. If filtering with large arrays (e.g., .in('id', [many IDs])), consider using an RPC function to pass values server-side.`)):(i?.name===`HeadersOverflowError`||i?.code===`UND_ERR_HEADERS_OVERFLOW`)&&(r=``,n=`HTTP headers exceeded server limits (typically 16KB)`,a>this.urlLengthLimit&&(n+=`. Your request URL is ${a} characters. If selecting many fields, consider using views. If filtering with large arrays (e.g., .in('id', [200+ IDs])), consider using an RPC function instead.`)),{success:!1,error:{message:`${e?.name??`FetchError`}: ${e?.message}`,details:t,hint:n,code:r},data:null,count:null,status:0,statusText:``}})),i.then(e,t)}async processResponse(e){var t=this;let n=null,r=null,i=null,a=e.status,o=e.statusText;if(e.ok){if(t.method!==`HEAD`){let i=await e.text();if(i!==``)if(t.headers.get(`Accept`)===`text/csv`)r=i;else if(t.headers.get(`Accept`)&&t.headers.get(`Accept`)?.includes(`application/vnd.pgrst.plan+text`))r=i;else try{r=JSON.parse(i)}catch{if(n={message:i},r=null,t.shouldThrowOnError)throw new p({message:i,details:``,hint:``,code:``})}}let s=t.headers.get(`Prefer`)?.match(/count=(exact|planned|estimated)/),c=e.headers.get(`content-range`)?.split(`/`);s&&c&&c.length>1&&(i=parseInt(c[1])),t.isMaybeSingle&&Array.isArray(r)&&(r.length>1?(n={code:`PGRST116`,details:`Results contain ${r.length} rows, application/vnd.pgrst.object+json requires 1 row`,hint:null,message:`JSON object requested, multiple (or no) rows returned`},r=null,i=null,a=406,o=`Not Acceptable`):r=r.length===1?r[0]:null)}else{let i=await e.text();try{n=JSON.parse(i),Array.isArray(n)&&e.status===404&&(r=[],n=null,a=200,o=`OK`)}catch{e.status===404&&i===``?(a=204,o=`No Content`):n={message:i}}if(n&&t.shouldThrowOnError)throw new p(n)}return{success:n===null,error:n,data:r,count:i,status:a,statusText:o}}returns(){return this}overrideTypes(){return this}},te=class extends ee{throwOnError(){return super.throwOnError()}select(e){let t=!1,n=(e??`*`).split(``).map(e=>/\s/.test(e)&&!t?``:(e===`"`&&(t=!t),e)).join(``);return this.url.searchParams.set(`select`,n),this.headers.append(`Prefer`,`return=representation`),this}order(e,{ascending:t=!0,nullsFirst:n,foreignTable:r,referencedTable:i=r}={}){let a=i?`${i}.order`:`order`,o=this.url.searchParams.get(a);return this.url.searchParams.set(a,`${o?`${o},`:``}${e}.${t?`asc`:`desc`}${n===void 0?``:n?`.nullsfirst`:`.nullslast`}`),this}limit(e,{foreignTable:t,referencedTable:n=t}={}){let r=n===void 0?`limit`:`${n}.limit`;return this.url.searchParams.set(r,`${e}`),this}range(e,t,{foreignTable:n,referencedTable:r=n}={}){let i=r===void 0?`offset`:`${r}.offset`,a=r===void 0?`limit`:`${r}.limit`;return this.url.searchParams.set(i,`${e}`),this.url.searchParams.set(a,`${t-e+1}`),this}abortSignal(e){return this.signal=e,this}single(){return this.headers.set(`Accept`,`application/vnd.pgrst.object+json`),this}maybeSingle(){return this.isMaybeSingle=!0,this}csv(){return this.headers.set(`Accept`,`text/csv`),this}geojson(){return this.headers.set(`Accept`,`application/geo+json`),this}explain({analyze:e=!1,verbose:t=!1,settings:n=!1,buffers:r=!1,wal:i=!1,format:a=`text`}={}){let o=[e?`analyze`:null,t?`verbose`:null,n?`settings`:null,r?`buffers`:null,i?`wal`:null].filter(Boolean).join(`|`),s=this.headers.get(`Accept`)??`application/json`;return this.headers.set(`Accept`,`application/vnd.pgrst.plan+${a}; for="${s}"; options=${o};`),this}rollback(){return this.headers.append(`Prefer`,`tx=rollback`),this}returns(){return this}maxAffected(e){return this.headers.append(`Prefer`,`handling=strict`),this.headers.append(`Prefer`,`max-affected=${e}`),this}};let g=RegExp(`[,()]`);var _=class extends te{throwOnError(){return super.throwOnError()}eq(e,t){return this.url.searchParams.append(e,`eq.${t}`),this}neq(e,t){return this.url.searchParams.append(e,`neq.${t}`),this}gt(e,t){return this.url.searchParams.append(e,`gt.${t}`),this}gte(e,t){return this.url.searchParams.append(e,`gte.${t}`),this}lt(e,t){return this.url.searchParams.append(e,`lt.${t}`),this}lte(e,t){return this.url.searchParams.append(e,`lte.${t}`),this}like(e,t){return this.url.searchParams.append(e,`like.${t}`),this}likeAllOf(e,t){return this.url.searchParams.append(e,`like(all).{${t.join(`,`)}}`),this}likeAnyOf(e,t){return this.url.searchParams.append(e,`like(any).{${t.join(`,`)}}`),this}ilike(e,t){return this.url.searchParams.append(e,`ilike.${t}`),this}ilikeAllOf(e,t){return this.url.searchParams.append(e,`ilike(all).{${t.join(`,`)}}`),this}ilikeAnyOf(e,t){return this.url.searchParams.append(e,`ilike(any).{${t.join(`,`)}}`),this}regexMatch(e,t){return this.url.searchParams.append(e,`match.${t}`),this}regexIMatch(e,t){return this.url.searchParams.append(e,`imatch.${t}`),this}is(e,t){return this.url.searchParams.append(e,`is.${t}`),this}isDistinct(e,t){return this.url.searchParams.append(e,`isdistinct.${t}`),this}in(e,t){let n=Array.from(new Set(t)).map(e=>typeof e==`string`&&g.test(e)?`"${e}"`:`${e}`).join(`,`);return this.url.searchParams.append(e,`in.(${n})`),this}notIn(e,t){let n=Array.from(new Set(t)).map(e=>typeof e==`string`&&g.test(e)?`"${e}"`:`${e}`).join(`,`);return this.url.searchParams.append(e,`not.in.(${n})`),this}contains(e,t){return typeof t==`string`?this.url.searchParams.append(e,`cs.${t}`):Array.isArray(t)?this.url.searchParams.append(e,`cs.{${t.join(`,`)}}`):this.url.searchParams.append(e,`cs.${JSON.stringify(t)}`),this}containedBy(e,t){return typeof t==`string`?this.url.searchParams.append(e,`cd.${t}`):Array.isArray(t)?this.url.searchParams.append(e,`cd.{${t.join(`,`)}}`):this.url.searchParams.append(e,`cd.${JSON.stringify(t)}`),this}rangeGt(e,t){return this.url.searchParams.append(e,`sr.${t}`),this}rangeGte(e,t){return this.url.searchParams.append(e,`nxl.${t}`),this}rangeLt(e,t){return this.url.searchParams.append(e,`sl.${t}`),this}rangeLte(e,t){return this.url.searchParams.append(e,`nxr.${t}`),this}rangeAdjacent(e,t){return this.url.searchParams.append(e,`adj.${t}`),this}overlaps(e,t){return typeof t==`string`?this.url.searchParams.append(e,`ov.${t}`):this.url.searchParams.append(e,`ov.{${t.join(`,`)}}`),this}textSearch(e,t,{config:n,type:r}={}){let i=``;r===`plain`?i=`pl`:r===`phrase`?i=`ph`:r===`websearch`&&(i=`w`);let a=n===void 0?``:`(${n})`;return this.url.searchParams.append(e,`${i}fts${a}.${t}`),this}match(e){return Object.entries(e).filter(([e,t])=>t!==void 0).forEach(([e,t])=>{this.url.searchParams.append(e,`eq.${t}`)}),this}not(e,t,n){return this.url.searchParams.append(e,`not.${t}.${n}`),this}or(e,{foreignTable:t,referencedTable:n=t}={}){let r=n?`${n}.or`:`or`;return this.url.searchParams.append(r,`(${e})`),this}filter(e,t,n){return this.url.searchParams.append(e,`${t}.${n}`),this}},v=class{constructor(e,{headers:t={},schema:n,fetch:r,urlLengthLimit:i=8e3,retry:a}){this.url=e,this.headers=new Headers(t),this.schema=n,this.fetch=r,this.urlLengthLimit=i,this.retry=a}cloneRequestState(){return{url:new URL(this.url.toString()),headers:new Headers(this.headers)}}select(e,t){let{head:n=!1,count:r}=t??{},i=n?`HEAD`:`GET`,a=!1,o=(e??`*`).split(``).map(e=>/\s/.test(e)&&!a?``:(e===`"`&&(a=!a),e)).join(``),{url:s,headers:c}=this.cloneRequestState();return s.searchParams.set(`select`,o),r&&c.append(`Prefer`,`count=${r}`),new _({method:i,url:s,headers:c,schema:this.schema,fetch:this.fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}insert(e,{count:t,defaultToNull:n=!0}={}){let{url:r,headers:i}=this.cloneRequestState();if(t&&i.append(`Prefer`,`count=${t}`),n||i.append(`Prefer`,`missing=default`),Array.isArray(e)){let t=e.reduce((e,t)=>e.concat(Object.keys(t)),[]);if(t.length>0){let e=[...new Set(t)].map(e=>`"${e}"`);r.searchParams.set(`columns`,e.join(`,`))}}return new _({method:`POST`,url:r,headers:i,schema:this.schema,body:e,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}upsert(e,{onConflict:t,ignoreDuplicates:n=!1,count:r,defaultToNull:i=!0}={}){let{url:a,headers:o}=this.cloneRequestState();if(o.append(`Prefer`,`resolution=${n?`ignore`:`merge`}-duplicates`),t!==void 0&&a.searchParams.set(`on_conflict`,t),r&&o.append(`Prefer`,`count=${r}`),i||o.append(`Prefer`,`missing=default`),Array.isArray(e)){let t=e.reduce((e,t)=>e.concat(Object.keys(t)),[]);if(t.length>0){let e=[...new Set(t)].map(e=>`"${e}"`);a.searchParams.set(`columns`,e.join(`,`))}}return new _({method:`POST`,url:a,headers:o,schema:this.schema,body:e,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}update(e,{count:t}={}){let{url:n,headers:r}=this.cloneRequestState();return t&&r.append(`Prefer`,`count=${t}`),new _({method:`PATCH`,url:n,headers:r,schema:this.schema,body:e,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}delete({count:e}={}){let{url:t,headers:n}=this.cloneRequestState();return e&&n.append(`Prefer`,`count=${e}`),new _({method:`DELETE`,url:t,headers:n,schema:this.schema,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}};function y(e){"@babel/helpers - typeof";return y=typeof Symbol==`function`&&typeof Symbol.iterator==`symbol`?function(e){return typeof e}:function(e){return e&&typeof Symbol==`function`&&e.constructor===Symbol&&e!==Symbol.prototype?`symbol`:typeof e},y(e)}function ne(e,t){if(y(e)!=`object`||!e)return e;var n=e[Symbol.toPrimitive];if(n!==void 0){var r=n.call(e,t||`default`);if(y(r)!=`object`)return r;throw TypeError(`@@toPrimitive must return a primitive value.`)}return(t===`string`?String:Number)(e)}function re(e){var t=ne(e,`string`);return y(t)==`symbol`?t:t+``}function ie(e,t,n){return(t=re(t))in e?Object.defineProperty(e,t,{value:n,enumerable:!0,configurable:!0,writable:!0}):e[t]=n,e}function ae(e,t){var n=Object.keys(e);if(Object.getOwnPropertySymbols){var r=Object.getOwnPropertySymbols(e);t&&(r=r.filter(function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable})),n.push.apply(n,r)}return n}function oe(e){for(var t=1;t<arguments.length;t++){var n=arguments[t]==null?{}:arguments[t];t%2?ae(Object(n),!0).forEach(function(t){ie(e,t,n[t])}):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(n)):ae(Object(n)).forEach(function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(n,t))})}return e}var se=class e{constructor(e,{headers:t={},schema:n,fetch:r,timeout:i,urlLengthLimit:a=8e3,retry:o}={}){this.url=e,this.headers=new Headers(t),this.schemaName=n,this.urlLengthLimit=a;let s=r??globalThis.fetch;i!==void 0&&i>0?this.fetch=(e,t)=>{let n=new AbortController,r=setTimeout(()=>n.abort(),i),a=t?.signal;if(a){if(a.aborted)return clearTimeout(r),s(e,t);let i=()=>{clearTimeout(r),n.abort()};return a.addEventListener(`abort`,i,{once:!0}),s(e,oe(oe({},t),{},{signal:n.signal})).finally(()=>{clearTimeout(r),a.removeEventListener(`abort`,i)})}return s(e,oe(oe({},t),{},{signal:n.signal})).finally(()=>clearTimeout(r))}:this.fetch=s,this.retry=o}from(e){if(!e||typeof e!=`string`||e.trim()===``)throw Error(`Invalid relation name: relation must be a non-empty string.`);return new v(new URL(`${this.url}/${e}`),{headers:new Headers(this.headers),schema:this.schemaName,fetch:this.fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}schema(t){return new e(this.url,{headers:this.headers,schema:t,fetch:this.fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}rpc(e,t={},{head:n=!1,get:r=!1,count:i}={}){let a,o=new URL(`${this.url}/rpc/${e}`),s,c=e=>typeof e==`object`&&!!e&&(!Array.isArray(e)||e.some(c)),l=n&&Object.values(t).some(c);l?(a=`POST`,s=t):n||r?(a=n?`HEAD`:`GET`,Object.entries(t).filter(([e,t])=>t!==void 0).map(([e,t])=>[e,Array.isArray(t)?`{${t.join(`,`)}}`:`${t}`]).forEach(([e,t])=>{o.searchParams.append(e,t)})):(a=`POST`,s=t);let u=new Headers(this.headers);return l?u.set(`Prefer`,i?`count=${i},return=minimal`:`return=minimal`):i&&u.set(`Prefer`,`count=${i}`),new _({method:a,url:o,headers:u,schema:this.schemaName,body:s,fetch:this.fetch??fetch,urlLengthLimit:this.urlLengthLimit,retry:this.retry})}},ce=class{constructor(){}static detectEnvironment(){if(typeof WebSocket<`u`)return{type:`native`,wsConstructor:WebSocket};let e=globalThis;if(typeof globalThis<`u`&&e.WebSocket!==void 0)return{type:`native`,wsConstructor:e.WebSocket};let t=typeof global<`u`?global:void 0;if(t&&t.WebSocket!==void 0)return{type:`native`,wsConstructor:t.WebSocket};if(typeof globalThis<`u`&&e.WebSocketPair!==void 0&&globalThis.WebSocket===void 0)return{type:`cloudflare`,error:`Cloudflare Workers detected. WebSocket clients are not supported in Cloudflare Workers.`,workaround:`Use Cloudflare Workers WebSocket API for server-side WebSocket handling, or deploy to a different runtime.`};if(typeof globalThis<`u`&&e.EdgeRuntime||typeof navigator<`u`&&navigator.userAgent?.includes(`Vercel-Edge`))return{type:`unsupported`,error:`Edge runtime detected (Vercel Edge/Netlify Edge). WebSockets are not supported in edge functions.`,workaround:`Use serverless functions or a different deployment target for WebSocket functionality.`};let n=globalThis.process;if(n){let e=n.versions;if(e&&e.node)return{type:`unsupported`,error:`Node.js detected but native WebSocket not found.`,workaround:`Ensure you are running Node.js 22+ or provide a WebSocket implementation via the transport option.`}}return{type:`unsupported`,error:`Unknown JavaScript runtime without WebSocket support.`,workaround:`Ensure you're running in a supported environment (browser, Node.js, Deno) or provide a custom WebSocket implementation.`}}static getWebSocketConstructor(){let e=this.detectEnvironment();if(e.wsConstructor)return e.wsConstructor;let t=e.error||`WebSocket not supported in this environment.`;throw e.workaround&&(t+=`\n\nSuggested solution: ${e.workaround}`),Error(t)}static isWebSocketSupported(){try{return this.detectEnvironment().type===`native`}catch{return!1}}};let b={closed:`closed`,errored:`errored`,joined:`joined`,joining:`joining`,leaving:`leaving`},le={close:`phx_close`,error:`phx_error`,join:`phx_join`,reply:`phx_reply`,leave:`phx_leave`,access_token:`access_token`},ue={connecting:`connecting`,open:`open`,closing:`closing`,closed:`closed`};var de=class{constructor(e){this.HEADER_LENGTH=1,this.USER_BROADCAST_PUSH_META_LENGTH=6,this.KINDS={userBroadcastPush:3,userBroadcast:4},this.BINARY_ENCODING=0,this.JSON_ENCODING=1,this.BROADCAST_EVENT=`broadcast`,this.allowedMetadataKeys=[],this.allowedMetadataKeys=e??[]}encode(e,t){if(e.event===this.BROADCAST_EVENT&&!(e.payload instanceof ArrayBuffer)&&typeof e.payload.event==`string`)return t(this._binaryEncodeUserBroadcastPush(e));let n=[e.join_ref,e.ref,e.topic,e.event,e.payload];return t(JSON.stringify(n))}_binaryEncodeUserBroadcastPush(e){return this._isArrayBuffer(e.payload?.payload)?this._encodeBinaryUserBroadcastPush(e):this._encodeJsonUserBroadcastPush(e)}_encodeBinaryUserBroadcastPush(e){let t=e.payload?.payload??new ArrayBuffer(0);return this._encodeUserBroadcastPush(e,this.BINARY_ENCODING,t)}_encodeJsonUserBroadcastPush(e){let t=e.payload?.payload??{},n=new TextEncoder().encode(JSON.stringify(t)).buffer;return this._encodeUserBroadcastPush(e,this.JSON_ENCODING,n)}_encodeUserBroadcastPush(e,t,n){let r=e.topic,i=e.ref??``,a=e.join_ref??``,o=e.payload.event,s=this.allowedMetadataKeys?this._pick(e.payload,this.allowedMetadataKeys):{},c=Object.keys(s).length===0?``:JSON.stringify(s);if(a.length>255)throw Error(`joinRef length ${a.length} exceeds maximum of 255`);if(i.length>255)throw Error(`ref length ${i.length} exceeds maximum of 255`);if(r.length>255)throw Error(`topic length ${r.length} exceeds maximum of 255`);if(o.length>255)throw Error(`userEvent length ${o.length} exceeds maximum of 255`);if(c.length>255)throw Error(`metadata length ${c.length} exceeds maximum of 255`);let l=this.USER_BROADCAST_PUSH_META_LENGTH+a.length+i.length+r.length+o.length+c.length,u=new ArrayBuffer(this.HEADER_LENGTH+l),d=new DataView(u),f=0;d.setUint8(f++,this.KINDS.userBroadcastPush),d.setUint8(f++,a.length),d.setUint8(f++,i.length),d.setUint8(f++,r.length),d.setUint8(f++,o.length),d.setUint8(f++,c.length),d.setUint8(f++,t),Array.from(a,e=>d.setUint8(f++,e.charCodeAt(0))),Array.from(i,e=>d.setUint8(f++,e.charCodeAt(0))),Array.from(r,e=>d.setUint8(f++,e.charCodeAt(0))),Array.from(o,e=>d.setUint8(f++,e.charCodeAt(0))),Array.from(c,e=>d.setUint8(f++,e.charCodeAt(0)));var p=new Uint8Array(u.byteLength+n.byteLength);return p.set(new Uint8Array(u),0),p.set(new Uint8Array(n),u.byteLength),p.buffer}decode(e,t){if(this._isArrayBuffer(e))return t(this._binaryDecode(e));if(typeof e==`string`){let[n,r,i,a,o]=JSON.parse(e);return t({join_ref:n,ref:r,topic:i,event:a,payload:o})}return t({})}_binaryDecode(e){let t=new DataView(e),n=t.getUint8(0),r=new TextDecoder;switch(n){case this.KINDS.userBroadcast:return this._decodeUserBroadcast(e,t,r)}}_decodeUserBroadcast(e,t,n){let r=t.getUint8(1),i=t.getUint8(2),a=t.getUint8(3),o=t.getUint8(4),s=this.HEADER_LENGTH+4,c=n.decode(e.slice(s,s+r));s+=r;let l=n.decode(e.slice(s,s+i));s+=i;let u=n.decode(e.slice(s,s+a));s+=a;let d=e.slice(s,e.byteLength),f=o===this.JSON_ENCODING?JSON.parse(n.decode(d)):d,p={type:this.BROADCAST_EVENT,event:l,payload:f};return a>0&&(p.meta=JSON.parse(u)),{join_ref:null,ref:null,topic:c,event:this.BROADCAST_EVENT,payload:p}}_isArrayBuffer(e){return e instanceof ArrayBuffer||e?.constructor?.name===`ArrayBuffer`}_pick(e,t){return!e||typeof e!=`object`?{}:Object.fromEntries(Object.entries(e).filter(([e])=>t.includes(e)))}},x;(function(e){e.abstime=`abstime`,e.bool=`bool`,e.date=`date`,e.daterange=`daterange`,e.float4=`float4`,e.float8=`float8`,e.int2=`int2`,e.int4=`int4`,e.int4range=`int4range`,e.int8=`int8`,e.int8range=`int8range`,e.json=`json`,e.jsonb=`jsonb`,e.money=`money`,e.numeric=`numeric`,e.oid=`oid`,e.reltime=`reltime`,e.text=`text`,e.time=`time`,e.timestamp=`timestamp`,e.timestamptz=`timestamptz`,e.timetz=`timetz`,e.tsrange=`tsrange`,e.tstzrange=`tstzrange`})(x||={});let fe=(e,t,n={})=>{let r=n.skipTypes??[];return t?Object.keys(t).reduce((n,i)=>(n[i]=pe(i,e,t,r),n),{}):{}},pe=(e,t,n,r)=>{let i=t.find(t=>t.name===e)?.type,a=n[e];return i&&!r.includes(i)?me(i,a):he(a)},me=(e,t)=>{if(e.charAt(0)===`_`)return ye(t,e.slice(1,e.length));switch(e){case x.bool:return ge(t);case x.float4:case x.float8:case x.int2:case x.int4:case x.int8:case x.numeric:case x.oid:return _e(t);case x.json:case x.jsonb:return ve(t);case x.timestamp:return be(t);case x.abstime:case x.date:case x.daterange:case x.int4range:case x.int8range:case x.money:case x.reltime:case x.text:case x.time:case x.timestamptz:case x.timetz:case x.tsrange:case x.tstzrange:return he(t);default:return he(t)}},he=e=>e,ge=e=>{switch(e){case`t`:return!0;case`f`:return!1;default:return e}},_e=e=>{if(typeof e==`string`){let t=parseFloat(e);if(!Number.isNaN(t))return t}return e},ve=e=>{if(typeof e==`string`)try{return JSON.parse(e)}catch{return e}return e},ye=(e,t)=>{if(typeof e!=`string`)return e;let n=e.length-1,r=e[n];if(e[0]===`{`&&r===`}`){let r,i=e.slice(1,n);try{r=JSON.parse(`[`+i+`]`)}catch{r=i?i.split(`,`):[]}return r.map(e=>me(t,e))}return e},be=e=>typeof e==`string`?e.replace(` `,`T`):e,xe=e=>{let t=new URL(e);return t.protocol=t.protocol.replace(/^ws/i,`http`),t.pathname=t.pathname.replace(/\/+$/,``).replace(/\/socket\/websocket$/i,``).replace(/\/socket$/i,``).replace(/\/websocket$/i,``),t.pathname===``||t.pathname===`/`?t.pathname=`/api/broadcast`:t.pathname+=`/api/broadcast`,t.href};var Se=e=>typeof e==`function`?e:function(){return e},Ce=typeof self<`u`?self:null,we=typeof window<`u`?window:null,S=Ce||we||globalThis,Te=`2.0.0`,Ee=1e4,De=1e3,C={connecting:0,open:1,closing:2,closed:3},w={closed:`closed`,errored:`errored`,joined:`joined`,joining:`joining`,leaving:`leaving`},T={close:`phx_close`,error:`phx_error`,join:`phx_join`,reply:`phx_reply`,leave:`phx_leave`},Oe={longpoll:`longpoll`,websocket:`websocket`},ke={complete:4},Ae=`base64url.bearer.phx.`,je=class{constructor(e,t,n,r){this.channel=e,this.event=t,this.payload=n||function(){return{}},this.receivedResp=null,this.timeout=r,this.timeoutTimer=null,this.recHooks=[],this.sent=!1,this.ref=void 0}resend(e){this.timeout=e,this.reset(),this.send()}send(){this.hasReceived(`timeout`)||(this.startTimeout(),this.sent=!0,this.channel.socket.push({topic:this.channel.topic,event:this.event,payload:this.payload(),ref:this.ref,join_ref:this.channel.joinRef()}))}receive(e,t){return this.hasReceived(e)&&t(this.receivedResp.response),this.recHooks.push({status:e,callback:t}),this}reset(){this.cancelRefEvent(),this.ref=null,this.refEvent=null,this.receivedResp=null,this.sent=!1}destroy(){this.cancelRefEvent(),this.cancelTimeout()}matchReceive({status:e,response:t,_ref:n}){this.recHooks.filter(t=>t.status===e).forEach(e=>e.callback(t))}cancelRefEvent(){this.refEvent&&this.channel.off(this.refEvent)}cancelTimeout(){clearTimeout(this.timeoutTimer),this.timeoutTimer=null}startTimeout(){this.timeoutTimer&&this.cancelTimeout(),this.ref=this.channel.socket.makeRef(),this.refEvent=this.channel.replyEventName(this.ref),this.channel.on(this.refEvent,e=>{this.cancelRefEvent(),this.cancelTimeout(),this.receivedResp=e,this.matchReceive(e)}),this.timeoutTimer=setTimeout(()=>{this.trigger(`timeout`,{})},this.timeout)}hasReceived(e){return this.receivedResp&&this.receivedResp.status===e}trigger(e,t){this.channel.trigger(this.refEvent,{status:e,response:t})}},Me=class{constructor(e,t){this.callback=e,this.timerCalc=t,this.timer=void 0,this.tries=0}reset(){this.tries=0,clearTimeout(this.timer)}scheduleTimeout(){clearTimeout(this.timer),this.timer=setTimeout(()=>{this.tries+=1,this.callback()},this.timerCalc(this.tries+1))}},Ne=class{constructor(e,t,n){this.state=w.closed,this.topic=e,this.params=Se(t||{}),this.socket=n,this.bindings=[],this.bindingRef=0,this.timeout=this.socket.timeout,this.joinedOnce=!1,this.joinPush=new je(this,T.join,this.params,this.timeout),this.pushBuffer=[],this.stateChangeRefs=[],this.rejoinTimer=new Me(()=>{this.socket.isConnected()&&this.rejoin()},this.socket.rejoinAfterMs),this.stateChangeRefs.push(this.socket.onError(()=>this.rejoinTimer.reset())),this.stateChangeRefs.push(this.socket.onOpen(()=>{this.rejoinTimer.reset(),this.isErrored()&&this.rejoin()})),this.joinPush.receive(`ok`,()=>{this.state=w.joined,this.rejoinTimer.reset(),this.pushBuffer.forEach(e=>e.send()),this.pushBuffer=[]}),this.joinPush.receive(`error`,e=>{this.state=w.errored,this.socket.hasLogger()&&this.socket.log(`channel`,`error ${this.topic}`,e),this.socket.isConnected()&&this.rejoinTimer.scheduleTimeout()}),this.onClose(()=>{this.rejoinTimer.reset(),this.socket.hasLogger()&&this.socket.log(`channel`,`close ${this.topic}`),this.state=w.closed,this.socket.remove(this)}),this.onError(e=>{this.socket.hasLogger()&&this.socket.log(`channel`,`error ${this.topic}`,e),this.isJoining()&&this.joinPush.reset(),this.state=w.errored,this.socket.isConnected()&&this.rejoinTimer.scheduleTimeout()}),this.joinPush.receive(`timeout`,()=>{this.socket.hasLogger()&&this.socket.log(`channel`,`timeout ${this.topic}`,this.joinPush.timeout),new je(this,T.leave,Se({}),this.timeout).send(),this.state=w.errored,this.joinPush.reset(),this.socket.isConnected()&&this.rejoinTimer.scheduleTimeout()}),this.on(T.reply,(e,t)=>{this.trigger(this.replyEventName(t),e)})}join(e=this.timeout){if(this.joinedOnce)throw Error(`tried to join multiple times. 'join' can only be called a single time per channel instance`);return this.timeout=e,this.joinedOnce=!0,this.rejoin(),this.joinPush}teardown(){this.pushBuffer.forEach(e=>e.destroy()),this.pushBuffer=[],this.rejoinTimer.reset(),this.joinPush.destroy(),this.state=w.closed,this.bindings=[]}onClose(e){this.on(T.close,e)}onError(e){return this.on(T.error,t=>e(t))}on(e,t){let n=this.bindingRef++;return this.bindings.push({event:e,ref:n,callback:t}),n}off(e,t){this.bindings=this.bindings.filter(n=>!(n.event===e&&(t===void 0||t===n.ref)))}canPush(){return this.socket.isConnected()&&this.isJoined()}push(e,t,n=this.timeout){if(t||={},!this.joinedOnce)throw Error(`tried to push '${e}' to '${this.topic}' before joining. Use channel.join() before pushing events`);let r=new je(this,e,function(){return t},n);return this.canPush()?r.send():(r.startTimeout(),this.pushBuffer.push(r)),r}leave(e=this.timeout){this.rejoinTimer.reset(),this.joinPush.cancelTimeout(),this.state=w.leaving;let t=()=>{this.socket.hasLogger()&&this.socket.log(`channel`,`leave ${this.topic}`),this.trigger(T.close,`leave`)},n=new je(this,T.leave,Se({}),e);return n.receive(`ok`,()=>t()).receive(`timeout`,()=>t()),n.send(),this.canPush()||n.trigger(`ok`,{}),n}onMessage(e,t,n){return t}filterBindings(e,t,n){return!0}isMember(e,t,n,r){return this.topic===e?r&&r!==this.joinRef()?(this.socket.hasLogger()&&this.socket.log(`channel`,`dropping outdated message`,{topic:e,event:t,payload:n,joinRef:r}),!1):!0:!1}joinRef(){return this.joinPush.ref}rejoin(e=this.timeout){this.isLeaving()||(this.socket.leaveOpenTopic(this.topic),this.state=w.joining,this.joinPush.resend(e))}trigger(e,t,n,r){let i=this.onMessage(e,t,n,r);if(t&&!i)throw Error(`channel onMessage callbacks must return the payload, modified or unmodified`);let a=this.bindings.filter(r=>r.event===e&&this.filterBindings(r,t,n));for(let e=0;e<a.length;e++)a[e].callback(i,n,r||this.joinRef())}replyEventName(e){return`chan_reply_${e}`}isClosed(){return this.state===w.closed}isErrored(){return this.state===w.errored}isJoined(){return this.state===w.joined}isJoining(){return this.state===w.joining}isLeaving(){return this.state===w.leaving}},Pe=class{static request(e,t,n,r,i,a,o){if(S.XDomainRequest){let n=new S.XDomainRequest;return this.xdomainRequest(n,e,t,r,i,a,o)}else if(S.XMLHttpRequest){let s=new S.XMLHttpRequest;return this.xhrRequest(s,e,t,n,r,i,a,o)}else if(S.fetch&&S.AbortController)return this.fetchRequest(e,t,n,r,i,a,o);else throw Error(`No suitable XMLHttpRequest implementation found`)}static fetchRequest(e,t,n,r,i,a,o){let s={method:e,headers:n,body:r},c=null;return i&&(c=new AbortController,setTimeout(()=>c.abort(),i),s.signal=c.signal),S.fetch(t,s).then(e=>e.text()).then(e=>this.parseJSON(e)).then(e=>o&&o(e)).catch(e=>{e.name===`AbortError`&&a?a():o&&o(null)}),c}static xdomainRequest(e,t,n,r,i,a,o){return e.timeout=i,e.open(t,n),e.onload=()=>{let t=this.parseJSON(e.responseText);o&&o(t)},a&&(e.ontimeout=a),e.onprogress=()=>{},e.send(r),e}static xhrRequest(e,t,n,r,i,a,o,s){e.open(t,n,!0),e.timeout=a;for(let[t,n]of Object.entries(r))e.setRequestHeader(t,n);return e.onerror=()=>s&&s(null),e.onreadystatechange=()=>{e.readyState===ke.complete&&s&&s(this.parseJSON(e.responseText))},o&&(e.ontimeout=o),e.send(i),e}static parseJSON(e){if(!e||e===``)return null;try{return JSON.parse(e)}catch{return console&&console.log(`failed to parse JSON response`,e),null}}static serialize(e,t){let n=[];for(var r in e){if(!Object.prototype.hasOwnProperty.call(e,r))continue;let i=t?`${t}[${r}]`:r,a=e[r];typeof a==`object`?n.push(this.serialize(a,i)):n.push(encodeURIComponent(i)+`=`+encodeURIComponent(a))}return n.join(`&`)}static appendParams(e,t){return Object.keys(t).length===0?e:`${e}${e.match(/\?/)?`&`:`?`}${this.serialize(t)}`}},Fe=e=>{let t=``,n=new Uint8Array(e),r=n.byteLength;for(let e=0;e<r;e++)t+=String.fromCharCode(n[e]);return btoa(t)},Ie=class{constructor(e,t){t&&t.length===2&&t[1].startsWith(Ae)&&(this.authToken=atob(t[1].slice(Ae.length))),this.endPoint=null,this.token=null,this.skipHeartbeat=!0,this.reqs=new Set,this.awaitingBatchAck=!1,this.currentBatch=null,this.currentBatchTimer=null,this.batchBuffer=[],this.onopen=function(){},this.onerror=function(){},this.onmessage=function(){},this.onclose=function(){},this.pollEndpoint=this.normalizeEndpoint(e),this.readyState=C.connecting,setTimeout(()=>this.poll(),0)}normalizeEndpoint(e){return e.replace(`ws://`,`http://`).replace(`wss://`,`https://`).replace(RegExp(`(.*)/`+Oe.websocket),`$1/`+Oe.longpoll)}endpointURL(){return Pe.appendParams(this.pollEndpoint,{token:this.token})}closeAndRetry(e,t,n){this.close(e,t,n),this.readyState=C.connecting}ontimeout(){this.onerror(`timeout`),this.closeAndRetry(1005,`timeout`,!1)}isActive(){return this.readyState===C.open||this.readyState===C.connecting}poll(){let e={Accept:`application/json`};this.authToken&&(e[`X-Phoenix-AuthToken`]=this.authToken),this.ajax(`GET`,e,null,()=>this.ontimeout(),e=>{if(e){var{status:t,token:n,messages:r}=e;if(t===410&&this.token!==null){this.onerror(410),this.closeAndRetry(3410,`session_gone`,!1);return}this.token=n}else t=0;switch(t){case 200:r.forEach(e=>{setTimeout(()=>this.onmessage({data:e}),0)}),this.poll();break;case 204:this.poll();break;case 410:this.readyState=C.open,this.onopen({}),this.poll();break;case 403:this.onerror(403),this.close(1008,`forbidden`,!1);break;case 0:case 500:this.onerror(500),this.closeAndRetry(1011,`internal server error`,500);break;default:throw Error(`unhandled poll status ${t}`)}})}send(e){typeof e!=`string`&&(e=Fe(e)),this.currentBatch?this.currentBatch.push(e):this.awaitingBatchAck?this.batchBuffer.push(e):(this.currentBatch=[e],this.currentBatchTimer=setTimeout(()=>{this.batchSend(this.currentBatch),this.currentBatch=null},0))}batchSend(e){this.awaitingBatchAck=!0,this.ajax(`POST`,{"Content-Type":`application/x-ndjson`},e.join(`
+`),()=>this.onerror(`timeout`),e=>{this.awaitingBatchAck=!1,!e||e.status!==200?(this.onerror(e&&e.status),this.closeAndRetry(1011,`internal server error`,!1)):this.batchBuffer.length>0&&(this.batchSend(this.batchBuffer),this.batchBuffer=[])})}close(e,t,n){for(let e of this.reqs)e.abort();this.readyState=C.closed;let r=Object.assign({code:1e3,reason:void 0,wasClean:!0},{code:e,reason:t,wasClean:n});this.batchBuffer=[],clearTimeout(this.currentBatchTimer),this.currentBatchTimer=null,typeof CloseEvent<`u`?this.onclose(new CloseEvent(`close`,r)):this.onclose(r)}ajax(e,t,n,r,i){let a;a=Pe.request(e,this.endpointURL(),t,n,this.timeout,()=>{this.reqs.delete(a),r()},e=>{this.reqs.delete(a),this.isActive()&&i(e)}),this.reqs.add(a)}},Le=class e{constructor(t,n={}){let r=n.events||{state:`presence_state`,diff:`presence_diff`};this.state={},this.pendingDiffs=[],this.channel=t,this.joinRef=null,this.caller={onJoin:function(){},onLeave:function(){},onSync:function(){}},this.channel.on(r.state,t=>{let{onJoin:n,onLeave:r,onSync:i}=this.caller;this.joinRef=this.channel.joinRef(),this.state=e.syncState(this.state,t,n,r),this.pendingDiffs.forEach(t=>{this.state=e.syncDiff(this.state,t,n,r)}),this.pendingDiffs=[],i()}),this.channel.on(r.diff,t=>{let{onJoin:n,onLeave:r,onSync:i}=this.caller;this.inPendingSyncState()?this.pendingDiffs.push(t):(this.state=e.syncDiff(this.state,t,n,r),i())})}onJoin(e){this.caller.onJoin=e}onLeave(e){this.caller.onLeave=e}onSync(e){this.caller.onSync=e}list(t){return e.list(this.state,t)}inPendingSyncState(){return!this.joinRef||this.joinRef!==this.channel.joinRef()}static syncState(e,t,n,r){let i=this.clone(e),a={},o={};return this.map(i,(e,n)=>{t[e]||(o[e]=n)}),this.map(t,(e,t)=>{let n=i[e];if(n){let r=t.metas.map(e=>e.phx_ref),i=n.metas.map(e=>e.phx_ref),s=t.metas.filter(e=>i.indexOf(e.phx_ref)<0),c=n.metas.filter(e=>r.indexOf(e.phx_ref)<0);s.length>0&&(a[e]=t,a[e].metas=s),c.length>0&&(o[e]=this.clone(n),o[e].metas=c)}else a[e]=t}),this.syncDiff(i,{joins:a,leaves:o},n,r)}static syncDiff(e,t,n,r){let{joins:i,leaves:a}=this.clone(t);return n||=function(){},r||=function(){},this.map(i,(t,r)=>{let i=e[t];if(e[t]=this.clone(r),i){let n=e[t].metas.map(e=>e.phx_ref),r=i.metas.filter(e=>n.indexOf(e.phx_ref)<0);e[t].metas.unshift(...r)}n(t,i,r)}),this.map(a,(t,n)=>{let i=e[t];if(!i)return;let a=n.metas.map(e=>e.phx_ref);i.metas=i.metas.filter(e=>a.indexOf(e.phx_ref)<0),r(t,i,n),i.metas.length===0&&delete e[t]}),e}static list(e,t){return t||=function(e,t){return t},this.map(e,(e,n)=>t(e,n))}static map(e,t){return Object.getOwnPropertyNames(e).map(n=>t(n,e[n]))}static clone(e){return JSON.parse(JSON.stringify(e))}},Re={HEADER_LENGTH:1,META_LENGTH:4,KINDS:{push:0,reply:1,broadcast:2},encode(e,t){if(e.payload.constructor===ArrayBuffer)return t(this.binaryEncode(e));{let n=[e.join_ref,e.ref,e.topic,e.event,e.payload];return t(JSON.stringify(n))}},decode(e,t){if(e.constructor===ArrayBuffer)return t(this.binaryDecode(e));{let[n,r,i,a,o]=JSON.parse(e);return t({join_ref:n,ref:r,topic:i,event:a,payload:o})}},binaryEncode(e){let{join_ref:t,ref:n,event:r,topic:i,payload:a}=e,o=this.META_LENGTH+t.length+n.length+i.length+r.length,s=new ArrayBuffer(this.HEADER_LENGTH+o),c=new DataView(s),l=0;c.setUint8(l++,this.KINDS.push),c.setUint8(l++,t.length),c.setUint8(l++,n.length),c.setUint8(l++,i.length),c.setUint8(l++,r.length),Array.from(t,e=>c.setUint8(l++,e.charCodeAt(0))),Array.from(n,e=>c.setUint8(l++,e.charCodeAt(0))),Array.from(i,e=>c.setUint8(l++,e.charCodeAt(0))),Array.from(r,e=>c.setUint8(l++,e.charCodeAt(0)));var u=new Uint8Array(s.byteLength+a.byteLength);return u.set(new Uint8Array(s),0),u.set(new Uint8Array(a),s.byteLength),u.buffer},binaryDecode(e){let t=new DataView(e),n=t.getUint8(0),r=new TextDecoder;switch(n){case this.KINDS.push:return this.decodePush(e,t,r);case this.KINDS.reply:return this.decodeReply(e,t,r);case this.KINDS.broadcast:return this.decodeBroadcast(e,t,r)}},decodePush(e,t,n){let r=t.getUint8(1),i=t.getUint8(2),a=t.getUint8(3),o=this.HEADER_LENGTH+this.META_LENGTH-1,s=n.decode(e.slice(o,o+r));o+=r;let c=n.decode(e.slice(o,o+i));o+=i;let l=n.decode(e.slice(o,o+a));return o+=a,{join_ref:s,ref:null,topic:c,event:l,payload:e.slice(o,e.byteLength)}},decodeReply(e,t,n){let r=t.getUint8(1),i=t.getUint8(2),a=t.getUint8(3),o=t.getUint8(4),s=this.HEADER_LENGTH+this.META_LENGTH,c=n.decode(e.slice(s,s+r));s+=r;let l=n.decode(e.slice(s,s+i));s+=i;let u=n.decode(e.slice(s,s+a));s+=a;let d=n.decode(e.slice(s,s+o));s+=o;let f={status:d,response:e.slice(s,e.byteLength)};return{join_ref:c,ref:l,topic:u,event:T.reply,payload:f}},decodeBroadcast(e,t,n){let r=t.getUint8(1),i=t.getUint8(2),a=this.HEADER_LENGTH+2,o=n.decode(e.slice(a,a+r));a+=r;let s=n.decode(e.slice(a,a+i));return a+=i,{join_ref:null,ref:null,topic:o,event:s,payload:e.slice(a,e.byteLength)}}},ze=class{constructor(e,t={}){this.stateChangeCallbacks={open:[],close:[],error:[],message:[]},this.channels=[],this.sendBuffer=[],this.ref=0,this.fallbackRef=null,this.timeout=t.timeout||Ee,this.transport=t.transport||S.WebSocket||Ie,this.conn=void 0,this.primaryPassedHealthCheck=!1,this.longPollFallbackMs=t.longPollFallbackMs,this.fallbackTimer=null;let n=null;try{n=S&&S.sessionStorage}catch{}this.sessionStore=t.sessionStorage||n,this.establishedConnections=0,this.defaultEncoder=Re.encode.bind(Re),this.defaultDecoder=Re.decode.bind(Re),this.closeWasClean=!0,this.disconnecting=!1,this.binaryType=t.binaryType||`arraybuffer`,this.connectClock=1,this.pageHidden=!1,this.encode=void 0,this.decode=void 0,this.transport===Ie?(this.encode=this.defaultEncoder,this.decode=this.defaultDecoder):(this.encode=t.encode||this.defaultEncoder,this.decode=t.decode||this.defaultDecoder);let r=null;we&&we.addEventListener&&(we.addEventListener(`pagehide`,e=>{this.conn&&(this.disconnect(),r=this.connectClock)}),we.addEventListener(`pageshow`,e=>{r===this.connectClock&&(r=null,this.connect())}),we.addEventListener(`visibilitychange`,()=>{document.visibilityState===`hidden`?this.pageHidden=!0:(this.pageHidden=!1,!this.isConnected()&&!this.closeWasClean&&this.teardown(()=>this.connect()))})),this.heartbeatIntervalMs=t.heartbeatIntervalMs||3e4,this.autoSendHeartbeat=t.autoSendHeartbeat??!0,this.heartbeatCallback=t.heartbeatCallback??(()=>{}),this.rejoinAfterMs=e=>t.rejoinAfterMs?t.rejoinAfterMs(e):[1e3,2e3,5e3][e-1]||1e4,this.reconnectAfterMs=e=>t.reconnectAfterMs?t.reconnectAfterMs(e):[10,50,100,150,200,250,500,1e3,2e3][e-1]||5e3,this.logger=t.logger||null,!this.logger&&t.debug&&(this.logger=(e,t,n)=>{console.log(`${e}: ${t}`,n)}),this.longpollerTimeout=t.longpollerTimeout||2e4,this.params=Se(t.params||{}),this.endPoint=`${e}/${Oe.websocket}`,this.vsn=t.vsn||Te,this.heartbeatTimeoutTimer=null,this.heartbeatTimer=null,this.heartbeatSentAt=null,this.pendingHeartbeatRef=null,this.reconnectTimer=new Me(()=>{if(this.pageHidden){this.log(`Not reconnecting as page is hidden!`),this.teardown();return}this.teardown(async()=>{t.beforeReconnect&&await t.beforeReconnect(),this.connect()})},this.reconnectAfterMs),this.authToken=t.authToken}getLongPollTransport(){return Ie}replaceTransport(e){this.connectClock++,this.closeWasClean=!0,clearTimeout(this.fallbackTimer),this.reconnectTimer.reset(),this.conn&&=(this.conn.close(),null),this.transport=e}protocol(){return location.protocol.match(/^https/)?`wss`:`ws`}endPointURL(){let e=Pe.appendParams(Pe.appendParams(this.endPoint,this.params()),{vsn:this.vsn});return e.charAt(0)===`/`?e.charAt(1)===`/`?`${this.protocol()}:${e}`:`${this.protocol()}://${location.host}${e}`:e}disconnect(e,t,n){this.connectClock++,this.disconnecting=!0,this.closeWasClean=!0,clearTimeout(this.fallbackTimer),this.reconnectTimer.reset(),this.teardown(()=>{this.disconnecting=!1,e&&e()},t,n)}connect(e){e&&(console&&console.log(`passing params to connect is deprecated. Instead pass :params to the Socket constructor`),this.params=Se(e)),!(this.conn&&!this.disconnecting)&&(this.longPollFallbackMs&&this.transport!==Ie?this.connectWithFallback(Ie,this.longPollFallbackMs):this.transportConnect())}log(e,t,n){this.logger&&this.logger(e,t,n)}hasLogger(){return this.logger!==null}onOpen(e){let t=this.makeRef();return this.stateChangeCallbacks.open.push([t,e]),t}onClose(e){let t=this.makeRef();return this.stateChangeCallbacks.close.push([t,e]),t}onError(e){let t=this.makeRef();return this.stateChangeCallbacks.error.push([t,e]),t}onMessage(e){let t=this.makeRef();return this.stateChangeCallbacks.message.push([t,e]),t}onHeartbeat(e){this.heartbeatCallback=e}ping(e){if(!this.isConnected())return!1;let t=this.makeRef(),n=Date.now();this.push({topic:`phoenix`,event:`heartbeat`,payload:{},ref:t});let r=this.onMessage(i=>{i.ref===t&&(this.off([r]),e(Date.now()-n))});return!0}transportName(e){switch(e){case Ie:return`LongPoll`;default:return e.name}}transportConnect(){this.connectClock++,this.closeWasClean=!1;let e;this.authToken&&(e=[`phoenix`,`${Ae}${btoa(this.authToken).replace(/=/g,``)}`]),this.conn=new this.transport(this.endPointURL(),e),this.conn.binaryType=this.binaryType,this.conn.timeout=this.longpollerTimeout,this.conn.onopen=()=>this.onConnOpen(),this.conn.onerror=e=>this.onConnError(e),this.conn.onmessage=e=>this.onConnMessage(e),this.conn.onclose=e=>this.onConnClose(e)}getSession(e){return this.sessionStore&&this.sessionStore.getItem(e)}storeSession(e,t){this.sessionStore&&this.sessionStore.setItem(e,t)}connectWithFallback(e,t=2500){clearTimeout(this.fallbackTimer);let n=!1,r=!0,i,a=this.transportName(e),o=t=>{this.log(`transport`,`falling back to ${a}...`,t),this.off([void 0,i]),r=!1,this.replaceTransport(e),this.transportConnect()};if(this.getSession(`phx:fallback:${a}`))return o(`memorized`);this.fallbackTimer=setTimeout(o,t),i=this.onError(e=>{this.log(`transport`,`error`,e),r&&!n&&(clearTimeout(this.fallbackTimer),o(e))}),this.fallbackRef&&this.off([this.fallbackRef]),this.fallbackRef=this.onOpen(()=>{if(n=!0,!r){let t=this.transportName(e);return this.primaryPassedHealthCheck||this.storeSession(`phx:fallback:${t}`,`true`),this.log(`transport`,`established ${t} fallback`)}clearTimeout(this.fallbackTimer),this.fallbackTimer=setTimeout(o,t),this.ping(e=>{this.log(`transport`,`connected to primary after`,e),this.primaryPassedHealthCheck=!0,clearTimeout(this.fallbackTimer)})}),this.transportConnect()}clearHeartbeats(){clearTimeout(this.heartbeatTimer),clearTimeout(this.heartbeatTimeoutTimer)}onConnOpen(){this.hasLogger()&&this.log(`transport`,`connected to ${this.endPointURL()}`),this.closeWasClean=!1,this.disconnecting=!1,this.establishedConnections++,this.flushSendBuffer(),this.reconnectTimer.reset(),this.autoSendHeartbeat&&this.resetHeartbeat(),this.triggerStateCallbacks(`open`)}heartbeatTimeout(){if(this.pendingHeartbeatRef){this.pendingHeartbeatRef=null,this.heartbeatSentAt=null,this.hasLogger()&&this.log(`transport`,`heartbeat timeout. Attempting to re-establish connection`);try{this.heartbeatCallback(`timeout`)}catch(e){this.log(`error`,`error in heartbeat callback`,e)}this.triggerChanError(Error(`heartbeat timeout`)),this.closeWasClean=!1,this.teardown(()=>this.reconnectTimer.scheduleTimeout(),De,`heartbeat timeout`)}}resetHeartbeat(){this.conn&&this.conn.skipHeartbeat||(this.pendingHeartbeatRef=null,this.clearHeartbeats(),this.heartbeatTimer=setTimeout(()=>this.sendHeartbeat(),this.heartbeatIntervalMs))}teardown(e,t,n){if(!this.conn)return e&&e();let r=this.conn;this.waitForBufferDone(r,()=>{t?r.close(t,n||``):r.close(),this.waitForSocketClosed(r,()=>{this.conn===r&&(this.conn.onopen=function(){},this.conn.onerror=function(){},this.conn.onmessage=function(){},this.conn.onclose=function(){},this.conn=null),e&&e()})})}waitForBufferDone(e,t,n=1){if(n===5||!e.bufferedAmount){t();return}setTimeout(()=>{this.waitForBufferDone(e,t,n+1)},150*n)}waitForSocketClosed(e,t,n=1){if(n===5||e.readyState===C.closed){t();return}setTimeout(()=>{this.waitForSocketClosed(e,t,n+1)},150*n)}onConnClose(e){this.conn&&(this.conn.onclose=()=>{}),this.hasLogger()&&this.log(`transport`,`close`,e),this.triggerChanError(e),this.clearHeartbeats(),this.closeWasClean||this.reconnectTimer.scheduleTimeout(),this.triggerStateCallbacks(`close`,e)}onConnError(e){this.hasLogger()&&this.log(`transport`,`error`,e);let t=this.transport,n=this.establishedConnections;this.triggerStateCallbacks(`error`,e,t,n),(t===this.transport||n>0)&&this.triggerChanError(e)}triggerChanError(e){this.channels.forEach(t=>{t.isErrored()||t.isLeaving()||t.isClosed()||t.trigger(T.error,e)})}connectionState(){switch(this.conn&&this.conn.readyState){case C.connecting:return`connecting`;case C.open:return`open`;case C.closing:return`closing`;default:return`closed`}}isConnected(){return this.connectionState()===`open`}remove(e){this.off(e.stateChangeRefs),this.channels=this.channels.filter(t=>t!==e)}off(e){for(let t in this.stateChangeCallbacks)this.stateChangeCallbacks[t]=this.stateChangeCallbacks[t].filter(([t])=>e.indexOf(t)===-1)}channel(e,t={}){let n=new Ne(e,t,this);return this.channels.push(n),n}push(e){if(this.hasLogger()){let{topic:t,event:n,payload:r,ref:i,join_ref:a}=e;this.log(`push`,`${t} ${n} (${a}, ${i})`,r)}this.isConnected()?this.encode(e,e=>this.conn.send(e)):this.sendBuffer.push(()=>this.encode(e,e=>this.conn.send(e)))}makeRef(){let e=this.ref+1;return e===this.ref?this.ref=0:this.ref=e,this.ref.toString()}sendHeartbeat(){if(!this.isConnected()){try{this.heartbeatCallback(`disconnected`)}catch(e){this.log(`error`,`error in heartbeat callback`,e)}return}if(this.pendingHeartbeatRef){this.heartbeatTimeout();return}this.pendingHeartbeatRef=this.makeRef(),this.heartbeatSentAt=Date.now(),this.push({topic:`phoenix`,event:`heartbeat`,payload:{},ref:this.pendingHeartbeatRef});try{this.heartbeatCallback(`sent`)}catch(e){this.log(`error`,`error in heartbeat callback`,e)}this.heartbeatTimeoutTimer=setTimeout(()=>this.heartbeatTimeout(),this.heartbeatIntervalMs)}flushSendBuffer(){this.isConnected()&&this.sendBuffer.length>0&&(this.sendBuffer.forEach(e=>e()),this.sendBuffer=[])}onConnMessage(e){this.decode(e.data,e=>{let{topic:t,event:n,payload:r,ref:i,join_ref:a}=e;if(i&&i===this.pendingHeartbeatRef){let e=this.heartbeatSentAt?Date.now()-this.heartbeatSentAt:void 0;this.clearHeartbeats();try{this.heartbeatCallback(r.status===`ok`?`ok`:`error`,e)}catch(e){this.log(`error`,`error in heartbeat callback`,e)}this.pendingHeartbeatRef=null,this.heartbeatSentAt=null,this.autoSendHeartbeat&&(this.heartbeatTimer=setTimeout(()=>this.sendHeartbeat(),this.heartbeatIntervalMs))}this.hasLogger()&&this.log(`receive`,`${r.status||``} ${t} ${n} ${i&&`(`+i+`)`||``}`.trim(),r);for(let e=0;e<this.channels.length;e++){let o=this.channels[e];o.isMember(t,n,r,a)&&o.trigger(n,r,i,a)}this.triggerStateCallbacks(`message`,e)})}triggerStateCallbacks(e,...t){try{this.stateChangeCallbacks[e].forEach(([n,r])=>{try{r(...t)}catch(t){this.log(`error`,`error in ${e} callback`,t)}})}catch(t){this.log(`error`,`error triggering ${e} callbacks`,t)}}leaveOpenTopic(e){let t=this.channels.find(t=>t.topic===e&&(t.isJoined()||t.isJoining()));t&&(this.hasLogger()&&this.log(`transport`,`leaving duplicate topic "${e}"`),t.leave())}},Be=class e{constructor(t,n){let r=Ue(n);this.presence=new Le(t.getChannel(),r),this.presence.onJoin((n,r,i)=>{let a=e.onJoinPayload(n,r,i);t.getChannel().trigger(`presence`,a)}),this.presence.onLeave((n,r,i)=>{let a=e.onLeavePayload(n,r,i);t.getChannel().trigger(`presence`,a)}),this.presence.onSync(()=>{t.getChannel().trigger(`presence`,{event:`sync`})})}get state(){return e.transformState(this.presence.state)}static transformState(e){return e=He(e),Object.getOwnPropertyNames(e).reduce((t,n)=>{let r=e[n];return t[n]=Ve(r),t},{})}static onJoinPayload(e,t,n){return{event:`join`,key:e,currentPresences:We(t),newPresences:Ve(n)}}static onLeavePayload(e,t,n){return{event:`leave`,key:e,currentPresences:We(t),leftPresences:Ve(n)}}};function Ve(e){return e.metas.map(e=>(e.presence_ref=e.phx_ref,delete e.phx_ref,delete e.phx_ref_prev,e))}function He(e){return JSON.parse(JSON.stringify(e))}function Ue(e){return e?.events&&{events:e.events}}function We(e){return e?.metas?Ve(e):[]}var Ge;(function(e){e.SYNC=`sync`,e.JOIN=`join`,e.LEAVE=`leave`})(Ge||={});var Ke=class{get state(){return this.presenceAdapter.state}constructor(e,t){this.channel=e,this.presenceAdapter=new Be(this.channel.channelAdapter,t)}};function qe(e){if(e instanceof Error)return e;if(typeof e==`string`)return Error(e);if(e&&typeof e==`object`){let t=e;if(typeof t.code==`number`){let n=typeof t.reason==`string`&&t.reason?` (${t.reason})`:``;return Error(`socket closed: ${t.code}${n}`,{cause:e})}return Error(`channel error: transport failure`,{cause:e})}return Error(`channel error: connection lost`)}var Je=class{constructor(e,t,n){let r=Ye(n);this.channel=e.getSocket().channel(t,r),this.socket=e}get state(){return this.channel.state}set state(e){this.channel.state=e}get joinedOnce(){return this.channel.joinedOnce}get joinPush(){return this.channel.joinPush}get rejoinTimer(){return this.channel.rejoinTimer}on(e,t){return this.channel.on(e,t)}off(e,t){this.channel.off(e,t)}subscribe(e){return this.channel.join(e)}unsubscribe(e){return this.channel.leave(e)}teardown(){this.channel.teardown()}onClose(e){this.channel.onClose(e)}onError(e){return this.channel.onError(e)}push(e,t,n){let r;try{r=this.channel.push(e,t,n)}catch{throw Error(`tried to push '${e}' to '${this.channel.topic}' before joining. Use channel.subscribe() before pushing events`)}if(this.channel.pushBuffer.length>100){let e=this.channel.pushBuffer.shift();e.cancelTimeout(),this.socket.log(`channel`,`discarded push due to buffer overflow: ${e.event}`,e.payload())}return r}updateJoinPayload(e){let t=this.channel.joinPush.payload();this.channel.joinPush.payload=()=>Object.assign(Object.assign({},t),e)}canPush(){return this.socket.isConnected()&&this.state===b.joined}isJoined(){return this.state===b.joined}isJoining(){return this.state===b.joining}isClosed(){return this.state===b.closed}isLeaving(){return this.state===b.leaving}updateFilterBindings(e){this.channel.filterBindings=e}updatePayloadTransform(e){this.channel.onMessage=e}getChannel(){return this.channel}};function Ye(e){return{config:Object.assign({broadcast:{ack:!1,self:!1},presence:{key:``,enabled:!1},private:!1},e.config)}}let Xe=/[,()"\\]/,Ze=e=>Xe.test(e)||e!==e.trim(),Qe=e=>`"${e.replace(/\\/g,`\\\\`).replace(/"/g,`\\"`)}"`,$e=e=>{let t=e===null?`null`:String(e);return Ze(t)?Qe(t):t},et=e=>e===null?`null`:String(e),tt=(e,t)=>{if(e===`in`){let e=Array.isArray(t)?t:[t];if(e.length===0)throw Error("Realtime `in` filter requires at least one value.");return`in.(${Array.from(new Set(e)).map(e=>$e(e)).join(`,`)})`}return e===`is`?`is.${et(t)}`:`${e}.${$e(t)}`};var nt=class{constructor(){this.filters=[]}add(e,t,n,r=!1){let i=r?`not.`:``;return this.filters.push(`${e}=${i}${tt(t,n)}`),this}eq(e,t){return this.add(e,`eq`,t)}neq(e,t){return this.add(e,`neq`,t)}gt(e,t){return this.add(e,`gt`,t)}gte(e,t){return this.add(e,`gte`,t)}lt(e,t){return this.add(e,`lt`,t)}lte(e,t){return this.add(e,`lte`,t)}in(e,t){return this.add(e,`in`,t)}like(e,t){return this.add(e,`like`,t)}ilike(e,t){return this.add(e,`ilike`,t)}match(e,t){return this.add(e,`match`,t)}imatch(e,t){return this.add(e,`imatch`,t)}is(e,t){return this.add(e,`is`,t)}isDistinct(e,t){return this.add(e,`isdistinct`,t)}not(e,t,n){return this.add(e,t,n,!0)}build(){return this.filters.join(`,`)}toString(){return this.build()}};let rt=()=>new nt;var it;(function(e){e.ALL=`*`,e.INSERT=`INSERT`,e.UPDATE=`UPDATE`,e.DELETE=`DELETE`})(it||={});var E;(function(e){e.BROADCAST=`broadcast`,e.PRESENCE=`presence`,e.POSTGRES_CHANGES=`postgres_changes`,e.SYSTEM=`system`})(E||={});var D;(function(e){e.SUBSCRIBED=`SUBSCRIBED`,e.TIMED_OUT=`TIMED_OUT`,e.CLOSED=`CLOSED`,e.CHANNEL_ERROR=`CHANNEL_ERROR`})(D||={});let at=b;var ot=class e{get state(){return this.channelAdapter.state}set state(e){this.channelAdapter.state=e}get joinedOnce(){return this.channelAdapter.joinedOnce}get timeout(){return this.socket.timeout}get joinPush(){return this.channelAdapter.joinPush}get rejoinTimer(){return this.channelAdapter.rejoinTimer}constructor(e,t={config:{}},n){if(this.topic=e,this.params=t,this.socket=n,this.bindings={},this.subTopic=e.replace(/^realtime:/i,``),this.params.config=Object.assign({broadcast:{ack:!1,self:!1},presence:{key:``,enabled:!1},private:!1},t.config),this.channelAdapter=new Je(this.socket.socketAdapter,e,this.params),this.presence=new Ke(this),this._onClose(()=>{this.socket._remove(this)}),this._updateFilterTransform(),this.broadcastEndpointURL=xe(this.socket.socketAdapter.endPointURL()),this.private=this.params.config.private||!1,!this.private&&this.params.config?.broadcast?.replay)throw Error(`tried to use replay on public channel '${this.topic}'. It must be a private channel.`)}subscribe(e,t=this.timeout){if(this.socket.isConnected()||this.socket.connect(),this.channelAdapter.isClosed()){let{config:{broadcast:n,presence:r,private:i}}=this.params,a=this.bindings.postgres_changes?.map(e=>e.filter)??[],o=!!this.bindings[E.PRESENCE]&&this.bindings[E.PRESENCE].length>0||this.params.config.presence?.enabled===!0,s={},c={broadcast:n,presence:Object.assign(Object.assign({},r),{enabled:o}),postgres_changes:a,private:i};this.socket.accessTokenValue&&(s.access_token=this.socket.accessTokenValue),this._onError(t=>{e?.(D.CHANNEL_ERROR,qe(t))}),this._onClose(()=>e?.(D.CLOSED)),this.updateJoinPayload(Object.assign({config:c},s)),this._updateFilterMessage(),this.channelAdapter.subscribe(t).receive(`ok`,async({postgres_changes:t})=>{if(this.socket._isManualToken()||this.socket.setAuth(),t===void 0){e?.(D.SUBSCRIBED);return}this._updatePostgresBindings(t,e)}).receive(`error`,t=>{this.state=b.errored;let n=Object.values(t).join(`, `)||`error`;e?.(D.CHANNEL_ERROR,Error(n,{cause:t}))}).receive(`timeout`,()=>{e?.(D.TIMED_OUT)})}return this}_updatePostgresBindings(t,n){let r=this.bindings.postgres_changes,i=r?.length??0,a=[];for(let o=0;o<i;o++){let i=r[o],{filter:{event:s,schema:c,table:l,filter:u}}=i,d=t&&t[o];if(d&&d.event===s&&e.isFilterValueEqual(d.schema,c)&&e.isFilterValueEqual(d.table,l)&&e.isFilterValueEqual(d.filter,u))a.push(Object.assign(Object.assign({},i),{id:d.id}));else{this.unsubscribe(),this.state=b.errored,n?.(D.CHANNEL_ERROR,Error(`mismatch between server and client bindings for postgres changes`));return}}this.bindings.postgres_changes=a,this.state!=b.errored&&n&&n(D.SUBSCRIBED)}presenceState(){return this.presence.state}async track(e,t={}){return await this.send({type:`presence`,event:`track`,payload:e},t.timeout||this.timeout)}async untrack(e={}){return await this.send({type:`presence`,event:`untrack`},e)}on(e,t,n){let r=this.channelAdapter.isJoined()||this.channelAdapter.isJoining(),i=e===E.PRESENCE||e===E.POSTGRES_CHANGES;if(r&&i)throw this.socket.log(`channel`,`cannot add \`${e}\` callbacks for ${this.topic} after \`subscribe()\`.`),Error(`cannot add \`${e}\` callbacks for ${this.topic} after \`subscribe()\`.`);return this._on(e,t,n)}async httpSend(e,t,n={}){if(t==null)return Promise.reject(Error(`Payload is required for httpSend()`));let r=t instanceof ArrayBuffer||ArrayBuffer.isView(t),i={apikey:this.socket.apiKey?this.socket.apiKey:``,"Content-Type":r?`application/octet-stream`:`application/json`};this.socket.accessTokenValue&&(i.Authorization=`Bearer ${this.socket.accessTokenValue}`);let a=new URL(this.broadcastEndpointURL);a.pathname+=`/${encodeURIComponent(this.subTopic)}/events/${encodeURIComponent(e)}`,this.private&&a.searchParams.set(`private`,`true`);let o={method:`POST`,headers:i,body:r?t:JSON.stringify(t)},s=await this._fetchWithTimeout(a.toString(),o,n.timeout??this.timeout);if(s.status===202)return{success:!0};if(s.status===404)return Promise.reject(Error(`httpSend() requires Realtime server v2.97.0 or newer; the endpoint returned 404. Update your Supabase CLI to a recent version, or upgrade the Realtime server in your self-hosted setup. See https://github.com/supabase/supabase-js/blob/master/packages/core/realtime-js/migrations/httpsend-server-version.md`));let c=s.statusText;try{let e=await s.json();c=e.error||e.message||c}catch{}return Promise.reject(Error(c))}async send(e,t={}){if(!this.channelAdapter.canPush()&&e.type===`broadcast`){console.warn(`Realtime send() is automatically falling back to REST API. This behavior will be deprecated in the future. Please use httpSend() explicitly for REST delivery.`);let{event:n,payload:r}=e,i={apikey:this.socket.apiKey?this.socket.apiKey:``,"Content-Type":`application/json`};this.socket.accessTokenValue&&(i.Authorization=`Bearer ${this.socket.accessTokenValue}`);let a={method:`POST`,headers:i,body:JSON.stringify({messages:[{topic:this.subTopic,event:n,payload:r,private:this.private}]})};try{let e=await this._fetchWithTimeout(this.broadcastEndpointURL,a,t.timeout??this.timeout);return await e.body?.cancel(),e.ok?`ok`:`error`}catch(e){return e instanceof Error&&e.name===`AbortError`?`timed out`:`error`}}else return new Promise(n=>{let r=this.channelAdapter.push(e.type,e,t.timeout||this.timeout);e.type===`broadcast`&&!this.params?.config?.broadcast?.ack&&n(`ok`),r.receive(`ok`,()=>n(`ok`)),r.receive(`error`,()=>n(`error`)),r.receive(`timeout`,()=>n(`timed out`))})}updateJoinPayload(e){this.channelAdapter.updateJoinPayload(e)}async unsubscribe(e=this.timeout){return new Promise(t=>{this.channelAdapter.unsubscribe(e).receive(`ok`,()=>t(`ok`)).receive(`timeout`,()=>t(`timed out`)).receive(`error`,()=>t(`error`))})}teardown(){this.channelAdapter.teardown()}async _fetchWithTimeout(e,t,n){let r=new AbortController,i=setTimeout(()=>r.abort(),n),a=await this.socket.fetch(e,Object.assign(Object.assign({},t),{signal:r.signal}));return clearTimeout(i),a}_on(e,t,n){let r=e.toLocaleLowerCase(),i=t?.filter;(i instanceof nt||typeof i==`object`&&i&&typeof i.build==`function`)&&(t=Object.assign(Object.assign({},t),{filter:i.build()}));let a=this.channelAdapter.on(e,n),o={type:r,filter:t,callback:n,ref:a};return this.bindings[r]?this.bindings[r].push(o):this.bindings[r]=[o],this._updateFilterMessage(),this}_onClose(e){this.channelAdapter.onClose(e)}_onError(e){this.channelAdapter.onError(e)}_updateFilterMessage(){this.channelAdapter.updateFilterBindings((e,t,n)=>{let r=e.event.toLocaleLowerCase();if(this._notThisChannelEvent(r,n))return!1;let i=this.bindings[r]?.find(t=>t.ref===e.ref);if(!i)return!0;if([`broadcast`,`presence`,`postgres_changes`].includes(r))if(`id`in i){let e=i.id,n=i.filter?.event;return e&&t.ids?.includes(e)&&(n===`*`||n?.toLocaleLowerCase()===t.data?.type.toLocaleLowerCase())}else{let e=(i?.filter?.event)?.toLocaleLowerCase();return e===`*`||e===(t?.event)?.toLocaleLowerCase()}else return i.type.toLocaleLowerCase()===r})}_notThisChannelEvent(e,t){let{close:n,error:r,leave:i,join:a}=le;return t&&[n,r,i,a].includes(e)&&t!==this.joinPush.ref}_updateFilterTransform(){this.channelAdapter.updatePayloadTransform((e,t,n)=>{if(typeof t==`object`&&`ids`in t){let e=t.data,{schema:n,table:r,commit_timestamp:i,type:a,errors:o}=e,s={schema:n,table:r,commit_timestamp:i,eventType:a,new:{},old:{},errors:o};return Object.assign(Object.assign({},s),this._getPayloadRecords(e))}return t})}copyBindings(e){if(this.joinedOnce)throw Error(`cannot copy bindings into joined channel`);for(let t in e.bindings)for(let n of e.bindings[t])this._on(n.type,n.filter,n.callback)}static isFilterValueEqual(e,t){return(e??void 0)===(t??void 0)}_getPayloadRecords(e){let t={new:{},old:{}};return(e.type===`INSERT`||e.type===`UPDATE`)&&(t.new=fe(e.columns,e.record)),(e.type===`UPDATE`||e.type===`DELETE`)&&(t.old=fe(e.columns,e.old_record)),t}},st=class{constructor(e,t){this.socket=new ze(e,t)}get timeout(){return this.socket.timeout}get endPoint(){return this.socket.endPoint}get transport(){return this.socket.transport}get heartbeatIntervalMs(){return this.socket.heartbeatIntervalMs}get heartbeatCallback(){return this.socket.heartbeatCallback}set heartbeatCallback(e){this.socket.heartbeatCallback=e}get heartbeatTimer(){return this.socket.heartbeatTimer}get pendingHeartbeatRef(){return this.socket.pendingHeartbeatRef}get reconnectTimer(){return this.socket.reconnectTimer}get vsn(){return this.socket.vsn}get encode(){return this.socket.encode}get decode(){return this.socket.decode}get reconnectAfterMs(){return this.socket.reconnectAfterMs}get sendBuffer(){return this.socket.sendBuffer}get stateChangeCallbacks(){return this.socket.stateChangeCallbacks}connect(){this.socket.connect()}disconnect(e,t,n,r=1e4){return new Promise(i=>{setTimeout(()=>i(`timeout`),r),this.socket.disconnect(()=>{e(),i(`ok`)},t,n)})}push(e){this.socket.push(e)}log(e,t,n){this.socket.log(e,t,n)}makeRef(){return this.socket.makeRef()}onOpen(e){this.socket.onOpen(e)}onClose(e){this.socket.onClose(e)}onError(e){this.socket.onError(e)}onMessage(e){this.socket.onMessage(e)}isConnected(){return this.socket.isConnected()}isConnecting(){return this.socket.connectionState()==ue.connecting}isDisconnecting(){return this.socket.connectionState()==ue.closing}connectionState(){return this.socket.connectionState()}endPointURL(){return this.socket.endPointURL()}sendHeartbeat(){this.socket.sendHeartbeat()}getSocket(){return this.socket}};let ct={HEARTBEAT_INTERVAL:25e3,RECONNECT_DELAY:10,HEARTBEAT_TIMEOUT_FALLBACK:100},lt=[1e3,2e3,5e3,1e4];function ut(){let e=new Map;return{get length(){return e.size},clear(){e.clear()},getItem(t){return e.has(t)?e.get(t):null},key(t){return Array.from(e.keys())[t]??null},removeItem(t){e.delete(t)},setItem(t,n){e.set(t,String(n))}}}function dt(){try{if(typeof globalThis<`u`&&globalThis.sessionStorage)return globalThis.sessionStorage}catch{}return ut()}var ft=class{get endPoint(){return this.socketAdapter.endPoint}get timeout(){return this.socketAdapter.timeout}get transport(){return this.socketAdapter.transport}get heartbeatCallback(){return this.socketAdapter.heartbeatCallback}get heartbeatIntervalMs(){return this.socketAdapter.heartbeatIntervalMs}get heartbeatTimer(){return this.worker?this._workerHeartbeatTimer:this.socketAdapter.heartbeatTimer}get pendingHeartbeatRef(){return this.worker?this._pendingWorkerHeartbeatRef:this.socketAdapter.pendingHeartbeatRef}get reconnectTimer(){return this.socketAdapter.reconnectTimer}get vsn(){return this.socketAdapter.vsn}get encode(){return this.socketAdapter.encode}get decode(){return this.socketAdapter.decode}get reconnectAfterMs(){return this.socketAdapter.reconnectAfterMs}get sendBuffer(){return this.socketAdapter.sendBuffer}get stateChangeCallbacks(){return this.socketAdapter.stateChangeCallbacks}constructor(e,t){if(this.channels=[],this.accessTokenValue=null,this.accessToken=null,this.apiKey=null,this.httpEndpoint=``,this.headers={},this.params={},this.ref=0,this.serializer=new de,this._manuallySetToken=!1,this._authPromise=null,this._workerHeartbeatTimer=void 0,this._pendingWorkerHeartbeatRef=null,this._pendingDisconnectTimer=null,this._disconnectOnEmptyChannelsAfterMs=0,this._resolveFetch=e=>e?(...t)=>e(...t):(...e)=>fetch(...e),!t?.params?.apikey)throw Error(`API key is required to connect to Realtime`);this.apiKey=t.params.apikey,this.socketAdapter=new st(e,this._initializeOptions(t)),this.httpEndpoint=xe(e),this.fetch=this._resolveFetch(t?.fetch)}connect(){if(!(this.isConnecting()||this.isDisconnecting()||this.isConnected())){this.accessToken&&!this._authPromise&&this._setAuthSafely(`connect`),this._setupConnectionHandlers();try{this.socketAdapter.connect()}catch(e){let t=e.message;throw Error(`WebSocket not available: ${t}`)}this._handleNodeJsRaceCondition()}}endpointURL(){return this.socketAdapter.endPointURL()}async disconnect(e,t){return this._cancelPendingDisconnect(),this.isDisconnecting()?`ok`:await this.socketAdapter.disconnect(()=>{clearInterval(this._workerHeartbeatTimer),this._terminateWorker()},e,t)}getChannels(){return this.channels}async removeChannel(e){let t=await e.unsubscribe();return t===`ok`&&e.teardown(),t}async removeAllChannels(){let e=this.channels.map(async e=>{let t=await e.unsubscribe();return e.teardown(),t}),t=await Promise.all(e);return await this.disconnect(),t}log(e,t,n){this.socketAdapter.log(e,t,n)}connectionState(){return this.socketAdapter.connectionState()||ue.closed}isConnected(){return this.socketAdapter.isConnected()}isConnecting(){return this.socketAdapter.isConnecting()}isDisconnecting(){return this.socketAdapter.isDisconnecting()}channel(e,t={config:{}}){let n=`realtime:${e}`,r=this.getChannels().find(e=>e.topic===n);if(r)return r;{let n=new ot(`realtime:${e}`,t,this);return this._cancelPendingDisconnect(),this.channels.push(n),n}}push(e){this.socketAdapter.push(e)}async setAuth(e=null){this._authPromise=this._performAuth(e);try{await this._authPromise}finally{this._authPromise=null}}_isManualToken(){return this._manuallySetToken}async sendHeartbeat(){this.socketAdapter.sendHeartbeat()}onHeartbeat(e){this.socketAdapter.heartbeatCallback=this._wrapHeartbeatCallback(e)}_makeRef(){return this.socketAdapter.makeRef()}_remove(e){this.channels=this.channels.filter(t=>t.topic!==e.topic),this.channels.length===0&&(this.log(`transport`,`no channels remaining, scheduling disconnect`),this._schedulePendingDisconnect())}_schedulePendingDisconnect(){if(this._cancelPendingDisconnect(),this._disconnectOnEmptyChannelsAfterMs===0){this.log(`transport`,`disconnecting immediately - no channels`),this.disconnect();return}this._pendingDisconnectTimer=setTimeout(()=>{this._pendingDisconnectTimer=null,this.channels.length===0&&(this.log(`transport`,`deferred disconnect fired - no channels, disconnecting`),this.disconnect())},this._disconnectOnEmptyChannelsAfterMs),this.log(`transport`,`deferred disconnect scheduled in ${this._disconnectOnEmptyChannelsAfterMs}ms`)}_cancelPendingDisconnect(){this._pendingDisconnectTimer!==null&&(this.log(`transport`,`pending disconnect cancelled - channel activity detected`),clearTimeout(this._pendingDisconnectTimer),this._pendingDisconnectTimer=null)}async _performAuth(e=null){let t,n=!1;if(e)t=e,n=!0;else if(this.accessToken)try{t=await this.accessToken()}catch(e){this.log(`error`,`Error fetching access token from callback`,e),t=this.accessTokenValue}else t=this.accessTokenValue;n?this._manuallySetToken=!0:this.accessToken&&(this._manuallySetToken=!1),this.accessTokenValue!=t&&(this.accessTokenValue=t,this.channels.forEach(e=>{let n={access_token:t,version:`realtime-js/2.110.0`};t&&e.updateJoinPayload(n),e.joinedOnce&&e.channelAdapter.isJoined()&&e.channelAdapter.push(le.access_token,{access_token:t})}))}async _waitForAuthIfNeeded(){this._authPromise&&await this._authPromise}_setAuthSafely(e=`general`){this._isManualToken()||this.setAuth().catch(t=>{this.log(`error`,`Error setting auth in ${e}`,t)})}_setupConnectionHandlers(){this.socketAdapter.onOpen(()=>{(this._authPromise||(this.accessToken&&!this.accessTokenValue?this.setAuth():Promise.resolve())).catch(e=>{this.log(`error`,`error waiting for auth on connect`,e)}),this.worker&&!this.workerRef&&this._startWorkerHeartbeat()}),this.socketAdapter.onClose(()=>{this.worker&&this.workerRef&&this._terminateWorker()}),this.socketAdapter.onMessage(e=>{e.ref&&e.ref===this._pendingWorkerHeartbeatRef&&(this._pendingWorkerHeartbeatRef=null)})}_handleNodeJsRaceCondition(){this.socketAdapter.isConnected()&&this.socketAdapter.getSocket().onConnOpen()}_wrapHeartbeatCallback(e){return(t,n)=>{t==`sent`&&this._setAuthSafely(),e&&e(t,n)}}_startWorkerHeartbeat(){this.workerUrl?this.log(`worker`,`starting worker for from ${this.workerUrl}`):this.log(`worker`,`starting default worker`);let e=this._workerObjectUrl(this.workerUrl);this.workerRef=new Worker(e),this.workerRef.onerror=e=>{this.log(`worker`,`worker error`,e.message),this._terminateWorker(),this.disconnect()},this.workerRef.onmessage=e=>{e.data.event===`keepAlive`&&this.sendHeartbeat()},this.workerRef.postMessage({event:`start`,interval:this.heartbeatIntervalMs})}_terminateWorker(){this.workerRef&&=(this.log(`worker`,`terminating worker`),this.workerRef.terminate(),void 0)}_workerObjectUrl(e){let t;if(e)t=e;else{let e=new Blob([`
+  addEventListener("message", (e) => {
+    if (e.data.event === "start") {
+      setInterval(() => postMessage({ event: "keepAlive" }), e.data.interval);
+    }
+  });`],{type:`application/javascript`});t=URL.createObjectURL(e)}return t}_initializeOptions(e){this.worker=e?.worker??!1,this.accessToken=e?.accessToken??null;let t={};t.timeout=e?.timeout??1e4,t.heartbeatIntervalMs=e?.heartbeatIntervalMs??ct.HEARTBEAT_INTERVAL,this._disconnectOnEmptyChannelsAfterMs=e?.disconnectOnEmptyChannelsAfterMs??2*(e?.heartbeatIntervalMs??ct.HEARTBEAT_INTERVAL),t.transport=e?.transport??ce.getWebSocketConstructor(),t.params=e?.params,t.logger=e?.logger,t.heartbeatCallback=this._wrapHeartbeatCallback(e?.heartbeatCallback),t.sessionStorage=e?.sessionStorage??dt(),t.reconnectAfterMs=e?.reconnectAfterMs??(e=>lt[e-1]||1e4);let n,r,i=e?.vsn??`2.0.0`;switch(i){case`1.0.0`:n=(e,t)=>t(JSON.stringify(e)),r=(e,t)=>t(JSON.parse(e));break;case`2.0.0`:n=this.serializer.encode.bind(this.serializer),r=this.serializer.decode.bind(this.serializer);break;default:throw Error(`Unsupported serializer version: ${t.vsn}`)}if(t.vsn=i,t.encode=e?.encode??n,t.decode=e?.decode??r,t.beforeReconnect=this._reconnectAuth.bind(this),(e?.logLevel||e?.log_level)&&(this.logLevel=e.logLevel||e.log_level,t.params=Object.assign(Object.assign({},t.params),{log_level:this.logLevel})),this.worker){if(typeof window<`u`&&!window.Worker)throw Error(`Web Worker is not supported`);this.workerUrl=e?.workerUrl,t.autoSendHeartbeat=!this.worker}return t}async _reconnectAuth(){await this._waitForAuthIfNeeded(),this.isConnected()||this.connect()}},pt=class extends Error{constructor(e,t){super(e),this.name=`IcebergError`,this.status=t.status,this.icebergType=t.icebergType,this.icebergCode=t.icebergCode,this.details=t.details,this.isCommitStateUnknown=t.icebergType===`CommitStateUnknownException`||[500,502,504].includes(t.status)&&t.icebergType?.includes(`CommitState`)===!0}isNotFound(){return this.status===404}isConflict(){return this.status===409}isAuthenticationTimeout(){return this.status===419}};function mt(e,t,n){let r=new URL(t,e);if(n)for(let[e,t]of Object.entries(n))t!==void 0&&r.searchParams.set(e,t);return r.toString()}async function ht(e){return!e||e.type===`none`?{}:e.type===`bearer`?{Authorization:`Bearer ${e.token}`}:e.type===`header`?{[e.name]:e.value}:e.type===`custom`?await e.getHeaders():{}}function gt(e){let t=e.fetchImpl??globalThis.fetch;return{async request({method:n,path:r,query:i,body:a,headers:o}){let s=mt(e.baseUrl,r,i),c=await ht(e.auth),l=await t(s,{method:n,headers:{...a?{"Content-Type":`application/json`}:{},...c,...o},body:a?JSON.stringify(a):void 0}),u=await l.text(),d=(l.headers.get(`content-type`)||``).includes(`application/json`),f=d&&u?JSON.parse(u):u;if(!l.ok){let e=d?f:void 0,t=e?.error;throw new pt(t?.message??`Request failed with status ${l.status}`,{status:l.status,icebergType:t?.type,icebergCode:t?.code,details:e})}return{status:l.status,headers:l.headers,data:f}}}}function _t(e){return e.join(``)}var vt=class{constructor(e,t=``){this.client=e,this.prefix=t}async listNamespaces(e){let t=e?{parent:_t(e.namespace)}:void 0;return(await this.client.request({method:`GET`,path:`${this.prefix}/namespaces`,query:t})).data.namespaces.map(e=>({namespace:e}))}async createNamespace(e,t){let n={namespace:e.namespace,properties:t?.properties};return(await this.client.request({method:`POST`,path:`${this.prefix}/namespaces`,body:n})).data}async dropNamespace(e){await this.client.request({method:`DELETE`,path:`${this.prefix}/namespaces/${_t(e.namespace)}`})}async loadNamespaceMetadata(e){return{properties:(await this.client.request({method:`GET`,path:`${this.prefix}/namespaces/${_t(e.namespace)}`})).data.properties}}async namespaceExists(e){try{return await this.client.request({method:`HEAD`,path:`${this.prefix}/namespaces/${_t(e.namespace)}`}),!0}catch(e){if(e instanceof pt&&e.status===404)return!1;throw e}}async createNamespaceIfNotExists(e,t){try{return await this.createNamespace(e,t)}catch(e){if(e instanceof pt&&e.status===409)return;throw e}}};function yt(e){return e.join(``)}var bt=class{constructor(e,t=``,n){this.client=e,this.prefix=t,this.accessDelegation=n}async listTables(e){return(await this.client.request({method:`GET`,path:`${this.prefix}/namespaces/${yt(e.namespace)}/tables`})).data.identifiers}async createTable(e,t){let n={};return this.accessDelegation&&(n[`X-Iceberg-Access-Delegation`]=this.accessDelegation),(await this.client.request({method:`POST`,path:`${this.prefix}/namespaces/${yt(e.namespace)}/tables`,body:t,headers:n})).data.metadata}async updateTable(e,t){let n=await this.client.request({method:`POST`,path:`${this.prefix}/namespaces/${yt(e.namespace)}/tables/${e.name}`,body:t});return{"metadata-location":n.data[`metadata-location`],metadata:n.data.metadata}}async dropTable(e,t){await this.client.request({method:`DELETE`,path:`${this.prefix}/namespaces/${yt(e.namespace)}/tables/${e.name}`,query:{purgeRequested:String(t?.purge??!1)}})}async loadTable(e){let t={};return this.accessDelegation&&(t[`X-Iceberg-Access-Delegation`]=this.accessDelegation),(await this.client.request({method:`GET`,path:`${this.prefix}/namespaces/${yt(e.namespace)}/tables/${e.name}`,headers:t})).data.metadata}async tableExists(e){let t={};this.accessDelegation&&(t[`X-Iceberg-Access-Delegation`]=this.accessDelegation);try{return await this.client.request({method:`HEAD`,path:`${this.prefix}/namespaces/${yt(e.namespace)}/tables/${e.name}`,headers:t}),!0}catch(e){if(e instanceof pt&&e.status===404)return!1;throw e}}async createTableIfNotExists(e,t){try{return await this.createTable(e,t)}catch(n){if(n instanceof pt&&n.status===409)return await this.loadTable({namespace:e.namespace,name:t.name});throw n}}},xt=class{constructor(e){let t=`v1`;e.catalogName&&(t+=`/${e.catalogName}`),this.client=gt({baseUrl:e.baseUrl.endsWith(`/`)?e.baseUrl:`${e.baseUrl}/`,auth:e.auth,fetchImpl:e.fetch}),this.accessDelegation=e.accessDelegation?.join(`,`),this.namespaceOps=new vt(this.client,t),this.tableOps=new bt(this.client,t,this.accessDelegation)}async listNamespaces(e){return this.namespaceOps.listNamespaces(e)}async createNamespace(e,t){return this.namespaceOps.createNamespace(e,t)}async dropNamespace(e){await this.namespaceOps.dropNamespace(e)}async loadNamespaceMetadata(e){return this.namespaceOps.loadNamespaceMetadata(e)}async listTables(e){return this.tableOps.listTables(e)}async createTable(e,t){return this.tableOps.createTable(e,t)}async updateTable(e,t){return this.tableOps.updateTable(e,t)}async dropTable(e,t){await this.tableOps.dropTable(e,t)}async loadTable(e){return this.tableOps.loadTable(e)}async namespaceExists(e){return this.namespaceOps.namespaceExists(e)}async tableExists(e){return this.tableOps.tableExists(e)}async createNamespaceIfNotExists(e,t){return this.namespaceOps.createNamespaceIfNotExists(e,t)}async createTableIfNotExists(e,t){return this.tableOps.createTableIfNotExists(e,t)}};function St(e){"@babel/helpers - typeof";return St=typeof Symbol==`function`&&typeof Symbol.iterator==`symbol`?function(e){return typeof e}:function(e){return e&&typeof Symbol==`function`&&e.constructor===Symbol&&e!==Symbol.prototype?`symbol`:typeof e},St(e)}function Ct(e,t){if(St(e)!=`object`||!e)return e;var n=e[Symbol.toPrimitive];if(n!==void 0){var r=n.call(e,t||`default`);if(St(r)!=`object`)return r;throw TypeError(`@@toPrimitive must return a primitive value.`)}return(t===`string`?String:Number)(e)}function wt(e){var t=Ct(e,`string`);return St(t)==`symbol`?t:t+``}function Tt(e,t,n){return(t=wt(t))in e?Object.defineProperty(e,t,{value:n,enumerable:!0,configurable:!0,writable:!0}):e[t]=n,e}function Et(e,t){var n=Object.keys(e);if(Object.getOwnPropertySymbols){var r=Object.getOwnPropertySymbols(e);t&&(r=r.filter(function(t){return Object.getOwnPropertyDescriptor(e,t).enumerable})),n.push.apply(n,r)}return n}function O(e){for(var t=1;t<arguments.length;t++){var n=arguments[t]==null?{}:arguments[t];t%2?Et(Object(n),!0).forEach(function(t){Tt(e,t,n[t])}):Object.getOwnPropertyDescriptors?Object.defineProperties(e,Object.getOwnPropertyDescriptors(n)):Et(Object(n)).forEach(function(t){Object.defineProperty(e,t,Object.getOwnPropertyDescriptor(n,t))})}return e}var Dt=class extends Error{constructor(e,t=`storage`,n,r){super(e),this.__isStorageError=!0,this.namespace=t,this.name=t===`vectors`?`StorageVectorsError`:`StorageError`,this.status=n,this.statusCode=r}toJSON(){return{name:this.name,message:this.message,status:this.status,statusCode:this.statusCode}}};function Ot(e){return typeof e==`object`&&!!e&&`__isStorageError`in e}var kt=class extends Dt{constructor(e,t,n,r=`storage`){super(e,r,t,n),this.name=r===`vectors`?`StorageVectorsApiError`:`StorageApiError`,this.status=t,this.statusCode=n}toJSON(){return O({},super.toJSON())}},At=class extends Dt{constructor(e,t,n=`storage`){super(e,n),this.name=n===`vectors`?`StorageVectorsUnknownError`:`StorageUnknownError`,this.originalError=t}};function jt(e,t,n){let r=O({},e),i=t.toLowerCase();for(let e of Object.keys(r))e.toLowerCase()===i&&delete r[e];return r[i]=n,r}function Mt(e){let t={};for(let[n,r]of Object.entries(e))t[n.toLowerCase()]=r;return t}let Nt=e=>e?(...t)=>e(...t):(...e)=>fetch(...e),Pt=e=>{if(typeof e!=`object`||!e)return!1;let t=Object.getPrototypeOf(e);return(t===null||t===Object.prototype||Object.getPrototypeOf(t)===null)&&!(Symbol.toStringTag in e)&&!(Symbol.iterator in e)},Ft=e=>{if(Array.isArray(e))return e.map(e=>Ft(e));if(typeof e==`function`||e!==Object(e))return e;let t={};return Object.entries(e).forEach(([e,n])=>{let r=e.replace(/([-_][a-z])/gi,e=>e.toUpperCase().replace(/[-_]/g,``));t[r]=Ft(n)}),t},It=e=>!e||typeof e!=`string`||e.length===0||e.length>100||e.trim()!==e||e.includes(`/`)||e.includes(`\\`)?!1:/^[\w!.\*'() &$@=;:+,?-]+$/.test(e),Lt=e=>{if(typeof e==`object`&&e){let t=e;if(typeof t.msg==`string`)return t.msg;if(typeof t.message==`string`)return t.message;if(typeof t.error_description==`string`)return t.error_description;if(typeof t.error==`string`)return t.error;if(typeof t.error==`object`&&t.error!==null){let e=t.error;if(typeof e.message==`string`)return e.message}}return JSON.stringify(e)},Rt=async(e,t,n,r)=>{if(typeof e==`object`&&e&&`json`in e&&typeof e.json==`function`){let n=e,i=parseInt(String(n.status),10);Number.isFinite(i)||(i=500),n.json().then(e=>{let n=e?.statusCode||e?.code||i+``;t(new kt(Lt(e),i,n,r))}).catch(()=>{let e=i+``;t(new kt(n.statusText||`HTTP ${i} error`,i,e,r))})}else t(new At(Lt(e),e,r))},zt=(e,t,n,r)=>{let i={method:e,headers:t?.headers||{}};if(e===`GET`||e===`HEAD`||!r)return O(O({},i),n);if(Pt(r)){let e=t?.headers||{},n;for(let[t,r]of Object.entries(e))t.toLowerCase()===`content-type`&&(n=r);i.headers=jt(e,`Content-Type`,n??`application/json`),i.body=JSON.stringify(r)}else i.body=r;return t?.duplex&&(i.duplex=t.duplex),O(O({},i),n)};async function Bt(e,t,n,r,i,a,o){return new Promise((s,c)=>{e(n,zt(t,r,i,a)).then(e=>{if(!e.ok)throw e;if(r?.noResolveJson)return e;if(o===`vectors`){let t=e.headers.get(`content-type`);if(e.headers.get(`content-length`)===`0`||e.status===204||!t||!t.includes(`application/json`))return{}}return e.json()}).then(e=>s(e)).catch(e=>Rt(e,c,r,o))})}function Vt(e=`storage`){return{get:async(t,n,r,i)=>Bt(t,`GET`,n,r,i,void 0,e),post:async(t,n,r,i,a)=>Bt(t,`POST`,n,i,a,r,e),put:async(t,n,r,i,a)=>Bt(t,`PUT`,n,i,a,r,e),head:async(t,n,r,i)=>Bt(t,`HEAD`,n,O(O({},r),{},{noResolveJson:!0}),i,void 0,e),remove:async(t,n,r,i,a)=>Bt(t,`DELETE`,n,i,a,r,e)}}let{get:Ht,post:k,put:Ut,head:Wt,remove:Gt}=Vt(`storage`),A=Vt(`vectors`);var j=class{constructor(e,t={},n,r=`storage`){this.shouldThrowOnError=!1,this.url=e,this.headers=Mt(t),this.fetch=Nt(n),this.namespace=r}throwOnError(){return this.shouldThrowOnError=!0,this}setHeader(e,t){return this.headers=jt(this.headers,e,t),this}async handleOperation(e){var t=this;try{return{data:await e(),error:null}}catch(e){if(t.shouldThrowOnError)throw e;if(Ot(e))return{data:null,error:e};throw e}}};let Kt;Kt=Symbol.toStringTag;var qt=class{constructor(e,t){this.downloadFn=e,this.shouldThrowOnError=t,this[Kt]=`StreamDownloadBuilder`,this.promise=null}then(e,t){return this.getPromise().then(e,t)}catch(e){return this.getPromise().catch(e)}finally(e){return this.getPromise().finally(e)}getPromise(){return this.promise||=this.execute(),this.promise}async execute(){var e=this;try{return{data:(await e.downloadFn()).body,error:null}}catch(t){if(e.shouldThrowOnError)throw t;if(Ot(t))return{data:null,error:t};throw t}}};let Jt;Jt=Symbol.toStringTag;var Yt=class{constructor(e,t){this.downloadFn=e,this.shouldThrowOnError=t,this[Jt]=`BlobDownloadBuilder`,this.promise=null}asStream(){return new qt(this.downloadFn,this.shouldThrowOnError)}then(e,t){return this.getPromise().then(e,t)}catch(e){return this.getPromise().catch(e)}finally(e){return this.getPromise().finally(e)}getPromise(){return this.promise||=this.execute(),this.promise}async execute(){var e=this;try{return{data:await(await e.downloadFn()).blob(),error:null}}catch(t){if(e.shouldThrowOnError)throw t;if(Ot(t))return{data:null,error:t};throw t}}};let Xt={limit:100,offset:0,sortBy:{column:`name`,order:`asc`}},Zt={cacheControl:`3600`,contentType:`text/plain;charset=UTF-8`,upsert:!1};var Qt=class extends j{constructor(e,t={},n,r){super(e,t,r,`storage`),this.bucketId=n}async uploadOrUpdate(e,t,n,r){var i=this;return i.handleOperation(async()=>{let a,o=O(O({},Zt),r),s=O(O({},i.headers),e===`POST`&&{"x-upsert":String(o.upsert)}),c=o.metadata;if(typeof Blob<`u`&&n instanceof Blob?(a=new FormData,a.append(`cacheControl`,o.cacheControl),c&&a.append(`metadata`,i.encodeMetadata(c)),a.append(``,n)):typeof FormData<`u`&&n instanceof FormData?(a=n,a.has(`cacheControl`)||a.append(`cacheControl`,o.cacheControl),c&&!a.has(`metadata`)&&a.append(`metadata`,i.encodeMetadata(c))):(a=n,s[`cache-control`]=`max-age=${o.cacheControl}`,s[`content-type`]=o.contentType,c&&(s[`x-metadata`]=i.toBase64(i.encodeMetadata(c))),(typeof ReadableStream<`u`&&a instanceof ReadableStream||a&&typeof a==`object`&&`pipe`in a&&typeof a.pipe==`function`)&&!o.duplex&&(o.duplex=`half`)),r?.headers)for(let[e,t]of Object.entries(r.headers))s=jt(s,e,t);let l=i._removeEmptyFolders(t),u=i._getFinalPath(l),d=await(e==`PUT`?Ut:k)(i.fetch,`${i.url}/object/${u}`,a,O({headers:s},o?.duplex?{duplex:o.duplex}:{}));return{path:l,id:d.Id,fullPath:d.Key}})}async upload(e,t,n){return this.uploadOrUpdate(`POST`,e,t,n)}async uploadToSignedUrl(e,t,n,r){var i=this;let a=i._removeEmptyFolders(e),o=i._getFinalPath(a),s=new URL(i.url+`/object/upload/sign/${o}`);return s.searchParams.set(`token`,t),i.handleOperation(async()=>{let e,t=O(O({},Zt),r),o=O(O({},i.headers),{"x-upsert":String(t.upsert)}),c=t.metadata;if(typeof Blob<`u`&&n instanceof Blob?(e=new FormData,e.append(`cacheControl`,t.cacheControl),c&&e.append(`metadata`,i.encodeMetadata(c)),e.append(``,n)):typeof FormData<`u`&&n instanceof FormData?(e=n,e.has(`cacheControl`)||e.append(`cacheControl`,t.cacheControl),c&&!e.has(`metadata`)&&e.append(`metadata`,i.encodeMetadata(c))):(e=n,o[`cache-control`]=`max-age=${t.cacheControl}`,o[`content-type`]=t.contentType,c&&(o[`x-metadata`]=i.toBase64(i.encodeMetadata(c))),(typeof ReadableStream<`u`&&e instanceof ReadableStream||e&&typeof e==`object`&&`pipe`in e&&typeof e.pipe==`function`)&&!t.duplex&&(t.duplex=`half`)),r?.headers)for(let[e,t]of Object.entries(r.headers))o=jt(o,e,t);return{path:a,fullPath:(await Ut(i.fetch,s.toString(),e,O({headers:o},t?.duplex?{duplex:t.duplex}:{}))).Key}})}async createSignedUploadUrl(e,t){var n=this;return n.handleOperation(async()=>{let r=n._getFinalPath(e),i=O({},n.headers);t?.upsert&&(i[`x-upsert`]=`true`);let a=await k(n.fetch,`${n.url}/object/upload/sign/${r}`,{},{headers:i}),o=new URL(n.url+a.url),s=o.searchParams.get(`token`);if(!s)throw new Dt(`No token returned by API`);return{signedUrl:o.toString(),path:e,token:s}})}async update(e,t,n){return this.uploadOrUpdate(`PUT`,e,t,n)}async move(e,t,n){var r=this;return r.handleOperation(async()=>await k(r.fetch,`${r.url}/object/move`,{bucketId:r.bucketId,sourceKey:e,destinationKey:t,destinationBucket:n?.destinationBucket},{headers:r.headers}))}async copy(e,t,n){var r=this;return r.handleOperation(async()=>({path:(await k(r.fetch,`${r.url}/object/copy`,{bucketId:r.bucketId,sourceKey:e,destinationKey:t,destinationBucket:n?.destinationBucket},{headers:r.headers})).Key}))}async createSignedUrl(e,t,n){var r=this;return r.handleOperation(async()=>{let i=r._getFinalPath(e),a=typeof n?.transform==`object`&&n.transform!==null&&Object.keys(n.transform).length>0,o=await k(r.fetch,`${r.url}/object/sign/${i}`,O({expiresIn:t},a?{transform:n.transform}:{}),{headers:r.headers}),s=new URLSearchParams;n?.download&&s.set(`download`,n.download===!0?``:n.download),n?.cacheNonce!=null&&s.set(`cacheNonce`,String(n.cacheNonce));let c=s.toString();return{signedUrl:encodeURI(`${r.url}${o.signedURL}${c?`&${c}`:``}`)}})}async createSignedUrls(e,t,n){var r=this;return r.handleOperation(async()=>{let i=await k(r.fetch,`${r.url}/object/sign/${r.bucketId}`,{expiresIn:t,paths:e},{headers:r.headers}),a=new URLSearchParams;n?.download&&a.set(`download`,n.download===!0?``:n.download),n?.cacheNonce!=null&&a.set(`cacheNonce`,String(n.cacheNonce));let o=a.toString();return i.map(e=>O(O({},e),{},{signedUrl:e.signedURL?encodeURI(`${r.url}${e.signedURL}${o?`&${o}`:``}`):null}))})}download(e,t,n){let r=typeof t?.transform==`object`&&t.transform!==null&&Object.keys(t.transform).length>0?`render/image/authenticated`:`object`,i=new URLSearchParams;t?.transform&&this.applyTransformOptsToQuery(i,t.transform),t?.cacheNonce!=null&&i.set(`cacheNonce`,String(t.cacheNonce));let a=i.toString(),o=this._getFinalPath(e);return new Yt(()=>Ht(this.fetch,`${this.url}/${r}/${o}${a?`?${a}`:``}`,{headers:this.headers,noResolveJson:!0},n),this.shouldThrowOnError)}async info(e){var t=this;let n=t._getFinalPath(e);return t.handleOperation(async()=>Ft(await Ht(t.fetch,`${t.url}/object/info/${n}`,{headers:t.headers})))}async exists(e){var t=this;let n=t._getFinalPath(e);try{return await Wt(t.fetch,`${t.url}/object/${n}`,{headers:t.headers}),{data:!0,error:null}}catch(e){if(t.shouldThrowOnError)throw e;if(Ot(e)){let t=e instanceof kt?e.status:e instanceof At?e.originalError?.status:void 0;if(t!==void 0&&[400,404].includes(t))return{data:!1,error:e}}throw e}}getPublicUrl(e,t){let n=this._getFinalPath(e),r=new URLSearchParams;t?.download&&r.set(`download`,t.download===!0?``:t.download),t?.transform&&this.applyTransformOptsToQuery(r,t.transform),t?.cacheNonce!=null&&r.set(`cacheNonce`,String(t.cacheNonce));let i=r.toString(),a=typeof t?.transform==`object`&&t.transform!==null&&Object.keys(t.transform).length>0?`render/image`:`object`;return{data:{publicUrl:encodeURI(`${this.url}/${a}/public/${n}`)+(i?`?${i}`:``)}}}async remove(e){var t=this;return t.handleOperation(async()=>await Gt(t.fetch,`${t.url}/object/${t.bucketId}`,{prefixes:e},{headers:t.headers}))}async purgeCache(e,t,n){var r=this;return r.handleOperation(async()=>{let i=r._getFinalPath(e),a=new URLSearchParams;t?.transformations&&a.set(`transformations`,`true`);let o=a.toString();return await Gt(r.fetch,`${r.url}/cdn/${i}${o?`?${o}`:``}`,{},{headers:r.headers},n)})}async list(e,t,n){var r=this;return r.handleOperation(async()=>{let i=t?.sortBy?O(O({},Xt.sortBy),t.sortBy):Xt.sortBy,a=O(O(O({},Xt),t),{},{sortBy:i,prefix:e||``});return await k(r.fetch,`${r.url}/object/list/${r.bucketId}`,a,{headers:r.headers},n)})}async listV2(e,t){var n=this;return n.handleOperation(async()=>{let r=O({},e);return await k(n.fetch,`${n.url}/object/list-v2/${n.bucketId}`,r,{headers:n.headers},t)})}encodeMetadata(e){return JSON.stringify(e)}toBase64(e){return typeof Buffer<`u`?Buffer.from(e).toString(`base64`):btoa(e)}_getFinalPath(e){return`${this.bucketId}/${e.replace(/^\/+/,``)}`}_removeEmptyFolders(e){return e.replace(/^\/|\/$/g,``).replace(/\/+/g,`/`)}applyTransformOptsToQuery(e,t){return t.width&&e.set(`width`,t.width.toString()),t.height&&e.set(`height`,t.height.toString()),t.resize&&e.set(`resize`,t.resize),t.format&&e.set(`format`,t.format),t.quality&&e.set(`quality`,t.quality.toString()),e}};let $t={"X-Client-Info":`storage-js/2.110.0`};var en=class extends j{constructor(e,t={},n,r){let i=new URL(e);r?.useNewHostname&&/supabase\.(co|in|red)$/.test(i.hostname)&&!i.hostname.includes(`storage.supabase.`)&&(i.hostname=i.hostname.replace(`supabase.`,`storage.supabase.`));let a=i.href.replace(/\/$/,``),o=O(O({},$t),t);super(a,o,n,`storage`)}async listBuckets(e){var t=this;return t.handleOperation(async()=>{let n=t.listBucketOptionsToQueryString(e);return await Ht(t.fetch,`${t.url}/bucket${n}`,{headers:t.headers})})}async getBucket(e){var t=this;return t.handleOperation(async()=>await Ht(t.fetch,`${t.url}/bucket/${e}`,{headers:t.headers}))}async createBucket(e,t={public:!1}){var n=this;return n.handleOperation(async()=>await k(n.fetch,`${n.url}/bucket`,{id:e,name:e,type:t.type,public:t.public,file_size_limit:t.fileSizeLimit,allowed_mime_types:t.allowedMimeTypes},{headers:n.headers}))}async updateBucket(e,t){var n=this;return n.handleOperation(async()=>await Ut(n.fetch,`${n.url}/bucket/${e}`,{id:e,name:e,public:t.public,file_size_limit:t.fileSizeLimit,allowed_mime_types:t.allowedMimeTypes},{headers:n.headers}))}async emptyBucket(e){var t=this;return t.handleOperation(async()=>await k(t.fetch,`${t.url}/bucket/${e}/empty`,{},{headers:t.headers}))}async deleteBucket(e){var t=this;return t.handleOperation(async()=>await Gt(t.fetch,`${t.url}/bucket/${e}`,{},{headers:t.headers}))}async purgeBucketCache(e,t,n){var r=this;return r.handleOperation(async()=>{let i=new URLSearchParams;t?.transformations&&i.set(`transformations`,`true`);let a=i.toString();return await Gt(r.fetch,`${r.url}/cdn/${e}${a?`?${a}`:``}`,{},{headers:r.headers},n)})}listBucketOptionsToQueryString(e){let t={};return e&&(`limit`in e&&(t.limit=String(e.limit)),`offset`in e&&(t.offset=String(e.offset)),e.search&&(t.search=e.search),e.sortColumn&&(t.sortColumn=e.sortColumn),e.sortOrder&&(t.sortOrder=e.sortOrder)),Object.keys(t).length>0?`?`+new URLSearchParams(t).toString():``}},tn=class extends j{constructor(e,t={},n){let r=e.replace(/\/$/,``),i=O(O({},$t),t);super(r,i,n,`storage`)}async createBucket(e){var t=this;return t.handleOperation(async()=>await k(t.fetch,`${t.url}/bucket`,{name:e},{headers:t.headers}))}async listBuckets(e){var t=this;return t.handleOperation(async()=>{let n=new URLSearchParams;e?.limit!==void 0&&n.set(`limit`,e.limit.toString()),e?.offset!==void 0&&n.set(`offset`,e.offset.toString()),e?.sortColumn&&n.set(`sortColumn`,e.sortColumn),e?.sortOrder&&n.set(`sortOrder`,e.sortOrder),e?.search&&n.set(`search`,e.search);let r=n.toString(),i=r?`${t.url}/bucket?${r}`:`${t.url}/bucket`;return await Ht(t.fetch,i,{headers:t.headers})})}async deleteBucket(e){var t=this;return t.handleOperation(async()=>await Gt(t.fetch,`${t.url}/bucket/${e}`,{},{headers:t.headers}))}from(e){var t=this;if(!It(e))throw new Dt(`Invalid bucket name: File, folder, and bucket names must follow AWS object key naming guidelines and should avoid the use of any other characters.`);let n=new xt({baseUrl:this.url,catalogName:e,auth:{type:`custom`,getHeaders:async()=>t.headers},fetch:this.fetch}),r=this.shouldThrowOnError;return new Proxy(n,{get(e,t){let n=e[t];return typeof n==`function`?async(...t)=>{try{return{data:await n.apply(e,t),error:null}}catch(e){if(r)throw e;return{data:null,error:e}}}:n}})}},nn=class extends j{constructor(e,t={},n){let r=e.replace(/\/$/,``),i=O(O({},$t),{},{"Content-Type":`application/json`},t);super(r,i,n,`vectors`)}async createIndex(e){var t=this;return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/CreateIndex`,e,{headers:t.headers})||{})}async getIndex(e,t){var n=this;return n.handleOperation(async()=>await A.post(n.fetch,`${n.url}/GetIndex`,{vectorBucketName:e,indexName:t},{headers:n.headers}))}async listIndexes(e){var t=this;return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/ListIndexes`,e,{headers:t.headers}))}async deleteIndex(e,t){var n=this;return n.handleOperation(async()=>await A.post(n.fetch,`${n.url}/DeleteIndex`,{vectorBucketName:e,indexName:t},{headers:n.headers})||{})}},rn=class extends j{constructor(e,t={},n){let r=e.replace(/\/$/,``),i=O(O({},$t),{},{"Content-Type":`application/json`},t);super(r,i,n,`vectors`)}async putVectors(e){var t=this;if(e.vectors.length<1||e.vectors.length>500)throw Error(`Vector batch size must be between 1 and 500 items`);return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/PutVectors`,e,{headers:t.headers})||{})}async getVectors(e){var t=this;return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/GetVectors`,e,{headers:t.headers}))}async listVectors(e){var t=this;if(e.segmentCount!==void 0){if(e.segmentCount<1||e.segmentCount>16)throw Error(`segmentCount must be between 1 and 16`);if(e.segmentIndex!==void 0&&(e.segmentIndex<0||e.segmentIndex>=e.segmentCount))throw Error(`segmentIndex must be between 0 and ${e.segmentCount-1}`)}return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/ListVectors`,e,{headers:t.headers}))}async queryVectors(e){var t=this;return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/QueryVectors`,e,{headers:t.headers}))}async deleteVectors(e){var t=this;if(e.keys.length<1||e.keys.length>500)throw Error(`Keys batch size must be between 1 and 500 items`);return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/DeleteVectors`,e,{headers:t.headers})||{})}},an=class extends j{constructor(e,t={},n){let r=e.replace(/\/$/,``),i=O(O({},$t),{},{"Content-Type":`application/json`},t);super(r,i,n,`vectors`)}async createBucket(e){var t=this;return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/CreateVectorBucket`,{vectorBucketName:e},{headers:t.headers})||{})}async getBucket(e){var t=this;return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/GetVectorBucket`,{vectorBucketName:e},{headers:t.headers}))}async listBuckets(e={}){var t=this;return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/ListVectorBuckets`,e,{headers:t.headers}))}async deleteBucket(e){var t=this;return t.handleOperation(async()=>await A.post(t.fetch,`${t.url}/DeleteVectorBucket`,{vectorBucketName:e},{headers:t.headers})||{})}},on=class extends an{constructor(e,t={}){super(e,t.headers||{},t.fetch)}from(e){return new sn(this.url,this.headers,e,this.fetch)}async createBucket(e){var t=()=>super.createBucket,n=this;return t().call(n,e)}async getBucket(e){var t=()=>super.getBucket,n=this;return t().call(n,e)}async listBuckets(e={}){var t=()=>super.listBuckets,n=this;return t().call(n,e)}async deleteBucket(e){var t=()=>super.deleteBucket,n=this;return t().call(n,e)}},sn=class extends nn{constructor(e,t,n,r){super(e,t,r),this.vectorBucketName=n}async createIndex(e){var t=()=>super.createIndex,n=this;return t().call(n,O(O({},e),{},{vectorBucketName:n.vectorBucketName}))}async listIndexes(e={}){var t=()=>super.listIndexes,n=this;return t().call(n,O(O({},e),{},{vectorBucketName:n.vectorBucketName}))}async getIndex(e){var t=()=>super.getIndex,n=this;return t().call(n,n.vectorBucketName,e)}async deleteIndex(e){var t=()=>super.deleteIndex,n=this;return t().call(n,n.vectorBucketName,e)}index(e){return new cn(this.url,this.headers,this.vectorBucketName,e,this.fetch)}},cn=class extends rn{constructor(e,t,n,r,i){super(e,t,i),this.vectorBucketName=n,this.indexName=r}async putVectors(e){var t=()=>super.putVectors,n=this;return t().call(n,O(O({},e),{},{vectorBucketName:n.vectorBucketName,indexName:n.indexName}))}async getVectors(e){var t=()=>super.getVectors,n=this;return t().call(n,O(O({},e),{},{vectorBucketName:n.vectorBucketName,indexName:n.indexName}))}async listVectors(e={}){var t=()=>super.listVectors,n=this;return t().call(n,O(O({},e),{},{vectorBucketName:n.vectorBucketName,indexName:n.indexName}))}async queryVectors(e){var t=()=>super.queryVectors,n=this;return t().call(n,O(O({},e),{},{vectorBucketName:n.vectorBucketName,indexName:n.indexName}))}async deleteVectors(e){var t=()=>super.deleteVectors,n=this;return t().call(n,O(O({},e),{},{vectorBucketName:n.vectorBucketName,indexName:n.indexName}))}},ln=class extends en{constructor(e,t={},n,r){super(e,t,n,r)}from(e){return new Qt(this.url,this.headers,e,this.fetch)}get vectors(){return new on(this.url+`/vector`,{headers:this.headers,fetch:this.fetch})}get analytics(){return new tn(this.url+`/iceberg`,this.headers,this.fetch)}};let un=``,dn;typeof Deno<`u`?(un=`deno`,dn=Deno.version?.deno):typeof document<`u`?un=`web`:typeof navigator<`u`&&navigator.product===`ReactNative`?un=`react-native`:(un=`node`,dn=typeof process<`u`?process.version?.replace(/^v/,``):void 0);let fn=[`runtime=${un}`];dn&&fn.push(`runtime-version=${dn}`);let pn={headers:{"X-Client-Info":`supabase-js/2.110.0; ${fn.join(`; `)}`}},mn={schema:`public`},hn={autoRefreshToken:!0,persistSession:!0,detectSessionInUrl:!0,flowType:`implicit`},gn={},_n={enabled:!1,respectSamplingDecision:!0},vn=null;function yn(){return vn===null&&(vn=import(`@opentelemetry/api`).catch(()=>null)),vn}function bn(){return n(this,void 0,void 0,function*(){try{let e=yield yn();if(!e||!e.propagation||!e.context)return null;let t={};e.propagation.inject(e.context.active(),t);let n=t.traceparent;return n?{traceparent:n,tracestate:t.tracestate,baggage:t.baggage}:null}catch{return null}})}function xn(e){if(!e||typeof e!=`string`)return null;let t=e.split(`-`);if(t.length!==4)return null;let[n,r,i,a]=t;if(n.length!==2||r.length!==32||i.length!==16||a.length!==2)return null;let o=/^[0-9a-f]+$/i;return!o.test(n)||!o.test(r)||!o.test(i)||!o.test(a)||r===`00000000000000000000000000000000`||i===`0000000000000000`?null:{version:n,traceId:r,parentId:i,traceFlags:a,isSampled:(parseInt(a,16)&1)==1}}function Sn(e,t){if(!e||!t||t.length===0)return!1;let n;if(e instanceof URL)n=e;else try{n=new URL(e)}catch{return!1}for(let e of t)try{if(typeof e==`string`){if(Cn(n.hostname,e))return!0}else if(e instanceof RegExp){if(e.test(n.hostname))return!0}else if(typeof e==`function`&&e(n))return!0}catch{continue}return!1}function Cn(e,t){if(t===e)return!0;if(t.startsWith(`*.`)){let n=t.slice(2);if(e.endsWith(n)&&(e===n||e.endsWith(`.`+n)))return!0}return!1}function wn(e){let t=[];try{let n=new URL(e);t.push(n.hostname)}catch{}return t.push(`*.supabase.co`,`*.supabase.in`),t.push(`localhost`,`127.0.0.1`,`[::1]`),t}let Tn=e=>e?(...t)=>e(...t):(...e)=>fetch(...e),En=()=>Headers,Dn=(e,t,n,r,i)=>{let a=Tn(r),o=En(),s=i?.enabled===!0,c=i?.respectSamplingDecision!==!1,l=s?wn(t):null;return async(t,r)=>{let i=await n()??e,s=new o(r?.headers);if(s.has(`apikey`)||s.set(`apikey`,e),s.has(`Authorization`)||s.set(`Authorization`,`Bearer ${i}`),l){let e=await On(t,l,c);e&&(e.traceparent&&!s.has(`traceparent`)&&s.set(`traceparent`,e.traceparent),e.tracestate&&!s.has(`tracestate`)&&s.set(`tracestate`,e.tracestate),e.baggage&&!s.has(`baggage`)&&s.set(`baggage`,e.baggage))}return a(t,{...r,headers:s})}};async function On(e,t,n){if(!Sn(typeof e==`string`||e instanceof URL?e:e.url,t))return null;let r=await bn();if(!r||!r.traceparent)return null;if(n){let e=xn(r.traceparent);if(e&&!e.isSampled)return null}return r}function kn(e){return typeof e==`boolean`?{enabled:e}:e}function An(e){return e.endsWith(`/`)?e:e+`/`}function jn(e,t){let{db:n,auth:r,realtime:i,global:a}=e,{db:o,auth:s,realtime:c,global:l}=t,u=kn(e.tracePropagation),d=kn(t.tracePropagation),f={db:{...o,...n},auth:{...s,...r},realtime:{...c,...i},storage:{},global:{...l,...a,headers:{...l?.headers??{},...a?.headers??{}}},tracePropagation:{enabled:u?.enabled??d?.enabled??!1,respectSamplingDecision:u?.respectSamplingDecision??d?.respectSamplingDecision??!0},accessToken:async()=>``};return e.accessToken?f.accessToken=e.accessToken:delete f.accessToken,f}function Mn(e){let t=e?.trim();if(!t)throw Error(`supabaseUrl is required.`);if(!t.match(/^https?:\/\//i))throw Error(`Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.`);try{return new URL(An(t))}catch{throw Error(`Invalid supabaseUrl: Provided URL is malformed.`)}}let Nn=`2.110.0`,M=30*1e3,Pn=3*M;2*M;let Fn={"X-Client-Info":`gotrue-js/${Nn}`},In=`X-Supabase-Api-Version`,Ln={"2024-01-01":{timestamp:Date.parse(`2024-01-01T00:00:00.0Z`),name:`2024-01-01`}},Rn=/^([a-z0-9_-]{4})*($|[a-z0-9_-]{3}$|[a-z0-9_-]{2}$)$/i;var N=class extends Error{constructor(e,t,n){super(e),this.__isAuthError=!0,this.name=`AuthError`,this.status=t,this.code=n}toJSON(){return{name:this.name,message:this.message,status:this.status,code:this.code}}};function P(e){return typeof e==`object`&&!!e&&`__isAuthError`in e}var zn=class extends N{constructor(e,t,n){super(e,t,n),this.name=`AuthApiError`,this.status=t,this.code=n}};function Bn(e){return P(e)&&e.name===`AuthApiError`}var F=class extends N{constructor(e,t){super(e),this.name=`AuthUnknownError`,this.originalError=t}},I=class extends N{constructor(e,t,n,r){super(e,n,r),this.name=t,this.status=n}},L=class extends I{constructor(){super(`Auth session missing!`,`AuthSessionMissingError`,400,void 0)}};function Vn(e){return P(e)&&e.name===`AuthSessionMissingError`}var R=class extends I{constructor(){super(`Auth session or user missing`,`AuthInvalidTokenResponseError`,500,void 0)}},Hn=class extends I{constructor(e){super(e,`AuthInvalidCredentialsError`,400,void 0)}},Un=class extends I{constructor(e,t=null){super(e,`AuthImplicitGrantRedirectError`,500,void 0),this.details=null,this.details=t}toJSON(){return Object.assign(Object.assign({},super.toJSON()),{details:this.details})}};function Wn(e){return P(e)&&e.name===`AuthImplicitGrantRedirectError`}var Gn=class extends I{constructor(e,t=null){super(e,`AuthPKCEGrantCodeExchangeError`,500,void 0),this.details=null,this.details=t}toJSON(){return Object.assign(Object.assign({},super.toJSON()),{details:this.details})}},Kn=class extends I{constructor(){super(`PKCE code verifier not found in storage. This can happen if the auth flow was initiated in a different browser or device, or if the storage was cleared. For SSR frameworks (Next.js, SvelteKit, etc.), use @supabase/ssr on both the server and client to store the code verifier in cookies.`,`AuthPKCECodeVerifierMissingError`,400,`pkce_code_verifier_not_found`)}};function qn(e){return P(e)&&e.name===`AuthPKCECodeVerifierMissingError`}var Jn=class extends I{constructor(e,t){super(e,`AuthRetryableFetchError`,t,void 0)}};function Yn(e){return P(e)&&e.name===`AuthRetryableFetchError`}var Xn=class extends I{constructor(e=`Refresh result discarded: session state changed mid-flight (e.g., concurrent signOut)`){super(e,`AuthRefreshDiscardedError`,409,void 0)}};function Zn(e){return P(e)&&e.name===`AuthRefreshDiscardedError`}var Qn=class extends I{constructor(e,t,n){super(e,`AuthWeakPasswordError`,t,`weak_password`),this.reasons=n}toJSON(){return Object.assign(Object.assign({},super.toJSON()),{reasons:this.reasons})}};function $n(e){return P(e)&&e.name===`AuthWeakPasswordError`}var er=class extends I{constructor(e){super(e,`AuthInvalidJwtError`,400,`invalid_jwt`)}};let tr=`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_`.split(``),nr=` 	
+\r=`.split(``),rr=(()=>{let e=Array(128);for(let t=0;t<e.length;t+=1)e[t]=-1;for(let t=0;t<nr.length;t+=1)e[nr[t].charCodeAt(0)]=-2;for(let t=0;t<tr.length;t+=1)e[tr[t].charCodeAt(0)]=t;return e})();function ir(e,t,n){if(e!==null)for(t.queue=t.queue<<8|e,t.queuedBits+=8;t.queuedBits>=6;)n(tr[t.queue>>t.queuedBits-6&63]),t.queuedBits-=6;else if(t.queuedBits>0)for(t.queue<<=6-t.queuedBits,t.queuedBits=6;t.queuedBits>=6;)n(tr[t.queue>>t.queuedBits-6&63]),t.queuedBits-=6}function ar(e,t,n){let r=rr[e];if(r>-1)for(t.queue=t.queue<<6|r,t.queuedBits+=6;t.queuedBits>=8;)n(t.queue>>t.queuedBits-8&255),t.queuedBits-=8;else if(r===-2)return;else throw Error(`Invalid Base64-URL character "${String.fromCharCode(e)}"`)}function or(e){let t=[],n=e=>{t.push(String.fromCodePoint(e))},r={utf8seq:0,codepoint:0},i={queue:0,queuedBits:0},a=e=>{lr(e,r,n)};for(let t=0;t<e.length;t+=1)ar(e.charCodeAt(t),i,a);return t.join(``)}function sr(e,t){if(e<=127){t(e);return}else if(e<=2047){t(192|e>>6),t(128|e&63);return}else if(e<=65535){t(224|e>>12),t(128|e>>6&63),t(128|e&63);return}else if(e<=1114111){t(240|e>>18),t(128|e>>12&63),t(128|e>>6&63),t(128|e&63);return}throw Error(`Unrecognized Unicode codepoint: ${e.toString(16)}`)}function cr(e,t){for(let n=0;n<e.length;n+=1){let r=e.charCodeAt(n);if(r>55295&&r<=56319){let t=(r-55296)*1024&65535;r=(e.charCodeAt(n+1)-56320&65535|t)+65536,n+=1}sr(r,t)}}function lr(e,t,n){if(t.utf8seq===0){if(e<=127){n(e);return}for(let n=1;n<6;n+=1)if(!(e>>7-n&1)){t.utf8seq=n;break}if(t.utf8seq===2)t.codepoint=e&31;else if(t.utf8seq===3)t.codepoint=e&15;else if(t.utf8seq===4)t.codepoint=e&7;else throw Error(`Invalid UTF-8 sequence`);--t.utf8seq}else if(t.utf8seq>0){if(e<=127)throw Error(`Invalid UTF-8 sequence`);t.codepoint=t.codepoint<<6|e&63,--t.utf8seq,t.utf8seq===0&&n(t.codepoint)}}function z(e){let t=[],n={queue:0,queuedBits:0},r=e=>{t.push(e)};for(let t=0;t<e.length;t+=1)ar(e.charCodeAt(t),n,r);return new Uint8Array(t)}function ur(e){let t=[];return cr(e,e=>t.push(e)),new Uint8Array(t)}function B(e){let t=[],n={queue:0,queuedBits:0},r=e=>{t.push(e)};return e.forEach(e=>ir(e,n,r)),ir(null,n,r),t.join(``)}function dr(e){return Math.round(Date.now()/1e3)+e}function fr(){return Symbol(`auth-callback`)}let V=()=>typeof window<`u`&&typeof document<`u`,H={tested:!1,writable:!1},pr=()=>{if(!V())return!1;try{if(typeof globalThis.localStorage!=`object`)return!1}catch{return!1}if(H.tested)return H.writable;let e=`lswt-${Math.random()}${Math.random()}`;try{globalThis.localStorage.setItem(e,e),globalThis.localStorage.removeItem(e),H.tested=!0,H.writable=!0}catch{H.tested=!0,H.writable=!1}return H.writable};function mr(e){let t={},n=new URL(e);if(n.hash&&n.hash[0]===`#`)try{new URLSearchParams(n.hash.substring(1)).forEach((e,n)=>{t[n]=e})}catch{}return n.searchParams.forEach((e,n)=>{t[n]=e}),t}let hr=e=>e?(...t)=>e(...t):(...e)=>fetch(...e),gr=e=>typeof e==`object`&&!!e&&`status`in e&&`ok`in e&&`json`in e&&typeof e.json==`function`,_r=async(e,t,n)=>{await e.setItem(t,JSON.stringify(n))},U=async(e,t)=>{let n=await e.getItem(t);if(!n)return null;try{return JSON.parse(n)}catch{return null}},W=async(e,t)=>{await e.removeItem(t)};var vr=class e{constructor(){this.promise=new e.promiseConstructor((e,t)=>{this.resolve=e,this.reject=t})}};vr.promiseConstructor=Promise;function yr(e){let t=e.split(`.`);if(t.length!==3)throw new er(`Invalid JWT structure`);for(let e=0;e<t.length;e++)if(!Rn.test(t[e]))throw new er(`JWT not in base64url format`);return{header:JSON.parse(or(t[0])),payload:JSON.parse(or(t[1])),signature:z(t[2]),raw:{header:t[0],payload:t[1]}}}async function br(e){return await new Promise(t=>{setTimeout(()=>t(null),e)})}function xr(e,t){return new Promise((n,r)=>{(async()=>{for(let i=0;i<1/0;i++)try{let r=await e(i);if(!t(i,null,r)){n(r);return}}catch(e){if(!t(i,e)){r(e);return}}})()})}function Sr(e){return(`0`+e.toString(16)).substr(-2)}function Cr(){let e=new Uint32Array(56);if(typeof crypto>`u`){let e=``;for(let t=0;t<56;t++)e+=`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~`.charAt(Math.floor(Math.random()*66));return e}return crypto.getRandomValues(e),Array.from(e,Sr).join(``)}async function wr(e){let t=new TextEncoder().encode(e),n=await crypto.subtle.digest(`SHA-256`,t),r=new Uint8Array(n);return Array.from(r).map(e=>String.fromCharCode(e)).join(``)}async function Tr(e){if(!(typeof crypto<`u`&&crypto.subtle!==void 0&&typeof TextEncoder<`u`))return console.warn(`WebCrypto API is not supported. Code challenge method will default to use plain instead of sha256.`),e;let t=await wr(e);return btoa(t).replace(/\+/g,`-`).replace(/\//g,`_`).replace(/=+$/,``)}async function G(e,t,n=!1){let r=Cr(),i=r;n&&(i+=`/recovery`),await _r(e,`${t}-code-verifier`,i);let a=await Tr(r);return[a,r===a?`plain`:`s256`]}let Er=/^2[0-9]{3}-(0[1-9]|1[0-2])-(0[1-9]|1[0-9]|2[0-9]|3[0-1])$/i;function Dr(e){let t=e.headers.get(In);if(!t||!t.match(Er))return null;try{return new Date(`${t}T00:00:00.0Z`)}catch{return null}}function Or(e){if(!e)throw Error(`Missing exp claim`);if(e<=Math.floor(Date.now()/1e3))throw Error(`JWT has expired`)}function kr(e){switch(e){case`RS256`:return{name:`RSASSA-PKCS1-v1_5`,hash:{name:`SHA-256`}};case`ES256`:return{name:`ECDSA`,namedCurve:`P-256`,hash:{name:`SHA-256`}};default:throw Error(`Invalid alg claim`)}}let Ar=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;function K(e){if(!Ar.test(e))throw Error(`@supabase/auth-js: Expected parameter to be UUID but is not`)}function q(e){if(!e.passkey)throw Error("@supabase/auth-js: the passkey API is experimental and disabled by default. Enable it by passing `auth: { experimental: { passkey: true } }` to createClient (or to the GoTrueClient constructor).")}function jr(){return new Proxy({},{get:(e,t)=>{if(t===`__isUserNotAvailableProxy`)return!0;if(typeof t==`symbol`){let e=t.toString();if(e===`Symbol(Symbol.toPrimitive)`||e===`Symbol(Symbol.toStringTag)`||e===`Symbol(util.inspect.custom)`)return}throw Error(`@supabase/auth-js: client was created with userStorage option and there was no user stored in the user storage. Accessing the "${t}" property of the session object is not supported. Please use getUser() instead.`)},set:(e,t)=>{throw Error(`@supabase/auth-js: client was created with userStorage option and there was no user stored in the user storage. Setting the "${t}" property of the session object is not supported. Please use getUser() to fetch a user object you can manipulate.`)},deleteProperty:(e,t)=>{throw Error(`@supabase/auth-js: client was created with userStorage option and there was no user stored in the user storage. Deleting the "${t}" property of the session object is not supported. Please use getUser() to fetch a user object you can manipulate.`)}})}function Mr(e,t){return new Proxy(e,{get:(e,n,r)=>{if(n===`__isInsecureUserWarningProxy`)return!0;if(typeof n==`symbol`){let t=n.toString();if(t===`Symbol(Symbol.toPrimitive)`||t===`Symbol(Symbol.toStringTag)`||t===`Symbol(util.inspect.custom)`||t===`Symbol(nodejs.util.inspect.custom)`)return Reflect.get(e,n,r)}return!t.value&&typeof n==`string`&&(console.warn(`Using the user object as returned from supabase.auth.getSession() or from some supabase.auth.onAuthStateChange() events could be insecure! This value comes directly from the storage medium (usually cookies on the server) and may not be authentic. Use supabase.auth.getUser() instead which authenticates the data by contacting the Supabase Auth server.`),t.value=!0),Reflect.get(e,n,r)}})}function Nr(e){return JSON.parse(JSON.stringify(e))}let J=e=>{if(typeof e==`object`&&e){let t=e;if(typeof t.msg==`string`)return t.msg;if(typeof t.message==`string`)return t.message;if(typeof t.error_description==`string`)return t.error_description;if(typeof t.error==`string`)return t.error}return JSON.stringify(e)},Pr=[500,501,502,503,504,520,521,522,523,524,525,526,527,528,529,530];async function Fr(e){if(!gr(e))throw new Jn(J(e),0);if(Pr.includes(e.status))throw new Jn(J(e),e.status);let t;try{t=await e.json()}catch(e){throw new F(J(e),e)}let n,r=Dr(e);if(r&&r.getTime()>=Ln[`2024-01-01`].timestamp&&typeof t==`object`&&t&&typeof t.code==`string`?n=t.code:typeof t==`object`&&t&&typeof t.error_code==`string`&&(n=t.error_code),n){if(n===`weak_password`)throw new Qn(J(t),e.status,t.weak_password?.reasons||[]);if(n===`session_not_found`)throw new L}else if(typeof t==`object`&&t&&typeof t.weak_password==`object`&&t.weak_password&&Array.isArray(t.weak_password.reasons)&&t.weak_password.reasons.length&&t.weak_password.reasons.reduce((e,t)=>e&&typeof t==`string`,!0))throw new Qn(J(t),e.status,t.weak_password.reasons);throw new zn(J(t),e.status||500,n)}let Ir=(e,t,n,r)=>{let i={method:e,headers:t?.headers||{}};return e===`GET`?i:(i.headers=Object.assign({"Content-Type":`application/json;charset=UTF-8`},t?.headers),i.body=JSON.stringify(r),Object.assign(Object.assign({},i),n))};async function Y(e,t,n,r){let i=Object.assign({},r?.headers);i[In]||(i[In]=Ln[`2024-01-01`].name),r?.jwt&&(i.Authorization=`Bearer ${r.jwt}`);let a=r?.query??{};r?.redirectTo&&(a.redirect_to=r.redirectTo);let o=await Lr(e,t,n+(Object.keys(a).length?`?`+new URLSearchParams(a).toString():``),{headers:i,noResolveJson:r?.noResolveJson},{},r?.body);return r?.xform?r?.xform(o):{data:Object.assign({},o),error:null}}async function Lr(e,t,n,r,i,a){let o=Ir(t,r,i,a),s;try{s=await e(n,Object.assign({},o))}catch(e){throw console.error(e),new Jn(J(e),0)}if(s.ok||await Fr(s),r?.noResolveJson)return s;try{return await s.json()}catch(e){await Fr(e)}}function X(e){let t=null;Hr(e)&&(t=Object.assign({},e),e.expires_at||(t.expires_at=dr(e.expires_in)));let n=e.user??(typeof e?.id==`string`?e:null);return{data:{session:t,user:n},error:null}}function Rr(e){let t=X(e);return!t.error&&e.weak_password&&typeof e.weak_password==`object`&&Array.isArray(e.weak_password.reasons)&&e.weak_password.reasons.length&&e.weak_password.message&&typeof e.weak_password.message==`string`&&e.weak_password.reasons.reduce((e,t)=>e&&typeof t==`string`,!0)&&(t.data.weak_password=e.weak_password),t}function Z(e){return{data:{user:e.user??e},error:null}}function zr(e){return{data:e,error:null}}function Br(e){let{action_link:n,email_otp:r,hashed_token:i,redirect_to:a,verification_type:o}=e,s=t(e,[`action_link`,`email_otp`,`hashed_token`,`redirect_to`,`verification_type`]);return{data:{properties:{action_link:n,email_otp:r,hashed_token:i,redirect_to:a,verification_type:o},user:Object.assign({},s)},error:null}}function Vr(e){return e}function Hr(e){return!!e.access_token&&!!e.refresh_token&&!!e.expires_in}let Ur=[`global`,`local`,`others`];var Wr=class{constructor({url:e=``,headers:t={},fetch:n,experimental:r}){this.url=e,this.headers=t,this.fetch=hr(n),this.experimental=r??{},this.mfa={listFactors:this._listFactors.bind(this),deleteFactor:this._deleteFactor.bind(this)},this.oauth={listClients:this._listOAuthClients.bind(this),createClient:this._createOAuthClient.bind(this),getClient:this._getOAuthClient.bind(this),updateClient:this._updateOAuthClient.bind(this),deleteClient:this._deleteOAuthClient.bind(this),regenerateClientSecret:this._regenerateOAuthClientSecret.bind(this)},this.customProviders={listProviders:this._listCustomProviders.bind(this),createProvider:this._createCustomProvider.bind(this),getProvider:this._getCustomProvider.bind(this),updateProvider:this._updateCustomProvider.bind(this),deleteProvider:this._deleteCustomProvider.bind(this)},this.passkey={listPasskeys:this._adminListPasskeys.bind(this),deletePasskey:this._adminDeletePasskey.bind(this)}}async signOut(e,t=Ur[0]){if(Ur.indexOf(t)<0)throw Error(`@supabase/auth-js: Parameter scope must be one of ${Ur.join(`, `)}`);try{return await Y(this.fetch,`POST`,`${this.url}/logout?scope=${t}`,{headers:this.headers,jwt:e,noResolveJson:!0}),{data:null,error:null}}catch(e){if(P(e))return{data:null,error:e};throw e}}async inviteUserByEmail(e,t={}){try{return await Y(this.fetch,`POST`,`${this.url}/invite`,{body:{email:e,data:t.data},headers:this.headers,redirectTo:t.redirectTo,xform:Z})}catch(e){if(P(e))return{data:{user:null},error:e};throw e}}async generateLink(e){try{let{options:n}=e,r=t(e,[`options`]),i=Object.assign(Object.assign({},r),n);return`newEmail`in r&&(i.new_email=r?.newEmail,delete i.newEmail),await Y(this.fetch,`POST`,`${this.url}/admin/generate_link`,{body:i,headers:this.headers,xform:Br,redirectTo:n?.redirectTo})}catch(e){if(P(e))return{data:{properties:null,user:null},error:e};throw e}}async createUser(e){try{return await Y(this.fetch,`POST`,`${this.url}/admin/users`,{body:e,headers:this.headers,xform:Z})}catch(e){if(P(e))return{data:{user:null},error:e};throw e}}async listUsers(e){try{let t={nextPage:null,lastPage:0,total:0},n=await Y(this.fetch,`GET`,`${this.url}/admin/users`,{headers:this.headers,noResolveJson:!0,query:{page:(e?.page)?.toString()??``,per_page:(e?.perPage)?.toString()??``},xform:Vr});if(n.error)throw n.error;let r=await n.json(),i=n.headers.get(`x-total-count`)??0,a=n.headers.get(`link`)?.split(`,`)??[];return a.length>0&&(a.forEach(e=>{let n=parseInt(e.split(`;`)[0].split(`=`)[1].substring(0,1)),r=JSON.parse(e.split(`;`)[1].split(`=`)[1]);t[`${r}Page`]=n}),t.total=parseInt(i)),{data:Object.assign(Object.assign({},r),t),error:null}}catch(e){if(P(e))return{data:{users:[]},error:e};throw e}}async getUserById(e){K(e);try{return await Y(this.fetch,`GET`,`${this.url}/admin/users/${e}`,{headers:this.headers,xform:Z})}catch(e){if(P(e))return{data:{user:null},error:e};throw e}}async updateUserById(e,t){K(e);try{return await Y(this.fetch,`PUT`,`${this.url}/admin/users/${e}`,{body:t,headers:this.headers,xform:Z})}catch(e){if(P(e))return{data:{user:null},error:e};throw e}}async deleteUser(e,t=!1){K(e);try{return await Y(this.fetch,`DELETE`,`${this.url}/admin/users/${e}`,{headers:this.headers,body:{should_soft_delete:t},xform:Z})}catch(e){if(P(e))return{data:{user:null},error:e};throw e}}async _listFactors(e){K(e.userId);try{let{data:t,error:n}=await Y(this.fetch,`GET`,`${this.url}/admin/users/${e.userId}/factors`,{headers:this.headers,xform:e=>({data:{factors:e},error:null})});return{data:t,error:n}}catch(e){if(P(e))return{data:null,error:e};throw e}}async _deleteFactor(e){K(e.userId),K(e.id);try{return{data:await Y(this.fetch,`DELETE`,`${this.url}/admin/users/${e.userId}/factors/${e.id}`,{headers:this.headers}),error:null}}catch(e){if(P(e))return{data:null,error:e};throw e}}async _listOAuthClients(e){try{let t={nextPage:null,lastPage:0,total:0},n=await Y(this.fetch,`GET`,`${this.url}/admin/oauth/clients`,{headers:this.headers,noResolveJson:!0,query:{page:(e?.page)?.toString()??``,per_page:(e?.perPage)?.toString()??``},xform:Vr});if(n.error)throw n.error;let r=await n.json(),i=n.headers.get(`x-total-count`)??0,a=n.headers.get(`link`)?.split(`,`)??[];return a.length>0&&(a.forEach(e=>{let n=parseInt(e.split(`;`)[0].split(`=`)[1].substring(0,1)),r=JSON.parse(e.split(`;`)[1].split(`=`)[1]);t[`${r}Page`]=n}),t.total=parseInt(i)),{data:Object.assign(Object.assign({},r),t),error:null}}catch(e){if(P(e))return{data:{clients:[]},error:e};throw e}}async _createOAuthClient(e){try{return await Y(this.fetch,`POST`,`${this.url}/admin/oauth/clients`,{body:e,headers:this.headers,xform:e=>({data:e,error:null})})}catch(e){if(P(e))return{data:null,error:e};throw e}}async _getOAuthClient(e){try{return await Y(this.fetch,`GET`,`${this.url}/admin/oauth/clients/${e}`,{headers:this.headers,xform:e=>({data:e,error:null})})}catch(e){if(P(e))return{data:null,error:e};throw e}}async _updateOAuthClient(e,t){try{return await Y(this.fetch,`PUT`,`${this.url}/admin/oauth/clients/${e}`,{body:t,headers:this.headers,xform:e=>({data:e,error:null})})}catch(e){if(P(e))return{data:null,error:e};throw e}}async _deleteOAuthClient(e){try{return await Y(this.fetch,`DELETE`,`${this.url}/admin/oauth/clients/${e}`,{headers:this.headers,noResolveJson:!0}),{data:null,error:null}}catch(e){if(P(e))return{data:null,error:e};throw e}}async _regenerateOAuthClientSecret(e){try{return await Y(this.fetch,`POST`,`${this.url}/admin/oauth/clients/${e}/regenerate_secret`,{headers:this.headers,xform:e=>({data:e,error:null})})}catch(e){if(P(e))return{data:null,error:e};throw e}}async _listCustomProviders(e){try{let t={};return e?.type&&(t.type=e.type),await Y(this.fetch,`GET`,`${this.url}/admin/custom-providers`,{headers:this.headers,query:t,xform:e=>({data:{providers:e?.providers??[]},error:null})})}catch(e){if(P(e))return{data:{providers:[]},error:e};throw e}}async _createCustomProvider(e){try{return await Y(this.fetch,`POST`,`${this.url}/admin/custom-providers`,{body:e,headers:this.headers,xform:e=>({data:e,error:null})})}catch(e){if(P(e))return{data:null,error:e};throw e}}async _getCustomProvider(e){try{return await Y(this.fetch,`GET`,`${this.url}/admin/custom-providers/${e}`,{headers:this.headers,xform:e=>({data:e,error:null})})}catch(e){if(P(e))return{data:null,error:e};throw e}}async _updateCustomProvider(e,t){try{return await Y(this.fetch,`PUT`,`${this.url}/admin/custom-providers/${e}`,{body:t,headers:this.headers,xform:e=>({data:e,error:null})})}catch(e){if(P(e))return{data:null,error:e};throw e}}async _deleteCustomProvider(e){try{return await Y(this.fetch,`DELETE`,`${this.url}/admin/custom-providers/${e}`,{headers:this.headers,noResolveJson:!0}),{data:null,error:null}}catch(e){if(P(e))return{data:null,error:e};throw e}}async _adminListPasskeys(e){q(this.experimental),K(e.userId);try{return await Y(this.fetch,`GET`,`${this.url}/admin/users/${e.userId}/passkeys`,{headers:this.headers,xform:e=>({data:e,error:null})})}catch(e){if(P(e))return{data:null,error:e};throw e}}async _adminDeletePasskey(e){q(this.experimental),K(e.userId),K(e.passkeyId);try{return await Y(this.fetch,`DELETE`,`${this.url}/admin/users/${e.userId}/passkeys/${e.passkeyId}`,{headers:this.headers,noResolveJson:!0}),{data:null,error:null}}catch(e){if(P(e))return{data:null,error:e};throw e}}};function Gr(e={}){return{getItem:t=>e[t]||null,setItem:(t,n)=>{e[t]=n},removeItem:t=>{delete e[t]}}}let Q={debug:!!(globalThis&&pr()&&globalThis.localStorage&&globalThis.localStorage.getItem(`supabase.gotrue-js.locks.debug`)===`true`)};var Kr=class extends Error{constructor(e){super(e),this.isAcquireTimeout=!0}},qr=class extends Kr{},Jr=class extends Kr{};async function Yr(e,t,n){Q.debug&&console.log(`@supabase/gotrue-js: navigatorLock: acquire lock`,e,t);let r=new globalThis.AbortController,i;t>0&&(i=setTimeout(()=>{r.abort(),Q.debug&&console.log(`@supabase/gotrue-js: navigatorLock acquire timed out`,e)},t)),await Promise.resolve();try{return await globalThis.navigator.locks.request(e,t===0?{mode:`exclusive`,ifAvailable:!0}:{mode:`exclusive`,signal:r.signal},async r=>{if(r){clearTimeout(i),Q.debug&&console.log(`@supabase/gotrue-js: navigatorLock: acquired`,e,r.name);try{return await n()}finally{Q.debug&&console.log(`@supabase/gotrue-js: navigatorLock: released`,e,r.name)}}else if(t===0)throw Q.debug&&console.log(`@supabase/gotrue-js: navigatorLock: not immediately available`,e),new qr(`Acquiring an exclusive Navigator LockManager lock "${e}" immediately failed`);else{if(Q.debug)try{let e=await globalThis.navigator.locks.query();console.log(`@supabase/gotrue-js: Navigator LockManager state`,JSON.stringify(e,null,`  `))}catch(e){console.warn(`@supabase/gotrue-js: Error when querying Navigator LockManager state`,e)}return console.warn(`@supabase/gotrue-js: Navigator LockManager returned a null lock when using #request without ifAvailable set to true, it appears this browser is not following the LockManager spec https://developer.mozilla.org/en-US/docs/Web/API/LockManager/request`),clearTimeout(i),await n()}})}catch(a){if(t>0&&clearTimeout(i),typeof a==`object`&&a&&`name`in a&&a.name===`AbortError`&&t>0){if(r.signal.aborted)return Q.debug&&console.log(`@supabase/gotrue-js: navigatorLock: acquire timeout, recovering by stealing lock`,e),console.warn(`@supabase/gotrue-js: Lock "${e}" was not released within ${t}ms. This may indicate an orphaned lock from a component unmount (e.g., React Strict Mode). Forcefully acquiring the lock to recover.`),await Promise.resolve().then(()=>globalThis.navigator.locks.request(e,{mode:`exclusive`,steal:!0},async t=>{if(t){Q.debug&&console.log(`@supabase/gotrue-js: navigatorLock: recovered (stolen)`,e,t.name);try{return await n()}finally{Q.debug&&console.log(`@supabase/gotrue-js: navigatorLock: released (stolen)`,e,t.name)}}else return console.warn(`@supabase/gotrue-js: Navigator LockManager returned null lock even with steal: true`),await n()}));throw Q.debug&&console.log(`@supabase/gotrue-js: navigatorLock: lock was stolen by another request`,e),new qr(`Lock "${e}" was released because another request stole it`)}throw a}}let Xr={};async function Zr(e,t,n){let r=Xr[e]??Promise.resolve(),i=(async()=>{try{return await r,null}catch{return null}})(),a=(async()=>{let r=null;try{let n=t>=0?new Promise((n,i)=>{r=setTimeout(()=>{console.warn(`@supabase/gotrue-js: Lock "${e}" acquisition timed out after ${t}ms. This may be caused by another operation holding the lock. Consider increasing lockAcquireTimeout or checking for stuck operations.`),i(new Jr(`Acquiring process lock with name "${e}" timed out`))},t)}):null;await Promise.race([i,n].filter(e=>e)),r!==null&&clearTimeout(r)}catch(e){if(r!==null&&clearTimeout(r),e instanceof Kr)throw e}return await n()})();return Xr[e]=(async()=>{try{return await a}catch(e){if(e instanceof Kr){try{await r}catch{}return null}throw e}})(),await a}function Qr(){if(typeof globalThis!=`object`)try{Object.defineProperty(Object.prototype,`__magic__`,{get:function(){return this},configurable:!0}),__magic__.globalThis=__magic__,delete Object.prototype.__magic__}catch{typeof self<`u`&&(self.globalThis=self)}}function $r(e){if(!/^0x[a-fA-F0-9]{40}$/.test(e))throw Error(`@supabase/auth-js: Address "${e}" is invalid.`);return e.toLowerCase()}function ei(e){return parseInt(e,16)}function ti(e){let t=new TextEncoder().encode(e);return`0x`+Array.from(t,e=>e.toString(16).padStart(2,`0`)).join(``)}function ni(e){let{chainId:t,domain:n,expirationTime:r,issuedAt:i=new Date,nonce:a,notBefore:o,requestId:s,resources:c,scheme:l,uri:u,version:d}=e;if(!Number.isInteger(t))throw Error(`@supabase/auth-js: Invalid SIWE message field "chainId". Chain ID must be a EIP-155 chain ID. Provided value: ${t}`);if(!n)throw Error(`@supabase/auth-js: Invalid SIWE message field "domain". Domain must be provided.`);if(a&&a.length<8)throw Error(`@supabase/auth-js: Invalid SIWE message field "nonce". Nonce must be at least 8 characters. Provided value: ${a}`);if(!u)throw Error(`@supabase/auth-js: Invalid SIWE message field "uri". URI must be provided.`);if(d!==`1`)throw Error(`@supabase/auth-js: Invalid SIWE message field "version". Version must be '1'. Provided value: ${d}`);if(e.statement?.includes(`
+`))throw Error(`@supabase/auth-js: Invalid SIWE message field "statement". Statement must not include '\\n'. Provided value: ${e.statement}`);let f=$r(e.address),p=`${l?`${l}://${n}`:n} wants you to sign in with your Ethereum account:\n${f}\n\n${e.statement?`${e.statement}\n`:``}`,m=`URI: ${u}\nVersion: ${d}\nChain ID: ${t}${a?`\nNonce: ${a}`:``}\nIssued At: ${i.toISOString()}`;if(r&&(m+=`\nExpiration Time: ${r.toISOString()}`),o&&(m+=`\nNot Before: ${o.toISOString()}`),s&&(m+=`\nRequest ID: ${s}`),c){let e=`
+Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/auth-js: Invalid SIWE message field "resources". Every resource must be a valid string. Provided value: ${t}`);e+=`\n- ${t}`}m+=e}return`${p}\n${m}`}var $=class extends Error{constructor({message:e,code:t,cause:n,name:r}){super(e,{cause:n}),this.__isWebAuthnError=!0,this.name=r??(n instanceof Error?n.name:void 0)??`Unknown Error`,this.code=t}toJSON(){return{name:this.name,message:this.message,code:this.code}}},ri=class extends ${constructor(e,t){super({code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:t,message:e}),this.name=`WebAuthnUnknownError`,this.originalError=t}};function ii({error:e,options:t}){let{publicKey:n}=t;if(!n)throw Error(`options was missing required publicKey property`);if(e.name===`AbortError`){if(t.signal instanceof AbortSignal)return new $({message:`Registration ceremony was sent an abort signal`,code:`ERROR_CEREMONY_ABORTED`,cause:e})}else if(e.name===`ConstraintError`){if(n.authenticatorSelection?.requireResidentKey===!0)return new $({message:`Discoverable credentials were required but no available authenticator supported it`,code:`ERROR_AUTHENTICATOR_MISSING_DISCOVERABLE_CREDENTIAL_SUPPORT`,cause:e});if(t.mediation===`conditional`&&n.authenticatorSelection?.userVerification===`required`)return new $({message:`User verification was required during automatic registration but it could not be performed`,code:`ERROR_AUTO_REGISTER_USER_VERIFICATION_FAILURE`,cause:e});if(n.authenticatorSelection?.userVerification===`required`)return new $({message:`User verification was required but no available authenticator supported it`,code:`ERROR_AUTHENTICATOR_MISSING_USER_VERIFICATION_SUPPORT`,cause:e})}else if(e.name===`InvalidStateError`)return new $({message:`The authenticator was previously registered`,code:`ERROR_AUTHENTICATOR_PREVIOUSLY_REGISTERED`,cause:e});else if(e.name===`NotAllowedError`)return new $({message:e.message,code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:e});else if(e.name===`NotSupportedError`)return n.pubKeyCredParams.filter(e=>e.type===`public-key`).length===0?new $({message:`No entry in pubKeyCredParams was of type "public-key"`,code:`ERROR_MALFORMED_PUBKEYCREDPARAMS`,cause:e}):new $({message:`No available authenticator supported any of the specified pubKeyCredParams algorithms`,code:`ERROR_AUTHENTICATOR_NO_SUPPORTED_PUBKEYCREDPARAMS_ALG`,cause:e});else if(e.name===`SecurityError`){let t=window.location.hostname;if(di(t)){if(n.rp.id!==t)return new $({message:`The RP ID "${n.rp.id}" is invalid for this domain`,code:`ERROR_INVALID_RP_ID`,cause:e})}else return new $({message:`${window.location.hostname} is an invalid domain`,code:`ERROR_INVALID_DOMAIN`,cause:e})}else if(e.name===`TypeError`){if(n.user.id.byteLength<1||n.user.id.byteLength>64)return new $({message:`User ID was not between 1 and 64 characters`,code:`ERROR_INVALID_USER_ID_LENGTH`,cause:e})}else if(e.name===`UnknownError`)return new $({message:`The authenticator was unable to process the specified options, or could not create a new credential`,code:`ERROR_AUTHENTICATOR_GENERAL_ERROR`,cause:e});return new $({message:`a Non-Webauthn related error has occurred`,code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:e})}function ai({error:e,options:t}){let{publicKey:n}=t;if(!n)throw Error(`options was missing required publicKey property`);if(e.name===`AbortError`){if(t.signal instanceof AbortSignal)return new $({message:`Authentication ceremony was sent an abort signal`,code:`ERROR_CEREMONY_ABORTED`,cause:e})}else if(e.name===`NotAllowedError`)return new $({message:e.message,code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:e});else if(e.name===`SecurityError`){let t=window.location.hostname;if(di(t)){if(n.rpId!==t)return new $({message:`The RP ID "${n.rpId}" is invalid for this domain`,code:`ERROR_INVALID_RP_ID`,cause:e})}else return new $({message:`${window.location.hostname} is an invalid domain`,code:`ERROR_INVALID_DOMAIN`,cause:e})}else if(e.name===`UnknownError`)return new $({message:`The authenticator was unable to process the specified options, or could not create a new assertion signature`,code:`ERROR_AUTHENTICATOR_GENERAL_ERROR`,cause:e});return new $({message:`a Non-Webauthn related error has occurred`,code:`ERROR_PASSTHROUGH_SEE_CAUSE_PROPERTY`,cause:e})}let oi=new class{createNewAbortSignal(){if(this.controller){let e=Error(`Cancelling existing WebAuthn API call for new one`);e.name=`AbortError`,this.controller.abort(e)}let e=new AbortController;return this.controller=e,e.signal}cancelCeremony(){if(this.controller){let e=Error(`Manually cancelling existing WebAuthn API call`);e.name=`AbortError`,this.controller.abort(e),this.controller=void 0}}};function si(e){if(!e)throw Error(`Credential creation options are required`);if(typeof PublicKeyCredential<`u`&&`parseCreationOptionsFromJSON`in PublicKeyCredential&&typeof PublicKeyCredential.parseCreationOptionsFromJSON==`function`)return PublicKeyCredential.parseCreationOptionsFromJSON(e);let{challenge:n,user:r,excludeCredentials:i}=e,a=t(e,[`challenge`,`user`,`excludeCredentials`]),o=z(n).buffer,s=Object.assign(Object.assign({},r),{id:z(r.id).buffer}),c=Object.assign(Object.assign({},a),{challenge:o,user:s});if(i&&i.length>0){c.excludeCredentials=Array(i.length);for(let e=0;e<i.length;e++){let t=i[e];c.excludeCredentials[e]=Object.assign(Object.assign({},t),{id:z(t.id).buffer,type:t.type||`public-key`,transports:t.transports})}}return c}function ci(e){if(!e)throw Error(`Credential request options are required`);if(typeof PublicKeyCredential<`u`&&`parseRequestOptionsFromJSON`in PublicKeyCredential&&typeof PublicKeyCredential.parseRequestOptionsFromJSON==`function`)return PublicKeyCredential.parseRequestOptionsFromJSON(e);let{challenge:n,allowCredentials:r}=e,i=t(e,[`challenge`,`allowCredentials`]),a=z(n).buffer,o=Object.assign(Object.assign({},i),{challenge:a});if(r&&r.length>0){o.allowCredentials=Array(r.length);for(let e=0;e<r.length;e++){let t=r[e];o.allowCredentials[e]=Object.assign(Object.assign({},t),{id:z(t.id).buffer,type:t.type||`public-key`,transports:t.transports})}}return o}function li(e){if(`toJSON`in e&&typeof e.toJSON==`function`)return e.toJSON();let t=e;return{id:e.id,rawId:e.id,response:{attestationObject:B(new Uint8Array(e.response.attestationObject)),clientDataJSON:B(new Uint8Array(e.response.clientDataJSON))},type:`public-key`,clientExtensionResults:e.getClientExtensionResults(),authenticatorAttachment:t.authenticatorAttachment??void 0}}function ui(e){if(`toJSON`in e&&typeof e.toJSON==`function`)return e.toJSON();let t=e,n=e.getClientExtensionResults(),r=e.response;return{id:e.id,rawId:e.id,response:{authenticatorData:B(new Uint8Array(r.authenticatorData)),clientDataJSON:B(new Uint8Array(r.clientDataJSON)),signature:B(new Uint8Array(r.signature)),userHandle:r.userHandle?B(new Uint8Array(r.userHandle)):void 0},type:`public-key`,clientExtensionResults:n,authenticatorAttachment:t.authenticatorAttachment??void 0}}function di(e){return e===`localhost`||/^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/i.test(e)}function fi(){return!!(V()&&`PublicKeyCredential`in window&&window.PublicKeyCredential&&`credentials`in navigator&&typeof(navigator==null?void 0:navigator.credentials)?.create==`function`&&typeof(navigator==null?void 0:navigator.credentials)?.get==`function`)}async function pi(e){try{let t=await navigator.credentials.create(e);return t?t instanceof PublicKeyCredential?{data:t,error:null}:{data:null,error:new ri(`Browser returned unexpected credential type`,t)}:{data:null,error:new ri(`Empty credential response`,t)}}catch(t){return{data:null,error:ii({error:t,options:e})}}}async function mi(e){try{let t=await navigator.credentials.get(e);return t?t instanceof PublicKeyCredential?{data:t,error:null}:{data:null,error:new ri(`Browser returned unexpected credential type`,t)}:{data:null,error:new ri(`Empty credential response`,t)}}catch(t){return{data:null,error:ai({error:t,options:e})}}}let hi={hints:[`security-key`],authenticatorSelection:{authenticatorAttachment:`cross-platform`,requireResidentKey:!1,userVerification:`preferred`,residentKey:`discouraged`},attestation:`direct`},gi={userVerification:`preferred`,hints:[`security-key`],attestation:`direct`};function _i(...e){let t=e=>typeof e==`object`&&!!e&&!Array.isArray(e),n=e=>e instanceof ArrayBuffer||ArrayBuffer.isView(e),r={};for(let i of e)if(i)for(let e in i){let a=i[e];if(a!==void 0)if(Array.isArray(a))r[e]=a;else if(n(a))r[e]=a;else if(t(a)){let n=r[e];t(n)?r[e]=_i(n,a):r[e]=_i(a)}else r[e]=a}return r}function vi(e,t){return _i(hi,e,t||{})}function yi(e,t){return _i(gi,e,t||{})}var bi=class{constructor(e){this.client=e,this.enroll=this._enroll.bind(this),this.challenge=this._challenge.bind(this),this.verify=this._verify.bind(this),this.authenticate=this._authenticate.bind(this),this.register=this._register.bind(this)}async _enroll(e){return this.client.mfa.enroll(Object.assign(Object.assign({},e),{factorType:`webauthn`}))}async _challenge({factorId:e,webauthn:t,friendlyName:n,signal:r},i){try{let{data:a,error:o}=await this.client.mfa.challenge({factorId:e,webauthn:t});if(!a)return{data:null,error:o};let s=r??oi.createNewAbortSignal();if(a.webauthn.type===`create`){let{user:e}=a.webauthn.credential_options.publicKey;if(!e.name){let t=n;if(t)e.name=`${e.id}:${t}`;else{let t=(await this.client.getUser()).data.user,n=t?.user_metadata?.name||t?.email||t?.id||`User`;e.name=`${e.id}:${n}`}}e.displayName||=e.name}switch(a.webauthn.type){case`create`:{let{data:t,error:n}=await pi({publicKey:vi(a.webauthn.credential_options.publicKey,i?.create),signal:s});return t?{data:{factorId:e,challengeId:a.id,webauthn:{type:a.webauthn.type,credential_response:t}},error:null}:{data:null,error:n}}case`request`:{let t=yi(a.webauthn.credential_options.publicKey,i?.request),{data:n,error:r}=await mi(Object.assign(Object.assign({},a.webauthn.credential_options),{publicKey:t,signal:s}));return n?{data:{factorId:e,challengeId:a.id,webauthn:{type:a.webauthn.type,credential_response:n}},error:null}:{data:null,error:r}}}}catch(e){return P(e)?{data:null,error:e}:{data:null,error:new F(`Unexpected error in challenge`,e)}}}async _verify({challengeId:e,factorId:t,webauthn:n}){return this.client.mfa.verify({factorId:t,challengeId:e,webauthn:n})}async _authenticate({factorId:e,webauthn:{rpId:t=typeof window<`u`?window.location.hostname:void 0,rpOrigins:n=typeof window<`u`?[window.location.origin]:void 0,signal:r}={}},i){if(!t)return{data:null,error:new N(`rpId is required for WebAuthn authentication`)};try{if(!fi())return{data:null,error:new F(`Browser does not support WebAuthn`,null)};let{data:a,error:o}=await this.challenge({factorId:e,webauthn:{rpId:t,rpOrigins:n},signal:r},{request:i});if(!a)return{data:null,error:o};let{webauthn:s}=a;return this._verify({factorId:e,challengeId:a.challengeId,webauthn:{type:s.type,rpId:t,rpOrigins:n,credential_response:s.credential_response}})}catch(e){return P(e)?{data:null,error:e}:{data:null,error:new F(`Unexpected error in authenticate`,e)}}}async _register({friendlyName:e,webauthn:{rpId:t=typeof window<`u`?window.location.hostname:void 0,rpOrigins:n=typeof window<`u`?[window.location.origin]:void 0,signal:r}={}},i){if(!t)return{data:null,error:new N(`rpId is required for WebAuthn registration`)};try{if(!fi())return{data:null,error:new F(`Browser does not support WebAuthn`,null)};let{data:a,error:o}=await this._enroll({friendlyName:e});if(!a)return await this.client.mfa.listFactors().then(t=>t.data?.all.find(t=>t.factor_type===`webauthn`&&t.friendly_name===e&&t.status!==`unverified`)).then(e=>e?this.client.mfa.unenroll({factorId:e?.id}):void 0),{data:null,error:o};let{data:s,error:c}=await this._challenge({factorId:a.id,friendlyName:a.friendly_name,webauthn:{rpId:t,rpOrigins:n},signal:r},{create:i});return s?this._verify({factorId:a.id,challengeId:s.challengeId,webauthn:{rpId:t,rpOrigins:n,type:s.webauthn.type,credential_response:s.webauthn.credential_response}}):{data:null,error:c}}catch(e){return P(e)?{data:null,error:e}:{data:null,error:new F(`Unexpected error in register`,e)}}}};Qr();let xi={url:`http://localhost:9999`,storageKey:`supabase.auth.token`,autoRefreshToken:!0,persistSession:!0,detectSessionInUrl:!0,headers:Fn,flowType:`implicit`,debug:!1,hasCustomAuthorizationHeader:!1,throwOnError:!1,lockAcquireTimeout:5e3,skipAutoInitialize:!1,experimental:{}},Si={};var Ci=class e{get jwks(){return Si[this.storageKey]?.jwks??{keys:[]}}set jwks(e){Si[this.storageKey]=Object.assign(Object.assign({},Si[this.storageKey]),{jwks:e})}get jwks_cached_at(){return Si[this.storageKey]?.cachedAt??-(2**53-1)}set jwks_cached_at(e){Si[this.storageKey]=Object.assign(Object.assign({},Si[this.storageKey]),{cachedAt:e})}constructor(t){var n;this.userStorage=null,this.memoryStorage=null,this.stateChangeEmitters=new Map,this.autoRefreshTicker=null,this.autoRefreshTickTimeout=null,this.visibilityChangedCallback=null,this.refreshingDeferred=null,this.lastRefreshFailure=null,this._sessionRemovalEpoch=0,this.initializePromise=null,this.detectSessionInUrl=!0,this.hasCustomAuthorizationHeader=!1,this.suppressGetSessionWarning=!1,this.lock=null,this.lockAcquired=!1,this.pendingInLock=[],this.broadcastChannel=null,this.logger=console.log;let r=Object.assign(Object.assign({},xi),t);if(this.storageKey=r.storageKey,this.instanceID=e.nextInstanceID[this.storageKey]??0,e.nextInstanceID[this.storageKey]=this.instanceID+1,this.logDebugMessages=!!r.debug,typeof r.debug==`function`&&(this.logger=r.debug),this.instanceID>0&&V()){let e=`${this._logPrefix()} Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.`;console.warn(e),this.logDebugMessages&&console.trace(e)}if(this.persistSession=r.persistSession,this.autoRefreshToken=r.autoRefreshToken,this.experimental=r.experimental??{},this.admin=new Wr({url:r.url,headers:r.headers,fetch:r.fetch,experimental:this.experimental}),this.url=r.url,this.headers=r.headers,this.fetch=hr(r.fetch),this.detectSessionInUrl=r.detectSessionInUrl,this.flowType=r.flowType,this.hasCustomAuthorizationHeader=r.hasCustomAuthorizationHeader,this.throwOnError=r.throwOnError,this.lockAcquireTimeout=r.lockAcquireTimeout,r.lock!=null&&(this.lock=r.lock),this.jwks||(this.jwks={keys:[]},this.jwks_cached_at=-(2**53-1)),this.mfa={verify:this._verify.bind(this),enroll:this._enroll.bind(this),unenroll:this._unenroll.bind(this),challenge:this._challenge.bind(this),listFactors:this._listFactors.bind(this),challengeAndVerify:this._challengeAndVerify.bind(this),getAuthenticatorAssuranceLevel:this._getAuthenticatorAssuranceLevel.bind(this),webauthn:new bi(this)},this.oauth={getAuthorizationDetails:this._getAuthorizationDetails.bind(this),approveAuthorization:this._approveAuthorization.bind(this),denyAuthorization:this._denyAuthorization.bind(this),listGrants:this._listOAuthGrants.bind(this),revokeGrant:this._revokeOAuthGrant.bind(this)},this.passkey={startRegistration:this._startPasskeyRegistration.bind(this),verifyRegistration:this._verifyPasskeyRegistration.bind(this),startAuthentication:this._startPasskeyAuthentication.bind(this),verifyAuthentication:this._verifyPasskeyAuthentication.bind(this),list:this._listPasskeys.bind(this),update:this._updatePasskey.bind(this),delete:this._deletePasskey.bind(this)},this.persistSession?(r.storage?this.storage=r.storage:pr()?this.storage=globalThis.localStorage:(this.memoryStorage={},this.storage=Gr(this.memoryStorage)),r.userStorage&&(this.userStorage=r.userStorage)):(this.memoryStorage={},this.storage=Gr(this.memoryStorage)),V()&&globalThis.BroadcastChannel&&this.persistSession&&this.storageKey){try{this.broadcastChannel=new globalThis.BroadcastChannel(this.storageKey)}catch(e){console.error(`Failed to create a new BroadcastChannel, multi-tab state changes will not be available`,e)}(n=this.broadcastChannel)==null||n.addEventListener(`message`,async e=>{this._debug(`received broadcast notification from other tab or client`,e),(e.data.event===`TOKEN_REFRESHED`||e.data.event===`SIGNED_IN`)&&(this.lastRefreshFailure=null);try{await this._notifyAllSubscribers(e.data.event,e.data.session,!1)}catch(e){this._debug(`#broadcastChannel`,`error`,e)}})}r.skipAutoInitialize||this.initialize().catch(e=>{this._debug(`#initialize()`,`error`,e)})}isThrowOnErrorEnabled(){return this.throwOnError}_returnResult(e){if(this.throwOnError&&e&&e.error)throw e.error;return e}_logPrefix(){return`GoTrueClient@${this.storageKey}:${this.instanceID} (${Nn}) ${new Date().toISOString()}`}_debug(...e){return this.logDebugMessages&&this.logger(this._logPrefix(),...e),this}async initialize(){return this.initializePromise||=(async()=>this.lock==null?await this._initialize():await this._acquireLock(this.lockAcquireTimeout,async()=>await this._initialize()))(),await this.initializePromise}async _initialize(){try{let e={},t=`none`;if(V()&&(e=mr(window.location.href),this._isImplicitGrantCallback(e)?t=`implicit`:await this._isPKCECallback(e)&&(t=`pkce`)),V()&&this.detectSessionInUrl&&t!==`none`){let{data:n,error:r}=await this._getSessionFromURL(e,t);if(r){if(this._debug(`#_initialize()`,`error detecting session from URL`,r),Wn(r)){let e=r.details?.code;if(e===`identity_already_exists`||e===`identity_not_found`||e===`single_identity_not_deletable`)return{error:r}}return{error:r}}let{session:i,redirectType:a}=n;return this._debug(`#_initialize()`,`detected session in URL`,i,`redirect type`,a),await this._saveSession(i),setTimeout(async()=>{a===`recovery`?await this._notifyAllSubscribers(`PASSWORD_RECOVERY`,i):await this._notifyAllSubscribers(`SIGNED_IN`,i)},0),{error:null}}return await this._recoverAndRefresh(),{error:null}}catch(e){return P(e)?this._returnResult({error:e}):this._returnResult({error:new F(`Unexpected error during initialization`,e)})}finally{await this._handleVisibilityChange(),this._debug(`#_initialize()`,`end`)}}async signInAnonymously(e){try{let{data:t,error:n}=await Y(this.fetch,`POST`,`${this.url}/signup`,{headers:this.headers,body:{data:e?.options?.data??{},gotrue_meta_security:{captcha_token:e?.options?.captchaToken}},xform:X});if(n||!t)return this._returnResult({data:{user:null,session:null},error:n});let r=t.session,i=t.user;return t.session&&(await this._saveSession(t.session),await this._notifyAllSubscribers(`SIGNED_IN`,r)),this._returnResult({data:{user:i,session:r},error:null})}catch(e){if(P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signUp(e){try{let t;if(`email`in e){let{email:n,password:r,options:i}=e,a=null,o=null;this.flowType===`pkce`&&([a,o]=await G(this.storage,this.storageKey)),t=await Y(this.fetch,`POST`,`${this.url}/signup`,{headers:this.headers,redirectTo:i?.emailRedirectTo,body:{email:n,password:r,data:i?.data??{},gotrue_meta_security:{captcha_token:i?.captchaToken},code_challenge:a,code_challenge_method:o},xform:X})}else if(`phone`in e){let{phone:n,password:r,options:i}=e;t=await Y(this.fetch,`POST`,`${this.url}/signup`,{headers:this.headers,body:{phone:n,password:r,data:i?.data??{},channel:i?.channel??`sms`,gotrue_meta_security:{captcha_token:i?.captchaToken}},xform:X})}else throw new Hn(`You must provide either an email or phone number and a password`);let{data:n,error:r}=t;if(r||!n)return await W(this.storage,`${this.storageKey}-code-verifier`),this._returnResult({data:{user:null,session:null},error:r});let i=n.session,a=n.user;return n.session&&(await this._saveSession(n.session),await this._notifyAllSubscribers(`SIGNED_IN`,i)),this._returnResult({data:{user:a,session:i},error:null})}catch(e){if(await W(this.storage,`${this.storageKey}-code-verifier`),P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithPassword(e){try{let t;if(`email`in e){let{email:n,password:r,options:i}=e;t=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=password`,{headers:this.headers,body:{email:n,password:r,gotrue_meta_security:{captcha_token:i?.captchaToken}},xform:Rr})}else if(`phone`in e){let{phone:n,password:r,options:i}=e;t=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=password`,{headers:this.headers,body:{phone:n,password:r,gotrue_meta_security:{captcha_token:i?.captchaToken}},xform:Rr})}else throw new Hn(`You must provide either an email or phone number and a password`);let{data:n,error:r}=t;if(r)return this._returnResult({data:{user:null,session:null},error:r});if(!n||!n.session||!n.user){let e=new R;return this._returnResult({data:{user:null,session:null},error:e})}return n.session&&(await this._saveSession(n.session),await this._notifyAllSubscribers(`SIGNED_IN`,n.session)),this._returnResult({data:Object.assign({user:n.user,session:n.session},n.weak_password?{weakPassword:n.weak_password}:null),error:r})}catch(e){if(P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithOAuth(e){return await this._handleProviderSignIn(e.provider,{redirectTo:e.options?.redirectTo,scopes:e.options?.scopes,queryParams:e.options?.queryParams,skipBrowserRedirect:e.options?.skipBrowserRedirect})}async exchangeCodeForSession(e){return await this.initializePromise,this.lock==null?this._exchangeCodeForSession(e):this._acquireLock(this.lockAcquireTimeout,async()=>this._exchangeCodeForSession(e))}async signInWithWeb3(e){let{chain:t}=e;switch(t){case`ethereum`:return await this.signInWithEthereum(e);case`solana`:return await this.signInWithSolana(e);default:throw Error(`@supabase/auth-js: Unsupported chain "${t}"`)}}async signInWithEthereum(e){let t,n;if(`message`in e)t=e.message,n=e.signature;else{let{chain:r,wallet:i,statement:a,options:o}=e,s;if(V())if(typeof i==`object`)s=i;else{let e=window;if(`ethereum`in e&&typeof e.ethereum==`object`&&`request`in e.ethereum&&typeof e.ethereum.request==`function`)s=e.ethereum;else throw Error(`@supabase/auth-js: No compatible Ethereum wallet interface on the window object (window.ethereum) detected. Make sure the user already has a wallet installed and connected for this app. Prefer passing the wallet interface object directly to signInWithWeb3({ chain: 'ethereum', wallet: resolvedUserWallet }) instead.`)}else{if(typeof i!=`object`||!o?.url)throw Error(`@supabase/auth-js: Both wallet and url must be specified in non-browser environments.`);s=i}let c=new URL(o?.url??window.location.href),l=await s.request({method:`eth_requestAccounts`}).then(e=>e).catch(()=>{throw Error(`@supabase/auth-js: Wallet method eth_requestAccounts is missing or invalid`)});if(!l||l.length===0)throw Error(`@supabase/auth-js: No accounts available. Please ensure the wallet is connected.`);let u=$r(l[0]),d=o?.signInWithEthereum?.chainId;d||=ei(await s.request({method:`eth_chainId`})),t=ni({domain:c.host,address:u,statement:a,uri:c.href,version:`1`,chainId:d,nonce:o?.signInWithEthereum?.nonce,issuedAt:o?.signInWithEthereum?.issuedAt??new Date,expirationTime:o?.signInWithEthereum?.expirationTime,notBefore:o?.signInWithEthereum?.notBefore,requestId:o?.signInWithEthereum?.requestId,resources:o?.signInWithEthereum?.resources}),n=await s.request({method:`personal_sign`,params:[ti(t),u]})}try{let{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=web3`,{headers:this.headers,body:Object.assign({chain:`ethereum`,message:t,signature:n},e.options?.captchaToken?{gotrue_meta_security:{captcha_token:e.options?.captchaToken}}:null),xform:X});if(i)throw i;if(!r||!r.session||!r.user){let e=new R;return this._returnResult({data:{user:null,session:null},error:e})}return r.session&&(await this._saveSession(r.session),await this._notifyAllSubscribers(`SIGNED_IN`,r.session)),this._returnResult({data:Object.assign({},r),error:i})}catch(e){if(P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithSolana(e){let t,n;if(`message`in e)t=e.message,n=e.signature;else{let{chain:r,wallet:i,statement:a,options:o}=e,s;if(V())if(typeof i==`object`)s=i;else{let e=window;if(`solana`in e&&typeof e.solana==`object`&&(`signIn`in e.solana&&typeof e.solana.signIn==`function`||`signMessage`in e.solana&&typeof e.solana.signMessage==`function`))s=e.solana;else throw Error(`@supabase/auth-js: No compatible Solana wallet interface on the window object (window.solana) detected. Make sure the user already has a wallet installed and connected for this app. Prefer passing the wallet interface object directly to signInWithWeb3({ chain: 'solana', wallet: resolvedUserWallet }) instead.`)}else{if(typeof i!=`object`||!o?.url)throw Error(`@supabase/auth-js: Both wallet and url must be specified in non-browser environments.`);s=i}let c=new URL(o?.url??window.location.href);if(`signIn`in s&&s.signIn){let e=await s.signIn(Object.assign(Object.assign(Object.assign({issuedAt:new Date().toISOString()},o?.signInWithSolana),{version:`1`,domain:c.host,uri:c.href}),a?{statement:a}:null)),r;if(Array.isArray(e)&&e[0]&&typeof e[0]==`object`)r=e[0];else if(e&&typeof e==`object`&&`signedMessage`in e&&`signature`in e)r=e;else throw Error(`@supabase/auth-js: Wallet method signIn() returned unrecognized value`);if(`signedMessage`in r&&`signature`in r&&(typeof r.signedMessage==`string`||r.signedMessage instanceof Uint8Array)&&r.signature instanceof Uint8Array)t=typeof r.signedMessage==`string`?r.signedMessage:new TextDecoder().decode(r.signedMessage),n=r.signature;else throw Error(`@supabase/auth-js: Wallet method signIn() API returned object without signedMessage and signature fields`)}else{if(!(`signMessage`in s)||typeof s.signMessage!=`function`||!(`publicKey`in s)||typeof s!=`object`||!s.publicKey||!(`toBase58`in s.publicKey)||typeof s.publicKey.toBase58!=`function`)throw Error(`@supabase/auth-js: Wallet does not have a compatible signMessage() and publicKey.toBase58() API`);t=[`${c.host} wants you to sign in with your Solana account:`,s.publicKey.toBase58(),...a?[``,a,``]:[``],`Version: 1`,`URI: ${c.href}`,`Issued At: ${o?.signInWithSolana?.issuedAt??new Date().toISOString()}`,...o?.signInWithSolana?.notBefore?[`Not Before: ${o.signInWithSolana.notBefore}`]:[],...o?.signInWithSolana?.expirationTime?[`Expiration Time: ${o.signInWithSolana.expirationTime}`]:[],...o?.signInWithSolana?.chainId?[`Chain ID: ${o.signInWithSolana.chainId}`]:[],...o?.signInWithSolana?.nonce?[`Nonce: ${o.signInWithSolana.nonce}`]:[],...o?.signInWithSolana?.requestId?[`Request ID: ${o.signInWithSolana.requestId}`]:[],...o?.signInWithSolana?.resources?.length?[`Resources`,...o.signInWithSolana.resources.map(e=>`- ${e}`)]:[]].join(`
+`);let e=await s.signMessage(new TextEncoder().encode(t),`utf8`);if(!e||!(e instanceof Uint8Array))throw Error(`@supabase/auth-js: Wallet signMessage() API returned an recognized value`);n=e}}try{let{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=web3`,{headers:this.headers,body:Object.assign({chain:`solana`,message:t,signature:B(n)},e.options?.captchaToken?{gotrue_meta_security:{captcha_token:e.options?.captchaToken}}:null),xform:X});if(i)throw i;if(!r||!r.session||!r.user){let e=new R;return this._returnResult({data:{user:null,session:null},error:e})}return r.session&&(await this._saveSession(r.session),await this._notifyAllSubscribers(`SIGNED_IN`,r.session)),this._returnResult({data:Object.assign({},r),error:i})}catch(e){if(P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async _exchangeCodeForSession(e){let[t,n]=(await U(this.storage,`${this.storageKey}-code-verifier`)??``).split(`/`);try{if(!t&&this.flowType===`pkce`)throw new Kn;let{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=pkce`,{headers:this.headers,body:{auth_code:e,code_verifier:t},xform:X});if(await W(this.storage,`${this.storageKey}-code-verifier`),i)throw i;if(!r||!r.session||!r.user){let e=new R;return this._returnResult({data:{user:null,session:null,redirectType:null},error:e})}return r.session&&(await this._saveSession(r.session),await this._notifyAllSubscribers(n===`recovery`?`PASSWORD_RECOVERY`:`SIGNED_IN`,r.session)),this._returnResult({data:Object.assign(Object.assign({},r),{redirectType:n??null}),error:i})}catch(e){if(await W(this.storage,`${this.storageKey}-code-verifier`),P(e))return this._returnResult({data:{user:null,session:null,redirectType:null},error:e});throw e}}async signInWithIdToken(e){try{let{options:t,provider:n,token:r,access_token:i,nonce:a}=e,{data:o,error:s}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=id_token`,{headers:this.headers,body:{provider:n,id_token:r,access_token:i,nonce:a,gotrue_meta_security:{captcha_token:t?.captchaToken}},xform:X});if(s)return this._returnResult({data:{user:null,session:null},error:s});if(!o||!o.session||!o.user){let e=new R;return this._returnResult({data:{user:null,session:null},error:e})}return o.session&&(await this._saveSession(o.session),await this._notifyAllSubscribers(`SIGNED_IN`,o.session)),this._returnResult({data:o,error:s})}catch(e){if(P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithOtp(e){try{if(`email`in e){let{email:t,options:n}=e,r=null,i=null;this.flowType===`pkce`&&([r,i]=await G(this.storage,this.storageKey));let{error:a}=await Y(this.fetch,`POST`,`${this.url}/otp`,{headers:this.headers,body:{email:t,data:n?.data??{},create_user:n?.shouldCreateUser??!0,gotrue_meta_security:{captcha_token:n?.captchaToken},code_challenge:r,code_challenge_method:i},redirectTo:n?.emailRedirectTo});return this._returnResult({data:{user:null,session:null},error:a})}if(`phone`in e){let{phone:t,options:n}=e,{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/otp`,{headers:this.headers,body:{phone:t,data:n?.data??{},create_user:n?.shouldCreateUser??!0,gotrue_meta_security:{captcha_token:n?.captchaToken},channel:n?.channel??`sms`}});return this._returnResult({data:{user:null,session:null,messageId:r?.message_id},error:i})}throw new Hn(`You must provide either an email or phone number.`)}catch(e){if(await W(this.storage,`${this.storageKey}-code-verifier`),P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async verifyOtp(e){try{let t,n;`options`in e&&(t=e.options?.redirectTo,n=e.options?.captchaToken);let{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/verify`,{headers:this.headers,body:Object.assign(Object.assign({},e),{gotrue_meta_security:{captcha_token:n}}),redirectTo:t,xform:X});if(i)throw i;if(!r)throw Error(`An error occurred on token verification.`);let a=r.session,o=r.user;return a?.access_token&&(await this._saveSession(a),await this._notifyAllSubscribers(e.type==`recovery`?`PASSWORD_RECOVERY`:`SIGNED_IN`,a)),this._returnResult({data:{user:o,session:a},error:null})}catch(e){if(P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async signInWithSSO(e){try{let t=null,n=null;this.flowType===`pkce`&&([t,n]=await G(this.storage,this.storageKey));let r=await Y(this.fetch,`POST`,`${this.url}/sso`,{body:Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({},`providerId`in e?{provider_id:e.providerId}:null),`domain`in e?{domain:e.domain}:null),{redirect_to:e.options?.redirectTo??void 0}),e?.options?.captchaToken?{gotrue_meta_security:{captcha_token:e.options.captchaToken}}:null),{skip_http_redirect:!0,code_challenge:t,code_challenge_method:n}),headers:this.headers,xform:zr});return r.data?.url&&V()&&!e.options?.skipBrowserRedirect&&window.location.assign(r.data.url),this._returnResult(r)}catch(e){if(await W(this.storage,`${this.storageKey}-code-verifier`),P(e))return this._returnResult({data:null,error:e});throw e}}async reauthenticate(){return await this.initializePromise,this.lock==null?await this._reauthenticate():await this._acquireLock(this.lockAcquireTimeout,async()=>await this._reauthenticate())}async _reauthenticate(){try{return await this._useSession(async e=>{let{data:{session:t},error:n}=e;if(n)throw n;if(!t)throw new L;let{error:r}=await Y(this.fetch,`GET`,`${this.url}/reauthenticate`,{headers:this.headers,jwt:t.access_token});return this._returnResult({data:{user:null,session:null},error:r})})}catch(e){if(P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async resend(e){try{let t=`${this.url}/resend`;if(`email`in e){let{email:n,type:r,options:i}=e,a=null,o=null;this.flowType===`pkce`&&([a,o]=await G(this.storage,this.storageKey));let{error:s}=await Y(this.fetch,`POST`,t,{headers:this.headers,body:{email:n,type:r,gotrue_meta_security:{captcha_token:i?.captchaToken},code_challenge:a,code_challenge_method:o},redirectTo:i?.emailRedirectTo});return s&&await W(this.storage,`${this.storageKey}-code-verifier`),this._returnResult({data:{user:null,session:null},error:s})}else if(`phone`in e){let{phone:n,type:r,options:i}=e,{data:a,error:o}=await Y(this.fetch,`POST`,t,{headers:this.headers,body:{phone:n,type:r,gotrue_meta_security:{captcha_token:i?.captchaToken}}});return this._returnResult({data:{user:null,session:null,messageId:a?.message_id},error:o})}throw new Hn(`You must provide either an email or phone number and a type`)}catch(e){if(await W(this.storage,`${this.storageKey}-code-verifier`),P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async getSession(){return await this.initializePromise,this.lock==null?await this._useSession(async e=>e):await this._acquireLock(this.lockAcquireTimeout,async()=>this._useSession(async e=>e))}async _acquireLock(e,t){this._debug(`#_acquireLock`,`begin`,e);try{if(this.lockAcquired){let e=this.pendingInLock.length?this.pendingInLock[this.pendingInLock.length-1]:Promise.resolve(),n=(async()=>(await e,await t()))();return this.pendingInLock.push((async()=>{try{await n}catch{}})()),n}return await this.lock(`lock:${this.storageKey}`,e,async()=>{this._debug(`#_acquireLock`,`lock acquired for storage key`,this.storageKey);try{this.lockAcquired=!0;let e=t();for(this.pendingInLock.push((async()=>{try{await e}catch{}})()),await e;this.pendingInLock.length;){let e=[...this.pendingInLock];await Promise.all(e),this.pendingInLock.splice(0,e.length)}return await e}finally{this._debug(`#_acquireLock`,`lock released for storage key`,this.storageKey),this.lockAcquired=!1}})}finally{this._debug(`#_acquireLock`,`end`)}}async _useSession(e){this._debug(`#_useSession`,`begin`);try{return await e(await this.__loadSession())}finally{this._debug(`#_useSession`,`end`)}}async __loadSession(){this._debug(`#__loadSession()`,`begin`),this.lock!=null&&!this.lockAcquired&&this._debug(`#__loadSession()`,`used outside of an acquired lock!`,Error().stack);try{let e=null,t=await U(this.storage,this.storageKey);if(this._debug(`#getSession()`,`session from storage`,t),t!==null&&(this._isValidSession(t)?e=t:(this._debug(`#getSession()`,`session from storage is not valid`),await this._removeSession())),!e)return{data:{session:null},error:null};let n=e.expires_at?e.expires_at*1e3-Date.now()<Pn:!1;if(this._debug(`#__loadSession()`,`session has${n?``:` not`} expired`,`expires_at`,e.expires_at),!n){if(this.userStorage){let t=await U(this.userStorage,this.storageKey+`-user`);t?.user?e.user=t.user:e.user=jr()}if(this.storage.isServer&&e.user&&!e.user.__isUserNotAvailableProxy){let t={value:this.suppressGetSessionWarning};e.user=Mr(e.user,t),t.value&&(this.suppressGetSessionWarning=!0)}return{data:{session:e},error:null}}let{data:r,error:i}=await this._callRefreshToken(e.refresh_token);if(i){if(e.expires_at&&e.expires_at*1e3>Date.now()){let t=await U(this.storage,this.storageKey);if(t&&t.refresh_token===e.refresh_token)return this._returnResult({data:{session:e},error:null})}return this._returnResult({data:{session:null},error:i})}return this._returnResult({data:{session:r},error:null})}finally{this._debug(`#__loadSession()`,`end`)}}async getUser(e){if(e)return await this._getUser(e);await this.initializePromise;let t;return t=this.lock==null?await this._getUser():await this._acquireLock(this.lockAcquireTimeout,async()=>await this._getUser()),t.data.user&&(this.suppressGetSessionWarning=!0),t}async _getUser(e){try{return e?await Y(this.fetch,`GET`,`${this.url}/user`,{headers:this.headers,jwt:e,xform:Z}):await this._useSession(async e=>{let{data:t,error:n}=e;if(n)throw n;return!t.session?.access_token&&!this.hasCustomAuthorizationHeader?{data:{user:null},error:new L}:await Y(this.fetch,`GET`,`${this.url}/user`,{headers:this.headers,jwt:t.session?.access_token??void 0,xform:Z})})}catch(e){if(P(e))return Vn(e)&&(await this._removeSession(),await W(this.storage,`${this.storageKey}-code-verifier`)),this._returnResult({data:{user:null},error:e});throw e}}async updateUser(e,t={}){return await this.initializePromise,this.lock==null?await this._updateUser(e,t):await this._acquireLock(this.lockAcquireTimeout,async()=>await this._updateUser(e,t))}async _updateUser(e,t={}){try{return await this._useSession(async n=>{let{data:r,error:i}=n;if(i)throw i;if(!r.session)throw new L;let a=r.session,o=null,s=null;this.flowType===`pkce`&&e.email!=null&&([o,s]=await G(this.storage,this.storageKey));let{data:c,error:l}=await Y(this.fetch,`PUT`,`${this.url}/user`,{headers:this.headers,redirectTo:t?.emailRedirectTo,body:Object.assign(Object.assign({},e),{code_challenge:o,code_challenge_method:s}),jwt:a.access_token,xform:Z});if(l)throw l;return a.user=c.user,await this._saveSession(a),await this._notifyAllSubscribers(`USER_UPDATED`,a),this._returnResult({data:{user:a.user},error:null})})}catch(e){if(await W(this.storage,`${this.storageKey}-code-verifier`),P(e))return this._returnResult({data:{user:null},error:e});throw e}}async setSession(e){return await this.initializePromise,this.lock==null?await this._setSession(e):await this._acquireLock(this.lockAcquireTimeout,async()=>await this._setSession(e))}async _setSession(e){try{if(!e.access_token||!e.refresh_token)throw new L;let t=Date.now()/1e3,n=t,r=!0,i=null,{payload:a}=yr(e.access_token);if(a.exp&&(n=a.exp,r=n<=t),r){let{data:t,error:n}=await this._callRefreshToken(e.refresh_token);if(n)return this._returnResult({data:{user:null,session:null},error:n});if(!t)return{data:{user:null,session:null},error:null};i=t}else{let{data:r,error:a}=await this._getUser(e.access_token);if(a)return this._returnResult({data:{user:null,session:null},error:a});i={access_token:e.access_token,refresh_token:e.refresh_token,user:r.user,token_type:`bearer`,expires_in:n-t,expires_at:n},await this._saveSession(i),await this._notifyAllSubscribers(`SIGNED_IN`,i)}return this._returnResult({data:{user:i.user,session:i},error:null})}catch(e){if(P(e))return this._returnResult({data:{session:null,user:null},error:e});throw e}}async refreshSession(e){return await this.initializePromise,this.lock==null?await this._refreshSession(e):await this._acquireLock(this.lockAcquireTimeout,async()=>await this._refreshSession(e))}async _refreshSession(e){try{return await this._useSession(async t=>{if(!e){let{data:n,error:r}=t;if(r)throw r;e=n.session??void 0}if(!e?.refresh_token)throw new L;let{data:n,error:r}=await this._callRefreshToken(e.refresh_token);return r?this._returnResult({data:{user:null,session:null},error:r}):n?this._returnResult({data:{user:n.user,session:n},error:null}):this._returnResult({data:{user:null,session:null},error:null})})}catch(e){if(P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}}async _getSessionFromURL(e,t){try{if(!V())throw new Un(`No browser detected.`);if(e.error||e.error_description||e.error_code)throw new Un(e.error_description||`Error in URL with unspecified error_description`,{error:e.error||`unspecified_error`,code:e.error_code||`unspecified_code`});switch(t){case`implicit`:if(this.flowType===`pkce`)throw new Gn(`Not a valid PKCE flow url.`);break;case`pkce`:if(this.flowType===`implicit`)throw new Un(`Not a valid implicit grant flow url.`);break;default:}if(t===`pkce`){if(this._debug(`#_initialize()`,`begin`,`is PKCE flow`,!0),!e.code)throw new Gn(`No code detected.`);let{data:t,error:n}=await this._exchangeCodeForSession(e.code);if(n)throw n;let r=new URL(window.location.href);return r.searchParams.delete(`code`),window.history.replaceState(window.history.state,``,r.toString()),{data:{session:t.session,redirectType:t.redirectType??null},error:null}}let{provider_token:n,provider_refresh_token:r,access_token:i,refresh_token:a,expires_in:o,expires_at:s,token_type:c}=e;if(!i||!o||!a||!c)throw new Un(`No session defined in URL`);let l=Math.round(Date.now()/1e3),u=parseInt(o),d=l+u;s&&(d=parseInt(s));let f=d-l;f*1e3<=M&&console.warn(`@supabase/gotrue-js: Session as retrieved from URL expires in ${f}s, should have been closer to ${u}s`);let p=d-u;l-p>=120?console.warn(`@supabase/gotrue-js: Session as retrieved from URL was issued over 120s ago, URL could be stale`,p,d,l):l-p<0&&console.warn(`@supabase/gotrue-js: Session as retrieved from URL was issued in the future? Check the device clock for skew`,p,d,l);let{data:m,error:h}=await this._getUser(i);if(h)throw h;let ee={provider_token:n,provider_refresh_token:r,access_token:i,expires_in:u,expires_at:d,refresh_token:a,token_type:c,user:m.user};return window.location.hash=``,this._debug(`#_getSessionFromURL()`,`clearing window.location.hash`),this._returnResult({data:{session:ee,redirectType:e.type},error:null})}catch(e){if(P(e))return this._returnResult({data:{session:null,redirectType:null},error:e});throw e}}_isImplicitGrantCallback(e){return typeof this.detectSessionInUrl==`function`?this.detectSessionInUrl(new URL(window.location.href),e):!!(e.access_token||e.error||e.error_description||e.error_code)}async _isPKCECallback(e){let t=await U(this.storage,`${this.storageKey}-code-verifier`);return!!(e.code&&t)}async signOut(e={scope:`global`}){return await this.initializePromise,this.lock==null?await this._signOut(e):await this._acquireLock(this.lockAcquireTimeout,async()=>await this._signOut(e))}async _signOut({scope:e}={scope:`global`}){return await this._useSession(async t=>{let{data:n,error:r}=t;if(r&&!Vn(r))return this._returnResult({error:r});let i=n.session?.access_token;if(i){let{error:t}=await this.admin.signOut(i,e);if(t&&!(Bn(t)&&(t.status===404||t.status===401||t.status===403)||Vn(t)))return this._returnResult({error:t})}return e!==`others`&&(await this._removeSession(),await W(this.storage,`${this.storageKey}-code-verifier`)),this._returnResult({error:null})})}onAuthStateChange(e){let t=fr(),n={id:t,callback:e,unsubscribe:()=>{this._debug(`#unsubscribe()`,`state change callback with id removed`,t),this.stateChangeEmitters.delete(t)}};return this._debug(`#onAuthStateChange()`,`registered callback with id`,t),this.stateChangeEmitters.set(t,n),(async()=>{await this.initializePromise,this.lock==null?await this._emitInitialSession(t):await this._acquireLock(this.lockAcquireTimeout,async()=>{this._emitInitialSession(t)})})(),{data:{subscription:n}}}async _emitInitialSession(e){return await this._useSession(async t=>{try{let{data:{session:n},error:r}=t;if(r)throw r;await this.stateChangeEmitters.get(e)?.callback(`INITIAL_SESSION`,n),this._debug(`INITIAL_SESSION`,`callback id`,e,`session`,n)}catch(t){await this.stateChangeEmitters.get(e)?.callback(`INITIAL_SESSION`,null),this._debug(`INITIAL_SESSION`,`callback id`,e,`error`,t),Vn(t)?console.warn(t):console.error(t)}})}async resetPasswordForEmail(e,t={}){let n=null,r=null;this.flowType===`pkce`&&([n,r]=await G(this.storage,this.storageKey,!0));try{return await Y(this.fetch,`POST`,`${this.url}/recover`,{body:{email:e,code_challenge:n,code_challenge_method:r,gotrue_meta_security:{captcha_token:t.captchaToken}},headers:this.headers,redirectTo:t.redirectTo})}catch(e){if(await W(this.storage,`${this.storageKey}-code-verifier`),P(e))return this._returnResult({data:null,error:e});throw e}}async getUserIdentities(){try{let{data:e,error:t}=await this.getUser();if(t)throw t;return this._returnResult({data:{identities:e.user.identities??[]},error:null})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async linkIdentity(e){return`token`in e?this.linkIdentityIdToken(e):this.linkIdentityOAuth(e)}async linkIdentityOAuth(e){try{let{data:t,error:n}=await this._useSession(async t=>{let{data:n,error:r}=t;if(r)throw r;let i=await this._getUrlForProvider(`${this.url}/user/identities/authorize`,e.provider,{redirectTo:e.options?.redirectTo,scopes:e.options?.scopes,queryParams:e.options?.queryParams,skipBrowserRedirect:!0});return await Y(this.fetch,`GET`,i,{headers:this.headers,jwt:n.session?.access_token??void 0})});if(n)throw n;return V()&&!e.options?.skipBrowserRedirect&&window.location.assign(t?.url),this._returnResult({data:{provider:e.provider,url:t?.url},error:null})}catch(t){if(P(t))return this._returnResult({data:{provider:e.provider,url:null},error:t});throw t}}async linkIdentityIdToken(e){return await this._useSession(async t=>{try{let{error:n,data:{session:r}}=t;if(n)throw n;let{options:i,provider:a,token:o,access_token:s,nonce:c}=e,{data:l,error:u}=await Y(this.fetch,`POST`,`${this.url}/token?grant_type=id_token`,{headers:this.headers,jwt:r?.access_token??void 0,body:{provider:a,id_token:o,access_token:s,nonce:c,link_identity:!0,gotrue_meta_security:{captcha_token:i?.captchaToken}},xform:X});return u?this._returnResult({data:{user:null,session:null},error:u}):!l||!l.session||!l.user?this._returnResult({data:{user:null,session:null},error:new R}):(l.session&&(await this._saveSession(l.session),await this._notifyAllSubscribers(`USER_UPDATED`,l.session)),this._returnResult({data:l,error:u}))}catch(e){if(await W(this.storage,`${this.storageKey}-code-verifier`),P(e))return this._returnResult({data:{user:null,session:null},error:e});throw e}})}async unlinkIdentity(e){try{return await this._useSession(async t=>{let{data:n,error:r}=t;if(r)throw r;return await Y(this.fetch,`DELETE`,`${this.url}/user/identities/${e.identity_id}`,{headers:this.headers,jwt:n.session?.access_token??void 0})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _refreshAccessToken(e){let t=`#_refreshAccessToken()`;this._debug(t,`begin`);try{let n=Date.now();return await xr(async n=>(n>0&&await br(200*2**(n-1)),this._debug(t,`refreshing attempt`,n),await Y(this.fetch,`POST`,`${this.url}/token?grant_type=refresh_token`,{body:{refresh_token:e},headers:this.headers,xform:X})),(e,t)=>{let r=200*2**e;return t&&Yn(t)&&Date.now()+r-n<M})}catch(e){if(this._debug(t,`error`,e),P(e))return this._returnResult({data:{session:null,user:null},error:e});throw e}finally{this._debug(t,`end`)}}_isValidSession(e){return typeof e==`object`&&!!e&&`access_token`in e&&`refresh_token`in e&&`expires_at`in e}async _handleProviderSignIn(e,t){let n=await this._getUrlForProvider(`${this.url}/authorize`,e,{redirectTo:t.redirectTo,scopes:t.scopes,queryParams:t.queryParams});return this._debug(`#_handleProviderSignIn()`,`provider`,e,`options`,t,`url`,n),V()&&!t.skipBrowserRedirect&&window.location.assign(n),{data:{provider:e,url:n},error:null}}async _recoverAndRefresh(){let e=`#_recoverAndRefresh()`;this._debug(e,`begin`);try{let t=await U(this.storage,this.storageKey);if(t&&this.userStorage){let e=await U(this.userStorage,this.storageKey+`-user`);!this.storage.isServer&&Object.is(this.storage,this.userStorage)&&!e&&(e={user:t.user},await _r(this.userStorage,this.storageKey+`-user`,e)),t.user=e?.user??jr()}else if(t&&!t.user&&!t.user){let e=await U(this.storage,this.storageKey+`-user`);e&&e?.user?(t.user=e.user,await W(this.storage,this.storageKey+`-user`),await _r(this.storage,this.storageKey,t)):t.user=jr()}if(this._debug(e,`session from storage`,t),!this._isValidSession(t)){this._debug(e,`session is not valid`),t!==null&&await this._removeSession();return}let n=(t.expires_at??1/0)*1e3-Date.now()<Pn;if(this._debug(e,`session has${n?``:` not`} expired with margin of ${Pn}s`),n){if(this.autoRefreshToken&&t.refresh_token){let{error:n}=await this._callRefreshToken(t.refresh_token);n&&(Zn(n)?this._debug(e,`refresh discarded by commit guard`,n):this._debug(e,`refresh failed`,n))}}else if(t.user&&t.user.__isUserNotAvailableProxy===!0)try{let{data:n,error:r}=await this._getUser(t.access_token);!r&&n?.user?(t.user=n.user,await this._saveSession(t),await this._notifyAllSubscribers(`SIGNED_IN`,t)):this._debug(e,`could not get user data, skipping SIGNED_IN notification`)}catch(t){console.error(`Error getting user data:`,t),this._debug(e,`error getting user data, skipping SIGNED_IN notification`,t)}else await this._notifyAllSubscribers(`SIGNED_IN`,t)}catch(t){this._debug(e,`error`,t),console.error(t);return}finally{this._debug(e,`end`)}}async _callRefreshToken(e){var t,n;if(!e)throw new L;if(this.refreshingDeferred)return this.refreshingDeferred.promise;if(this.lastRefreshFailure&&this.lastRefreshFailure.refreshToken===e&&Date.now()<this.lastRefreshFailure.expiresAt)return this._debug(`#_callRefreshToken()`,`returning cached failure (cooldown active)`),this.lastRefreshFailure.result;let r=`#_callRefreshToken()`;this._debug(r,`begin`);try{this.refreshingDeferred=new vr;let t=await U(this.storage,this.storageKey),{data:n,error:i}=await this._refreshAccessToken(e);if(i)throw i;if(!n.session)throw new L;let a=await U(this.storage,this.storageKey);if(t!==null&&(a===null||a.refresh_token!==t.refresh_token)){this._debug(r,`commit guard: storage changed since refresh started, discarding rotated tokens`,{startedWith:`present`,nowHolds:a?`replaced`:`cleared`});let e={data:null,error:new Xn};return this.refreshingDeferred.resolve(e),e}let o=this._sessionRemovalEpoch;if(await this._saveSession(n.session),this._sessionRemovalEpoch!==o){this._debug(r,`commit guard (post-save): _removeSession ran during _saveSession, undoing write`),await W(this.storage,this.storageKey),this.userStorage&&await W(this.userStorage,this.storageKey+`-user`);let e={data:null,error:new Xn};return this.refreshingDeferred.resolve(e),e}await this._notifyAllSubscribers(`TOKEN_REFRESHED`,n.session);let s={data:n.session,error:null};return this.lastRefreshFailure=null,this.refreshingDeferred.resolve(s),s}catch(i){if(this._debug(r,`error`,i),P(i)){let n={data:null,error:i};if(!Yn(i)){let e=await U(this.storage,this.storageKey);e?.expires_at&&e.expires_at*1e3>Date.now()?this._debug(r,`proactive refresh failed, access token still valid — preserving session`):await this._removeSession()}return this.lastRefreshFailure={refreshToken:e,result:n,expiresAt:Date.now()+6e4},(t=this.refreshingDeferred)==null||t.resolve(n),n}throw(n=this.refreshingDeferred)==null||n.reject(i),i}finally{this.refreshingDeferred=null,this._debug(r,`end`)}}async _notifyAllSubscribers(e,t,n=!0){let r=`#_notifyAllSubscribers(${e})`;this._debug(r,`begin`,t,`broadcast = ${n}`);try{this.broadcastChannel&&n&&this.broadcastChannel.postMessage({event:e,session:t});let r=[],i=Array.from(this.stateChangeEmitters.values()).map(async n=>{try{await n.callback(e,t)}catch(e){r.push(e)}});if(await Promise.all(i),r.length>0){for(let e=0;e<r.length;e+=1)console.error(r[e]);throw r[0]}}finally{this._debug(r,`end`)}}async _saveSession(e){this._debug(`#_saveSession()`,e),this.suppressGetSessionWarning=!0,await W(this.storage,`${this.storageKey}-code-verifier`);let t=Object.assign({},e),n=t.user&&t.user.__isUserNotAvailableProxy===!0;if(this.userStorage){!n&&t.user&&await _r(this.userStorage,this.storageKey+`-user`,{user:t.user});let e=Object.assign({},t);delete e.user;let r=Nr(e);await _r(this.storage,this.storageKey,r)}else{let e=Nr(t);await _r(this.storage,this.storageKey,e)}}async _removeSession(){this._sessionRemovalEpoch+=1,this._debug(`#_removeSession()`),this.lastRefreshFailure=null,this.suppressGetSessionWarning=!1,await W(this.storage,this.storageKey),await W(this.storage,this.storageKey+`-code-verifier`),await W(this.storage,this.storageKey+`-user`),this.userStorage&&await W(this.userStorage,this.storageKey+`-user`),await this._notifyAllSubscribers(`SIGNED_OUT`,null)}_removeVisibilityChangedCallback(){this._debug(`#_removeVisibilityChangedCallback()`);let e=this.visibilityChangedCallback;this.visibilityChangedCallback=null;try{e&&V()&&window!=null&&window.removeEventListener&&window.removeEventListener(`visibilitychange`,e)}catch(e){console.error(`removing visibilitychange callback failed`,e)}}async _startAutoRefresh(){await this._stopAutoRefresh(),this._debug(`#_startAutoRefresh()`);let e=setInterval(()=>this._autoRefreshTokenTick(),M);this.autoRefreshTicker=e,e&&typeof e==`object`&&typeof e.unref==`function`?e.unref():typeof Deno<`u`&&typeof Deno.unrefTimer==`function`&&Deno.unrefTimer(e);let t=setTimeout(async()=>{await this.initializePromise,await this._autoRefreshTokenTick()},0);this.autoRefreshTickTimeout=t,t&&typeof t==`object`&&typeof t.unref==`function`?t.unref():typeof Deno<`u`&&typeof Deno.unrefTimer==`function`&&Deno.unrefTimer(t)}async _stopAutoRefresh(){this._debug(`#_stopAutoRefresh()`);let e=this.autoRefreshTicker;this.autoRefreshTicker=null,e&&clearInterval(e);let t=this.autoRefreshTickTimeout;this.autoRefreshTickTimeout=null,t&&clearTimeout(t)}async startAutoRefresh(){this._removeVisibilityChangedCallback(),await this._startAutoRefresh()}async stopAutoRefresh(){this._removeVisibilityChangedCallback(),await this._stopAutoRefresh()}async dispose(){var e;this._removeVisibilityChangedCallback(),await this._stopAutoRefresh(),(e=this.broadcastChannel)==null||e.close(),this.broadcastChannel=null,this.stateChangeEmitters.clear()}async _autoRefreshTokenTick(){if(this._debug(`#_autoRefreshTokenTick()`,`begin`),this.lock!=null){try{await this._acquireLock(0,async()=>{try{let e=Date.now();try{return await this._useSession(async t=>{let{data:{session:n}}=t;if(!n||!n.refresh_token||!n.expires_at){this._debug(`#_autoRefreshTokenTick()`,`no session`);return}let r=Math.floor((n.expires_at*1e3-e)/M);this._debug(`#_autoRefreshTokenTick()`,`access token expires in ${r} ticks, a tick lasts ${M}ms, refresh threshold is 3 ticks`),r<=3&&await this._callRefreshToken(n.refresh_token)})}catch(e){console.error(`Auto refresh tick failed with error. This is likely a transient error.`,e)}}finally{this._debug(`#_autoRefreshTokenTick()`,`end`)}})}catch(e){if(e instanceof Kr)this._debug(`auto refresh token tick lock not available`);else throw e}return}if(this.refreshingDeferred!==null){this._debug(`#_autoRefreshTokenTick()`,`refresh already in flight, skipping`);return}try{let e=Date.now();try{await this._useSession(async t=>{let{data:{session:n}}=t;if(!n||!n.refresh_token||!n.expires_at){this._debug(`#_autoRefreshTokenTick()`,`no session`);return}let r=Math.floor((n.expires_at*1e3-e)/M);this._debug(`#_autoRefreshTokenTick()`,`access token expires in ${r} ticks, a tick lasts ${M}ms, refresh threshold is 3 ticks`),r<=3&&await this._callRefreshToken(n.refresh_token)})}catch(e){console.error(`Auto refresh tick failed with error. This is likely a transient error.`,e)}}finally{this._debug(`#_autoRefreshTokenTick()`,`end`)}}async _handleVisibilityChange(){if(this._debug(`#_handleVisibilityChange()`),!V()||!(window!=null&&window.addEventListener))return this.autoRefreshToken&&this.startAutoRefresh(),!1;try{this.visibilityChangedCallback=async()=>{try{await this._onVisibilityChanged(!1)}catch(e){this._debug(`#visibilityChangedCallback`,`error`,e)}},window==null||window.addEventListener(`visibilitychange`,this.visibilityChangedCallback),await this._onVisibilityChanged(!0)}catch(e){console.error(`_handleVisibilityChange`,e)}}async _onVisibilityChanged(e){let t=`#_onVisibilityChanged(${e})`;if(this._debug(t,`visibilityState`,document.visibilityState),document.visibilityState===`visible`){if(this.autoRefreshToken&&this._startAutoRefresh(),!e)if(await this.initializePromise,this.lock!=null)await this._acquireLock(this.lockAcquireTimeout,async()=>{if(document.visibilityState!==`visible`){this._debug(t,`acquired the lock to recover the session, but the browser visibilityState is no longer visible, aborting`);return}await this._recoverAndRefresh()});else{if(document.visibilityState!==`visible`){this._debug(t,`visibilityState is no longer visible, skipping recovery`);return}await this._recoverAndRefresh()}}else document.visibilityState===`hidden`&&this.autoRefreshToken&&this._stopAutoRefresh()}async _getUrlForProvider(e,t,n){let r=[`provider=${encodeURIComponent(t)}`];if(n?.redirectTo&&r.push(`redirect_to=${encodeURIComponent(n.redirectTo)}`),n?.scopes&&r.push(`scopes=${encodeURIComponent(n.scopes)}`),this.flowType===`pkce`){let[e,t]=await G(this.storage,this.storageKey),n=new URLSearchParams({code_challenge:`${encodeURIComponent(e)}`,code_challenge_method:`${encodeURIComponent(t)}`});r.push(n.toString())}if(n?.queryParams){let e=new URLSearchParams(n.queryParams);r.push(e.toString())}return n?.skipBrowserRedirect&&r.push(`skip_http_redirect=${n.skipBrowserRedirect}`),`${e}?${r.join(`&`)}`}async _unenroll(e){try{return await this._useSession(async t=>{let{data:n,error:r}=t;return r?this._returnResult({data:null,error:r}):await Y(this.fetch,`DELETE`,`${this.url}/factors/${e.factorId}`,{headers:this.headers,jwt:n?.session?.access_token})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _enroll(e){try{return await this._useSession(async t=>{let{data:n,error:r}=t;if(r)return this._returnResult({data:null,error:r});let i=Object.assign({friendly_name:e.friendlyName,factor_type:e.factorType},e.factorType===`phone`?{phone:e.phone}:e.factorType===`totp`?{issuer:e.issuer}:{}),{data:a,error:o}=await Y(this.fetch,`POST`,`${this.url}/factors`,{body:i,headers:this.headers,jwt:n?.session?.access_token});return o?this._returnResult({data:null,error:o}):(e.factorType===`totp`&&a.type===`totp`&&a?.totp?.qr_code&&(a.totp.qr_code=`data:image/svg+xml;utf-8,${a.totp.qr_code}`),this._returnResult({data:a,error:null}))})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _verify(e){let t=async()=>{try{return await this._useSession(async t=>{let{data:n,error:r}=t;if(r)return this._returnResult({data:null,error:r});let i=Object.assign({challenge_id:e.challengeId},`webauthn`in e?{webauthn:Object.assign(Object.assign({},e.webauthn),{credential_response:e.webauthn.type===`create`?li(e.webauthn.credential_response):ui(e.webauthn.credential_response)})}:{code:e.code}),{data:a,error:o}=await Y(this.fetch,`POST`,`${this.url}/factors/${e.factorId}/verify`,{body:i,headers:this.headers,jwt:n?.session?.access_token});return o?this._returnResult({data:null,error:o}):(await this._saveSession(Object.assign({expires_at:Math.round(Date.now()/1e3)+a.expires_in},a)),await this._notifyAllSubscribers(`MFA_CHALLENGE_VERIFIED`,a),this._returnResult({data:a,error:o}))})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}};return this.lock==null?t():this._acquireLock(this.lockAcquireTimeout,t)}async _challenge(e){let t=async()=>{try{return await this._useSession(async t=>{let{data:n,error:r}=t;if(r)return this._returnResult({data:null,error:r});let i=await Y(this.fetch,`POST`,`${this.url}/factors/${e.factorId}/challenge`,{body:e,headers:this.headers,jwt:n?.session?.access_token});if(i.error)return i;let{data:a}=i;if(a.type!==`webauthn`)return{data:a,error:null};switch(a.webauthn.type){case`create`:return{data:Object.assign(Object.assign({},a),{webauthn:Object.assign(Object.assign({},a.webauthn),{credential_options:Object.assign(Object.assign({},a.webauthn.credential_options),{publicKey:si(a.webauthn.credential_options.publicKey)})})}),error:null};case`request`:return{data:Object.assign(Object.assign({},a),{webauthn:Object.assign(Object.assign({},a.webauthn),{credential_options:Object.assign(Object.assign({},a.webauthn.credential_options),{publicKey:ci(a.webauthn.credential_options.publicKey)})})}),error:null}}})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}};return this.lock==null?t():this._acquireLock(this.lockAcquireTimeout,t)}async _challengeAndVerify(e){let{data:t,error:n}=await this._challenge({factorId:e.factorId});return n?this._returnResult({data:null,error:n}):await this._verify({factorId:e.factorId,challengeId:t.id,code:e.code})}async _listFactors(){let{data:{user:e},error:t}=await this.getUser();if(t)return{data:null,error:t};let n={all:[],phone:[],totp:[],webauthn:[]};for(let t of e?.factors??[])n.all.push(t),t.status===`verified`&&n[t.factor_type].push(t);return{data:n,error:null}}async _getAuthenticatorAssuranceLevel(e){if(e)try{let{payload:t}=yr(e),n=null;t.aal&&(n=t.aal);let r=n,{data:{user:i},error:a}=await this.getUser(e);if(a)return this._returnResult({data:null,error:a});((i?.factors)?.filter(e=>e.status===`verified`)??[]).length>0&&(r=`aal2`);let o=t.amr||[];return{data:{currentLevel:n,nextLevel:r,currentAuthenticationMethods:o},error:null}}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}let{data:{session:t},error:n}=await this.getSession();if(n)return this._returnResult({data:null,error:n});if(!t)return{data:{currentLevel:null,nextLevel:null,currentAuthenticationMethods:[]},error:null};let{payload:r}=yr(t.access_token),i=null;r.aal&&(i=r.aal);let a=i;(t.user.factors?.filter(e=>e.status===`verified`)??[]).length>0&&(a=`aal2`);let o=r.amr||[];return{data:{currentLevel:i,nextLevel:a,currentAuthenticationMethods:o},error:null}}async _getAuthorizationDetails(e){try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;return r?this._returnResult({data:null,error:r}):n?await Y(this.fetch,`GET`,`${this.url}/oauth/authorizations/${e}`,{headers:this.headers,jwt:n.access_token,xform:e=>({data:e,error:null})}):this._returnResult({data:null,error:new L})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _approveAuthorization(e,t){try{return await this._useSession(async n=>{let{data:{session:r},error:i}=n;if(i)return this._returnResult({data:null,error:i});if(!r)return this._returnResult({data:null,error:new L});let a=await Y(this.fetch,`POST`,`${this.url}/oauth/authorizations/${e}/consent`,{headers:this.headers,jwt:r.access_token,body:{action:`approve`},xform:e=>({data:e,error:null})});return a.data&&a.data.redirect_url&&V()&&!t?.skipBrowserRedirect&&window.location.assign(a.data.redirect_url),a})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _denyAuthorization(e,t){try{return await this._useSession(async n=>{let{data:{session:r},error:i}=n;if(i)return this._returnResult({data:null,error:i});if(!r)return this._returnResult({data:null,error:new L});let a=await Y(this.fetch,`POST`,`${this.url}/oauth/authorizations/${e}/consent`,{headers:this.headers,jwt:r.access_token,body:{action:`deny`},xform:e=>({data:e,error:null})});return a.data&&a.data.redirect_url&&V()&&!t?.skipBrowserRedirect&&window.location.assign(a.data.redirect_url),a})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _listOAuthGrants(){try{return await this._useSession(async e=>{let{data:{session:t},error:n}=e;return n?this._returnResult({data:null,error:n}):t?await Y(this.fetch,`GET`,`${this.url}/user/oauth/grants`,{headers:this.headers,jwt:t.access_token,xform:e=>({data:e,error:null})}):this._returnResult({data:null,error:new L})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _revokeOAuthGrant(e){try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;return r?this._returnResult({data:null,error:r}):n?(await Y(this.fetch,`DELETE`,`${this.url}/user/oauth/grants`,{headers:this.headers,jwt:n.access_token,query:{client_id:e.clientId},noResolveJson:!0}),{data:{},error:null}):this._returnResult({data:null,error:new L})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async fetchJwk(e,t={keys:[]}){let n=t.keys.find(t=>t.kid===e);if(n)return n;let r=Date.now();if(n=this.jwks.keys.find(t=>t.kid===e),n&&this.jwks_cached_at+6e5>r)return n;let{data:i,error:a}=await Y(this.fetch,`GET`,`${this.url}/.well-known/jwks.json`,{headers:this.headers});if(a)throw a;return!i.keys||i.keys.length===0||(this.jwks=i,this.jwks_cached_at=r,n=i.keys.find(t=>t.kid===e),!n)?null:n}async getClaims(e,t={}){try{let n=e;if(!n){let{data:e,error:t}=await this.getSession();if(t||!e.session)return this._returnResult({data:null,error:t});n=e.session.access_token}let{header:r,payload:i,signature:a,raw:{header:o,payload:s}}=yr(n);if(!t?.allowExpired)try{Or(i.exp)}catch(e){throw new er(e instanceof Error?e.message:`JWT validation failed`)}let c=!r.alg||r.alg.startsWith(`HS`)||!r.kid||!(`crypto`in globalThis&&`subtle`in globalThis.crypto)?null:await this.fetchJwk(r.kid,t?.keys?{keys:t.keys}:t?.jwks);if(!c){let{error:e}=await this.getUser(n);if(e)throw e;return{data:{claims:i,header:r,signature:a},error:null}}let l=kr(r.alg),u=await crypto.subtle.importKey(`jwk`,c,l,!0,[`verify`]);if(!await crypto.subtle.verify(l,u,a,ur(`${o}.${s}`)))throw new er(`Invalid JWT signature`);return{data:{claims:i,header:r,signature:a},error:null}}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async signInWithPasskey(e){q(this.experimental);try{if(!fi())return this._returnResult({data:null,error:new F(`Browser does not support WebAuthn`,null)});let{data:t,error:n}=await this._startPasskeyAuthentication({options:{captchaToken:e?.options?.captchaToken}});if(n||!t)return this._returnResult({data:null,error:n});let{data:r,error:i}=await mi({publicKey:ci(t.options),signal:e?.options?.signal??oi.createNewAbortSignal()});if(i||!r)return this._returnResult({data:null,error:i??new F(`WebAuthn ceremony failed`,null)});let a=ui(r);return this._verifyPasskeyAuthentication({challengeId:t.challenge_id,credential:a})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async registerPasskey(e){q(this.experimental);try{if(!fi())return this._returnResult({data:null,error:new F(`Browser does not support WebAuthn`,null)});let{data:t,error:n}=await this._startPasskeyRegistration();if(n||!t)return this._returnResult({data:null,error:n});let{data:r,error:i}=await pi({publicKey:si(t.options),signal:e?.options?.signal??oi.createNewAbortSignal()});if(i||!r)return this._returnResult({data:null,error:i??new F(`WebAuthn ceremony failed`,null)});let a=li(r);return this._verifyPasskeyRegistration({challengeId:t.challenge_id,credential:a})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _startPasskeyRegistration(){q(this.experimental);try{return await this._useSession(async e=>{let{data:{session:t},error:n}=e;if(n)return this._returnResult({data:null,error:n});if(!t)return this._returnResult({data:null,error:new L});let{data:r,error:i}=await Y(this.fetch,`POST`,`${this.url}/passkeys/registration/options`,{headers:this.headers,jwt:t.access_token,body:{}});return i?this._returnResult({data:null,error:i}):this._returnResult({data:r,error:null})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _verifyPasskeyRegistration(e){q(this.experimental);try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;if(r)return this._returnResult({data:null,error:r});if(!n)return this._returnResult({data:null,error:new L});let{data:i,error:a}=await Y(this.fetch,`POST`,`${this.url}/passkeys/registration/verify`,{headers:this.headers,jwt:n.access_token,body:{challenge_id:e.challengeId,credential:e.credential}});return a?this._returnResult({data:null,error:a}):this._returnResult({data:i,error:null})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _startPasskeyAuthentication(e){q(this.experimental);try{let{data:t,error:n}=await Y(this.fetch,`POST`,`${this.url}/passkeys/authentication/options`,{headers:this.headers,body:{gotrue_meta_security:{captcha_token:e?.options?.captchaToken}}});return n?this._returnResult({data:null,error:n}):this._returnResult({data:t,error:null})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _verifyPasskeyAuthentication(e){q(this.experimental);try{let{data:t,error:n}=await Y(this.fetch,`POST`,`${this.url}/passkeys/authentication/verify`,{headers:this.headers,body:{challenge_id:e.challengeId,credential:e.credential},xform:X});return n?this._returnResult({data:null,error:n}):(t.session&&(await this._saveSession(t.session),await this._notifyAllSubscribers(`SIGNED_IN`,t.session)),this._returnResult({data:t,error:null}))}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _listPasskeys(){q(this.experimental);try{return await this._useSession(async e=>{let{data:{session:t},error:n}=e;if(n)return this._returnResult({data:null,error:n});if(!t)return this._returnResult({data:null,error:new L});let{data:r,error:i}=await Y(this.fetch,`GET`,`${this.url}/passkeys`,{headers:this.headers,jwt:t.access_token,xform:e=>({data:e,error:null})});return i?this._returnResult({data:null,error:i}):this._returnResult({data:r,error:null})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _updatePasskey(e){q(this.experimental);try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;if(r)return this._returnResult({data:null,error:r});if(!n)return this._returnResult({data:null,error:new L});let{data:i,error:a}=await Y(this.fetch,`PATCH`,`${this.url}/passkeys/${e.passkeyId}`,{headers:this.headers,jwt:n.access_token,body:{friendly_name:e.friendlyName}});return a?this._returnResult({data:null,error:a}):this._returnResult({data:i,error:null})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}async _deletePasskey(e){q(this.experimental);try{return await this._useSession(async t=>{let{data:{session:n},error:r}=t;if(r)return this._returnResult({data:null,error:r});if(!n)return this._returnResult({data:null,error:new L});let{error:i}=await Y(this.fetch,`DELETE`,`${this.url}/passkeys/${e.passkeyId}`,{headers:this.headers,jwt:n.access_token,noResolveJson:!0});return i?this._returnResult({data:null,error:i}):this._returnResult({data:null,error:null})})}catch(e){if(P(e))return this._returnResult({data:null,error:e});throw e}}};Ci.nextInstanceID={};var wi=Ci,Ti=Wr,Ei=wi,Di=class extends Ei{constructor(e){super(e)}},Oi=class{constructor(e,t,n){this.supabaseUrl=e,this.supabaseKey=t;let r=Mn(e);if(!t)throw Error(`supabaseKey is required.`);this.realtimeUrl=new URL(`realtime/v1`,r),this.realtimeUrl.protocol=this.realtimeUrl.protocol.replace(`http`,`ws`),this.authUrl=new URL(`auth/v1`,r),this.storageUrl=new URL(`storage/v1`,r),this.functionsUrl=new URL(`functions/v1`,r);let i=`sb-${r.hostname.split(`.`)[0]}-auth-token`,a={db:mn,realtime:gn,auth:{...hn,storageKey:i},global:pn,tracePropagation:_n},o=jn(n??{},a);this.settings=o,this.storageKey=o.auth.storageKey??``,this.headers=o.global.headers??{},o.accessToken?(this.accessToken=o.accessToken,this.auth=new Proxy({},{get:(e,t)=>{throw Error(`@supabase/supabase-js: Supabase Client is configured with the accessToken option, accessing supabase.auth.${String(t)} is not possible`)}})):this.auth=this._initSupabaseAuthClient(o.auth??{},this.headers,o.global.fetch),this.fetch=Dn(t,e,this._getAccessToken.bind(this),o.global.fetch,o.tracePropagation),this.realtime=this._initRealtimeClient({headers:this.headers,accessToken:this._getAccessToken.bind(this),fetch:this.fetch,...o.realtime}),this.accessToken&&Promise.resolve(this.accessToken()).then(e=>this.realtime.setAuth(e)).catch(e=>console.warn(`Failed to set initial Realtime auth token:`,e)),this.rest=new se(new URL(`rest/v1`,r).href,{headers:this.headers,schema:o.db.schema,fetch:this.fetch,timeout:o.db.timeout,urlLengthLimit:o.db.urlLengthLimit}),this.storage=new ln(this.storageUrl.href,this.headers,this.fetch,n?.storage),o.accessToken||this._listenForAuthEvents()}get functions(){return new l(this.functionsUrl.href,{headers:this.headers,customFetch:this.fetch})}from(e){return this.rest.from(e)}schema(e){return this.rest.schema(e)}rpc(e,t={},n={head:!1,get:!1,count:void 0}){return this.rest.rpc(e,t,n)}channel(e,t={config:{}}){return this.realtime.channel(e,t)}getChannels(){return this.realtime.getChannels()}removeChannel(e){return this.realtime.removeChannel(e)}removeAllChannels(){return this.realtime.removeAllChannels()}async _getAccessToken(){if(this.accessToken)return await this.accessToken();let{data:e}=await this.auth.getSession();return e.session?.access_token??this.supabaseKey}_initSupabaseAuthClient({autoRefreshToken:e,persistSession:t,detectSessionInUrl:n,storage:r,userStorage:i,storageKey:a,flowType:o,lock:s,debug:c,throwOnError:l,experimental:u,lockAcquireTimeout:d,skipAutoInitialize:f},p,m){let h={Authorization:`Bearer ${this.supabaseKey}`,apikey:`${this.supabaseKey}`};return new Di({url:this.authUrl.href,headers:{...h,...p},storageKey:a,autoRefreshToken:e,persistSession:t,detectSessionInUrl:n,storage:r,userStorage:i,flowType:o,lock:s,debug:c,throwOnError:l,experimental:u,fetch:m,lockAcquireTimeout:d,skipAutoInitialize:f,hasCustomAuthorizationHeader:Object.keys(this.headers).some(e=>e.toLowerCase()===`authorization`)})}_initRealtimeClient(e){return new ft(this.realtimeUrl.href,{...e,params:{apikey:this.supabaseKey,...e?.params}})}_listenForAuthEvents(){return this.auth.onAuthStateChange((e,t)=>{this._handleTokenChanged(e,`CLIENT`,t?.access_token)})}_handleTokenChanged(e,t,n){(e===`TOKEN_REFRESHED`||e===`SIGNED_IN`)&&this.changedAccessToken!==n?(this.changedAccessToken=n,this.realtime.setAuth(n)):e===`SIGNED_OUT`&&(this.realtime.setAuth(),t==`STORAGE`&&this.auth.signOut(),this.changedAccessToken=void 0)}};let ki=(e,t,n)=>new Oi(e,t,n);function Ai(){if(typeof window<`u`)return!1;let e=globalThis.process;if(!e)return!1;let t=e.version;if(t==null)return!1;let n=t.match(/^v(\d+)\./);return n?parseInt(n[1],10)<=20:!1}return Ai()&&console.warn(`⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715`),e.AuthAdminApi=Ti,e.AuthApiError=zn,e.AuthClient=Ei,e.AuthError=N,e.AuthImplicitGrantRedirectError=Un,e.AuthInvalidCredentialsError=Hn,e.AuthInvalidJwtError=er,e.AuthInvalidTokenResponseError=R,e.AuthPKCECodeVerifierMissingError=Kn,e.AuthPKCEGrantCodeExchangeError=Gn,e.AuthRefreshDiscardedError=Xn,e.AuthRetryableFetchError=Jn,e.AuthSessionMissingError=L,e.AuthUnknownError=F,e.AuthWeakPasswordError=Qn,e.CustomAuthError=I,Object.defineProperty(e,`FunctionRegion`,{enumerable:!0,get:function(){return c}}),e.FunctionsError=i,e.FunctionsFetchError=a,e.FunctionsHttpError=s,e.FunctionsRelayError=o,e.GoTrueAdminApi=Wr,e.GoTrueClient=wi,e.NavigatorLockAcquireTimeoutError=qr,e.PostgrestError=p,e.REALTIME_CHANNEL_STATES=at,Object.defineProperty(e,`REALTIME_LISTEN_TYPES`,{enumerable:!0,get:function(){return E}}),Object.defineProperty(e,`REALTIME_POSTGRES_CHANGES_LISTEN_EVENT`,{enumerable:!0,get:function(){return it}}),Object.defineProperty(e,`REALTIME_PRESENCE_LISTEN_EVENTS`,{enumerable:!0,get:function(){return Ge}}),Object.defineProperty(e,`REALTIME_SUBSCRIBE_STATES`,{enumerable:!0,get:function(){return D}}),e.RealtimeChannel=ot,e.RealtimeClient=ft,e.RealtimePostgresFilterBuilder=nt,e.RealtimePresence=Ke,e.SIGN_OUT_SCOPES=Ur,e.StorageApiError=kt,e.SupabaseClient=Oi,e.WebSocketFactory=ce,e.createClient=ki,e.isAuthApiError=Bn,e.isAuthError=P,e.isAuthImplicitGrantRedirectError=Wn,e.isAuthPKCECodeVerifierMissingError=qn,e.isAuthRefreshDiscardedError=Zn,e.isAuthRetryableFetchError=Yn,e.isAuthSessionMissingError=Vn,e.isAuthWeakPasswordError=$n,e.lockInternals=Q,e.navigatorLock=Yr,e.postgresChangesFilter=rt,e.processLock=Zr,e})({});
 /* js/utils/supabaseClient.js */
 // ============================================
 // SUPABASE CLIENT GLOBAL
@@ -13032,8 +13199,14 @@ function showCurrentMessage(direction = 'forward') {
     const namePlate = document.getElementById('vnSpeakerPlate');
     const avatarBox = document.getElementById('vnSpeakerAvatar');
 
+    // Los ecos de ciclo guardan los cambios como DATOS y cada cliente
+    // renderiza solo lo que atañe a su personaje (spec: ecos personales)
+    const displayText = (msg.isCycleEcho && Array.isArray(msg.cycleChanges))
+        ? buildCycleEchoText(msg)
+        : msg.text;
+
     // Parsear emotes del mensaje
-    const { emotes, text: cleanText } = parseEmotes(msg.text);
+    const { emotes, text: cleanText } = parseEmotes(displayText);
     const activeEmote = emotes.length > 0 ? emotes[0] : null;
 
     // Actualizar sprites y mostrar emote
@@ -13990,6 +14163,21 @@ function showOptions(options) {
         return;
     }
 
+    // Silenciadas ("guardar silencio"): nunca vuelven a mostrarse
+    if (currentMsg && currentMsg.optionsSkipped) {
+        container.classList.remove('active');
+        return;
+    }
+
+    // Caducadas: sin responder y el topic ya avanzó (no es el último
+    // mensaje) → la ventana de decisión pasó; no se reabre
+    const isAnswered = currentMsg && currentMsg.selectedOptionIndex !== undefined;
+    const isLastMsg = currentMessageIndex === msgs.length - 1;
+    if (!isAnswered && !isLastMsg) {
+        container.classList.remove('active');
+        return;
+    }
+
     // Guard: normalizar opciones que vengan en formatos legacy o corruptos
     const normalizedOptions = options.map((opt, i) => {
         if (opt && typeof opt === 'object' && typeof opt.text === 'string') return opt;
@@ -14005,9 +14193,10 @@ function showOptions(options) {
     });
 
     const total = normalizedOptions.length;
+    const answered = currentMsg.selectedOptionIndex !== undefined;
+    const LETTERS = 'ABCDEFGH';
     const optionButtons = normalizedOptions.map((opt, idx) => {
         const selected = currentMsg.selectedOptionIndex === idx;
-        const disabled = currentMsg.selectedOptionIndex !== undefined;
         const optionLabel = `${opt.text}, opción ${idx + 1} de ${total}`;
         return `
         <button class="vn-option-btn ${selected ? 'chosen' : ''}"
@@ -14015,16 +14204,25 @@ function showOptions(options) {
                 aria-pressed="${selected ? 'true' : 'false'}"
                 aria-label="${escapeHtml(optionLabel)}"
                 onclick="selectOption(${idx})"
-                ${disabled ? 'disabled' : ''}>
-            ${escapeHtml(opt.text)}
+                ${answered ? 'disabled' : ''}>
+            <span class="vn-opt-letter" aria-hidden="true">${LETTERS[idx] || (idx + 1)}</span>
+            <span class="vn-opt-text">${escapeHtml(opt.text)}</span>
+            <span class="vn-opt-chevron" aria-hidden="true">›</span>
         </button>
     `;
     }).join('');
 
+    // "Guardar silencio": oculta las opciones sin elegir. No persiste nada;
+    // si el lector vuelve al mensaje, las opciones reaparecen intactas.
+    const silenceBtn = answered ? '' : `
+        <button class="vn-opt-silence" type="button" onclick="dismissOptions()">✕ Guardar silencio</button>
+    `;
+
     container.innerHTML = `
-        <div class="vn-options-title">🎭 Reacciones sugeridas</div>
-        <div class="vn-options-subtitle">Elige una ruta propuesta por quien abrió la escena.</div>
+        <div class="vn-options-title">✦ &nbsp;¿Qué respondes?&nbsp; ✦</div>
+        <div class="vn-options-subtitle">cada palabra teje un vínculo que aún no puedes ver</div>
         ${optionButtons}
+        ${silenceBtn}
     `;
 
     container.classList.add('active');
@@ -14032,6 +14230,26 @@ function showOptions(options) {
     const vnSection = document.getElementById('vnSection');
     if (vnSection) vnSection.classList.add('suspense-mode');
 }
+
+// "Guardar silencio": skip PERSISTENTE de esa tanda de elecciones.
+// No elige opción (selectedOptionIndex queda undefined) pero marca el
+// mensaje como silenciado: las opciones no vuelven a mostrarse a nadie.
+// Mismo mecanismo de persistencia/sync que selectOption.
+function dismissOptions() {
+    const msgs = getTopicMessages(currentTopicId);
+    const msg = msgs[currentMessageIndex];
+    if (msg && msg.selectedOptionIndex === undefined && !msg.optionsSkipped) {
+        msg.optionsSkipped = true;
+        msg.skippedBy = currentUserIndex;
+        hasUnsavedChanges = true;
+        save({ silent: true });
+    }
+    const container = document.getElementById('vnOptionsContainer');
+    if (container) container.classList.remove('active');
+    const vnSectionEl = document.getElementById('vnSection');
+    if (vnSectionEl) vnSectionEl.classList.remove('suspense-mode');
+}
+window.dismissOptions = dismissOptions;
 
 function selectOption(idx) {
     // Quitar efecto suspense al seleccionar (absorbido de mejoras.js)
@@ -16531,6 +16749,12 @@ function postVNReply() {
         persistTopicLockedCharacter(topic, selectedCharId);
     }
 
+    // Ciclo-turno (Clásico): si ya actuaste este ciclo, quedas en espera
+    if (_checkCycleTurnGuard(topic) === 'waiting') {
+        showAutosave('✦ Tu palabra ya está tejida este ciclo — aguarda a que los demás completen su turno', 'error');
+        return;
+    }
+
     let options = null;
     const enableOptions = document.getElementById('enableOptions');
     if(enableOptions && enableOptions.checked && !isRpgModeMode()) {
@@ -16651,6 +16875,7 @@ function postVNReply() {
     }
 
     notifyNextTurnIfNeeded(newMsg, topic, char).catch(() => {});
+    _ensureCycleAndMaybeClose(topic).catch(() => {});
 
     // Notificar a Ethy del mensaje enviado
     window.dispatchEvent(new CustomEvent('etheria:message-sent', {
@@ -17088,9 +17313,17 @@ function vrpSetWeatherBtn(clickedBtn) {
             this.disabled = true;
             this.textContent = 'Solicitando…';
             try {
+                // El saltado es quien encabeza la cola en este momento
+                const skippedUid = getCurrentTopic()?.turnOrder?.[0] || null;
                 const result = await SupabaseStories.skipTurn(storyId);
                 if (result && result.ok) {
                     if (typeof showAutosave === 'function') showAutosave('✅ Turno solicitado con éxito', 'success');
+                    if (skippedUid && _cycleCache.cycle && typeof SupabaseCycles !== 'undefined'
+                            && typeof SupabaseCycles.excuseParticipant === 'function') {
+                        SupabaseCycles.excuseParticipant(_cycleCache.cycle.id, skippedUid)
+                            .then(() => _ensureCycleAndMaybeClose(getCurrentTopic()))
+                            .catch(() => {});
+                    }
                     _hideBanner();
                 } else {
                     if (typeof showAutosave === 'function') {
@@ -17279,6 +17512,178 @@ function closeExportMenu(menuId) {
 window.toggleExportMenu = toggleExportMenu;
 window.closeExportMenu  = closeExportMenu;
 
+// ── Ciclo-turno (Clásico): una acción por participante y por ciclo ───────────
+// Modelo: dentro de un ciclo abierto, cada participante escribe UNA respuesta
+// en el orden que quiera; al hacerlo queda "en espera" (no puede escribir más,
+// pero SÍ responder elecciones). Cuando todos han actuado — o han sido
+// excusados por inactividad — el ciclo se cierra (impactos + eco) y se abre
+// el siguiente, desbloqueando a todos. Las 72 h de closes_at siguen como red
+// de seguridad para topics abandonados.
+// "Quién actuó" se deriva de los mensajes desde started_at → sin esquema nuevo.
+// NOTA: el guard aplica solo a postVNReply (mensajes nuevos); editar un
+// mensaje existente no cuenta como nueva acción del ciclo.
+
+let _cycleCache = { topicId: null, cycle: null };
+
+async function _refreshCycleCache(topicId) {
+    if (!topicId || typeof SupabaseCycles === 'undefined') return null;
+    try {
+        const cycle = await SupabaseCycles.getOpenCycle(topicId);
+        _cycleCache = { topicId: String(topicId), cycle };
+        return cycle;
+    } catch (_) { return null; }
+}
+
+function _cycleParticipantIds(cycle) {
+    if (cycle && Array.isArray(cycle.participants) && cycle.participants.length) {
+        return cycle.participants.map(String);
+    }
+    const parts = Array.isArray(window.currentStoryParticipants) ? window.currentStoryParticipants : [];
+    return parts.map(p => p?.user_id).filter(Boolean).map(String);
+}
+
+function _cycleActedUserIds(cycle) {
+    const owners = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
+    const started = cycle ? new Date(cycle.started_at || cycle.created_at || 0) : new Date(0);
+    const acted = new Set();
+    getTopicMessages(currentTopicId).forEach(m => {
+        if (m.isCycleEcho) return;
+        if (new Date(m.timestamp) <= started) return;
+        const uid = owners[m.userIndex];
+        if (uid) acted.add(String(uid));
+    });
+    return acted;
+}
+
+// Guard síncrono para el envío (usa el caché; sin caché → no bloquea,
+// la red de 72 h cubre el peor caso)
+function _checkCycleTurnGuard(topic) {
+    if (!topic || isRpgTopicMode(topic.mode)) return 'ok';
+    const cycle = (_cycleCache.topicId === String(currentTopicId)) ? _cycleCache.cycle : null;
+    if (!cycle) return 'ok';
+    const participants = _cycleParticipantIds(cycle);
+    if (participants.length < 2) return 'ok'; // en solitario no hay espera
+    const me = window._cachedUserId ? String(window._cachedUserId) : null;
+    if (!me || !participants.includes(me)) return 'ok';
+    const acted = _cycleActedUserIds(cycle);
+    if (acted.has(me) && !participants.every(p => acted.has(p))) return 'waiting';
+    return 'ok';
+}
+
+// Tras cada envío: garantizar ciclo abierto y cerrarlo si todos actuaron
+async function _ensureCycleAndMaybeClose(topic) {
+    if (!topic || isRpgTopicMode(topic.mode) || !currentTopicId) return;
+    if (typeof SupabaseCycles === 'undefined') return;
+    try {
+        let cycle = await _refreshCycleCache(currentTopicId);
+        if (!cycle) {
+            cycle = await SupabaseCycles.openCycle(currentTopicId, _cycleParticipantIds(null));
+            _cycleCache = { topicId: String(currentTopicId), cycle };
+            return;
+        }
+        const participants = _cycleParticipantIds(cycle);
+        if (participants.length < 2) return; // solo tiempo en solitario
+        const acted = _cycleActedUserIds(cycle);
+        if (participants.every(p => acted.has(p))) {
+            await SupabaseCycles.closeCycle(cycle.id, currentTopicId);
+            const fresh = await SupabaseCycles.openCycle(currentTopicId, _cycleParticipantIds(null));
+            _cycleCache = { topicId: String(currentTopicId), cycle: fresh };
+            if (typeof updateChoiceButton === 'function') updateChoiceButton();
+        }
+    } catch (err) {
+        window.EtheriaLogger?.warn('cycle-turn', 'ensure/close:', err?.message);
+    }
+}
+
+if (typeof eventBus !== 'undefined') {
+    eventBus.on('cycle:opened', (d) => {
+        if (String(d?.topicId) === String(currentTopicId)) {
+            _cycleCache = { topicId: String(d.topicId), cycle: d.cycle };
+        }
+    });
+    eventBus.on('cycle:closed', (d) => {
+        if (String(d?.topicId) === String(currentTopicId)) {
+            _cycleCache = { topicId: String(d.topicId), cycle: null };
+        }
+    });
+}
+
+// Construye el texto del eco para el ESPECTADOR actual: solo los cambios
+// que involucran a su personaje, agregados a delta neto por interlocutor.
+// Sin cambios propios → línea genérica (el registro existe, pero no revela
+// las afinidades ajenas).
+function buildCycleEchoText(msg) {
+    const myId = String(selectedCharId || '');
+    const mine = (msg.cycleChanges || []).filter(ch =>
+        String(ch.fromCharId) === myId || String(ch.toCharId) === myId
+    );
+
+    if (!myId || mine.length === 0) {
+        return '— Los ecos del ciclo resuenan, pero ninguno te nombra —';
+    }
+
+    // Delta neto por "el otro" personaje
+    const net = {};
+    mine.forEach(ch => {
+        const other = String(ch.fromCharId) === myId ? ch.toCharId : ch.fromCharId;
+        net[other] = (net[other] || 0) + (Number(ch.delta) || 0);
+    });
+
+    const charName = (id) => {
+        const c = (appData.characters || []).find(x => String(x.id) === String(id));
+        return c ? c.name : 'Alguien';
+    };
+
+    const lines = Object.entries(net).map(([other, delta]) => {
+        const name = charName(other);
+        if (delta > 0) return `✦ Tu vínculo con ${name} se estrecha (+${delta})`;
+        if (delta < 0) return `☄ Tu vínculo con ${name} se resiente (${delta})`;
+        return `· Tu vínculo con ${name} permanece inmutable`;
+    });
+
+    return '— Ecos del ciclo —\n' + lines.join('\n');
+}
+
+// ── Eco del narrador: registro permanente de los impactos de afinidad ────────
+// Al cerrar un ciclo, cycle:affinity-impacts trae los cambios aplicados.
+// Además del panel efímero de Ecos, se inserta UN mensaje de narrador en el
+// diálogo para que las acciones de ciclos pasados queden registradas y sean
+// revisables al navegar el historial. Id determinista por ciclo → si varios
+// clientes cierran a la vez, el duplicado se detecta y no se re-inserta.
+if (typeof eventBus !== 'undefined') {
+    eventBus.on('cycle:affinity-impacts', function (data) {
+        try {
+            if (!data || !data.changes || !data.changes.length) return;
+            if (String(data.topicId) !== String(currentTopicId)) return;
+
+            const msgs = getTopicMessages(currentTopicId);
+            const echoId = 'cycle-echo-' + data.cycleId;
+            if (msgs.some(m => m.id === echoId)) return; // ya registrado
+
+            msgs.push({
+                id: echoId,
+                characterId: null,
+                charName: 'Narrador',
+                charColor: null,
+                charAvatar: null,
+                charSprite: null,
+                // Texto de reserva (exports, clientes antiguos); el render
+                // real lo personaliza buildCycleEchoText por espectador
+                text: '— Ecos del ciclo —',
+                cycleChanges: data.changes,
+                isNarrator: true,
+                isCycleEcho: true,
+                userIndex: currentUserIndex,
+                timestamp: new Date().toISOString()
+            });
+            hasUnsavedChanges = true;
+            save({ silent: true });
+        } catch (err) {
+            window.EtheriaLogger?.warn('cycle-echo', 'Error registrando ecos:', err?.message);
+        }
+    });
+}
+
 // ── Elecciones del ciclo dentro del reply panel ──────────────────────────────
 // Al abrir el panel de respuesta en modo clásico, se cargan las elecciones
 // activas del ciclo y se muestran como tarjetas con opciones seleccionables.
@@ -17291,6 +17696,7 @@ async function _loadAndRenderCycleChoicesInPanel(topicId) {
 
     try {
         const cycle = await SupabaseCycles.getOpenCycle(topicId);
+        _cycleCache = { topicId: String(topicId), cycle: cycle || null };
         if (!cycle) { _hideCycleChoicesInPanel(); return; }
 
         const choices = await SupabaseCycles.loadChoicesForCycle(cycle.id);
@@ -17576,7 +17982,7 @@ async function launchChoice() {
         const choice = await SupabaseCycles.createChoice(
             cycle.id, currentTopicId, selectedCharId, question, opts
         );
-        if (!choice) { if (note) note.textContent = '¿Ya lanzaste una elección este ciclo?'; return; }
+        if (!choice) { if (note) note.textContent = 'No puedes lanzar: ya hay una elección tuya este ciclo o en el anterior (descanso de un ciclo).'; return; }
 
         closeChoicePanel();
         if (typeof showAutosave === 'function') showAutosave('✦ Elección lanzada al ciclo', 'saved');
@@ -17591,29 +17997,6 @@ async function launchChoice() {
 }
 
 // ── toggleExportMenu / closeExportMenu ────────────────────────────────────────
-function toggleExportMenu(menuId, event) {
-    if (event) event.stopPropagation();
-    const menu = document.getElementById(menuId);
-    if (!menu) return;
-    const isOpen = !menu.classList.contains('hidden');
-    document.querySelectorAll('.export-menu').forEach(m => m.classList.add('hidden'));
-    if (!isOpen) {
-        menu.classList.remove('hidden');
-        setTimeout(function () {
-            document.addEventListener('click', function _closeExport() {
-                closeExportMenu(menuId);
-                document.removeEventListener('click', _closeExport);
-            }, { once: true });
-        }, 0);
-    }
-}
-
-function closeExportMenu(menuId) {
-    const menu = document.getElementById(menuId || 'exportMenuClassic') ||
-                 document.getElementById('exportMenuRpg');
-    if (menu) menu.classList.add('hidden');
-}
-
 window.openChoicePanel    = openChoicePanel;
 window.closeChoicePanel   = closeChoicePanel;
 window.launchChoice       = launchChoice;
@@ -17697,9 +18080,59 @@ window.openActivityDashboard = openActivityDashboard;
         if (typeof vrpAutoResize === 'function') vrpAutoResize(ta);
     }
 
+    // Popovers flotantes: abren una caja ANCLADA SOBRE el panel, sin
+    // empujar ni deformar nada. Mutuamente excluyentes (visibilidad;
+    // el estado de datos — checkbox de opciones, clima elegido — no
+    // se toca al cerrar el popover).
+    // Los popovers son elementos INDEPENDIENTES colgados de document.body
+    // (position:fixed, costado derecho): inmunes al scroll, overflow y
+    // anclajes del panel — no pueden solaparse con él.
+    function _popover(kind) {
+        return document.getElementById(kind === 'options' ? 'vcbOptionsPopover' : 'vcbWeatherPopover');
+    }
+
+    function _closePopovers(except) {
+        ['options', 'weather'].forEach(function (kind) {
+            if (kind === except) return;
+            var pop = _popover(kind);
+            if (pop) pop.classList.remove('open');
+        });
+        var oChip = document.getElementById('vcbOptionsChip');
+        var wChip = document.getElementById('vcbWeatherChip');
+        if (oChip && except !== 'options') oChip.classList.remove('active');
+        if (wChip && except !== 'weather') wChip.classList.remove('active');
+    }
+    window.vcbClosePopovers = function () { _closePopovers(null); };
+
+    function toggleOptions() {
+        _closePopovers('options');
+        var pop = _popover('options');
+        if (!pop) return;
+        var open = pop.classList.toggle('open');
+        // Al abrir por primera vez, activar las opciones (checkbox + fields)
+        var fields = document.getElementById('optionsFields');
+        if (open && fields && !fields.classList.contains('active') &&
+            typeof toggleOptionsFields === 'function') {
+            toggleOptionsFields();
+        }
+        var chip = document.getElementById('vcbOptionsChip');
+        if (chip) chip.classList.toggle('active', open);
+    }
+
+    function toggleWeather() {
+        _closePopovers('weather');
+        var pop = _popover('weather');
+        if (!pop) return;
+        var open = pop.classList.toggle('open');
+        var chip = document.getElementById('vcbWeatherChip');
+        if (chip) chip.classList.toggle('active', open);
+    }
+
     // Exponer para los onclick inline (el test de integridad los valida)
     window.vcbSetActionType = setActionType;
     window.vcbWrapFormat = wrapSelection;
+    window.vcbToggleOptions = toggleOptions;
+    window.vcbToggleWeather = toggleWeather;
 
     // ── Inyección única de los controles nuevos ──────────────────────────
     function injectControls() {
@@ -17745,23 +18178,110 @@ window.openActivityDashboard = openActivityDashboard;
 
     // ── Pasada de densidad: estado inicial mínimo (concepto) ─────────────
     function compactPass() {
-        // Placeholder poético y breve, por senda (el largo con la lista de
-        // comandos apelotonaba el estado inicial)
+        var rpg = (typeof isRpgModeMode === 'function') && isRpgModeMode();
+
+        // Placeholder poético y breve, por senda
         var ta = textarea();
         if (ta) {
-            var rpg = (typeof isRpgModeMode === 'function') && isRpgModeMode();
             ta.placeholder = rpg
                 ? 'Inscribe tu acción en la crónica…'
                 : 'Teje tu respuesta bajo las estrellas…';
         }
+
+        // Título con la voz de la senda (solo si no estamos editando)
+        var title = document.getElementById('replyPanelTitle');
+        if (title && title.textContent.trim() === 'Responder') {
+            title.textContent = rpg ? 'Tu turno' : 'Tu voz';
+        }
+
         // Cancelar → Descartar (misma función, otra voz)
         var cancel = document.querySelector('#vnReplyPanel .vrp-btn-cancel');
         if (cancel && cancel.textContent.trim() === 'Cancelar') {
             cancel.textContent = 'Descartar';
         }
-        // Clima siempre plegado al abrir (se expande con su propio toggle)
+
+        // Popovers cerrados al abrir el panel (el estado de datos persiste)
+        _closePopovers(null);
+
+        layoutPass();
+    }
+
+    // ── Reordenación de layout: de filas apiladas a la jerarquía del
+    //    concepto. Mueve nodos EXISTENTES (conservan listeners e IDs);
+    //    idempotente gracias a los guards. ──────────────────────────────
+    function layoutPass() {
+        var panel = document.getElementById('vnReplyPanel');
+        if (!panel || panel.querySelector('.vcb-utility-row')) return;
+
+        var body = panel.querySelector('.vrp-body');
+        var split = panel.querySelector('.vrp-split');
+        if (!body || !split) return;
+
+        // Selector de personaje → chip junto al título, en la cabecera
+        var headerLeft = panel.querySelector('.vrp-header-left');
+        var charSel = document.getElementById('charSelectorContainer');
+        if (headerLeft && charSel) headerLeft.appendChild(charSel);
+
+        // Fila A: formato + vista previa + narrador, bajo el textarea
+        var rowA = document.createElement('div');
+        rowA.className = 'vcb-utility-row';
+        split.insertAdjacentElement('afterend', rowA);
+        var fmt = panel.querySelector('.vcb-format-row');
+        if (fmt) rowA.appendChild(fmt);
+        var preview = document.getElementById('vrpPreviewToggle');
+        if (preview) rowA.appendChild(preview);
+        var narrator = document.getElementById('narratorToggle');
+        if (narrator) rowA.appendChild(narrator);
+
+        // Fila B: chips plegados de opciones y clima, lado a lado
+        var rowB = document.createElement('div');
+        rowB.className = 'vcb-secondary-row';
+        rowA.insertAdjacentElement('afterend', rowB);
+        function buildPopover(id, title, closeFn) {
+            var pop = document.createElement('div');
+            pop.id = id;
+            pop.className = 'vcb-popover';
+            pop.setAttribute('role', 'dialog');
+            pop.innerHTML = '<div class="vcb-popover-head">' +
+                '<span class="vcb-popover-title">' + title + '</span>' +
+                '<button type="button" class="vcb-popover-close" onclick="' + closeFn + '" aria-label="Cerrar">✕</button>' +
+                '</div>';
+            document.body.appendChild(pop);
+            return pop;
+        }
+
+        var opts = document.getElementById('optionsToggleContainer');
+        if (opts) {
+            rowB.appendChild(opts);
+            var oChip = document.createElement('button');
+            oChip.type = 'button';
+            oChip.id = 'vcbOptionsChip';
+            oChip.className = 'vcb-chip';
+            oChip.setAttribute('onclick', 'vcbToggleOptions()');
+            oChip.innerHTML = '✦ Opciones de elección';
+            opts.insertBefore(oChip, opts.firstChild);
+
+            var oPop = buildPopover('vcbOptionsPopover', '✦ Opciones de elección', 'vcbToggleOptions()');
+            var oToggle = opts.querySelector('.options-toggle');
+            var oFields = document.getElementById('optionsFields');
+            if (oToggle) oPop.appendChild(oToggle);
+            if (oFields) oPop.appendChild(oFields);
+        }
         var weather = document.getElementById('weatherSelectorContainer');
-        if (weather) weather.classList.remove('vrp-weather-expanded');
+        if (weather) {
+            rowB.appendChild(weather);
+            var wChip = document.createElement('button');
+            wChip.type = 'button';
+            wChip.id = 'vcbWeatherChip';
+            wChip.className = 'vcb-chip';
+            wChip.setAttribute('onclick', 'vcbToggleWeather()');
+            wChip.innerHTML = '☾ Clima de la escena';
+            weather.insertBefore(wChip, weather.firstChild);
+
+            var wPop = buildPopover('vcbWeatherPopover', '☾ Clima de la escena', 'vcbToggleWeather()');
+            var wRow = weather.querySelector('.vrp-weather-row');
+            if (wRow) wPop.appendChild(wRow);
+        }
     }
 
     // ── Enganchar openReplyPanel sin modificar su fuente ─────────────────
@@ -17781,6 +18301,24 @@ window.openActivityDashboard = openActivityDashboard;
         return true;
     }
 
+    // Al cerrar el panel Responder, los popovers laterales se cierran también
+    function hookClose() {
+        if (typeof window.closeReplyPanel !== 'function') return false;
+        var orig = window.closeReplyPanel;
+        window.closeReplyPanel = function () {
+            _closePopovers(null);
+            return orig.apply(this, arguments);
+        };
+        return true;
+    }
+
+    if (!hookClose()) {
+        var triesC = 0;
+        var ivC = setInterval(function () {
+            if (hookClose() || ++triesC > 40) clearInterval(ivC);
+        }, 100);
+    }
+
     if (!hookOpen()) {
         // vn.js aún no cargó: reintentar brevemente
         var tries = 0;
@@ -17789,6 +18327,222 @@ window.openActivityDashboard = openActivityDashboard;
         }, 100);
     }
 })();
+
+/* js/ui/activityDashboard.js */
+// ═══════════════════════════════════════════════════════════════════
+// ACTIVITY DASHBOARD — Visualización del activity_log
+//
+// Muestra estadísticas de uso por historia: mensajes enviados,
+// ciclos cerrados, elecciones lanzadas, rangos alcanzados y
+// ramas de relación elegidas.
+//
+// Solo accesible para el creador de la historia (topic owner).
+// Arquitectura: módulo IIFE, comunica via eventBus, sin imports directos.
+// ═══════════════════════════════════════════════════════════════════
+
+const ActivityDashboard = (function () {
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function _client() { return window.supabaseClient || null; }
+    function _esc(s)   { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    async function _fetchLogs(topicId, days = 30) {
+        if (!_client() || !topicId) return [];
+        const since = new Date(Date.now() - days * 86400 * 1000).toISOString();
+
+        const { data, error } = await _client()
+            .from('activity_log')
+            .select('action, entity_type, entity_id, metadata, created_at, user_id')
+            .eq('entity_id', String(topicId))
+            .gte('created_at', since)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            window.EtheriaLogger?.warn('dashboard', error.message);
+            return [];
+        }
+        return data || [];
+    }
+
+    // ── Análisis de logs ──────────────────────────────────────────────────────
+
+    function _analyze(logs) {
+        const counts = {
+            message_sent:     0,
+            cycle_closed:     0,
+            choice_launched:  0,
+            choice_responded: 0,
+            affinity_changed: 0,
+            rank_reached:     0,
+            branch_chosen:    0,
+        };
+
+        const byDay    = {};  // { 'YYYY-MM-DD': { messages, cycles, choices } }
+        const ranks    = {};  // { rankName: count }
+        const branches = {};  // { branchType: count }
+        const bilateral = []; // rangos bilaterales alcanzados
+
+        logs.forEach(log => {
+            const action = log.action;
+            if (counts[action] !== undefined) counts[action]++;
+
+            // Agrupar por día
+            const day = log.created_at?.slice(0, 10);
+            if (day) {
+                if (!byDay[day]) byDay[day] = { messages: 0, cycles: 0, choices: 0 };
+                if (action === 'message_sent')    byDay[day].messages++;
+                if (action === 'cycle_closed')    byDay[day].cycles++;
+                if (action === 'choice_launched') byDay[day].choices++;
+            }
+
+            // Rangos alcanzados
+            if (action === 'rank_reached' && log.metadata?.rank) {
+                const rank = log.metadata.rank;
+                ranks[rank] = (ranks[rank] || 0) + 1;
+                if (log.metadata.bilateral) bilateral.push(rank);
+            }
+
+            // Ramas elegidas
+            if (action === 'branch_chosen' && log.metadata?.relationType) {
+                const b = log.metadata.relationType;
+                branches[b] = (branches[b] || 0) + 1;
+            }
+        });
+
+        return { counts, byDay, ranks, branches, bilateral };
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+
+    function _renderDashboard(topicId, logs) {
+        const { counts, byDay, ranks, branches, bilateral } = _analyze(logs);
+
+        // ── Métricas principales ──────────────────────────────────────────────
+        const metricsHtml = [
+            { label: 'Mensajes',   value: counts.message_sent,     icon: '✉' },
+            { label: 'Ciclos',     value: counts.cycle_closed,     icon: '◎' },
+            { label: 'Elecciones', value: counts.choice_launched,  icon: '✦' },
+            { label: 'Respuestas', value: counts.choice_responded, icon: '↩' },
+            { label: 'Hitos',      value: counts.rank_reached,     icon: '♦' },
+        ].map(m => `
+            <div class="adb-metric">
+                <span class="adb-metric-icon">${m.icon}</span>
+                <span class="adb-metric-val">${m.value}</span>
+                <span class="adb-metric-label">${m.label}</span>
+            </div>
+        `).join('');
+
+        // ── Actividad por día (últimos 14 días visibles) ──────────────────────
+        const days = Object.keys(byDay).sort().slice(-14);
+        const maxMsgs = Math.max(1, ...days.map(d => byDay[d]?.messages || 0));
+
+        const barsHtml = days.length ? days.map(d => {
+            const msgs = byDay[d]?.messages || 0;
+            const pct  = Math.round((msgs / maxMsgs) * 100);
+            const label = d.slice(5); // MM-DD
+            return `
+                <div class="adb-bar-col">
+                    <div class="adb-bar-wrap">
+                        <div class="adb-bar-fill" style="height:${pct}%" title="${msgs} mensajes el ${d}"></div>
+                    </div>
+                    <span class="adb-bar-label">${label}</span>
+                </div>
+            `;
+        }).join('') : '<p class="adb-empty">Sin actividad en los últimos 30 días</p>';
+
+        // ── Rangos más alcanzados ─────────────────────────────────────────────
+        const topRanks = Object.entries(ranks)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        const ranksHtml = topRanks.length ? topRanks.map(([name, count]) => `
+            <div class="adb-rank-row">
+                <span class="adb-rank-name">${_esc(name)}</span>
+                <span class="adb-rank-count">${count}×</span>
+            </div>
+        `).join('') : '<p class="adb-empty">Sin hitos registrados</p>';
+
+        // ── Ramas elegidas ────────────────────────────────────────────────────
+        const BRANCH_LABELS = {
+            friendship: '♦ Amistad',
+            romance:    '♡ Romance',
+            rivalry:    '⚔ Rivalidad',
+            enmity:     '✗ Enemistad',
+        };
+        const branchesHtml = Object.keys(branches).length
+            ? Object.entries(branches).map(([type, count]) => `
+                <div class="adb-branch-row">
+                    <span class="adb-branch-label">${_esc(BRANCH_LABELS[type] || type)}</span>
+                    <span class="adb-branch-count">${count}</span>
+                </div>
+            `).join('')
+            : '<p class="adb-empty">Sin ramas elegidas aún</p>';
+
+        // ── Hitos bilaterales ─────────────────────────────────────────────────
+        const bilateralHtml = bilateral.length
+            ? `<p class="adb-bilateral-note">✦ ${bilateral.length} vínculo${bilateral.length > 1 ? 's' : ''} bilateral${bilateral.length > 1 ? 'es' : ''} alcanzado${bilateral.length > 1 ? 's' : ''}: ${bilateral.slice(0, 3).map(_esc).join(', ')}${bilateral.length > 3 ? '…' : ''}</p>`
+            : '';
+
+        return `
+            <div class="adb-root">
+                <div class="adb-header">
+                    <span class="adb-title">✦ Actividad de la historia ✦</span>
+                    <span class="adb-period">Últimos 30 días</span>
+                </div>
+
+                <div class="adb-metrics">${metricsHtml}</div>
+
+                ${bilateralHtml}
+
+                <div class="adb-section">
+                    <span class="adb-section-label">Mensajes por día</span>
+                    <div class="adb-bars">${barsHtml}</div>
+                </div>
+
+                <div class="adb-cols">
+                    <div class="adb-col">
+                        <span class="adb-section-label">Hitos de rango</span>
+                        <div class="adb-ranks">${ranksHtml}</div>
+                    </div>
+                    <div class="adb-col">
+                        <span class="adb-section-label">Ramas elegidas</span>
+                        <div class="adb-branches">${branchesHtml}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // ── API pública ───────────────────────────────────────────────────────────
+
+    async function open(topicId) {
+        const modal = document.getElementById('activityDashboardModal');
+        const body  = document.getElementById('activityDashboardBody');
+        if (!modal || !body) return;
+
+        // Loading
+        body.innerHTML = '<div class="adb-loading"><span class="adb-spinner"></span> Cargando actividad…</div>';
+        modal.classList.remove('hidden');
+
+        try {
+            const logs = await _fetchLogs(topicId, 30);
+            body.innerHTML = _renderDashboard(topicId, logs);
+        } catch (err) {
+            body.innerHTML = '<p class="adb-empty">Error cargando los datos.</p>';
+            window.EtheriaLogger?.warn('dashboard', err?.message);
+        }
+    }
+
+    function close() {
+        document.getElementById('activityDashboardModal')?.classList.add('hidden');
+    }
+
+    return { open, close };
+
+})();
+
+window.ActivityDashboard = ActivityDashboard;
 
 /* js/ui/journal.js */
 // ============================================
@@ -20255,8 +21009,10 @@ function _updateSyncButtonStateDOM(status, message) {
     });
 }
 
-// Modal de confirmación genérico — reemplaza confirm() nativo
-function openConfirmModal(message, okLabel = 'Confirmar') {
+// Modal de confirmación genérico — reemplaza confirm() nativo.
+// cancelLabel permite reutilizarlo para elecciones de dos vías reales
+// (no solo confirmar/abortar), p.ej. "Continuar historia" vs "Elegir tema".
+function openConfirmModal(message, okLabel = 'Confirmar', cancelLabel = 'Cancelar') {
     return new Promise((resolve) => {
         const modal     = document.getElementById('confirmModal');
         const titleEl   = document.getElementById('confirmModalTitle');
@@ -20270,6 +21026,7 @@ function openConfirmModal(message, okLabel = 'Confirmar') {
 
         titleEl.textContent = message;
         btnOk.textContent = okLabel;
+        btnCancel.textContent = cancelLabel;
 
         const cleanup = (result) => {
             modal.classList.remove('active');
@@ -20332,11 +21089,25 @@ function closeModal(id) {
     }
 }
 
+// Refleja el nombre del perfil en public.profiles (directorio público).
+// Solo si hay sesión y el slot actual pertenece a esta cuenta.
+function _syncProfileNameToCloud(name) {
+    const uid = window._cachedUserId;
+    if (!uid || !window.supabaseClient || !name || name.includes('@')) return;
+    const owners = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
+    if (owners[currentUserIndex] !== uid) return;
+    window.supabaseClient.from('profiles')
+        .update({ name: name })
+        .eq('owner_user_id', uid)
+        .then(() => {}, () => {});
+}
+
 function changeUser() {
     const newName = prompt('Nuevo nombre:', userNames[currentUserIndex]);
     if(newName?.trim()) {
         userNames[currentUserIndex] = newName.trim();
         localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+        _syncProfileNameToCloud(newName.trim());
 
         const currentUserDisplay = document.getElementById('currentUserDisplay');
         if (currentUserDisplay) currentUserDisplay.textContent = newName.trim();
@@ -20470,6 +21241,7 @@ function saveProfileNameFromOptions() {
     if (!name) { showAutosave('Escribe un nombre', 'error'); return; }
     userNames[currentUserIndex] = name;
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    _syncProfileNameToCloud(name);
     const display = document.getElementById('currentUserDisplay');
     if (display) display.textContent = name;
     if (typeof SupabaseSync !== 'undefined') {
@@ -20582,6 +21354,12 @@ async function _uploadProfileAvatarToCloud(file) {
     const publicUrl = urlData?.publicUrl || '';
     if (!publicUrl) return { ok: false, error: 'No se pudo obtener la URL pública del avatar.' };
 
+    // Reflejar en profiles.avatar (alimenta el directorio público del selector)
+    window.supabaseClient.from('profiles')
+        .update({ avatar: publicUrl })
+        .eq('owner_user_id', userId)
+        .then(() => {}, () => {});
+
     if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
         await SupabaseSettings.saveUserSettings({ avatar_url: publicUrl });
     }
@@ -20595,6 +21373,8 @@ async function _removeProfileAvatarFromCloud() {
 
     const paths = ['png', 'jpg', 'jpeg', 'gif', 'webp'].map(ext => `${userId}/profile.${ext}`);
     try { await window.supabaseClient.storage.from('user-avatars').remove(paths); } catch {}
+    // Limpiar también el directorio público
+    try { await window.supabaseClient.from('profiles').update({ avatar: null }).eq('owner_user_id', userId); } catch {}
     if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
         await SupabaseSettings.saveUserSettings({ avatar_url: '' });
     }
@@ -20662,13 +21442,22 @@ function _updateBirthdayHint(bday) {
 async function handleAvatarUpload(input) {
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 1.2 * 1024 * 1024) {
-        showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
+    // Tope generoso: el compresor (512px) reduce fotos grandes antes de subir.
+    // El límite estricto de 1 MB aplica SOLO al fallback local sin sesión
+    // (base64 en localStorage, cuota ~5 MB).
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen es demasiado grande (máx. 20 MB)', 'error');
         return;
     }
 
     showAutosave('Guardando avatar...', 'info');
     const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (!userId && file.size > 1.2 * 1024 * 1024) {
+        showAutosave('Sin sesión el avatar se guarda localmente (máx. 1 MB). Inicia sesión para subir fotos grandes.', 'error');
+        input.value = '';
+        return;
+    }
 
     if (userId) {
         const cloud = await _uploadProfileAvatarToCloud(file);
@@ -21338,6 +22127,7 @@ function saveProfileModalName() {
     if (!name) { showAutosave('Escribe un nombre', 'error'); return; }
     userNames[currentUserIndex] = name;
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    _syncProfileNameToCloud(name);
     if (typeof SupabaseSync !== 'undefined') {
         if (typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('userNames');
         else if (typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
@@ -21359,13 +22149,22 @@ function saveProfileModalName() {
 async function handleProfileModalAvatar(input) {
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 1.2 * 1024 * 1024) {
-        showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
+    // Tope generoso: el compresor (512px) reduce fotos grandes antes de subir.
+    // El límite estricto de 1 MB aplica SOLO al fallback local sin sesión
+    // (base64 en localStorage, cuota ~5 MB).
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen es demasiado grande (máx. 20 MB)', 'error');
         return;
     }
 
     showAutosave('Guardando avatar...', 'info');
     const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (!userId && file.size > 1.2 * 1024 * 1024) {
+        showAutosave('Sin sesión el avatar se guarda localmente (máx. 1 MB). Inicia sesión para subir fotos grandes.', 'error');
+        input.value = '';
+        return;
+    }
 
     if (userId) {
         const cloud = await _uploadProfileAvatarToCloud(file);
@@ -22152,7 +22951,9 @@ const SupabaseProfiles = (function () {
         // Opción 3: el usuario no tiene ningún perfil — crear uno automáticamente
         // Esto cubre usuarios nuevos cuyo trigger aún no haya corrido o falle silenciosamente
         try {
-            const displayName = user.email?.split('@')[0] || 'Jugador';
+            // Nunca derivar el nombre público del email (PII): placeholder
+            // neutro; el nombre real se sincroniza al bautizar el perfil.
+            const displayName = 'Viajero sin nombre';
             const { data, error } = await _client()
                 .from('profiles')
                 .insert({ name: displayName, owner_user_id: user.id })
@@ -23338,6 +24139,623 @@ const SupabaseAffinities = (function () {
 window.SupabaseAffinities = SupabaseAffinities;
 
 
+/* js/utils/supabaseCycles.js */
+// ═══════════════════════════════════════════════════════════════════
+// SUPABASE CYCLES — Sistema de ciclos, elecciones y bifurcación de ramas
+//
+// Gestiona:
+//   - Ciclos de tema (topic_cycles): apertura, cierre, participantes
+//   - Elecciones (cycle_choices + cycle_choice_options): crear, responder
+//   - Respuestas (cycle_choice_responses): ocultas hasta cierre del ciclo
+//   - Panel "Ecos del ciclo": muestra cambios de afinidad al cerrar
+//   - Bifurcación de rama: modal de selección cuando value >= BIFURCATION_MIN
+//   - Sincronización Realtime de ciclos y elecciones abiertas
+//
+// Arquitectura:
+//   - No importa nada de classic/ ni rpg/
+//   - Comunica cambios vía eventBus ('cycle:opened', 'cycle:closed',
+//     'cycle:choice-created', 'cycle:response-saved', 'cycle:branch-chosen')
+//   - La UI (roleplay.js / vn.js) escucha esos eventos para refrescar
+// ═══════════════════════════════════════════════════════════════════
+
+const SupabaseCycles = (function () {
+
+    let _userId       = null;
+    let _channel      = null;
+    let _currentTopic = null;
+
+    function _client() { return window.supabaseClient || null; }
+    function _cfg()    { return window.CYCLE_CONFIG || {}; }
+
+    async function _ensureUserId() {
+        if (_userId) return _userId;
+        try {
+            const { data } = await _client().auth.getUser();
+            _userId = data?.user?.id || null;
+        } catch { _userId = null; }
+        return _userId;
+    }
+
+    // ── Ciclos ───────────────────────────────────────────────────────────────
+
+    // Abre un nuevo ciclo para un topic. Solo si no hay uno abierto.
+    async function openCycle(topicId, participantUserIds = []) {
+        const uid = await _ensureUserId();
+        if (!uid || !topicId) return null;
+
+        // Comprobar si ya hay uno abierto
+        const existing = await getOpenCycle(topicId);
+        if (existing) return existing;
+
+        const closesAt = new Date(Date.now() + (_cfg().DURATION_HOURS || 72) * 3600 * 1000);
+
+        const { data, error } = await _client()
+            .from('topic_cycles')
+            .insert({
+                topic_id:     String(topicId),
+                created_by:   uid,
+                closes_at:    closesAt.toISOString(),
+                status:       'open',
+                participants: participantUserIds,
+            })
+            .select()
+            .single();
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'openCycle error:', error.message);
+            return null;
+        }
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:opened', { topicId, cycle: data });
+        }
+
+        window.EtheriaLogger?.info?.('SupabaseCycles', `Ciclo abierto: ${data.id}`);
+        return data;
+    }
+
+    // Devuelve el ciclo abierto de un topic, o null si no hay ninguno.
+    async function getOpenCycle(topicId) {
+        if (!_client() || !topicId) return null;
+        const { data, error } = await _client()
+            .from('topic_cycles')
+            .select('*')
+            .eq('topic_id', String(topicId))
+            .eq('status', 'open')
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'getOpenCycle error:', error.message);
+            return null;
+        }
+        return data;
+    }
+
+    // Cierra un ciclo y emite el evento para mostrar los "Ecos del ciclo".
+    async function closeCycle(cycleId, topicId) {
+        if (!_client() || !cycleId) return false;
+
+        const { error } = await _client()
+            .from('topic_cycles')
+            .update({ status: 'closed', closed_at: new Date().toISOString() })
+            .eq('id', cycleId);
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'closeCycle error:', error.message);
+            return false;
+        }
+
+        // Resolver todas las elecciones abiertas del ciclo
+        await _client()
+            .from('cycle_choices')
+            .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+            .eq('cycle_id', cycleId)
+            .eq('status', 'open');
+
+        // Calcular y aplicar los impactos de afinidad del ciclo
+        await _applyAffinityImpacts(cycleId, topicId);
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:closed', { cycleId, topicId });
+        }
+
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('cycle_closed', 'story', String(topicId),
+                { cycleId }).catch(() => {});
+        }
+
+        window.EtheriaLogger?.info?.('SupabaseCycles', `Ciclo cerrado: ${cycleId}`);
+        return true;
+    }
+
+    // Comprueba si todos los participantes han respondido → cierre automático.
+    async function checkAutoClose(cycleId, topicId) {
+        if (!_client() || !cycleId) return;
+
+        const cycle = await _client()
+            .from('topic_cycles')
+            .select('participants, status')
+            .eq('id', cycleId)
+            .single();
+
+        if (cycle.error || cycle.data?.status !== 'open') return;
+
+        const participants = cycle.data.participants || [];
+        if (participants.length === 0) return;
+
+        // Ver si todos los participantes tienen al menos un mensaje en este ciclo
+        // (simplificado: verificar via cycle_choice_responses o mensajes desde started_at)
+        // Por ahora: cierre por tiempo (closes_at) lo maneja el backend/cron.
+        // El cierre manual lo puede triggerar el creador del topic.
+
+        // Cierre automático por tiempo — comparar closes_at con now()
+        const { data: cycleData } = await _client()
+            .from('topic_cycles')
+            .select('closes_at')
+            .eq('id', cycleId)
+            .single();
+
+        if (cycleData && new Date(cycleData.closes_at) < new Date()) {
+            await closeCycle(cycleId, topicId);
+        }
+    }
+
+    // ── Elecciones ───────────────────────────────────────────────────────────
+
+    // Crea una elección en el ciclo activo.
+    // options: [{ label: 'A', text: '...', affinity_impact: 2 }, ...]
+    async function createChoice(cycleId, topicId, authorCharId, questionText, options = []) {
+        const uid = await _ensureUserId();
+        if (!uid || !cycleId) return null;
+
+        // Validar reglas anti-abuso: una por ciclo + cooldown de ciclo consecutivo
+        const canCreate = await canLaunchChoice(cycleId, topicId);
+        if (!canCreate) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'Bloqueado: elección ya lanzada este ciclo o en el anterior (cooldown)');
+            return null;
+        }
+
+        // Crear la elección
+        const { data: choice, error: choiceErr } = await _client()
+            .from('cycle_choices')
+            .insert({
+                cycle_id:       cycleId,
+                topic_id:       String(topicId),
+                author_char_id: String(authorCharId),
+                author_user_id: uid,
+                question_text:  questionText,
+                status:         'open',
+            })
+            .select()
+            .single();
+
+        if (choiceErr) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'createChoice error:', choiceErr.message);
+            return null;
+        }
+
+        // Crear las opciones
+        const optRows = options.map((opt, i) => ({
+            choice_id:       choice.id,
+            label:           opt.label || String.fromCharCode(65 + i), // A, B, C...
+            option_text:     opt.text,
+            affinity_impact: Math.max(-3, Math.min(3, Number(opt.affinity_impact) || 0)),
+            display_order:   i,
+        }));
+
+        const { error: optsErr } = await _client()
+            .from('cycle_choice_options')
+            .insert(optRows);
+
+        if (optsErr) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'createOptions error:', optsErr.message);
+        }
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:choice-created', { topicId, cycleId, choice });
+        }
+
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('choice_launched', 'story', String(topicId),
+                { cycleId, choiceId: choice.id, authorCharId }).catch(() => {});
+        }
+
+        window.EtheriaLogger?.info?.('SupabaseCycles', `Elección creada: ${choice.id}`);
+        return choice;
+    }
+
+    // Guarda la respuesta de un personaje a una elección.
+    async function saveResponse(choiceId, optionId, cycleId, topicId, responderCharId) {
+        const uid = await _ensureUserId();
+        if (!uid || !choiceId || !optionId) return false;
+
+        const { error } = await _client()
+            .from('cycle_choice_responses')
+            .upsert({
+                choice_id:          choiceId,
+                option_id:          optionId,
+                cycle_id:           cycleId,
+                topic_id:           String(topicId),
+                responder_char_id:  String(responderCharId),
+                responder_user_id:  uid,
+            }, { onConflict: 'choice_id,responder_char_id' });
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'saveResponse error:', error.message);
+            return false;
+        }
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:response-saved', { choiceId, optionId, topicId });
+        }
+
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('choice_responded', 'story', String(topicId),
+                { choiceId, cycleId, responderCharId }).catch(() => {});
+        }
+
+        return true;
+    }
+
+    // Carga las elecciones abiertas de un ciclo (visibles para todos).
+    async function loadChoicesForCycle(cycleId) {
+        if (!_client() || !cycleId) return [];
+
+        const { data, error } = await _client()
+            .from('cycle_choices')
+            .select(`
+                *,
+                cycle_choice_options (*)
+            `)
+            .eq('cycle_id', cycleId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'loadChoices error:', error.message);
+            return [];
+        }
+
+        return data || [];
+    }
+
+    // Carga las respuestas visibles del ciclo.
+    // Mientras el ciclo está abierto: RLS solo devuelve las propias.
+    // Cuando está cerrado: devuelve todas.
+    async function loadResponsesForCycle(cycleId) {
+        if (!_client() || !cycleId) return [];
+
+        const { data, error } = await _client()
+            .from('cycle_choice_responses')
+            .select('*')
+            .eq('cycle_id', cycleId);
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'loadResponses error:', error.message);
+            return [];
+        }
+
+        return data || [];
+    }
+
+    // ¿Puede el usuario actual lanzar una elección en este ciclo?
+    // Regla: solo si no ha lanzado ya una en este ciclo.
+    // Reglas anti-abuso:
+    //   1) Una elección por autor por ciclo.
+    //   2) Cooldown: no se puede lanzar en dos ciclos CONSECUTIVOS del mismo
+    //      topic — si lanzaste en el ciclo inmediatamente anterior, este toca
+    //      descansar.
+    async function canLaunchChoice(cycleId, topicId) {
+        const uid = await _ensureUserId();
+        if (!uid || !cycleId) return false;
+
+        // Regla 1: ya lanzó en este ciclo
+        const { data, error } = await _client()
+            .from('cycle_choices')
+            .select('id')
+            .eq('cycle_id', cycleId)
+            .eq('author_user_id', uid)
+            .limit(1);
+
+        if (error) return false;
+        if (data && data.length > 0) return false;
+
+        // Regla 2: lanzó en el ciclo anterior (cooldown)
+        if (topicId) {
+            const { data: prevCycle, error: prevErr } = await _client()
+                .from('topic_cycles')
+                .select('id')
+                .eq('topic_id', String(topicId))
+                .eq('status', 'closed')
+                .order('started_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (!prevErr && prevCycle) {
+                const { data: prevChoice, error: pcErr } = await _client()
+                    .from('cycle_choices')
+                    .select('id')
+                    .eq('cycle_id', prevCycle.id)
+                    .eq('author_user_id', uid)
+                    .limit(1);
+
+                if (!pcErr && prevChoice && prevChoice.length > 0) return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Excusa a un participante del ciclo abierto (salto por inactividad):
+    // se le retira de participants para que el ciclo pueda cerrarse sin él.
+    // Solo afecta a ESTE ciclo; el siguiente vuelve a incluir a todos.
+    async function excuseParticipant(cycleId, userId) {
+        if (!_client() || !cycleId || !userId) return false;
+        const { data: cycle, error: getErr } = await _client()
+            .from('topic_cycles')
+            .select('participants')
+            .eq('id', cycleId)
+            .maybeSingle();
+        if (getErr || !cycle) return false;
+
+        const current = Array.isArray(cycle.participants) ? cycle.participants : [];
+        if (!current.includes(userId)) return true; // ya excusado
+
+        const { error: updErr } = await _client()
+            .from('topic_cycles')
+            .update({ participants: current.filter(u => u !== userId) })
+            .eq('id', cycleId);
+
+        if (updErr) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'excuseParticipant error:', updErr.message);
+            return false;
+        }
+        return true;
+    }
+
+    // ── Impactos de afinidad al cerrar el ciclo ──────────────────────────────
+    // Solo afecta al autor de la elección y a quienes respondieron.
+    async function _applyAffinityImpacts(cycleId, topicId) {
+        const uid = await _ensureUserId();
+        if (!uid) return;
+
+        // Cargar elecciones y respuestas del ciclo
+        const choices = await loadChoicesForCycle(cycleId);
+        const responses = await loadResponsesForCycle(cycleId);
+
+        if (!choices.length || !responses.length) return;
+
+        // Para cada elección, calcular el impacto entre el autor y cada respondedor
+        const affinityChanges = []; // { fromCharId, toCharId, delta }
+
+        for (const choice of choices) {
+            const opts = (choice.cycle_choice_options || []).reduce((acc, o) => {
+                acc[o.id] = o;
+                return acc;
+            }, {});
+
+            const choiceResponses = responses.filter(r => r.choice_id === choice.id);
+
+            for (const resp of choiceResponses) {
+                const opt = opts[resp.option_id];
+                if (!opt) continue;
+
+                // La afinidad cambia entre el autor de la elección y el respondedor
+                affinityChanges.push({
+                    fromCharId: choice.author_char_id,
+                    toCharId:   resp.responder_char_id,
+                    delta:      opt.affinity_impact,
+                });
+            }
+        }
+
+        // Aplicar los cambios acumulados en la tabla affinities
+        for (const change of affinityChanges) {
+            if (typeof SupabaseAffinities !== 'undefined') {
+                const key    = `${change.fromCharId}_${change.toCharId}`;
+                const topicAff = (window.appData?.affinities?.[topicId] || {});
+                const current  = Number(topicAff[key]) || 0;
+                const newVal   = Math.max(-100, Math.min(100, current + change.delta));
+
+                await SupabaseAffinities.upsert(
+                    change.fromCharId,
+                    change.toCharId,
+                    topicId,
+                    newVal
+                );
+
+                // Actualizar en memoria para el panel de Ecos
+                if (window.appData?.affinities?.[topicId]) {
+                    window.appData.affinities[topicId][key] = newVal;
+                }
+            }
+        }
+
+        // Emitir los cambios para el panel "Ecos del ciclo"
+        if (typeof eventBus !== 'undefined' && affinityChanges.length > 0) {
+            eventBus.emit('cycle:affinity-impacts', {
+                cycleId,
+                topicId,
+                changes: affinityChanges,
+            });
+        }
+    }
+
+    // ── Bifurcación de rama ──────────────────────────────────────────────────
+    // Guarda la elección de rama del usuario para un par de personajes.
+    async function chooseBranch(fromCharId, toCharId, topicId, relationType) {
+        const uid = await _ensureUserId();
+        if (!uid || !fromCharId || !toCharId || !topicId) return false;
+
+        const validTypes = ['friendship', 'romance', 'rivalry', 'enmity'];
+        if (!validTypes.includes(relationType)) return false;
+
+        const { error } = await _client()
+            .from('affinities')
+            .update({
+                relation_type:    relationType,
+                branch_chosen_at: new Date().toISOString(),
+            })
+            .eq('from_char_id', String(fromCharId))
+            .eq('to_char_id',   String(toCharId))
+            .eq('topic_id',     String(topicId))
+            .eq('owner_user_id', uid);
+
+        if (error) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'chooseBranch error:', error.message);
+            return false;
+        }
+
+        // Actualizar en memoria
+        const key = `${fromCharId}_${toCharId}`;
+        if (window.appData?.affinities?.[topicId]) {
+            // Guardar el relation_type en memoria junto al valor
+            if (!window.appData.affinityTypes) window.appData.affinityTypes = {};
+            if (!window.appData.affinityTypes[topicId]) window.appData.affinityTypes[topicId] = {};
+            window.appData.affinityTypes[topicId][key] = relationType;
+        }
+
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:branch-chosen', {
+                fromCharId, toCharId, topicId, relationType
+            });
+        }
+
+        if (window.SupabaseExtras?.logActivity) {
+            window.SupabaseExtras.logActivity('branch_chosen', 'story', String(topicId),
+                { fromCharId, toCharId, relationType }).catch(() => {});
+        }
+
+        window.EtheriaLogger?.info?.('SupabaseCycles',
+            `Rama elegida: ${fromCharId}→${toCharId} = ${relationType}`);
+        return true;
+    }
+
+    // Carga los relation_types del topic activo junto con los valores.
+    async function loadRelationTypesForTopic(topicId) {
+        if (!_client() || !topicId) return;
+
+        const { data, error } = await _client()
+            .from('affinities')
+            .select('from_char_id, to_char_id, relation_type')
+            .eq('topic_id', String(topicId))
+            .neq('relation_type', 'undefined');
+
+        if (error || !data) return;
+
+        if (!window.appData.affinityTypes) window.appData.affinityTypes = {};
+        if (!window.appData.affinityTypes[topicId]) window.appData.affinityTypes[topicId] = {};
+
+        data.forEach(row => {
+            const key = `${row.from_char_id}_${row.to_char_id}`;
+            window.appData.affinityTypes[topicId][key] = row.relation_type;
+        });
+    }
+
+    // ── Realtime ─────────────────────────────────────────────────────────────
+    // Escucha nuevas elecciones en el topic activo para mostrarlas en tiempo real.
+    function subscribeToTopic(topicId) {
+        if (!_client() || !topicId) return;
+        if (_currentTopic === String(topicId) && _channel) return;
+
+        _unsubscribe();
+        _currentTopic = String(topicId);
+
+        _channel = _client()
+            .channel(`cycles:${topicId}`)
+            .on('postgres_changes', {
+                event:  'INSERT',
+                schema: 'public',
+                table:  'cycle_choices',
+                filter: `topic_id=eq.${topicId}`,
+            }, _onNewChoice)
+            .on('postgres_changes', {
+                event:  'UPDATE',
+                schema: 'public',
+                table:  'topic_cycles',
+                filter: `topic_id=eq.${topicId}`,
+            }, _onCycleUpdate)
+            .subscribe();
+    }
+
+    function _onNewChoice(payload) {
+        const choice = payload.new;
+        if (!choice) return;
+        if (typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:choice-created', {
+                topicId: choice.topic_id,
+                cycleId: choice.cycle_id,
+                choice,
+                fromRealtime: true,
+            });
+        }
+    }
+
+    function _onCycleUpdate(payload) {
+        const cycle = payload.new;
+        if (!cycle) return;
+        if (cycle.status === 'closed' && typeof eventBus !== 'undefined') {
+            eventBus.emit('cycle:closed', {
+                cycleId:      cycle.id,
+                topicId:      cycle.topic_id,
+                fromRealtime: true,
+            });
+        }
+    }
+
+    function _unsubscribe() {
+        if (_channel && _client()) {
+            try { _client().removeChannel(_channel); } catch {}
+            _channel = null;
+        }
+        _currentTopic = null;
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+    (function _init() {
+        window.addEventListener('etheria:auth-changed', async function (e) {
+            if (e.detail?.user) {
+                _userId = e.detail.user.id || null;
+            } else {
+                _userId = null;
+                _unsubscribe();
+            }
+        });
+
+        window.addEventListener('etheria:topic-enter', function (e) {
+            const topicId = e.detail?.topicId;
+            if (!topicId) return;
+            loadRelationTypesForTopic(topicId).catch(() => {});
+            subscribeToTopic(topicId);
+        });
+
+        window.addEventListener('etheria:topic-leave', function () {
+            _unsubscribe();
+        });
+    })();
+
+    return {
+        excuseParticipant,
+        openCycle,
+        getOpenCycle,
+        closeCycle,
+        checkAutoClose,
+        createChoice,
+        saveResponse,
+        loadChoicesForCycle,
+        loadResponsesForCycle,
+        canLaunchChoice,
+        chooseBranch,
+        loadRelationTypesForTopic,
+        subscribeToTopic,
+    };
+
+})();
+
+window.SupabaseCycles = SupabaseCycles;
+
+
 /* js/utils/supabaseJournals.js */
 // ═══════════════════════════════════════════════════════════════════
 // SUPABASE JOURNALS — Diarios de historia
@@ -24015,805 +25433,6 @@ const SupabaseAvatars = (function () {
 })();
 
 window.SupabaseAvatars = SupabaseAvatars;
-
-/* js/utils/supabaseSprites.js */
-// ============================================
-// SUPABASE SPRITES — Sprites en Storage
-// ============================================
-// Bucket: "sprites" (público)
-// Path:   sprites/{characterId}.{ext}
-//
-// uploadCharacterSprite(characterId, file)
-//   1. Sube imagen al bucket sprites
-//   2. Obtiene URL pública
-//   3. Guarda sprite_url en la tabla characters
-//   4. Actualiza el campo local appData.characters[*].sprite
-// ============================================
-
-const SupabaseSprites = (function () {
-
-    const BUCKET = 'sprites';
-
-    function _client() { return window.supabaseClient || null; }
-    function _isAvailable() { return !!_client(); }
-
-    function _ext(file) {
-        const name = file?.name || '';
-        const m = name.match(/\.(png|jpg|jpeg|gif|webp)$/i);
-        return m ? m[1].toLowerCase() : 'png';
-    }
-
-    function _mimeForExt(ext) {
-        const map = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
-        return map[ext] || 'image/png';
-    }
-
-    // ── API pública ──────────────────────────────────────────────────────────
-
-    /**
-     * Sube un archivo de imagen como sprite de un personaje.
-     *
-     * @param {string} characterId  UUID del personaje (tabla Supabase characters) o ID local.
-     * @param {File}   file         Archivo de imagen seleccionado por el usuario.
-     * @returns {Promise<{ok: boolean, url?: string, error?: string}>}
-     */
-    async function uploadCharacterSprite(characterId, file) {
-        if (!_isAvailable()) {
-            return { ok: false, error: 'Sin conexión a Supabase.' };
-        }
-        if (!characterId) {
-            return { ok: false, error: 'characterId requerido.' };
-        }
-        if (!file || !file.type.startsWith('image/')) {
-            return { ok: false, error: 'El archivo debe ser una imagen.' };
-        }
-        if (file.size > 10 * 1024 * 1024) {
-            return { ok: false, error: 'La imagen no puede superar 10 MB.' };
-        }
-
-        const ext  = _ext(file);
-        const path = `${characterId}/${Date.now()}.${ext}`;
-
-        try {
-            const sb = _client();
-
-            // 1. Subir al bucket (upsert para sobreescribir si ya existe)
-            const { error: uploadError } = await sb.storage
-                .from(BUCKET)
-                .upload(path, file, {
-                    contentType : _mimeForExt(ext),
-                    upsert      : true
-                });
-
-            if (uploadError) {
-                console.error('[SupabaseSprites] upload error:', uploadError.message);
-                return { ok: false, error: uploadError.message || 'Error al subir la imagen.' };
-            }
-
-            // 2. Obtener URL pública
-            const { data: urlData } = sb.storage
-                .from(BUCKET)
-                .getPublicUrl(path);
-
-            const publicUrl = urlData?.publicUrl;
-            if (!publicUrl) {
-                return { ok: false, error: 'No se pudo obtener la URL pública del sprite.' };
-            }
-
-            // 3. Guardar sprite_url en la tabla characters de Supabase
-            const { error: updateError } = await sb
-                .from('characters')
-                .update({ sprite_url: publicUrl })
-                .eq('id', characterId);
-
-            if (updateError) {
-                const msg = updateError.message || 'No se pudo guardar sprite_url en BD.';
-                console.warn('[SupabaseSprites] No se pudo guardar sprite_url en BD:', msg);
-                return {
-                    ok: false,
-                    error: `La imagen se subió, pero no se pudo vincular al personaje: ${msg}`
-                };
-            }
-
-            // 4. Actualizar caché local de cloudCharacters
-            if (typeof appData !== 'undefined' && appData.cloudCharacters) {
-                for (const profileId of Object.keys(appData.cloudCharacters)) {
-                    const chars = appData.cloudCharacters[profileId];
-                    if (!Array.isArray(chars)) continue;
-                    const idx = chars.findIndex(c => c.id === characterId);
-                    if (idx !== -1) {
-                        chars[idx].sprite_url = publicUrl;
-                        break;
-                    }
-                }
-            }
-
-            // 5. Actualizar appData.characters (personajes locales)
-            if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
-                const localChar = appData.characters.find(c => String(c.id) === String(characterId));
-                if (localChar) {
-                    localChar.sprite = publicUrl;
-                    if (typeof persistPartitionedData === 'function') persistPartitionedData();
-                }
-            }
-
-            // 6. Actualizar SupabaseCharacters cache si está disponible
-            if (typeof SupabaseCharacters !== 'undefined') {
-                const cachedChar = SupabaseCharacters.getActiveCharacters()
-                    .find(c => c.id === characterId);
-                if (cachedChar) cachedChar.sprite_url = publicUrl;
-            }
-
-            // 7. Actualizar el campo sprite en el editor si está abierto
-            const spriteInput = document.getElementById('charSprite');
-            if (spriteInput) {
-                spriteInput.value = publicUrl;
-            }
-
-            window.dispatchEvent(new CustomEvent('etheria:sprite-uploaded', {
-                detail: { characterId, url: publicUrl }
-            }));
-
-            return { ok: true, url: publicUrl };
-
-        } catch (err) {
-            console.error('[SupabaseSprites] uploadCharacterSprite exception:', err);
-            return { ok: false, error: err?.message || 'Error inesperado.' };
-        }
-    }
-
-    /**
-     * Lista todos los sprites subidos para un personaje (carpeta {characterId}/).
-     * @param {string} characterId
-     * @returns {Promise<Array<{name: string, url: string}>>}
-     */
-    async function listCharacterSprites(characterId) {
-        if (!_isAvailable() || !characterId) return [];
-        try {
-            const sb = _client();
-            const { data, error } = await sb.storage
-                .from(BUCKET)
-                .list(String(characterId), { limit: 50, offset: 0 });
-            if (error || !data) return [];
-            return data
-                .filter(item => item.name && item.name !== '.emptyFolderPlaceholder')
-                .map(item => {
-                    const { data: urlData } = sb.storage
-                        .from(BUCKET)
-                        .getPublicUrl(`${characterId}/${item.name}`);
-                    return { name: item.name, url: urlData?.publicUrl || null };
-                })
-                .filter(item => item.url);
-        } catch (err) {
-            console.error('[SupabaseSprites] listCharacterSprites error:', err);
-            return [];
-        }
-    }
-
-    /**
-     * Elimina el sprite de un personaje del bucket.
-     * @param {string} characterId
-     * @returns {Promise<{ok: boolean, error?: string}>}
-     */
-    async function deleteCharacterSprite(characterId) {
-        if (!_isAvailable() || !characterId) {
-            return { ok: false, error: 'characterId requerido.' };
-        }
-        try {
-            const sb = _client();
-
-            // Eliminar archivos en el subfolder ({characterId}/{timestamp}.ext)
-            const { data: subFiles } = await sb.storage.from(BUCKET).list(String(characterId));
-            if (subFiles && subFiles.length > 0) {
-                const subPaths = subFiles
-                    .filter(f => f.name && f.name !== '.emptyFolderPlaceholder')
-                    .map(f => `${characterId}/${f.name}`);
-                if (subPaths.length > 0) await sb.storage.from(BUCKET).remove(subPaths);
-            }
-
-            // Eliminar archivos planos legacy ({characterId}.ext)
-            const flatPaths = ['png', 'jpg', 'jpeg', 'webp', 'gif'].map(ext => `${characterId}.${ext}`);
-            await sb.storage.from(BUCKET).remove(flatPaths);
-
-            await sb.from('characters').update({ sprite_url: null }).eq('id', characterId);
-            return { ok: true };
-        } catch (err) {
-            return { ok: false, error: err?.message || 'Error inesperado.' };
-        }
-    }
-
-    /**
-     * Devuelve la URL del sprite de un personaje desde caché local.
-     * @param {string} characterId
-     * @returns {string|null}
-     */
-    function getSpriteUrl(characterId) {
-        if (!characterId) return null;
-
-        if (typeof appData !== 'undefined' && appData.cloudCharacters) {
-            for (const chars of Object.values(appData.cloudCharacters)) {
-                if (!Array.isArray(chars)) continue;
-                const c = chars.find(ch => ch.id === characterId);
-                if (c?.sprite_url) return c.sprite_url;
-            }
-        }
-
-        if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
-            const local = appData.characters.find(c => String(c.id) === String(characterId));
-            if (local?.sprite) return local.sprite;
-        }
-
-        return null;
-    }
-
-    return {
-        uploadCharacterSprite,
-        listCharacterSprites,
-        deleteCharacterSprite,
-        getSpriteUrl
-    };
-
-})();
-
-window.SupabaseSprites = SupabaseSprites;
-
-/* js/utils/supabaseCycles.js */
-// ═══════════════════════════════════════════════════════════════════
-// SUPABASE CYCLES — Sistema de ciclos, elecciones y bifurcación de ramas
-//
-// Gestiona:
-//   - Ciclos de tema (topic_cycles): apertura, cierre, participantes
-//   - Elecciones (cycle_choices + cycle_choice_options): crear, responder
-//   - Respuestas (cycle_choice_responses): ocultas hasta cierre del ciclo
-//   - Panel "Ecos del ciclo": muestra cambios de afinidad al cerrar
-//   - Bifurcación de rama: modal de selección cuando value >= BIFURCATION_MIN
-//   - Sincronización Realtime de ciclos y elecciones abiertas
-//
-// Arquitectura:
-//   - No importa nada de classic/ ni rpg/
-//   - Comunica cambios vía eventBus ('cycle:opened', 'cycle:closed',
-//     'cycle:choice-created', 'cycle:response-saved', 'cycle:branch-chosen')
-//   - La UI (roleplay.js / vn.js) escucha esos eventos para refrescar
-// ═══════════════════════════════════════════════════════════════════
-
-const SupabaseCycles = (function () {
-
-    let _userId       = null;
-    let _channel      = null;
-    let _currentTopic = null;
-
-    function _client() { return window.supabaseClient || null; }
-    function _cfg()    { return window.CYCLE_CONFIG || {}; }
-
-    async function _ensureUserId() {
-        if (_userId) return _userId;
-        try {
-            const { data } = await _client().auth.getUser();
-            _userId = data?.user?.id || null;
-        } catch { _userId = null; }
-        return _userId;
-    }
-
-    // ── Ciclos ───────────────────────────────────────────────────────────────
-
-    // Abre un nuevo ciclo para un topic. Solo si no hay uno abierto.
-    async function openCycle(topicId, participantUserIds = []) {
-        const uid = await _ensureUserId();
-        if (!uid || !topicId) return null;
-
-        // Comprobar si ya hay uno abierto
-        const existing = await getOpenCycle(topicId);
-        if (existing) return existing;
-
-        const closesAt = new Date(Date.now() + (_cfg().DURATION_HOURS || 72) * 3600 * 1000);
-
-        const { data, error } = await _client()
-            .from('topic_cycles')
-            .insert({
-                topic_id:     String(topicId),
-                created_by:   uid,
-                closes_at:    closesAt.toISOString(),
-                status:       'open',
-                participants: participantUserIds,
-            })
-            .select()
-            .single();
-
-        if (error) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'openCycle error:', error.message);
-            return null;
-        }
-
-        if (typeof eventBus !== 'undefined') {
-            eventBus.emit('cycle:opened', { topicId, cycle: data });
-        }
-
-        window.EtheriaLogger?.info?.('SupabaseCycles', `Ciclo abierto: ${data.id}`);
-        return data;
-    }
-
-    // Devuelve el ciclo abierto de un topic, o null si no hay ninguno.
-    async function getOpenCycle(topicId) {
-        if (!_client() || !topicId) return null;
-        const { data, error } = await _client()
-            .from('topic_cycles')
-            .select('*')
-            .eq('topic_id', String(topicId))
-            .eq('status', 'open')
-            .order('started_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-        if (error) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'getOpenCycle error:', error.message);
-            return null;
-        }
-        return data;
-    }
-
-    // Cierra un ciclo y emite el evento para mostrar los "Ecos del ciclo".
-    async function closeCycle(cycleId, topicId) {
-        if (!_client() || !cycleId) return false;
-
-        const { error } = await _client()
-            .from('topic_cycles')
-            .update({ status: 'closed', closed_at: new Date().toISOString() })
-            .eq('id', cycleId);
-
-        if (error) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'closeCycle error:', error.message);
-            return false;
-        }
-
-        // Resolver todas las elecciones abiertas del ciclo
-        await _client()
-            .from('cycle_choices')
-            .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-            .eq('cycle_id', cycleId)
-            .eq('status', 'open');
-
-        // Calcular y aplicar los impactos de afinidad del ciclo
-        await _applyAffinityImpacts(cycleId, topicId);
-
-        if (typeof eventBus !== 'undefined') {
-            eventBus.emit('cycle:closed', { cycleId, topicId });
-        }
-
-        if (window.SupabaseExtras?.logActivity) {
-            window.SupabaseExtras.logActivity('cycle_closed', 'story', String(topicId),
-                { cycleId }).catch(() => {});
-        }
-
-        window.EtheriaLogger?.info?.('SupabaseCycles', `Ciclo cerrado: ${cycleId}`);
-        return true;
-    }
-
-    // Comprueba si todos los participantes han respondido → cierre automático.
-    async function checkAutoClose(cycleId, topicId) {
-        if (!_client() || !cycleId) return;
-
-        const cycle = await _client()
-            .from('topic_cycles')
-            .select('participants, status')
-            .eq('id', cycleId)
-            .single();
-
-        if (cycle.error || cycle.data?.status !== 'open') return;
-
-        const participants = cycle.data.participants || [];
-        if (participants.length === 0) return;
-
-        // Ver si todos los participantes tienen al menos un mensaje en este ciclo
-        // (simplificado: verificar via cycle_choice_responses o mensajes desde started_at)
-        // Por ahora: cierre por tiempo (closes_at) lo maneja el backend/cron.
-        // El cierre manual lo puede triggerar el creador del topic.
-
-        // Cierre automático por tiempo — comparar closes_at con now()
-        const { data: cycleData } = await _client()
-            .from('topic_cycles')
-            .select('closes_at')
-            .eq('id', cycleId)
-            .single();
-
-        if (cycleData && new Date(cycleData.closes_at) < new Date()) {
-            await closeCycle(cycleId, topicId);
-        }
-    }
-
-    // ── Elecciones ───────────────────────────────────────────────────────────
-
-    // Crea una elección en el ciclo activo.
-    // options: [{ label: 'A', text: '...', affinity_impact: 2 }, ...]
-    async function createChoice(cycleId, topicId, authorCharId, questionText, options = []) {
-        const uid = await _ensureUserId();
-        if (!uid || !cycleId) return null;
-
-        // Validar que el usuario no haya lanzado ya una elección en este ciclo
-        const canCreate = await canLaunchChoice(cycleId);
-        if (!canCreate) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'Ya lanzaste una elección en este ciclo');
-            return null;
-        }
-
-        // Crear la elección
-        const { data: choice, error: choiceErr } = await _client()
-            .from('cycle_choices')
-            .insert({
-                cycle_id:       cycleId,
-                topic_id:       String(topicId),
-                author_char_id: String(authorCharId),
-                author_user_id: uid,
-                question_text:  questionText,
-                status:         'open',
-            })
-            .select()
-            .single();
-
-        if (choiceErr) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'createChoice error:', choiceErr.message);
-            return null;
-        }
-
-        // Crear las opciones
-        const optRows = options.map((opt, i) => ({
-            choice_id:       choice.id,
-            label:           opt.label || String.fromCharCode(65 + i), // A, B, C...
-            option_text:     opt.text,
-            affinity_impact: Math.max(-3, Math.min(3, Number(opt.affinity_impact) || 0)),
-            display_order:   i,
-        }));
-
-        const { error: optsErr } = await _client()
-            .from('cycle_choice_options')
-            .insert(optRows);
-
-        if (optsErr) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'createOptions error:', optsErr.message);
-        }
-
-        if (typeof eventBus !== 'undefined') {
-            eventBus.emit('cycle:choice-created', { topicId, cycleId, choice });
-        }
-
-        if (window.SupabaseExtras?.logActivity) {
-            window.SupabaseExtras.logActivity('choice_launched', 'story', String(topicId),
-                { cycleId, choiceId: choice.id, authorCharId }).catch(() => {});
-        }
-
-        window.EtheriaLogger?.info?.('SupabaseCycles', `Elección creada: ${choice.id}`);
-        return choice;
-    }
-
-    // Guarda la respuesta de un personaje a una elección.
-    async function saveResponse(choiceId, optionId, cycleId, topicId, responderCharId) {
-        const uid = await _ensureUserId();
-        if (!uid || !choiceId || !optionId) return false;
-
-        const { error } = await _client()
-            .from('cycle_choice_responses')
-            .upsert({
-                choice_id:          choiceId,
-                option_id:          optionId,
-                cycle_id:           cycleId,
-                topic_id:           String(topicId),
-                responder_char_id:  String(responderCharId),
-                responder_user_id:  uid,
-            }, { onConflict: 'choice_id,responder_char_id' });
-
-        if (error) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'saveResponse error:', error.message);
-            return false;
-        }
-
-        if (typeof eventBus !== 'undefined') {
-            eventBus.emit('cycle:response-saved', { choiceId, optionId, topicId });
-        }
-
-        if (window.SupabaseExtras?.logActivity) {
-            window.SupabaseExtras.logActivity('choice_responded', 'story', String(topicId),
-                { choiceId, cycleId, responderCharId }).catch(() => {});
-        }
-
-        return true;
-    }
-
-    // Carga las elecciones abiertas de un ciclo (visibles para todos).
-    async function loadChoicesForCycle(cycleId) {
-        if (!_client() || !cycleId) return [];
-
-        const { data, error } = await _client()
-            .from('cycle_choices')
-            .select(`
-                *,
-                cycle_choice_options (*)
-            `)
-            .eq('cycle_id', cycleId)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'loadChoices error:', error.message);
-            return [];
-        }
-
-        return data || [];
-    }
-
-    // Carga las respuestas visibles del ciclo.
-    // Mientras el ciclo está abierto: RLS solo devuelve las propias.
-    // Cuando está cerrado: devuelve todas.
-    async function loadResponsesForCycle(cycleId) {
-        if (!_client() || !cycleId) return [];
-
-        const { data, error } = await _client()
-            .from('cycle_choice_responses')
-            .select('*')
-            .eq('cycle_id', cycleId);
-
-        if (error) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'loadResponses error:', error.message);
-            return [];
-        }
-
-        return data || [];
-    }
-
-    // ¿Puede el usuario actual lanzar una elección en este ciclo?
-    // Regla: solo si no ha lanzado ya una en este ciclo.
-    async function canLaunchChoice(cycleId) {
-        const uid = await _ensureUserId();
-        if (!uid || !cycleId) return false;
-
-        const { data, error } = await _client()
-            .from('cycle_choices')
-            .select('id')
-            .eq('cycle_id', cycleId)
-            .eq('author_user_id', uid)
-            .limit(1);
-
-        if (error) return false;
-        return !data || data.length === 0;
-    }
-
-    // ── Impactos de afinidad al cerrar el ciclo ──────────────────────────────
-    // Solo afecta al autor de la elección y a quienes respondieron.
-    async function _applyAffinityImpacts(cycleId, topicId) {
-        const uid = await _ensureUserId();
-        if (!uid) return;
-
-        // Cargar elecciones y respuestas del ciclo
-        const choices = await loadChoicesForCycle(cycleId);
-        const responses = await loadResponsesForCycle(cycleId);
-
-        if (!choices.length || !responses.length) return;
-
-        // Para cada elección, calcular el impacto entre el autor y cada respondedor
-        const affinityChanges = []; // { fromCharId, toCharId, delta }
-
-        for (const choice of choices) {
-            const opts = (choice.cycle_choice_options || []).reduce((acc, o) => {
-                acc[o.id] = o;
-                return acc;
-            }, {});
-
-            const choiceResponses = responses.filter(r => r.choice_id === choice.id);
-
-            for (const resp of choiceResponses) {
-                const opt = opts[resp.option_id];
-                if (!opt) continue;
-
-                // La afinidad cambia entre el autor de la elección y el respondedor
-                affinityChanges.push({
-                    fromCharId: choice.author_char_id,
-                    toCharId:   resp.responder_char_id,
-                    delta:      opt.affinity_impact,
-                });
-            }
-        }
-
-        // Aplicar los cambios acumulados en la tabla affinities
-        for (const change of affinityChanges) {
-            if (typeof SupabaseAffinities !== 'undefined') {
-                const key    = `${change.fromCharId}_${change.toCharId}`;
-                const topicAff = (window.appData?.affinities?.[topicId] || {});
-                const current  = Number(topicAff[key]) || 0;
-                const newVal   = Math.max(-100, Math.min(100, current + change.delta));
-
-                await SupabaseAffinities.upsert(
-                    change.fromCharId,
-                    change.toCharId,
-                    topicId,
-                    newVal
-                );
-
-                // Actualizar en memoria para el panel de Ecos
-                if (window.appData?.affinities?.[topicId]) {
-                    window.appData.affinities[topicId][key] = newVal;
-                }
-            }
-        }
-
-        // Emitir los cambios para el panel "Ecos del ciclo"
-        if (typeof eventBus !== 'undefined' && affinityChanges.length > 0) {
-            eventBus.emit('cycle:affinity-impacts', {
-                cycleId,
-                topicId,
-                changes: affinityChanges,
-            });
-        }
-    }
-
-    // ── Bifurcación de rama ──────────────────────────────────────────────────
-    // Guarda la elección de rama del usuario para un par de personajes.
-    async function chooseBranch(fromCharId, toCharId, topicId, relationType) {
-        const uid = await _ensureUserId();
-        if (!uid || !fromCharId || !toCharId || !topicId) return false;
-
-        const validTypes = ['friendship', 'romance', 'rivalry', 'enmity'];
-        if (!validTypes.includes(relationType)) return false;
-
-        const { error } = await _client()
-            .from('affinities')
-            .update({
-                relation_type:    relationType,
-                branch_chosen_at: new Date().toISOString(),
-            })
-            .eq('from_char_id', String(fromCharId))
-            .eq('to_char_id',   String(toCharId))
-            .eq('topic_id',     String(topicId))
-            .eq('owner_user_id', uid);
-
-        if (error) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'chooseBranch error:', error.message);
-            return false;
-        }
-
-        // Actualizar en memoria
-        const key = `${fromCharId}_${toCharId}`;
-        if (window.appData?.affinities?.[topicId]) {
-            // Guardar el relation_type en memoria junto al valor
-            if (!window.appData.affinityTypes) window.appData.affinityTypes = {};
-            if (!window.appData.affinityTypes[topicId]) window.appData.affinityTypes[topicId] = {};
-            window.appData.affinityTypes[topicId][key] = relationType;
-        }
-
-        if (typeof eventBus !== 'undefined') {
-            eventBus.emit('cycle:branch-chosen', {
-                fromCharId, toCharId, topicId, relationType
-            });
-        }
-
-        if (window.SupabaseExtras?.logActivity) {
-            window.SupabaseExtras.logActivity('branch_chosen', 'story', String(topicId),
-                { fromCharId, toCharId, relationType }).catch(() => {});
-        }
-
-        window.EtheriaLogger?.info?.('SupabaseCycles',
-            `Rama elegida: ${fromCharId}→${toCharId} = ${relationType}`);
-        return true;
-    }
-
-    // Carga los relation_types del topic activo junto con los valores.
-    async function loadRelationTypesForTopic(topicId) {
-        if (!_client() || !topicId) return;
-
-        const { data, error } = await _client()
-            .from('affinities')
-            .select('from_char_id, to_char_id, relation_type')
-            .eq('topic_id', String(topicId))
-            .neq('relation_type', 'undefined');
-
-        if (error || !data) return;
-
-        if (!window.appData.affinityTypes) window.appData.affinityTypes = {};
-        if (!window.appData.affinityTypes[topicId]) window.appData.affinityTypes[topicId] = {};
-
-        data.forEach(row => {
-            const key = `${row.from_char_id}_${row.to_char_id}`;
-            window.appData.affinityTypes[topicId][key] = row.relation_type;
-        });
-    }
-
-    // ── Realtime ─────────────────────────────────────────────────────────────
-    // Escucha nuevas elecciones en el topic activo para mostrarlas en tiempo real.
-    function subscribeToTopic(topicId) {
-        if (!_client() || !topicId) return;
-        if (_currentTopic === String(topicId) && _channel) return;
-
-        _unsubscribe();
-        _currentTopic = String(topicId);
-
-        _channel = _client()
-            .channel(`cycles:${topicId}`)
-            .on('postgres_changes', {
-                event:  'INSERT',
-                schema: 'public',
-                table:  'cycle_choices',
-                filter: `topic_id=eq.${topicId}`,
-            }, _onNewChoice)
-            .on('postgres_changes', {
-                event:  'UPDATE',
-                schema: 'public',
-                table:  'topic_cycles',
-                filter: `topic_id=eq.${topicId}`,
-            }, _onCycleUpdate)
-            .subscribe();
-    }
-
-    function _onNewChoice(payload) {
-        const choice = payload.new;
-        if (!choice) return;
-        if (typeof eventBus !== 'undefined') {
-            eventBus.emit('cycle:choice-created', {
-                topicId: choice.topic_id,
-                cycleId: choice.cycle_id,
-                choice,
-                fromRealtime: true,
-            });
-        }
-    }
-
-    function _onCycleUpdate(payload) {
-        const cycle = payload.new;
-        if (!cycle) return;
-        if (cycle.status === 'closed' && typeof eventBus !== 'undefined') {
-            eventBus.emit('cycle:closed', {
-                cycleId:      cycle.id,
-                topicId:      cycle.topic_id,
-                fromRealtime: true,
-            });
-        }
-    }
-
-    function _unsubscribe() {
-        if (_channel && _client()) {
-            try { _client().removeChannel(_channel); } catch {}
-            _channel = null;
-        }
-        _currentTopic = null;
-    }
-
-    // ── Init ─────────────────────────────────────────────────────────────────
-    (function _init() {
-        window.addEventListener('etheria:auth-changed', async function (e) {
-            if (e.detail?.user) {
-                _userId = e.detail.user.id || null;
-            } else {
-                _userId = null;
-                _unsubscribe();
-            }
-        });
-
-        window.addEventListener('etheria:topic-enter', function (e) {
-            const topicId = e.detail?.topicId;
-            if (!topicId) return;
-            loadRelationTypesForTopic(topicId).catch(() => {});
-            subscribeToTopic(topicId);
-        });
-
-        window.addEventListener('etheria:topic-leave', function () {
-            _unsubscribe();
-        });
-    })();
-
-    return {
-        openCycle,
-        getOpenCycle,
-        closeCycle,
-        checkAutoClose,
-        createChoice,
-        saveResponse,
-        loadChoicesForCycle,
-        loadResponsesForCycle,
-        canLaunchChoice,
-        chooseBranch,
-        loadRelationTypesForTopic,
-        subscribeToTopic,
-    };
-
-})();
-
-window.SupabaseCycles = SupabaseCycles;
-
 
 /* js/utils/supabaseCycleViews.js */
 // ═══════════════════════════════════════════════════════════════════
@@ -26543,7 +27162,16 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
     // Render inicial del party clásico cuando se cargan los participantes de la historia
     // (etheria:story-participants-loaded se emite en supabaseStories.js de forma async,
     //  antes de que renderVnPartyPanel se llame con la lista rellena)
+    // GUARD: estos eventos llegan de forma asíncrona (Supabase realtime) y
+    // pueden resolver DESPUÉS de que el usuario ya haya navegado fuera de la
+    // escena VN (p.ej. a la Galería). Sin comprobar la sección activa, el
+    // panel "En escena" reaparecía flotando sobre cualquier pantalla.
+    function _inVnScene() {
+        return !!document.getElementById('vnSection')?.classList.contains('active');
+    }
+
     window.addEventListener('etheria:story-participants-loaded', function (e) {
+        if (!_inVnScene()) return;
         if (!_isRpg() && e.detail && e.detail.participants) {
             renderClassicParty(e.detail.participants);
         }
@@ -26551,6 +27179,7 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
 
     // Actualizar party clásico cuando cambia la presencia online (usuarios entran/salen)
     window.addEventListener('etheria:story-presence-changed', function () {
+        if (!_inVnScene()) return;
         if (!_isRpg() && typeof currentStoryParticipants !== 'undefined' && currentStoryParticipants) {
             renderClassicParty(currentStoryParticipants);
         }
@@ -26907,19 +27536,43 @@ window.CharPopover = CharPopover;
       const last  = topics[topics.length - 1];
       const title = last.title ? last.title.substring(0, 34) : null;
       if (continueSub) continueSub.textContent = title || 'Retoma el hilo de tu última historia';
-      if (continueBtn) continueBtn.onclick = () => {
+      if (continueBtn) continueBtn.onclick = async () => {
         // Re-lee appData en el momento del clic para evitar cierres sobre IDs obsoletos.
-        // Si el último topic fue eliminado o el array se refrescó desde Supabase,
-        // el ID capturado en el closure anterior ya no existe → caemos en showSection.
         const currentTopics = (typeof appData !== 'undefined' && Array.isArray(appData?.topics))
           ? appData.topics : [];
         const latest = currentTopics.length > 0
           ? currentTopics[currentTopics.length - 1] : null;
-        if (latest?.id && typeof enterTopic === 'function') {
+
+        const goToLatest = () => {
           const mainMenu = document.getElementById('mainMenu');
           if (mainMenu) mainMenu.classList.add('hidden');
           eventBus.emit('audio:stop-menu-music');
           enterTopic(latest.id);
+        };
+
+        if (!latest?.id || typeof enterTopic !== 'function') {
+          if (typeof showSection === 'function') showSection('topics');
+          return;
+        }
+
+        // Con un único tema, saltar directo sigue siendo lo más intuitivo
+        // (no hay ambigüedad sobre "cuál" se retoma).
+        if (currentTopics.length === 1) {
+          goToLatest();
+          return;
+        }
+
+        // Con varios temas, "el último" deja de ser obvio para quien mira
+        // el botón — preguntar evita que parezca un bug (feedback de Irune).
+        const title = latest.title ? latest.title.substring(0, 40) : 'tu última historia';
+        if (typeof openConfirmModal === 'function') {
+          const wantsLatest = await openConfirmModal(
+            `¿Retomar «${title}» o elegir entre tus historias?`,
+            'Retomar esta',
+            'Elegir tema'
+          );
+          if (wantsLatest) goToLatest();
+          else if (typeof showSection === 'function') showSection('topics');
         } else if (typeof showSection === 'function') {
           showSection('topics');
         }
@@ -27548,9 +28201,17 @@ window.claimProfile = _claimProfile;
 // Verificar si hay una sesión existente
 async function checkExistingSession() {
     if (!window.supabaseClient) return false;
-    
+
     try {
-        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        // Timeout de seguridad: esta llamada es la PRIMERA del arranque tras
+        // renderizar el selector — si se cuelga sin timeout (fetch de red sin
+        // límite en conexión inestable), nada de lo que viene detrás se
+        // ejecuta jamás. _withTimeout() se define más abajo en este archivo,
+        // pero las declaraciones function son hoisted — disponible aquí.
+        const result = await (typeof _withTimeout === 'function'
+            ? _withTimeout(window.supabaseClient.auth.getSession(), 8000, 'auth.getSession()')
+            : window.supabaseClient.auth.getSession());
+        const session = result?.data?.session;
         return !!session;
     } catch (e) {
         logger?.warn('app:auth', 'checkExistingSession failed:', e?.message || e);
@@ -27606,6 +28267,41 @@ function continueAsGuest() {
     initializeApp();
     isOfflineMode = true;
 }
+
+// Purga la caché de la aplicación (service worker + Cache API) sin tocar
+// localStorage (sesión, preferencias, perfiles locales) — para cuando el
+// bundle instalado se queda "atascado" en una versión vieja y el doble
+// cierre/apertura habitual no basta. Especialmente útil en PWA instalado,
+// donde el almacenamiento vive aislado del navegador normal.
+async function forceAppUpdate() {
+    const btn = document.getElementById('optForceUpdateBtn');
+    const status = document.getElementById('optForceUpdateStatus');
+    if (btn) btn.disabled = true;
+    if (status) status.textContent = 'Purificando...';
+
+    try {
+        // 1) Desregistrar todos los service workers de este origen
+        if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+        }
+        // 2) Borrar todas las Cache Storage (los bundles JS/CSS/HTML cacheados)
+        if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k).catch(() => {})));
+        }
+        if (status) status.textContent = 'Hecho. Recargando…';
+    } catch (err) {
+        window.EtheriaLogger?.warn('forceAppUpdate', err?.message);
+        if (status) status.textContent = 'Hecho lo posible. Recargando…';
+    }
+
+    // 3) Recarga forzada, sin caché de navegador para este documento
+    setTimeout(() => {
+        location.href = location.origin + location.pathname + '?_refresh=' + Date.now();
+    }, 400);
+}
+window.forceAppUpdate = forceAppUpdate;
 
 async function logout() {
     if (!window.supabaseClient) {
@@ -27838,6 +28534,11 @@ async function login() {
             _claimProfile(targetIdx, userId);
             if (typeof renderUserCards === 'function') renderUserCards(); // refleja el bloqueo en otras tarjetas
             selectUser(targetIdx, { autoLoad: true, instant: true }).catch(() => {});
+        } else if (window._pendingAddProfile) {
+            // El usuario quería CREAR un perfil antes de autenticarse:
+            // reanudar la creación ahora que hay sesión.
+            window._pendingAddProfile = false;
+            if (typeof addNewProfile === 'function') addNewProfile();
         }
     } finally {
         _loginHandling = false;
@@ -27910,12 +28611,30 @@ async function register() {
     }
 }
 
+// Helper: envuelve una promesa con un plazo máximo. Si no resuelve a
+// tiempo, se resuelve como si hubiera fallado en vez de colgarse para
+// siempre — CRÍTICO en llamadas de red durante el arranque, donde una
+// conexión móvil inestable puede dejar un fetch() sin respuesta ni error
+// indefinidamente, bloqueando el resto del arranque sin ninguna excepción
+// visible (bug real: dejaba la pantalla de carga atascada para siempre).
+function _withTimeout(promise, ms, label) {
+    return Promise.race([
+        promise,
+        new Promise((resolve) => setTimeout(() => {
+            window.EtheriaLogger?.warn('app:timeout', `${label || 'operación'} superó ${ms}ms — continuando sin bloquear`);
+            resolve({ data: null, error: new Error('timeout') });
+        }, ms))
+    ]);
+}
+
 async function ensureProfile() {
     // ensureProfile ya no crea perfiles automáticamente.
     // Los perfiles globales se crean explícitamente por el usuario via SupabaseProfiles.
     // Esta función solo inicializa los módulos Supabase tras el login.
     try {
-        const { data: userData, error: userError } = await window.supabaseClient.auth.getUser();
+        const { data: userData, error: userError } = await _withTimeout(
+            window.supabaseClient.auth.getUser(), 8000, 'auth.getUser()'
+        );
         if (userError || !userData?.user) return;
 
         const userId = userData.user.id;
@@ -28406,8 +29125,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (hasExistingSession) {
         _showLoadingOverlay('Cargando tu partida...');
         try {
-            await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
-            await hydrateCloudAfterAuth();
+            // Red de seguridad global: aunque algo interno se quedara colgado
+            // sin excepción (bug real detectado: un fetch() de red sin timeout
+            // dejaba esta pantalla atascada para siempre en conexiones
+            // inestables), este límite garantiza que el overlay SIEMPRE se
+            // oculte y el selector de perfiles ya renderizado quede visible.
+            await Promise.race([
+                (async () => {
+                    await ensureProfile();  // dispara etheria:auth-changed → activa buzón y módulos Supabase
+                    await hydrateCloudAfterAuth();
+                })(),
+                new Promise(resolve => setTimeout(resolve, 12000))
+            ]);
         } finally {
             _hideLoadingOverlay();
         }
@@ -28907,6 +29636,7 @@ const Ethy = (function() {
             _setSectionExpression('mainMenu'); // expresión inicial aleatoria
             _startIdleSystem();               // arrancar idle dinámico
             _resetSleepTimer();               // arrancar sleep timer
+            _watchUserSelectScreen();         // vigilante "¿sigues ahí?" del selector
         }, 1000);
     }
 
@@ -29429,6 +30159,48 @@ const Ethy = (function() {
             if (_isSleeping) _wakeUp(true);
         }
         try { localStorage.setItem(MINIMIZED_KEY, _isMinimized ? '1' : '0'); } catch (error) { logger?.warn('ethy', 'minimize state save failed:', error?.message || error); }
+    }
+
+    // ── "¿Sigues ahí?" — aviso contextual en el selector de perfil ────────────
+    // Si el usuario lleva un rato en el selector sin tocar ninguna tarjeta,
+    // Ethy sugiere que cualquier perfil (incluido uno ajeno visible en el
+    // directorio) sirve para llegar al login — solo hace falta poner las
+    // credenciales correctas. Una vez por visita a la pantalla, no insiste.
+    const STUCK_DELAY = 22000; // 22s sin actividad en esta pantalla
+    let _stuckTimeout = null;
+    let _stuckTipShownThisVisit = false;
+
+    function _armStuckWatcher() {
+        if (_stuckTimeout) clearTimeout(_stuckTimeout);
+        if (_stuckTipShownThisVisit) return;
+        _stuckTimeout = setTimeout(() => {
+            const screen = document.getElementById('userSelectScreen');
+            if (!screen || screen.classList.contains('hidden')) return;
+            if (_isMinimized || _bubble.classList.contains('visible')) return;
+            _stuckTipShownThisVisit = true;
+            say('Ninguno de estos archivos tiene que ser el tuyo para abrirte paso. Toca cualquiera y entra con tu propio nombre y llave.', { expression: 'wink' });
+        }, STUCK_DELAY);
+    }
+
+    function _disarmStuckWatcher() {
+        if (_stuckTimeout) { clearTimeout(_stuckTimeout); _stuckTimeout = null; }
+    }
+
+    function _watchUserSelectScreen() {
+        const screen = document.getElementById('userSelectScreen');
+        if (!screen) return;
+        const sync = () => {
+            if (screen.classList.contains('hidden')) {
+                _disarmStuckWatcher();
+                _stuckTipShownThisVisit = false; // rearmar para la próxima visita
+            } else {
+                _armStuckWatcher();
+            }
+        };
+        sync();
+        new MutationObserver(sync).observe(screen, { attributes: true, attributeFilter: ['class'] });
+        // Cualquier interacción dentro del selector cuenta como "no estoy atascada"
+        screen.addEventListener('click', () => { _stuckTipShownThisVisit = true; _disarmStuckWatcher(); }, { passive: true });
     }
 
     // ── Sistema de duermevela ─────────────────────────────────────────────────
@@ -29961,6 +30733,7 @@ const Ethy = (function() {
             if (!el) return false;
             return el.classList.contains('active') || _isVisible(id);
         }
+        if (_isVisible('userSelectScreen')) return 'userSelect';
         if (_isVisible('mainMenu') || _isActive('mainMenu')) return 'mainMenu';
         if (_isActive('gallerySection')) return 'gallery';
         if (_isActive('topicsSection')) return 'topics';
@@ -29973,20 +30746,20 @@ const Ethy = (function() {
     // ── Consejos aleatorios ──────────────────────────────────────────────────
 
     const TIPS = [
-        { text: 'Puedes usar **negrita** y *cursiva* al escribir tus mensajes. ¡Dale estilo a la narrativa!', expression: 'excited' },
-        { text: 'Los emotes /happy, /sad, /angry, /love y más dan vida a tus personajes. ¡Pruébalos!', expression: 'happy' },
-        { text: 'En modo RPG, el Oráculo del Destino resuelve las acciones difíciles con un D20 + tu stat. ¡El azar manda!', expression: 'surprised' },
-        { text: 'Puedes compartir una historia con un código de 6 caracteres. Búscalo en el botón de exportar del menú. 🔑', expression: 'love' },
-        { text: 'Las flechas ← → o los botones de navegación permiten saltar entre mensajes rápidamente.', expression: 'neutral' },
-        { text: 'Pulsa ESPACIO o haz clic en el diálogo para completar la animación de texto al instante.', expression: 'wink' },
-        { text: 'Toca tu perfil en la parte inferior del menú para cambiar tu nombre, avatar y datos personales.', expression: 'happy' },
-        { text: 'El diario de sesión guarda tus notas y resúmenes de partida. ¡Úsalo para no perder el hilo!', expression: 'thoughtful' },
-        { text: 'En el panel de respuesta puedes crear opciones de elección para que la historia se ramifique. 🌿', expression: 'excited' },
-        { text: 'El historial guarda todos los mensajes de la historia. Puedes marcarlos como favoritos con la estrella. ⭐', expression: 'thoughtful' },
-        { text: 'Para hacer una copia de seguridad, usa el pequeño botón de exportar junto a tu perfil en el menú.', expression: 'neutral' },
-        { text: 'En la ficha de personaje puedes añadir descripción física, personalidad, trasfondo y notas libres.', expression: 'happy' },
-        { text: 'Puedes cambiar el clima de una escena desde el panel de respuesta: lluvia, niebla o despejado. 🌧️', expression: 'thoughtful' },
-        { text: 'El modo inmersivo oculta los controles para leer la historia sin distracciones. ¡Búscalo en Opciones!', expression: 'wink' }
+        { text: 'Negrita y cursiva también tejen significado: **así**, o *así*. La narrativa agradece el matiz.', expression: 'excited' },
+        { text: 'Los emotes /happy, /sad, /angry, /love y más ponen gesto en las palabras de tu personaje.', expression: 'happy' },
+        { text: 'En modo RPG, el Oráculo del Destino resuelve lo difícil con un D20 y tu estadística. El azar no negocia.', expression: 'surprised' },
+        { text: 'Seis letras bastan para invitar a otra pluma a tu historia. El código vive en el botón de exportar.', expression: 'love' },
+        { text: 'Las flechas, o los botones de navegación, te devuelven a lo que ya se dijo.', expression: 'neutral' },
+        { text: 'Espacio, o un clic sobre el texto, y las palabras terminan de aparecer al instante.', expression: 'wink' },
+        { text: 'Tu nombre, tu rostro, tus datos: todo cambia tocando tu perfil, abajo en el menú.', expression: 'happy' },
+        { text: 'El diario guarda tus notas y resúmenes. Ni el hilo más fino se pierde si lo escribes ahí.', expression: 'thoughtful' },
+        { text: 'Desde el panel de respuesta puedes sembrar opciones de elección. Que la historia se ramifique.', expression: 'excited' },
+        { text: 'El historial guarda cada mensaje. La estrella marca los que no quieres que se disuelvan.', expression: 'thoughtful' },
+        { text: 'Hacer una copia de tu mundo es solo un botón: el de exportar, junto a tu perfil.', expression: 'neutral' },
+        { text: 'En cada ficha caben descripción, personalidad, trasfondo y notas libres. Nada tiene que quedarse sin decir.', expression: 'happy' },
+        { text: 'Lluvia, niebla o cielo despejado: el clima de la escena se elige desde el panel de respuesta.', expression: 'thoughtful' },
+        { text: 'El modo inmersivo aparta los controles y deja solo la historia. Búscalo en Opciones, cuando quieras leer sin ruido.', expression: 'wink' }
     ];
 
     function showRandomTip() {

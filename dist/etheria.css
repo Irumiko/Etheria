@@ -154,7 +154,7 @@ body { font-family: var(--font-body); background: var(--bg-primary); color: var(
 #topicsSection,
 #gallerySection,
 #optionsSection,
-#bondsSection { min-height: 100vh; }
+#bondsSection { min-height: 100vh; min-height: 100dvh; }
 
 /* -- css/pwa.css -- */
 /* PWA safe-area + viewport guards
@@ -177,6 +177,7 @@ body,
 #optionsSection,
 #gallerySection {
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 /* Ajustes PWA scopeados */
@@ -1565,6 +1566,299 @@ body.is-pwa .menu-exit-btn:active {
     line-height: 1;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   LANDSCAPE COMPACTO — móvil apaisado (viewport bajo)
+   El selector de perfiles usa el layout de escritorio; en ~360-520px
+   de alto el título desborda, las cards se estiran a toda altura y
+   los widgets flotantes pisan los botones. Capa aditiva de compactado.
+   ═══════════════════════════════════════════════════════════════ */
+@media (orientation: landscape) and (max-height: 640px) and (any-pointer: coarse) {
+
+    .user-select-screen {
+        padding: 6px 14px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+        justify-content: flex-start !important;
+    }
+
+    /* Título y subtítulo: discretos, arriba, sin recortes */
+    .game-title {
+        font-size: clamp(1.3rem, 6vh, 1.9rem) !important;
+        letter-spacing: 0.32em !important;
+        margin: 0 !important;
+        line-height: 1.1 !important;
+    }
+    .save-screen-rule { display: none !important; }
+    .game-subtitle {
+        font-size: 0.66rem !important;
+        margin: 2px 0 8px !important;
+        letter-spacing: 0.12em !important;
+    }
+
+    /* Fila de cards: ocupa el resto de la altura, con su scroll-x */
+    .user-cards {
+        max-width: 96vw !important;
+        gap: 0.7rem !important;
+        padding: 0.2rem 0.4rem 0.5rem !important;
+        align-items: stretch !important;
+    }
+
+    /* Card compacta: cabe entera en el alto disponible; si su contenido
+       no cabe, scrollea por dentro en vez de estirar el layout */
+    .user-card {
+        min-width: 170px !important;
+        max-width: 200px !important;
+        max-height: calc(100dvh - 96px - env(safe-area-inset-bottom, 0px)) !important;
+        overflow-y: auto !important;
+        padding: 10px 12px !important;
+    }
+    .user-avatar-wrap {
+        width: 52px !important;
+        height: 52px !important;
+        margin: 0 auto 4px !important;
+    }
+    .user-name { font-size: 0.95rem !important; margin: 2px 0 !important; }
+    .user-gender-badge { font-size: 0.6rem !important; padding: 1px 8px !important; }
+    .user-card-stats { gap: 4px !important; margin: 6px 0 !important; }
+    .user-card-stats > * { padding: 4px 6px !important; font-size: 0.62rem !important; }
+    .user-card-divider { margin: 4px 0 !important; }
+    .user-last-session, .user-last-topic { font-size: 0.6rem !important; }
+    .user-continue-btn { padding: 6px 10px !important; font-size: 0.7rem !important; }
+    .user-directory-badge { font-size: 0.58rem !important; }
+
+    /* Widgets flotantes: fuera del camino de los botones de las cards */
+    #ethyContainer { display: none !important; }
+    .profile-theme-btn {
+        top: auto !important;
+        bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+        left: 10px !important;
+        right: auto !important;
+        transform: scale(0.85);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LANDSCAPE COMPACTO II — hub (#mainMenu) y escena VN (#vnSection)
+   Mismo rango que el selector: móvil apaisado de viewport bajo.
+   ═══════════════════════════════════════════════════════════════ */
+@media (orientation: landscape) and (max-height: 640px) and (any-pointer: coarse) {
+
+    /* ── Selector: refuerzo (garantizar columna y anclaje arriba) ── */
+    .user-select-screen {
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+    .game-title, .game-subtitle { text-align: center !important; }
+
+    /* ── HUB · barra superior compacta ── */
+    #mainMenu .cel-topbar { top: 8px !important; left: 12px !important; right: 12px !important; }
+    #mainMenu .menu-profile-btn { padding: 4px 12px 4px 4px !important; gap: 8px !important; }
+    #mainMenu .menu-profile-avatar { width: 36px !important; height: 36px !important; font-size: 15px !important; }
+    #mainMenu .menu-profile-name { font-size: 14px !important; }
+    #mainMenu .menu-profile-hint { display: none !important; }
+
+    /* Acciones (buzón/backup/tema): compactas y SIN pisar las cards */
+    #mainMenu .menu-top-actions { gap: 6px !important; }
+    #mainMenu .cel-round-btn {
+        width: 34px !important;
+        height: 34px !important;
+        transform: none !important;
+    }
+
+    /* Marca y cita: contenidas a la mitad izquierda */
+    #mainMenu .menu-brand { max-width: 46vw !important; }
+    #mainMenu .menu-brand h1, #mainMenu .brand-title {
+        font-size: clamp(2rem, 14vh, 3.2rem) !important;
+        line-height: 1 !important;
+    }
+
+    /* Columna de cards: empieza bajo la topbar, contenida.
+       hub-luna fija top:50% + translateY(-50%) con !important y
+       especificidad id+2clases (#mainMenu.cel-hub .menu-container) —
+       ese transform expulsaba "Continuar" por encima del viewport.
+       Ganamos con id+3clases (.menu-container doblada). */
+    #mainMenu.cel-hub .menu-container.menu-container,
+    #mainMenu .menu-container.menu-container {
+        top: 68px !important;
+        right: 14px !important;
+        width: min(360px, 44vw) !important;
+        bottom: 8px !important;
+        transform: none !important;
+        z-index: 5 !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        padding-bottom: 8px !important;
+        gap: 8px !important;
+    }
+
+    /* Cards compactas (idea de Irune: en pantalla pequeña, ornamentos
+       pequeños): sin subtítulo, icono-rombo reducido, sello decorativo
+       de 118px fuera, padding contenido. Misma especificidad ganadora. */
+    #mainMenu .hub-item-sub { display: none !important; }
+    #mainMenu.cel-hub .hub-menu-item.hub-menu-item,
+    #mainMenu .hub-menu-item.hub-menu-item {
+        padding: 8px 12px !important;
+        gap: 10px !important;
+    }
+    #mainMenu.cel-hub .hub-item-icon.hub-item-icon,
+    #mainMenu .hub-item-icon.hub-item-icon {
+        width: 30px !important;
+        height: 30px !important;
+    }
+    #mainMenu .hub-item-icon svg { width: 13px !important; height: 13px !important; }
+    #mainMenu .hub-menu-item .seal { display: none !important; }
+    #mainMenu .hub-item-arcana { font-size: 0.58rem !important; }
+    #mainMenu .menu-label { font-size: 1rem !important; }
+    #mainMenu .menu-container .menu-card,
+    #mainMenu .menu-container .menu-item { padding: 10px 14px !important; }
+
+    /* Estado, Ethy y ruido inferior: fuera; Salir compacto en su esquina */
+    #mainMenu .cel-status { display: none !important; }
+    #mainMenu .cel-ethy { display: none !important; }
+    #mainMenu .menu-exit-btn {
+        right: 10px !important;
+        bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+        left: auto !important;
+        width: auto !important;
+        padding: 6px 12px !important;
+        font-size: 9.5px !important;
+    }
+
+    /* ── ESCENA VN · caja y satélites contenidos ── */
+    /* Placa del hablante: pegada a la esquina del box, sin flotar */
+    #vnSection .vn-speaker-plate {
+        top: -12px !important;
+        left: 14px !important;
+        transform: none !important;
+        font-size: 0.8rem !important;
+        padding: 4px 14px !important;
+    }
+
+    /* Avatar del hablante: de gigante a discreto */
+    #vnSection .vn-speaker-avatar-wrap,
+    #vnSection .vn-speaker-avatar {
+        width: 64px !important;
+        height: 64px !important;
+    }
+
+    /* La caja aprovecha el ancho; menos aire interno */
+    #vnSection .vn-dialogue-box { padding: 16px 18px 12px !important; }
+
+    /* FAB de navegación: dentro del viewport, sobre la safe-area */
+    #vnSection .vn-mobile-fab-nav,
+    .vn-mobile-fab-nav {
+        bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    .vn-mobile-fab-btn { width: 40px !important; height: 40px !important; }
+    .vn-mobile-fab-btn.main { width: 46px !important; height: 46px !important; }
+
+    /* Toolbar lateral derecha: compacta y pegada al borde */
+    #vnSection .vn-toolbar {
+        right: 2px !important;
+        transform: scale(0.82) !important;
+        transform-origin: right center !important;
+    }
+
+    /* ── VN · descompresión (feedback Irune) ── */
+    /* Los FAB inferiores son redundantes (la caja tiene sus flechas ‹ ›
+       y el botón Responder) y taparían los sprites: fuera en apaisado */
+    #vnSection .vn-mobile-fab-nav,
+    .vn-mobile-fab-nav { display: none !important; }
+
+    /* Caja más contenida: aire para los sprites por encima */
+    #vnSection .vn-dialogue-box {
+        max-height: 46vh !important;
+        margin-bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    #vnSection .vn-dialogue-text {
+        font-size: 0.95rem !important;
+        line-height: 1.5 !important;
+    }
+    #vnSection .vn-dialogue-actions button {
+        padding: 4px 12px !important;
+        font-size: 0.68rem !important;
+    }
+    #vnSection .vn-dialogue-footer { padding-top: 4px !important; }
+
+    /* ── TEMAS · scroll solo en la lista, no en toda la pantalla ──
+       CRÍTICO: scoped a .active — sin esto, id+!important gana siempre
+       a la base ".game-section{display:none}" y fuerza la sección
+       visible para siempre tras visitarla, bloqueando el resto del
+       hub (mismo bug real que #gallerySection, detectado en vivo). */
+    #topicsSection.active {
+        height: 100dvh !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    #topicsSection .section-content {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+    }
+    #topicsSection .topics-layout {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+    #topicsSection .topics-main {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        height: 100% !important;
+    }
+    #topicsSection .topics-panel-title { flex-shrink: 0; margin: 4px 0 !important; }
+    #topicsSection .topics-command-bar { flex-shrink: 0; padding: 4px 0 !important; }
+    #topicsSection .topics-grid-wrap {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    /* El panel lateral de estadísticas cede el sitio en apaisado corto */
+    #topicsSection .topics-sidebar,
+    #topicsSection .topics-side-panel { display: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APTITUD MÓVIL (vertical, ≤767px) — legibilidad, tacto y modales
+   Pase genérico: tipografía de lectura más cómoda, objetivos
+   táctiles ≥40px y modales como hoja amplia en vez de ventanita.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) and (orientation: portrait) {
+
+    /* ── Lectura: el texto del relato es el protagonista ── */
+    #vnSection .vn-dialogue-text {
+        font-size: 1.05rem !important;
+        line-height: 1.68 !important;
+    }
+    #vnSection .vn-options-subtitle { font-size: 0.76rem !important; }
+    body.theme-classic #vnSection .vn-opt-text { font-size: 1rem !important; }
+
+    /* ── Modales: hoja casi completa, con aire y safe-areas ── */
+    .modal, .character-modal {
+        width: 96vw !important;
+        max-width: 96vw !important;
+        max-height: calc(92dvh - env(safe-area-inset-top, 0px)) !important;
+        border-radius: 18px !important;
+    }
+
+    /* ── Objetivos táctiles ≥40px en los controles que se tocan mucho ── */
+    .vcb-chip,
+    .vcb-action-btn {
+        min-height: 40px !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+    .vcb-format-btn { width: 38px !important; height: 36px !important; }
+    body.theme-classic #vnSection .vn-option-btn { min-height: 48px !important; }
+    #vnSection .vn-dialogue-actions button { min-height: 38px !important; }
+
+    /* ── El pie del diálogo respira sobre el gesto de home ── */
+    #vnSection .vn-dialogue-footer {
+        padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
+    }
+}
+
 /* -- css/auth.css -- */
 /* ============================================
    AUTH SCREEN - Pantalla de autenticación
@@ -2351,6 +2645,7 @@ body::before {
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
+            min-height: 100dvh;
             overflow-x: hidden;
             font-size: var(--font-size-base);
         }
@@ -4057,6 +4352,7 @@ body::before {
         .game-section {
     display: none;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     background: var(--bg-primary);
     flex-direction: column;
@@ -5701,6 +5997,7 @@ body::before {
         .vn-section {
             position: relative;
             min-height: 100vh;
+            min-height: 100dvh;
             color: #fff;
             background-size: cover;
             background-position: center;
@@ -9707,10 +10004,12 @@ body.mode-classic .vn-dialogue-action-btn:not(.reply-btn):not(.delete-message-bt
 #gallerySection .section-content,
 #optionsSection .section-content {
     height: calc(100vh - 56px);
+    height: calc(100dvh - 56px);
     overflow-y: auto;
 }
 #topicsSection .section-content {
     height: calc(100vh - 56px);
+    height: calc(100dvh - 56px);
     overflow-y: auto;
     padding: 1.5rem 2rem;
 }
@@ -16437,6 +16736,7 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     animation: contentReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
     /* Evita que el contenido quede tapado por el footer fijo */
     max-height: calc(100vh - 80px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+    max-height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
     overflow-y: auto;
     overflow-x: hidden;
     padding-bottom: 4px;
@@ -17228,6 +17528,9 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
         max-height: calc(100vh - 100px
             - env(safe-area-inset-bottom, 0px)
             - env(safe-area-inset-top, 0px));
+        max-height: calc(100dvh - 100px
+            - env(safe-area-inset-bottom, 0px)
+            - env(safe-area-inset-top, 0px));
         padding-top: 8px;
     }
 }
@@ -17311,6 +17614,7 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
         radial-gradient(circle at 78% 18%, rgba(201, 168, 108, 0.1) 0%, transparent 52%),
         radial-gradient(circle at 18% 84%, rgba(130, 80, 38, 0.08) 0%, transparent 48%);
     min-height: 100vh;
+    min-height: 100dvh;
     /* display gestionado por .game-section { display:none } y .game-section.active { display:flex }
        NO sobreescribir aquí — un ID selector tiene mayor especificidad que .game-section
        y causaría que la sección fuera siempre visible. */
@@ -18504,6 +18808,7 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     position: relative;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
 }
 
@@ -24132,6 +24437,7 @@ body.mode-classic.affinity-branch-enmity #vnSection .vn-info-card {
     display: none;
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
     background: var(--bg-primary);
 }
@@ -26863,6 +27169,239 @@ body.theme-rpg .character-modal h3::after {
     }
 }
 
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 7 — Presentación de elecciones (Clásico-only, guard en showOptions)
+   Concepto "¿Qué respondes?": cabecera con ✦, filas con letra en medallón,
+   texto serif cursiva, chevrón al hover y "guardar silencio" fantasma.
+   Gana a las reglas de vn-option-btn de 07-overrides con #vnSection +
+   !important (regla de la casa).
+   ═════════════════════════════════════════════════════════════════════════ */
+
+body.theme-classic #vnSection .vn-options-title {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.14em !important;
+    text-align: center !important;
+    color: rgba(214, 230, 255, 0.95) !important;
+    text-shadow: 0 0 18px rgba(110, 160, 255, 0.4) !important;
+    font-size: 0.95rem !important;
+}
+
+body.theme-classic #vnSection .vn-options-subtitle {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-style: italic !important;
+    text-align: center !important;
+    color: rgba(150, 180, 235, 0.55) !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.03em !important;
+    margin-bottom: 10px !important;
+}
+
+/* Fila de opción: medallón + texto + chevrón */
+body.theme-classic #vnSection .vn-option-btn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: 100% !important;
+    text-align: left !important;
+    padding: 10px 14px !important;
+    border-radius: 999px !important;
+    background: rgba(13, 18, 44, 0.72) !important;
+    border: 1px solid rgba(150, 185, 255, 0.26) !important;
+    color: rgba(222, 233, 255, 0.94) !important;
+    transition: all 0.2s ease !important;
+}
+
+body.theme-classic #vnSection .vn-option-btn:hover:not(:disabled) {
+    border-color: rgba(170, 205, 255, 0.6) !important;
+    background: rgba(20, 28, 62, 0.85) !important;
+    box-shadow: 0 0 18px -4px rgba(120, 160, 255, 0.45) !important;
+    transform: translateX(3px);
+}
+
+body.theme-classic #vnSection .vn-opt-letter {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(160, 195, 255, 0.5);
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-size: 0.78rem;
+    color: rgba(190, 214, 255, 0.9);
+    background: rgba(120, 160, 255, 0.08);
+}
+
+body.theme-classic #vnSection .vn-opt-text {
+    flex: 1 1 auto;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-style: italic;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+body.theme-classic #vnSection .vn-opt-chevron {
+    flex: 0 0 auto;
+    color: rgba(160, 195, 255, 0.45);
+    font-size: 1.05rem;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+body.theme-classic #vnSection .vn-option-btn:hover:not(:disabled) .vn-opt-chevron {
+    color: rgba(200, 222, 255, 0.9);
+    transform: translateX(3px);
+}
+
+/* Elegida: medallón lleno y fila iluminada; las demás se apagan */
+body.theme-classic #vnSection .vn-option-btn.chosen {
+    border-color: rgba(170, 205, 255, 0.75) !important;
+    background: rgba(120, 160, 255, 0.14) !important;
+    box-shadow: 0 0 22px -4px rgba(120, 160, 255, 0.5) !important;
+}
+body.theme-classic #vnSection .vn-option-btn.chosen .vn-opt-letter {
+    background: rgba(170, 205, 255, 0.9);
+    color: rgba(10, 16, 40, 0.95);
+    border-color: transparent;
+}
+body.theme-classic #vnSection .vn-option-btn:disabled:not(.chosen) {
+    opacity: 0.38 !important;
+}
+
+/* Guardar silencio: fantasma, centrado */
+body.theme-classic #vnSection .vn-opt-silence {
+    display: block;
+    margin: 8px auto 0;
+    padding: 5px 14px;
+    background: transparent;
+    border: none;
+    color: rgba(150, 180, 235, 0.5);
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+body.theme-classic #vnSection .vn-opt-silence:hover {
+    color: rgba(214, 230, 255, 0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.theme-classic #vnSection .vn-option-btn,
+    body.theme-classic #vnSection .vn-opt-chevron { transition: none !important; transform: none !important; }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 8 — Sprite genérico espectral + botón de favorito por senda
+   La silueta negra pasa a "viajero espectral": tinte celestial (plata-azul
+   en Clásico, oro viejo en RPG) con brillo suave y estrellas latentes.
+   Gana a los filter !important de vn-scene.css por orden de cascada.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── Silueta · Clásico: espectro de plata estelar ── */
+body.theme-classic.mode-classic .vn-sprite.active .shadow-silhouette-img,
+body.mode-classic .vn-sprite.active .shadow-silhouette-img {
+    filter:
+        invert(0.88) sepia(0.35) hue-rotate(186deg) saturate(1.7)
+        brightness(0.82) opacity(0.9)
+        drop-shadow(0 0 16px rgba(140, 180, 255, 0.35))
+        drop-shadow(0 8px 18px rgba(0, 0, 10, 0.45)) !important;
+}
+body.theme-classic.mode-classic .vn-sprite.inactive .shadow-silhouette-img,
+body.mode-classic .vn-sprite.inactive .shadow-silhouette-img {
+    filter:
+        invert(0.88) sepia(0.3) hue-rotate(186deg) saturate(1.2)
+        brightness(0.5) opacity(0.5) blur(1.5px)
+        drop-shadow(0 4px 10px rgba(0, 0, 10, 0.3)) !important;
+}
+
+/* ── Silueta · RPG: espectro de oro viejo ── */
+body.theme-rpg .vn-sprite.active .shadow-silhouette-img {
+    filter:
+        invert(0.82) sepia(0.9) hue-rotate(-12deg) saturate(2.2)
+        brightness(0.78) opacity(0.9)
+        drop-shadow(0 0 16px rgba(220, 170, 80, 0.35))
+        drop-shadow(0 8px 18px rgba(10, 5, 0, 0.5)) !important;
+}
+body.theme-rpg .vn-sprite.inactive .shadow-silhouette-img {
+    filter:
+        invert(0.82) sepia(0.8) hue-rotate(-12deg) saturate(1.5)
+        brightness(0.45) opacity(0.5) blur(1.5px)
+        drop-shadow(0 4px 10px rgba(10, 5, 0, 0.35)) !important;
+}
+
+/* Estrellas latentes sobre el espectro (solo sprite activo) */
+.vn-sprite.active .shadow-silhouette { position: relative; }
+.vn-sprite.active .shadow-silhouette::after {
+    content: '' !important;
+    position: absolute;
+    inset: 8% 18%;
+    pointer-events: none;
+    background-image:
+        radial-gradient(1.5px 1.5px at 30% 22%, rgba(255,255,255,0.9), transparent),
+        radial-gradient(1px 1px at 62% 38%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1.5px 1.5px at 45% 60%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 70% 74%, rgba(255,255,255,0.6), transparent);
+    opacity: 0.5;
+    animation: vn-spectral-stars 5s ease-in-out infinite;
+}
+body.theme-rpg .vn-sprite.active .shadow-silhouette::after {
+    background-image:
+        radial-gradient(1.5px 1.5px at 30% 22%, rgba(255,226,160,0.9), transparent),
+        radial-gradient(1px 1px at 62% 38%, rgba(255,226,160,0.7), transparent),
+        radial-gradient(1.5px 1.5px at 45% 60%, rgba(255,226,160,0.8), transparent),
+        radial-gradient(1px 1px at 70% 74%, rgba(255,226,160,0.6), transparent);
+}
+@keyframes vn-spectral-stars {
+    0%, 100% { opacity: 0.3; }
+    50%      { opacity: 0.7; }
+}
+
+/* ── Botón de favorito: gema de la senda ── */
+#vnSection .vn-favorite-corner-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+}
+body.theme-classic #vnSection .vn-favorite-corner-btn {
+    background: rgba(13, 18, 44, 0.85) !important;
+    border: 1px solid rgba(160, 195, 255, 0.4) !important;
+    color: rgba(180, 205, 255, 0.75) !important;
+    box-shadow: 0 0 12px -4px rgba(120, 160, 255, 0.4) !important;
+}
+body.theme-classic #vnSection .vn-favorite-corner-btn:hover {
+    color: rgba(226, 238, 255, 0.95) !important;
+    border-color: rgba(190, 215, 255, 0.7) !important;
+}
+body.theme-rpg #vnSection .vn-favorite-corner-btn {
+    background: rgba(30, 20, 8, 0.85) !important;
+    border: 1px solid rgba(200, 155, 70, 0.45) !important;
+    color: rgba(220, 180, 110, 0.75) !important;
+    box-shadow: 0 0 12px -4px rgba(200, 140, 45, 0.4) !important;
+}
+body.theme-rpg #vnSection .vn-favorite-corner-btn:hover {
+    color: rgba(244, 214, 150, 0.95) !important;
+    border-color: rgba(230, 185, 95, 0.7) !important;
+}
+/* Favorito marcado: estrella encendida (ambas sendas) */
+#vnSection .vn-favorite-corner-btn.is-favorited {
+    color: #f4c842 !important;
+    border-color: rgba(244, 200, 66, 0.7) !important;
+    box-shadow: 0 0 16px -2px rgba(244, 200, 66, 0.55) !important;
+}
+#vnSection .vn-favorite-corner-btn.is-favorited svg { fill: #f4c842 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    .vn-sprite.active .shadow-silhouette::after { animation: none !important; opacity: 0.4; }
+}
+
 /* -- css/features/vn-compose-bar.css -- */
 /* ── vn-compose-bar.css ───────────────────────────────────────────────────
    Rediseño del panel Responder/Editar: de modal centrado a BARRA COMPACTA
@@ -27353,6 +27892,1029 @@ body.compose-bar #vnReplyPanel .vn-reply-textarea { min-height: 58px !important;
 /* En móvil, la nota poética del footer estorba */
 @media (max-width: 767px) {
     body.compose-bar #vnReplyPanel .vrp-footer::before { display: none !important; }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   7 · JERARQUÍA DEL CONCEPTO — tres zonas: cabecera · texto · pie
+   (layoutPass en vn-compose.js reordena los nodos; aquí su estilo)
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* Panel más contenido, como la tarjeta del mockup */
+body.compose-bar #vnReplyPanel .vrp-modal {
+    width: min(760px, 94vw) !important;
+}
+
+/* Cabecera: título + chip de personaje en línea; fuera el icono 💬 */
+body.compose-bar #vnReplyPanel .vrp-icon { display: none !important; }
+body.compose-bar #vnReplyPanel .vrp-header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px;
+}
+body.compose-bar #vnReplyPanel .vrp-header-left .char-selector-container {
+    margin: 0 !important;
+}
+
+/* Textarea a la altura del mockup */
+body.compose-bar #vnReplyPanel .vn-reply-textarea {
+    min-height: 52px !important;
+}
+
+/* Fila A: utilidades minúsculas en una sola línea */
+.vcb-utility-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+}
+.vcb-utility-row .vcb-format-row { margin: 0 !important; flex: 0 0 auto; }
+.vcb-utility-row .vcb-format-spacer { display: none; }
+body.compose-bar #vnReplyPanel .vcb-utility-row .vrp-preview-toggle {
+    margin: 0 !important;
+}
+/* Narrador compactado, empujado a la derecha */
+.vcb-utility-row .vrp-narrator-switch {
+    margin-left: auto !important;
+    transform: scale(0.88);
+    transform-origin: right center;
+}
+
+/* Fila B: chips plegados lado a lado; al expandirse ocupan todo el ancho */
+.vcb-secondary-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 6px;
+}
+.vcb-secondary-row > * { flex: 0 0 auto; margin: 0 !important; }
+.vcb-secondary-row .options-toggle-container:has(#enableOptions:checked) {
+    flex: 1 1 100%;
+}
+.vcb-secondary-row #weatherSelectorContainer.vrp-weather-expanded {
+    flex: 1 1 100%;
+}
+
+/* En móvil, narrador vuelve a tamaño táctil */
+@media (max-width: 767px) {
+    .vcb-utility-row .vrp-narrator-switch { transform: none; }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   8 · CHIPS PROPIOS + LIMPIEZA — nombre único, expansiones sin deformar
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* El nombre del personaje solo una vez: fuera el badge del título
+   (el chip selector funcional de la cabecera se queda) */
+body.compose-bar #vnReplyPanel #vrpCharBadge { display: none !important; }
+
+/* Ocultar los togglers originales (los sustituyen los chips .vcb-chip);
+   sus funciones y checkbox siguen vivos debajo */
+body.compose-bar #vnReplyPanel .options-toggle { display: none !important; }
+body.compose-bar #vnReplyPanel #weatherSelectorContainer .vrp-section-label { display: none !important; }
+
+/* Chip base */
+.vcb-chip {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+}
+
+body.theme-classic .vcb-chip {
+    color: rgba(180, 205, 255, 0.65);
+    border-color: rgba(150, 185, 255, 0.26);
+}
+body.theme-classic .vcb-chip:hover { color: rgba(214, 230, 255, 0.95); border-color: rgba(150, 185, 255, 0.5); }
+body.theme-classic .vcb-chip.active {
+    color: rgba(226, 238, 255, 0.98);
+    border-color: rgba(170, 205, 255, 0.65);
+    background: rgba(120, 160, 255, 0.13);
+}
+
+body.theme-rpg .vcb-chip {
+    color: rgba(214, 175, 100, 0.65);
+    border-color: rgba(200, 155, 70, 0.28);
+}
+body.theme-rpg .vcb-chip:hover { color: rgba(240, 206, 138, 0.95); border-color: rgba(200, 155, 70, 0.5); }
+body.theme-rpg .vcb-chip.active {
+    color: rgba(244, 214, 150, 0.98);
+    border-color: rgba(220, 170, 80, 0.65);
+    background: rgba(200, 140, 45, 0.14);
+}
+
+/* Contenedores: colapsados = solo el chip; expandidos = ancho completo,
+   con su contenido como bloque debajo (sin deformar la fila) */
+.vcb-secondary-row .options-toggle-container,
+.vcb-secondary-row #weatherSelectorContainer {
+    display: block !important;
+    flex: 0 0 auto;
+}
+.vcb-secondary-row .options-toggle-container.vcb-open,
+.vcb-secondary-row #weatherSelectorContainer.vrp-weather-expanded {
+    flex: 1 1 100%;
+}
+
+/* Zonas expandidas re-tematizadas (fuera el ámbar/oro de la base) */
+body.compose-bar #vnReplyPanel .options-fields.active,
+body.compose-bar #vnReplyPanel #weatherSelectorContainer.vrp-weather-expanded .vrp-weather-row {
+    margin-top: 8px;
+    padding: 10px !important;
+    border-radius: 12px !important;
+}
+body.theme-classic.compose-bar #vnReplyPanel .options-fields.active,
+body.theme-classic.compose-bar #vnReplyPanel #weatherSelectorContainer.vrp-weather-expanded .vrp-weather-row {
+    background: rgba(8, 12, 30, 0.55) !important;
+    border: 1px solid rgba(150, 185, 255, 0.28) !important;
+}
+body.theme-rpg.compose-bar #vnReplyPanel .options-fields.active,
+body.theme-rpg.compose-bar #vnReplyPanel #weatherSelectorContainer.vrp-weather-expanded .vrp-weather-row {
+    background: rgba(20, 13, 4, 0.55) !important;
+    border: 1px solid rgba(200, 155, 70, 0.3) !important;
+}
+
+/* Grupos de opción internos, aligerados y tematizados */
+body.compose-bar #vnReplyPanel .option-field-group {
+    padding: 8px 10px !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+body.theme-classic.compose-bar #vnReplyPanel .option-field-group { border: 1px solid rgba(150, 185, 255, 0.18) !important; }
+body.theme-rpg.compose-bar #vnReplyPanel .option-field-group { border: 1px solid rgba(200, 155, 70, 0.2) !important; }
+
+/* La regla antigua de chips sobre los togglers ya no aplica (ocultos),
+   pero por si algún estado los muestra, que no estorben */
+body.compose-bar #vnReplyPanel .options-toggle-container { background: transparent !important; border: none !important; padding: 0 !important; }
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   9 · POPOVERS FLOTANTES — opciones y clima como caja aparte SOBRE el
+   panel, sin empujar ni deformar. Sustituyen a las expansiones inline
+   de las secciones 6 y 8 (estas reglas van después y ganan la cascada).
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* El popover ancla contra .vrp-modal → necesita overflow visible */
+body.compose-bar #vnReplyPanel .vrp-modal { overflow: visible !important; }
+
+/* La caja flotante */
+.vcb-popover {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 10px;
+    right: 10px;
+    max-height: 46vh;
+    overflow-y: auto;
+    padding: 12px;
+    border-radius: 14px;
+    z-index: 6;
+}
+.vcb-popover.open { display: block; }
+
+body.theme-classic .vcb-popover {
+    background: linear-gradient(160deg, rgba(15, 21, 50, 0.97), rgba(8, 12, 32, 0.99));
+    border: 1px solid rgba(168, 198, 255, 0.42);
+    box-shadow: 0 -18px 50px rgba(0, 0, 14, 0.55), 0 0 0 1px rgba(140, 175, 255, 0.12);
+}
+body.theme-rpg .vcb-popover {
+    background: linear-gradient(160deg, rgba(41, 29, 13, 0.97), rgba(23, 15, 6, 0.99));
+    border: 1px solid rgba(200, 152, 62, 0.55);
+    box-shadow: 0 -18px 50px rgba(8, 4, 0, 0.6), 0 0 0 1px rgba(190, 140, 55, 0.14);
+}
+
+/* Dentro del popover de opciones, el toggle original vuelve a verse
+   (es el on/off real del checkbox), compacto y tematizado */
+body.compose-bar #vnReplyPanel .vcb-popover .options-toggle {
+    display: flex !important;
+    padding: 6px 10px !important;
+    background: transparent !important;
+    border: none !important;
+    font-size: 0.8rem;
+    width: auto !important;
+    margin-bottom: 6px;
+}
+
+/* La fila de clima vive dentro del popover: visible siempre que el
+   popover esté abierto (anula el plegado de la sección 6) */
+body.compose-bar #vnReplyPanel .vcb-popover .vrp-weather-row {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+/* Fields de opciones dentro del popover: sin doble marco (el popover ya
+   pone el suyo) */
+body.compose-bar #vnReplyPanel .vcb-popover .options-fields.active {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Los contenedores en la fila vuelven a ser solo el chip; anular la
+   expansión a ancho completo de la sección 8 */
+.vcb-secondary-row .options-toggle-container.vcb-open,
+.vcb-secondary-row #weatherSelectorContainer.vrp-weather-expanded {
+    flex: 0 0 auto;
+}
+
+/* El textarea nunca debe encogerse (fix del solape visto con el panel
+   al límite de altura) */
+body.compose-bar #vnReplyPanel .vrp-split,
+body.compose-bar #vnReplyPanel .vn-reply-textarea-wrap {
+    flex-shrink: 0;
+}
+
+@media (max-width: 767px) {
+    .vcb-popover { max-height: 52vh; left: 4px; right: 4px; }
+    body.compose-bar #vnReplyPanel .vcb-popover .vrp-weather-row {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   10 · POPOVERS LATERALES INDEPENDIENTES — anulan la sección 9.
+   Viven en document.body con position:fixed en el costado derecho:
+   inmunes a scroll/overflow/anclajes del panel. Cero solapamiento.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+.vcb-popover {
+    display: none;
+    position: fixed !important;
+    top: 50% !important;
+    right: 18px !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: translateY(-50%);
+    width: min(400px, 92vw);
+    max-height: 72vh;
+    overflow-y: auto;
+    padding: 14px;
+    border-radius: 16px;
+    z-index: 1300; /* sobre el panel (1200) */
+}
+
+.vcb-popover.open {
+    display: block;
+    animation: vcb-slide-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes vcb-slide-in {
+    from { opacity: 0; transform: translateY(-50%) translateX(24px); }
+    to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+/* Cabecera del popover */
+.vcb-popover-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.vcb-popover-title {
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-variant: small-caps;
+    letter-spacing: 0.08em;
+    font-size: 0.9rem;
+}
+
+.vcb-popover-close {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    width: 26px;
+    height: 26px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.16s ease;
+}
+
+body.theme-classic .vcb-popover-title { color: rgba(214, 230, 255, 0.95); text-shadow: 0 0 14px rgba(110,160,255,0.35); }
+body.theme-classic .vcb-popover-close { color: rgba(170, 200, 255, 0.6); }
+body.theme-classic .vcb-popover-close:hover { color: rgba(226, 238, 255, 0.95); border-color: rgba(150,185,255,0.4); }
+
+body.theme-rpg .vcb-popover-title { color: rgba(240, 206, 138, 0.96); text-shadow: 0 0 14px rgba(200,140,40,0.4); }
+body.theme-rpg .vcb-popover-close { color: rgba(214, 175, 100, 0.6); }
+body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); border-color: rgba(200,155,70,0.45); }
+
+/* En móvil no hay costado: sábana centrada en la mitad superior */
+@media (max-width: 767px) {
+    .vcb-popover {
+        top: 8vh !important;
+        right: 4vw !important;
+        left: 4vw !important;
+        transform: none;
+        width: auto;
+        max-height: 58vh;
+    }
+    @keyframes vcb-slide-in {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vcb-popover.open { animation: none !important; }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   11 · AJUSTE PWA MÓVIL — teclado y safe-areas
+   pwa-viewport.js expone --keyboard-height y html.keyboard-open a partir
+   de visualViewport; aquí el panel reacciona.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 767px) {
+    /* Con el teclado abierto, el panel se eleva justo por encima de él */
+    html.keyboard-open body.compose-bar #vnReplyPanel {
+        padding-bottom: calc(var(--keyboard-height, 0px) + 8px) !important;
+    }
+    html.keyboard-open body.compose-bar #vnReplyPanel .vrp-modal {
+        max-height: calc(var(--vvh, 1vh) * 100 - 24px) !important;
+    }
+
+    /* Sin teclado: respetar la safe-area inferior (gesto de home) */
+    body.compose-bar #vnReplyPanel {
+        padding-bottom: max(clamp(70px, 12vh, 120px), calc(env(safe-area-inset-bottom, 0px) + 64px)) !important;
+    }
+
+    /* Los popovers laterales también se apartan del teclado */
+    html.keyboard-open .vcb-popover {
+        top: 6px !important;
+        max-height: calc(var(--vvh, 1vh) * 100 - 12px) !important;
+    }
+}
+
+/* -- css/features/profile-directory.css -- */
+/* ── profile-directory.css ────────────────────────────────────────────────
+   Tarjetas del directorio público en el selector de perfiles: perfiles
+   registrados de otras cuentas, visibles incluso sin sesión (vista
+   profiles_directory). Reutilizan la base .user-card.profile-foreign;
+   aquí solo el matiz que las distingue.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Las tarjetas del directorio reutilizan la piel atenuada de .profile-foreign
+   (opacidad, saturación reducida) pero, a diferencia de un perfil GENUINAMENTE
+   bloqueado por otra cuenta, SÍ deben ser interactivas: al pulsarlas se abre
+   el login. .profile-foreign fija pointer-events:none ("el click no llega ni
+   al JS") — hay que revertirlo aquí explícitamente. */
+.user-card.profile-directory {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+.user-directory-badge {
+    margin-top: 6px;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(168, 198, 255, 0.55);
+    text-align: center;
+}
+
+.user-card.profile-directory:hover .user-directory-badge {
+    color: rgba(214, 230, 255, 0.85);
+}
+
+/* -- css/features/character-atelier.css -- */
+/* ═════════════════════════════════════════════════════════════════════════
+   character-atelier.css — El Elenco y el Atelier (v2, sobre tokens)
+   Reskin de galería y creador usando las VARIABLES DE TEMA de la casa
+   (variables.css): se adapta solo a claro/oscuro. Naipes contenidos y
+   centrados; scroll confinado al panel.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── Sección: el único scroll vive dentro del panel ── */
+#gallerySection { overflow: hidden !important; }
+
+/* Noche mística propia (como Las Crónicas): índigo-violeta fijo,
+   independiente del tema claro/oscuro, con polvo de constelación */
+/* CRÍTICO: scoped a .active — sin esto, esta regla (id + !important)
+   gana SIEMPRE a la base ".game-section { display:none }" y fuerza la
+   sección a visible incluso tras salir de ella, tapando y bloqueando
+   clics de CUALQUIER otro botón del hub (bug real, detectado en vivo). */
+#gallerySection.active {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+#gallerySection .gallery-header-bar { flex-shrink: 0; }
+
+/* Anular la altura fija legacy (07-tone-story.css: calc(100dvh - 56px)
+   sin !important) que desbordaba la página entera al no encajar en el
+   flex de arriba — causa real del scroll fantasma en toda la sección */
+#gallerySection .section-content {
+    height: auto !important;
+}
+
+#gallerySection .section-content.section-content {
+    background:
+        radial-gradient(1px 1px at 18% 22%, rgba(220, 205, 255, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 71% 15%, rgba(220, 205, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 45% 68%, rgba(220, 205, 255, 0.35), transparent),
+        radial-gradient(1px 1px at 87% 55%, rgba(220, 205, 255, 0.3), transparent),
+        linear-gradient(175deg, rgba(30, 23, 58, 0.94), rgba(15, 11, 32, 0.97)) !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    border-radius: 18px !important;
+    width: min(1240px, 94vw);
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 6px auto 14px !important;
+    padding: 14px 18px !important;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(5, 0, 20, 0.5), inset 0 0 60px rgba(100, 70, 180, 0.06);
+    position: relative;
+}
+#gallerySection .section-content::before {
+    content: '';
+    position: absolute;
+    top: 10px; left: 10px;
+    width: 20px; height: 20px;
+    border-top: 1px solid rgba(180, 150, 240, 0.6);
+    border-left: 1px solid rgba(180, 150, 240, 0.6);
+    pointer-events: none;
+}
+
+/* ── Cabecera ── */
+#gallerySection .gallery-section-title {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.12em !important;
+    font-weight: 500 !important;
+    color: #ede8f5 !important;
+    text-shadow: 0 0 18px rgba(160, 128, 224, 0.5);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+#gallerySection .gallery-section-title::before,
+#gallerySection .gallery-section-title::after {
+    content: '✦';
+    font-size: 0.65em;
+    color: var(--accent-wood, #a080e0);
+    opacity: 0.8;
+}
+
+#gallerySection .gallery-count-badge {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.07em;
+    padding: 3px 12px !important;
+    border-radius: 999px !important;
+    background: rgba(160, 128, 224, 0.14) !important;
+    border: 1px solid rgba(160, 128, 224, 0.45) !important;
+    color: #ede8f5 !important;
+}
+
+#gallerySection .gallery-new-btn {
+    border-radius: 999px !important;
+    border: 1px solid rgba(180, 150, 240, 0.55) !important;
+    background: linear-gradient(160deg, rgba(140, 100, 220, 0.35), rgba(90, 60, 170, 0.25)) !important;
+    color: #ede8f5 !important;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease !important;
+}
+#gallerySection .gallery-new-btn:hover {
+    border-color: var(--accent-wood, #a080e0) !important;
+    box-shadow: 0 0 16px -5px var(--accent-wood, #a080e0) !important;
+}
+
+/* ── Toolbar ── */
+#gallerySection .gallery-toolbar-v2 {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 10px !important;
+}
+#gallerySection .gallery-search-input {
+    background: rgba(12, 8, 26, 0.7) !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    border-radius: 999px !important;
+    color: var(--text-primary) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+#gallerySection .gallery-search-input:focus {
+    border-color: var(--accent-wood, #a080e0) !important;
+    box-shadow: 0 0 12px -5px var(--accent-wood, #a080e0) !important;
+    outline: none !important;
+}
+#gallerySection .gallery-search-input::placeholder {
+    color: rgba(200, 185, 235, 0.5) !important;
+    font-style: italic;
+}
+
+/* ── Rejilla: naipes contenidos y centrados ── */
+#gallerySection .gallery-grid {
+    grid-template-columns: repeat(auto-fill, 158px) !important;
+    justify-content: center !important;
+    gap: 14px !important;
+}
+
+/* ── Naipes ── */
+.char-card-v2 {
+    border-radius: 12px !important;
+    border: 1px solid color-mix(in srgb, var(--card-color, var(--accent-wood)) 45%, var(--border-color)) !important;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+    overflow: hidden;
+}
+.char-card-v2:hover {
+    transform: none !important; /* sin cambio de geometría → sin scroll */
+    border-color: var(--card-color, #a080e0) !important;
+    box-shadow:
+        0 8px 22px rgba(5, 0, 20, 0.45),
+        0 0 22px -4px var(--card-color, #a080e0) !important;
+}
+/* La vida del hover ocurre DENTRO del naipe: zoom del retrato, recortado */
+.char-card-v2 .char-card-img,
+.char-card-v2 .char-card-initial {
+    transition: transform 0.35s ease !important;
+}
+.char-card-v2:hover .char-card-img,
+.char-card-v2:hover .char-card-initial {
+    transform: scale(1.06) !important;
+}
+
+.char-card-v2::before,
+.char-card-v2::after {
+    content: '' !important;
+    position: absolute;
+    width: 12px; height: 12px;
+    border: 1px solid color-mix(in srgb, var(--card-color, var(--accent-wood)) 80%, white 8%);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 3;
+    transition: opacity 0.2s ease;
+}
+.char-card-v2::before { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+.char-card-v2::after  { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+.char-card-v2:hover::before, .char-card-v2:hover::after { opacity: 0.95; }
+
+.char-card-v2 .char-card-name {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.05em !important;
+}
+.char-card-v2 .char-card-top-badge { border-radius: 999px !important; font-size: 0.6rem !important; }
+
+/* Carta de invocación: reverso de tarot — presencia propia sin robar
+   protagonismo (brillo latente, sello ✦, marco doble) */
+.char-card-v2--new {
+    /* Siempre primera, fija: el JS la añade al final del grid, pero
+       en un contenedor grid `order` reordena visualmente sin tocar
+       el DOM ni el código de render */
+    order: -1 !important;
+    border: 1px solid rgba(180, 150, 240, 0.45) !important;
+    background:
+        radial-gradient(1px 1px at 30% 25%, rgba(220, 205, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 68% 60%, rgba(220, 205, 255, 0.45), transparent),
+        radial-gradient(1.5px 1.5px at 50% 80%, rgba(220, 205, 255, 0.4), transparent),
+        linear-gradient(165deg, rgba(60, 42, 110, 0.5), rgba(28, 18, 58, 0.7)) !important;
+    box-shadow: inset 0 0 24px rgba(140, 100, 220, 0.15) !important;
+    position: relative;
+}
+/* Pulso por OPACITY en un pseudo-elemento (no box-shadow animado: evita
+   repintado continuo que, combinado con el backdrop-filter del panel,
+   podía disparar el scroll fantasma en algunos WebView Android) */
+.char-card-v2--new::before {
+    display: block !important;
+    border-color: rgba(190, 160, 250, 0.55) !important;
+}
+.char-card-v2--new::after {
+    display: block !important;
+    border-color: rgba(190, 160, 250, 0.55) !important;
+    animation: invocation-pulse 4s ease-in-out infinite;
+}
+.char-card-v2--new:hover {
+    border-color: rgba(210, 185, 255, 0.85) !important;
+    box-shadow: inset 0 0 30px rgba(150, 110, 235, 0.25) !important;
+}
+.char-card-v2--new:hover::after { animation-play-state: paused; opacity: 0.95 !important; }
+.char-card-v2--new .char-card-new-plus {
+    color: rgba(215, 195, 255, 0.95) !important;
+    font-size: 2rem !important;
+    text-shadow: 0 0 18px rgba(160, 128, 224, 0.8);
+}
+.char-card-v2--new .char-card-new-text {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.09em;
+    color: rgba(215, 200, 245, 0.85) !important;
+}
+@keyframes invocation-pulse {
+    0%, 100% { opacity: 0.5; }
+    50%      { opacity: 0.95; }
+}
+
+/* ── ATELIER (creador) sobre tokens ── */
+#characterModal .editor-tab {
+    border-radius: 999px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.06em !important;
+    color: color-mix(in srgb, var(--text-primary) 55%, transparent) !important;
+    transition: all 0.2s ease !important;
+}
+#characterModal .editor-tab:hover { color: var(--text-primary) !important; }
+#characterModal .editor-tab.active {
+    color: var(--text-primary) !important;
+    border-color: color-mix(in srgb, var(--accent-wood, #a080e0) 55%, transparent) !important;
+    background: color-mix(in srgb, var(--accent-wood, #a080e0) 14%, transparent) !important;
+}
+
+#characterModal label {
+    font-variant: small-caps;
+    letter-spacing: 0.07em !important;
+    font-size: 0.72rem !important;
+    color: color-mix(in srgb, var(--text-primary) 70%, transparent) !important;
+}
+
+#characterModal input[type="text"],
+#characterModal input[type="number"],
+#characterModal select,
+#characterModal textarea {
+    background: color-mix(in srgb, var(--bg-primary, #0e0c1c) 70%, transparent) !important;
+    border: 1px solid var(--border-color, #2a2048) !important;
+    border-radius: 10px !important;
+    color: var(--text-primary) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+#characterModal input:focus,
+#characterModal select:focus,
+#characterModal textarea:focus {
+    border-color: var(--accent-wood, #a080e0) !important;
+    box-shadow: 0 0 12px -5px var(--accent-wood, #a080e0) !important;
+    outline: none !important;
+}
+#characterModal ::placeholder {
+    color: color-mix(in srgb, var(--text-primary) 40%, transparent) !important;
+    font-style: italic;
+}
+
+#characterModal [class*="upload"] {
+    border: 1.5px dashed color-mix(in srgb, var(--accent-wood, #a080e0) 50%, transparent) !important;
+    border-radius: 12px !important;
+    transition: all 0.2s ease !important;
+}
+#characterModal [class*="upload"]:hover {
+    border-color: var(--accent-wood, #a080e0) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .char-card-v2:hover .char-card-img,
+    .char-card-v2:hover .char-card-initial { transform: none !important; }
+    .char-card-v2--new { animation: none !important; }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 5 — Chips de raza con espacio propio + decoración general
+   El chip de raza flotaba a un dedo del borde de las cartas (parecía
+   escapado de la primera). Le damos una fila propia con separador, y
+   se añade ornamentación al panel para igualar el resto de la casa.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+#gallerySection .gallery-race-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin: 2px 0 14px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid rgba(160, 128, 224, 0.18) !important;
+    position: relative;
+}
+/* Pequeño rombo centrado en el separador, eco del ornamento de Las Crónicas */
+#gallerySection .gallery-race-tags:not(:empty)::after {
+    content: '◆';
+    position: absolute;
+    left: 50%;
+    bottom: -7px;
+    transform: translateX(-50%) rotate(0deg);
+    font-size: 0.5rem;
+    color: rgba(180, 150, 240, 0.55);
+    background: rgba(22, 16, 46, 0.9);
+    padding: 0 8px;
+}
+
+#gallerySection .race-pill {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.04em;
+    padding: 4px 12px !important;
+    border-radius: 999px !important;
+    background: rgba(18, 13, 38, 0.6) !important;
+    border: 1px solid rgba(160, 128, 224, 0.28) !important;
+    color: rgba(200, 185, 235, 0.7) !important;
+    transition: all 0.18s ease !important;
+}
+#gallerySection .race-pill:hover {
+    color: #ede8f5 !important;
+    border-color: rgba(180, 150, 240, 0.55) !important;
+}
+#gallerySection .race-pill.active {
+    background: rgba(160, 128, 224, 0.22) !important;
+    border-color: rgba(190, 160, 250, 0.7) !important;
+    color: #ede8f5 !important;
+    box-shadow: 0 0 12px -4px rgba(160, 128, 224, 0.5) !important;
+}
+
+/* ── Decoración general del panel: las 4 esquinas ornamentales ─────────
+   ::before ya dibuja la superior-izquierda (definida arriba); aquí las
+   3 restantes en un único ::after via el truco de 2 gradientes por
+   esquina (línea vertical + horizontal), sin tocar el DOM. ── */
+#gallerySection .section-content.section-content::after {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    pointer-events: none;
+    --cc: rgba(180, 150, 240, 0.5);
+    background-image:
+        /* superior-derecha */
+        linear-gradient(to left, var(--cc) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--cc) 1px, transparent 1px),
+        /* inferior-izquierda */
+        linear-gradient(to right, var(--cc) 1px, transparent 1px),
+        linear-gradient(to top, var(--cc) 1px, transparent 1px),
+        /* inferior-derecha */
+        linear-gradient(to left, var(--cc) 1px, transparent 1px),
+        linear-gradient(to top, var(--cc) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-repeat: no-repeat;
+    background-position:
+        top right, top right,
+        bottom left, bottom left,
+        bottom right, bottom right;
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   EL ATELIER — reskin estructural del modal de creación/edición
+   Layout: retrato + esenciales en un costado fijo, contenido narrativo en
+   el otro. Piel violeta mística (misma familia que El Elenco/Crónicas).
+   character-atelier.js mueve género/color/subidas al panel lateral;
+   aquí su estilo.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── El modal entero: noche mística con polvo de constelación ── */
+#characterModal .character-modal {
+    background:
+        radial-gradient(1px 1px at 15% 20%, rgba(220, 205, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 80% 65%, rgba(220, 205, 255, 0.32), transparent),
+        radial-gradient(1.5px 1.5px at 55% 85%, rgba(220, 205, 255, 0.3), transparent),
+        linear-gradient(175deg, rgba(28, 21, 54, 0.97), rgba(14, 10, 30, 0.98)) !important;
+    border: 1px solid rgba(160, 128, 224, 0.32) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 60px rgba(5, 0, 20, 0.6), inset 0 0 80px rgba(100, 70, 180, 0.05) !important;
+    max-width: 880px !important;
+    width: min(880px, 94vw) !important;
+}
+
+#characterModal .editor-container {
+    display: grid !important;
+    grid-template-columns: 240px 1fr !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+}
+
+/* ── COSTADO IZQUIERDO: el retrato ── */
+#characterModal .editor-preview {
+    background: linear-gradient(180deg, rgba(50, 36, 90, 0.35), rgba(20, 14, 40, 0.5)) !important;
+    border-right: 1px solid rgba(160, 128, 224, 0.22) !important;
+    border-radius: 20px 0 0 20px !important;
+    padding: 26px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 14px !important;
+    position: relative;
+}
+/* Esquinas ornamentales del costado (eco del naipe de tarot) */
+#characterModal .editor-preview::before,
+#characterModal .editor-preview::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    border: 1px solid rgba(180, 150, 240, 0.5);
+    pointer-events: none;
+}
+#characterModal .editor-preview::before { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+#characterModal .editor-preview::after  { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+
+/* Retrato: marco circular con anillo de constelación */
+#characterModal .editor-preview-image {
+    width: 128px !important;
+    height: 128px !important;
+    border-radius: 50% !important;
+    border: 2px solid rgba(180, 150, 240, 0.5) !important;
+    background: radial-gradient(circle at 35% 30%, rgba(90, 65, 160, 0.4), rgba(15, 10, 30, 0.8)) !important;
+    box-shadow:
+        0 0 0 4px rgba(20, 14, 34, 0.6),
+        0 0 24px -4px rgba(160, 128, 224, 0.6),
+        inset 0 0 20px rgba(0, 0, 0, 0.4) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden;
+    position: relative;
+}
+#characterModal .editor-preview-image img { width: 100%; height: 100%; object-fit: cover; }
+.atelier-placeholder-glyph {
+    font-size: 3rem;
+    color: rgba(200, 175, 240, 0.4);
+    text-shadow: 0 0 20px rgba(160, 128, 224, 0.5);
+}
+
+#characterModal .editor-preview-name {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.06em !important;
+    font-size: 1.15rem !important;
+    color: #ede8f5 !important;
+    text-align: center;
+    text-shadow: 0 0 16px rgba(160, 128, 224, 0.4);
+}
+#characterModal .editor-preview-hint {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-style: italic;
+    font-size: 0.72rem !important;
+    color: rgba(200, 185, 235, 0.5) !important;
+    text-align: center;
+    margin-top: -8px;
+}
+
+/* Extras trasladados aquí por character-atelier.js: género, color, subidas */
+.atelier-side-extras {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(160, 128, 224, 0.18);
+}
+.atelier-side-extras label {
+    font-variant: small-caps;
+    letter-spacing: 0.08em !important;
+    font-size: 0.66rem !important;
+    color: rgba(190, 175, 230, 0.6) !important;
+    text-align: center;
+    display: block;
+}
+.atelier-side-extras .gender-selector { justify-content: center !important; }
+.atelier-side-extras .gender-option {
+    border: 1px solid rgba(160, 128, 224, 0.28) !important;
+    background: rgba(18, 13, 38, 0.5) !important;
+    transition: all 0.18s ease !important;
+}
+.atelier-side-extras .gender-option:hover {
+    border-color: rgba(190, 160, 250, 0.6) !important;
+}
+.atelier-side-extras .gender-option.selected {
+    border-color: rgba(200, 175, 250, 0.85) !important;
+    background: rgba(160, 128, 224, 0.2) !important;
+    box-shadow: 0 0 12px -3px rgba(160, 128, 224, 0.6) !important;
+}
+.atelier-side-extras input[type="color"] {
+    width: 100% !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    background: rgba(18, 13, 38, 0.5) !important;
+    cursor: pointer;
+}
+.atelier-upload-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.atelier-upload-row .avatar-upload-btn {
+    border: 1px solid rgba(160, 128, 224, 0.35) !important;
+    border-radius: 999px !important;
+    background: rgba(90, 60, 170, 0.15) !important;
+    color: rgba(210, 195, 245, 0.85) !important;
+    text-align: center;
+    justify-content: center;
+    display: flex !important;
+    width: 100% !important;
+    transition: all 0.18s ease !important;
+}
+.atelier-upload-row .avatar-upload-btn:hover {
+    border-color: rgba(190, 160, 250, 0.6) !important;
+    background: rgba(120, 90, 200, 0.22) !important;
+}
+
+/* ── COSTADO DERECHO: formulario narrativo ── */
+#characterModal .editor-form { padding: 22px 24px !important; }
+
+#characterModal .editor-tabs {
+    gap: 6px !important;
+    border-bottom: 1px solid rgba(160, 128, 224, 0.2) !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 16px !important;
+}
+#characterModal .editor-tab {
+    border-radius: 999px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.07em !important;
+    color: rgba(190, 175, 230, 0.6) !important;
+    transition: all 0.2s ease !important;
+}
+#characterModal .editor-tab:hover { color: #ede8f5 !important; }
+#characterModal .editor-tab.active {
+    color: #ede8f5 !important;
+    border-color: rgba(180, 150, 240, 0.55) !important;
+    background: rgba(160, 128, 224, 0.14) !important;
+    box-shadow: 0 0 14px -6px rgba(160, 128, 224, 0.5);
+}
+
+#characterModal label {
+    font-variant: small-caps;
+    letter-spacing: 0.07em !important;
+    font-size: 0.72rem !important;
+    color: rgba(190, 175, 230, 0.7) !important;
+}
+#characterModal input[type="text"],
+#characterModal select,
+#characterModal textarea {
+    background: rgba(14, 10, 30, 0.6) !important;
+    border: 1px solid rgba(160, 128, 224, 0.25) !important;
+    border-radius: 10px !important;
+    color: #ede8f5 !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+#characterModal input:focus,
+#characterModal select:focus,
+#characterModal textarea:focus {
+    border-color: rgba(190, 160, 250, 0.6) !important;
+    box-shadow: 0 0 12px -4px rgba(160, 128, 224, 0.45) !important;
+    outline: none !important;
+}
+#characterModal ::placeholder {
+    color: rgba(190, 175, 230, 0.35) !important;
+    font-style: italic;
+}
+
+/* El botón de subida que queda en el formulario derecho (si alguno no
+   se trasladó) también respira la piel violeta */
+#characterModal .editor-form .avatar-upload-btn {
+    border-color: rgba(160, 128, 224, 0.3) !important;
+    color: rgba(210, 195, 245, 0.8) !important;
+}
+
+#characterModal .editor-actions {
+    border-top: 1px solid rgba(160, 128, 224, 0.18) !important;
+    padding-top: 16px !important;
+    margin-top: 18px !important;
+}
+#characterModal .btn-primary {
+    background: linear-gradient(160deg, rgba(140, 100, 220, 0.4), rgba(90, 60, 170, 0.3)) !important;
+    border: 1px solid rgba(190, 160, 250, 0.5) !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    letter-spacing: 0.04em;
+}
+#characterModal .btn-primary:hover {
+    box-shadow: 0 0 18px -4px rgba(160, 128, 224, 0.6) !important;
+}
+#characterModal .btn-secondary {
+    background: transparent !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    color: rgba(210, 195, 245, 0.8) !important;
+}
+
+@media (max-width: 767px) {
+    #characterModal .editor-container { grid-template-columns: 1fr !important; }
+    #characterModal .editor-preview {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(160, 128, 224, 0.22) !important;
+        border-radius: 20px 20px 0 0 !important;
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 18px !important;
+    }
+    #characterModal .editor-preview-image { width: 88px !important; height: 88px !important; }
+    .atelier-side-extras { border-top: none; margin-top: 0; }
 }
 
 /* -- css/menu-gamefeel.css -- */
@@ -31870,9 +33432,6 @@ body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap {
 
 /* Placa de nombre — afinada: medallón translúcido plata (clásico), menos
    índigo plano. (Si la prefieres distinta, este es el bloque a tocar.) */
-body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate {
-}
-
 /* ══════════════════════════════════════════════════════════════════════
    FIX v4 · aro del avatar suelto (orphan ring)
    La regla base .vn-speaker-avatar-wrap usa top:50% + translateY(-50%) →

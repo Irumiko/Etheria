@@ -1,0 +1,625 @@
+/* ═════════════════════════════════════════════════════════════════════════
+   character-atelier.css — El Elenco y el Atelier (v2, sobre tokens)
+   Reskin de galería y creador usando las VARIABLES DE TEMA de la casa
+   (variables.css): se adapta solo a claro/oscuro. Naipes contenidos y
+   centrados; scroll confinado al panel.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── Sección: el único scroll vive dentro del panel ── */
+#gallerySection { overflow: hidden !important; }
+
+/* Noche mística propia (como Las Crónicas): índigo-violeta fijo,
+   independiente del tema claro/oscuro, con polvo de constelación */
+/* CRÍTICO: scoped a .active — sin esto, esta regla (id + !important)
+   gana SIEMPRE a la base ".game-section { display:none }" y fuerza la
+   sección a visible incluso tras salir de ella, tapando y bloqueando
+   clics de CUALQUIER otro botón del hub (bug real, detectado en vivo). */
+#gallerySection.active {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+#gallerySection .gallery-header-bar { flex-shrink: 0; }
+
+/* Anular la altura fija legacy (07-tone-story.css: calc(100dvh - 56px)
+   sin !important) que desbordaba la página entera al no encajar en el
+   flex de arriba — causa real del scroll fantasma en toda la sección */
+#gallerySection .section-content {
+    height: auto !important;
+}
+
+#gallerySection .section-content.section-content {
+    background:
+        radial-gradient(1px 1px at 18% 22%, rgba(220, 205, 255, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 71% 15%, rgba(220, 205, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 45% 68%, rgba(220, 205, 255, 0.35), transparent),
+        radial-gradient(1px 1px at 87% 55%, rgba(220, 205, 255, 0.3), transparent),
+        linear-gradient(175deg, rgba(30, 23, 58, 0.94), rgba(15, 11, 32, 0.97)) !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    border-radius: 18px !important;
+    width: min(1240px, 94vw);
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 6px auto 14px !important;
+    padding: 14px 18px !important;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(5, 0, 20, 0.5), inset 0 0 60px rgba(100, 70, 180, 0.06);
+    position: relative;
+}
+#gallerySection .section-content::before {
+    content: '';
+    position: absolute;
+    top: 10px; left: 10px;
+    width: 20px; height: 20px;
+    border-top: 1px solid rgba(180, 150, 240, 0.6);
+    border-left: 1px solid rgba(180, 150, 240, 0.6);
+    pointer-events: none;
+}
+
+/* ── Cabecera ── */
+#gallerySection .gallery-section-title {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.12em !important;
+    font-weight: 500 !important;
+    color: #ede8f5 !important;
+    text-shadow: 0 0 18px rgba(160, 128, 224, 0.5);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+#gallerySection .gallery-section-title::before,
+#gallerySection .gallery-section-title::after {
+    content: '✦';
+    font-size: 0.65em;
+    color: var(--accent-wood, #a080e0);
+    opacity: 0.8;
+}
+
+#gallerySection .gallery-count-badge {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.07em;
+    padding: 3px 12px !important;
+    border-radius: 999px !important;
+    background: rgba(160, 128, 224, 0.14) !important;
+    border: 1px solid rgba(160, 128, 224, 0.45) !important;
+    color: #ede8f5 !important;
+}
+
+#gallerySection .gallery-new-btn {
+    border-radius: 999px !important;
+    border: 1px solid rgba(180, 150, 240, 0.55) !important;
+    background: linear-gradient(160deg, rgba(140, 100, 220, 0.35), rgba(90, 60, 170, 0.25)) !important;
+    color: #ede8f5 !important;
+    letter-spacing: 0.05em;
+    transition: all 0.2s ease !important;
+}
+#gallerySection .gallery-new-btn:hover {
+    border-color: var(--accent-wood, #a080e0) !important;
+    box-shadow: 0 0 16px -5px var(--accent-wood, #a080e0) !important;
+}
+
+/* ── Toolbar ── */
+#gallerySection .gallery-toolbar-v2 {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 0 10px !important;
+}
+#gallerySection .gallery-search-input {
+    background: rgba(12, 8, 26, 0.7) !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    border-radius: 999px !important;
+    color: var(--text-primary) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+#gallerySection .gallery-search-input:focus {
+    border-color: var(--accent-wood, #a080e0) !important;
+    box-shadow: 0 0 12px -5px var(--accent-wood, #a080e0) !important;
+    outline: none !important;
+}
+#gallerySection .gallery-search-input::placeholder {
+    color: rgba(200, 185, 235, 0.5) !important;
+    font-style: italic;
+}
+
+/* ── Rejilla: naipes contenidos y centrados ── */
+#gallerySection .gallery-grid {
+    grid-template-columns: repeat(auto-fill, 158px) !important;
+    justify-content: center !important;
+    gap: 14px !important;
+}
+
+/* ── Naipes ── */
+.char-card-v2 {
+    border-radius: 12px !important;
+    border: 1px solid color-mix(in srgb, var(--card-color, var(--accent-wood)) 45%, var(--border-color)) !important;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.3) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+    overflow: hidden;
+}
+.char-card-v2:hover {
+    transform: none !important; /* sin cambio de geometría → sin scroll */
+    border-color: var(--card-color, #a080e0) !important;
+    box-shadow:
+        0 8px 22px rgba(5, 0, 20, 0.45),
+        0 0 22px -4px var(--card-color, #a080e0) !important;
+}
+/* La vida del hover ocurre DENTRO del naipe: zoom del retrato, recortado */
+.char-card-v2 .char-card-img,
+.char-card-v2 .char-card-initial {
+    transition: transform 0.35s ease !important;
+}
+.char-card-v2:hover .char-card-img,
+.char-card-v2:hover .char-card-initial {
+    transform: scale(1.06) !important;
+}
+
+.char-card-v2::before,
+.char-card-v2::after {
+    content: '' !important;
+    position: absolute;
+    width: 12px; height: 12px;
+    border: 1px solid color-mix(in srgb, var(--card-color, var(--accent-wood)) 80%, white 8%);
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 3;
+    transition: opacity 0.2s ease;
+}
+.char-card-v2::before { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+.char-card-v2::after  { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+.char-card-v2:hover::before, .char-card-v2:hover::after { opacity: 0.95; }
+
+.char-card-v2 .char-card-name {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.05em !important;
+}
+.char-card-v2 .char-card-top-badge { border-radius: 999px !important; font-size: 0.6rem !important; }
+
+/* Carta de invocación: reverso de tarot — presencia propia sin robar
+   protagonismo (brillo latente, sello ✦, marco doble) */
+.char-card-v2--new {
+    /* Siempre primera, fija: el JS la añade al final del grid, pero
+       en un contenedor grid `order` reordena visualmente sin tocar
+       el DOM ni el código de render */
+    order: -1 !important;
+    border: 1px solid rgba(180, 150, 240, 0.45) !important;
+    background:
+        radial-gradient(1px 1px at 30% 25%, rgba(220, 205, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 68% 60%, rgba(220, 205, 255, 0.45), transparent),
+        radial-gradient(1.5px 1.5px at 50% 80%, rgba(220, 205, 255, 0.4), transparent),
+        linear-gradient(165deg, rgba(60, 42, 110, 0.5), rgba(28, 18, 58, 0.7)) !important;
+    box-shadow: inset 0 0 24px rgba(140, 100, 220, 0.15) !important;
+    position: relative;
+}
+/* Pulso por OPACITY en un pseudo-elemento (no box-shadow animado: evita
+   repintado continuo que, combinado con el backdrop-filter del panel,
+   podía disparar el scroll fantasma en algunos WebView Android) */
+.char-card-v2--new::before {
+    display: block !important;
+    border-color: rgba(190, 160, 250, 0.55) !important;
+}
+.char-card-v2--new::after {
+    display: block !important;
+    border-color: rgba(190, 160, 250, 0.55) !important;
+    animation: invocation-pulse 4s ease-in-out infinite;
+}
+.char-card-v2--new:hover {
+    border-color: rgba(210, 185, 255, 0.85) !important;
+    box-shadow: inset 0 0 30px rgba(150, 110, 235, 0.25) !important;
+}
+.char-card-v2--new:hover::after { animation-play-state: paused; opacity: 0.95 !important; }
+.char-card-v2--new .char-card-new-plus {
+    color: rgba(215, 195, 255, 0.95) !important;
+    font-size: 2rem !important;
+    text-shadow: 0 0 18px rgba(160, 128, 224, 0.8);
+}
+.char-card-v2--new .char-card-new-text {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.09em;
+    color: rgba(215, 200, 245, 0.85) !important;
+}
+@keyframes invocation-pulse {
+    0%, 100% { opacity: 0.5; }
+    50%      { opacity: 0.95; }
+}
+
+/* ── ATELIER (creador) sobre tokens ── */
+#characterModal .editor-tab {
+    border-radius: 999px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.06em !important;
+    color: color-mix(in srgb, var(--text-primary) 55%, transparent) !important;
+    transition: all 0.2s ease !important;
+}
+#characterModal .editor-tab:hover { color: var(--text-primary) !important; }
+#characterModal .editor-tab.active {
+    color: var(--text-primary) !important;
+    border-color: color-mix(in srgb, var(--accent-wood, #a080e0) 55%, transparent) !important;
+    background: color-mix(in srgb, var(--accent-wood, #a080e0) 14%, transparent) !important;
+}
+
+#characterModal label {
+    font-variant: small-caps;
+    letter-spacing: 0.07em !important;
+    font-size: 0.72rem !important;
+    color: color-mix(in srgb, var(--text-primary) 70%, transparent) !important;
+}
+
+#characterModal input[type="text"],
+#characterModal input[type="number"],
+#characterModal select,
+#characterModal textarea {
+    background: color-mix(in srgb, var(--bg-primary, #0e0c1c) 70%, transparent) !important;
+    border: 1px solid var(--border-color, #2a2048) !important;
+    border-radius: 10px !important;
+    color: var(--text-primary) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+#characterModal input:focus,
+#characterModal select:focus,
+#characterModal textarea:focus {
+    border-color: var(--accent-wood, #a080e0) !important;
+    box-shadow: 0 0 12px -5px var(--accent-wood, #a080e0) !important;
+    outline: none !important;
+}
+#characterModal ::placeholder {
+    color: color-mix(in srgb, var(--text-primary) 40%, transparent) !important;
+    font-style: italic;
+}
+
+#characterModal [class*="upload"] {
+    border: 1.5px dashed color-mix(in srgb, var(--accent-wood, #a080e0) 50%, transparent) !important;
+    border-radius: 12px !important;
+    transition: all 0.2s ease !important;
+}
+#characterModal [class*="upload"]:hover {
+    border-color: var(--accent-wood, #a080e0) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .char-card-v2:hover .char-card-img,
+    .char-card-v2:hover .char-card-initial { transform: none !important; }
+    .char-card-v2--new { animation: none !important; }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 5 — Chips de raza con espacio propio + decoración general
+   El chip de raza flotaba a un dedo del borde de las cartas (parecía
+   escapado de la primera). Le damos una fila propia con separador, y
+   se añade ornamentación al panel para igualar el resto de la casa.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+#gallerySection .gallery-race-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin: 2px 0 14px !important;
+    padding-bottom: 12px !important;
+    border-bottom: 1px solid rgba(160, 128, 224, 0.18) !important;
+    position: relative;
+}
+/* Pequeño rombo centrado en el separador, eco del ornamento de Las Crónicas */
+#gallerySection .gallery-race-tags:not(:empty)::after {
+    content: '◆';
+    position: absolute;
+    left: 50%;
+    bottom: -7px;
+    transform: translateX(-50%) rotate(0deg);
+    font-size: 0.5rem;
+    color: rgba(180, 150, 240, 0.55);
+    background: rgba(22, 16, 46, 0.9);
+    padding: 0 8px;
+}
+
+#gallerySection .race-pill {
+    font-size: 0.68rem !important;
+    letter-spacing: 0.04em;
+    padding: 4px 12px !important;
+    border-radius: 999px !important;
+    background: rgba(18, 13, 38, 0.6) !important;
+    border: 1px solid rgba(160, 128, 224, 0.28) !important;
+    color: rgba(200, 185, 235, 0.7) !important;
+    transition: all 0.18s ease !important;
+}
+#gallerySection .race-pill:hover {
+    color: #ede8f5 !important;
+    border-color: rgba(180, 150, 240, 0.55) !important;
+}
+#gallerySection .race-pill.active {
+    background: rgba(160, 128, 224, 0.22) !important;
+    border-color: rgba(190, 160, 250, 0.7) !important;
+    color: #ede8f5 !important;
+    box-shadow: 0 0 12px -4px rgba(160, 128, 224, 0.5) !important;
+}
+
+/* ── Decoración general del panel: las 4 esquinas ornamentales ─────────
+   ::before ya dibuja la superior-izquierda (definida arriba); aquí las
+   3 restantes en un único ::after via el truco de 2 gradientes por
+   esquina (línea vertical + horizontal), sin tocar el DOM. ── */
+#gallerySection .section-content.section-content::after {
+    content: '';
+    position: absolute;
+    inset: 10px;
+    pointer-events: none;
+    --cc: rgba(180, 150, 240, 0.5);
+    background-image:
+        /* superior-derecha */
+        linear-gradient(to left, var(--cc) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--cc) 1px, transparent 1px),
+        /* inferior-izquierda */
+        linear-gradient(to right, var(--cc) 1px, transparent 1px),
+        linear-gradient(to top, var(--cc) 1px, transparent 1px),
+        /* inferior-derecha */
+        linear-gradient(to left, var(--cc) 1px, transparent 1px),
+        linear-gradient(to top, var(--cc) 1px, transparent 1px);
+    background-size: 20px 20px;
+    background-repeat: no-repeat;
+    background-position:
+        top right, top right,
+        bottom left, bottom left,
+        bottom right, bottom right;
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   EL ATELIER — reskin estructural del modal de creación/edición
+   Layout: retrato + esenciales en un costado fijo, contenido narrativo en
+   el otro. Piel violeta mística (misma familia que El Elenco/Crónicas).
+   character-atelier.js mueve género/color/subidas al panel lateral;
+   aquí su estilo.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── El modal entero: noche mística con polvo de constelación ── */
+#characterModal .character-modal {
+    background:
+        radial-gradient(1px 1px at 15% 20%, rgba(220, 205, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 80% 65%, rgba(220, 205, 255, 0.32), transparent),
+        radial-gradient(1.5px 1.5px at 55% 85%, rgba(220, 205, 255, 0.3), transparent),
+        linear-gradient(175deg, rgba(28, 21, 54, 0.97), rgba(14, 10, 30, 0.98)) !important;
+    border: 1px solid rgba(160, 128, 224, 0.32) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 60px rgba(5, 0, 20, 0.6), inset 0 0 80px rgba(100, 70, 180, 0.05) !important;
+    max-width: 880px !important;
+    width: min(880px, 94vw) !important;
+}
+
+#characterModal .editor-container {
+    display: grid !important;
+    grid-template-columns: 240px 1fr !important;
+    gap: 0 !important;
+    align-items: stretch !important;
+}
+
+/* ── COSTADO IZQUIERDO: el retrato ── */
+#characterModal .editor-preview {
+    background: linear-gradient(180deg, rgba(50, 36, 90, 0.35), rgba(20, 14, 40, 0.5)) !important;
+    border-right: 1px solid rgba(160, 128, 224, 0.22) !important;
+    border-radius: 20px 0 0 20px !important;
+    padding: 26px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 14px !important;
+    position: relative;
+}
+/* Esquinas ornamentales del costado (eco del naipe de tarot) */
+#characterModal .editor-preview::before,
+#characterModal .editor-preview::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    border: 1px solid rgba(180, 150, 240, 0.5);
+    pointer-events: none;
+}
+#characterModal .editor-preview::before { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+#characterModal .editor-preview::after  { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+
+/* Retrato: marco circular con anillo de constelación */
+#characterModal .editor-preview-image {
+    width: 128px !important;
+    height: 128px !important;
+    border-radius: 50% !important;
+    border: 2px solid rgba(180, 150, 240, 0.5) !important;
+    background: radial-gradient(circle at 35% 30%, rgba(90, 65, 160, 0.4), rgba(15, 10, 30, 0.8)) !important;
+    box-shadow:
+        0 0 0 4px rgba(20, 14, 34, 0.6),
+        0 0 24px -4px rgba(160, 128, 224, 0.6),
+        inset 0 0 20px rgba(0, 0, 0, 0.4) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden;
+    position: relative;
+}
+#characterModal .editor-preview-image img { width: 100%; height: 100%; object-fit: cover; }
+.atelier-placeholder-glyph {
+    font-size: 3rem;
+    color: rgba(200, 175, 240, 0.4);
+    text-shadow: 0 0 20px rgba(160, 128, 224, 0.5);
+}
+
+#characterModal .editor-preview-name {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.06em !important;
+    font-size: 1.15rem !important;
+    color: #ede8f5 !important;
+    text-align: center;
+    text-shadow: 0 0 16px rgba(160, 128, 224, 0.4);
+}
+#characterModal .editor-preview-hint {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-style: italic;
+    font-size: 0.72rem !important;
+    color: rgba(200, 185, 235, 0.5) !important;
+    text-align: center;
+    margin-top: -8px;
+}
+
+/* Extras trasladados aquí por character-atelier.js: género, color, subidas */
+.atelier-side-extras {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(160, 128, 224, 0.18);
+}
+.atelier-side-extras label {
+    font-variant: small-caps;
+    letter-spacing: 0.08em !important;
+    font-size: 0.66rem !important;
+    color: rgba(190, 175, 230, 0.6) !important;
+    text-align: center;
+    display: block;
+}
+.atelier-side-extras .gender-selector { justify-content: center !important; }
+.atelier-side-extras .gender-option {
+    border: 1px solid rgba(160, 128, 224, 0.28) !important;
+    background: rgba(18, 13, 38, 0.5) !important;
+    transition: all 0.18s ease !important;
+}
+.atelier-side-extras .gender-option:hover {
+    border-color: rgba(190, 160, 250, 0.6) !important;
+}
+.atelier-side-extras .gender-option.selected {
+    border-color: rgba(200, 175, 250, 0.85) !important;
+    background: rgba(160, 128, 224, 0.2) !important;
+    box-shadow: 0 0 12px -3px rgba(160, 128, 224, 0.6) !important;
+}
+.atelier-side-extras input[type="color"] {
+    width: 100% !important;
+    height: 36px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    background: rgba(18, 13, 38, 0.5) !important;
+    cursor: pointer;
+}
+.atelier-upload-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.atelier-upload-row .avatar-upload-btn {
+    border: 1px solid rgba(160, 128, 224, 0.35) !important;
+    border-radius: 999px !important;
+    background: rgba(90, 60, 170, 0.15) !important;
+    color: rgba(210, 195, 245, 0.85) !important;
+    text-align: center;
+    justify-content: center;
+    display: flex !important;
+    width: 100% !important;
+    transition: all 0.18s ease !important;
+}
+.atelier-upload-row .avatar-upload-btn:hover {
+    border-color: rgba(190, 160, 250, 0.6) !important;
+    background: rgba(120, 90, 200, 0.22) !important;
+}
+
+/* ── COSTADO DERECHO: formulario narrativo ── */
+#characterModal .editor-form { padding: 22px 24px !important; }
+
+#characterModal .editor-tabs {
+    gap: 6px !important;
+    border-bottom: 1px solid rgba(160, 128, 224, 0.2) !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 16px !important;
+}
+#characterModal .editor-tab {
+    border-radius: 999px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.07em !important;
+    color: rgba(190, 175, 230, 0.6) !important;
+    transition: all 0.2s ease !important;
+}
+#characterModal .editor-tab:hover { color: #ede8f5 !important; }
+#characterModal .editor-tab.active {
+    color: #ede8f5 !important;
+    border-color: rgba(180, 150, 240, 0.55) !important;
+    background: rgba(160, 128, 224, 0.14) !important;
+    box-shadow: 0 0 14px -6px rgba(160, 128, 224, 0.5);
+}
+
+#characterModal label {
+    font-variant: small-caps;
+    letter-spacing: 0.07em !important;
+    font-size: 0.72rem !important;
+    color: rgba(190, 175, 230, 0.7) !important;
+}
+#characterModal input[type="text"],
+#characterModal select,
+#characterModal textarea {
+    background: rgba(14, 10, 30, 0.6) !important;
+    border: 1px solid rgba(160, 128, 224, 0.25) !important;
+    border-radius: 10px !important;
+    color: #ede8f5 !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+#characterModal input:focus,
+#characterModal select:focus,
+#characterModal textarea:focus {
+    border-color: rgba(190, 160, 250, 0.6) !important;
+    box-shadow: 0 0 12px -4px rgba(160, 128, 224, 0.45) !important;
+    outline: none !important;
+}
+#characterModal ::placeholder {
+    color: rgba(190, 175, 230, 0.35) !important;
+    font-style: italic;
+}
+
+/* El botón de subida que queda en el formulario derecho (si alguno no
+   se trasladó) también respira la piel violeta */
+#characterModal .editor-form .avatar-upload-btn {
+    border-color: rgba(160, 128, 224, 0.3) !important;
+    color: rgba(210, 195, 245, 0.8) !important;
+}
+
+#characterModal .editor-actions {
+    border-top: 1px solid rgba(160, 128, 224, 0.18) !important;
+    padding-top: 16px !important;
+    margin-top: 18px !important;
+}
+#characterModal .btn-primary {
+    background: linear-gradient(160deg, rgba(140, 100, 220, 0.4), rgba(90, 60, 170, 0.3)) !important;
+    border: 1px solid rgba(190, 160, 250, 0.5) !important;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    letter-spacing: 0.04em;
+}
+#characterModal .btn-primary:hover {
+    box-shadow: 0 0 18px -4px rgba(160, 128, 224, 0.6) !important;
+}
+#characterModal .btn-secondary {
+    background: transparent !important;
+    border: 1px solid rgba(160, 128, 224, 0.3) !important;
+    color: rgba(210, 195, 245, 0.8) !important;
+}
+
+@media (max-width: 767px) {
+    #characterModal .editor-container { grid-template-columns: 1fr !important; }
+    #characterModal .editor-preview {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(160, 128, 224, 0.22) !important;
+        border-radius: 20px 20px 0 0 !important;
+        flex-direction: row !important;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 18px !important;
+    }
+    #characterModal .editor-preview-image { width: 88px !important; height: 88px !important; }
+    .atelier-side-extras { border-top: none; margin-top: 0; }
+}

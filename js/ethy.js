@@ -286,6 +286,7 @@ const Ethy = (function() {
             _setSectionExpression('mainMenu'); // expresión inicial aleatoria
             _startIdleSystem();               // arrancar idle dinámico
             _resetSleepTimer();               // arrancar sleep timer
+            _watchUserSelectScreen();         // vigilante "¿sigues ahí?" del selector
         }, 1000);
     }
 
@@ -808,6 +809,48 @@ const Ethy = (function() {
             if (_isSleeping) _wakeUp(true);
         }
         try { localStorage.setItem(MINIMIZED_KEY, _isMinimized ? '1' : '0'); } catch (error) { logger?.warn('ethy', 'minimize state save failed:', error?.message || error); }
+    }
+
+    // ── "¿Sigues ahí?" — aviso contextual en el selector de perfil ────────────
+    // Si el usuario lleva un rato en el selector sin tocar ninguna tarjeta,
+    // Ethy sugiere que cualquier perfil (incluido uno ajeno visible en el
+    // directorio) sirve para llegar al login — solo hace falta poner las
+    // credenciales correctas. Una vez por visita a la pantalla, no insiste.
+    const STUCK_DELAY = 22000; // 22s sin actividad en esta pantalla
+    let _stuckTimeout = null;
+    let _stuckTipShownThisVisit = false;
+
+    function _armStuckWatcher() {
+        if (_stuckTimeout) clearTimeout(_stuckTimeout);
+        if (_stuckTipShownThisVisit) return;
+        _stuckTimeout = setTimeout(() => {
+            const screen = document.getElementById('userSelectScreen');
+            if (!screen || screen.classList.contains('hidden')) return;
+            if (_isMinimized || _bubble.classList.contains('visible')) return;
+            _stuckTipShownThisVisit = true;
+            say('Ninguno de estos archivos tiene que ser el tuyo para abrirte paso. Toca cualquiera y entra con tu propio nombre y llave.', { expression: 'wink' });
+        }, STUCK_DELAY);
+    }
+
+    function _disarmStuckWatcher() {
+        if (_stuckTimeout) { clearTimeout(_stuckTimeout); _stuckTimeout = null; }
+    }
+
+    function _watchUserSelectScreen() {
+        const screen = document.getElementById('userSelectScreen');
+        if (!screen) return;
+        const sync = () => {
+            if (screen.classList.contains('hidden')) {
+                _disarmStuckWatcher();
+                _stuckTipShownThisVisit = false; // rearmar para la próxima visita
+            } else {
+                _armStuckWatcher();
+            }
+        };
+        sync();
+        new MutationObserver(sync).observe(screen, { attributes: true, attributeFilter: ['class'] });
+        // Cualquier interacción dentro del selector cuenta como "no estoy atascada"
+        screen.addEventListener('click', () => { _stuckTipShownThisVisit = true; _disarmStuckWatcher(); }, { passive: true });
     }
 
     // ── Sistema de duermevela ─────────────────────────────────────────────────
@@ -1340,6 +1383,7 @@ const Ethy = (function() {
             if (!el) return false;
             return el.classList.contains('active') || _isVisible(id);
         }
+        if (_isVisible('userSelectScreen')) return 'userSelect';
         if (_isVisible('mainMenu') || _isActive('mainMenu')) return 'mainMenu';
         if (_isActive('gallerySection')) return 'gallery';
         if (_isActive('topicsSection')) return 'topics';
@@ -1352,20 +1396,20 @@ const Ethy = (function() {
     // ── Consejos aleatorios ──────────────────────────────────────────────────
 
     const TIPS = [
-        { text: 'Puedes usar **negrita** y *cursiva* al escribir tus mensajes. ¡Dale estilo a la narrativa!', expression: 'excited' },
-        { text: 'Los emotes /happy, /sad, /angry, /love y más dan vida a tus personajes. ¡Pruébalos!', expression: 'happy' },
-        { text: 'En modo RPG, el Oráculo del Destino resuelve las acciones difíciles con un D20 + tu stat. ¡El azar manda!', expression: 'surprised' },
-        { text: 'Puedes compartir una historia con un código de 6 caracteres. Búscalo en el botón de exportar del menú. 🔑', expression: 'love' },
-        { text: 'Las flechas ← → o los botones de navegación permiten saltar entre mensajes rápidamente.', expression: 'neutral' },
-        { text: 'Pulsa ESPACIO o haz clic en el diálogo para completar la animación de texto al instante.', expression: 'wink' },
-        { text: 'Toca tu perfil en la parte inferior del menú para cambiar tu nombre, avatar y datos personales.', expression: 'happy' },
-        { text: 'El diario de sesión guarda tus notas y resúmenes de partida. ¡Úsalo para no perder el hilo!', expression: 'thoughtful' },
-        { text: 'En el panel de respuesta puedes crear opciones de elección para que la historia se ramifique. 🌿', expression: 'excited' },
-        { text: 'El historial guarda todos los mensajes de la historia. Puedes marcarlos como favoritos con la estrella. ⭐', expression: 'thoughtful' },
-        { text: 'Para hacer una copia de seguridad, usa el pequeño botón de exportar junto a tu perfil en el menú.', expression: 'neutral' },
-        { text: 'En la ficha de personaje puedes añadir descripción física, personalidad, trasfondo y notas libres.', expression: 'happy' },
-        { text: 'Puedes cambiar el clima de una escena desde el panel de respuesta: lluvia, niebla o despejado. 🌧️', expression: 'thoughtful' },
-        { text: 'El modo inmersivo oculta los controles para leer la historia sin distracciones. ¡Búscalo en Opciones!', expression: 'wink' }
+        { text: 'Negrita y cursiva también tejen significado: **así**, o *así*. La narrativa agradece el matiz.', expression: 'excited' },
+        { text: 'Los emotes /happy, /sad, /angry, /love y más ponen gesto en las palabras de tu personaje.', expression: 'happy' },
+        { text: 'En modo RPG, el Oráculo del Destino resuelve lo difícil con un D20 y tu estadística. El azar no negocia.', expression: 'surprised' },
+        { text: 'Seis letras bastan para invitar a otra pluma a tu historia. El código vive en el botón de exportar.', expression: 'love' },
+        { text: 'Las flechas, o los botones de navegación, te devuelven a lo que ya se dijo.', expression: 'neutral' },
+        { text: 'Espacio, o un clic sobre el texto, y las palabras terminan de aparecer al instante.', expression: 'wink' },
+        { text: 'Tu nombre, tu rostro, tus datos: todo cambia tocando tu perfil, abajo en el menú.', expression: 'happy' },
+        { text: 'El diario guarda tus notas y resúmenes. Ni el hilo más fino se pierde si lo escribes ahí.', expression: 'thoughtful' },
+        { text: 'Desde el panel de respuesta puedes sembrar opciones de elección. Que la historia se ramifique.', expression: 'excited' },
+        { text: 'El historial guarda cada mensaje. La estrella marca los que no quieres que se disuelvan.', expression: 'thoughtful' },
+        { text: 'Hacer una copia de tu mundo es solo un botón: el de exportar, junto a tu perfil.', expression: 'neutral' },
+        { text: 'En cada ficha caben descripción, personalidad, trasfondo y notas libres. Nada tiene que quedarse sin decir.', expression: 'happy' },
+        { text: 'Lluvia, niebla o cielo despejado: el clima de la escena se elige desde el panel de respuesta.', expression: 'thoughtful' },
+        { text: 'El modo inmersivo aparta los controles y deja solo la historia. Búscalo en Opciones, cuando quieras leer sin ruido.', expression: 'wink' }
     ];
 
     function showRandomTip() {

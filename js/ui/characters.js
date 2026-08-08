@@ -384,6 +384,74 @@ function renderUserCards() {
         highlightActiveProfile(null);
         toggleWelcomeOverlay(true);
     }
+
+    // Directorio público: perfiles registrados de otras cuentas, visibles
+    // incluso sin sesión — el selector transmite que Etheria está habitada
+    _renderDirectoryCards(container).catch(() => {});
+}
+
+// ── Directorio público de perfiles ────────────────────────────────────────
+// Lee la vista profiles_directory (solo nombre + avatar, legible por anon)
+// y añade tarjetas informativas para los perfiles que NO están ya
+// representados localmente. Clic → login (son de otras cuentas).
+let _directoryCache = { at: 0, rows: [] };
+
+async function _renderDirectoryCards(container) {
+    if (!window.supabaseClient || !container) return;
+
+    // Caché de 60 s para no repetir la consulta en cada re-render
+    if (Date.now() - _directoryCache.at > 60000) {
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('profiles_directory')
+                .select('id, name, avatar')
+                .order('created_at', { ascending: true })
+                .limit(24);
+            if (error || !data) return;
+            _directoryCache = { at: Date.now(), rows: data };
+        } catch (_) { return; }
+    }
+
+    // El render pudo cambiar mientras esperábamos: limpiar duplicados previos
+    container.querySelectorAll('.profile-directory').forEach(el => el.remove());
+
+    const localNames = new Set(userNames.map(n => (n || '').trim().toLowerCase()));
+    const addCard = document.getElementById('addProfileCard');
+
+    _directoryCache.rows.forEach(p => {
+        const pname = (p.name || '').trim();
+        if (!pname || localNames.has(pname.toLowerCase())) return;
+
+        const card = document.createElement('div');
+        card.className = 'user-card profile-foreign profile-directory';
+        const avatarHtml = p.avatar
+            ? `<div class="user-avatar-wrap"><img src="${escapeHtml(p.avatar)}" alt="" loading="lazy"></div>`
+            : `<div class="user-avatar-wrap"><span class="user-avatar-initials">${escapeHtml(pname[0].toUpperCase())}</span></div>`;
+        card.innerHTML = `
+            ${avatarHtml}
+            <div class="user-name">${escapeHtml(pname)}</div>
+            <div class="user-directory-badge">✦ Viajero de Etheria</div>
+        `;
+        card.onclick = () => {
+            if (!window._cachedUserId) {
+                // Es un perfil YA existente: se asume que quien pulsa tiene
+                // cuenta, así que va directo al formulario de login (no al
+                // menú genérico) — evita el paso extra de "elegir opción".
+                if (typeof showAutosave === 'function') showAutosave('Inicia sesión con tu cuenta', 'info');
+                if (typeof showLoginScreen === 'function') showLoginScreen();
+                if (typeof showAuthForm === 'function') showAuthForm('login');
+                else if (typeof showAuthMain === 'function') showAuthMain();
+            } else {
+                if (typeof showAutosave === 'function') showAutosave('Este perfil pertenece a otra cuenta', 'error');
+            }
+        };
+
+        if (addCard && addCard.parentElement === container) {
+            container.insertBefore(card, addCard);
+        } else {
+            container.appendChild(card);
+        }
+    });
 }
 
 // Re-render avatars cuando los settings llegan de Supabase (timing asíncrono)
@@ -684,15 +752,37 @@ function initMenuParallax() {
 // Kept as no-op stub so legacy call sites don't throw
 function animateFireflies() { /* no-op: Canvas system active */ }
 
-function addNewProfile() {
+// Crear perfil EXIGE sesión: sin ella, el perfil sería un fantasma local
+// (sin dueño ni nube) que se pierde con cualquier borrado de caché. El flujo
+// correcto: login/registro primero → crear → reclamar propiedad (slot ligado
+// a la cuenta y sincronizado a Supabase, cross-device).
+async function addNewProfile() {
     if (userNames.length >= 10) {
         showAutosave('Máximo de 10 perfiles alcanzado', 'error');
         return;
     }
+
+    const uid = typeof getEtheriaUserId === 'function' ? await getEtheriaUserId() : null;
+    if (!uid) {
+        window._pendingAddProfile = true;
+        // "Nuevo Archivo" es para cuentas nuevas: directo a Crear Cuenta.
+        // Si ya tienes cuenta, sigue disponible el enlace "Iniciar sesión"
+        // dentro de esa misma pantalla — pero el destino por defecto ya
+        // no es el menú genérico, sino el formulario que de verdad se
+        // corresponde con la intención de esta tarjeta.
+        if (typeof showAutosave === 'function') showAutosave('Crea tu cuenta para empezar', 'info');
+        if (typeof showLoginScreen === 'function') showLoginScreen();
+        if (typeof showAuthForm === 'function') showAuthForm('register');
+        else if (typeof showAuthMain === 'function') showAuthMain();
+        return;
+    }
+
     const newName = prompt('Nombre del nuevo perfil:');
     if (newName && newName.trim()) {
         userNames.push(newName.trim());
         localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+        const newIdx = userNames.length - 1;
+        if (typeof _claimProfile === 'function') _claimProfile(newIdx, uid);
         renderUserCards();
     }
 }

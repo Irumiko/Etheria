@@ -40,7 +40,7 @@ if errorlevel 1 (
 
 echo.
 echo  [4/4] Subiendo a GitHub...
-git push origin feat/vn-dual-theme-system
+git push origin main
 if errorlevel 1 (
     echo.
     echo  ERROR: el push ha fallado. Comprueba tu conexion o el token de GitHub.

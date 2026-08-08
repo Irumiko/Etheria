@@ -232,8 +232,10 @@ function _updateSyncButtonStateDOM(status, message) {
     });
 }
 
-// Modal de confirmación genérico — reemplaza confirm() nativo
-function openConfirmModal(message, okLabel = 'Confirmar') {
+// Modal de confirmación genérico — reemplaza confirm() nativo.
+// cancelLabel permite reutilizarlo para elecciones de dos vías reales
+// (no solo confirmar/abortar), p.ej. "Continuar historia" vs "Elegir tema".
+function openConfirmModal(message, okLabel = 'Confirmar', cancelLabel = 'Cancelar') {
     return new Promise((resolve) => {
         const modal     = document.getElementById('confirmModal');
         const titleEl   = document.getElementById('confirmModalTitle');
@@ -247,6 +249,7 @@ function openConfirmModal(message, okLabel = 'Confirmar') {
 
         titleEl.textContent = message;
         btnOk.textContent = okLabel;
+        btnCancel.textContent = cancelLabel;
 
         const cleanup = (result) => {
             modal.classList.remove('active');
@@ -309,11 +312,25 @@ function closeModal(id) {
     }
 }
 
+// Refleja el nombre del perfil en public.profiles (directorio público).
+// Solo si hay sesión y el slot actual pertenece a esta cuenta.
+function _syncProfileNameToCloud(name) {
+    const uid = window._cachedUserId;
+    if (!uid || !window.supabaseClient || !name || name.includes('@')) return;
+    const owners = typeof getProfileOwners === 'function' ? getProfileOwners() : [];
+    if (owners[currentUserIndex] !== uid) return;
+    window.supabaseClient.from('profiles')
+        .update({ name: name })
+        .eq('owner_user_id', uid)
+        .then(() => {}, () => {});
+}
+
 function changeUser() {
     const newName = prompt('Nuevo nombre:', userNames[currentUserIndex]);
     if(newName?.trim()) {
         userNames[currentUserIndex] = newName.trim();
         localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+        _syncProfileNameToCloud(newName.trim());
 
         const currentUserDisplay = document.getElementById('currentUserDisplay');
         if (currentUserDisplay) currentUserDisplay.textContent = newName.trim();
@@ -447,6 +464,7 @@ function saveProfileNameFromOptions() {
     if (!name) { showAutosave('Escribe un nombre', 'error'); return; }
     userNames[currentUserIndex] = name;
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    _syncProfileNameToCloud(name);
     const display = document.getElementById('currentUserDisplay');
     if (display) display.textContent = name;
     if (typeof SupabaseSync !== 'undefined') {
@@ -559,6 +577,12 @@ async function _uploadProfileAvatarToCloud(file) {
     const publicUrl = urlData?.publicUrl || '';
     if (!publicUrl) return { ok: false, error: 'No se pudo obtener la URL pública del avatar.' };
 
+    // Reflejar en profiles.avatar (alimenta el directorio público del selector)
+    window.supabaseClient.from('profiles')
+        .update({ avatar: publicUrl })
+        .eq('owner_user_id', userId)
+        .then(() => {}, () => {});
+
     if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
         await SupabaseSettings.saveUserSettings({ avatar_url: publicUrl });
     }
@@ -572,6 +596,8 @@ async function _removeProfileAvatarFromCloud() {
 
     const paths = ['png', 'jpg', 'jpeg', 'gif', 'webp'].map(ext => `${userId}/profile.${ext}`);
     try { await window.supabaseClient.storage.from('user-avatars').remove(paths); } catch {}
+    // Limpiar también el directorio público
+    try { await window.supabaseClient.from('profiles').update({ avatar: null }).eq('owner_user_id', userId); } catch {}
     if (typeof SupabaseSettings !== 'undefined' && typeof SupabaseSettings.saveUserSettings === 'function') {
         await SupabaseSettings.saveUserSettings({ avatar_url: '' });
     }
@@ -639,13 +665,22 @@ function _updateBirthdayHint(bday) {
 async function handleAvatarUpload(input) {
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 1.2 * 1024 * 1024) {
-        showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
+    // Tope generoso: el compresor (512px) reduce fotos grandes antes de subir.
+    // El límite estricto de 1 MB aplica SOLO al fallback local sin sesión
+    // (base64 en localStorage, cuota ~5 MB).
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen es demasiado grande (máx. 20 MB)', 'error');
         return;
     }
 
     showAutosave('Guardando avatar...', 'info');
     const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (!userId && file.size > 1.2 * 1024 * 1024) {
+        showAutosave('Sin sesión el avatar se guarda localmente (máx. 1 MB). Inicia sesión para subir fotos grandes.', 'error');
+        input.value = '';
+        return;
+    }
 
     if (userId) {
         const cloud = await _uploadProfileAvatarToCloud(file);
@@ -1315,6 +1350,7 @@ function saveProfileModalName() {
     if (!name) { showAutosave('Escribe un nombre', 'error'); return; }
     userNames[currentUserIndex] = name;
     localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    _syncProfileNameToCloud(name);
     if (typeof SupabaseSync !== 'undefined') {
         if (typeof SupabaseSync.touchField === 'function') SupabaseSync.touchField('userNames');
         else if (typeof SupabaseSync.markPending === 'function') SupabaseSync.markPending();
@@ -1336,13 +1372,22 @@ function saveProfileModalName() {
 async function handleProfileModalAvatar(input) {
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 1.2 * 1024 * 1024) {
-        showAutosave('La imagen es demasiado grande (máx. 1 MB)', 'error');
+    // Tope generoso: el compresor (512px) reduce fotos grandes antes de subir.
+    // El límite estricto de 1 MB aplica SOLO al fallback local sin sesión
+    // (base64 en localStorage, cuota ~5 MB).
+    if (file.size > 20 * 1024 * 1024) {
+        showAutosave('La imagen es demasiado grande (máx. 20 MB)', 'error');
         return;
     }
 
     showAutosave('Guardando avatar...', 'info');
     const userId = await _getAuthenticatedUserIdForAvatar();
+
+    if (!userId && file.size > 1.2 * 1024 * 1024) {
+        showAutosave('Sin sesión el avatar se guarda localmente (máx. 1 MB). Inicia sesión para subir fotos grandes.', 'error');
+        input.value = '';
+        return;
+    }
 
     if (userId) {
         const cloud = await _uploadProfileAvatarToCloud(file);

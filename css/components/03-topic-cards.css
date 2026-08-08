@@ -1391,6 +1391,7 @@
         .vn-section {
             position: relative;
             min-height: 100vh;
+            min-height: 100dvh;
             color: #fff;
             background-size: cover;
             background-position: center;

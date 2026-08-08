@@ -168,10 +168,10 @@ const SupabaseCycles = (function () {
         const uid = await _ensureUserId();
         if (!uid || !cycleId) return null;
 
-        // Validar que el usuario no haya lanzado ya una elección en este ciclo
-        const canCreate = await canLaunchChoice(cycleId);
+        // Validar reglas anti-abuso: una por ciclo + cooldown de ciclo consecutivo
+        const canCreate = await canLaunchChoice(cycleId, topicId);
         if (!canCreate) {
-            window.EtheriaLogger?.warn('SupabaseCycles', 'Ya lanzaste una elección en este ciclo');
+            window.EtheriaLogger?.warn('SupabaseCycles', 'Bloqueado: elección ya lanzada este ciclo o en el anterior (cooldown)');
             return null;
         }
 
@@ -299,10 +299,16 @@ const SupabaseCycles = (function () {
 
     // ¿Puede el usuario actual lanzar una elección en este ciclo?
     // Regla: solo si no ha lanzado ya una en este ciclo.
-    async function canLaunchChoice(cycleId) {
+    // Reglas anti-abuso:
+    //   1) Una elección por autor por ciclo.
+    //   2) Cooldown: no se puede lanzar en dos ciclos CONSECUTIVOS del mismo
+    //      topic — si lanzaste en el ciclo inmediatamente anterior, este toca
+    //      descansar.
+    async function canLaunchChoice(cycleId, topicId) {
         const uid = await _ensureUserId();
         if (!uid || !cycleId) return false;
 
+        // Regla 1: ya lanzó en este ciclo
         const { data, error } = await _client()
             .from('cycle_choices')
             .select('id')
@@ -311,7 +317,59 @@ const SupabaseCycles = (function () {
             .limit(1);
 
         if (error) return false;
-        return !data || data.length === 0;
+        if (data && data.length > 0) return false;
+
+        // Regla 2: lanzó en el ciclo anterior (cooldown)
+        if (topicId) {
+            const { data: prevCycle, error: prevErr } = await _client()
+                .from('topic_cycles')
+                .select('id')
+                .eq('topic_id', String(topicId))
+                .eq('status', 'closed')
+                .order('started_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (!prevErr && prevCycle) {
+                const { data: prevChoice, error: pcErr } = await _client()
+                    .from('cycle_choices')
+                    .select('id')
+                    .eq('cycle_id', prevCycle.id)
+                    .eq('author_user_id', uid)
+                    .limit(1);
+
+                if (!pcErr && prevChoice && prevChoice.length > 0) return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Excusa a un participante del ciclo abierto (salto por inactividad):
+    // se le retira de participants para que el ciclo pueda cerrarse sin él.
+    // Solo afecta a ESTE ciclo; el siguiente vuelve a incluir a todos.
+    async function excuseParticipant(cycleId, userId) {
+        if (!_client() || !cycleId || !userId) return false;
+        const { data: cycle, error: getErr } = await _client()
+            .from('topic_cycles')
+            .select('participants')
+            .eq('id', cycleId)
+            .maybeSingle();
+        if (getErr || !cycle) return false;
+
+        const current = Array.isArray(cycle.participants) ? cycle.participants : [];
+        if (!current.includes(userId)) return true; // ya excusado
+
+        const { error: updErr } = await _client()
+            .from('topic_cycles')
+            .update({ participants: current.filter(u => u !== userId) })
+            .eq('id', cycleId);
+
+        if (updErr) {
+            window.EtheriaLogger?.warn('SupabaseCycles', 'excuseParticipant error:', updErr.message);
+            return false;
+        }
+        return true;
     }
 
     // ── Impactos de afinidad al cerrar el ciclo ──────────────────────────────
@@ -536,6 +594,7 @@ const SupabaseCycles = (function () {
     })();
 
     return {
+        excuseParticipant,
         openCycle,
         getOpenCycle,
         closeCycle,

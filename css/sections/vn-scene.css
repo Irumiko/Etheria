@@ -1398,9 +1398,6 @@ body.theme-rpg #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap {
 
 /* Placa de nombre — afinada: medallón translúcido plata (clásico), menos
    índigo plano. (Si la prefieres distinta, este es el bloque a tocar.) */
-body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-plate {
-}
-
 /* ══════════════════════════════════════════════════════════════════════
    FIX v4 · aro del avatar suelto (orphan ring)
    La regla base .vn-speaker-avatar-wrap usa top:50% + translateY(-50%) →

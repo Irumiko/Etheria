@@ -818,3 +818,296 @@ body.is-pwa .menu-exit-btn:active {
     font-size: 1rem;
     line-height: 1;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   LANDSCAPE COMPACTO — móvil apaisado (viewport bajo)
+   El selector de perfiles usa el layout de escritorio; en ~360-520px
+   de alto el título desborda, las cards se estiran a toda altura y
+   los widgets flotantes pisan los botones. Capa aditiva de compactado.
+   ═══════════════════════════════════════════════════════════════ */
+@media (orientation: landscape) and (max-height: 640px) and (any-pointer: coarse) {
+
+    .user-select-screen {
+        padding: 6px 14px calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+        justify-content: flex-start !important;
+    }
+
+    /* Título y subtítulo: discretos, arriba, sin recortes */
+    .game-title {
+        font-size: clamp(1.3rem, 6vh, 1.9rem) !important;
+        letter-spacing: 0.32em !important;
+        margin: 0 !important;
+        line-height: 1.1 !important;
+    }
+    .save-screen-rule { display: none !important; }
+    .game-subtitle {
+        font-size: 0.66rem !important;
+        margin: 2px 0 8px !important;
+        letter-spacing: 0.12em !important;
+    }
+
+    /* Fila de cards: ocupa el resto de la altura, con su scroll-x */
+    .user-cards {
+        max-width: 96vw !important;
+        gap: 0.7rem !important;
+        padding: 0.2rem 0.4rem 0.5rem !important;
+        align-items: stretch !important;
+    }
+
+    /* Card compacta: cabe entera en el alto disponible; si su contenido
+       no cabe, scrollea por dentro en vez de estirar el layout */
+    .user-card {
+        min-width: 170px !important;
+        max-width: 200px !important;
+        max-height: calc(100dvh - 96px - env(safe-area-inset-bottom, 0px)) !important;
+        overflow-y: auto !important;
+        padding: 10px 12px !important;
+    }
+    .user-avatar-wrap {
+        width: 52px !important;
+        height: 52px !important;
+        margin: 0 auto 4px !important;
+    }
+    .user-name { font-size: 0.95rem !important; margin: 2px 0 !important; }
+    .user-gender-badge { font-size: 0.6rem !important; padding: 1px 8px !important; }
+    .user-card-stats { gap: 4px !important; margin: 6px 0 !important; }
+    .user-card-stats > * { padding: 4px 6px !important; font-size: 0.62rem !important; }
+    .user-card-divider { margin: 4px 0 !important; }
+    .user-last-session, .user-last-topic { font-size: 0.6rem !important; }
+    .user-continue-btn { padding: 6px 10px !important; font-size: 0.7rem !important; }
+    .user-directory-badge { font-size: 0.58rem !important; }
+
+    /* Widgets flotantes: fuera del camino de los botones de las cards */
+    #ethyContainer { display: none !important; }
+    .profile-theme-btn {
+        top: auto !important;
+        bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+        left: 10px !important;
+        right: auto !important;
+        transform: scale(0.85);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LANDSCAPE COMPACTO II — hub (#mainMenu) y escena VN (#vnSection)
+   Mismo rango que el selector: móvil apaisado de viewport bajo.
+   ═══════════════════════════════════════════════════════════════ */
+@media (orientation: landscape) and (max-height: 640px) and (any-pointer: coarse) {
+
+    /* ── Selector: refuerzo (garantizar columna y anclaje arriba) ── */
+    .user-select-screen {
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+    .game-title, .game-subtitle { text-align: center !important; }
+
+    /* ── HUB · barra superior compacta ── */
+    #mainMenu .cel-topbar { top: 8px !important; left: 12px !important; right: 12px !important; }
+    #mainMenu .menu-profile-btn { padding: 4px 12px 4px 4px !important; gap: 8px !important; }
+    #mainMenu .menu-profile-avatar { width: 36px !important; height: 36px !important; font-size: 15px !important; }
+    #mainMenu .menu-profile-name { font-size: 14px !important; }
+    #mainMenu .menu-profile-hint { display: none !important; }
+
+    /* Acciones (buzón/backup/tema): compactas y SIN pisar las cards */
+    #mainMenu .menu-top-actions { gap: 6px !important; }
+    #mainMenu .cel-round-btn {
+        width: 34px !important;
+        height: 34px !important;
+        transform: none !important;
+    }
+
+    /* Marca y cita: contenidas a la mitad izquierda */
+    #mainMenu .menu-brand { max-width: 46vw !important; }
+    #mainMenu .menu-brand h1, #mainMenu .brand-title {
+        font-size: clamp(2rem, 14vh, 3.2rem) !important;
+        line-height: 1 !important;
+    }
+
+    /* Columna de cards: empieza bajo la topbar, contenida.
+       hub-luna fija top:50% + translateY(-50%) con !important y
+       especificidad id+2clases (#mainMenu.cel-hub .menu-container) —
+       ese transform expulsaba "Continuar" por encima del viewport.
+       Ganamos con id+3clases (.menu-container doblada). */
+    #mainMenu.cel-hub .menu-container.menu-container,
+    #mainMenu .menu-container.menu-container {
+        top: 68px !important;
+        right: 14px !important;
+        width: min(360px, 44vw) !important;
+        bottom: 8px !important;
+        transform: none !important;
+        z-index: 5 !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        padding-bottom: 8px !important;
+        gap: 8px !important;
+    }
+
+    /* Cards compactas (idea de Irune: en pantalla pequeña, ornamentos
+       pequeños): sin subtítulo, icono-rombo reducido, sello decorativo
+       de 118px fuera, padding contenido. Misma especificidad ganadora. */
+    #mainMenu .hub-item-sub { display: none !important; }
+    #mainMenu.cel-hub .hub-menu-item.hub-menu-item,
+    #mainMenu .hub-menu-item.hub-menu-item {
+        padding: 8px 12px !important;
+        gap: 10px !important;
+    }
+    #mainMenu.cel-hub .hub-item-icon.hub-item-icon,
+    #mainMenu .hub-item-icon.hub-item-icon {
+        width: 30px !important;
+        height: 30px !important;
+    }
+    #mainMenu .hub-item-icon svg { width: 13px !important; height: 13px !important; }
+    #mainMenu .hub-menu-item .seal { display: none !important; }
+    #mainMenu .hub-item-arcana { font-size: 0.58rem !important; }
+    #mainMenu .menu-label { font-size: 1rem !important; }
+    #mainMenu .menu-container .menu-card,
+    #mainMenu .menu-container .menu-item { padding: 10px 14px !important; }
+
+    /* Estado, Ethy y ruido inferior: fuera; Salir compacto en su esquina */
+    #mainMenu .cel-status { display: none !important; }
+    #mainMenu .cel-ethy { display: none !important; }
+    #mainMenu .menu-exit-btn {
+        right: 10px !important;
+        bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+        left: auto !important;
+        width: auto !important;
+        padding: 6px 12px !important;
+        font-size: 9.5px !important;
+    }
+
+    /* ── ESCENA VN · caja y satélites contenidos ── */
+    /* Placa del hablante: pegada a la esquina del box, sin flotar */
+    #vnSection .vn-speaker-plate {
+        top: -12px !important;
+        left: 14px !important;
+        transform: none !important;
+        font-size: 0.8rem !important;
+        padding: 4px 14px !important;
+    }
+
+    /* Avatar del hablante: de gigante a discreto */
+    #vnSection .vn-speaker-avatar-wrap,
+    #vnSection .vn-speaker-avatar {
+        width: 64px !important;
+        height: 64px !important;
+    }
+
+    /* La caja aprovecha el ancho; menos aire interno */
+    #vnSection .vn-dialogue-box { padding: 16px 18px 12px !important; }
+
+    /* FAB de navegación: dentro del viewport, sobre la safe-area */
+    #vnSection .vn-mobile-fab-nav,
+    .vn-mobile-fab-nav {
+        bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    .vn-mobile-fab-btn { width: 40px !important; height: 40px !important; }
+    .vn-mobile-fab-btn.main { width: 46px !important; height: 46px !important; }
+
+    /* Toolbar lateral derecha: compacta y pegada al borde */
+    #vnSection .vn-toolbar {
+        right: 2px !important;
+        transform: scale(0.82) !important;
+        transform-origin: right center !important;
+    }
+
+    /* ── VN · descompresión (feedback Irune) ── */
+    /* Los FAB inferiores son redundantes (la caja tiene sus flechas ‹ ›
+       y el botón Responder) y taparían los sprites: fuera en apaisado */
+    #vnSection .vn-mobile-fab-nav,
+    .vn-mobile-fab-nav { display: none !important; }
+
+    /* Caja más contenida: aire para los sprites por encima */
+    #vnSection .vn-dialogue-box {
+        max-height: 46vh !important;
+        margin-bottom: calc(6px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    #vnSection .vn-dialogue-text {
+        font-size: 0.95rem !important;
+        line-height: 1.5 !important;
+    }
+    #vnSection .vn-dialogue-actions button {
+        padding: 4px 12px !important;
+        font-size: 0.68rem !important;
+    }
+    #vnSection .vn-dialogue-footer { padding-top: 4px !important; }
+
+    /* ── TEMAS · scroll solo en la lista, no en toda la pantalla ──
+       CRÍTICO: scoped a .active — sin esto, id+!important gana siempre
+       a la base ".game-section{display:none}" y fuerza la sección
+       visible para siempre tras visitarla, bloqueando el resto del
+       hub (mismo bug real que #gallerySection, detectado en vivo). */
+    #topicsSection.active {
+        height: 100dvh !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    #topicsSection .section-content {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+    }
+    #topicsSection .topics-layout {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+    #topicsSection .topics-main {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 0 !important;
+        height: 100% !important;
+    }
+    #topicsSection .topics-panel-title { flex-shrink: 0; margin: 4px 0 !important; }
+    #topicsSection .topics-command-bar { flex-shrink: 0; padding: 4px 0 !important; }
+    #topicsSection .topics-grid-wrap {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+    /* El panel lateral de estadísticas cede el sitio en apaisado corto */
+    #topicsSection .topics-sidebar,
+    #topicsSection .topics-side-panel { display: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APTITUD MÓVIL (vertical, ≤767px) — legibilidad, tacto y modales
+   Pase genérico: tipografía de lectura más cómoda, objetivos
+   táctiles ≥40px y modales como hoja amplia en vez de ventanita.
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) and (orientation: portrait) {
+
+    /* ── Lectura: el texto del relato es el protagonista ── */
+    #vnSection .vn-dialogue-text {
+        font-size: 1.05rem !important;
+        line-height: 1.68 !important;
+    }
+    #vnSection .vn-options-subtitle { font-size: 0.76rem !important; }
+    body.theme-classic #vnSection .vn-opt-text { font-size: 1rem !important; }
+
+    /* ── Modales: hoja casi completa, con aire y safe-areas ── */
+    .modal, .character-modal {
+        width: 96vw !important;
+        max-width: 96vw !important;
+        max-height: calc(92dvh - env(safe-area-inset-top, 0px)) !important;
+        border-radius: 18px !important;
+    }
+
+    /* ── Objetivos táctiles ≥40px en los controles que se tocan mucho ── */
+    .vcb-chip,
+    .vcb-action-btn {
+        min-height: 40px !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+    .vcb-format-btn { width: 38px !important; height: 36px !important; }
+    body.theme-classic #vnSection .vn-option-btn { min-height: 48px !important; }
+    #vnSection .vn-dialogue-actions button { min-height: 38px !important; }
+
+    /* ── El pie del diálogo respira sobre el gesto de home ── */
+    #vnSection .vn-dialogue-footer {
+        padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)) !important;
+    }
+}

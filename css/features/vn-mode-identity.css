@@ -630,3 +630,236 @@ body.theme-rpg .character-modal h3::after {
         animation: none !important;
     }
 }
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 7 — Presentación de elecciones (Clásico-only, guard en showOptions)
+   Concepto "¿Qué respondes?": cabecera con ✦, filas con letra en medallón,
+   texto serif cursiva, chevrón al hover y "guardar silencio" fantasma.
+   Gana a las reglas de vn-option-btn de 07-overrides con #vnSection +
+   !important (regla de la casa).
+   ═════════════════════════════════════════════════════════════════════════ */
+
+body.theme-classic #vnSection .vn-options-title {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-variant: small-caps;
+    letter-spacing: 0.14em !important;
+    text-align: center !important;
+    color: rgba(214, 230, 255, 0.95) !important;
+    text-shadow: 0 0 18px rgba(110, 160, 255, 0.4) !important;
+    font-size: 0.95rem !important;
+}
+
+body.theme-classic #vnSection .vn-options-subtitle {
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-style: italic !important;
+    text-align: center !important;
+    color: rgba(150, 180, 235, 0.55) !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.03em !important;
+    margin-bottom: 10px !important;
+}
+
+/* Fila de opción: medallón + texto + chevrón */
+body.theme-classic #vnSection .vn-option-btn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: 100% !important;
+    text-align: left !important;
+    padding: 10px 14px !important;
+    border-radius: 999px !important;
+    background: rgba(13, 18, 44, 0.72) !important;
+    border: 1px solid rgba(150, 185, 255, 0.26) !important;
+    color: rgba(222, 233, 255, 0.94) !important;
+    transition: all 0.2s ease !important;
+}
+
+body.theme-classic #vnSection .vn-option-btn:hover:not(:disabled) {
+    border-color: rgba(170, 205, 255, 0.6) !important;
+    background: rgba(20, 28, 62, 0.85) !important;
+    box-shadow: 0 0 18px -4px rgba(120, 160, 255, 0.45) !important;
+    transform: translateX(3px);
+}
+
+body.theme-classic #vnSection .vn-opt-letter {
+    flex: 0 0 auto;
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(160, 195, 255, 0.5);
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-size: 0.78rem;
+    color: rgba(190, 214, 255, 0.9);
+    background: rgba(120, 160, 255, 0.08);
+}
+
+body.theme-classic #vnSection .vn-opt-text {
+    flex: 1 1 auto;
+    font-family: var(--font-serif, 'EB Garamond', serif) !important;
+    font-style: italic;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+
+body.theme-classic #vnSection .vn-opt-chevron {
+    flex: 0 0 auto;
+    color: rgba(160, 195, 255, 0.45);
+    font-size: 1.05rem;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+body.theme-classic #vnSection .vn-option-btn:hover:not(:disabled) .vn-opt-chevron {
+    color: rgba(200, 222, 255, 0.9);
+    transform: translateX(3px);
+}
+
+/* Elegida: medallón lleno y fila iluminada; las demás se apagan */
+body.theme-classic #vnSection .vn-option-btn.chosen {
+    border-color: rgba(170, 205, 255, 0.75) !important;
+    background: rgba(120, 160, 255, 0.14) !important;
+    box-shadow: 0 0 22px -4px rgba(120, 160, 255, 0.5) !important;
+}
+body.theme-classic #vnSection .vn-option-btn.chosen .vn-opt-letter {
+    background: rgba(170, 205, 255, 0.9);
+    color: rgba(10, 16, 40, 0.95);
+    border-color: transparent;
+}
+body.theme-classic #vnSection .vn-option-btn:disabled:not(.chosen) {
+    opacity: 0.38 !important;
+}
+
+/* Guardar silencio: fantasma, centrado */
+body.theme-classic #vnSection .vn-opt-silence {
+    display: block;
+    margin: 8px auto 0;
+    padding: 5px 14px;
+    background: transparent;
+    border: none;
+    color: rgba(150, 180, 235, 0.5);
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+body.theme-classic #vnSection .vn-opt-silence:hover {
+    color: rgba(214, 230, 255, 0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.theme-classic #vnSection .vn-option-btn,
+    body.theme-classic #vnSection .vn-opt-chevron { transition: none !important; transform: none !important; }
+}
+
+
+/* ═════════════════════════════════════════════════════════════════════════
+   FASE 8 — Sprite genérico espectral + botón de favorito por senda
+   La silueta negra pasa a "viajero espectral": tinte celestial (plata-azul
+   en Clásico, oro viejo en RPG) con brillo suave y estrellas latentes.
+   Gana a los filter !important de vn-scene.css por orden de cascada.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── Silueta · Clásico: espectro de plata estelar ── */
+body.theme-classic.mode-classic .vn-sprite.active .shadow-silhouette-img,
+body.mode-classic .vn-sprite.active .shadow-silhouette-img {
+    filter:
+        invert(0.88) sepia(0.35) hue-rotate(186deg) saturate(1.7)
+        brightness(0.82) opacity(0.9)
+        drop-shadow(0 0 16px rgba(140, 180, 255, 0.35))
+        drop-shadow(0 8px 18px rgba(0, 0, 10, 0.45)) !important;
+}
+body.theme-classic.mode-classic .vn-sprite.inactive .shadow-silhouette-img,
+body.mode-classic .vn-sprite.inactive .shadow-silhouette-img {
+    filter:
+        invert(0.88) sepia(0.3) hue-rotate(186deg) saturate(1.2)
+        brightness(0.5) opacity(0.5) blur(1.5px)
+        drop-shadow(0 4px 10px rgba(0, 0, 10, 0.3)) !important;
+}
+
+/* ── Silueta · RPG: espectro de oro viejo ── */
+body.theme-rpg .vn-sprite.active .shadow-silhouette-img {
+    filter:
+        invert(0.82) sepia(0.9) hue-rotate(-12deg) saturate(2.2)
+        brightness(0.78) opacity(0.9)
+        drop-shadow(0 0 16px rgba(220, 170, 80, 0.35))
+        drop-shadow(0 8px 18px rgba(10, 5, 0, 0.5)) !important;
+}
+body.theme-rpg .vn-sprite.inactive .shadow-silhouette-img {
+    filter:
+        invert(0.82) sepia(0.8) hue-rotate(-12deg) saturate(1.5)
+        brightness(0.45) opacity(0.5) blur(1.5px)
+        drop-shadow(0 4px 10px rgba(10, 5, 0, 0.35)) !important;
+}
+
+/* Estrellas latentes sobre el espectro (solo sprite activo) */
+.vn-sprite.active .shadow-silhouette { position: relative; }
+.vn-sprite.active .shadow-silhouette::after {
+    content: '' !important;
+    position: absolute;
+    inset: 8% 18%;
+    pointer-events: none;
+    background-image:
+        radial-gradient(1.5px 1.5px at 30% 22%, rgba(255,255,255,0.9), transparent),
+        radial-gradient(1px 1px at 62% 38%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(1.5px 1.5px at 45% 60%, rgba(255,255,255,0.8), transparent),
+        radial-gradient(1px 1px at 70% 74%, rgba(255,255,255,0.6), transparent);
+    opacity: 0.5;
+    animation: vn-spectral-stars 5s ease-in-out infinite;
+}
+body.theme-rpg .vn-sprite.active .shadow-silhouette::after {
+    background-image:
+        radial-gradient(1.5px 1.5px at 30% 22%, rgba(255,226,160,0.9), transparent),
+        radial-gradient(1px 1px at 62% 38%, rgba(255,226,160,0.7), transparent),
+        radial-gradient(1.5px 1.5px at 45% 60%, rgba(255,226,160,0.8), transparent),
+        radial-gradient(1px 1px at 70% 74%, rgba(255,226,160,0.6), transparent);
+}
+@keyframes vn-spectral-stars {
+    0%, 100% { opacity: 0.3; }
+    50%      { opacity: 0.7; }
+}
+
+/* ── Botón de favorito: gema de la senda ── */
+#vnSection .vn-favorite-corner-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+}
+body.theme-classic #vnSection .vn-favorite-corner-btn {
+    background: rgba(13, 18, 44, 0.85) !important;
+    border: 1px solid rgba(160, 195, 255, 0.4) !important;
+    color: rgba(180, 205, 255, 0.75) !important;
+    box-shadow: 0 0 12px -4px rgba(120, 160, 255, 0.4) !important;
+}
+body.theme-classic #vnSection .vn-favorite-corner-btn:hover {
+    color: rgba(226, 238, 255, 0.95) !important;
+    border-color: rgba(190, 215, 255, 0.7) !important;
+}
+body.theme-rpg #vnSection .vn-favorite-corner-btn {
+    background: rgba(30, 20, 8, 0.85) !important;
+    border: 1px solid rgba(200, 155, 70, 0.45) !important;
+    color: rgba(220, 180, 110, 0.75) !important;
+    box-shadow: 0 0 12px -4px rgba(200, 140, 45, 0.4) !important;
+}
+body.theme-rpg #vnSection .vn-favorite-corner-btn:hover {
+    color: rgba(244, 214, 150, 0.95) !important;
+    border-color: rgba(230, 185, 95, 0.7) !important;
+}
+/* Favorito marcado: estrella encendida (ambas sendas) */
+#vnSection .vn-favorite-corner-btn.is-favorited {
+    color: #f4c842 !important;
+    border-color: rgba(244, 200, 66, 0.7) !important;
+    box-shadow: 0 0 16px -2px rgba(244, 200, 66, 0.55) !important;
+}
+#vnSection .vn-favorite-corner-btn.is-favorited svg { fill: #f4c842 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    .vn-sprite.active .shadow-silhouette::after { animation: none !important; opacity: 0.4; }
+}

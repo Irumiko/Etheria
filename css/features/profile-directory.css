@@ -1,0 +1,29 @@
+/* ── profile-directory.css ────────────────────────────────────────────────
+   Tarjetas del directorio público en el selector de perfiles: perfiles
+   registrados de otras cuentas, visibles incluso sin sesión (vista
+   profiles_directory). Reutilizan la base .user-card.profile-foreign;
+   aquí solo el matiz que las distingue.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* Las tarjetas del directorio reutilizan la piel atenuada de .profile-foreign
+   (opacidad, saturación reducida) pero, a diferencia de un perfil GENUINAMENTE
+   bloqueado por otra cuenta, SÍ deben ser interactivas: al pulsarlas se abre
+   el login. .profile-foreign fija pointer-events:none ("el click no llega ni
+   al JS") — hay que revertirlo aquí explícitamente. */
+.user-card.profile-directory {
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+.user-directory-badge {
+    margin-top: 6px;
+    font-size: 0.66rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(168, 198, 255, 0.55);
+    text-align: center;
+}
+
+.user-card.profile-directory:hover .user-directory-badge {
+    color: rgba(214, 230, 255, 0.85);
+}

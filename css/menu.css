@@ -117,6 +117,7 @@
     animation: contentReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
     /* Evita que el contenido quede tapado por el footer fijo */
     max-height: calc(100vh - 80px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
+    max-height: calc(100dvh - 80px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px));
     overflow-y: auto;
     overflow-x: hidden;
     padding-bottom: 4px;
@@ -906,6 +907,9 @@
     .pwa-standalone .menu-center-content,
     body.is-pwa .menu-center-content {
         max-height: calc(100vh - 100px
+            - env(safe-area-inset-bottom, 0px)
+            - env(safe-area-inset-top, 0px));
+        max-height: calc(100dvh - 100px
             - env(safe-area-inset-bottom, 0px)
             - env(safe-area-inset-top, 0px));
         padding-top: 8px;

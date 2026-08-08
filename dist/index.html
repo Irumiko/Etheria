@@ -2,6 +2,47 @@
 <html lang="es" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <script>
+    /* ── Capturador de errores de emergencia ──────────────────────────────
+       Si algo en el arranque de la app lanza una excepción no atrapada,
+       la pantalla se queda en blanco sin ninguna pista visible. Este script
+       corre ANTES que cualquier otro: si algo revienta, muestra el error
+       como texto legible en pantalla en vez de dejar solo el fondo.
+       No afecta al funcionamiento normal si todo va bien — se borra solo
+       en cuanto la app arranca correctamente. ── */
+    (function () {
+        var shown = false;
+        function showFatal(msg, src, line, col) {
+            if (shown) return;
+            shown = true;
+            var box = document.createElement('div');
+            box.id = 'etheriaFatalError';
+            box.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(8,6,20,0.97);' +
+                'color:#f0e6ff;font:13px/1.5 monospace;padding:20px;overflow:auto;white-space:pre-wrap;' +
+                'word-break:break-word;';
+            box.textContent = '⚠ Error al iniciar Etheria\n\n' +
+                'Mensaje: ' + msg + '\n' +
+                (src ? 'Archivo: ' + src + '\n' : '') +
+                (line ? 'Línea: ' + line + (col ? ':' + col : '') + '\n' : '') +
+                '\n— Haz una captura de esta pantalla y compártela para poder arreglarlo. —';
+            document.body ? document.body.appendChild(box) : document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(box); });
+        }
+        window.addEventListener('error', function (e) {
+            showFatal(e.message, e.filename, e.lineno, e.colno);
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+            var reason = e.reason;
+            showFatal((reason && (reason.message || reason.toString())) || 'Promesa rechazada sin motivo', null, null, null);
+        });
+        // Si la app arranca con éxito, quitar el aviso (por si hubo un error
+        // no fatal recuperado) al cabo de unos segundos de actividad normal
+        window.addEventListener('etheria:section-changed', function () {
+            var box = document.getElementById('etheriaFatalError');
+            if (box) box.remove();
+            shown = false;
+        });
+    })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#1a1815">
     <!-- PWA -->
@@ -200,7 +241,7 @@ body { font-family: var(--font-body); background: var(--bg-primary); color: var(
 #topicsSection,
 #gallerySection,
 #optionsSection,
-#bondsSection { min-height: 100vh; }
+#bondsSection { min-height: 100vh; min-height: 100dvh; }
 
 
 /* -- css/pwa.css -- */
@@ -224,6 +265,7 @@ body,
 #optionsSection,
 #gallerySection {
     min-height: 100vh;
+    min-height: 100dvh;
 }
 
 /* Ajustes PWA scopeados */
@@ -934,6 +976,18 @@ body,
                         </div>
                         <div class="opt-row">
                             <span class="opt-label" id="optProfileStats" style="font-size:11px;color:var(--cel-text-muted)"></span>
+                        </div>
+
+                        <div class="opt-subhead">Mantenimiento</div>
+                        <div class="opt-row opt-row-stacked">
+                            <span class="opt-label">Forzar actualización</span>
+                            <p class="opt-status-note" style="margin-bottom:8px;">
+                                Si la app se ve desactualizada o "atascada" tras un cambio,
+                                esto limpia la memoria guardada de la aplicación (sin tocar
+                                tu sesión ni tus datos, que viven en la nube) y recarga limpio.
+                            </p>
+                            <button class="opt-btn" id="optForceUpdateBtn" onclick="forceAppUpdate()">✦ Purificar y recargar</button>
+                            <p id="optForceUpdateStatus" class="opt-status-note"></p>
                         </div>
 
                         <div class="opt-subhead">Seguridad</div>
@@ -2327,10 +2381,10 @@ body,
             <div class="editor-container">
                 <div class="editor-preview">
                     <div class="editor-preview-image" id="editorPreviewImage">
-                        <span style="font-size: 5rem;">👤</span>
+                        <span class="atelier-placeholder-glyph">✦</span>
                     </div>
-                    <div class="editor-preview-name" id="editorPreviewName">Nuevo Personaje</div>
-                    <div class="editor-preview-hint">Vista previa en tiempo real</div>
+                    <div class="editor-preview-name" id="editorPreviewName">Alma sin nombre</div>
+                    <div class="editor-preview-hint">el retrato cobra forma al escribir</div>
                 </div>
 
                 <div class="editor-form">
@@ -2338,13 +2392,13 @@ body,
 
                     <div class="editor-tabs">
                         <button class="editor-tab active" onclick="switchEditorTab('identity', this)">
-                            <span>👤</span> Identidad
+                            <span>✦</span> Identidad
                         </button>
                         <button class="editor-tab" onclick="switchEditorTab('biography', this)">
-                            <span>📖</span> Biografía
+                            <span>☾</span> Biografía
                         </button>
                         <button class="editor-tab" onclick="switchEditorTab('notes', this)">
-                            <span>📝</span> Notas
+                            <span>⚜</span> Notas
                         </button>
                     </div>
 
@@ -2414,7 +2468,7 @@ body,
                                     <div style="display:flex; gap:0.5rem; align-items:center;">
                                         <input type="text" id="charAvatar" oninput="updatePreview()" style="flex:1;">
                                         <label class="avatar-upload-btn" title="Subir imagen a Supabase Storage" style="cursor:pointer; padding:0.4rem 0.7rem; border:1px solid rgba(201,168,108,0.35); border-radius:8px; font-size:0.75rem; color:rgba(201,168,108,0.85); white-space:nowrap; flex-shrink:0;">
-                                            ⬆ Subir
+                                            ✦ Retrato
                                             <input type="file" accept="image/*" style="display:none;" onchange="uploadAvatarForChar(this)">
                                         </label>
                                     </div>
@@ -2426,7 +2480,7 @@ body,
                                 <div style="display:flex; gap:0.5rem; align-items:center;">
                                     <input type="text" id="charSprite" style="flex:1;">
                                     <label class="avatar-upload-btn" title="Subir sprite a Supabase Storage" style="cursor:pointer; padding:0.4rem 0.7rem; border:1px solid rgba(201,168,108,0.35); border-radius:8px; font-size:0.75rem; color:rgba(201,168,108,0.85); white-space:nowrap; flex-shrink:0;">
-                                        ⬆ Subir
+                                        ☾ Completo
                                         <input type="file" accept="image/*" style="display:none;" onchange="uploadSpriteForChar(this)">
                                     </label>
                                 </div>
@@ -2457,9 +2511,9 @@ body,
                     </div>
 
                     <div class="editor-actions">
-                        <button onclick="closeModal('characterModal')" class="btn-secondary">Cancelar</button>
-                        <button id="deleteCharBtn" onclick="deleteCharFromModal()" class="btn-danger" style="display: none;">🗑️ Borrar</button>
-                        <button onclick="saveCharacter()" class="btn-primary">💾 Guardar Personaje</button>
+                        <button onclick="closeModal('characterModal')" class="btn-secondary">Cerrar</button>
+                        <button id="deleteCharBtn" onclick="deleteCharFromModal()" class="btn-danger" style="display: none;">✕ Borrar</button>
+                        <button onclick="saveCharacter()" class="btn-primary">✦ Sellar personaje</button>
                     </div>
                 </div>
             </div>
@@ -2602,23 +2656,6 @@ body,
 
 
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.0/dist/umd/supabase.js" integrity="sha384-3wY11tldQ5+yWqAvmTN4XtQvnjoTva0cV15O/O/O5NTtp0ivVopSzLOzsVXWZse9" crossorigin="anonymous" onerror="console.warn('[Etheria] supabase-js no pudo cargar — modo local activo'); window.__supabaseFailed=true;"></script>
-
-
-
-
-
-
-    
-    
-    
-
-
-
-
-
-
-
 
 
 
@@ -2628,6 +2665,24 @@ body,
 
 
     
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

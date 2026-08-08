@@ -5,4 +5,4 @@
 #topicsSection,
 #gallerySection,
 #optionsSection,
-#bondsSection { min-height: 100vh; }
+#bondsSection { min-height: 100vh; min-height: 100dvh; }
