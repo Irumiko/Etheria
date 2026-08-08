@@ -81,21 +81,6 @@ const LEGACY_MENU_CSS_ORDER = [
 const STATIC_ASSETS = [
   ['manifest.json', 'manifest.json'],
   ['sw.js', 'sw.js'],
-  ['assets/icons/icon-192.png', 'assets/icons/icon-192.png'],
-  ['assets/icons/icon-512.png', 'assets/icons/icon-512.png'],
-  ['assets/backgrounds/menu_background.jpg', 'assets/backgrounds/menu_background.jpg'],
-  ['assets/backgrounds/default_background.jpg', 'assets/backgrounds/default_background.jpg'],
-  ['assets/backgrounds/rpg_background.png', 'assets/backgrounds/rpg_background.png'],
-  ['assets/backgrounds/topics_night_sky.jpg', 'assets/backgrounds/topics_night_sky.jpg'],
-  ['assets/backgrounds/profile_selector_bg.png', 'assets/backgrounds/profile_selector_bg.png'],
-  ['assets/parallax/layer_bg.png', 'assets/parallax/layer_bg.png'],
-  ['assets/parallax/layer_mid.png', 'assets/parallax/layer_mid.png'],
-  ['assets/parallax/layer_fg.png', 'assets/parallax/layer_fg.png'],
-  ['assets/parallax/layer_bg_night.png', 'assets/parallax/layer_bg_night.png'],
-  ['assets/parallax/layer_mid_night.png', 'assets/parallax/layer_mid_night.png'],
-  ['assets/parallax/layer_fg_night.png', 'assets/parallax/layer_fg_night.png'],
-  ['assets/ui/ethy.svg', 'assets/ui/ethy.svg'],
-  ['assets/backgrounds/hub-valley.png', 'assets/backgrounds/hub-valley.png'],
 ];
 
 function readFile(relPath) { return fs.readFileSync(path.join(root, relPath), 'utf8'); }
@@ -270,6 +255,24 @@ if (rpgSegments.length > 0) {
 
 console.log('\n  Assets:');
 STATIC_ASSETS.forEach(([src, dest]) => { if (copyFile(src, dest)) console.log(`    ${dest}`); });
+
+// Copia recursiva de assets/ — cualquier extensión, incluye subdirectorios
+function copyAssetsDir(srcDir, destDir, relBase) {
+  if (!fs.existsSync(srcDir)) return;
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.readdirSync(srcDir).forEach((f) => {
+    const srcFull  = path.join(srcDir, f);
+    const destFull = path.join(destDir, f);
+    const rel      = relBase ? `${relBase}/${f}` : f;
+    if (fs.statSync(srcFull).isDirectory()) {
+      copyAssetsDir(srcFull, destFull, rel);
+    } else {
+      fs.copyFileSync(srcFull, destFull);
+      console.log(`    assets/${rel}`);
+    }
+  });
+}
+copyAssetsDir(path.join(root, 'assets'), path.join(distDir, 'assets'), '');
 
 // Copia recursiva de js/scenes/ — incluye subdirectorios como events/
 function copyJsonDir(srcDir, destDir, relBase) {

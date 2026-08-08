@@ -1,0 +1,19 @@
+<svg width='140' height='140' xmlns='http://www.w3.org/2000/svg' version='1.1'>
+  <rect width='100%' height='100%' fill='transparent'/>
+  <circle cx='70' cy='70' r='69.75' fill='transparent' stroke='#c9a86c' stroke-width='1.5'/>
+
+  <!-- Small diamonds -->
+  <polygon points='70,4 73,12 67,12' fill='#f6dda0'/>
+  <polygon points='135,70 127,73 127,67' fill='#f6dda0'/>
+  <polygon points='70,135 73,127 67,127' fill='#f6dda0'/>
+  <polygon points='4,70 12,73 12,67' fill='#f6dda0'/>
+
+  <!-- Dashed lines -->
+  <line x1='70' y1='10' x2='70' y2='30' stroke='#f6dda0' stroke-width='1' stroke-dasharray='5'/>
+  <line x1='130' y1='70' x2='110' y2='70' stroke='#f6dda0' stroke-width='1' stroke-dasharray='5'/>
+  <line x1='70' y1='130' x2='70' y2='110' stroke='#f6dda0' stroke-width='1' stroke-dasharray='5'/>
+  <line x1='10' y1='70' x2='30' y2='70' stroke='#f6dda0' stroke-width='1' stroke-dasharray='5'/>
+
+  <!-- Central circle for avatar -->
+  <circle cx='70' cy='70' r='49' fill='transparent'/>
+</svg>
