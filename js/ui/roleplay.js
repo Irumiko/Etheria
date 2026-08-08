@@ -187,14 +187,9 @@ function shouldShowAffinity() {
 // ============================================
 // SISTEMA DE AFINIDAD MEJORADO
 // ============================================
-function getAffinityRankInfo(value) {
-    for (let rank of affinityRanks) {
-        if (value >= rank.min && value <= rank.max) {
-            return rank;
-        }
-    }
-    return affinityRanks[0];
-}
+// getAffinityRankInfo() vive en js/utils/state.js (versión consciente de
+// ramas/reciprocidad). No redeclarar aquí — state.js carga antes y una
+// redeclaración posterior la sobreescribiría silenciosamente.
 
 function getAffinityIncrement(currentValue, direction) {
     const rankInfo = getAffinityRankInfo(currentValue);
