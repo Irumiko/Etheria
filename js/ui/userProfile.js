@@ -118,7 +118,7 @@
 
     async function _buildProfileData(userId) {
         const isSelf     = String(userId) === String(global._cachedUserId);
-        const participant = (global.currentStoryParticipants || [])
+        const participant = ((typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : null) || [])
             .find(p => String(p.user_id) === String(userId)) || {};
         const profile     = participant.profile || {};
         const displayName = profile.name || String(userId).slice(0, 8);
@@ -159,7 +159,7 @@
         if (isSelf && typeof getRpgSheetData === 'function') {
             const topic = _currentTopic();
             if (topic) {
-                const myParticipant = (global.currentStoryParticipants || [])
+                const myParticipant = ((typeof currentStoryParticipants !== 'undefined' ? currentStoryParticipants : null) || [])
                     .find(p => String(p.user_id) === String(userId));
                 if (myParticipant) {
                     const lockMap = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
@@ -590,6 +590,18 @@
             }
 
             btn.addEventListener('click', function() {
+                // RPG + personaje propio + puntos libres → abrir modal de distribución directamente
+                if (_isRpg() && isMe && typeof getRpgSheetData === 'function') {
+                    const topicId = (typeof currentTopicId !== 'undefined' ? currentTopicId : null)
+                        || (window.vnStore && window.vnStore.get().topicId);
+                    if (topicId) {
+                        const sheet = getRpgSheetData(char, topicId);
+                        if (sheet && sheet.freePoints > 0) {
+                            if (typeof openUserProfileModal === 'function') openUserProfileModal(userId);
+                            return;
+                        }
+                    }
+                }
                 if (typeof CharPopover !== 'undefined') {
                     CharPopover.toggle(String(char.id), btn);
                 } else if (userId && typeof openUserProfileModal === 'function') {
@@ -633,8 +645,8 @@
 
     // Actualizar party clásico cuando cambia la presencia online (usuarios entran/salen)
     window.addEventListener('etheria:story-presence-changed', function () {
-        if (!_isRpg() && global.currentStoryParticipants) {
-            renderClassicParty(global.currentStoryParticipants);
+        if (!_isRpg() && typeof currentStoryParticipants !== 'undefined' && currentStoryParticipants) {
+            renderClassicParty(currentStoryParticipants);
         }
     });
 

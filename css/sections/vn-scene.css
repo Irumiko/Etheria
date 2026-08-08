@@ -1412,7 +1412,6 @@ body.theme-classic #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap,
 body.theme-rpg     #vnSection .vn-dialogue-box .vn-speaker-avatar-wrap {
     display: none !important;
 }
-}
 /* Aro propio del avatar — Azar (ámbar/bronce) */
 body.theme-rpg #vnSection .vn-dialogue-box #vnSpeakerAvatar {
     border-color: rgba(227,162,79,.6) !important;

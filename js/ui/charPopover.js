@@ -147,37 +147,39 @@ const CharPopover = (function () {
                 </div>`;
 
         } else {
-            // Afinidad unidireccional: cómo ve MI personaje a ESTE personaje
-            if (!isMe && myId) {
+            if (isMe) {
+                bodyHtml = `<div class="cp-popover-badge cp-popover-badge-me">Tu personaje</div>`;
+            } else if (myId) {
                 const aff = _getAffinityData(myId, String(charId));
                 if (aff && aff.rank) {
                     const icon  = aff.rank.icon  || '';
                     const rname = aff.rank.name   || '';
                     const color = aff.rank.color  || '#9b59b6';
-                    const needsRecip = aff.rank.requiresReciprocity;
-                    const isUnilateralCap = aff.rank.unilateralCap;
-
-                    // Indicador sutil si estamos en el techo unilateral
-                    const capHint = isUnilateralCap
+                    const capHint = aff.rank.unilateralCap
                         ? `<span class="cp-popover-aff-hint">Sin reciprocidad</span>`
                         : '';
-
+                    const pct = Math.min(100, Math.max(0, Math.round((Number(aff.value) / 100) * 100)));
                     bodyHtml = `
-                        <div class="cp-popover-affinity" style="--aff-color:${_esc(color)}">
-                            <span class="cp-popover-aff-icon">${_esc(icon)}</span>
-                            <div class="cp-popover-aff-info">
-                                <span class="cp-popover-aff-name">${_esc(rname)}</span>
-                                ${capHint}
+                        <div class="cp-popover-aff-section">
+                            <span class="cp-popover-aff-label">Vínculo</span>
+                            <div class="cp-popover-affinity" style="--aff-color:${_esc(color)}">
+                                <span class="cp-popover-aff-icon">${_esc(icon)}</span>
+                                <div class="cp-popover-aff-info">
+                                    <span class="cp-popover-aff-name">${_esc(rname)}</span>
+                                    ${capHint}
+                                </div>
+                            </div>
+                            <div class="cp-popover-aff-bar-wrap">
+                                <div class="cp-popover-aff-bar" style="width:${pct}%;background:${_esc(color)}"></div>
                             </div>
                         </div>`;
                 } else {
-                    bodyHtml = `<div class="cp-popover-affinity cp-popover-aff-unknown">
-                        <span class="cp-popover-aff-icon">○</span>
-                        <span class="cp-popover-aff-name">Desconocidos</span>
-                    </div>`;
+                    bodyHtml = `
+                        <div class="cp-popover-affinity cp-popover-aff-unknown">
+                            <span class="cp-popover-aff-icon">○</span>
+                            <span class="cp-popover-aff-name">Desconocidos</span>
+                        </div>`;
                 }
-            } else if (isMe) {
-                bodyHtml = `<p class="cp-popover-me">Tu personaje</p>`;
             }
         }
 

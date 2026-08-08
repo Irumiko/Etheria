@@ -14,7 +14,7 @@
 /* ── Contenedor ──────────────────────────────────────────────────── */
 #vnSection #charPopover {
     position: absolute;
-    width: 220px;
+    width: 260px;
     background: rgba(8, 6, 22, .97);
     border: 1px solid rgba(201, 168, 108, .28);
     border-radius: 14px;
@@ -162,6 +162,49 @@ body.theme-rpg #vnSection #charPopover {
     color: rgba(243, 236, 218, .4);
     text-align: center;
     padding: 2px 0;
+}
+
+/* ── Sección de vínculo ──────────────────────────────────────────── */
+#vnSection .cp-popover-aff-section {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+#vnSection .cp-popover-aff-label {
+    font-family: 'Cinzel', serif;
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(243, 236, 218, .3);
+}
+
+/* Barra de intensidad de afinidad */
+#vnSection .cp-popover-aff-bar-wrap {
+    height: 4px;
+    background: rgba(255, 255, 255, .08);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+#vnSection .cp-popover-aff-bar {
+    height: 100%;
+    border-radius: 999px;
+    transition: width .4s cubic-bezier(.2, .8, .3, 1);
+    min-width: 4px;
+}
+
+/* ── Badge "Tu personaje" ────────────────────────────────────────── */
+#vnSection .cp-popover-badge-me {
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(193, 168, 236, .6);
+    text-align: center;
+    padding: 5px 0 2px;
 }
 
 /* ── Stats RPG ───────────────────────────────────────────────────── */
