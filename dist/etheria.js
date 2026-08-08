@@ -6138,8 +6138,10 @@ function resetVNTransientState({ clearTopic = false } = {}) {
         if (typeof clearTypingState === 'function') clearTypingState();
         if (typeof cancelContinuousRead === 'function') cancelContinuousRead('exit-topic');
         if (typeof updateRoomCodeUI === 'function') updateRoomCodeUI(null);
+        // supabaseCycles.js ya se desuscribe solo al escuchar este mismo evento
+        // internamente (no expone reset() en su API pública — llamarlo rompía
+        // TODA transición de sección con un TypeError no capturado).
         window.dispatchEvent(new CustomEvent('etheria:topic-leave'));
-        if (typeof SupabaseCycles !== 'undefined') SupabaseCycles.reset();
         // Cerrar canales Realtime de presencia y mensajes de la historia
         if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.leaveStory === 'function') {
             SupabaseStories.leaveStory();
