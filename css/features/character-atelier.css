@@ -380,12 +380,16 @@
    aquí su estilo.
    ═════════════════════════════════════════════════════════════════════════ */
 
-/* ── El modal entero: noche mística con polvo de constelación ── */
+/* ── El modal entero: noche mística con polvo de constelación ──
+   Las motas se confinan a las esquinas/bordes (no al centro): a partir de
+   ~880px de alto, con las filas del formulario ocupando toda la franja
+   central, una mota a 55%/85% caía literalmente encima de un campo y se
+   leía como un "." suelto entre los inputs. */
 #characterModal .character-modal {
     background:
-        radial-gradient(1px 1px at 15% 20%, rgba(220, 205, 255, 0.4), transparent),
-        radial-gradient(1px 1px at 80% 65%, rgba(220, 205, 255, 0.32), transparent),
-        radial-gradient(1.5px 1.5px at 55% 85%, rgba(220, 205, 255, 0.3), transparent),
+        radial-gradient(1px 1px at 6% 5%, rgba(220, 205, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 94% 6%, rgba(220, 205, 255, 0.32), transparent),
+        radial-gradient(1.5px 1.5px at 50% 98%, rgba(220, 205, 255, 0.3), transparent),
         linear-gradient(175deg, rgba(28, 21, 54, 0.97), rgba(14, 10, 30, 0.98)) !important;
     border: 1px solid rgba(160, 128, 224, 0.32) !important;
     border-radius: 20px !important;
@@ -593,11 +597,56 @@
 /* ── COSTADO DERECHO: formulario narrativo ── */
 #characterModal .editor-form { padding: 22px 24px !important; }
 
+/* .editor-content trae su propio padding:2rem base (03-topic-cards.css) que
+   se SUMABA al de .editor-form de arriba — el contenido quedaba con ~56px
+   de margen por lado mientras las pestañas, un nivel por encima, solo tenían
+   24px. Resultado: las filas del formulario se veían más estrechas y
+   descentradas que la barra de pestañas justo encima. Se neutraliza aquí
+   para que ambas compartan el mismo margen y el conjunto se sienta alineado. */
+#characterModal .editor-content { padding: 0 2px !important; }
+
 #characterModal .editor-tabs {
     gap: 6px !important;
     border-bottom: 1px solid rgba(160, 128, 224, 0.2) !important;
     padding-bottom: 10px !important;
     margin-bottom: 16px !important;
+}
+
+/* Fila huérfana: cuando character-atelier.js extrae "Color" de su fila
+   junto a "Avatar URL", el campo restante quedaba solo en la columna
+   izquierda de la grid 1fr/1fr, dejando la mitad derecha vacía y la fila
+   con pinta rota. Si un .form-row se queda con un único .form-group, que
+   ocupe las dos columnas en vez de dejar hueco. */
+#characterModal .form-row > .form-group:only-child {
+    grid-column: 1 / -1;
+}
+
+/* Respiración algo mayor entre filas — se sentían apelotonadas */
+#characterModal .form-row,
+#characterModal .editor-panel > .form-group {
+    margin-bottom: 1.3rem !important;
+}
+
+/* Separador "Apariencia": agrupa visualmente Avatar/Sprite URL, que quedan
+   sueltos al final de Identidad tras mover género/color/subidas al costado */
+#characterModal .form-row:has(#charAvatar) {
+    position: relative;
+    margin-top: 1.6rem !important;
+    padding-top: 1.3rem;
+    border-top: 1px dashed rgba(160, 128, 224, 0.18);
+}
+#characterModal .form-row:has(#charAvatar)::before {
+    content: 'Apariencia';
+    position: absolute;
+    top: -0.6rem;
+    left: 0.1rem;
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-variant: small-caps;
+    letter-spacing: 0.1em;
+    font-size: 0.62rem;
+    color: rgba(190, 175, 230, 0.55);
+    background: rgba(14, 10, 30, 0.95);
+    padding: 0 0.5rem 0 0;
 }
 #characterModal .editor-tab {
     border-radius: 999px !important;
