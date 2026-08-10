@@ -28573,8 +28573,23 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 #characterModal .editor-container {
     display: grid !important;
     grid-template-columns: 300px 1fr !important;
+    /* Sin fila explícita, un grid con "auto" (su valor por defecto) crece
+       para caber el contenido de sus hijos, ignorando el height:70vh que
+       .editor-container ya trae de base (03-topic-cards.css) — por eso
+       min-height:0 en los hijos no bastaba: la fila en sí seguía creciendo
+       más allá de esos 70vh y el pie de botones acababa fuera del área
+       visible (character-modal recorta con overflow:hidden). Con una única
+       fila "1fr" la fila SÍ ocupa el alto real del contenedor, y entonces
+       .editor-content (flex:1, overflow-y:auto) hace scroll interno de
+       verdad en vez de forzar todo el bloque hacia abajo. */
+    /* OJO: "1fr" a secas es taquigrafía de "minmax(auto, 1fr)" — el mínimo
+       "auto" se sigue calculando desde el contenido, así que la fila
+       igual crecía. Hace falta el mínimo explícito en 0 para que la fila
+       respete de verdad el alto del contenedor. */
+    grid-template-rows: minmax(0, 1fr) !important;
     gap: 0 !important;
     align-items: stretch !important;
+    min-height: 0;
 }
 
 /* ── COSTADO IZQUIERDO: el retrato ── */
@@ -28712,7 +28727,18 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 }
 
 /* ── COSTADO DERECHO: formulario narrativo ── */
-#characterModal .editor-form { padding: 22px 24px !important; }
+/* min-height:0 es obligatorio aquí: .editor-form es ahora item de un grid
+   (.editor-container, 70vh de alto) y por defecto los items de grid/flex
+   tienen min-height:auto, es decir "no encojas por debajo de tu contenido".
+   Sin este reset, .editor-form crecía para caber TODO su contenido en vez
+   de respetar los 70vh y dejar que .editor-content (flex:1, overflow-y:auto)
+   hiciera scroll interno — el formulario entero se salía por abajo y
+   .character-modal (overflow:hidden, max-height:90vh) recortaba el pie de
+   botones sin avisar, en vez de mostrar scroll. */
+#characterModal .editor-form {
+    padding: 22px 24px !important;
+    min-height: 0;
+}
 
 /* .editor-content trae su propio padding:2rem base (03-topic-cards.css) que
    se SUMABA al de .editor-form de arriba — el contenido quedaba con ~56px
@@ -28720,7 +28746,11 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
    24px. Resultado: las filas del formulario se veían más estrechas y
    descentradas que la barra de pestañas justo encima. Se neutraliza aquí
    para que ambas compartan el mismo margen y el conjunto se sienta alineado. */
-#characterModal .editor-content { padding: 0 2px !important; }
+#characterModal .editor-content { padding: 0 2px !important; min-height: 0; }
+
+/* El pie de botones (Cerrar/Borrar/Sellar) nunca debe encogerse ni ceder
+   espacio al contenido scrollable de encima */
+#characterModal .editor-actions { flex-shrink: 0; }
 
 #characterModal .editor-tabs {
     gap: 6px !important;
