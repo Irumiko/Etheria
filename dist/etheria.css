@@ -28687,8 +28687,8 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     border: 1px solid rgba(160, 128, 224, 0.32) !important;
     border-radius: 20px !important;
     box-shadow: 0 20px 60px rgba(5, 0, 20, 0.6), inset 0 0 80px rgba(100, 70, 180, 0.05) !important;
-    max-width: 880px !important;
-    width: min(880px, 94vw) !important;
+    max-width: 960px !important;
+    width: min(960px, 94vw) !important;
     position: relative;
 }
 
@@ -28755,22 +28755,29 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 
 #characterModal .editor-container {
     display: grid !important;
-    grid-template-columns: 240px 1fr !important;
+    grid-template-columns: 300px 1fr !important;
     gap: 0 !important;
     align-items: stretch !important;
 }
 
 /* ── COSTADO IZQUIERDO: el retrato ── */
 #characterModal .editor-preview {
+    /* 03-topic-cards.css (base) trae "width: 35%", pensado para el layout
+       flex previo. Bajo la rejilla del Atelier eso deja el panel a un
+       tercio de su propia columna (35% de 300px = 105px) y todo lo que
+       cuelga de él —retrato, selector de género, color— se desborda del
+       hueco real. Hay que anularlo explícitamente para llenar la columna. */
+    width: 100% !important;
     background: linear-gradient(180deg, rgba(50, 36, 90, 0.35), rgba(20, 14, 40, 0.5)) !important;
     border-right: 1px solid rgba(160, 128, 224, 0.22) !important;
     border-radius: 20px 0 0 20px !important;
-    padding: 26px 20px !important;
+    padding: 28px 28px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 14px !important;
+    gap: 16px !important;
     position: relative;
+    box-sizing: border-box;
 }
 /* Esquinas ornamentales del costado (eco del naipe de tarot) */
 #characterModal .editor-preview::before,
@@ -28786,8 +28793,8 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 
 /* Retrato: marco circular con anillo de constelación */
 #characterModal .editor-preview-image {
-    width: 128px !important;
-    height: 128px !important;
+    width: 152px !important;
+    height: 152px !important;
     border-radius: 50% !important;
     border: 2px solid rgba(180, 150, 240, 0.5) !important;
     background: radial-gradient(circle at 35% 30%, rgba(90, 65, 160, 0.4), rgba(15, 10, 30, 0.8)) !important;
