@@ -392,6 +392,68 @@
     box-shadow: 0 20px 60px rgba(5, 0, 20, 0.6), inset 0 0 80px rgba(100, 70, 180, 0.05) !important;
     max-width: 880px !important;
     width: min(880px, 94vw) !important;
+    position: relative;
+}
+
+/* Ornamento de 4 esquinas en el marco exterior — eco del naipe de tarot,
+   mismo lenguaje visual que la ficha de personaje (character-sheet-atelier.css).
+   Va en .editor-container (no en .character-modal) para no chocar con los
+   pseudo-elementos ::before/::after que theme-classic/theme-rpg ya reservan
+   en .character-modal (vn-mode-identity.css, con !important). */
+#characterModal .editor-container {
+    position: relative;
+}
+#characterModal .editor-container::before,
+#characterModal .editor-container::after {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    pointer-events: none;
+    z-index: var(--z-i-2, 2);
+    --cc: rgba(180, 150, 240, 0.45);
+    background-repeat: no-repeat;
+    background-size: 18px 18px;
+}
+#characterModal .editor-container::before {
+    background-image:
+        linear-gradient(to right, var(--cc) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--cc) 1px, transparent 1px);
+    background-position: top left, top left;
+}
+#characterModal .editor-container::after {
+    background-image:
+        linear-gradient(to left, var(--cc) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--cc) 1px, transparent 1px),
+        linear-gradient(to right, var(--cc) 1px, transparent 1px),
+        linear-gradient(to top, var(--cc) 1px, transparent 1px),
+        linear-gradient(to left, var(--cc) 1px, transparent 1px),
+        linear-gradient(to top, var(--cc) 1px, transparent 1px);
+    background-position:
+        top right, top right,
+        bottom left, bottom left,
+        bottom right, bottom right;
+}
+
+/* Anillo del retrato: pulso ambiental sutil — vivo pero discreto */
+#characterModal .editor-preview-image {
+    animation: atelierPortraitGlow 5s ease-in-out infinite;
+}
+@keyframes atelierPortraitGlow {
+    0%, 100% {
+        box-shadow:
+            0 0 0 4px rgba(20, 14, 34, 0.6),
+            0 0 24px -4px rgba(160, 128, 224, 0.6),
+            inset 0 0 20px rgba(0, 0, 0, 0.4);
+    }
+    50% {
+        box-shadow:
+            0 0 0 4px rgba(20, 14, 34, 0.6),
+            0 0 30px -2px rgba(180, 150, 240, 0.8),
+            inset 0 0 20px rgba(0, 0, 0, 0.4);
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    #characterModal .editor-preview-image { animation: none; }
 }
 
 #characterModal .editor-container {

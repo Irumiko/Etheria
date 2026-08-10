@@ -1,0 +1,253 @@
+/* ═════════════════════════════════════════════════════════════════════════
+   character-sheet-atelier.css — Reskin de la FICHA de personaje (#sheetModal)
+   Misma piel violeta mística que El Atelier (creación, character-atelier.css)
+   y El Elenco (galería): noche con polvo de constelación, tipografía
+   Cinzel/EB Garamond, acentos violeta, ornamentos de esquina tipo tarot.
+   Todo bajo #sheetModal → especificidad (1,1,0) gana siempre a las reglas
+   base de 08-responsive-modals.css sin necesidad de !important en cascada.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+/* ── El modal entero: noche mística con polvo de constelación ── */
+#sheetModal .sheet-modal-v2 {
+    background:
+        radial-gradient(1px 1px at 14% 20%, rgba(220, 205, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 82% 64%, rgba(220, 205, 255, 0.3), transparent),
+        radial-gradient(1.5px 1.5px at 52% 90%, rgba(220, 205, 255, 0.3), transparent),
+        linear-gradient(175deg, rgba(28, 21, 54, 0.97), rgba(14, 10, 30, 0.98));
+    border: 1px solid rgba(160, 128, 224, 0.32);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(5, 0, 20, 0.6), inset 0 0 80px rgba(100, 70, 180, 0.05);
+    position: relative;
+}
+
+/* Ornamento de 4 esquinas — eco del naipe de tarot del Elenco/Atelier */
+#sheetModal .sheet-modal-v2::before,
+#sheetModal .sheet-modal-v2::after {
+    content: '';
+    position: absolute;
+    inset: 12px;
+    pointer-events: none;
+    z-index: var(--z-i-2, 2);
+    --sc: rgba(180, 150, 240, 0.5);
+    background-repeat: no-repeat;
+    background-size: 18px 18px;
+}
+#sheetModal .sheet-modal-v2::before {
+    background-image:
+        linear-gradient(to right, var(--sc) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--sc) 1px, transparent 1px);
+    background-position: top left, top left;
+}
+#sheetModal .sheet-modal-v2::after {
+    background-image:
+        linear-gradient(to left, var(--sc) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--sc) 1px, transparent 1px),
+        linear-gradient(to right, var(--sc) 1px, transparent 1px),
+        linear-gradient(to top, var(--sc) 1px, transparent 1px),
+        linear-gradient(to left, var(--sc) 1px, transparent 1px),
+        linear-gradient(to top, var(--sc) 1px, transparent 1px);
+    background-position:
+        top right, top right,
+        bottom left, bottom left,
+        bottom right, bottom right;
+}
+
+/* ── Header ── */
+#sheetModal .sheet-header-v2 {
+    background: linear-gradient(160deg, rgba(50, 36, 90, 0.35), rgba(20, 14, 40, 0.5));
+    border-bottom: 1px solid rgba(160, 128, 224, 0.22);
+    padding: 1.6rem 1.6rem 1.1rem;
+}
+#sheetModal .sheet-header-v2::before {
+    background: radial-gradient(ellipse 60% 100% at 50% 0%, rgba(160, 128, 224, 0.1), transparent);
+}
+
+#sheetModal .sheet-close-btn {
+    border: 1px solid rgba(160, 128, 224, 0.3);
+    background: rgba(160, 128, 224, 0.08);
+    color: rgba(220, 205, 255, 0.55);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+#sheetModal .sheet-close-btn:hover {
+    background: rgba(220, 80, 60, 0.18);
+    border-color: rgba(220, 80, 60, 0.4);
+    color: rgba(230, 140, 120, 0.95);
+}
+
+/* Retrato: mismo marco circular con anillo de constelación que el Atelier */
+#sheetModal .sheet-avatar-v2 {
+    width: 96px;
+    height: 96px;
+    border: 2px solid rgba(180, 150, 240, 0.55);
+    background: radial-gradient(circle at 35% 30%, rgba(90, 65, 160, 0.4), rgba(15, 10, 30, 0.85));
+    box-shadow:
+        0 0 0 4px rgba(20, 14, 34, 0.55),
+        0 0 24px -4px var(--sheet-char-color, rgba(160, 128, 224, 0.6)),
+        inset 0 0 20px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+#sheetModal .sheet-avatar-initial {
+    color: rgba(210, 190, 250, 0.75);
+    text-shadow: 0 0 18px rgba(160, 128, 224, 0.5);
+}
+
+#sheetModal .sheet-name-v2 {
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-variant: small-caps;
+    letter-spacing: 0.05em;
+    color: #ede8f5;
+    text-shadow: 0 0 16px rgba(160, 128, 224, 0.4);
+}
+#sheetModal .sheet-lastname-badge {
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    color: rgba(200, 185, 235, 0.55);
+}
+#sheetModal .sheet-owner-v2 {
+    color: rgba(190, 175, 230, 0.6);
+}
+#sheetModal .sheet-own-badge {
+    color: rgba(200, 175, 250, 0.95);
+    text-shadow: 0 0 10px rgba(160, 128, 224, 0.4);
+}
+
+/* Chips rápidos — mismo lenguaje que .race-pill del Elenco */
+#sheetModal .quick-stat-v2 {
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.02em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(18, 13, 38, 0.55);
+    border: 1px solid rgba(160, 128, 224, 0.3);
+    color: rgba(210, 195, 245, 0.85);
+    transition: all 0.18s ease;
+}
+#sheetModal .quick-stat-v2.qs-align {
+    background: rgba(var(--align-color, 160, 128, 220), 0.16);
+    border-color: rgba(var(--align-color, 160, 128, 220), 0.45);
+}
+
+/* Cinta de ocupación — pliegue con sombra, tono violeta por defecto */
+#sheetModal .sheet-job-ribbon {
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    color: rgba(240, 230, 255, 0.92);
+    box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Tabs: píldoras como en el Atelier, no subrayado ── */
+#sheetModal .sheet-tabs-v2 {
+    background: rgba(15, 10, 30, 0.5);
+    border-bottom: 1px solid rgba(160, 128, 224, 0.18);
+    gap: 6px;
+    padding: 0.6rem 1rem 0;
+}
+#sheetModal .sheet-tab-v2 {
+    border-radius: 999px 999px 0 0;
+    border-bottom: 2px solid transparent;
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    color: rgba(190, 175, 230, 0.55);
+    flex: 0 1 auto;
+    padding: 0.6rem 1.2rem;
+}
+#sheetModal .sheet-tab-v2:hover {
+    color: #ede8f5;
+    background: rgba(160, 128, 224, 0.06);
+}
+#sheetModal .sheet-tab-v2.active {
+    color: #ede8f5;
+    border-bottom-color: rgba(190, 160, 250, 0.85);
+    background: rgba(160, 128, 224, 0.14);
+    box-shadow: 0 -2px 14px -6px rgba(160, 128, 224, 0.5) inset;
+}
+
+/* ── Body: tarjetas de dato con acento violeta ── */
+#sheetModal .profile-card-item {
+    background: rgba(160, 128, 224, 0.05);
+    border: 1px solid rgba(160, 128, 224, 0.18);
+    border-radius: 10px;
+    transition: border-color 0.18s ease, background 0.18s ease;
+}
+#sheetModal .profile-card-item:hover {
+    border-color: rgba(190, 160, 250, 0.4);
+    background: rgba(160, 128, 224, 0.09);
+}
+#sheetModal .profile-card-label {
+    font-family: 'Inter', sans-serif;
+    color: rgba(190, 175, 230, 0.65);
+}
+#sheetModal .profile-card-value {
+    color: #ede8f5;
+}
+
+#sheetModal .profile-physical-label {
+    font-family: 'Inter', sans-serif;
+    color: rgba(190, 175, 230, 0.6);
+}
+#sheetModal .profile-physical-text,
+#sheetModal .profile-text-v2 {
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    color: rgba(230, 220, 250, 0.85);
+    background: rgba(160, 128, 224, 0.04);
+    border: 1px solid rgba(160, 128, 224, 0.14);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    position: relative;
+}
+#sheetModal .profile-physical-text::before,
+#sheetModal .profile-text-v2:not(:empty)::before {
+    content: '❝';
+    position: absolute;
+    top: -2px;
+    left: 10px;
+    font-size: 1.6rem;
+    color: rgba(160, 128, 224, 0.35);
+    font-family: Georgia, serif;
+}
+#sheetModal .profile-text-v2 {
+    margin: 1.1rem 1.25rem;
+    width: auto;
+}
+#sheetModal .profile-physical-empty {
+    color: rgba(190, 175, 230, 0.45);
+}
+
+/* ── Footer ── */
+#sheetModal .sheet-actions-v2 {
+    border-top: 1px solid rgba(160, 128, 224, 0.18);
+    background: rgba(15, 10, 30, 0.35);
+}
+#sheetModal .sheet-actions-v2 .btn-primary {
+    background: linear-gradient(160deg, rgba(140, 100, 220, 0.4), rgba(90, 60, 170, 0.3));
+    border: 1px solid rgba(190, 160, 250, 0.5);
+    font-family: var(--font-serif, 'EB Garamond', serif);
+    letter-spacing: 0.04em;
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+#sheetModal .sheet-actions-v2 .btn-primary:hover {
+    box-shadow: 0 0 18px -4px rgba(160, 128, 224, 0.6);
+    transform: translateY(-1px);
+}
+
+/* Scrollbar del cuerpo — violeta, coherente con el resto del Atelier */
+#sheetModal .sheet-body-v2 {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(160, 128, 224, 0.3) transparent;
+}
+#sheetModal .sheet-body-v2::-webkit-scrollbar { width: 5px; }
+#sheetModal .sheet-body-v2::-webkit-scrollbar-thumb {
+    background: rgba(160, 128, 224, 0.35);
+    border-radius: 3px;
+}
+
+@media (max-width: 600px) {
+    #sheetModal .sheet-modal-v2::before,
+    #sheetModal .sheet-modal-v2::after { inset: 8px; background-size: 14px 14px; }
+    #sheetModal .sheet-tabs-v2 { padding: 0.5rem 0.6rem 0; overflow-x: auto; }
+    #sheetModal .sheet-tab-v2 { padding: 0.55rem 0.85rem; font-size: 0.78rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #sheetModal .sheet-actions-v2 .btn-primary:hover { transform: none; }
+}
