@@ -480,6 +480,13 @@
     gap: 0 !important;
     align-items: stretch !important;
     min-height: 0;
+    /* .editor-container hereda height:70vh de 03-topic-cards.css (base).
+       Con align-items:stretch, el costado del retrato queda forzado a esa
+       MISMA altura que el formulario — y si su propio contenido (retrato +
+       género + color + subidas) no cabía del todo ahí, algo tenía que ceder.
+       Se sube el alto total de la ficha para que ambos costados respiren
+       sin necesidad de comprimir nada. */
+    height: 78vh !important;
 }
 
 /* ── COSTADO IZQUIERDO: el retrato ── */
@@ -500,6 +507,12 @@
     gap: 16px !important;
     position: relative;
     box-sizing: border-box;
+    min-height: 0;
+    /* Red de seguridad: si en pantallas muy bajas el contenido del costado
+       (retrato+género+color+subidas) sigue sin caber en la altura
+       compartida con el formulario, que haga SU PROPIO scroll interno en
+       vez de comprimir a sus hijos (lo que aplastaba el retrato a óvalo) */
+    overflow-y: auto;
 }
 /* Esquinas ornamentales del costado (eco del naipe de tarot) */
 #characterModal .editor-preview::before,
@@ -513,10 +526,17 @@
 #characterModal .editor-preview::before { top: 12px; left: 12px; border-right: none; border-bottom: none; }
 #characterModal .editor-preview::after  { bottom: 12px; left: 12px; border-right: none; border-top: none; }
 
-/* Retrato: marco circular con anillo de constelación */
+/* Retrato: marco circular con anillo de constelación.
+   flex-shrink:0 + aspect-ratio son la doble protección de la esfera: por
+   defecto un hijo de flex-column puede encogerse en su eje principal
+   (el alto) cuando el costado anda corto de sitio, y como el ancho no se
+   toca, el círculo se aplastaba a óvalo. Con esto, o no se encoge nada,
+   o si algún día tuviera que hacerlo, encoge ambos lados a la vez. */
 #characterModal .editor-preview-image {
     width: 152px !important;
     height: 152px !important;
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0 !important;
     border-radius: 50% !important;
     border: 2px solid rgba(180, 150, 240, 0.5) !important;
     background: radial-gradient(circle at 35% 30%, rgba(90, 65, 160, 0.4), rgba(15, 10, 30, 0.8)) !important;
@@ -770,4 +790,22 @@
     }
     #characterModal .editor-preview-image { width: 88px !important; height: 88px !important; }
     .atelier-side-extras { border-top: none; margin-top: 0; }
+
+    /* En móvil el retrato y el formulario se APILAN (grid-template-columns
+       pasa a 1fr arriba), así que dejan de compartir columna y pasan a
+       compartir FILA: con una sola fila explícita "minmax(0,1fr)" heredada
+       del escritorio, el auto-placement mete el 2º item (.editor-form) en
+       una fila implícita "auto" que se queda con todo el hueco, y la fila
+       explícita del retrato colapsa a 0px — el mismo aplastamiento de
+       antes, pero por ceder TODO el alto en vez de compartirlo mal.
+       Aquí sí tiene sentido: fila 1 "auto" (el retrato mide lo que
+       necesita), fila 2 el resto para el formulario, que ya scrollea
+       internamente por su cuenta (.editor-content). */
+    #characterModal .editor-container {
+        grid-template-rows: auto minmax(0, 1fr) !important;
+        height: 82vh !important;
+    }
+    #characterModal .editor-preview {
+        overflow-y: visible !important;
+    }
 }
