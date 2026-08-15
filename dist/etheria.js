@@ -28858,11 +28858,18 @@ function continueAsGuest() {
 // bundle instalado se queda "atascado" en una versión vieja y el doble
 // cierre/apertura habitual no basta. Especialmente útil en PWA instalado,
 // donde el almacenamiento vive aislado del navegador normal.
-async function forceAppUpdate() {
-    const btn = document.getElementById('optForceUpdateBtn');
+//
+// triggerEl (opcional): el botón que disparó la acción, para poder
+// deshabilitarlo mientras purga sin importar desde dónde se llame —
+// el botón de Opciones (#optForceUpdateBtn) sigue funcionando igual
+// pasando o no el argumento, y el acceso directo del menú principal
+// (#menuForceUpdateBtn) usa el mismo camino.
+async function forceAppUpdate(triggerEl) {
+    const btn = triggerEl || document.getElementById('optForceUpdateBtn');
     const status = document.getElementById('optForceUpdateStatus');
     if (btn) btn.disabled = true;
     if (status) status.textContent = 'Purificando...';
+    else if (typeof showAutosave === 'function') showAutosave('Purificando caché...', 'info');
 
     try {
         // 1) Desregistrar todos los service workers de este origen
@@ -28876,9 +28883,11 @@ async function forceAppUpdate() {
             await Promise.all(keys.map(k => caches.delete(k).catch(() => {})));
         }
         if (status) status.textContent = 'Hecho. Recargando…';
+        else if (typeof showAutosave === 'function') showAutosave('Listo, recargando…', 'saved');
     } catch (err) {
         window.EtheriaLogger?.warn('forceAppUpdate', err?.message);
         if (status) status.textContent = 'Hecho lo posible. Recargando…';
+        else if (typeof showAutosave === 'function') showAutosave('Hecho lo posible, recargando…', 'info');
     }
 
     // 3) Recarga forzada, sin caché de navegador para este documento
