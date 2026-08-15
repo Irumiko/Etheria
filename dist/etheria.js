@@ -5074,10 +5074,12 @@ function openCharacterEditor(charId = null) {
         document.getElementById('charRace').value = c.race || '';
         document.getElementById('charGender').value = c.gender || '';
         document.getElementById('charAlignment').value = c.alignment || '';
+        document.getElementById('charOrientation').value = c.orientation || '';
         document.getElementById('charJob').value = c.job || '';
         document.getElementById('charColor').value = c.color || '#8b7355';
         document.getElementById('charAvatar').value = c.avatar || '';
         document.getElementById('charSprite').value = c.sprite || '';
+        document.getElementById('charTagline').value = c.tagline || '';
         document.getElementById('charBasic').value = c.basic || '';
         document.getElementById('charPersonality').value = c.personality || '';
         document.getElementById('charHistory').value = c.history || '';
@@ -5882,10 +5884,13 @@ function generateParticles() {
 /* js/ui/character-atelier.js */
 // character-atelier.js — Reorganización del Atelier (modal de personaje)
 // Mueve (NO duplica) los campos "sobre el retrato" al panel lateral
-// izquierdo, junto al avatar: género, color, y las subidas de avatar/sprite.
-// Todos conservan su id, atributos y listeners intactos — updatePreview(),
-// selectGender(), saveCharacter() siguen leyendo los mismos elementos.
-// Patrón idéntico al layoutPass() de vn-compose.js: idempotente, aditivo.
+// izquierdo, junto al avatar: género, alineamiento, orientación, color,
+// y las subidas de avatar/sprite (el input de URL manual se oculta del
+// todo — solo queda el botón de subir archivo). Todos conservan su id,
+// atributos y listeners intactos — updatePreview(), selectGender(),
+// saveCharacter() siguen leyendo los mismos elementos por id, estén donde
+// estén en el DOM. Patrón idéntico al layoutPass() de vn-compose.js:
+// idempotente, aditivo.
 (function () {
     'use strict';
 
@@ -5903,21 +5908,44 @@ function generateParticles() {
         const genderGroup = identityTab.querySelector('#charGender')?.closest('.form-group');
         if (genderGroup) extras.appendChild(genderGroup);
 
-        // Color: solo su propio form-group, no toda la fila (el otro miembro
-        // de la fila, Avatar URL, se queda a la derecha)
+        // Alineamiento + Orientación: fila compacta de 2 columnas, para
+        // que quepan datos "menos genéricos" (más volumen) en el lado
+        // derecho sin que el costado se quede corto de sitio.
+        const alignGroup = identityTab.querySelector('#charAlignment')?.closest('.form-group');
+        const orientationGroup = identityTab.querySelector('#charOrientation')?.closest('.form-group');
+        if (alignGroup || orientationGroup) {
+            const miniRow = document.createElement('div');
+            miniRow.className = 'atelier-mini-row';
+            if (alignGroup) miniRow.appendChild(alignGroup);
+            if (orientationGroup) miniRow.appendChild(orientationGroup);
+            extras.appendChild(miniRow);
+        }
+
+        // Color: su propio form-group
         const colorInput = identityTab.querySelector('#charColor');
         const colorGroup = colorInput?.closest('.form-group');
         if (colorGroup) extras.appendChild(colorGroup);
 
-        // Botones de subida (avatar + sprite): extraídos de sus filas:
-        // el input de texto URL se queda en el formulario, el botón de
-        // subida se archiva aquí como acceso directo sobre el retrato
+        // Subidas de avatar/sprite: el botón se archiva aquí. El contenedor
+        // que dejan atrás (con el input de texto de URL manual) se oculta
+        // del todo — ya no tiene sentido un campo de URL si solo se sube
+        // archivo desde el costado. El <input> sigue vivo y con su id,
+        // solo invisible: saveCharacter()/uploadAvatarForChar() lo siguen
+        // leyendo y escribiendo con normalidad.
         const avatarUploadLabel = identityTab.querySelector('.avatar-upload-btn');
         const spriteUploadLabel = identityTab.querySelectorAll('.avatar-upload-btn')[1];
         const uploadsRow = document.createElement('div');
         uploadsRow.className = 'atelier-upload-row';
-        if (avatarUploadLabel) uploadsRow.appendChild(avatarUploadLabel);
-        if (spriteUploadLabel) uploadsRow.appendChild(spriteUploadLabel);
+        if (avatarUploadLabel) {
+            const avatarRow = avatarUploadLabel.closest('.form-row') || avatarUploadLabel.closest('.form-group');
+            uploadsRow.appendChild(avatarUploadLabel);
+            if (avatarRow) avatarRow.style.display = 'none';
+        }
+        if (spriteUploadLabel) {
+            const spriteGroup = spriteUploadLabel.closest('.form-group');
+            uploadsRow.appendChild(spriteUploadLabel);
+            if (spriteGroup) spriteGroup.style.display = 'none';
+        }
         if (uploadsRow.children.length) extras.appendChild(uploadsRow);
 
         preview.appendChild(extras);
@@ -7463,10 +7491,12 @@ function saveCharacter() {
         race: document.getElementById('charRace')?.value.trim() || '',
         gender: document.getElementById('charGender')?.value || '',
         alignment: document.getElementById('charAlignment')?.value || '',
+        orientation: document.getElementById('charOrientation')?.value || '',
         job: document.getElementById('charJob')?.value.trim() || '',
         color: document.getElementById('charColor')?.value || '#8b7355',
         avatar: avatarUrl,
         sprite: spriteUrl,
+        tagline: document.getElementById('charTagline')?.value.trim() || '',
         basic: document.getElementById('charBasic')?.value.trim() || '',
         personality: document.getElementById('charPersonality')?.value.trim() || '',
         history: document.getElementById('charHistory')?.value.trim() || '',

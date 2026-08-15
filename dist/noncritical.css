@@ -28610,19 +28610,21 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     background: linear-gradient(180deg, rgba(50, 36, 90, 0.35), rgba(20, 14, 40, 0.5)) !important;
     border-right: 1px solid rgba(160, 128, 224, 0.22) !important;
     border-radius: 20px 0 0 20px !important;
-    padding: 28px 28px !important;
+    padding: 22px 24px !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    gap: 16px !important;
+    justify-content: center !important;
+    gap: 14px !important;
     position: relative;
     box-sizing: border-box;
     min-height: 0;
-    /* Red de seguridad: si en pantallas muy bajas el contenido del costado
-       (retrato+género+color+subidas) sigue sin caber en la altura
-       compartida con el formulario, que haga SU PROPIO scroll interno en
-       vez de comprimir a sus hijos (lo que aplastaba el retrato a óvalo) */
-    overflow-y: auto;
+    /* Sin scroll a propósito: el costado debe quedar fijo. Con el contenido
+       ya ajustado (retrato más pequeño, filas compactas) cabe sin apretar
+       en cualquier alto razonable; si algún día no cupiera, que se recorte
+       en vez de meter una barra de scroll ahí — mejor eso que un scroll
+       que rompa la sensación de panel "fijo" que se pidió. */
+    overflow: visible;
 }
 /* Esquinas ornamentales del costado (eco del naipe de tarot) */
 #characterModal .editor-preview::before,
@@ -28643,8 +28645,8 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
    toca, el círculo se aplastaba a óvalo. Con esto, o no se encoge nada,
    o si algún día tuviera que hacerlo, encoge ambos lados a la vez. */
 #characterModal .editor-preview-image {
-    width: 152px !important;
-    height: 152px !important;
+    width: 124px !important;
+    height: 124px !important;
     aspect-ratio: 1 / 1;
     flex-shrink: 0 !important;
     border-radius: 50% !important;
@@ -28667,46 +28669,88 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     text-shadow: 0 0 20px rgba(160, 128, 224, 0.5);
 }
 
+/* Bloque retrato+nombre+frase: gap propio y ajustado, para que el nombre
+   quede pegado al retrato en vez del hueco de 14px que comparte con el
+   resto del costado (género/alineamiento/color/subidas) */
+.atelier-portrait-block {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100%;
+}
+
 #characterModal .editor-preview-name {
     font-family: var(--font-serif, 'EB Garamond', serif) !important;
     font-variant: small-caps;
     letter-spacing: 0.06em !important;
-    font-size: 1.15rem !important;
+    font-size: 1.1rem !important;
     color: #ede8f5 !important;
     text-align: center;
     text-shadow: 0 0 16px rgba(160, 128, 224, 0.4);
 }
-#characterModal .editor-preview-hint {
+
+/* Frase característica: reemplaza el texto fijo "el retrato cobra forma
+   al escribir" por un input editable con la misma pinta de acotación
+   discreta — sin caja visible hasta que se usa, para que no compita con
+   el nombre. */
+#characterModal .editor-preview-tagline {
     font-family: var(--font-serif, 'EB Garamond', serif) !important;
     font-style: italic;
-    font-size: 0.72rem !important;
-    color: rgba(200, 185, 235, 0.5) !important;
+    font-size: 0.74rem !important;
+    color: rgba(215, 200, 245, 0.75) !important;
     text-align: center;
-    margin-top: -8px;
+    width: 100%;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px dashed rgba(160, 128, 224, 0.22) !important;
+    border-radius: 0 !important;
+    padding: 2px 4px 4px !important;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+#characterModal .editor-preview-tagline::placeholder {
+    color: rgba(200, 185, 235, 0.4) !important;
+    font-style: italic;
+}
+#characterModal .editor-preview-tagline:hover {
+    border-bottom-color: rgba(160, 128, 224, 0.4) !important;
+}
+#characterModal .editor-preview-tagline:focus {
+    outline: none !important;
+    border-bottom-color: rgba(190, 160, 250, 0.75) !important;
+    background: rgba(160, 128, 224, 0.06) !important;
+    box-shadow: none !important;
 }
 
-/* Extras trasladados aquí por character-atelier.js: género, color, subidas */
+/* Extras trasladados aquí por character-atelier.js: género, alineamiento,
+   orientación, color, subidas */
 .atelier-side-extras {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-top: 4px;
-    padding-top: 14px;
+    gap: 8px;
+    margin-top: 2px;
+    padding-top: 12px;
     border-top: 1px solid rgba(160, 128, 224, 0.18);
 }
+/* .form-group trae margin-bottom:1rem de base (03-topic-cards.css) — se
+   suma al gap de arriba y duplica el espaciado. Aquí el ritmo lo marca
+   solo el gap del flex, así que se anula. */
+.atelier-side-extras .form-group { margin-bottom: 0 !important; }
 .atelier-side-extras label {
     font-variant: small-caps;
     letter-spacing: 0.08em !important;
-    font-size: 0.66rem !important;
+    font-size: 0.64rem !important;
     color: rgba(190, 175, 230, 0.6) !important;
     text-align: center;
     display: block;
+    margin-bottom: 0.25rem !important;
 }
 .atelier-side-extras .gender-selector { justify-content: center !important; }
 .atelier-side-extras .gender-option {
     border: 1px solid rgba(160, 128, 224, 0.28) !important;
     background: rgba(18, 13, 38, 0.5) !important;
+    padding: 0.55rem !important;
     transition: all 0.18s ease !important;
 }
 .atelier-side-extras .gender-option:hover {
@@ -28719,16 +28763,34 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
 }
 .atelier-side-extras input[type="color"] {
     width: 100% !important;
-    height: 36px !important;
+    height: 32px !important;
     border-radius: 8px !important;
     border: 1px solid rgba(160, 128, 224, 0.3) !important;
     background: rgba(18, 13, 38, 0.5) !important;
     cursor: pointer;
 }
+
+/* Alineamiento + Orientación: fila de 2 columnas, compacta */
+.atelier-mini-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+.atelier-mini-row .form-group {
+    flex: 1;
+    min-width: 0;
+}
+.atelier-mini-row select {
+    padding: 0.4rem 0.3rem !important;
+    font-size: 0.72rem !important;
+    height: 32px !important;
+}
+
 .atelier-upload-row {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    flex-direction: row;
+    gap: 8px;
+    margin-top: 4px;
 }
 .atelier-upload-row .avatar-upload-btn {
     border: 1px solid rgba(160, 128, 224, 0.35) !important;
@@ -28738,7 +28800,14 @@ body.theme-rpg .vcb-popover-close:hover { color: rgba(244, 214, 150, 0.95); bord
     text-align: center;
     justify-content: center;
     display: flex !important;
-    width: 100% !important;
+    align-items: center;
+    flex: 1;
+    width: auto !important;
+    padding: 0.5rem 0.4rem !important;
+    font-size: 0.7rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     transition: all 0.18s ease !important;
 }
 .atelier-upload-row .avatar-upload-btn:hover {

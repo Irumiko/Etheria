@@ -1,9 +1,12 @@
 // character-atelier.js — Reorganización del Atelier (modal de personaje)
 // Mueve (NO duplica) los campos "sobre el retrato" al panel lateral
-// izquierdo, junto al avatar: género, color, y las subidas de avatar/sprite.
-// Todos conservan su id, atributos y listeners intactos — updatePreview(),
-// selectGender(), saveCharacter() siguen leyendo los mismos elementos.
-// Patrón idéntico al layoutPass() de vn-compose.js: idempotente, aditivo.
+// izquierdo, junto al avatar: género, alineamiento, orientación, color,
+// y las subidas de avatar/sprite (el input de URL manual se oculta del
+// todo — solo queda el botón de subir archivo). Todos conservan su id,
+// atributos y listeners intactos — updatePreview(), selectGender(),
+// saveCharacter() siguen leyendo los mismos elementos por id, estén donde
+// estén en el DOM. Patrón idéntico al layoutPass() de vn-compose.js:
+// idempotente, aditivo.
 (function () {
     'use strict';
 
@@ -21,21 +24,44 @@
         const genderGroup = identityTab.querySelector('#charGender')?.closest('.form-group');
         if (genderGroup) extras.appendChild(genderGroup);
 
-        // Color: solo su propio form-group, no toda la fila (el otro miembro
-        // de la fila, Avatar URL, se queda a la derecha)
+        // Alineamiento + Orientación: fila compacta de 2 columnas, para
+        // que quepan datos "menos genéricos" (más volumen) en el lado
+        // derecho sin que el costado se quede corto de sitio.
+        const alignGroup = identityTab.querySelector('#charAlignment')?.closest('.form-group');
+        const orientationGroup = identityTab.querySelector('#charOrientation')?.closest('.form-group');
+        if (alignGroup || orientationGroup) {
+            const miniRow = document.createElement('div');
+            miniRow.className = 'atelier-mini-row';
+            if (alignGroup) miniRow.appendChild(alignGroup);
+            if (orientationGroup) miniRow.appendChild(orientationGroup);
+            extras.appendChild(miniRow);
+        }
+
+        // Color: su propio form-group
         const colorInput = identityTab.querySelector('#charColor');
         const colorGroup = colorInput?.closest('.form-group');
         if (colorGroup) extras.appendChild(colorGroup);
 
-        // Botones de subida (avatar + sprite): extraídos de sus filas:
-        // el input de texto URL se queda en el formulario, el botón de
-        // subida se archiva aquí como acceso directo sobre el retrato
+        // Subidas de avatar/sprite: el botón se archiva aquí. El contenedor
+        // que dejan atrás (con el input de texto de URL manual) se oculta
+        // del todo — ya no tiene sentido un campo de URL si solo se sube
+        // archivo desde el costado. El <input> sigue vivo y con su id,
+        // solo invisible: saveCharacter()/uploadAvatarForChar() lo siguen
+        // leyendo y escribiendo con normalidad.
         const avatarUploadLabel = identityTab.querySelector('.avatar-upload-btn');
         const spriteUploadLabel = identityTab.querySelectorAll('.avatar-upload-btn')[1];
         const uploadsRow = document.createElement('div');
         uploadsRow.className = 'atelier-upload-row';
-        if (avatarUploadLabel) uploadsRow.appendChild(avatarUploadLabel);
-        if (spriteUploadLabel) uploadsRow.appendChild(spriteUploadLabel);
+        if (avatarUploadLabel) {
+            const avatarRow = avatarUploadLabel.closest('.form-row') || avatarUploadLabel.closest('.form-group');
+            uploadsRow.appendChild(avatarUploadLabel);
+            if (avatarRow) avatarRow.style.display = 'none';
+        }
+        if (spriteUploadLabel) {
+            const spriteGroup = spriteUploadLabel.closest('.form-group');
+            uploadsRow.appendChild(spriteUploadLabel);
+            if (spriteGroup) spriteGroup.style.display = 'none';
+        }
         if (uploadsRow.children.length) extras.appendChild(uploadsRow);
 
         preview.appendChild(extras);

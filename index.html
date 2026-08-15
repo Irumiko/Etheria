@@ -2154,11 +2154,13 @@
         <div class="character-modal">
             <div class="editor-container">
                 <div class="editor-preview">
-                    <div class="editor-preview-image" id="editorPreviewImage">
-                        <span class="atelier-placeholder-glyph">✦</span>
+                    <div class="atelier-portrait-block">
+                        <div class="editor-preview-image" id="editorPreviewImage">
+                            <span class="atelier-placeholder-glyph">✦</span>
+                        </div>
+                        <div class="editor-preview-name" id="editorPreviewName">Alma sin nombre</div>
+                        <input type="text" id="charTagline" class="editor-preview-tagline" placeholder="una frase que le describa..." maxlength="80">
                     </div>
-                    <div class="editor-preview-name" id="editorPreviewName">Alma sin nombre</div>
-                    <div class="editor-preview-hint">el retrato cobra forma al escribir</div>
                 </div>
 
                 <div class="editor-form">
@@ -2232,11 +2234,30 @@
                                 </div>
                             </div>
 
+                            <div class="form-group">
+                                <label>Orientación</label>
+                                <select id="charOrientation">
+                                    <option value="">Prefiero no decir</option>
+                                    <option value="Heterosexual">Heterosexual</option>
+                                    <option value="Homosexual">Homosexual</option>
+                                    <option value="Bisexual">Bisexual</option>
+                                    <option value="Pansexual">Pansexual</option>
+                                    <option value="Asexual">Asexual</option>
+                                    <option value="Otra">Otra</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Color</label>
+                                <input type="color" id="charColor" value="#8b7355" style="height: 45px; width: 100%;">
+                            </div>
+
+                            <!-- Avatar/Sprite: solo se suben como archivo desde el costado
+                                 izquierdo (atelier-upload-row). Estos inputs se quedan aquí
+                                 ocultos — character-atelier.js mueve los botones y esconde
+                                 el resto — porque saveCharacter()/updatePreview() siguen
+                                 leyendo su valor por id. -->
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label>Color</label>
-                                    <input type="color" id="charColor" value="#8b7355" style="height: 45px; width: 100%;">
-                                </div>
                                 <div class="form-group">
                                     <label>Avatar URL</label>
                                     <div style="display:flex; gap:0.5rem; align-items:center;">
