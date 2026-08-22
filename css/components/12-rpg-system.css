@@ -300,32 +300,6 @@
 }
 
 /* ══════════════════════════════════════════════════════════════
-   BOTÓN BUSCAR MENSAJES (command bar)
-   ══════════════════════════════════════════════════════════════ */
-.btn-global-search {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(255,255,255,0.04);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
-    padding: 0.6rem 1rem;
-    border-radius: 10px;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 500;
-    transition: all 0.2s;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-.btn-global-search:hover {
-    border-color: rgba(160,128,220,0.4);
-    color: var(--accent-gold);
-    background: rgba(160,128,220,0.06);
-}
-
-/* ══════════════════════════════════════════════════════════════
    MODAL BUSCADOR GLOBAL
    ══════════════════════════════════════════════════════════════ */
 .global-search-modal {
