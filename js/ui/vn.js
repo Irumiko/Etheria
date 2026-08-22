@@ -764,6 +764,7 @@ function toggleVnDialogEmotePicker(event) {
     if (!isOpen) {
         // Close on outside click
         setTimeout(() => {
+            if (popover.style.display === 'none') return; // se cerró antes de que esto se ejecutara
             document.addEventListener('click', function _closeDialogEmote(e) {
                 const btn = document.getElementById('vnEmoteDialogBtn');
                 if (!popover.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
@@ -6556,7 +6557,7 @@ async function _loadAndRenderCycleChoicesInPanel(topicId) {
                         ${alreadyResponded ? 'disabled' : ''}
                         onclick="_onCycleOptClick(this)">
                     <span class="vrp-cycle-opt-label">${opt.label}</span>
-                    <span class="vrp-cycle-opt-text">${opt.option_text}</span>
+                    <span class="vrp-cycle-opt-text">${escapeHtml(opt.option_text)}</span>
                 </button>
             `).join('');
 
@@ -6564,7 +6565,7 @@ async function _loadAndRenderCycleChoicesInPanel(topicId) {
                 <div class="vrp-cycle-card ${alreadyResponded ? 'vrp-cycle-card-done' : ''}">
                     <div class="vrp-cycle-card-header">
                         <span class="vrp-cycle-icon">✦</span>
-                        <span class="vrp-cycle-question">${choice.question_text}</span>
+                        <span class="vrp-cycle-question">${escapeHtml(choice.question_text)}</span>
                         ${alreadyResponded
                             ? '<span class="vrp-cycle-responded">Respondida ✓</span>'
                             : ''}
