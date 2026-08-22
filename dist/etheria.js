@@ -4267,6 +4267,7 @@ const AffinityAtmosphere = (function () {
     let _canvas        = null;
     let _ctx           = null;
     let _panelEl       = null;
+    let _resizeObs     = null;
 
     // ── Clase de body + color canónico ───────────────────────────────
     function _setBodyClass(rankName) {
@@ -4305,6 +4306,10 @@ const AffinityAtmosphere = (function () {
         if (_particleAnim) {
             cancelAnimationFrame(_particleAnim);
             _particleAnim = null;
+        }
+        if (_resizeObs) {
+            _resizeObs.disconnect();
+            _resizeObs = null;
         }
         if (_canvas) {
             _canvas.remove();
@@ -4361,8 +4366,8 @@ const AffinityAtmosphere = (function () {
         _initParticles();
 
         // Redimensionar si el panel cambia
-        const _ro = new ResizeObserver(() => _initParticles());
-        _ro.observe(_panelEl);
+        _resizeObs = new ResizeObserver(() => _initParticles());
+        _resizeObs.observe(_panelEl);
 
         function _tick() {
             if (!_ctx || !_canvas) return;
@@ -6525,7 +6530,7 @@ function renderGallery() {
             : '';
 
         return `
-        <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${charColor}; animation-delay:${i * 0.03}s; position:relative;">
+        <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${escapeHtml(charColor)}; animation-delay:${i * 0.03}s; position:relative;">
             <div class="char-card-avatar">
                 ${c.avatar
                     ? `<img data-src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" data-fallback="${escapeHtml((c.name || '?')[0])}" class="char-card-img">`
@@ -11967,6 +11972,7 @@ function toggleVnDialogEmotePicker(event) {
     if (!isOpen) {
         // Close on outside click
         setTimeout(() => {
+            if (popover.style.display === 'none') return; // se cerró antes de que esto se ejecutara
             document.addEventListener('click', function _closeDialogEmote(e) {
                 const btn = document.getElementById('vnEmoteDialogBtn');
                 if (!popover.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
@@ -17759,7 +17765,7 @@ async function _loadAndRenderCycleChoicesInPanel(topicId) {
                         ${alreadyResponded ? 'disabled' : ''}
                         onclick="_onCycleOptClick(this)">
                     <span class="vrp-cycle-opt-label">${opt.label}</span>
-                    <span class="vrp-cycle-opt-text">${opt.option_text}</span>
+                    <span class="vrp-cycle-opt-text">${escapeHtml(opt.option_text)}</span>
                 </button>
             `).join('');
 
@@ -17767,7 +17773,7 @@ async function _loadAndRenderCycleChoicesInPanel(topicId) {
                 <div class="vrp-cycle-card ${alreadyResponded ? 'vrp-cycle-card-done' : ''}">
                     <div class="vrp-cycle-card-header">
                         <span class="vrp-cycle-icon">✦</span>
-                        <span class="vrp-cycle-question">${choice.question_text}</span>
+                        <span class="vrp-cycle-question">${escapeHtml(choice.question_text)}</span>
                         ${alreadyResponded
                             ? '<span class="vrp-cycle-responded">Respondida ✓</span>'
                             : ''}
@@ -23150,14 +23156,17 @@ const SupabaseProfiles = (function () {
     // Guardamos el último userId conocido en caché local para comparaciones síncronas.
     let _cachedUserId = null;
     let _activeProfileId = null;
+    let _authVersion = 0; // se incrementa en cada 'etheria:auth-changed' para invalidar llamadas en vuelo
 
     async function _getCurrentUser() {
         const sb = _client();
         if (!sb) return null;
+        const versionAtCall = _authVersion;
         try {
             const { data, error } = await sb.auth.getUser();
             if (error || !data?.user) return null;
-            _cachedUserId = data.user.id;
+            // Descarta el resultado si hubo un cambio de sesión mientras la llamada estaba en vuelo
+            if (versionAtCall === _authVersion) _cachedUserId = data.user.id;
             return data.user;
         } catch { return null; }
     }
@@ -23576,6 +23585,7 @@ const SupabaseProfiles = (function () {
 
         // Re-cargar y re-activar cuando el usuario cambia de sesión
         window.addEventListener('etheria:auth-changed', (e) => {
+            _authVersion++; // invalida cualquier _getCurrentUser() en vuelo de la sesión anterior
             const userId = e.detail?.user?.id || null;
             if (!userId) {
                 _cachedUserId = null;

@@ -219,22 +219,6 @@ body:has(#topicsSection.active) {
     transform: translateY(-1px) !important;
 }
 
-/* ── 7. BOTÓN BUSCAR GLOBAL ──────────────────────────────────────────────
-   Misma paleta que Gestionar.                                            */
-#topicsSection .btn-global-search {
-    background: linear-gradient(145deg, rgba(28, 18, 58, 0.88), rgba(16, 10, 38, 0.94)) !important;
-    border: 1px solid rgba(175, 160, 225, 0.40) !important;
-    color: rgba(195, 185, 235, 0.85) !important;
-    border-radius: 6px !important;
-    box-shadow: inset 0 1px 0 rgba(210, 205, 245, 0.18), 0 3px 10px rgba(0, 0, 0, 0.38) !important;
-}
-#topicsSection .btn-global-search:hover {
-    border-color: rgba(205, 195, 245, 0.65) !important;
-    color: #d4ccf8 !important;
-    box-shadow: 0 0 16px rgba(150, 120, 215, 0.22), inset 0 1px 0 rgba(220, 215, 252, 0.28), 0 4px 12px rgba(0, 0, 0, 0.42) !important;
-    transform: translateY(-1px) !important;
-}
-
 /* ── 8. BUSCADOR ─────────────────────────────────────────────────────────
    menu-gamefeel.css → .topics-search-wrap con borde ámbar;
                         .topics-search-input con color: #efe4ca (ámbar).  */
@@ -369,11 +353,6 @@ body:has(#topicsSection.active) {
     color: rgba(160, 128, 220, 0.38) !important;
 }
 
-/* ── 13. TARJETAS TAROT — hover sin fondo ámbar ─────────────────────── */
-#topicsSection .topic-card:hover {
-    box-shadow: 0 22px 36px rgba(0, 0, 0, 0.40), 0 0 0 1px rgba(180, 160, 235, 0.16) !important;
-}
-
 /* ── 14. RESPONSIVE ──────────────────────────────────────────────────── */
 @media (max-width: 900px) {
     #topicsSection .topics-command-bar {
@@ -381,8 +360,7 @@ body:has(#topicsSection.active) {
         padding: 0.42rem !important;
     }
     #topicsSection .btn-create-topic,
-    #topicsSection .btn-manage-topics,
-    #topicsSection .btn-global-search {
+    #topicsSection .btn-manage-topics {
         border-radius: 5px !important;
     }
 }

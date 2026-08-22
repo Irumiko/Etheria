@@ -26,14 +26,17 @@ const SupabaseProfiles = (function () {
     // Guardamos el último userId conocido en caché local para comparaciones síncronas.
     let _cachedUserId = null;
     let _activeProfileId = null;
+    let _authVersion = 0; // se incrementa en cada 'etheria:auth-changed' para invalidar llamadas en vuelo
 
     async function _getCurrentUser() {
         const sb = _client();
         if (!sb) return null;
+        const versionAtCall = _authVersion;
         try {
             const { data, error } = await sb.auth.getUser();
             if (error || !data?.user) return null;
-            _cachedUserId = data.user.id;
+            // Descarta el resultado si hubo un cambio de sesión mientras la llamada estaba en vuelo
+            if (versionAtCall === _authVersion) _cachedUserId = data.user.id;
             return data.user;
         } catch { return null; }
     }
@@ -452,6 +455,7 @@ const SupabaseProfiles = (function () {
 
         // Re-cargar y re-activar cuando el usuario cambia de sesión
         window.addEventListener('etheria:auth-changed', (e) => {
+            _authVersion++; // invalida cualquier _getCurrentUser() en vuelo de la sesión anterior
             const userId = e.detail?.user?.id || null;
             if (!userId) {
                 _cachedUserId = null;

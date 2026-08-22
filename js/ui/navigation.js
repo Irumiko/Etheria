@@ -550,7 +550,7 @@ function renderGallery() {
             : '';
 
         return `
-        <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${charColor}; animation-delay:${i * 0.03}s; position:relative;">
+        <div class="char-card-v2" onclick="openSheet('${c.id}')" style="--card-color:${escapeHtml(charColor)}; animation-delay:${i * 0.03}s; position:relative;">
             <div class="char-card-avatar">
                 ${c.avatar
                     ? `<img data-src="${escapeHtml(c.avatar)}" alt="${escapeHtml(c.name)}" loading="lazy" data-fallback="${escapeHtml((c.name || '?')[0])}" class="char-card-img">`
