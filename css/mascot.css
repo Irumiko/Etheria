@@ -71,6 +71,14 @@
 }
 .ethy-body:active { transform: scale(0.95); }
 
+/* Halo dorado en el avatar mientras la burbuja está abierta — une
+   visualmente avatar + burbuja como un solo conjunto (medallón + pergamino)
+   en vez de dos piezas sueltas. */
+.ethy-container.ethy-bubble-open .ethy-body {
+    filter: drop-shadow(0 4px 18px rgba(124, 77, 255, 0.30))
+            drop-shadow(0 0 14px rgba(232, 200, 120, 0.55));
+}
+
 /* SVG inline de Ethy */
 .ethy-svg {
     width: 100%;
@@ -176,14 +184,15 @@
     bottom: 100%;
     right: 0;
     margin-bottom: 12px;
-    background: linear-gradient(160deg, rgba(30, 20, 56, 0.94) 0%, rgba(16, 10, 38, 0.96) 100%);
+    background: linear-gradient(100deg, rgba(124, 77, 255, 0.16) 0%, rgba(30, 20, 56, 0.94) 45%, rgba(16, 10, 38, 0.96) 100%);
     border: 1px solid rgba(124, 77, 255, 0.38);
-    /* Misma familia de forma que .ethy-tutorial-panel: esquina inferior
-       derecha achatada como guiño direccional hacia el avatar, en vez del
-       clip-path de burbuja de cómic que usaba antes. */
-    border-radius: 14px 14px 4px 14px;
-    padding: 12px 18px 16px;
-    min-width: 240px;
+    /* Misma silueta "ticket" que .hub-menu-item en el menú principal: dos
+       esquinas opuestas cortadas — el lenguaje ornamentado real de las
+       tarjetas de la app, en vez del clip-path de cómic (4 cortes + cola)
+       que usaba antes. */
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    padding: 14px 20px 18px;
+    min-width: 250px;
     max-width: 340px;
     color: #f3eeff;
     font-family: 'Cormorant Garamond', 'Crimson Text', serif;
@@ -191,8 +200,8 @@
     line-height: 1.65;
     box-shadow:
         0 8px 32px rgba(0, 0, 0, 0.50),
-        0 0 0 1px rgba(124, 77, 255, 0.12) inset,
-        0 0 26px rgba(124, 77, 255, 0.16);
+        0 0 0 1px rgba(124, 77, 255, 0.14) inset,
+        0 0 26px rgba(124, 77, 255, 0.18);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     opacity: 0;
@@ -211,15 +220,28 @@
     display: none;
 }
 
-/* Título en la burbuja — banda de cabecera separada, como en .ethy-tp-header */
+/* Esquinas ornamentadas en L — mismo motivo que .hub-menu-item del menú
+   principal (clip-path recorta también estas puntas junto a las dos
+   esquinas cortadas, dando el remate diagonal natural). */
+.ethy-corner {
+    position: absolute;
+    width: 13px;
+    height: 13px;
+    pointer-events: none;
+    border-color: rgba(232, 200, 120, 0.60);
+    opacity: 0.85;
+}
+.ethy-corner.tl { top: 5px;    left: 5px;  border-top: 1px solid;    border-left: 1px solid; }
+.ethy-corner.tr { top: 5px;    right: 5px; border-top: 1px solid;    border-right: 1px solid; }
+.ethy-corner.bl { bottom: 5px; left: 5px;  border-bottom: 1px solid; border-left: 1px solid; }
+.ethy-corner.br { bottom: 5px; right: 5px; border-bottom: 1px solid; border-right: 1px solid; }
+
+/* Título en la burbuja */
 .ethy-speech-bubble .ethy-title {
     font-family: 'Outfit', sans-serif;
     font-size: 0.625rem;
     font-weight: 700;
     color: var(--cel-gold, #e8c878);
-    margin: 0 -18px 10px;
-    padding: 0 18px 8px;
-    border-bottom: 1px solid rgba(124, 77, 255, 0.16);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -256,46 +278,63 @@
     background: rgba(124, 77, 255, 0.20);
 }
 
-/* Botones de acción en la burbuja */
+/* Divisor ornamental bajo el título — mismo asset que el diálogo VN */
+.ethy-title-divider {
+    height: 10px;
+    margin: 9px -20px 7px;
+    background-image: url('../../assets/divider-ornament-sm.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    opacity: 0.55;
+}
+
+/* Botones de acción — lista vertical tipo menú, no fila de pastillas */
 .ethy-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 15px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 14px;
 }
 
 .ethy-btn {
-    padding: 7px 14px;
-    border: 1px solid rgba(124, 77, 255, 0.45);
-    background: rgba(124, 77, 255, 0.08);
+    padding: 8px 12px;
+    border: 1px solid rgba(124, 77, 255, 0.28);
+    border-left: 2px solid rgba(124, 77, 255, 0.32);
+    background: linear-gradient(100deg, rgba(124, 77, 255, 0.05), rgba(124, 77, 255, 0.13));
     color: rgba(203, 182, 255, 0.9);
-    border-radius: 9px;
+    border-radius: 6px;
     cursor: pointer;
     font-family: 'Cinzel', serif;
     font-size: 0.78rem;
     letter-spacing: 0.04em;
-    box-shadow: inset 0 1px 0 rgba(203, 182, 255, 0.10);
-    transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
+    text-align: left;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, padding-left 0.18s;
 }
 
 .ethy-btn:hover {
-    background: rgba(124, 77, 255, 0.20);
-    border-color: rgba(183, 148, 246, 0.75);
+    background: linear-gradient(100deg, rgba(124, 77, 255, 0.15), rgba(124, 77, 255, 0.25));
+    border-left-color: rgba(244, 217, 138, 0.85);
     color: rgba(245, 215, 120, 1);
-    box-shadow: inset 0 1px 0 rgba(245, 215, 120, 0.14);
+    padding-left: 16px;
 }
 
 .ethy-btn.primary {
-    background: rgba(124, 77, 255, 0.22);
-    border-color: rgba(183, 148, 246, 0.70);
+    padding: 10px 14px;
+    border: 1px solid rgba(183, 148, 246, 0.55);
+    border-left: 3px solid rgba(232, 200, 120, 0.75);
+    background: linear-gradient(100deg, rgba(124, 77, 255, 0.30) 0%, rgba(90, 60, 180, 0.32) 100%);
     color: rgba(244, 217, 138, 1);
-    box-shadow: inset 0 1px 0 rgba(244, 217, 138, 0.16);
+    font-size: 0.82rem;
+    box-shadow:
+        inset 0 1px 0 rgba(244, 217, 138, 0.18),
+        0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
 .ethy-btn.primary:hover {
-    background: rgba(124, 77, 255, 0.34);
-    border-color: rgba(244, 217, 138, 0.90);
-    box-shadow: inset 0 1px 0 rgba(244, 217, 138, 0.22);
+    background: linear-gradient(100deg, rgba(124, 77, 255, 0.42) 0%, rgba(90, 60, 180, 0.44) 100%);
+    border-left-color: rgba(244, 217, 138, 1);
+    padding-left: 18px;
 }
 
 /* Textarea del formulario de sugerencias */
@@ -430,22 +469,13 @@
         left: auto;
     }
 
-    .ethy-speech-bubble .ethy-title {
-        margin: 0 -15px 8px;
-        padding: 0 15px 8px;
-    }
-
-    /* Fix: botones en columna en móvil para evitar overflow horizontal */
-    .ethy-actions {
-        flex-direction: column;
-        gap: 6px;
+    .ethy-title-divider {
+        margin: 8px -15px 6px;
     }
 
     .ethy-btn {
-        width: 100%;
         padding: 7px 10px;
         font-size: 0.78rem;
-        text-align: center;
     }
 }
 

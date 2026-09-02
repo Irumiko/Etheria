@@ -405,10 +405,15 @@ const Ethy = (function() {
         _bubble = document.createElement('div');
         _bubble.className = 'ethy-speech-bubble';
         _bubble.innerHTML = `
+            <span class="ethy-corner tl"></span>
+            <span class="ethy-corner tr"></span>
+            <span class="ethy-corner bl"></span>
+            <span class="ethy-corner br"></span>
             <div class="ethy-title">
                 <span class="ethy-title-label"><span class="ethy-title-gem">◆</span> Ethy</span>
                 <button class="ethy-bubble-close" title="Cerrar" aria-label="Cerrar">✕</button>
             </div>
+            <div class="ethy-title-divider"></div>
             <div class="ethy-content"></div>
             <div class="ethy-actions"></div>
             <div class="ethy-steps"></div>
@@ -1047,6 +1052,7 @@ const Ethy = (function() {
         // Mostrar burbuja — marcar flag para evitar cierre inmediato
         _bubbleJustOpened = true;
         _bubble.classList.add('visible');
+        _container.classList.add('ethy-bubble-open');
         setTimeout(() => { _bubbleJustOpened = false; }, 50);
 
         // Efecto de escritura
@@ -1080,6 +1086,7 @@ const Ethy = (function() {
 
     function hideBubble() {
         _bubble.classList.remove('visible');
+        _container.classList.remove('ethy-bubble-open');
         if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
         if (_autocloseTimeout) { clearTimeout(_autocloseTimeout); _autocloseTimeout = null; }
         _isTyping = false;
@@ -1385,6 +1392,7 @@ const Ethy = (function() {
 
         _bubbleJustOpened = true;
         _bubble.classList.add('visible');
+        _container.classList.add('ethy-bubble-open');
         setTimeout(() => { _bubbleJustOpened = false; }, 50);
 
         const content = _bubble.querySelector('.ethy-content');
