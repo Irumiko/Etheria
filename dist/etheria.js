@@ -6665,6 +6665,128 @@ window.addEventListener('etheria:story-presence-changed', function () {
 
 }(window));
 
+/* js/utils/bugReport.js */
+// ============================================================
+// Etheria — Reporte de bugs y recomendaciones a la administradora
+// ============================================================
+// Envía a la Edge Function `send-report` (guarda en la tabla
+// bug_reports de Supabase y manda un email vía Resend).
+//
+// Deliberadamente NO depende de supabaseClient.js: usa fetch directo
+// con la clave pública (anon/publishable), para poder llamarse incluso
+// cuando la app ha petado durante el arranque y el resto del JS no
+// ha llegado a cargar (ver capturador de errores en index.html).
+//
+// API: window.EtheriaBugReport.send({
+//     type: 'bug' | 'recommendation',
+//     message, error_message, error_stack, section,
+//     includeScreenshot: true (por defecto)
+// }) → Promise<{ ok: boolean }>
+// ============================================================
+(function (global) {
+    'use strict';
+
+    const SECTION_IDS = [
+        'userSelectScreen', 'mainMenu', 'gallerySection',
+        'topicsSection', 'vnSection', 'optionsSection', 'saveHubSection'
+    ];
+
+    function _cfg() {
+        const c = global.SUPABASE_CONFIG || {};
+        return {
+            url: c.url || 'https://timtqdrfeuzwwixfnudj.supabase.co',
+            key: c.key || 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3'
+        };
+    }
+
+    function _detectSection() {
+        try {
+            for (const id of SECTION_IDS) {
+                const el = document.getElementById(id);
+                if (el && (el.classList.contains('active') || (el.style.display !== 'none' && !el.classList.contains('hidden')))) {
+                    return id;
+                }
+            }
+        } catch (e) { /* noop */ }
+        return null;
+    }
+
+    function _loadHtml2Canvas() {
+        return new Promise(function (resolve) {
+            if (typeof global.html2canvas === 'function') { resolve(true); return; }
+            const script = document.createElement('script');
+            script.src = 'assets/vendor/html2canvas-1.4.1.min.js';
+            script.onload = function () { resolve(true); };
+            script.onerror = function () { resolve(false); };
+            document.head.appendChild(script);
+        });
+    }
+
+    async function _captureScreenshot() {
+        try {
+            const loaded = await _loadHtml2Canvas();
+            if (!loaded || typeof global.html2canvas !== 'function') return null;
+            const canvas = await global.html2canvas(document.body, {
+                scale: 0.5,
+                logging: false,
+                useCORS: true,
+                backgroundColor: null,
+                foreignObjectRendering: true,
+                ignoreElements: function (el) { return el.id === 'etheriaFatalError'; }
+            });
+            return canvas.toDataURL('image/jpeg', 0.55);
+        } catch (e) {
+            console.warn('[EtheriaBugReport] No se pudo capturar pantalla:', e && e.message);
+            return null;
+        }
+    }
+
+    /**
+     * Envía un reporte de bug o recomendación.
+     * @param {object} opts
+     * @returns {Promise<{ok: boolean, data?: object, error?: string}>}
+     */
+    async function send(opts) {
+        opts = opts || {};
+        const cfg = _cfg();
+
+        const payload = {
+            type: opts.type === 'recommendation' ? 'recommendation' : 'bug',
+            message: opts.message || null,
+            page: (typeof location !== 'undefined' ? location.href : null),
+            section: opts.section || _detectSection(),
+            error_message: opts.error_message || null,
+            error_stack: opts.error_stack || null,
+            user_agent: (typeof navigator !== 'undefined' ? navigator.userAgent : null),
+            app_version: null,
+            reporter_email: opts.reporter_email || null
+        };
+
+        if (opts.includeScreenshot !== false) {
+            payload.screenshot_base64 = await _captureScreenshot();
+        }
+
+        try {
+            const res = await fetch(cfg.url + '/functions/v1/send-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': cfg.key,
+                    'Authorization': 'Bearer ' + cfg.key
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(function () { return {}; });
+            return { ok: res.ok && data.ok !== false, data: data };
+        } catch (e) {
+            return { ok: false, error: e && e.message };
+        }
+    }
+
+    global.EtheriaBugReport = { send: send };
+
+})(window);
+
 /* js/ui/storyExport.js */
 // ============================================================
 // Etheria — Story Export
@@ -30349,11 +30471,18 @@ const Ethy = (function() {
         _bubble = document.createElement('div');
         _bubble.className = 'ethy-speech-bubble';
         _bubble.innerHTML = `
-            <div class="ethy-title"><span class="ethy-title-gem">◆</span> Ethy</div>
+            <div class="ethy-title">
+                <span class="ethy-title-label"><span class="ethy-title-gem">◆</span> Ethy</span>
+                <button class="ethy-bubble-close" title="Cerrar" aria-label="Cerrar">✕</button>
+            </div>
             <div class="ethy-content"></div>
             <div class="ethy-actions"></div>
             <div class="ethy-steps"></div>
         `;
+        _bubble.querySelector('.ethy-bubble-close').addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideBubble();
+        });
 
         // Botón de minimizar (✕ pequeño sobre la cabeza de Ethy)
         const _minimizeBtn = document.createElement('button');
@@ -31298,7 +31427,8 @@ const Ethy = (function() {
         say('¿En qué puedo ayudarte?', {
             expression: 'happy',
             buttons: [
-                { text: 'Ver tutorial', primary: true, close: false, action: () => {
+                { text: 'Consejo rápido', primary: true, close: false, action: () => showRandomTip() },
+                { text: 'Ver tutorial', close: false, action: () => {
                     if (currentSection && TUTORIALS[currentSection]) {
                         // Fix: usar _seenTutorials.delete() en vez de mutar el objeto tutorial
                         _seenTutorials.delete(currentSection);
@@ -31307,10 +31437,49 @@ const Ethy = (function() {
                         say('Para esta sección aún no tengo nada que enseñarte.', { expression: 'sad', duration: 3000 });
                     }
                 }},
-                { text: 'Consejo rápido', close: false, action: () => showRandomTip() },
-                { text: 'Cerrar' }
+                { text: '💡 Sugerencia', close: false, action: () => _showFeedbackForm() }
             ]
         });
+    }
+
+    // ── Formulario de sugerencias — reutiliza la burbuja de say() ────────────
+    function _showFeedbackForm() {
+        setExpression('thoughtful');
+        if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
+        if (_autocloseTimeout) { clearTimeout(_autocloseTimeout); _autocloseTimeout = null; }
+        _isTyping = false;
+
+        _bubbleJustOpened = true;
+        _bubble.classList.add('visible');
+        setTimeout(() => { _bubbleJustOpened = false; }, 50);
+
+        const content = _bubble.querySelector('.ethy-content');
+        const actions = _bubble.querySelector('.ethy-actions');
+
+        content.innerHTML = '<textarea class="ethy-feedback-input" maxlength="1000" placeholder="Cuéntame tu idea o sugerencia..."></textarea>';
+        actions.innerHTML = '';
+
+        const textarea = content.querySelector('.ethy-feedback-input');
+        setTimeout(() => textarea.focus(), 50);
+
+        const sendBtn = document.createElement('button');
+        sendBtn.className = 'ethy-btn primary';
+        sendBtn.textContent = 'Enviar';
+        sendBtn.addEventListener('click', async () => {
+            const message = textarea.value.trim();
+            if (!message) { textarea.focus(); return; }
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Enviando…';
+            const result = (typeof EtheriaBugReport !== 'undefined')
+                ? await EtheriaBugReport.send({ type: 'recommendation', message, includeScreenshot: false })
+                : { ok: false };
+            if (result.ok) {
+                say('¡Gracias! Ya se lo he hecho llegar a la administradora.', { expression: 'love', duration: 4000 });
+            } else {
+                say('No he podido enviarlo — inténtalo de nuevo más tarde.', { expression: 'sad', duration: 4000 });
+            }
+        });
+        actions.appendChild(sendBtn);
     }
 
     function _detectCurrentSection() {

@@ -12,7 +12,58 @@
        en cuanto la app arranca correctamente. ── */
     (function () {
         var shown = false;
-        function showFatal(msg, src, line, col) {
+
+        // Reporte autónomo — este script corre ANTES que bugReport.js, así que
+        // no puede depender de window.EtheriaBugReport. Usa fetch directo con
+        // la clave pública (anon/publishable), igual que js/utils/bugReport.js.
+        var SUPA_URL = 'https://timtqdrfeuzwwixfnudj.supabase.co';
+        var SUPA_KEY = 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3';
+
+        function _ignoreFatalBox(el) { return el && el.id === 'etheriaFatalError'; }
+
+        function _postReport(msg, stack, screenshot, btn) {
+            fetch(SUPA_URL + '/functions/v1/send-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },
+                body: JSON.stringify({
+                    type: 'bug',
+                    error_message: msg,
+                    error_stack: stack || null,
+                    page: location.href,
+                    user_agent: navigator.userAgent,
+                    screenshot_base64: screenshot || null
+                })
+            }).then(function (res) {
+                btn.textContent = res.ok ? '✓ Reporte enviado' : '✗ No se pudo enviar';
+            }).catch(function () {
+                btn.textContent = '✗ No se pudo enviar (sin conexión)';
+            });
+        }
+
+        function _sendFatalReport(msg, stack, btn) {
+            btn.disabled = true;
+            btn.textContent = 'Enviando…';
+
+            function withScreenshot() {
+                try {
+                    html2canvas(document.body, { scale: 0.5, logging: false, useCORS: true, foreignObjectRendering: true, ignoreElements: _ignoreFatalBox })
+                        .then(function (canvas) { _postReport(msg, stack, canvas.toDataURL('image/jpeg', 0.55), btn); })
+                        .catch(function () { _postReport(msg, stack, null, btn); });
+                } catch (e) { _postReport(msg, stack, null, btn); }
+            }
+
+            if (typeof html2canvas === 'function') {
+                withScreenshot();
+            } else {
+                var s = document.createElement('script');
+                s.src = 'assets/vendor/html2canvas-1.4.1.min.js';
+                s.onload = withScreenshot;
+                s.onerror = function () { _postReport(msg, stack, null, btn); };
+                document.head.appendChild(s);
+            }
+        }
+
+        function showFatal(msg, src, line, col, stack) {
             if (shown) return;
             shown = true;
             var box = document.createElement('div');
@@ -20,19 +71,31 @@
             box.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(8,6,20,0.97);' +
                 'color:#f0e6ff;font:13px/1.5 monospace;padding:20px;overflow:auto;white-space:pre-wrap;' +
                 'word-break:break-word;';
-            box.textContent = '⚠ Error al iniciar Etheria\n\n' +
+
+            var text = document.createElement('div');
+            text.textContent = '⚠ Error al iniciar Etheria\n\n' +
                 'Mensaje: ' + msg + '\n' +
                 (src ? 'Archivo: ' + src + '\n' : '') +
                 (line ? 'Línea: ' + line + (col ? ':' + col : '') + '\n' : '') +
-                '\n— Haz una captura de esta pantalla y compártela para poder arreglarlo. —';
+                '\n— Haz una captura de esta pantalla y compártela, o pulsa el botón de abajo para enviarnos el reporte (incluye una captura automática). —';
+            box.appendChild(text);
+
+            var btn = document.createElement('button');
+            btn.textContent = '📩 Notificar error';
+            btn.style.cssText = 'margin-top:16px;padding:8px 18px;background:rgba(124,77,255,0.25);' +
+                'border:1px solid rgba(124,77,255,0.6);color:#f0e6ff;border-radius:8px;cursor:pointer;' +
+                'font:13px monospace;';
+            btn.addEventListener('click', function () { _sendFatalReport(msg, stack, btn); });
+            box.appendChild(btn);
+
             document.body ? document.body.appendChild(box) : document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(box); });
         }
         window.addEventListener('error', function (e) {
-            showFatal(e.message, e.filename, e.lineno, e.colno);
+            showFatal(e.message, e.filename, e.lineno, e.colno, e.error && e.error.stack);
         });
         window.addEventListener('unhandledrejection', function (e) {
             var reason = e.reason;
-            showFatal((reason && (reason.message || reason.toString())) || 'Promesa rechazada sin motivo', null, null, null);
+            showFatal((reason && (reason.message || reason.toString())) || 'Promesa rechazada sin motivo', null, null, null, reason && reason.stack);
         });
         // Si la app arranca con éxito, quitar el aviso (por si hubo un error
         // no fatal recuperado) al cabo de unos segundos de actividad normal
@@ -2456,6 +2519,7 @@
 <script src="js/ui/character-atelier.js"></script>
 <script src="js/ui/navigation.js"></script>
 <script src="js/utils/imageCompressor.js"></script>
+<script src="js/utils/bugReport.js"></script>
 <script src="js/ui/storyExport.js"></script>
 <script src="js/ui/sheets.js"></script>
 <script src="assets/vendor/supabase-2.110.0.js" onerror="console.warn('[Etheria] supabase-js no pudo cargar — modo local activo'); window.__supabaseFailed=true;"></script>

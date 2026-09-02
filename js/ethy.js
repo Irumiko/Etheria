@@ -405,11 +405,18 @@ const Ethy = (function() {
         _bubble = document.createElement('div');
         _bubble.className = 'ethy-speech-bubble';
         _bubble.innerHTML = `
-            <div class="ethy-title"><span class="ethy-title-gem">◆</span> Ethy</div>
+            <div class="ethy-title">
+                <span class="ethy-title-label"><span class="ethy-title-gem">◆</span> Ethy</span>
+                <button class="ethy-bubble-close" title="Cerrar" aria-label="Cerrar">✕</button>
+            </div>
             <div class="ethy-content"></div>
             <div class="ethy-actions"></div>
             <div class="ethy-steps"></div>
         `;
+        _bubble.querySelector('.ethy-bubble-close').addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideBubble();
+        });
 
         // Botón de minimizar (✕ pequeño sobre la cabeza de Ethy)
         const _minimizeBtn = document.createElement('button');
@@ -1354,7 +1361,8 @@ const Ethy = (function() {
         say('¿En qué puedo ayudarte?', {
             expression: 'happy',
             buttons: [
-                { text: 'Ver tutorial', primary: true, close: false, action: () => {
+                { text: 'Consejo rápido', primary: true, close: false, action: () => showRandomTip() },
+                { text: 'Ver tutorial', close: false, action: () => {
                     if (currentSection && TUTORIALS[currentSection]) {
                         // Fix: usar _seenTutorials.delete() en vez de mutar el objeto tutorial
                         _seenTutorials.delete(currentSection);
@@ -1363,10 +1371,49 @@ const Ethy = (function() {
                         say('Para esta sección aún no tengo nada que enseñarte.', { expression: 'sad', duration: 3000 });
                     }
                 }},
-                { text: 'Consejo rápido', close: false, action: () => showRandomTip() },
-                { text: 'Cerrar' }
+                { text: '💡 Sugerencia', close: false, action: () => _showFeedbackForm() }
             ]
         });
+    }
+
+    // ── Formulario de sugerencias — reutiliza la burbuja de say() ────────────
+    function _showFeedbackForm() {
+        setExpression('thoughtful');
+        if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
+        if (_autocloseTimeout) { clearTimeout(_autocloseTimeout); _autocloseTimeout = null; }
+        _isTyping = false;
+
+        _bubbleJustOpened = true;
+        _bubble.classList.add('visible');
+        setTimeout(() => { _bubbleJustOpened = false; }, 50);
+
+        const content = _bubble.querySelector('.ethy-content');
+        const actions = _bubble.querySelector('.ethy-actions');
+
+        content.innerHTML = '<textarea class="ethy-feedback-input" maxlength="1000" placeholder="Cuéntame tu idea o sugerencia..."></textarea>';
+        actions.innerHTML = '';
+
+        const textarea = content.querySelector('.ethy-feedback-input');
+        setTimeout(() => textarea.focus(), 50);
+
+        const sendBtn = document.createElement('button');
+        sendBtn.className = 'ethy-btn primary';
+        sendBtn.textContent = 'Enviar';
+        sendBtn.addEventListener('click', async () => {
+            const message = textarea.value.trim();
+            if (!message) { textarea.focus(); return; }
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Enviando…';
+            const result = (typeof EtheriaBugReport !== 'undefined')
+                ? await EtheriaBugReport.send({ type: 'recommendation', message, includeScreenshot: false })
+                : { ok: false };
+            if (result.ok) {
+                say('¡Gracias! Ya se lo he hecho llegar a la administradora.', { expression: 'love', duration: 4000 });
+            } else {
+                say('No he podido enviarlo — inténtalo de nuevo más tarde.', { expression: 'sad', duration: 4000 });
+            }
+        });
+        actions.appendChild(sendBtn);
     }
 
     function _detectCurrentSection() {
