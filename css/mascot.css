@@ -461,37 +461,6 @@
     color: #f2e4c0;
 }
 
-/* Tooltip de ayuda contextual */
-.ethy-tooltip {
-    position: absolute;
-    background: rgba(26, 24, 21, 0.95);
-    border: 1px solid var(--cel-violet, #7c4dff);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 0.8rem;
-    color: #e8d5a3;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-    z-index: var(--z-max);
-}
-
-.ethy-tooltip.visible {
-    opacity: 1;
-}
-
-/* Barra de progreso del tutorial */
-.ethy-progress {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--cel-violet, #7c4dff), var(--cel-violet-soft, #b794f6));
-    transition: width 0.3s ease;
-    z-index: calc(var(--z-max) + 1);
-}
-
 /* Overlay de enfoque */
 .ethy-focus-overlay {
     position: fixed;

@@ -18204,37 +18204,6 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     color: #f2e4c0;
 }
 
-/* Tooltip de ayuda contextual */
-.ethy-tooltip {
-    position: absolute;
-    background: rgba(26, 24, 21, 0.95);
-    border: 1px solid var(--cel-violet, #7c4dff);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 0.8rem;
-    color: #e8d5a3;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-    z-index: var(--z-max);
-}
-
-.ethy-tooltip.visible {
-    opacity: 1;
-}
-
-/* Barra de progreso del tutorial */
-.ethy-progress {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--cel-violet, #7c4dff), var(--cel-violet-soft, #b794f6));
-    transition: width 0.3s ease;
-    z-index: calc(var(--z-max) + 1);
-}
-
 /* Overlay de enfoque */
 .ethy-focus-overlay {
     position: fixed;
@@ -31790,63 +31759,6 @@ body:has(#topicsSection.active) {
 }
 #mainMenu .hub-menu-item.primary .hub-item-arrow { opacity: 0.7; color: var(--cel-gold-glow); }
 #mainMenu .hub-menu-item:hover .hub-item-arrow { opacity: 1; transform: translateX(0); color: var(--cel-gold-glow); }
-
-/* ── Ethy ───────────────────────────────────────────────── */
-#mainMenu .cel-ethy { position: absolute; left: 96px; top: 250px; }
-#mainMenu .cel-ethy .float { animation: cel-bob 6s ease-in-out infinite; }
-@keyframes cel-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
-#mainMenu .ethy-speech-bubble {
-  position: relative; width: 252px; margin-bottom: 18px; padding: 15px 18px 16px;
-  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-  background: linear-gradient(135deg, rgba(36,21,68,0.78), rgba(16,10,38,0.74));
-  backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%);
-  box-shadow: 0 0 0 1px rgba(124,77,255,0.33), 0 0 26px rgba(124,77,255,0.2), 0 16px 40px rgba(0,0,0,0.5);
-}
-#mainMenu .ethy-speech-bubble .ethy-title {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.28em; color: var(--cel-gold); text-transform: uppercase;
-}
-#mainMenu .ethy-speech-bubble .ethy-title .ln { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(124,77,255,0.33), transparent); }
-#mainMenu .ethy-speech-bubble .ethy-content {
-  font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 19px;
-  color: var(--cel-text-hi); line-height: 1.4; text-shadow: 0 1px 8px rgba(0,0,0,0.6);
-}
-#mainMenu .ethy-speech-bubble .tail {
-  position: absolute; left: 40px; bottom: -9px; width: 18px; height: 18px;
-  background: rgba(16,10,38,0.74); border-right: 1px solid rgba(124,77,255,0.33);
-  border-bottom: 1px solid rgba(124,77,255,0.33); transform: rotate(45deg);
-}
-#mainMenu .ethy-body { position: relative; width: 72px; height: 72px; margin-left: 24px; }
-#mainMenu .ethy-body .aura {
-  position: absolute; inset: -16px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(124,77,255,0.55) 0%, transparent 68%);
-  animation: cel-pulse 4s ease-in-out infinite;
-}
-@keyframes cel-pulse { 0%,100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.12); } }
-#mainMenu .ethy-body .shell {
-  position: absolute; inset: 0; border-radius: 16px;
-  background: linear-gradient(160deg, #2a1a52, #150c30); border: 1px solid rgba(124,77,255,0.53);
-  box-shadow: 0 0 22px rgba(124,77,255,0.33), inset 0 1px 0 rgba(255,255,255,0.1);
-}
-#mainMenu .ethy-body .eye {
-  position: absolute; top: 26px; width: 12px; height: 16px; border-radius: 50%;
-  background: var(--cel-gold-glow); box-shadow: 0 0 10px var(--cel-gold-glow);
-  animation: cel-blink 5s ease-in-out infinite;
-}
-#mainMenu .ethy-body .eye.l { left: 16px; } #mainMenu .ethy-body .eye.r { right: 16px; }
-@keyframes cel-blink { 0%,92%,100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
-#mainMenu .ethy-body .mouth {
-  position: absolute; top: 47px; left: 50%; width: 18px; height: 9px; transform: translateX(-50%);
-  border: 0 solid transparent; border-bottom: 2px solid var(--cel-gold-glow);
-  border-radius: 0 0 14px 14px; opacity: 0.92;
-}
-#mainMenu .ethy-body .cheek {
-  position: absolute; top: 44px; width: 7px; height: 4px; border-radius: 50%;
-  background: #cc7888; opacity: 0.4;
-}
-#mainMenu .ethy-body .cheek.l { left: 9px; } #mainMenu .ethy-body .cheek.r { right: 9px; }
-#mainMenu .ethy-body .antenna { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); text-align: center; }
-#mainMenu .ethy-body .antenna .stem { width: 1px; height: 12px; background: var(--cel-violet-soft); margin: 0 auto; }
 
 /* ── Estado + salir ─────────────────────────────────────── */
 #mainMenu .cel-status {
