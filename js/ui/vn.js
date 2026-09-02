@@ -1697,7 +1697,7 @@ function _doEnterTopic(id, t, topicMode) {
     // story_id correcto en Supabase desde el primer mensaje de esta sesión.
     const _tForStory = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
     if (_tForStory && _tForStory.storyId) {
-        global.currentStoryId = _tForStory.storyId;
+        window.currentStoryId = _tForStory.storyId;
         // Suscribir al canal realtime de la historia si está disponible
         if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.enterStory === 'function') {
             SupabaseStories.enterStory(_tForStory.storyId).catch(function(error) { window.EtheriaLogger?.warn('ui:vn', 'enterStory failed:', error?.message || error); });
@@ -1708,7 +1708,7 @@ function _doEnterTopic(id, t, topicMode) {
         }
     } else {
         // Topic sin storyId (creado antes de la integración cloud) — limpiar
-        global.currentStoryId = null;
+        window.currentStoryId = null;
     }
     // ────────────────────────────────────────────────────────────────
 
@@ -1773,7 +1773,7 @@ async function _sbEnterTopic(topicId) {
 
     // Cargar historial remoto y fusionar con local por id
     try {
-        const remoteMsgs = await SupabaseMessages.load(topicId, global.currentStoryId || null);
+        const remoteMsgs = await SupabaseMessages.load(topicId, window.currentStoryId || null);
         if (Array.isArray(remoteMsgs) && remoteMsgs.length > 0) {
             const localMsgs = getTopicMessages(topicId);
             const localIds  = new Set(localMsgs.map(function (m) { return String(m.id); }));
@@ -6132,7 +6132,7 @@ function vrpSetWeatherBtn(clickedBtn) {
 
         // Botón "Pedir Turno"
         banner.querySelector('.turn-skip-banner__btn').addEventListener('click', async function () {
-            const storyId = global.currentStoryId;
+            const storyId = window.currentStoryId;
             if (!storyId || typeof SupabaseStories === 'undefined') return;
             this.disabled = true;
             this.textContent = 'Solicitando…';
