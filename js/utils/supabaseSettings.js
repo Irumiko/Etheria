@@ -31,8 +31,8 @@ const SupabaseSettings = (function () {
     function _isAvailable() { return !!_client(); }
 
     async function _getUserId() {
-        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
-        return global._cachedUserId || null;
+        if (typeof window.getEtheriaUserId === 'function') return window.getEtheriaUserId();
+        return window._cachedUserId || null;
     }
 
     // ── Leer desde localStorage (fuente de verdad local) ────────────────────
