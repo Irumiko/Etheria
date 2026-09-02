@@ -17919,11 +17919,13 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     bottom: 100%;
     right: 0;
     margin-bottom: 12px;
-    background: linear-gradient(135deg, rgba(36, 21, 68, 0.78), rgba(16, 10, 38, 0.74));
-    border: 1px solid rgba(124, 77, 255, 0.34);
-    border-radius: 0;
-    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-    padding: 14px 18px;
+    background: linear-gradient(160deg, rgba(30, 20, 56, 0.94) 0%, rgba(16, 10, 38, 0.96) 100%);
+    border: 1px solid rgba(124, 77, 255, 0.38);
+    /* Misma familia de forma que .ethy-tutorial-panel: esquina inferior
+       derecha achatada como guiño direccional hacia el avatar, en vez del
+       clip-path de burbuja de cómic que usaba antes. */
+    border-radius: 14px 14px 4px 14px;
+    padding: 12px 18px 16px;
     min-width: 240px;
     max-width: 340px;
     color: #f3eeff;
@@ -17931,10 +17933,11 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     font-size: 0.88rem;
     line-height: 1.65;
     box-shadow:
-        0 0 0 1px rgba(124, 77, 255, 0.34),
-        0 0 26px rgba(124, 77, 255, 0.20),
-        0 16px 40px rgba(0, 0, 0, 0.50);
-    backdrop-filter: blur(12px);
+        0 8px 32px rgba(0, 0, 0, 0.50),
+        0 0 0 1px rgba(124, 77, 255, 0.12) inset,
+        0 0 26px rgba(124, 77, 255, 0.16);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     opacity: 0;
     transform: translateY(18px) scale(0.92);
     transition: all 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -17946,31 +17949,20 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     transform: translateY(0) scale(1);
 }
 
-/* Flecha de la burbuja */
+.ethy-speech-bubble::before,
 .ethy-speech-bubble::after {
-    content: '';
-    position: absolute;
-    bottom: -9px;
-    right: 28px;
-    width: 18px; height: 18px;
-    background: rgba(16, 10, 38, 0.74);
-    border-right: 1px solid rgba(124, 77, 255, 0.34);
-    border-bottom: 1px solid rgba(124, 77, 255, 0.34);
-    transform: rotate(45deg);
-    backdrop-filter: blur(14px);
-}
-
-.ethy-speech-bubble::before {
     display: none;
 }
 
-/* Título en la burbuja */
+/* Título en la burbuja — banda de cabecera separada, como en .ethy-tp-header */
 .ethy-speech-bubble .ethy-title {
     font-family: 'Outfit', sans-serif;
     font-size: 0.625rem;
     font-weight: 700;
     color: var(--cel-gold, #e8c878);
-    margin-bottom: 8px;
+    margin: 0 -18px 10px;
+    padding: 0 18px 8px;
+    border-bottom: 1px solid rgba(124, 77, 255, 0.16);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -18016,33 +18008,37 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 }
 
 .ethy-btn {
-    padding: 6px 14px;
+    padding: 7px 14px;
     border: 1px solid rgba(124, 77, 255, 0.45);
-    background: rgba(124, 77, 255, 0.07);
+    background: rgba(124, 77, 255, 0.08);
     color: rgba(203, 182, 255, 0.9);
-    border-radius: 8px;
+    border-radius: 9px;
     cursor: pointer;
     font-family: 'Cinzel', serif;
     font-size: 0.78rem;
     letter-spacing: 0.04em;
-    transition: background 0.18s, border-color 0.18s, color 0.18s;
+    box-shadow: inset 0 1px 0 rgba(203, 182, 255, 0.10);
+    transition: background 0.18s, border-color 0.18s, color 0.18s, box-shadow 0.18s;
 }
 
 .ethy-btn:hover {
     background: rgba(124, 77, 255, 0.20);
     border-color: rgba(183, 148, 246, 0.75);
     color: rgba(245, 215, 120, 1);
+    box-shadow: inset 0 1px 0 rgba(245, 215, 120, 0.14);
 }
 
 .ethy-btn.primary {
-    background: rgba(124, 77, 255, 0.20);
+    background: rgba(124, 77, 255, 0.22);
     border-color: rgba(183, 148, 246, 0.70);
     color: rgba(244, 217, 138, 1);
+    box-shadow: inset 0 1px 0 rgba(244, 217, 138, 0.16);
 }
 
 .ethy-btn.primary:hover {
-    background: rgba(124, 77, 255, 0.32);
+    background: rgba(124, 77, 255, 0.34);
     border-color: rgba(244, 217, 138, 0.90);
+    box-shadow: inset 0 1px 0 rgba(244, 217, 138, 0.22);
 }
 
 /* Textarea del formulario de sugerencias */
@@ -18170,11 +18166,16 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     .ethy-speech-bubble {
         min-width: 220px;
         max-width: min(280px, calc(100vw - 30px));
-        padding: 12px 15px;
+        padding: 10px 15px 14px;
         font-size: 0.85rem;
         /* Fix: anclar a la derecha del viewport sin salirse */
         right: 0;
         left: auto;
+    }
+
+    .ethy-speech-bubble .ethy-title {
+        margin: 0 -15px 8px;
+        padding: 0 15px 8px;
     }
 
     /* Fix: botones en columna en móvil para evitar overflow horizontal */
@@ -18201,14 +18202,6 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
     background: linear-gradient(150deg, rgba(20, 14, 6, 0.99) 0%, rgba(10, 7, 2, 0.99) 100%);
     border-color: rgba(124, 77, 255, 0.50);
     color: #f2e4c0;
-}
-
-[data-theme="dark"] .ethy-speech-bubble::before {
-    border-top-color: rgba(10, 7, 2, 0.99);
-}
-
-[data-theme="dark"] .ethy-speech-bubble::after {
-    border-top-color: rgba(124, 77, 255, 0.50);
 }
 
 /* Tooltip de ayuda contextual */
