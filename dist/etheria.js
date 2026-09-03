@@ -30684,13 +30684,41 @@ const Ethy = (function() {
     };
 
     // Expresiones breves (idle flicker) — más emocionales para que se note
-    const IDLE_FLICKER = ['surprised', 'love', 'excited', 'wink', 'thoughtful'];
+    const IDLE_FLICKER = ['surprised', 'love', 'excited', 'wink', 'thoughtful', 'happy'];
+
+    // Cuánto se mantiene cada flicker antes de volver a la base. Un tiempo
+    // fijo para todas hacía que el gesto se sintiera como un tic (destello
+    // y ya) — variar la duración según la expresión da un ritmo más
+    // orgánico: las intensas son breves, las cálidas se quedan un poco más.
+    const FLICKER_HOLD_MS = {
+        surprised: 1100, wink: 1200, excited: 1400,
+        happy: 1700, thoughtful: 2000, love: 2200
+    };
 
     let _idleBaseExpression = 'neutral'; // expresión base de la sección actual
     let _idleInterval  = null;
 
+    // Historial corto de expresiones idle recientes (base + flicker), para
+    // que el azar no repita la misma expresión una y otra vez en pocos
+    // ciclos — el motivo original de que Ethy se sintiera repetitiva.
+    let _recentIdleExpressions = [];
+    const RECENT_IDLE_HISTORY = 3;
+
     function _pickRandom(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function _rememberIdleExpression(expression) {
+        _recentIdleExpressions.push(expression);
+        if (_recentIdleExpressions.length > RECENT_IDLE_HISTORY) _recentIdleExpressions.shift();
+    }
+
+    // Elige de `pool` evitando lo mostrado recientemente; si el filtro deja
+    // el pool vacío (pool pequeño + historial largo), cede y usa el pool
+    // completo antes que fallar.
+    function _pickFresh(pool) {
+        const candidates = pool.filter(e => !_recentIdleExpressions.includes(e));
+        return _pickRandom(candidates.length ? candidates : pool);
     }
 
     /**
@@ -30699,10 +30727,9 @@ const Ethy = (function() {
      */
     function _setSectionExpression(section) {
         const pool = SECTION_EXPRESSIONS[section] || SECTION_EXPRESSIONS.default;
-        let candidates = pool.filter(e => e !== _currentExpression);
-        if (candidates.length === 0) candidates = pool;
-        const chosen = _pickRandom(candidates);
+        const chosen = _pickFresh(pool);
         _idleBaseExpression = chosen;
+        _rememberIdleExpression(chosen);
         // No animar ni cambiar expresión si está minimizado
         if (_isMinimized) return;
         if (_body) {
@@ -30713,8 +30740,10 @@ const Ethy = (function() {
     }
 
     /**
-     * Tick idle: cada 8-14 s cambia momentáneamente a una expresión aleatoria
-     * y a los 1.5 s vuelve a la expresión base.
+     * Tick idle: cada 9-16 s cambia momentáneamente a una expresión aleatoria
+     * (sin repetir lo reciente) y, tras un tiempo propio de esa expresión,
+     * vuelve a la base. ~1 de cada 4 veces encadena un segundo micro-gesto
+     * antes de volver, para que no se sienta siempre igual de mecánico.
      */
     function _idleTick() {
         // No interrumpir si minimizado, burbuja activa o tutorial en curso
@@ -30722,21 +30751,37 @@ const Ethy = (function() {
         if (_bubble && _bubble.classList.contains('visible')) return;
         if (_tutorialPanelVisible) return;
 
-        const flicker = _pickRandom(IDLE_FLICKER.filter(e => e !== _idleBaseExpression));
+        const flicker = _pickFresh(IDLE_FLICKER.filter(e => e !== _idleBaseExpression));
+        _rememberIdleExpression(flicker);
         setExpression(flicker);
 
+        const hold = FLICKER_HOLD_MS[flicker] || 1500;
+        const chainSecond = Math.random() < 0.28;
+
         setTimeout(() => {
-            // Solo restaurar si no hay burbuja abierta ahora
-            if (!_bubble || !_bubble.classList.contains('visible')) {
+            if (_bubble && _bubble.classList.contains('visible')) return;
+            if (chainSecond) {
+                const secondPool = IDLE_FLICKER.filter(e => e !== flicker && e !== _idleBaseExpression);
+                const second = _pickFresh(secondPool);
+                _rememberIdleExpression(second);
+                setExpression(second);
+                setTimeout(() => {
+                    if (!_bubble || !_bubble.classList.contains('visible')) {
+                        setExpression(_idleBaseExpression);
+                    }
+                }, (FLICKER_HOLD_MS[second] || 1300) * 0.7);
+            } else {
                 setExpression(_idleBaseExpression);
             }
-        }, 1500);
+        }, hold);
     }
 
     function _startIdleSystem() {
         if (_idleInterval) clearInterval(_idleInterval);
-        // Intervalo aleatorio entre 8 y 14 segundos para cambio de expresión
-        const randomInterval = () => Math.floor(Math.random() * 6000) + 8000;
+        // Intervalo aleatorio entre 9 y 16 segundos — algo más pausado que
+        // antes para que cada gesto tenga tiempo de notarse en vez de
+        // sentirse como un parpadeo nervioso.
+        const randomInterval = () => Math.floor(Math.random() * 7000) + 9000;
 
         function scheduleNext() {
             _idleInterval = setTimeout(() => {
