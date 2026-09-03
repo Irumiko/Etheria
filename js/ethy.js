@@ -1092,14 +1092,17 @@ const Ethy = (function() {
         _isTyping = false;
     }
 
-    // Renderiza los botones de acción dentro de la burbuja
+    // Renderiza los botones de acción dentro de la burbuja — barra de
+    // iconos tipo HUD (rombo + etiqueta corta), no una lista de filas de texto.
     function _renderButtons(container, buttons) {
         container.innerHTML = '';
-        if (!buttons || buttons.length === 0) return;
+        if (!buttons || buttons.length === 0) { container.classList.remove('ethy-actions--hud'); return; }
+        container.classList.add('ethy-actions--hud');
         buttons.forEach(btn => {
             const el = document.createElement('button');
             el.className = 'ethy-btn' + (btn.primary ? ' primary' : '');
-            el.textContent = btn.text;
+            el.title = btn.text;
+            el.innerHTML = `<span class="ethy-btn-icon"><span class="ethy-btn-icon-glyph">${btn.icon || '✦'}</span></span><span class="ethy-btn-label">${btn.label || btn.text}</span>`;
             el.addEventListener('click', () => {
                 if (typeof btn.action === 'function') btn.action();
                 if (btn.close !== false) hideBubble();
@@ -1368,8 +1371,8 @@ const Ethy = (function() {
         say('¿En qué puedo ayudarte?', {
             expression: 'happy',
             buttons: [
-                { text: 'Consejo rápido', primary: true, close: false, action: () => showRandomTip() },
-                { text: 'Ver tutorial', close: false, action: () => {
+                { text: 'Consejo rápido', icon: '✦', label: 'Consejo', primary: true, close: false, action: () => showRandomTip() },
+                { text: 'Ver tutorial', icon: '📖', label: 'Tutorial', close: false, action: () => {
                     if (currentSection && TUTORIALS[currentSection]) {
                         // Fix: usar _seenTutorials.delete() en vez de mutar el objeto tutorial
                         _seenTutorials.delete(currentSection);
@@ -1378,7 +1381,7 @@ const Ethy = (function() {
                         say('Para esta sección aún no tengo nada que enseñarte.', { expression: 'sad', duration: 3000 });
                     }
                 }},
-                { text: '💡 Sugerencia', close: false, action: () => _showFeedbackForm() }
+                { text: 'Sugerencia', icon: '💡', label: 'Sugerir', close: false, action: () => _showFeedbackForm() }
             ]
         });
     }
@@ -1400,6 +1403,7 @@ const Ethy = (function() {
 
         content.innerHTML = '<textarea class="ethy-feedback-input" maxlength="1000" placeholder="Cuéntame tu idea o sugerencia..."></textarea>';
         actions.innerHTML = '';
+        actions.classList.remove('ethy-actions--hud');
 
         const textarea = content.querySelector('.ethy-feedback-input');
         setTimeout(() => textarea.focus(), 50);

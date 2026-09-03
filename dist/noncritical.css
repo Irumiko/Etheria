@@ -18087,6 +18087,84 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
         0 6px 20px rgba(124, 77, 255, 0.48);
 }
 
+/* ── Barra de iconos tipo HUD (menú de ayuda) ─────────────────────────────
+   Fila horizontal compacta de rombos, como los slots de habilidad de un
+   HUD de RPG — no una lista de filas de texto apiladas. Reutiliza el
+   mismo motivo de glifo-en-rombo que .hub-item-icon del menú principal. */
+.ethy-actions--hud {
+    flex-direction: row;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 12px;
+}
+
+.ethy-actions--hud .ethy-btn,
+.ethy-actions--hud .ethy-btn.primary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 62px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    text-align: center;
+    color: rgba(203, 182, 255, 0.85);
+}
+
+.ethy-btn-icon {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transform: rotate(45deg);
+    border: 1px solid rgba(124, 77, 255, 0.42);
+    background: rgba(16, 10, 38, 0.50);
+    border-radius: 5px;
+    transition: border-color 0.22s, background 0.22s, box-shadow 0.22s, transform 0.22s;
+}
+
+.ethy-btn-icon-glyph {
+    display: inline-block;
+    transform: rotate(-45deg);
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.ethy-btn-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.56rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(203, 182, 255, 0.75);
+    transition: color 0.22s;
+}
+
+.ethy-actions--hud .ethy-btn:hover .ethy-btn-icon,
+.ethy-actions--hud .ethy-btn.primary .ethy-btn-icon {
+    border-color: rgba(232, 200, 120, 0.80);
+    background: rgba(124, 77, 255, 0.22);
+    box-shadow:
+        0 0 14px rgba(124, 77, 255, 0.40),
+        inset 0 0 10px rgba(124, 77, 255, 0.20);
+    transform: rotate(45deg) scale(1.08);
+}
+
+.ethy-actions--hud .ethy-btn:hover .ethy-btn-label,
+.ethy-actions--hud .ethy-btn.primary .ethy-btn-label {
+    color: rgba(244, 217, 138, 1);
+}
+
+.ethy-actions--hud .ethy-btn.primary:hover .ethy-btn-icon {
+    transform: rotate(45deg) scale(1.14);
+}
+
 /* Textarea del formulario de sugerencias */
 .ethy-feedback-input {
     width: 100%;
@@ -18223,8 +18301,18 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
         margin: 8px -15px 6px;
     }
 
-    .ethy-btn {
-        font-size: 0.76rem;
+    .ethy-actions--hud {
+        gap: 10px;
+    }
+
+    .ethy-actions--hud .ethy-btn,
+    .ethy-actions--hud .ethy-btn.primary {
+        width: 54px;
+    }
+
+    .ethy-btn-icon {
+        width: 34px;
+        height: 34px;
     }
 }
 
