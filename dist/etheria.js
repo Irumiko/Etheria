@@ -1817,32 +1817,35 @@ const _MENU_NOTE_FREQS = {
 };
 
 // Un tema por atmósfera: escala, tempo (segundos/beat) y color tímbrico propios.
-// "noche" conserva la pentatónica menor original — el resto son variaciones
-// de escala/tempo/filtro sobre la misma caja de música.
+// Inspirado en las dungeons de los Zelda clásicos — misterio, no aventura:
+// modos frigio/dórico/eólico en vez de mayor, bajos que insisten más que
+// "acompañan" y frases de campana espaciadas con silencio de por medio.
+// "atardecer" ya tenía ese aire y se deja tal cual; el resto se reescribe
+// para ir en esa misma dirección.
 const _MENU_THEMES = {
+    // Mi eólica (misteriosa pero abierta) — bajo lento tipo pad, frases
+    // suspendidas con mucho aire entre ellas. La más "quieta" de las cuatro.
     amanecer: {
-        beat: 0.80, melodyVol: 0.085, melodyFilter: 3400, bassVol: 0.040, bassFilter: 700,
+        beat: 0.62, melodyVol: 0.085, melodyFilter: 2200, bassVol: 0.035, bassFilter: 500,
         melody: [
-            ['C4',1],['D4',0.5],['E4',0.5],['G4',1],['A4',0.5],['G4',0.5],
-            ['E4',1],['D4',1],['REST',1],
-            ['E4',0.5],['G4',0.5],['A4',1],['C5',1],
-            ['D5',0.5],['C5',0.5],['A4',1],['REST',1],
-            ['G4',1],['A4',0.5],['C5',0.5],['D5',1],['E5',1],
-            ['D5',0.5],['C5',0.5],['A4',1.5],['G4',0.5],['REST',1.5],
+            ['REST',2],['A4',1.5],['C5',1],['B4',1],['REST',2],
+            ['G4',1],['A4',1],['C5',1.5],['REST',1.5],
+            ['E4',2],['F4',1],['G4',1],['A4',2],['REST',2],
+            ['B4',1],['A4',1],['G4',1],['E4',3],['REST',3],
         ],
-        bass: [['C3',2],['G3',2],['A3',2],['F3',2],['C3',2],['G3',2],['C3',4]],
+        bass: [['A3',3],['E3',3],['F3',3],['C3',3],['G3',3],['A3',6]],
     },
+    // Re dórico — la menos oscura de las cuatro, pero sigue sin ser "alegre":
+    // un pulso de bajo moderado sostiene frases de campana más móviles.
     mediodia: {
-        beat: 0.62, melodyVol: 0.090, melodyFilter: 4200, bassVol: 0.050, bassFilter: 900,
+        beat: 0.55, melodyVol: 0.085, melodyFilter: 2600, bassVol: 0.045, bassFilter: 650,
         melody: [
-            ['E4',0.5],['G4',0.5],['C5',1],['B4',0.5],['A4',0.5],
-            ['G4',1],['F4',0.5],['E4',0.5],['D4',1],['REST',0.5],
-            ['C4',0.5],['E4',0.5],['G4',1],['A4',0.5],['G4',0.5],
-            ['F4',1],['E4',1],['REST',0.5],
-            ['G4',0.5],['A4',0.5],['B4',1],['C5',1],
-            ['B4',0.5],['A4',0.5],['G4',1.5],['REST',1],
+            ['D4',1],['F4',1],['G4',1],['A4',1.5],['REST',1.5],
+            ['C5',1],['B4',1],['A4',1],['G4',1.5],['REST',1],
+            ['F4',1],['G4',1],['A4',1],['D5',1.5],['C5',1],['REST',1.5],
+            ['B4',1],['A4',1],['G4',1],['F4',1],['D4',2],['REST',2],
         ],
-        bass: [['C3',1],['E3',1],['G3',2],['A3',1],['C3',1],['F3',2],['G3',2],['C3',2]],
+        bass: [['D3',2],['A3',2],['C3',2],['G3',2],['D3',2],['F3',2],['A3',2],['D3',4]],
     },
     atardecer: {
         beat: 1.05, melodyVol: 0.075, melodyFilter: 1500, bassVol: 0.045, bassFilter: 550,
@@ -1854,22 +1857,23 @@ const _MENU_THEMES = {
         ],
         bass: [['C3',4],['Ab3',2],['Bb3',2],['F3',4],['C3',4],['G3',4]],
     },
+    // Mi frigio — el b2 (F contra la tónica Mi) es la tensión característica
+    // de las dungeons clásicas. Bajo en pulso insistente tipo "latido",
+    // campanas espaciadas por encima. La más oscura de las cuatro.
     noche: {
-        beat: 0.88, melodyVol: 0.075, melodyFilter: 2200, bassVol: 0.045, bassFilter: 600,
+        beat: 0.42, melodyVol: 0.09, melodyFilter: 1600, bassVol: 0.055, bassFilter: 480,
         melody: [
-            ['C4',1],['REST',0.5],['Eb4',0.5],['G4',1],['Ab4',0.5],['G4',0.5],
-            ['F4',1],['Eb4',1],['REST',1],
-            ['D4',0.5],['Eb4',0.5],['G4',1],['Ab4',1],
-            ['Bb4',0.5],['Ab4',0.5],['G4',1],['REST',1],
-            ['C5',1],['Bb4',0.5],['Ab4',0.5],['G4',1],['F4',0.5],['Eb4',0.5],
-            ['D4',1.5],['C4',0.5],['REST',1],
-            ['Eb4',0.5],['F4',0.5],['G4',1],['Ab4',0.5],['G4',0.5],
-            ['F4',1],['Eb4',1.5],['REST',0.5],
-            ['C4',0.5],['D4',0.5],['Eb4',1],['G4',0.5],['Ab4',0.5],
-            ['Bb4',1],['Ab4',0.5],['G4',0.5],['F4',1],
-            ['Eb4',0.5],['D4',0.5],['C4',2],['REST',1],
+            ['REST',3],['E4',2],['F4',1],['E4',1],['REST',2],
+            ['G4',2],['F4',1],['E4',2],['REST',3],
+            ['C5',2],['B4',1],['A4',1],['G4',2],['F4',2],['REST',2],
+            ['E4',3],['D4',1],['E4',4],['REST',4],
         ],
-        bass: [['C3',2],['G3',2],['Bb3',2],['C3',2],['F4',2],['C3',2],['G3',2],['C3',2],['Bb3',2],['F4',2],['C3',4]],
+        bass: [
+            ['E3',1],['E3',1],['E3',1],['E3',1],
+            ['E3',1],['E3',1],['F3',1],['E3',1],
+            ['E3',1],['E3',1],['E3',1],['E3',1],
+            ['D3',1],['E3',1],['E3',1],['REST',1],
+        ],
     },
 };
 
