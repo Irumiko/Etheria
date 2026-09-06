@@ -1793,76 +1793,156 @@ function stopRainSound() {
 // se llaman desde app-ui.js, vn.js y roleplay.js respectivamente.
 
 // ============================================
-// MELODÍA DEL MENÚ PRINCIPAL — estilo 16-bit
-// Generada íntegramente con Web Audio API
+// MELODÍA DEL MENÚ PRINCIPAL — caja de música
+// Generada íntegramente con Web Audio API. El tema cambia según la
+// atmósfera activa (amanecer/mediodía/atardecer/noche) — ver atmosphere.js.
 // ============================================
 
 let _menuMusicNodes = [];
 let _menuMusicPlaying = false;
 let _menuMusicScheduleId = null;
 let _menuMusicGain = null;
+let _menuMusicAtmosphere = null;
 
-// Escala pentatónica menor en Do — aire oriental/fantástico tranquilo
-// Notas: C4 D4 Eb4 G4 A4 C5 D5 Eb5 G5
-const _MENU_NOTES = {
-    C4: 261.63, D4: 293.66, Eb4: 311.13, F4: 349.23,
-    G4: 392.00, Ab4: 415.30, Bb4: 466.16,
-    C5: 523.25, D5: 587.33, Eb5: 622.25, F5: 698.46,
-    G5: 783.99, Ab5: 830.61,
-    C3: 130.81, G3: 196.00, Bb3: 233.08,
-    REST: 0
+function _getActiveAtmosphere() {
+    return (window.EtheriaAtmosphere && window.EtheriaAtmosphere.get()) || 'noche';
+}
+
+// Tabla de frecuencias compartida por todos los temas
+const _MENU_NOTE_FREQS = {
+    REST: 0,
+    C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, Ab3: 207.65, A3: 220.00, Bb3: 233.08, B3: 246.94,
+    C4: 261.63, D4: 293.66, Eb4: 311.13, E4: 329.63, F4: 349.23, G4: 392.00, Ab4: 415.30, A4: 440.00, Bb4: 466.16, B4: 493.88,
+    C5: 523.25, D5: 587.33, Eb5: 622.25, E5: 659.25, F5: 698.46, G5: 783.99, Ab5: 830.61, A5: 880.00
 };
 
-// Melodía: [nota, duración_beats]  (tempo ~68bpm, beat = 0.88s)
-const _MENU_MELODY = [
-    // Frase A — suave ascendente
-    ['C4',1],['REST',0.5],['Eb4',0.5],['G4',1],['Ab4',0.5],['G4',0.5],
-    ['F4',1],['Eb4',1],['REST',1],
-    ['D4',0.5],['Eb4',0.5],['G4',1],['Ab4',1],
-    ['Bb4',0.5],['Ab4',0.5],['G4',1],['REST',1],
-    // Frase B — sube un poco
-    ['C5',1],['Bb4',0.5],['Ab4',0.5],['G4',1],['F4',0.5],['Eb4',0.5],
-    ['D4',1.5],['C4',0.5],['REST',1],
-    ['Eb4',0.5],['F4',0.5],['G4',1],['Ab4',0.5],['G4',0.5],
-    ['F4',1],['Eb4',1.5],['REST',0.5],
-    // Frase C — reposo
-    ['C4',0.5],['D4',0.5],['Eb4',1],['G4',0.5],['Ab4',0.5],
-    ['Bb4',1],['Ab4',0.5],['G4',0.5],['F4',1],
-    ['Eb4',0.5],['D4',0.5],['C4',2],['REST',1],
-];
+// Un tema por atmósfera: escala, tempo (segundos/beat) y color tímbrico propios.
+// "noche" conserva la pentatónica menor original — el resto son variaciones
+// de escala/tempo/filtro sobre la misma caja de música.
+const _MENU_THEMES = {
+    amanecer: {
+        beat: 0.80, melodyVol: 0.085, melodyFilter: 3400, bassVol: 0.040, bassFilter: 700,
+        melody: [
+            ['C4',1],['D4',0.5],['E4',0.5],['G4',1],['A4',0.5],['G4',0.5],
+            ['E4',1],['D4',1],['REST',1],
+            ['E4',0.5],['G4',0.5],['A4',1],['C5',1],
+            ['D5',0.5],['C5',0.5],['A4',1],['REST',1],
+            ['G4',1],['A4',0.5],['C5',0.5],['D5',1],['E5',1],
+            ['D5',0.5],['C5',0.5],['A4',1.5],['G4',0.5],['REST',1.5],
+        ],
+        bass: [['C3',2],['G3',2],['A3',2],['F3',2],['C3',2],['G3',2],['C3',4]],
+    },
+    mediodia: {
+        beat: 0.62, melodyVol: 0.090, melodyFilter: 4200, bassVol: 0.050, bassFilter: 900,
+        melody: [
+            ['E4',0.5],['G4',0.5],['C5',1],['B4',0.5],['A4',0.5],
+            ['G4',1],['F4',0.5],['E4',0.5],['D4',1],['REST',0.5],
+            ['C4',0.5],['E4',0.5],['G4',1],['A4',0.5],['G4',0.5],
+            ['F4',1],['E4',1],['REST',0.5],
+            ['G4',0.5],['A4',0.5],['B4',1],['C5',1],
+            ['B4',0.5],['A4',0.5],['G4',1.5],['REST',1],
+        ],
+        bass: [['C3',1],['E3',1],['G3',2],['A3',1],['C3',1],['F3',2],['G3',2],['C3',2]],
+    },
+    atardecer: {
+        beat: 1.05, melodyVol: 0.075, melodyFilter: 1500, bassVol: 0.045, bassFilter: 550,
+        melody: [
+            ['G4',1],['F4',0.5],['Eb4',0.5],['D4',1],['C4',1],['REST',1],
+            ['Eb4',0.5],['D4',0.5],['C4',1],['Bb3',1],
+            ['Ab4',0.5],['G4',0.5],['F4',1],['Eb4',1],['REST',1],
+            ['D4',0.5],['C4',0.5],['Bb3',1],['G3',2],['REST',1.5],
+        ],
+        bass: [['C3',4],['Ab3',2],['Bb3',2],['F3',4],['C3',4],['G3',4]],
+    },
+    noche: {
+        beat: 0.88, melodyVol: 0.075, melodyFilter: 2200, bassVol: 0.045, bassFilter: 600,
+        melody: [
+            ['C4',1],['REST',0.5],['Eb4',0.5],['G4',1],['Ab4',0.5],['G4',0.5],
+            ['F4',1],['Eb4',1],['REST',1],
+            ['D4',0.5],['Eb4',0.5],['G4',1],['Ab4',1],
+            ['Bb4',0.5],['Ab4',0.5],['G4',1],['REST',1],
+            ['C5',1],['Bb4',0.5],['Ab4',0.5],['G4',1],['F4',0.5],['Eb4',0.5],
+            ['D4',1.5],['C4',0.5],['REST',1],
+            ['Eb4',0.5],['F4',0.5],['G4',1],['Ab4',0.5],['G4',0.5],
+            ['F4',1],['Eb4',1.5],['REST',0.5],
+            ['C4',0.5],['D4',0.5],['Eb4',1],['G4',0.5],['Ab4',0.5],
+            ['Bb4',1],['Ab4',0.5],['G4',0.5],['F4',1],
+            ['Eb4',0.5],['D4',0.5],['C4',2],['REST',1],
+        ],
+        bass: [['C3',2],['G3',2],['Bb3',2],['C3',2],['F4',2],['C3',2],['G3',2],['C3',2],['Bb3',2],['F4',2],['C3',4]],
+    },
+};
 
-// Bajo en arpegios sutiles
-const _MENU_BASS = [
-    ['C3',2],['G3',2],['Bb3',2],['C3',2],
-    ['F4',2],['C3',2],['G3',2],['C3',2],
-    ['Bb3',2],['F4',2],['C3',4],
-];
-
-function _playMenuNote(ctx, masterGain, freq, startTime, duration, opts) {
+// Nota tipo "caja de música": ataque casi instantáneo + decaimiento
+// exponencial rápido en triangle, más un armónico metálico a una relación
+// NO entera (x3.017) que decae aún más rápido — es lo que da el "plink"
+// característico de las tinas de un music box en vez de un synth sostenido.
+function _playMusicBoxNote(ctx, masterGain, freq, startTime, duration, opts) {
     if (!freq || freq === 0) return; // REST
     const o = opts || {};
-    const type    = o.type    || 'square';
-    const vol     = o.vol     || 0.08;
-    const detune  = o.detune  || 0;
-    const attack  = o.attack  || 0.01;
-    const release = o.release || Math.min(duration * 0.6, 0.25);
+    const vol        = o.vol        != null ? o.vol        : 0.085;
+    const filterFreq = o.filterFreq != null ? o.filterFreq : 2800;
+    const attack     = 0.004;
+    const decay       = Math.min(duration, duration * 0.85);
 
-    const osc  = ctx.createOscillator();
+    const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
-    // Filtro pasabaja para suavizar el square y darle calidez 16-bit
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.value = o.filterFreq || 2200;
-    filter.Q.value = 0.5;
+    filter.frequency.value = filterFreq;
+    filter.Q.value = 0.7;
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(masterGain);
 
-    osc.type = type;
+    osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, startTime);
-    if (detune) osc.detune.setValueAtTime(detune, startTime);
+
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(vol, startTime + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0008, startTime + decay);
+
+    osc.start(startTime);
+    osc.stop(startTime + decay + 0.05);
+
+    // Tine metálico — relación inarmónica deliberada, decae en una fracción
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2);
+    gain2.connect(masterGain);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 3.017, startTime);
+    gain2.gain.setValueAtTime(0, startTime);
+    gain2.gain.linearRampToValueAtTime(vol * 0.28, startTime + attack);
+    gain2.gain.exponentialRampToValueAtTime(0.0006, startTime + decay * 0.4);
+    osc2.start(startTime);
+    osc2.stop(startTime + decay * 0.4 + 0.03);
+
+    _menuMusicNodes.push(osc, gain, filter, osc2, gain2);
+}
+
+// Bajo suave — pad de sostén bajo la caja de música, sin protagonismo
+function _playMenuBassNote(ctx, masterGain, freq, startTime, duration, opts) {
+    if (!freq || freq === 0) return; // REST
+    const o = opts || {};
+    const vol        = o.vol        != null ? o.vol        : 0.045;
+    const filterFreq = o.filterFreq != null ? o.filterFreq : 650;
+    const attack  = 0.03;
+    const release = Math.min(duration * 0.5, 0.3);
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = filterFreq;
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
 
     gain.gain.setValueAtTime(0, startTime);
     gain.gain.linearRampToValueAtTime(vol, startTime + attack);
@@ -1871,17 +1951,17 @@ function _playMenuNote(ctx, masterGain, freq, startTime, duration, opts) {
 
     osc.start(startTime);
     osc.stop(startTime + duration + 0.05);
-    _menuMusicNodes.push(osc);
-    _menuMusicNodes.push(gain);
+    _menuMusicNodes.push(osc, gain, filter);
 }
 
-function startMenuMusic() {
+function startMenuMusic(forceAtmosphere) {
     if (_menuMusicPlaying) return;
     const ctx = getAudioContext();
     if (!ctx) return;
 
     _menuMusicPlaying = true;
     _menuMusicNodes = [];
+    _menuMusicAtmosphere = forceAtmosphere || _getActiveAtmosphere();
 
     // Nodo master de la música — fade in suave
     _menuMusicGain = ctx.createGain();
@@ -1889,56 +1969,70 @@ function startMenuMusic() {
     _menuMusicGain.gain.linearRampToValueAtTime(masterVolume * 0.55, ctx.currentTime + 2.5);
     _menuMusicGain.connect(ctx.destination);
 
-    const BEAT = 0.88; // segundos por beat a ~68bpm
-
     function scheduleLoop() {
         if (!_menuMusicPlaying) return;
+        const theme = _MENU_THEMES[_menuMusicAtmosphere] || _MENU_THEMES.noche;
+        const BEAT = theme.beat;
         const now = ctx.currentTime;
-        let t = now + 0.05;
 
-        // --- Melodía principal (square suavizado = 16-bit) ---
-        _MENU_MELODY.forEach(([note, beats]) => {
-            const freq = _MENU_NOTES[note];
+        // --- Melodía principal (caja de música) ---
+        let t = now + 0.05;
+        theme.melody.forEach(([note, beats]) => {
+            const freq = _MENU_NOTE_FREQS[note];
             const dur  = beats * BEAT;
-            _playMenuNote(ctx, _menuMusicGain, freq, t, dur, {
-                type: 'square', vol: 0.065, filterFreq: 1800, attack: 0.012, release: 0.18
+            _playMusicBoxNote(ctx, _menuMusicGain, freq, t, dur, {
+                vol: theme.melodyVol, filterFreq: theme.melodyFilter
             });
             t += dur;
         });
 
-        // --- Armónico suave (triangle una octava arriba) ---
-        t = now + 0.05;
-        _MENU_MELODY.forEach(([note, beats]) => {
-            const freq = _MENU_NOTES[note];
-            const dur  = beats * BEAT;
-            if (freq && Math.random() > 0.45) {
-                _playMenuNote(ctx, _menuMusicGain, freq * 2, t, dur * 0.7, {
-                    type: 'triangle', vol: 0.022, filterFreq: 3500, attack: 0.02, release: 0.12
-                });
-            }
-            t += dur;
-        });
-
-        // --- Bajo en arpegios (sine) ---
+        // --- Bajo suave ---
         let bt = now + 0.05;
-        _MENU_BASS.forEach(([note, beats]) => {
-            const freq = _MENU_NOTES[note];
+        theme.bass.forEach(([note, beats]) => {
+            const freq = _MENU_NOTE_FREQS[note];
             const dur  = beats * BEAT;
-            _playMenuNote(ctx, _menuMusicGain, freq, bt, dur * 0.55, {
-                type: 'sine', vol: 0.045, filterFreq: 600, attack: 0.015, release: 0.2
+            _playMenuBassNote(ctx, _menuMusicGain, freq, bt, dur * 0.85, {
+                vol: theme.bassVol, filterFreq: theme.bassFilter
             });
             bt += dur;
         });
 
-        // Total duración del loop
-        const totalBeats = _MENU_MELODY.reduce((sum, [,b]) => sum + b, 0);
+        // Total duración del loop (basada en la melodía)
+        const totalBeats = theme.melody.reduce((sum, [,b]) => sum + b, 0);
         const loopDuration = totalBeats * BEAT;
 
-        // Reprogramar el siguiente loop con una pequeña pausa entre repeticiones
-        _menuMusicScheduleId = setTimeout(scheduleLoop, (loopDuration - 0.5) * 1000);
+        // Reprogramar el siguiente loop con una pequeña pausa entre repeticiones.
+        // Relee la atmósfera activa por si cambió mientras sonaba este loop.
+        _menuMusicScheduleId = setTimeout(() => {
+            _menuMusicAtmosphere = _getActiveAtmosphere();
+            scheduleLoop();
+        }, (loopDuration - 0.5) * 1000);
     }
 
     scheduleLoop();
+}
+
+// Cambio de atmósfera con la música ya sonando: crossfade rápido hacia el
+// tema nuevo en vez de esperar a que termine el loop actual.
+function _crossfadeMenuMusicTo(atmosphere) {
+    if (!_menuMusicPlaying || atmosphere === _menuMusicAtmosphere) return;
+    const ctx = getAudioContext();
+    if (!ctx || !_menuMusicGain) return;
+
+    _menuMusicPlaying = false; // corta el reschedule del loop en curso
+    clearTimeout(_menuMusicScheduleId);
+
+    const oldGain = _menuMusicGain;
+    const oldNodes = _menuMusicNodes;
+    oldGain.gain.cancelScheduledValues(ctx.currentTime);
+    oldGain.gain.setValueAtTime(oldGain.gain.value, ctx.currentTime);
+    oldGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
+
+    setTimeout(() => {
+        oldNodes.forEach(n => { try { n.disconnect(); } catch (error) { window.EtheriaLogger?.warn('ui:sounds', 'disconnect failed:', error?.message || error); } });
+    }, 750);
+
+    startMenuMusic(atmosphere);
 }
 
 function stopMenuMusic(fadeOut) {
@@ -2049,6 +2143,10 @@ function stopMenuMusic(fadeOut) {
         });
         eventBus.on('audio:stop-menu-music', function (data) {
             stopMenuMusic(data?.fadeOut !== false);
+        });
+        // Cambiar de atmósfera con la música del menú sonando → crossfade al tema nuevo
+        eventBus.on('settings:atmosphere-changed', function (value) {
+            _crossfadeMenuMusicTo(value);
         });
 
         // Lluvia ambiental
