@@ -1681,6 +1681,54 @@ function playSoundNotification() {
 }
 
 // ============================================
+// VOZ DE DIÁLOGO (blips sintetizados estilo Animal Crossing / Undertale)
+// No son voces reales — un "chirrido" corto por cada palabra/letra que
+// se revela en el typewriter, con timbre distinto según el género del
+// personaje. Puramente sintético: sin archivos de audio ni licencias.
+// ============================================
+
+const DIALOGUE_VOICES = {
+    femenino:    { waveform: 'sine',     base: 470, range: 150, dur: 0.045, gain: 0.42 },
+    masculino:   { waveform: 'sawtooth', base: 140, range: 70,  dur: 0.055, gain: 0.30 },
+    'no binario':{ waveform: 'triangle', base: 300, range: 120, dur: 0.05,  gain: 0.38 },
+    default:     { waveform: 'triangle', base: 340, range: 90,  dur: 0.045, gain: 0.32 }
+};
+
+function _dialogueVoiceProfile(gender) {
+    const key = String(gender || '').trim().toLowerCase();
+    if (key === 'femenino') return DIALOGUE_VOICES.femenino;
+    if (key === 'masculino') return DIALOGUE_VOICES.masculino;
+    if (key === 'no binario' || key === 'no-binario' || key === 'otro') return DIALOGUE_VOICES['no binario'];
+    return DIALOGUE_VOICES.default;
+}
+
+// blipSeed: primer carácter del token revelado — da variación de tono
+// consistente por letra (como en Animal Crossing) en vez de ruido puro.
+function playDialogueBlip(gender, blipSeed) {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const profile = _dialogueVoiceProfile(gender);
+    const code = blipSeed ? blipSeed.charCodeAt(0) : Math.floor(Math.random() * 90);
+    const freq = profile.base + (code % 10) / 10 * profile.range;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = profile.waveform;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.82, ctx.currentTime + profile.dur);
+
+    gain.gain.setValueAtTime(masterVolume * profile.gain, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + profile.dur);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + profile.dur + 0.01);
+}
+
+// ============================================
 // SONIDO AMBIENTAL: LLUVIA
 // ============================================
 
@@ -13467,8 +13515,12 @@ function showCurrentMessage(direction = 'forward') {
         optionsIndicator.classList.toggle('hidden', !hasOpt || isRpgModeMode());
     }
 
+    // Voz sintetizada del diálogo: solo personajes reales "hablan" (no narrador/Garrick/Oráculo)
+    const isNarratorLike = msg.isNarrator || !msg.characterId;
+    const speakerVoiceGender = isNarratorLike ? undefined : (charData?.gender || '');
+
     const formattedText = formatText(cleanText);
-    if (dialogueText) typeWriter(formattedText, dialogueText);
+    if (dialogueText) typeWriter(formattedText, dialogueText, speakerVoiceGender);
 
     // ── Oracle consequence badge ────────────────────────────────────────────
     const oracleBadge = document.getElementById('vnOracleConsequenceBadge');
@@ -13919,7 +13971,7 @@ function updateSprites(currentMsg, activeEmote = null) {
 }
 
 
-function typeWriter(text, element) {
+function typeWriter(text, element, voiceGender) {
     stopTypewriter();
 
     isTyping = true;
@@ -13974,6 +14026,11 @@ function typeWriter(text, element) {
         // Forzar reflow para que la animación arranque
         void span.offsetWidth;
         span.classList.add('tw-char--in');
+
+        // Blip de voz sintetizada — solo si el token trae al menos una letra
+        if (voiceGender !== undefined && typeof playDialogueBlip === 'function' && /\p{L}/u.test(token)) {
+            playDialogueBlip(voiceGender, token.trim().charAt(0));
+        }
     };
 
     const step = (timestamp) => {

@@ -2142,8 +2142,12 @@ function showCurrentMessage(direction = 'forward') {
         optionsIndicator.classList.toggle('hidden', !hasOpt || isRpgModeMode());
     }
 
+    // Voz sintetizada del diálogo: solo personajes reales "hablan" (no narrador/Garrick/Oráculo)
+    const isNarratorLike = msg.isNarrator || !msg.characterId;
+    const speakerVoiceGender = isNarratorLike ? undefined : (charData?.gender || '');
+
     const formattedText = formatText(cleanText);
-    if (dialogueText) typeWriter(formattedText, dialogueText);
+    if (dialogueText) typeWriter(formattedText, dialogueText, speakerVoiceGender);
 
     // ── Oracle consequence badge ────────────────────────────────────────────
     const oracleBadge = document.getElementById('vnOracleConsequenceBadge');
@@ -2594,7 +2598,7 @@ function updateSprites(currentMsg, activeEmote = null) {
 }
 
 
-function typeWriter(text, element) {
+function typeWriter(text, element, voiceGender) {
     stopTypewriter();
 
     isTyping = true;
@@ -2649,6 +2653,11 @@ function typeWriter(text, element) {
         // Forzar reflow para que la animación arranque
         void span.offsetWidth;
         span.classList.add('tw-char--in');
+
+        // Blip de voz sintetizada — solo si el token trae al menos una letra
+        if (voiceGender !== undefined && typeof playDialogueBlip === 'function' && /\p{L}/u.test(token)) {
+            playDialogueBlip(voiceGender, token.trim().charAt(0));
+        }
     };
 
     const step = (timestamp) => {
