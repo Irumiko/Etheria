@@ -1523,8 +1523,13 @@ function createTopicFromWizard() {
         date: new Date().toLocaleDateString(),
     };
     if (mode === 'rpg') {
-        newTopic.characterLocks    = {}; newTopic.characterLocks[currentUserIndex]    = _tw.charId;
-        newTopic.rpgCharacterLocks = {}; newTopic.rpgCharacterLocks[currentUserIndex] = _tw.charId;
+        // Clave por user_id real cuando hay sesión — currentUserIndex es un slot
+        // local (0/1/2) que colisiona entre cuentas distintas en dispositivos
+        // distintos. Con user_id, story_participants y el resto de jugadores
+        // resuelven el personaje bloqueado de cada quien sin ambigüedad.
+        const lockKey = window._cachedUserId || currentUserIndex;
+        newTopic.characterLocks    = {}; newTopic.characterLocks[lockKey]    = _tw.charId;
+        newTopic.rpgCharacterLocks = {}; newTopic.rpgCharacterLocks[lockKey] = _tw.charId;
     } else {
         newTopic.roleCharacterId = _tw.charId;
     }

@@ -3324,12 +3324,16 @@ function canUseNarratorMode(topic) {
 
 function getTopicLockedCharacterId(topic) {
     if (!topic) return null;
+    // Preferir user_id real (clave usada cuando hay sesión); currentUserIndex
+    // es solo el respaldo local para partidas sin cuenta — ver persistTopicLockedCharacter.
+    const myKey = window._cachedUserId || currentUserIndex;
     const locks = topic.characterLocks || {};
-    const lockByUser = locks[currentUserIndex];
+    const lockByUser = locks[myKey] || locks[currentUserIndex];
     if (lockByUser) return lockByUser;
 
     // Compatibilidad con lock RPG legado
     const legacyRpgLocks = topic.rpgCharacterLocks || {};
+    if (legacyRpgLocks[myKey]) return legacyRpgLocks[myKey];
     if (legacyRpgLocks[currentUserIndex]) return legacyRpgLocks[currentUserIndex];
 
     // Compatibilidad con lock clásico legado del creador
@@ -3342,15 +3346,19 @@ function getTopicLockedCharacterId(topic) {
 
 function persistTopicLockedCharacter(topic, charId) {
     if (!topic || !charId) return;
+    // Clave por user_id real cuando hay sesión — currentUserIndex es un slot
+    // local (0/1/2) que colisiona entre cuentas distintas en dispositivos
+    // distintos (dos jugadores reales pueden tener ambos "índice 0").
+    const lockKey = window._cachedUserId || currentUserIndex;
     topic.characterLocks = topic.characterLocks || {};
-    if (topic.characterLocks[currentUserIndex]) return;
-    topic.characterLocks[currentUserIndex] = charId;
+    if (topic.characterLocks[lockKey]) return;
+    topic.characterLocks[lockKey] = charId;
 
     // Mantener compatibilidad con lector legacy RPG
     if (topic.mode === 'rpg') {
         topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
-        if (!topic.rpgCharacterLocks[currentUserIndex]) {
-            topic.rpgCharacterLocks[currentUserIndex] = charId;
+        if (!topic.rpgCharacterLocks[lockKey]) {
+            topic.rpgCharacterLocks[lockKey] = charId;
         }
     }
 

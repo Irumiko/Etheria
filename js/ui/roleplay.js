@@ -106,11 +106,15 @@ function selectRoleCharacterForTopic(topicId, charId) {
 
     const context = roleCharacterModalContext || { isRpgMode: topic.mode === 'rpg', enterOnSelect: false };
 
+    // Clave por user_id real cuando hay sesión — currentUserIndex es un slot
+    // local que colisiona entre cuentas distintas en dispositivos distintos.
+    const lockKey = window._cachedUserId || currentUserIndex;
+
     if (context.isRpgMode || topic.mode === 'rpg') {
         topic.characterLocks = topic.characterLocks || {};
-        topic.characterLocks[currentUserIndex] = charId;
+        topic.characterLocks[lockKey] = charId;
         topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
-        topic.rpgCharacterLocks[currentUserIndex] = charId;
+        topic.rpgCharacterLocks[lockKey] = charId;
     } else {
         topic.roleCharacterId = charId;
     }
@@ -121,9 +125,16 @@ function selectRoleCharacterForTopic(topicId, charId) {
     hasUnsavedChanges = true;
     save({ silent: true });
     // Sincronizar los locks del personaje en Supabase para que otros jugadores
-    // puedan ver qué personaje tiene asignado cada usuario en este topic
+    // puedan ver qué personaje tiene asignado cada usuario en este topic.
+    // upsertStory() solo lo puede escribir quien creó la historia (RLS), así
+    // que además reclamamos el personaje en story_participants directamente
+    // -- ese camino sí está permitido para cualquier participante y es el que
+    // usan los demás para resolver "qué personaje lleva cada quien".
     if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.upsertStory === 'function') {
         SupabaseStories.upsertStory(topic).catch(() => {});
+    }
+    if (topic.storyId && typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.claimCharacter === 'function') {
+        SupabaseStories.claimCharacter(topic.storyId, charId).catch(() => {});
     }
     if (typeof SupabaseSync !== 'undefined') {
         SupabaseSync.uploadProfileData().catch(() => {});
@@ -277,7 +288,9 @@ function updateAffinityDisplay() {
         if (!isRpgModeModeActive || !currentTopic) return null;
 
         const lockMap = currentTopic.characterLocks || currentTopic.rpgCharacterLocks || {};
-        const lockedCharId = lockMap[currentUserIndex];
+        // Preferir user_id real (clave usada cuando hay sesión); currentUserIndex
+        // es solo el respaldo local para partidas sin cuenta.
+        const lockedCharId = lockMap[window._cachedUserId] || lockMap[currentUserIndex];
         if (lockedCharId) {
             const lockedChar = appData.characters.find(c => String(c.id) === String(lockedCharId));
             if (lockedChar) return lockedChar;
