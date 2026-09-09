@@ -120,7 +120,7 @@
                         auth_key: authKey,
                         device_hint: deviceHint,
                         last_used_at: new Date().toISOString(),
-                    }, { onConflict: 'endpoint' });
+                    }, { onConflict: 'user_id,endpoint' }); // única real en push_subscriptions es (user_id, endpoint), no endpoint solo
 
                 if (error) {
                     logger?.warn('push', 'Error guardando suscripción:', error.message);
@@ -234,7 +234,7 @@
                         auth_key: subJson.keys.auth,
                         device_hint: _getDeviceHint(),
                         last_used_at: new Date().toISOString(),
-                    }, { onConflict: 'endpoint' });
+                    }, { onConflict: 'user_id,endpoint' }); // única real en push_subscriptions es (user_id, endpoint), no endpoint solo
                 }
             }
         } catch (err) {
