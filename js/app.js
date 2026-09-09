@@ -1074,7 +1074,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Solo en HTTPS (obligatorio) y si el navegador lo soporta.
     // No bloquea el arranque de la app — se registra en background.
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        const _registerServiceWorker = () => {
             navigator.serviceWorker.register('./sw.js', { scope: './' })
                 .then((reg) => {
                     // Manejar actualizaciones del Service Worker
@@ -1129,7 +1129,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Fallo no crítico — la app funciona igual sin SW
                     console.warn('[PWA] Service Worker no pudo registrarse:', err);
                 });
-        });
+        };
+
+        // El evento 'load' puede haber ocurrido ya antes de llegar aquí (página
+        // pesada, script tardío, etc.) — un listener añadido después nunca se
+        // dispara y el SW no llega a registrarse nunca. Si 'load' ya pasó,
+        // registrar directamente en vez de esperar un evento que no va a volver.
+        if (document.readyState === 'complete') {
+            _registerServiceWorker();
+        } else {
+            window.addEventListener('load', _registerServiceWorker);
+        }
     }
     // ── Frase aleatoria en el subtítulo del menú principal ───────────────────
     // (absorbido de mejoras.js — Mejora 1)
