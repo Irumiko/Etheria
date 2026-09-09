@@ -162,7 +162,12 @@
     async function unsubscribe() {
         const client = _getClient();
         if (_channel && client) {
-            try { client.removeChannel(_channel); } catch {}
+            // removeChannel() es async — sin el await, subscribe() podía crear
+            // el canal nuevo con el mismo nombre antes de que el viejo
+            // terminara de eliminarse, y supabase-js devolvía el objeto
+            // reciclado ya suscrito ("cannot add postgres_changes callbacks
+            // ... after subscribe()").
+            try { await client.removeChannel(_channel); } catch {}
         }
         _channel = null;
     }

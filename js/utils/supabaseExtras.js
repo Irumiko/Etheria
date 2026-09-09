@@ -138,111 +138,11 @@
         }
     }
 
-    // ── 3. WEB PUSH ──────────────────────────────────────────────────────────
-
-    // VAPID public key — debes sustituir esto por tu clave VAPID real
-    // Genérala en: https://web-push-codelab.glitch.me/
-    // o con: npx web-push generate-vapid-keys
-    const VAPID_PUBLIC_KEY = 'YOUR_VAPID_PUBLIC_KEY_HERE';
-
-    function _urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const raw     = atob(base64);
-        return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
-    }
-
-    async function registerPushSubscription() {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            global.EtheriaLogger?.warn('extras:push', 'Web Push no soportado en este navegador');
-            return false;
-        }
-
-        if (VAPID_PUBLIC_KEY === 'YOUR_VAPID_PUBLIC_KEY_HERE') {
-            global.EtheriaLogger?.warn('extras:push', 'Configura tu VAPID_PUBLIC_KEY en supabaseExtras.js');
-            return false;
-        }
-
-        const userId = await _userId();
-        const c = _client();
-        if (!userId || !c) return false;
-
-        try {
-            // Pedir permiso al usuario
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') return false;
-
-            // Obtener el Service Worker registrado
-            const registration = await navigator.serviceWorker.ready;
-
-            // Suscribir al push service del navegador
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly:      true,
-                applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
-
-            const subJson = subscription.toJSON();
-
-            // Detectar tipo de dispositivo
-            const isMobile    = /Android|iPhone|iPad/i.test(navigator.userAgent);
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                              || navigator.standalone === true;
-            const deviceHint  = isStandalone ? 'pwa' : isMobile ? 'mobile' : 'desktop';
-
-            // Guardar en Supabase
-            const { error } = await c.from('push_subscriptions').upsert({
-                user_id:      userId,
-                endpoint:     subJson.endpoint,
-                p256dh:       subJson.keys.p256dh,
-                auth_key:     subJson.keys.auth,
-                device_hint:  deviceHint,
-                last_used_at: new Date().toISOString()
-            }, { onConflict: 'user_id, endpoint' });
-
-            if (error) {
-                global.EtheriaLogger?.warn('extras:push', 'Error guardando suscripción:', error.message);
-                return false;
-            }
-
-            await logActivity('push_subscribed', 'session', null, { device_hint: deviceHint });
-            global.EtheriaLogger?.info?.('extras:push', 'Suscripción push registrada:', deviceHint);
-            return true;
-
-        } catch (e) {
-            global.EtheriaLogger?.warn('extras:push', 'Error registrando push:', e?.message);
-            return false;
-        }
-    }
-
-    async function unregisterPushSubscription() {
-        const userId = await _userId();
-        const c = _client();
-        if (!userId || !c) return;
-
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
-
-            if (subscription) {
-                await subscription.unsubscribe();
-                await c.from('push_subscriptions')
-                    .delete()
-                    .eq('user_id', userId)
-                    .eq('endpoint', subscription.endpoint);
-            }
-        } catch (e) {
-            global.EtheriaLogger?.warn('extras:push', 'Error eliminando push:', e?.message);
-        }
-    }
-
-    async function isPushSubscribed() {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            const sub = await registration.pushManager.getSubscription();
-            return !!sub;
-        } catch { return false; }
-    }
+    // Nota: el registro de Web Push real vive en js/utils/pushNotifications.js
+    // (EtheriaPush) con la clave VAPID inyectada desde js/config/supabase.js.
+    // Aquí había una segunda implementación, nunca funcional (clave de
+    // marcador de posición sin sustituir), que se autoejecutaba en cada
+    // etheria:auth-changed y llenaba la consola de avisos — eliminada.
 
     // ── 4. RATE LIMIT (cliente) ───────────────────────────────────────────────
 
@@ -284,12 +184,8 @@
     global.addEventListener('etheria:auth-changed', function (e) {
         const user = e.detail?.user;
         if (user?.id) {
-            // Al hacer login, registrar actividad e intentar registrar push
+            // Al hacer login, registrar actividad
             logActivity('login', 'session').catch(() => {});
-            // Intentar registrar push si el usuario ya dio permiso antes
-            if (Notification.permission === 'granted') {
-                registerPushSubscription().catch(() => {});
-            }
         }
     });
 
@@ -299,9 +195,6 @@
         logActivity,
         exportBackup,
         importBackup,
-        registerPushSubscription,
-        unregisterPushSubscription,
-        isPushSubscribed,
         checkRateLimit,
         getRateLimitRemaining
     };
