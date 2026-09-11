@@ -514,7 +514,31 @@ function _withTimeout(promise, ms, label) {
     ]);
 }
 
-async function ensureProfile() {
+// supabase-js dispara onAuthStateChange (con SIGNED_IN) cada vez que la pestaña
+// recupera el foco y refresca la sesión. Sin protección, cada una de esas
+// veces lanzaba una tanda completa de peticiones (getUser + perfiles + ajustes
+// + slots + suscripción de turnos) que podía solaparse con la anterior si no
+// había terminado. Con alternancias de pestaña frecuentes esto se acumulaba en
+// decenas de peticiones casi simultáneas a Supabase Auth — llegó a tumbar el
+// servidor con "Thread killed by timeout manager" y 503 en cascada para todo
+// lo demás. _ensureProfileInFlight hace que una llamada solapada reutilice la
+// que ya está en curso en vez de lanzar otra tanda por su cuenta.
+let _ensureProfileInFlight = null;
+let _lastEnsureProfileAt = 0;
+const ENSURE_PROFILE_COOLDOWN_MS = 3000; // ignora llamadas repetidas en ráfaga (alt-tab rápido)
+
+function ensureProfile() {
+    if (_ensureProfileInFlight) return _ensureProfileInFlight;
+    if (Date.now() - _lastEnsureProfileAt < ENSURE_PROFILE_COOLDOWN_MS) return Promise.resolve();
+
+    _ensureProfileInFlight = _doEnsureProfile().finally(() => {
+        _ensureProfileInFlight = null;
+        _lastEnsureProfileAt = Date.now();
+    });
+    return _ensureProfileInFlight;
+}
+
+async function _doEnsureProfile() {
     // ensureProfile ya no crea perfiles automáticamente.
     // Los perfiles globales se crean explícitamente por el usuario via SupabaseProfiles.
     // Esta función solo inicializa los módulos Supabase tras el login.
