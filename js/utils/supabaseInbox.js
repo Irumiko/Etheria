@@ -66,14 +66,16 @@
         try {
             const { data, error } = await c
                 .from('turn_notifications')
-                .select('id, title, body, created_at, is_read, story_id, topic_id, sender_user_id')
+                .select('id, title, body, created_at, is_read, story_id, topic_id, sender_user_id, meta')
                 .eq('recipient_user_id', uid)
                 .order('created_at', { ascending: false })
                 .limit(50);
 
             if (error) { logger?.warn('inbox', 'loadUnread error:', error.message); return; }
 
-            _notifications = data || [];
+            // Los avisos de mensaje nuevo (buzón bidireccional) ya se
+            // muestran en la pestaña "Mensajes" — no duplicarlos aquí.
+            _notifications = (data || []).filter(n => n?.meta?.kind !== 'conversation_message');
             _unreadCount   = _notifications.filter(n => !n.is_read).length;
             _updateBadge();
         } catch (e) {
@@ -86,22 +88,47 @@
         const badge = document.getElementById('menuInboxBadge');
         if (!btn) return;
 
+        // Badge combinado: notificaciones de turno + mensajes sin leer
+        const convUnread = (typeof EtheriaConversations !== 'undefined') ? EtheriaConversations.unreadCount : 0;
+        const totalUnread = _unreadCount + convUnread;
+
         // Mostrar el botón solo si hay al menos una notificación alguna vez
-        if (_notifications.length > 0) btn.style.display = '';
+        if (_notifications.length > 0 || convUnread > 0) btn.style.display = '';
 
         // Clase visual cuando hay no leídas
-        if (_unreadCount > 0) {
+        if (totalUnread > 0) {
             btn.classList.add('has-unread');
         } else {
             btn.classList.remove('has-unread');
         }
 
         if (!badge) return;
-        if (_unreadCount > 0) {
-            badge.textContent = _unreadCount > 9 ? '9+' : String(_unreadCount);
+        if (totalUnread > 0) {
+            badge.textContent = totalUnread > 9 ? '9+' : String(totalUnread);
             badge.style.display = '';
         } else {
             badge.style.display = 'none';
+        }
+    }
+
+    // El módulo de conversaciones avisa cuando cambia su contador de no
+    // leídos (carga inicial, mensaje nuevo por realtime, hilo marcado como
+    // leído) para que el badge combinado se mantenga al día.
+    global.addEventListener('etheria:conversations-unread-changed', _updateBadge);
+
+    // ── Pestañas del buzón: Notificaciones / Mensajes ─────────────────────────
+
+    function switchTab(tab) {
+        const tabs = document.querySelectorAll('.inbox-tab');
+        tabs.forEach(btn => btn.classList.toggle('inbox-tab--active', btn.dataset.inboxTab === tab));
+
+        const panelNotifs = document.getElementById('inboxPanelNotifications');
+        const panelMsgs   = document.getElementById('inboxPanelMessages');
+        if (panelNotifs) panelNotifs.style.display = tab === 'notifications' ? '' : 'none';
+        if (panelMsgs)   panelMsgs.style.display   = tab === 'messages' ? '' : 'none';
+
+        if (tab === 'messages' && typeof EtheriaConversations !== 'undefined') {
+            EtheriaConversations.initForMessagesTab();
         }
     }
 
@@ -123,6 +150,10 @@
             }, function (payload) {
                 const row = payload?.new;
                 if (!row) return;
+                // Los avisos de mensaje nuevo los gestiona supabaseConversations.js
+                // (llega por su propio canal de conversation_messages) —
+                // evitar contarlo dos veces / mostrarlo en Notificaciones.
+                if (row?.meta?.kind === 'conversation_message') return;
                 _notifications.unshift(row);
                 if (!row.is_read) {
                     _unreadCount++;
@@ -507,6 +538,7 @@
         joinTopicPresence,
         leaveTopicPresence,
         emitTyping,
+        switchTab,
         get unreadCount() { return _unreadCount; }
     };
 

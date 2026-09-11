@@ -329,8 +329,52 @@
                 </h2>
                 <button class="inbox-close" onclick="closeInboxModal()">✕</button>
             </div>
-            <div id="inboxList" class="inbox-list">
-                <p class="inbox-empty">Cargando...</p>
+
+            <div class="inbox-tabs">
+                <button type="button" class="inbox-tab inbox-tab--active" data-inbox-tab="notifications" onclick="EtheriaInbox.switchTab('notifications')">Notificaciones</button>
+                <button type="button" class="inbox-tab" data-inbox-tab="messages" onclick="EtheriaInbox.switchTab('messages')">Mensajes</button>
+            </div>
+
+            <div id="inboxPanelNotifications" class="inbox-panel">
+                <div id="inboxList" class="inbox-list">
+                    <p class="inbox-empty">Cargando...</p>
+                </div>
+            </div>
+
+            <div id="inboxPanelMessages" class="inbox-panel" style="display:none">
+                <div id="conversationsListView">
+                    <div class="conversations-toolbar">
+                        <button type="button" class="btn-new-conversation" onclick="EtheriaConversations.openNewConversation()">+ Nuevo mensaje</button>
+                    </div>
+                    <div id="conversationsList" class="inbox-list">
+                        <p class="inbox-empty">Cargando...</p>
+                    </div>
+                </div>
+
+                <div id="newConversationSearch" class="new-conversation-search" style="display:none">
+                    <div class="conversation-thread-header">
+                        <button type="button" class="conversation-back" onclick="EtheriaConversations.closeNewConversation()">← Volver</button>
+                        <span>Escribir a...</span>
+                    </div>
+                    <input type="text" id="conversationSearchInput" class="conversation-search-input"
+                           placeholder="Buscar por nombre..." oninput="EtheriaConversations.searchProfilesUI(this.value)">
+                    <div id="conversationSearchResults" class="inbox-list"></div>
+                </div>
+
+                <div id="conversationThreadView" class="conversation-thread" style="display:none">
+                    <div class="conversation-thread-header">
+                        <button type="button" class="conversation-back" onclick="EtheriaConversations.closeThread()">← Volver</button>
+                        <div class="conversation-thread-who">
+                            <img id="conversationThreadAvatar" class="conversation-thread-avatar" src="" alt="" style="display:none">
+                            <span id="conversationThreadName">...</span>
+                        </div>
+                    </div>
+                    <div id="conversationMessages" class="conversation-messages"></div>
+                    <form class="conversation-compose" onsubmit="event.preventDefault(); EtheriaConversations.sendCurrentMessage();">
+                        <textarea id="conversationComposeInput" class="conversation-compose-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
+                        <button type="submit" class="conversation-compose-send">Enviar</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -2530,6 +2574,7 @@
 <script src="js/utils/supabasePresence.js"></script>
 <script src="js/utils/supabaseTurnNotifications.js"></script>
     <script src="js/utils/supabaseInbox.js"></script>
+    <script src="js/utils/supabaseConversations.js"></script>
     <script src="js/utils/supabaseExtras.js"></script>
     <script src="js/utils/pushNotifications.js"></script>
 <script src="js/ui/vn.js"></script>
@@ -2680,6 +2725,27 @@
             </div>
 
             <button class="pm-close-btn" onclick="closeProfileModal()">Listo</button>
+        </div>
+    </div>
+
+    <!-- Nombrar perfil nuevo — sustituye al prompt() nativo del navegador -->
+    <div id="newProfileNameModal" class="modal-overlay" onclick="if(event.target===this) closeModal('newProfileNameModal')" role="dialog" aria-modal="true" aria-labelledby="newProfileNameTitle">
+        <div class="profile-modal" style="max-width:360px;">
+            <div class="profile-modal-header">
+                <h3 id="newProfileNameTitle">Nombra tu perfil</h3>
+                <button class="profile-modal-close" onclick="closeModal('newProfileNameModal')" aria-label="Cerrar">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div class="profile-modal-fields">
+                <div class="pm-field">
+                    <label for="newProfileNameInput">¿Cómo quieres que te llamemos?</label>
+                    <div class="pm-input-row">
+                        <input type="text" id="newProfileNameInput" class="pm-input" placeholder="Tu nombre..." autocomplete="off" maxlength="24" onkeydown="if(event.key==='Enter') confirmNewProfileName()">
+                    </div>
+                </div>
+            </div>
+            <button class="pm-close-btn" onclick="confirmNewProfileName()">Crear perfil</button>
         </div>
     </div>
 
