@@ -104,10 +104,16 @@
             const otherIds = [...new Set([...otherByConv.values()])];
             let profilesByUser = new Map();
             if (otherIds.length) {
+                // Una cuenta puede tener varios perfiles (slots) — para que el
+                // nombre mostrado sea siempre el mismo y coincida con el que
+                // usa el título de la notificación push (ver
+                // notify_new_conversation_message en la base de datos), nos
+                // quedamos con el perfil más antiguo de esa cuenta.
                 const { data: profs } = await c
                     .from('profiles')
-                    .select('name, avatar, owner_user_id')
-                    .in('owner_user_id', otherIds);
+                    .select('name, avatar, owner_user_id, created_at')
+                    .in('owner_user_id', otherIds)
+                    .order('created_at', { ascending: true });
                 (profs || []).forEach(p => {
                     if (!profilesByUser.has(p.owner_user_id)) profilesByUser.set(p.owner_user_id, p);
                 });
