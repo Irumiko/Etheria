@@ -2728,27 +2728,6 @@
         </div>
     </div>
 
-    <!-- Nombrar perfil nuevo — sustituye al prompt() nativo del navegador -->
-    <div id="newProfileNameModal" class="modal-overlay" onclick="if(event.target===this) closeModal('newProfileNameModal')" role="dialog" aria-modal="true" aria-labelledby="newProfileNameTitle">
-        <div class="profile-modal" style="max-width:360px;">
-            <div class="profile-modal-header">
-                <h3 id="newProfileNameTitle">Nombra tu perfil</h3>
-                <button class="profile-modal-close" onclick="closeModal('newProfileNameModal')" aria-label="Cerrar">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                </button>
-            </div>
-            <div class="profile-modal-fields">
-                <div class="pm-field">
-                    <label for="newProfileNameInput">¿Cómo quieres que te llamemos?</label>
-                    <div class="pm-input-row">
-                        <input type="text" id="newProfileNameInput" class="pm-input" placeholder="Tu nombre..." autocomplete="off" maxlength="24" onkeydown="if(event.key==='Enter') confirmNewProfileName()">
-                    </div>
-                </div>
-            </div>
-            <button class="pm-close-btn" onclick="confirmNewProfileName()">Crear perfil</button>
-        </div>
-    </div>
-
     <div id="storyCodeModal" class="modal-overlay" onclick="if(event.target===this) closeModal('storyCodeModal')">
         <div class="modal" style="max-width:420px;">
             <h3 style="margin-top:0; font-family:Cinzel,serif;">🔐 Código de historia</h3>
