@@ -92,7 +92,33 @@
             // Obtener registro del Service Worker
             const reg = await navigator.serviceWorker.ready;
 
-            // Suscribirse (o recuperar suscripción existente)
+            // El navegador reutiliza una suscripción existente aunque se le pida
+            // una applicationServerKey distinta — no lanza error, simplemente
+            // devuelve la vieja. Si la clave VAPID cambió desde la última vez
+            // (rotación de claves, o una suscripción de antes de configurarlas),
+            // esa suscripción "viva" es inservible: el servidor firma con la
+            // clave privada nueva y el servicio de push la rechaza en silencio.
+            // Hay que desuscribirla primero para forzar una nueva con la clave actual.
+            const existing = await reg.pushManager.getSubscription();
+            if (existing) {
+                const currentKeyBytes = _urlBase64ToUint8Array(vapidKey);
+                const existingKeyBytes = new Uint8Array(existing.options?.applicationServerKey || []);
+                const sameKey = currentKeyBytes.length === existingKeyBytes.length
+                    && currentKeyBytes.every((b, i) => b === existingKeyBytes[i]);
+                if (!sameKey) {
+                    logger?.info('push', 'Suscripción existente con clave VAPID distinta — renovando');
+                    const staleEndpoint = existing.endpoint;
+                    await existing.unsubscribe();
+                    // Best-effort: limpiar la fila vieja para no dejar basura en la tabla
+                    const c = _client();
+                    if (c && staleEndpoint) {
+                        c.from('push_subscriptions').delete().eq('endpoint', staleEndpoint)
+                            .then(() => {}, () => {});
+                    }
+                }
+            }
+
+            // Suscribirse (o recuperar suscripción existente si la clave coincide)
             const subscription = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: _urlBase64ToUint8Array(vapidKey),
@@ -223,6 +249,20 @@
             const reg = await navigator.serviceWorker.ready;
             const existing = await reg.pushManager.getSubscription();
             if (existing) {
+                // Si la suscripción existente quedó con una clave VAPID vieja
+                // (rotación de claves), no basta con re-guardarla — hay que
+                // renovarla de verdad. requestPermissionAndSubscribe() ya sabe
+                // desuscribir la vieja y crear una nueva con la clave actual.
+                const currentKeyBytes = _urlBase64ToUint8Array(vapidKey);
+                const existingKeyBytes = new Uint8Array(existing.options?.applicationServerKey || []);
+                const sameKey = currentKeyBytes.length === existingKeyBytes.length
+                    && currentKeyBytes.every((b, i) => b === existingKeyBytes[i]);
+
+                if (!sameKey) {
+                    await requestPermissionAndSubscribe();
+                    return;
+                }
+
                 // Asegurar que está guardada en Supabase (puede faltar tras borrar BD)
                 const subJson = existing.toJSON();
                 const c = _client();
