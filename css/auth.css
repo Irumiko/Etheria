@@ -509,13 +509,34 @@
 
 .inbox-item {
     display: flex;
+    align-items: flex-start;
     gap: 1rem;
     padding: 0.9rem 1.5rem;
-    cursor: pointer;
     transition: background 0.15s;
     border-bottom: 1px solid rgba(160,128,220, 0.06);
 }
 .inbox-item:hover { background: rgba(160,128,220,0.06); }
+
+.inbox-item-icon,
+.inbox-item-body { cursor: pointer; }
+
+.inbox-item-dismiss {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    color: rgba(232,213,163,0.35);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.3rem;
+    margin: -0.3rem -0.5rem -0.3rem 0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+}
+.inbox-item-dismiss:hover {
+    color: rgba(232,213,163,0.9);
+    background: rgba(160,128,220,0.15);
+}
 
 .inbox-item--unread { background: rgba(160,128,220, 0.05); }
 .inbox-item--unread .inbox-item-title { color: #e8d5a3; }

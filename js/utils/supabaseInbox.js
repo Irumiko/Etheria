@@ -179,16 +179,56 @@
             const unreadClass = !n.is_read ? 'inbox-item--unread' : '';
             const item = document.createElement('div');
             item.className = 'inbox-item ' + unreadClass;
-            item.addEventListener('click', function() { EtheriaInbox.goToTopic(n.topic_id || ''); });
             item.innerHTML =
                 `<div class="inbox-item-icon">${n.is_read ? '✉' : '📬'}</div>` +
                 `<div class="inbox-item-body">` +
                 `<p class="inbox-item-title">${escapeHtml(n.title || 'Nueva notificación')}</p>` +
                 `<p class="inbox-item-text">${escapeHtml(n.body || '')}</p>` +
                 (dateStr ? `<p class="inbox-item-date">${escapeHtml(dateStr)}</p>` : '') +
-                `</div>`;
+                `</div>` +
+                `<button type="button" class="inbox-item-dismiss" title="Descartar" aria-label="Descartar notificación">✕</button>`;
+
+            item.querySelector('.inbox-item-icon').addEventListener('click', function() {
+                EtheriaInbox.goToTopic(n.topic_id || '');
+            });
+            item.querySelector('.inbox-item-body').addEventListener('click', function() {
+                EtheriaInbox.goToTopic(n.topic_id || '');
+            });
+            item.querySelector('.inbox-item-dismiss').addEventListener('click', function(e) {
+                e.stopPropagation();
+                _dismissNotification(n.id, item);
+            });
+
             list.appendChild(item);
         });
+    }
+
+    async function _dismissNotification(id, itemEl) {
+        if (!id) return;
+        // Optimista: quitar de la vista ya mismo, revertir si falla el borrado
+        const idx = _notifications.findIndex(n => n.id === id);
+        const removed = idx !== -1 ? _notifications.splice(idx, 1)[0] : null;
+        if (itemEl) itemEl.remove();
+        if (removed && !removed.is_read) {
+            _unreadCount = Math.max(0, _unreadCount - 1);
+            _updateBadge();
+        }
+        if (_notifications.length === 0) _renderInboxList();
+
+        const c = _client();
+        if (!c) return;
+        try {
+            const { error } = await c.from('turn_notifications').delete().eq('id', id);
+            if (error) throw error;
+        } catch (e) {
+            logger?.warn('inbox', 'dismissNotification error:', e?.message);
+            // Revertir si el borrado falló de verdad (no solo por estar offline)
+            if (removed) {
+                _notifications.splice(idx, 0, removed);
+                if (!removed.is_read) { _unreadCount++; _updateBadge(); }
+                _renderInboxList();
+            }
+        }
     }
 
     async function _markAllRead(ids) {
