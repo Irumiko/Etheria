@@ -214,7 +214,6 @@ let touchStartY = 0;
 let gallerySearchDebounceTimer = null;
 let galleryImageObserver = null;
 let historyVirtualState = null;
-let pendingRoomInviteId = null;
 let currentStoryId = null;           // UUID de la historia activa en Supabase
 let currentStoryParticipants = [];   // Participantes de la historia activa
 const spritePool = [];

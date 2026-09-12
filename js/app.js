@@ -766,9 +766,8 @@ function initializeApp() {
     setupGallerySearchListeners();
 
 
-    // Comprobar token de invitación (?invite=TOKEN) — tiene prioridad sobre ?room=
+    // Comprobar token de invitación (?invite=TOKEN)
     const _pendingInviteToken = new URLSearchParams(window.location.search).get('invite');
-    pendingRoomInviteId = (typeof getRoomIdFromQuery === 'function') ? getRoomIdFromQuery() : null;
 
     if (_pendingInviteToken) {
         // Limpiar la URL para no re-procesar en recargas
@@ -786,16 +785,6 @@ function initializeApp() {
                 setTimeout(() => openInviteJoinModal(tok), 800);
             }
         }, { once: false });
-    } else if (pendingRoomInviteId) {
-        const defaultProfile = getStoredLastProfileId();
-        selectUser(defaultProfile !== null ? defaultProfile : 0, { autoLoad: true })
-            .then(() => {
-                if (typeof tryJoinRoomFromUrl === 'function') return tryJoinRoomFromUrl();
-                return false;
-            })
-            .catch((err) => {
-                console.warn('No se pudo abrir la sala compartida:', err);
-            });
     }
     // Nota: la entrada automática al último perfil se gestiona ahora en el
     // arranque (boot) y post-login, basándose en la sesión y la propiedad del perfil.
