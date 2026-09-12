@@ -1603,6 +1603,18 @@ function createTopicFromWizard() {
             if (result.ok && result.storyId) {
                 topicRef.storyId = result.storyId;
                 hasUnsavedChanges = true; save({ silent: true });
+                // enterTopic(id) ya se ejecutó (más abajo) antes de que esta promesa
+                // resolviera, así que window.currentStoryId quedó en null. Sin esto,
+                // el mensaje de apertura (y cualquier mensaje/typing enviado mientras
+                // tanto) se inserta con story_id NULL y la política RLS de INSERT en
+                // "messages" lo rechaza (42501) al no poder verificar participación.
+                if (typeof currentTopicId !== 'undefined' && String(currentTopicId) === String(id)) {
+                    window.currentStoryId = result.storyId;
+                    var openingMsg = (appData.messages[id] || [])[0];
+                    if (openingMsg && typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.send === 'function') {
+                        SupabaseMessages.send(id, openingMsg).catch(function() {});
+                    }
+                }
                 // Inicializar configuración de turnos en strict
                 var uid = window._cachedUserId;
                 if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
