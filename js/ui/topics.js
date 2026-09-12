@@ -1413,6 +1413,16 @@ function createTopicFromWizard() {
                     if (openingMsg && typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.send === 'function') {
                         SupabaseMessages.send(id, openingMsg).catch(function() {});
                     }
+                    // El canal realtime ya se abrió (en enterTopic, más abajo) con
+                    // currentStoryId todavía en null, así que quedó filtrando por
+                    // session_id en vez de story_id — no vería mensajes de otros
+                    // participantes. Reabrirlo ahora con el storyId correcto.
+                    if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
+                        SupabaseMessages.subscribeGlobal(null, null, id);
+                    }
+                    if (typeof _sbEnterTopic === 'function') {
+                        _sbEnterTopic(id).catch(function() {});
+                    }
                 }
                 // Inicializar configuración de turnos en strict
                 var uid = window._cachedUserId;
