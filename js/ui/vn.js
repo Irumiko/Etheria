@@ -5286,14 +5286,6 @@ function closeReplyPanel() {
     updateOracleFloatButton();
 }
 
-function toggleCharGrid() {
-    if (isNarratorMode) return;
-    const topic = getCurrentTopic();
-    if (getTopicLockedCharacterId(topic)) return;
-    const grid = document.getElementById('charGridDropdown');
-    if (grid) grid.classList.toggle('active');
-}
-
 function updateCharSelector() {
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
     const display = document.getElementById('charSelectedDisplay');
@@ -5365,13 +5357,6 @@ function selectCharFromGrid(charId) {
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
-}
-
-function openSelectedCharacterStats() {
-    const topic = getCurrentTopic();
-    if (topic?.mode !== 'rpg') return;
-    if (!selectedCharId || typeof openRpgStatsModal !== 'function') return;
-    openRpgStatsModal(selectedCharId);
 }
 
 function toggleOptionsFields() {
