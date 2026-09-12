@@ -590,11 +590,37 @@ function ensureTopicByRoomId(roomId) {
     return topic;
 }
 
+// Asegura que un topic tenga storyId en la nube antes de compartirlo.
+// createTopicFromWizard() ya intenta este upsert nada más crear el tema,
+// pero si esa sincronización inicial falla (red lenta, timeout de auth —
+// visto en producción con Supabase en frío), el tema se quedaba "solo
+// local" para siempre: ni "Compartir" ni "Código de sala" reintentaban,
+// solo mostraban "inicia sesión" aunque la sesión estuviera activa.
+async function _ensureStorySynced(topic) {
+    if (!topic) return null;
+    if (topic.storyId) return topic.storyId;
+    if (typeof SupabaseStories === 'undefined' || typeof SupabaseStories.upsertStory !== 'function') return null;
+
+    const result = await SupabaseStories.upsertStory(topic).catch(() => null);
+    if (!result?.ok || !result.storyId) return null;
+
+    topic.storyId = result.storyId;
+    hasUnsavedChanges = true;
+    save({ silent: true });
+
+    const uid = window._cachedUserId;
+    if (uid && typeof SupabaseStories.setTurnConfig === 'function') {
+        SupabaseStories.setTurnConfig(result.storyId, { mode: topic.turnMode || 'strict', order: [uid] }).catch(() => {});
+    }
+    return result.storyId;
+}
+
 async function copyCurrentRoomCode() {
     if (!currentTopicId) return;
 
     const topic = appData.topics.find(t => t.id === currentTopicId);
-    const storyId = topic?.storyId || window.currentStoryId;
+    let storyId = topic?.storyId || window.currentStoryId;
+    if (!storyId && topic) storyId = await _ensureStorySynced(topic);
 
     const _doCopy = (text, label) => {
         const onSuccess = () => showAutosave(label + ' copiado', 'saved');
@@ -633,10 +659,19 @@ async function copyCurrentRoomCode() {
 async function shareCurrentStory() {
     if (!currentTopicId) return;
     const topic = appData.topics.find(t => t.id === currentTopicId);
-    const storyId = topic?.storyId || window.currentStoryId;
 
-    if (!storyId || !window._cachedUserId) {
+    if (!window._cachedUserId) {
         showAutosave('Inicia sesión para compartir historias', 'error');
+        return;
+    }
+
+    let storyId = topic?.storyId || window.currentStoryId;
+    if (!storyId && topic) {
+        showAutosave('Preparando la historia para compartir...', 'info');
+        storyId = await _ensureStorySynced(topic);
+    }
+    if (!storyId) {
+        showAutosave('No se pudo sincronizar la historia — comprueba tu conexión e inténtalo de nuevo', 'error');
         return;
     }
 
