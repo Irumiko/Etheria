@@ -2631,29 +2631,6 @@
         </div>
     </div>
 
-    <!-- Modal de conflicto de sincronización -->
-    <div id="syncConflictModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="syncConflictTitle">
-        <div class="modal-content" style="max-width: 420px; text-align: center;">
-            <div style="font-size: 2.5rem; margin-bottom: 1rem;">⚡</div>
-            <h3 id="syncConflictTitle" style="font-family: 'Cinzel', serif; color: var(--accent-gold); margin-bottom: 0.75rem;">Conflicto de sincronización</h3>
-            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem;">
-                Tienes cambios locales y también hay cambios en la nube.<br>
-                ¿Cuál versión quieres conservar?
-            </p>
-            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                <button class="btn-primary" id="syncKeepLocalBtn" style="min-width: 140px;">
-                    💾 Mis cambios locales
-                </button>
-                <button class="btn-secondary" id="syncKeepServerBtn" style="min-width: 140px;">
-                    ☁️ Versión de la nube
-                </button>
-            </div>
-            <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 1rem;">
-                La versión no elegida se perderá.
-            </p>
-        </div>
-    </div>
-
     <!-- Modal de confirmación genérico -->
     <div id="confirmModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
         <div class="modal-content" style="max-width: 380px; text-align: center;">
@@ -2745,15 +2722,6 @@
                 </div>
             </div>
             <button class="pm-close-btn" onclick="confirmNewProfileName()">Crear perfil</button>
-        </div>
-    </div>
-
-    <div id="storyCodeModal" class="modal-overlay" onclick="if(event.target===this) closeModal('storyCodeModal')">
-        <div class="modal" style="max-width:420px;">
-            <h3 style="margin-top:0; font-family:Cinzel,serif;">🔐 Código de historia</h3>
-            <div id="storyCodeValue" style="font-size:1.5rem; letter-spacing:0.2em; color:var(--accent-gold); margin-bottom:0.6rem;"></div>
-            <p style="font-size:0.85rem; color:var(--text-muted); margin:0 0 0.8rem;">Comparte este código de 6 caracteres con otros jugadores para que puedan unirse a la historia.</p>
-            <button class="btn-primary" onclick="closeModal('storyCodeModal')" style="width:100%;">Cerrar</button>
         </div>
     </div>
 

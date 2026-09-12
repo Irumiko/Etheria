@@ -686,14 +686,6 @@ function refreshOracleQuestionAutodetect(force = false) {
     const autoQ = getOracleAutodetectedQuestion(replyText.value);
     if (autoQ && !questionInput.value.trim()) questionInput.value = autoQ;
 }
-function setOracleStat(nextStat) {
-    oracleStat = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].includes(nextStat) ? nextStat : 'STR';
-    document.querySelectorAll('.oracle-stat-btn').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.stat === oracleStat);
-    });
-    refreshOracleProbability();
-}
-
 function resetOraclePanelState() {
     // Resetea el estado del oráculo y cierra el mini-panel si está abierto
     if (typeof oracleStat !== 'undefined') oracleStat = 'STR';
@@ -718,19 +710,6 @@ function setupOraclePanelForMode() {
 }
 
 
-function toggleOracleMode() {
-    const topic = getCurrentTopic();
-    if (!isRpgTopicMode(topic?.mode)) return;
-    // El oráculo ahora usa el mini-panel independiente
-    oracleModeActive = !oracleModeActive;
-    if (oracleModeActive) {
-        toggleOracleMiniPanel();
-    } else {
-        closeOracleMiniPanel();
-    }
-    updateOracleFloatButton();
-}
-
 function updateOracleFloatButton() {
     const floatBtn = document.getElementById('vnOracleFloatBtn');
     const topic = getCurrentTopic();
@@ -748,10 +727,6 @@ function updateOracleFloatButton() {
     if (typeof updateTurnBanner === 'function') updateTurnBanner();
     floatBtn.classList.toggle('active', oracleModeActive);
     floatBtn.dataset.oracleActive = oracleModeActive ? 'true' : 'false';
-}
-
-function triggerOracleReply() {
-    toggleOracleMiniPanel();
 }
 
 function toggleVnDialogEmotePicker(event) {
@@ -5103,45 +5078,6 @@ function updateSceneChangePreview() {
 
     preview.style.display = 'inline-flex';
     preview.textContent = `Próxima escena: ${pendingSceneChange.title}`;
-}
-
-function prepareSceneChange() {
-    const topic = getCurrentTopic();
-    if (!topic) return;
-
-    if (!isNarratorMode) {
-        showAutosave('Activa Modo Narrador para cambiar de escena', 'error');
-        return;
-    }
-
-    if (!canUseNarratorMode(topic)) {
-        showAutosave('Solo quien crea la historia puede narrar en modo RPG', 'error');
-        return;
-    }
-
-    const replyText = document.getElementById('vnReplyText');
-    if (!replyText || !replyText.value.trim()) {
-        showAutosave('Escribe el mensaje narrativo antes de cambiar escena', 'error');
-        return;
-    }
-
-    const titleRaw = window.prompt('Nombre de la nueva escena (ej: Playa al atardecer):', 'Nueva escena');
-    if (titleRaw === null) return;
-    const title = String(titleRaw || '').trim() || 'Nueva escena';
-
-    const backgroundRaw = window.prompt('URL de fondo para la escena (opcional, deja vacío para usar el fondo por defecto):', '');
-    if (backgroundRaw === null) return;
-    const background = resolveTopicBackgroundPath(String(backgroundRaw || '').trim());
-
-    pendingSceneChange = {
-        title,
-        background,
-        at: new Date().toISOString()
-    };
-
-    updateSceneChangePreview();
-    if (typeof _updateNarratePending === 'function') _updateNarratePending();
-    showAutosave(`Escena preparada: ${title}`, 'saved');
 }
 
 function applySceneChangeToTopic(topic, sceneChange) {
