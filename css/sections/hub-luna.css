@@ -214,6 +214,25 @@
 
 /* ── 6. Luna ────────────────────────────────────────────── */
 #mainMenu .cel-moon { position: absolute; top: 5%; right: 15%; pointer-events: none; }
+#mainMenu .cel-moon .zodiac {
+  position: absolute; top: 50%; left: 50%; width: 340px; height: 340px;
+  transform: translate(-50%,-50%);
+  animation: cel-zodiac-spin 200s linear infinite;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 3px rgba(232,200,120,0.35));
+}
+#mainMenu .cel-moon .zodiac .ring-outer,
+#mainMenu .cel-moon .zodiac .ring-inner {
+  fill: none; stroke: var(--cel-gold);
+}
+#mainMenu .cel-moon .zodiac .ring-outer { stroke-width: 1; stroke-opacity: 0.55; stroke-dasharray: 1 5; }
+#mainMenu .cel-moon .zodiac .ring-inner { stroke-width: 0.6; stroke-opacity: 0.35; stroke-dasharray: 3 3; }
+#mainMenu .cel-moon .zodiac .tick { fill: var(--cel-lilac); opacity: 0.7; }
+#mainMenu .cel-moon .zodiac .tick.hi { fill: var(--cel-gold-glow); opacity: 1; }
+@keyframes cel-zodiac-spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  #mainMenu .cel-moon .zodiac { animation: none; }
+}
 #mainMenu .cel-moon .disc {
   position: relative; width: 170px; height: 170px; border-radius: 50%;
   background: radial-gradient(circle at 38% 34%, #f4f1ff 0%, #d9d4f5 45%, #a9a4d8 75%, #7d78b0 100%);
@@ -276,6 +295,27 @@
   12%  { opacity: 0.9; }
   88%  { opacity: 0.8; }
   100% { transform: translate(var(--drift,0), -108vh); opacity: 0; }
+}
+
+/* Luciérnagas — se quedan bajas, sobre el paisaje, en vez de ascender */
+#mainMenu .cel-fireflies { position: absolute; inset: 0; pointer-events: none; }
+#mainMenu .cel-fireflies .firefly {
+  position: absolute; border-radius: 50%;
+  background: var(--cel-gold-glow);
+  box-shadow: 0 0 4px var(--cel-gold-glow), 0 0 10px rgba(244,217,138,0.6);
+  animation: cel-firefly-drift var(--dur,9s) ease-in-out var(--del,0s) infinite,
+             cel-firefly-flicker calc(var(--dur,9s) * 0.6) ease-in-out var(--del,0s) infinite;
+}
+@keyframes cel-firefly-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(var(--wander,20px), calc(var(--rise,12px) * -1)); }
+}
+@keyframes cel-firefly-flicker {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #mainMenu .cel-fireflies .firefly { animation: cel-firefly-flicker 6s ease-in-out infinite; }
 }
 
 /* Estrella fugaz */
