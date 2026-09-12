@@ -478,6 +478,7 @@ async function register() {
     setAuthStatus(needsConfirmation
         ? 'Cuenta creada. Revisa tu email para confirmar.'
         : 'Cuenta creada correctamente.', false, 'authRegStatus');
+    window.dispatchEvent(new CustomEvent('etheria:register-result', { detail: { needsConfirmation } }));
 
     if (!needsConfirmation) {
         // Evitar que onAuthStateChange(SIGNED_IN) duplique la hidratación mientras

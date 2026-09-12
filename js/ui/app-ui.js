@@ -1243,6 +1243,13 @@ const _ONBOARDING_MESSAGES = [
 function maybeShowOnboarding() {
     if (localStorage.getItem(_ONBOARDING_KEY)) return;
     const step = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
+    // Paso 0 (bienvenida del selector de perfil) retirado: lo cubre el tour
+    // guiado de Ethy (ver ethy.js, _startProfileWelcomeTour), más completo e
+    // interactivo. Saltarlo evita mostrar el mismo mensaje dos veces seguidas.
+    if (step === 0) {
+        localStorage.setItem('etheria_onboarding_step', '1');
+        return;
+    }
     if (step >= _ONBOARDING_MESSAGES.length) {
         localStorage.setItem(_ONBOARDING_KEY, '1');
         return;

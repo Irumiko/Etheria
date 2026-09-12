@@ -79,12 +79,12 @@ const Ethy = (function() {
                 {
                     text: '"Continuar" es la puerta. Al otro lado: roleplay libre —modo Clásico— o destino gobernado por los dados —modo RPG—. Elige con intención.',
                     expression: 'thoughtful',
-                    action: () => highlightElement('.menu-button-console.primary')
+                    action: () => highlightElement('[data-action="continuar"]')
                 },
                 {
                     text: '"Personajes" es el registro de almas. Sin ellas no hay relato posible; con ellas, cualquier historia puede ocurrir.',
                     expression: 'happy',
-                    action: () => highlightElement('.menu-button-console:nth-child(2)')
+                    action: () => highlightElement('[data-action="personajes"]')
                 },
                 {
                     text: 'El icono de guardado preserva tu mundo entero. Úsalo. Las historias merecen sobrevivir más allá de una sesión.',
@@ -173,7 +173,7 @@ const Ethy = (function() {
                 {
                     text: '"Responder" abre el panel. Elige quién habla y qué dice. La historia espera.',
                     expression: 'thoughtful',
-                    action: () => highlightElement('.reply-btn')
+                    action: () => highlightElement('.vma-reply')
                 },
                 {
                     text: 'La barra de controles guarda el historial y permite exportar la historia completa. Nada de lo que escribáis tiene que perderse.',
@@ -224,12 +224,12 @@ const Ethy = (function() {
                 {
                     text: 'Aquí moldeas cómo se siente Etheria. Apariencia, Lectura, Sonido. Cada una cambia algo en cómo vives el relato.',
                     expression: 'thoughtful',
-                    action: () => highlightElement('.opt-tab-bar')
+                    action: () => highlightElement('.opt-rail')
                 },
                 {
-                    text: 'Apariencia: entre luz y oscuridad, tipografía, atmósfera. El mundo se ve distinto según cómo lo iluminas.',
+                    text: 'Apariencia: la atmósfera del momento del día, el tamaño de la letra, el filtro de la escena. El mundo se ve distinto según cómo lo iluminas.',
                     expression: 'neutral',
-                    action: () => highlightElement('#themeToggleBtn')
+                    action: () => highlightElement('[data-tab="appearance"]')
                 },
                 {
                     text: 'Sonido: el volumen de la lluvia, el ambiente. Algunas historias necesitan silencio. Otras, que truene.',
@@ -270,8 +270,35 @@ const Ethy = (function() {
                     action: null
                 }
             ]
+        },
+
+        // ── Selector de perfil — bienvenida de primera vez ───────────────────
+        // Base estática de 2 pasos; _startProfileWelcomeTour() la restaura antes
+        // de cada arranque porque el tour le añade pasos dinámicos (registro,
+        // nombre) según lo que el usuario haga de verdad en pantalla.
+        userSelect: {
+            title: 'Bienvenida a Etheria',
+            expression: 'love',
+            steps: [
+                {
+                    text: 'Cada tarjeta de esta pantalla es un perfil: tu propio universo de historias y personajes, separado del de cualquier otra persona. Vamos a crear el tuyo.',
+                    expression: 'love',
+                    action: null
+                },
+                {
+                    text: '"Nuevo Archivo" es donde empieza todo. Tócalo cuando quieras — yo espero aquí y seguimos en cuanto lo hagas.',
+                    expression: 'excited',
+                    noNext: true,
+                    action: () => {
+                        highlightElement('#addProfileCard');
+                        _armProfileWelcomeCardWatcher();
+                    }
+                }
+            ]
         }
     };
+
+    const _USER_SELECT_BASE_STEPS = TUTORIALS.userSelect.steps.slice();
 
     // ── Inicialización ───────────────────────────────────────────────────────
 
@@ -287,6 +314,7 @@ const Ethy = (function() {
             _startIdleSystem();               // arrancar idle dinámico
             _resetSleepTimer();               // arrancar sleep timer
             _watchUserSelectScreen();         // vigilante "¿sigues ahí?" del selector
+            _maybeOfferFirstVisitTour();      // "¿es tu primera vez?" — antes que cualquier otro tutorial
         }, 1000);
     }
 
@@ -464,7 +492,10 @@ const Ethy = (function() {
             if (_bubbleJustOpened) return; // ignorar el click que abrió la burbuja
             if (!_container.contains(e.target)) {
                 if (_bubble.classList.contains('visible')) hideBubble();
-                if (_tutorialPanelVisible) endTutorial();
+                // El tour de bienvenida pide a propósito clics reales fuera del
+                // panel (la tarjeta de perfil, los campos de registro) — no son
+                // un gesto de "cerrar tocando fuera", son el siguiente paso.
+                if (_tutorialPanelVisible && _currentTutorial !== TUTORIALS.userSelect) endTutorial();
             }
         });
 
@@ -884,6 +915,7 @@ const Ethy = (function() {
             const screen = document.getElementById('userSelectScreen');
             if (!screen || screen.classList.contains('hidden')) return;
             if (_isMinimized || _bubble.classList.contains('visible')) return;
+            if (_tutorialPanelVisible || _firstVisitTourActive) return; // no interrumpir el tour de bienvenida
             _stuckTipShownThisVisit = true;
             say('Ninguno de estos archivos tiene que ser el tuyo para abrirte paso. Toca cualquiera y entra con tu propio nombre y llave.', { expression: 'wink' });
         }, STUCK_DELAY);
@@ -1251,6 +1283,10 @@ const Ethy = (function() {
             next.textContent = 'Siguiente →';
             next.classList.remove('ethy-tp-finish');
         }
+        // Pasos que dependen de una acción real del usuario (clic real en la
+        // app, resultado de un registro) ocultan "Siguiente" — avanzar a mano
+        // dejaría el tutorial por delante de lo que de verdad ha ocurrido.
+        next.style.visibility = step.noNext ? 'hidden' : 'visible';
 
         // Expresión de Ethy para este paso
         if (!_isMinimized && step.expression) {
@@ -1272,6 +1308,10 @@ const Ethy = (function() {
         }
         if (_seenTutorials.has(tutorialKey) && !tutorial.force) return;
 
+        // El tour de bienvenida acumula pasos dinámicos (registro, nombre) según
+        // lo que el usuario hace en pantalla — al repetirlo, volver a la base.
+        if (tutorialKey === 'userSelect') tutorial.steps = _USER_SELECT_BASE_STEPS.slice();
+
         _currentTutorial = tutorial;
         _tutorialStep = 0;
         _seenTutorials.add(tutorialKey);
@@ -1292,6 +1332,7 @@ const Ethy = (function() {
 
     function endTutorial() {
         if (!_currentTutorial) return;
+        const wasProfileWelcome = _currentTutorial === TUTORIALS.userSelect;
         _currentTutorial = null;
         _tutorialStep = 0;
 
@@ -1301,6 +1342,14 @@ const Ethy = (function() {
         }
         _tutorialPanelVisible = false;
         removeHighlight();
+
+        // Si el tour de bienvenida se cierra antes de terminar (saltado o
+        // cerrado a mano), reactivar el aviso estático #welcomeOverlay que
+        // habíamos silenciado para no duplicar el mensaje.
+        if (wasProfileWelcome && _firstVisitTourActive) {
+            _firstVisitTourActive = false;
+            if (typeof toggleWelcomeOverlay === 'function' && typeof renderUserCards === 'function') renderUserCards();
+        }
 
         // Mensaje breve de despedida (solo si no está minimizado)
         if (!_isMinimized) {
@@ -1617,6 +1666,157 @@ const Ethy = (function() {
         });
     }
 
+    // ── Tour de bienvenida — primera vez en el selector de perfil ────────────
+    // Se pregunta ANTES que cualquier otro tutorial, una sola vez por navegador.
+    // "Sí" sustituye al aviso estático #welcomeOverlay (toggleWelcomeOverlay lo
+    // silencia mientras esto está activo — ver characters.js) y guía paso a
+    // paso hasta tener un perfil real creado, reaccionando a lo que el usuario
+    // hace de verdad (clics, resultado del registro) en vez de avanzar solo.
+    // "No" marca todos los tutoriales de sección como vistos — incluido el del
+    // menú principal — para no repetir la bienvenida nada más entrar.
+    const FIRST_VISIT_KEY = 'etheria_ethy_first_visit_resolved';
+    let _firstVisitTourActive = false;
+
+    function isFirstVisitTourActive() {
+        return _firstVisitTourActive;
+    }
+
+    function _maybeOfferFirstVisitTour() {
+        if (localStorage.getItem(FIRST_VISIT_KEY) === '1') return;
+        // Ya conocía tutoriales de antes (sesión previa a este tour) — no
+        // reabrir la pregunta a alguien que ya lleva tiempo usando la app.
+        if (_seenTutorials.size > 0) {
+            try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) { /* localStorage no disponible */ }
+            return;
+        }
+        const screen = document.getElementById('userSelectScreen');
+        if (!screen || screen.classList.contains('hidden')) return;
+
+        setTimeout(() => {
+            const screenNow = document.getElementById('userSelectScreen');
+            if (!screenNow || screenNow.classList.contains('hidden')) return; // pudo cambiar mientras esperábamos
+            say('¿Es tu primera vez en Etheria?', {
+                expression: 'happy',
+                buttons: [
+                    { text: 'Sí, es mi primera vez', icon: '✦', label: 'Sí', primary: true, action: () => _startProfileWelcomeTour() },
+                    { text: 'No, ya conozco esto', icon: '✕', label: 'No', action: () => _declineFirstVisitTour() }
+                ]
+            });
+        }, 600);
+    }
+
+    function _declineFirstVisitTour() {
+        try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) { /* localStorage no disponible */ }
+        Object.keys(TUTORIALS).forEach(k => _seenTutorials.add(k));
+        _saveSeenTutorials();
+        say('Como quieras. Sigo aquí si me necesitas — todo lo que sé también vive en mi menú de ayuda.', {
+            expression: 'wink',
+            duration: 4000
+        });
+    }
+
+    function _finishProfileWelcomeTour() {
+        _firstVisitTourActive = false;
+        try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) { /* localStorage no disponible */ }
+        // Ya vivió la bienvenida completa — que no le repita la misma idea
+        // nada más aterrizar en el menú principal.
+        _seenTutorials.add('mainMenu');
+        _saveSeenTutorials();
+    }
+
+    function _startProfileWelcomeTour() {
+        _firstVisitTourActive = true;
+        // Re-renderizar YA para ocultar #welcomeOverlay antes de abrir el
+        // panel — si se hiciera después, reconstruiría #addProfileCard y
+        // dejaría colgado el listener que el propio tour engancha en él.
+        if (typeof renderUserCards === 'function') renderUserCards();
+        startTutorial('userSelect');
+    }
+
+    function _armProfileWelcomeCardWatcher() {
+        const card = document.getElementById('addProfileCard');
+        if (!card) return;
+        card.addEventListener('click', () => {
+            setTimeout(_advanceProfileWelcomeAfterCardClick, 80);
+        }, { once: true });
+    }
+
+    function _advanceProfileWelcomeAfterCardClick() {
+        if (_currentTutorial !== TUTORIALS.userSelect) return;
+
+        const registerView = document.getElementById('authRegisterView');
+        const onRegisterView = !!(registerView && registerView.classList.contains('active'));
+
+        if (onRegisterView) {
+            _currentTutorial.steps.push({
+                text: 'Escribe un email real y una contraseña de al menos 6 caracteres — la repites justo debajo para confirmar que no te has equivocado.',
+                expression: 'thoughtful',
+                noNext: true,
+                action: () => {
+                    highlightElement('#authRegisterView .auth-form');
+                    _armRegisterResultWatcher();
+                }
+            });
+            _tutorialStep = _currentTutorial.steps.length - 1;
+            _renderTutorialStep();
+        } else {
+            // Ya tenía sesión iniciada: sin registro de por medio, directo al nombre.
+            _pushProfileNameStep();
+        }
+    }
+
+    function _armRegisterResultWatcher() {
+        window.addEventListener('etheria:register-result', function onResult(ev) {
+            if (_currentTutorial !== TUTORIALS.userSelect) return;
+            const needsConfirmation = !!(ev.detail && ev.detail.needsConfirmation);
+            if (needsConfirmation) {
+                _currentTutorial.steps.push({
+                    text: 'Te he enviado un correo de confirmación — ábrelo y confirma la cuenta antes de poder entrar. Revisa también la carpeta de spam si no lo ves llegar. En cuanto la confirmes, vuelve aquí y toca tu nuevo perfil para ponerle nombre.',
+                    expression: 'surprised',
+                    action: () => highlightElement('#authRegStatus')
+                });
+                _tutorialStep = _currentTutorial.steps.length - 1;
+                _renderTutorialStep();
+                // Lo que sigue ocurre fuera de la app, en su correo — aquí termina lo que puedo guiar.
+                _finishProfileWelcomeTour();
+            } else {
+                // Sin confirmación por email: la cuenta ya está activa, pero
+                // la app no reabre el modal de nombre sola en este camino
+                // (a diferencia del login normal) — hay que reanudarlo, igual
+                // que hace la propia app vía window._pendingAddProfile.
+                window.addEventListener('etheria:new-profile-modal-open', function onModalOpen() {
+                    _pushProfileNameStep();
+                }, { once: true });
+                if (typeof addNewProfile === 'function') addNewProfile();
+            }
+        }, { once: true });
+    }
+
+    function _pushProfileNameStep() {
+        if (_currentTutorial !== TUTORIALS.userSelect) return;
+        _currentTutorial.steps.push({
+            text: 'Último paso: escribe cómo quieres que te llamemos en Etheria.',
+            expression: 'happy',
+            noNext: true,
+            action: () => {
+                highlightElement('#newProfileNameInput');
+                window.addEventListener('etheria:new-profile-created', function onCreated() {
+                    if (_currentTutorial !== TUTORIALS.userSelect) return;
+                    endTutorial();
+                    _finishProfileWelcomeTour();
+                    setTimeout(() => {
+                        say('Tu perfil ya existe. El resto de Etheria te lo iré mostrando por partes, a tu ritmo.', {
+                            expression: 'love',
+                            duration: 4000
+                        });
+                    }, 400);
+                }, { once: true });
+            }
+        });
+        _tutorialStep = _currentTutorial.steps.length - 1;
+        _renderTutorialStep();
+    }
+
     // ── API pública ──────────────────────────────────────────────────────────
 
     return {
@@ -1634,6 +1834,7 @@ const Ethy = (function() {
         removeHighlight,
         onEnterSection,
         resetTutorials,
+        isFirstVisitTourActive,
         toggleMinimize,
         get isMinimized() { return _isMinimized; },
         get isVisible() { return _isVisible; },

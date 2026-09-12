@@ -781,14 +781,18 @@
     bottom: calc(100% + 12px); /* justo encima de Ethy */
     right: 0;
     width: 290px;
-    background: linear-gradient(160deg,
-        rgba(26, 22, 18, 0.97) 0%,
-        rgba(20, 17, 14, 0.97) 100%);
-    border: 1px solid rgba(201, 168, 108, 0.35);
+    background: linear-gradient(100deg,
+        rgba(124, 77, 255, 0.16) 0%,
+        rgba(30, 20, 56, 0.94) 45%,
+        rgba(16, 10, 38, 0.96) 100%);
+    border: 1px solid rgba(124, 77, 255, 0.38);
     border-radius: 14px 14px 4px 14px;
     box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(201, 168, 108, 0.08) inset;
+        0 8px 32px rgba(0, 0, 0, 0.50),
+        0 0 0 1px rgba(124, 77, 255, 0.14) inset,
+        0 0 26px rgba(124, 77, 255, 0.18);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     padding: 0;
     overflow: hidden;
     opacity: 0;
@@ -810,12 +814,12 @@
     align-items: center;
     gap: 7px;
     padding: 10px 12px 8px;
-    border-bottom: 1px solid rgba(201, 168, 108, 0.15);
-    background: rgba(201, 168, 108, 0.06);
+    border-bottom: 1px solid rgba(124, 77, 255, 0.18);
+    background: rgba(124, 77, 255, 0.08);
 }
 
 .ethy-tp-icon {
-    color: rgba(201, 168, 108, 0.7);
+    color: var(--cel-gold, #e8c878);
     font-size: 0.75rem;
     flex-shrink: 0;
 }
@@ -826,7 +830,7 @@
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.06em;
-    color: rgba(124, 77, 255, 0.9);
+    color: var(--cel-gold, #e8c878);
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
@@ -836,7 +840,7 @@
 .ethy-tp-close {
     background: none;
     border: none;
-    color: rgba(201, 168, 108, 0.4);
+    color: rgba(203, 182, 255, 0.55);
     cursor: pointer;
     font-size: 0.75rem;
     padding: 2px 4px;
@@ -846,17 +850,17 @@
     flex-shrink: 0;
 }
 .ethy-tp-close:hover {
-    color: rgba(124, 77, 255, 0.9);
-    background: rgba(201, 168, 108, 0.1);
+    color: rgba(244, 217, 138, 1);
+    background: rgba(124, 77, 255, 0.20);
 }
 
 /* Contenido — sin animación de tipeo, texto completo */
 .ethy-tp-content {
     padding: 13px 14px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Cormorant Garamond', 'Crimson Text', serif;
     font-size: 0.88rem;
     line-height: 1.6;
-    color: rgba(220, 200, 170, 0.92);
+    color: #f3eeff;
     min-height: 60px;
 }
 
@@ -866,7 +870,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px 8px;
-    border-top: 1px solid rgba(201, 168, 108, 0.1);
+    border-top: 1px solid rgba(124, 77, 255, 0.14);
     gap: 8px;
 }
 
@@ -883,7 +887,7 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: rgba(201, 168, 108, 0.2);
+    background: rgba(124, 77, 255, 0.25);
     border: none;
     padding: 0;
     cursor: pointer;
@@ -891,14 +895,14 @@
     flex-shrink: 0;
 }
 .ethy-tp-dot:hover {
-    background: rgba(124, 77, 255, 0.45);
+    background: rgba(244, 217, 138, 0.6);
     transform: scale(1.3);
 }
 .ethy-tp-dot.done {
-    background: rgba(124, 77, 255, 0.45);
+    background: rgba(203, 182, 255, 0.55);
 }
 .ethy-tp-dot.active {
-    background: rgba(124, 77, 255, 0.9);
+    background: var(--cel-gold, #e8c878);
     transform: scale(1.2);
 }
 
@@ -910,9 +914,9 @@
 }
 
 .ethy-tp-btn {
-    background: rgba(201, 168, 108, 0.08);
-    border: 1px solid rgba(124, 77, 255, 0.22);
-    color: rgba(201, 168, 108, 0.8);
+    background: rgba(124, 77, 255, 0.10);
+    border: 1px solid rgba(124, 77, 255, 0.30);
+    color: rgba(203, 182, 255, 0.85);
     border-radius: 6px;
     padding: 4px 10px;
     font-size: 0.78rem;
@@ -922,23 +926,29 @@
     white-space: nowrap;
 }
 .ethy-tp-btn:hover {
-    background: rgba(201, 168, 108, 0.15);
-    border-color: rgba(124, 77, 255, 0.5);
-    color: rgba(201, 168, 108, 1);
+    background: rgba(124, 77, 255, 0.20);
+    border-color: rgba(244, 217, 138, 0.55);
+    color: rgba(244, 217, 138, 1);
 }
 .ethy-tp-btn[style*="hidden"] { pointer-events: none; }
 
 .ethy-tp-primary {
-    background: rgba(201, 168, 108, 0.18);
-    border-color: rgba(124, 77, 255, 0.5);
-    color: rgba(201, 168, 108, 1);
+    background: rgba(124, 77, 255, 0.22);
+    border-color: rgba(203, 182, 255, 0.45);
+    color: #fff6df;
 }
 .ethy-tp-primary:hover {
-    background: rgba(201, 168, 108, 0.28);
+    background: rgba(139, 92, 255, 0.32);
+    border-color: rgba(244, 217, 138, 0.65);
 }
 .ethy-tp-finish {
-    background: rgba(124, 77, 255, 0.22);
-    border-color: rgba(201, 168, 108, 0.7);
+    background: linear-gradient(100deg, rgba(124, 77, 255, 0.82) 0%, rgba(157, 107, 255, 0.72) 100%);
+    border-color: rgba(203, 182, 255, 0.30);
+    color: #fff6df;
+}
+.ethy-tp-finish:hover {
+    background: linear-gradient(100deg, rgba(139, 92, 255, 0.92) 0%, rgba(180, 130, 255, 0.82) 100%);
+    border-color: rgba(244, 217, 138, 0.55);
 }
 
 /* Botón saltar — discreto, debajo del footer */
@@ -947,8 +957,8 @@
     width: 100%;
     background: none;
     border: none;
-    border-top: 1px solid rgba(201, 168, 108, 0.08);
-    color: rgba(124, 77, 255, 0.2);
+    border-top: 1px solid rgba(124, 77, 255, 0.12);
+    color: rgba(203, 182, 255, 0.45);
     font-size: 0.72rem;
     font-family: 'Cinzel', serif;
     letter-spacing: 0.04em;
@@ -958,8 +968,8 @@
     transition: color 0.2s, background 0.2s;
 }
 .ethy-tp-skip:hover {
-    color: rgba(124, 77, 255, 0.6);
-    background: rgba(201, 168, 108, 0.05);
+    color: rgba(244, 217, 138, 0.85);
+    background: rgba(124, 77, 255, 0.08);
 }
 
 /* Mobile: panel más estrecho */
