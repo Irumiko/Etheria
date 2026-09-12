@@ -138,7 +138,7 @@
         const c = _client();
         if (!c?.channel) return;
 
-        if (_inboxChannel) { try { c.removeChannel(_inboxChannel); } catch {} }
+        if (_inboxChannel) { try { await c.removeChannel(_inboxChannel); } catch {} }
 
         _inboxChannel = c
             .channel(`inbox:${uid}`)
@@ -335,7 +335,7 @@
         const c = _client();
         if (_presenceChannel && c) {
             try { await _presenceChannel.untrack(); } catch {}
-            try { c.removeChannel(_presenceChannel); } catch {}
+            try { await c.removeChannel(_presenceChannel); } catch {}
         }
         _presenceChannel = null;
         _presenceTopicId = null;
@@ -474,7 +474,7 @@
         }
 
         // Al hacer login (o cuando ensureProfile dispara auth-changed)
-        global.addEventListener('etheria:auth-changed', function (e) {
+        global.addEventListener('etheria:auth-changed', async function (e) {
             const user = e.detail?.user;
             if (user?.id) {
                 // _cachedUserId ya actualizado por app.js antes de emitir este evento
@@ -487,7 +487,7 @@
                 _notifications = [];
                 _updateBadge();
                 if (_inboxChannel) {
-                    try { _client()?.removeChannel(_inboxChannel); } catch {}
+                    try { await _client()?.removeChannel(_inboxChannel); } catch {}
                     _inboxChannel = null;
                 }
                 const btn = document.getElementById('menuInboxBtn');
@@ -507,12 +507,14 @@
         });
 
         // Conectar el textarea del VN al typing emitter
-        // Usamos delegación para no depender del orden de carga
+        // Usamos delegación para no depender del orden de carga.
+        // El textarea real de respuesta es #vnReplyText (.vn-reply-textarea)
+        // — los selectores anteriores (vnInput/.vn-input/.message-input) no
+        // existen en el DOM, así que este indicador nunca llegaba a activarse.
         document.addEventListener('input', function (e) {
             if (e.target && (
-                e.target.id === 'vnInput' ||
-                e.target.classList.contains('vn-input') ||
-                e.target.classList.contains('message-input')
+                e.target.id === 'vnReplyText' ||
+                e.target.classList.contains('vn-reply-textarea')
             )) {
                 emitTyping();
             }

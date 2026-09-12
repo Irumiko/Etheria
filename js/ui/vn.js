@@ -1681,7 +1681,11 @@ function _doEnterTopic(id, t, topicMode) {
     // el estado visual correcto (fondo, clima) sin auto-abrir el overlay de opciones.
     showCurrentMessage('init');
     updateVnMobileFabVisibility();
-    bindReplyTypingEmitter();
+    // bindReplyTypingEmitter() desactivado: ese indicador ("puntitos" sin
+    // nombre, vía filas de mensaje falsas metaType:'typing') se sustituyó
+    // por el de supabaseInbox.js (Broadcast + nombre real). Se deja la
+    // función y su plumbing de recepción sin borrar por si algún cliente
+    // viejo en caché todavía emite alguno — es inofensivo no escucharlo.
     bindSpriteMicroInteractions();
     applySpriteAnimationProfile();
     scheduleRandomSpriteBlink();

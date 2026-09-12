@@ -120,19 +120,7 @@ const SupabaseSlots = (function () {
         }
     }
 
-    // ── Persiste el estado actual de slots ────────────────────────────────────
-    // Llama a esto tras cualquier cambio en userNames o etheria_profile_owners.
-    async function persistCurrentSlots() {
-        try {
-            const names  = JSON.parse(localStorage.getItem('etheria_user_names')  || '[]');
-            const owners = JSON.parse(localStorage.getItem('etheria_profile_owners') || '[]');
-            await saveSlots(names, owners);
-        } catch (err) {
-            window.EtheriaLogger?.warn('supabaseSlots', 'persistCurrentSlots exception:', err?.message);
-        }
-    }
-
-    return { loadSlots, saveSlots, syncOnLogin, persistCurrentSlots };
+    return { loadSlots, saveSlots, syncOnLogin };
 
 }());
 

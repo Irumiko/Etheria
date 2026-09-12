@@ -350,13 +350,13 @@
     // Usa supabase-js channel().on() para escuchar INSERTs filtrados por session_id.
     // onMessage(msgObj) recibe el objeto mensaje de Etheria deserializado.
 
-    function subscribe(sessionId, onMessage, onTyping, onReconnect) {
+    async function subscribe(sessionId, onMessage, onTyping, onReconnect) {
         if (!_init()) {
             logger?.warn('supabase:messages', 'subscribe: cliente no disponible');
             return;
         }
 
-        unsubscribe();
+        await unsubscribe();
 
         // Si hay una historia activa, el canal de historia (supabaseStories) ya filtra por story_id.
         // El canal session filtra mensajes del topic sin story_id para retrocompatibilidad.
@@ -433,9 +433,9 @@
 
     // ── unsubscribe ───────────────────────────────────────────────────────────
 
-    function unsubscribe() {
+    async function unsubscribe() {
         if (_channel && _client) {
-            try { _client.removeChannel(_channel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribe removeChannel failed:', error?.message || error); }
+            try { await _client.removeChannel(_channel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribe removeChannel failed:', error?.message || error); }
             _channel = null;
         }
     }
@@ -509,7 +509,7 @@
 
     var _globalChannel = null;
 
-    function subscribeGlobal(onMessage, onTyping, sessionId) {
+    async function subscribeGlobal(onMessage, onTyping, sessionId) {
         if (!_init()) return;
         // Bug 3: do not subscribe without any filter — would receive all project messages
         if (!global.currentStoryId && !sessionId) return;
@@ -517,7 +517,7 @@
         // (stale channel would filter wrong story_id after enterStory)
         const _newActiveId = global.currentStoryId || sessionId || null;
         if (_globalChannel && _globalChannel.__activeId === _newActiveId) return; // same context — no-op
-        if (_globalChannel) unsubscribeGlobal(); // remove stale channel before re-subscribing
+        if (_globalChannel) await unsubscribeGlobal(); // remove stale channel before re-subscribing (esperar evita que el canal nuevo con el mismo nombre choque con el viejo aún no liberado)
 
         // Fix 7: apply filter so this channel only receives messages for the active
         // session or story — prevents receiving all messages across the entire project.
@@ -570,9 +570,9 @@
         }
     }
 
-    function unsubscribeGlobal() {
+    async function unsubscribeGlobal() {
         if (_globalChannel && _client) {
-            try { _client.removeChannel(_globalChannel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribeGlobal removeChannel failed:', error?.message || error); }
+            try { await _client.removeChannel(_globalChannel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribeGlobal removeChannel failed:', error?.message || error); }
             _globalChannel = null;
         }
     }

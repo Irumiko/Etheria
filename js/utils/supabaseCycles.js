@@ -562,9 +562,9 @@ const SupabaseCycles = (function () {
         }
     }
 
-    function _unsubscribe() {
+    async function _unsubscribe() {
         if (_channel && _client()) {
-            try { _client().removeChannel(_channel); } catch {}
+            try { await _client().removeChannel(_channel); } catch {}
             _channel = null;
         }
         _currentTopic = null;

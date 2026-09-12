@@ -487,7 +487,7 @@ const SupabaseSync = (function () {
 
         // Evitar duplicados
         if (_realtimeChannel) {
-            try { c.removeChannel(_realtimeChannel); } catch {}
+            try { await c.removeChannel(_realtimeChannel); } catch {}
             _realtimeChannel = null;
         }
 
@@ -529,10 +529,10 @@ const SupabaseSync = (function () {
             .subscribe();
     }
 
-    function _unsubscribeRealtime() {
+    async function _unsubscribeRealtime() {
         const c = _client();
         if (_realtimeChannel && c) {
-            try { c.removeChannel(_realtimeChannel); } catch {}
+            try { await c.removeChannel(_realtimeChannel); } catch {}
             _realtimeChannel = null;
         }
     }

@@ -204,10 +204,10 @@ const SupabaseBonds = (function () {
     // ── Inicialización: cachear userId, escuchar afinidad y Realtime ──
     let _bondsChannel = null;
 
-    function _subscribeBondsRealtime(myCharIds) {
+    async function _subscribeBondsRealtime(myCharIds) {
         if (!_client() || !myCharIds?.length) return;
         if (_bondsChannel) {
-            try { _client().removeChannel(_bondsChannel); } catch {}
+            try { await _client().removeChannel(_bondsChannel); } catch {}
             _bondsChannel = null;
         }
         // Escuchar cambios en vínculos donde to_char_id es uno de mis personajes
@@ -250,7 +250,7 @@ const SupabaseBonds = (function () {
             } else {
                 _userId = null;
                 if (_bondsChannel && _client()) {
-                    try { _client().removeChannel(_bondsChannel); } catch {}
+                    try { await _client().removeChannel(_bondsChannel); } catch {}
                     _bondsChannel = null;
                 }
             }

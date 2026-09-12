@@ -587,7 +587,7 @@
         });
 
         // 6. Suscripción realtime filtrada por story_id
-        _subscribeToStory(storyId);
+        await _subscribeToStory(storyId);
 
         // 7. Notificar que la historia está activa
         global.dispatchEvent(new CustomEvent('etheria:story-entered', {
@@ -634,7 +634,7 @@
 
     // ── _subscribeToStory ─────────────────────────────────────────────────────
 
-    function _subscribeToStory(storyId) {
+    async function _subscribeToStory(storyId) {
         let client;
         try {
             client = global.supabase?.createClient
@@ -652,7 +652,7 @@
 
         // Limpiar canal anterior de historia
         if (global._storyRealtimeChannel && client) {
-            try { client.removeChannel(global._storyRealtimeChannel); } catch (error) {
+            try { await client.removeChannel(global._storyRealtimeChannel); } catch (error) {
                 logger?.warn('supabase:stories', 'remove previous story channel failed:', error?.message || error);
             }
             global._storyRealtimeChannel = null;
@@ -1043,10 +1043,10 @@
     /**
      * Sale de la historia activa y limpia el canal realtime.
      */
-    function leaveStory() {
+    async function leaveStory() {
         const client = global.supabaseClient || null;
         if (global._storyRealtimeChannel && client) {
-            try { client.removeChannel(global._storyRealtimeChannel); } catch (error) {
+            try { await client.removeChannel(global._storyRealtimeChannel); } catch (error) {
                 logger?.warn('supabase:stories', 'leaveStory removeChannel failed:', error?.message || error);
             }
             global._storyRealtimeChannel = null;

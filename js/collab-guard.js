@@ -365,8 +365,8 @@ const CollaborativeGuard = (function () {
 
     // ── API pública ───────────────────────────────────────────────────────────
 
-    function init(topicId, profileIndex) {
-        stop();
+    async function init(topicId, profileIndex) {
+        await stop();
 
         _topicId    = topicId;
         _profileIdx = (typeof profileIndex === 'number') ? profileIndex
@@ -382,15 +382,15 @@ const CollaborativeGuard = (function () {
         logger?.info('collab', `collab-guard v2 activo — topic ${topicId}`);
     }
 
-    function stop() {
+    async function stop() {
         const c = _client();
 
         if (_broadcastChannel && c) {
-            try { c.removeChannel(_broadcastChannel); } catch {}
+            try { await c.removeChannel(_broadcastChannel); } catch {}
             _broadcastChannel = null;
         }
         if (_userDataChannel && c) {
-            try { c.removeChannel(_userDataChannel); } catch {}
+            try { await c.removeChannel(_userDataChannel); } catch {}
             _userDataChannel = null;
         }
         if (_realtimeHandler) {

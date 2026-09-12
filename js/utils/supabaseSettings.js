@@ -186,18 +186,10 @@ const SupabaseSettings = (function () {
         return saveUserSettings(_readLocal());
     }
 
-    /**
-     * Devuelve los ajustes actuales desde localStorage (síncrono).
-     */
-    function getCurrentSettings() {
-        return _readLocal();
-    }
-
     return {
         loadUserSettings,
         saveUserSettings,
-        syncCurrentSettings,
-        getCurrentSettings
+        syncCurrentSettings
     };
 
 })();
