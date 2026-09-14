@@ -66,14 +66,16 @@
         try {
             const { data, error } = await c
                 .from('turn_notifications')
-                .select('id, title, body, created_at, is_read, story_id, topic_id, sender_user_id')
+                .select('id, title, body, created_at, is_read, story_id, topic_id, sender_user_id, meta')
                 .eq('recipient_user_id', uid)
                 .order('created_at', { ascending: false })
                 .limit(50);
 
             if (error) { logger?.warn('inbox', 'loadUnread error:', error.message); return; }
 
-            _notifications = data || [];
+            // Los avisos de mensaje nuevo (buzón bidireccional) ya se
+            // muestran en la pestaña "Mensajes" — no duplicarlos aquí.
+            _notifications = (data || []).filter(n => n?.meta?.kind !== 'conversation_message');
             _unreadCount   = _notifications.filter(n => !n.is_read).length;
             _updateBadge();
         } catch (e) {
@@ -86,22 +88,47 @@
         const badge = document.getElementById('menuInboxBadge');
         if (!btn) return;
 
+        // Badge combinado: notificaciones de turno + mensajes sin leer
+        const convUnread = (typeof EtheriaConversations !== 'undefined') ? EtheriaConversations.unreadCount : 0;
+        const totalUnread = _unreadCount + convUnread;
+
         // Mostrar el botón solo si hay al menos una notificación alguna vez
-        if (_notifications.length > 0) btn.style.display = '';
+        if (_notifications.length > 0 || convUnread > 0) btn.style.display = '';
 
         // Clase visual cuando hay no leídas
-        if (_unreadCount > 0) {
+        if (totalUnread > 0) {
             btn.classList.add('has-unread');
         } else {
             btn.classList.remove('has-unread');
         }
 
         if (!badge) return;
-        if (_unreadCount > 0) {
-            badge.textContent = _unreadCount > 9 ? '9+' : String(_unreadCount);
+        if (totalUnread > 0) {
+            badge.textContent = totalUnread > 9 ? '9+' : String(totalUnread);
             badge.style.display = '';
         } else {
             badge.style.display = 'none';
+        }
+    }
+
+    // El módulo de conversaciones avisa cuando cambia su contador de no
+    // leídos (carga inicial, mensaje nuevo por realtime, hilo marcado como
+    // leído) para que el badge combinado se mantenga al día.
+    global.addEventListener('etheria:conversations-unread-changed', _updateBadge);
+
+    // ── Pestañas del buzón: Notificaciones / Mensajes ─────────────────────────
+
+    function switchTab(tab) {
+        const tabs = document.querySelectorAll('.inbox-tab');
+        tabs.forEach(btn => btn.classList.toggle('inbox-tab--active', btn.dataset.inboxTab === tab));
+
+        const panelNotifs = document.getElementById('inboxPanelNotifications');
+        const panelMsgs   = document.getElementById('inboxPanelMessages');
+        if (panelNotifs) panelNotifs.style.display = tab === 'notifications' ? '' : 'none';
+        if (panelMsgs)   panelMsgs.style.display   = tab === 'messages' ? '' : 'none';
+
+        if (tab === 'messages' && typeof EtheriaConversations !== 'undefined') {
+            EtheriaConversations.initForMessagesTab();
         }
     }
 
@@ -111,7 +138,7 @@
         const c = _client();
         if (!c?.channel) return;
 
-        if (_inboxChannel) { try { c.removeChannel(_inboxChannel); } catch {} }
+        if (_inboxChannel) { try { await c.removeChannel(_inboxChannel); } catch {} }
 
         _inboxChannel = c
             .channel(`inbox:${uid}`)
@@ -123,6 +150,10 @@
             }, function (payload) {
                 const row = payload?.new;
                 if (!row) return;
+                // Los avisos de mensaje nuevo los gestiona supabaseConversations.js
+                // (llega por su propio canal de conversation_messages) —
+                // evitar contarlo dos veces / mostrarlo en Notificaciones.
+                if (row?.meta?.kind === 'conversation_message') return;
                 _notifications.unshift(row);
                 if (!row.is_read) {
                     _unreadCount++;
@@ -179,16 +210,56 @@
             const unreadClass = !n.is_read ? 'inbox-item--unread' : '';
             const item = document.createElement('div');
             item.className = 'inbox-item ' + unreadClass;
-            item.addEventListener('click', function() { EtheriaInbox.goToTopic(n.topic_id || ''); });
             item.innerHTML =
                 `<div class="inbox-item-icon">${n.is_read ? '✉' : '📬'}</div>` +
                 `<div class="inbox-item-body">` +
                 `<p class="inbox-item-title">${escapeHtml(n.title || 'Nueva notificación')}</p>` +
                 `<p class="inbox-item-text">${escapeHtml(n.body || '')}</p>` +
                 (dateStr ? `<p class="inbox-item-date">${escapeHtml(dateStr)}</p>` : '') +
-                `</div>`;
+                `</div>` +
+                `<button type="button" class="inbox-item-dismiss" title="Descartar" aria-label="Descartar notificación">✕</button>`;
+
+            item.querySelector('.inbox-item-icon').addEventListener('click', function() {
+                EtheriaInbox.goToTopic(n.topic_id || '');
+            });
+            item.querySelector('.inbox-item-body').addEventListener('click', function() {
+                EtheriaInbox.goToTopic(n.topic_id || '');
+            });
+            item.querySelector('.inbox-item-dismiss').addEventListener('click', function(e) {
+                e.stopPropagation();
+                _dismissNotification(n.id, item);
+            });
+
             list.appendChild(item);
         });
+    }
+
+    async function _dismissNotification(id, itemEl) {
+        if (!id) return;
+        // Optimista: quitar de la vista ya mismo, revertir si falla el borrado
+        const idx = _notifications.findIndex(n => n.id === id);
+        const removed = idx !== -1 ? _notifications.splice(idx, 1)[0] : null;
+        if (itemEl) itemEl.remove();
+        if (removed && !removed.is_read) {
+            _unreadCount = Math.max(0, _unreadCount - 1);
+            _updateBadge();
+        }
+        if (_notifications.length === 0) _renderInboxList();
+
+        const c = _client();
+        if (!c) return;
+        try {
+            const { error } = await c.from('turn_notifications').delete().eq('id', id);
+            if (error) throw error;
+        } catch (e) {
+            logger?.warn('inbox', 'dismissNotification error:', e?.message);
+            // Revertir si el borrado falló de verdad (no solo por estar offline)
+            if (removed) {
+                _notifications.splice(idx, 0, removed);
+                if (!removed.is_read) { _unreadCount++; _updateBadge(); }
+                _renderInboxList();
+            }
+        }
     }
 
     async function _markAllRead(ids) {
@@ -264,7 +335,7 @@
         const c = _client();
         if (_presenceChannel && c) {
             try { await _presenceChannel.untrack(); } catch {}
-            try { c.removeChannel(_presenceChannel); } catch {}
+            try { await c.removeChannel(_presenceChannel); } catch {}
         }
         _presenceChannel = null;
         _presenceTopicId = null;
@@ -403,7 +474,7 @@
         }
 
         // Al hacer login (o cuando ensureProfile dispara auth-changed)
-        global.addEventListener('etheria:auth-changed', function (e) {
+        global.addEventListener('etheria:auth-changed', async function (e) {
             const user = e.detail?.user;
             if (user?.id) {
                 // _cachedUserId ya actualizado por app.js antes de emitir este evento
@@ -416,7 +487,7 @@
                 _notifications = [];
                 _updateBadge();
                 if (_inboxChannel) {
-                    try { _client()?.removeChannel(_inboxChannel); } catch {}
+                    try { await _client()?.removeChannel(_inboxChannel); } catch {}
                     _inboxChannel = null;
                 }
                 const btn = document.getElementById('menuInboxBtn');
@@ -436,12 +507,14 @@
         });
 
         // Conectar el textarea del VN al typing emitter
-        // Usamos delegación para no depender del orden de carga
+        // Usamos delegación para no depender del orden de carga.
+        // El textarea real de respuesta es #vnReplyText (.vn-reply-textarea)
+        // — los selectores anteriores (vnInput/.vn-input/.message-input) no
+        // existen en el DOM, así que este indicador nunca llegaba a activarse.
         document.addEventListener('input', function (e) {
             if (e.target && (
-                e.target.id === 'vnInput' ||
-                e.target.classList.contains('vn-input') ||
-                e.target.classList.contains('message-input')
+                e.target.id === 'vnReplyText' ||
+                e.target.classList.contains('vn-reply-textarea')
             )) {
                 emitTyping();
             }
@@ -467,6 +540,7 @@
         joinTopicPresence,
         leaveTopicPresence,
         emitTyping,
+        switchTab,
         get unreadCount() { return _unreadCount; }
     };
 

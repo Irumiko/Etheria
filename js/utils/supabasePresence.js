@@ -127,7 +127,7 @@
                 await _channel.untrack();
             } catch {}
             try {
-                client.removeChannel(_channel);
+                await client.removeChannel(_channel);
             } catch (error) {
                 logger?.warn('supabase:presence', 'removeChannel failed:', error?.message || error);
             }

@@ -79,12 +79,12 @@ const Ethy = (function() {
                 {
                     text: '"Continuar" es la puerta. Al otro lado: roleplay libre —modo Clásico— o destino gobernado por los dados —modo RPG—. Elige con intención.',
                     expression: 'thoughtful',
-                    action: () => highlightElement('.menu-button-console.primary')
+                    action: () => highlightElement('[data-action="continuar"]')
                 },
                 {
                     text: '"Personajes" es el registro de almas. Sin ellas no hay relato posible; con ellas, cualquier historia puede ocurrir.',
                     expression: 'happy',
-                    action: () => highlightElement('.menu-button-console:nth-child(2)')
+                    action: () => highlightElement('[data-action="personajes"]')
                 },
                 {
                     text: 'El icono de guardado preserva tu mundo entero. Úsalo. Las historias merecen sobrevivir más allá de una sesión.',
@@ -173,7 +173,7 @@ const Ethy = (function() {
                 {
                     text: '"Responder" abre el panel. Elige quién habla y qué dice. La historia espera.',
                     expression: 'thoughtful',
-                    action: () => highlightElement('.reply-btn')
+                    action: () => highlightElement('.vma-reply')
                 },
                 {
                     text: 'La barra de controles guarda el historial y permite exportar la historia completa. Nada de lo que escribáis tiene que perderse.',
@@ -224,12 +224,12 @@ const Ethy = (function() {
                 {
                     text: 'Aquí moldeas cómo se siente Etheria. Apariencia, Lectura, Sonido. Cada una cambia algo en cómo vives el relato.',
                     expression: 'thoughtful',
-                    action: () => highlightElement('.opt-tab-bar')
+                    action: () => highlightElement('.opt-rail')
                 },
                 {
-                    text: 'Apariencia: entre luz y oscuridad, tipografía, atmósfera. El mundo se ve distinto según cómo lo iluminas.',
+                    text: 'Apariencia: la atmósfera del momento del día, el tamaño de la letra, el filtro de la escena. El mundo se ve distinto según cómo lo iluminas.',
                     expression: 'neutral',
-                    action: () => highlightElement('#themeToggleBtn')
+                    action: () => highlightElement('[data-tab="appearance"]')
                 },
                 {
                     text: 'Sonido: el volumen de la lluvia, el ambiente. Algunas historias necesitan silencio. Otras, que truene.',
@@ -270,8 +270,35 @@ const Ethy = (function() {
                     action: null
                 }
             ]
+        },
+
+        // ── Selector de perfil — bienvenida de primera vez ───────────────────
+        // Base estática de 2 pasos; _startProfileWelcomeTour() la restaura antes
+        // de cada arranque porque el tour le añade pasos dinámicos (registro,
+        // nombre) según lo que el usuario haga de verdad en pantalla.
+        userSelect: {
+            title: 'Bienvenida a Etheria',
+            expression: 'love',
+            steps: [
+                {
+                    text: 'Cada tarjeta de esta pantalla es un perfil: tu propio universo de historias y personajes, separado del de cualquier otra persona. Vamos a crear el tuyo.',
+                    expression: 'love',
+                    action: null
+                },
+                {
+                    text: '"Nuevo Archivo" es donde empieza todo. Tócalo cuando quieras — yo espero aquí y seguimos en cuanto lo hagas.',
+                    expression: 'excited',
+                    noNext: true,
+                    action: () => {
+                        highlightElement('#addProfileCard');
+                        _armProfileWelcomeCardWatcher();
+                    }
+                }
+            ]
         }
     };
+
+    const _USER_SELECT_BASE_STEPS = TUTORIALS.userSelect.steps.slice();
 
     // ── Inicialización ───────────────────────────────────────────────────────
 
@@ -287,6 +314,7 @@ const Ethy = (function() {
             _startIdleSystem();               // arrancar idle dinámico
             _resetSleepTimer();               // arrancar sleep timer
             _watchUserSelectScreen();         // vigilante "¿sigues ahí?" del selector
+            _maybeOfferFirstVisitTour();      // "¿es tu primera vez?" — antes que cualquier otro tutorial
         }, 1000);
     }
 
@@ -405,11 +433,23 @@ const Ethy = (function() {
         _bubble = document.createElement('div');
         _bubble.className = 'ethy-speech-bubble';
         _bubble.innerHTML = `
-            <div class="ethy-title"><span class="ethy-title-gem">◆</span> Ethy</div>
+            <span class="ethy-corner tl"></span>
+            <span class="ethy-corner tr"></span>
+            <span class="ethy-corner bl"></span>
+            <span class="ethy-corner br"></span>
+            <div class="ethy-title">
+                <span class="ethy-title-label"><span class="ethy-title-gem">◆</span> Ethy</span>
+                <button class="ethy-bubble-close" title="Cerrar" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="ethy-title-divider"></div>
             <div class="ethy-content"></div>
             <div class="ethy-actions"></div>
             <div class="ethy-steps"></div>
         `;
+        _bubble.querySelector('.ethy-bubble-close').addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideBubble();
+        });
 
         // Botón de minimizar (✕ pequeño sobre la cabeza de Ethy)
         const _minimizeBtn = document.createElement('button');
@@ -452,7 +492,10 @@ const Ethy = (function() {
             if (_bubbleJustOpened) return; // ignorar el click que abrió la burbuja
             if (!_container.contains(e.target)) {
                 if (_bubble.classList.contains('visible')) hideBubble();
-                if (_tutorialPanelVisible) endTutorial();
+                // El tour de bienvenida pide a propósito clics reales fuera del
+                // panel (la tarjeta de perfil, los campos de registro) — no son
+                // un gesto de "cerrar tocando fuera", son el siguiente paso.
+                if (_tutorialPanelVisible && _currentTutorial !== TUTORIALS.userSelect) endTutorial();
             }
         });
 
@@ -606,13 +649,41 @@ const Ethy = (function() {
     };
 
     // Expresiones breves (idle flicker) — más emocionales para que se note
-    const IDLE_FLICKER = ['surprised', 'love', 'excited', 'wink', 'thoughtful'];
+    const IDLE_FLICKER = ['surprised', 'love', 'excited', 'wink', 'thoughtful', 'happy'];
+
+    // Cuánto se mantiene cada flicker antes de volver a la base. Un tiempo
+    // fijo para todas hacía que el gesto se sintiera como un tic (destello
+    // y ya) — variar la duración según la expresión da un ritmo más
+    // orgánico: las intensas son breves, las cálidas se quedan un poco más.
+    const FLICKER_HOLD_MS = {
+        surprised: 1100, wink: 1200, excited: 1400,
+        happy: 1700, thoughtful: 2000, love: 2200
+    };
 
     let _idleBaseExpression = 'neutral'; // expresión base de la sección actual
     let _idleInterval  = null;
 
+    // Historial corto de expresiones idle recientes (base + flicker), para
+    // que el azar no repita la misma expresión una y otra vez en pocos
+    // ciclos — el motivo original de que Ethy se sintiera repetitiva.
+    let _recentIdleExpressions = [];
+    const RECENT_IDLE_HISTORY = 3;
+
     function _pickRandom(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function _rememberIdleExpression(expression) {
+        _recentIdleExpressions.push(expression);
+        if (_recentIdleExpressions.length > RECENT_IDLE_HISTORY) _recentIdleExpressions.shift();
+    }
+
+    // Elige de `pool` evitando lo mostrado recientemente; si el filtro deja
+    // el pool vacío (pool pequeño + historial largo), cede y usa el pool
+    // completo antes que fallar.
+    function _pickFresh(pool) {
+        const candidates = pool.filter(e => !_recentIdleExpressions.includes(e));
+        return _pickRandom(candidates.length ? candidates : pool);
     }
 
     /**
@@ -621,10 +692,9 @@ const Ethy = (function() {
      */
     function _setSectionExpression(section) {
         const pool = SECTION_EXPRESSIONS[section] || SECTION_EXPRESSIONS.default;
-        let candidates = pool.filter(e => e !== _currentExpression);
-        if (candidates.length === 0) candidates = pool;
-        const chosen = _pickRandom(candidates);
+        const chosen = _pickFresh(pool);
         _idleBaseExpression = chosen;
+        _rememberIdleExpression(chosen);
         // No animar ni cambiar expresión si está minimizado
         if (_isMinimized) return;
         if (_body) {
@@ -635,8 +705,10 @@ const Ethy = (function() {
     }
 
     /**
-     * Tick idle: cada 8-14 s cambia momentáneamente a una expresión aleatoria
-     * y a los 1.5 s vuelve a la expresión base.
+     * Tick idle: cada 9-16 s cambia momentáneamente a una expresión aleatoria
+     * (sin repetir lo reciente) y, tras un tiempo propio de esa expresión,
+     * vuelve a la base. ~1 de cada 4 veces encadena un segundo micro-gesto
+     * antes de volver, para que no se sienta siempre igual de mecánico.
      */
     function _idleTick() {
         // No interrumpir si minimizado, burbuja activa o tutorial en curso
@@ -644,21 +716,37 @@ const Ethy = (function() {
         if (_bubble && _bubble.classList.contains('visible')) return;
         if (_tutorialPanelVisible) return;
 
-        const flicker = _pickRandom(IDLE_FLICKER.filter(e => e !== _idleBaseExpression));
+        const flicker = _pickFresh(IDLE_FLICKER.filter(e => e !== _idleBaseExpression));
+        _rememberIdleExpression(flicker);
         setExpression(flicker);
 
+        const hold = FLICKER_HOLD_MS[flicker] || 1500;
+        const chainSecond = Math.random() < 0.28;
+
         setTimeout(() => {
-            // Solo restaurar si no hay burbuja abierta ahora
-            if (!_bubble || !_bubble.classList.contains('visible')) {
+            if (_bubble && _bubble.classList.contains('visible')) return;
+            if (chainSecond) {
+                const secondPool = IDLE_FLICKER.filter(e => e !== flicker && e !== _idleBaseExpression);
+                const second = _pickFresh(secondPool);
+                _rememberIdleExpression(second);
+                setExpression(second);
+                setTimeout(() => {
+                    if (!_bubble || !_bubble.classList.contains('visible')) {
+                        setExpression(_idleBaseExpression);
+                    }
+                }, (FLICKER_HOLD_MS[second] || 1300) * 0.7);
+            } else {
                 setExpression(_idleBaseExpression);
             }
-        }, 1500);
+        }, hold);
     }
 
     function _startIdleSystem() {
         if (_idleInterval) clearInterval(_idleInterval);
-        // Intervalo aleatorio entre 8 y 14 segundos para cambio de expresión
-        const randomInterval = () => Math.floor(Math.random() * 6000) + 8000;
+        // Intervalo aleatorio entre 9 y 16 segundos — algo más pausado que
+        // antes para que cada gesto tenga tiempo de notarse en vez de
+        // sentirse como un parpadeo nervioso.
+        const randomInterval = () => Math.floor(Math.random() * 7000) + 9000;
 
         function scheduleNext() {
             _idleInterval = setTimeout(() => {
@@ -827,6 +915,7 @@ const Ethy = (function() {
             const screen = document.getElementById('userSelectScreen');
             if (!screen || screen.classList.contains('hidden')) return;
             if (_isMinimized || _bubble.classList.contains('visible')) return;
+            if (_tutorialPanelVisible || _firstVisitTourActive) return; // no interrumpir el tour de bienvenida
             _stuckTipShownThisVisit = true;
             say('Ninguno de estos archivos tiene que ser el tuyo para abrirte paso. Toca cualquiera y entra con tu propio nombre y llave.', { expression: 'wink' });
         }, STUCK_DELAY);
@@ -1040,6 +1129,7 @@ const Ethy = (function() {
         // Mostrar burbuja — marcar flag para evitar cierre inmediato
         _bubbleJustOpened = true;
         _bubble.classList.add('visible');
+        _container.classList.add('ethy-bubble-open');
         setTimeout(() => { _bubbleJustOpened = false; }, 50);
 
         // Efecto de escritura
@@ -1073,19 +1163,23 @@ const Ethy = (function() {
 
     function hideBubble() {
         _bubble.classList.remove('visible');
+        _container.classList.remove('ethy-bubble-open');
         if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
         if (_autocloseTimeout) { clearTimeout(_autocloseTimeout); _autocloseTimeout = null; }
         _isTyping = false;
     }
 
-    // Renderiza los botones de acción dentro de la burbuja
+    // Renderiza los botones de acción dentro de la burbuja — barra de
+    // iconos tipo HUD (rombo + etiqueta corta), no una lista de filas de texto.
     function _renderButtons(container, buttons) {
         container.innerHTML = '';
-        if (!buttons || buttons.length === 0) return;
+        if (!buttons || buttons.length === 0) { container.classList.remove('ethy-actions--hud'); return; }
+        container.classList.add('ethy-actions--hud');
         buttons.forEach(btn => {
             const el = document.createElement('button');
             el.className = 'ethy-btn' + (btn.primary ? ' primary' : '');
-            el.textContent = btn.text;
+            el.title = btn.text;
+            el.innerHTML = `<span class="ethy-btn-icon"><span class="ethy-btn-icon-glyph">${btn.icon || '✦'}</span></span><span class="ethy-btn-label">${btn.label || btn.text}</span>`;
             el.addEventListener('click', () => {
                 if (typeof btn.action === 'function') btn.action();
                 if (btn.close !== false) hideBubble();
@@ -1189,6 +1283,10 @@ const Ethy = (function() {
             next.textContent = 'Siguiente →';
             next.classList.remove('ethy-tp-finish');
         }
+        // Pasos que dependen de una acción real del usuario (clic real en la
+        // app, resultado de un registro) ocultan "Siguiente" — avanzar a mano
+        // dejaría el tutorial por delante de lo que de verdad ha ocurrido.
+        next.style.visibility = step.noNext ? 'hidden' : 'visible';
 
         // Expresión de Ethy para este paso
         if (!_isMinimized && step.expression) {
@@ -1210,6 +1308,10 @@ const Ethy = (function() {
         }
         if (_seenTutorials.has(tutorialKey) && !tutorial.force) return;
 
+        // El tour de bienvenida acumula pasos dinámicos (registro, nombre) según
+        // lo que el usuario hace en pantalla — al repetirlo, volver a la base.
+        if (tutorialKey === 'userSelect') tutorial.steps = _USER_SELECT_BASE_STEPS.slice();
+
         _currentTutorial = tutorial;
         _tutorialStep = 0;
         _seenTutorials.add(tutorialKey);
@@ -1230,6 +1332,7 @@ const Ethy = (function() {
 
     function endTutorial() {
         if (!_currentTutorial) return;
+        const wasProfileWelcome = _currentTutorial === TUTORIALS.userSelect;
         _currentTutorial = null;
         _tutorialStep = 0;
 
@@ -1239,6 +1342,14 @@ const Ethy = (function() {
         }
         _tutorialPanelVisible = false;
         removeHighlight();
+
+        // Si el tour de bienvenida se cierra antes de terminar (saltado o
+        // cerrado a mano), reactivar el aviso estático #welcomeOverlay que
+        // habíamos silenciado para no duplicar el mensaje.
+        if (wasProfileWelcome && _firstVisitTourActive) {
+            _firstVisitTourActive = false;
+            if (typeof toggleWelcomeOverlay === 'function' && typeof renderUserCards === 'function') renderUserCards();
+        }
 
         // Mensaje breve de despedida (solo si no está minimizado)
         if (!_isMinimized) {
@@ -1354,7 +1465,8 @@ const Ethy = (function() {
         say('¿En qué puedo ayudarte?', {
             expression: 'happy',
             buttons: [
-                { text: 'Ver tutorial', primary: true, close: false, action: () => {
+                { text: 'Consejo rápido', icon: '✦', label: 'Consejo', primary: true, close: false, action: () => showRandomTip() },
+                { text: 'Ver tutorial', icon: '📖', label: 'Tutorial', close: false, action: () => {
                     if (currentSection && TUTORIALS[currentSection]) {
                         // Fix: usar _seenTutorials.delete() en vez de mutar el objeto tutorial
                         _seenTutorials.delete(currentSection);
@@ -1363,10 +1475,51 @@ const Ethy = (function() {
                         say('Para esta sección aún no tengo nada que enseñarte.', { expression: 'sad', duration: 3000 });
                     }
                 }},
-                { text: 'Consejo rápido', close: false, action: () => showRandomTip() },
-                { text: 'Cerrar' }
+                { text: 'Sugerencia', icon: '💡', label: 'Sugerir', close: false, action: () => _showFeedbackForm() }
             ]
         });
+    }
+
+    // ── Formulario de sugerencias — reutiliza la burbuja de say() ────────────
+    function _showFeedbackForm() {
+        setExpression('thoughtful');
+        if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
+        if (_autocloseTimeout) { clearTimeout(_autocloseTimeout); _autocloseTimeout = null; }
+        _isTyping = false;
+
+        _bubbleJustOpened = true;
+        _bubble.classList.add('visible');
+        _container.classList.add('ethy-bubble-open');
+        setTimeout(() => { _bubbleJustOpened = false; }, 50);
+
+        const content = _bubble.querySelector('.ethy-content');
+        const actions = _bubble.querySelector('.ethy-actions');
+
+        content.innerHTML = '<textarea class="ethy-feedback-input" maxlength="1000" placeholder="Cuéntame tu idea o sugerencia..."></textarea>';
+        actions.innerHTML = '';
+        actions.classList.remove('ethy-actions--hud');
+
+        const textarea = content.querySelector('.ethy-feedback-input');
+        setTimeout(() => textarea.focus(), 50);
+
+        const sendBtn = document.createElement('button');
+        sendBtn.className = 'ethy-btn primary';
+        sendBtn.textContent = 'Enviar';
+        sendBtn.addEventListener('click', async () => {
+            const message = textarea.value.trim();
+            if (!message) { textarea.focus(); return; }
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Enviando…';
+            const result = (typeof EtheriaBugReport !== 'undefined')
+                ? await EtheriaBugReport.send({ type: 'recommendation', message, includeScreenshot: false })
+                : { ok: false };
+            if (result.ok) {
+                say('¡Gracias! Ya se lo he hecho llegar a la administradora.', { expression: 'love', duration: 4000 });
+            } else {
+                say('No he podido enviarlo — inténtalo de nuevo más tarde.', { expression: 'sad', duration: 4000 });
+            }
+        });
+        actions.appendChild(sendBtn);
     }
 
     function _detectCurrentSection() {
@@ -1513,6 +1666,157 @@ const Ethy = (function() {
         });
     }
 
+    // ── Tour de bienvenida — primera vez en el selector de perfil ────────────
+    // Se pregunta ANTES que cualquier otro tutorial, una sola vez por navegador.
+    // "Sí" sustituye al aviso estático #welcomeOverlay (toggleWelcomeOverlay lo
+    // silencia mientras esto está activo — ver characters.js) y guía paso a
+    // paso hasta tener un perfil real creado, reaccionando a lo que el usuario
+    // hace de verdad (clics, resultado del registro) en vez de avanzar solo.
+    // "No" marca todos los tutoriales de sección como vistos — incluido el del
+    // menú principal — para no repetir la bienvenida nada más entrar.
+    const FIRST_VISIT_KEY = 'etheria_ethy_first_visit_resolved';
+    let _firstVisitTourActive = false;
+
+    function isFirstVisitTourActive() {
+        return _firstVisitTourActive;
+    }
+
+    function _maybeOfferFirstVisitTour() {
+        if (localStorage.getItem(FIRST_VISIT_KEY) === '1') return;
+        // Ya conocía tutoriales de antes (sesión previa a este tour) — no
+        // reabrir la pregunta a alguien que ya lleva tiempo usando la app.
+        if (_seenTutorials.size > 0) {
+            try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) { /* localStorage no disponible */ }
+            return;
+        }
+        const screen = document.getElementById('userSelectScreen');
+        if (!screen || screen.classList.contains('hidden')) return;
+
+        setTimeout(() => {
+            const screenNow = document.getElementById('userSelectScreen');
+            if (!screenNow || screenNow.classList.contains('hidden')) return; // pudo cambiar mientras esperábamos
+            say('¿Es tu primera vez en Etheria?', {
+                expression: 'happy',
+                buttons: [
+                    { text: 'Sí, es mi primera vez', icon: '✦', label: 'Sí', primary: true, action: () => _startProfileWelcomeTour() },
+                    { text: 'No, ya conozco esto', icon: '✕', label: 'No', action: () => _declineFirstVisitTour() }
+                ]
+            });
+        }, 600);
+    }
+
+    function _declineFirstVisitTour() {
+        try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) { /* localStorage no disponible */ }
+        Object.keys(TUTORIALS).forEach(k => _seenTutorials.add(k));
+        _saveSeenTutorials();
+        say('Como quieras. Sigo aquí si me necesitas — todo lo que sé también vive en mi menú de ayuda.', {
+            expression: 'wink',
+            duration: 4000
+        });
+    }
+
+    function _finishProfileWelcomeTour() {
+        _firstVisitTourActive = false;
+        try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) { /* localStorage no disponible */ }
+        // Ya vivió la bienvenida completa — que no le repita la misma idea
+        // nada más aterrizar en el menú principal.
+        _seenTutorials.add('mainMenu');
+        _saveSeenTutorials();
+    }
+
+    function _startProfileWelcomeTour() {
+        _firstVisitTourActive = true;
+        // Re-renderizar YA para ocultar #welcomeOverlay antes de abrir el
+        // panel — si se hiciera después, reconstruiría #addProfileCard y
+        // dejaría colgado el listener que el propio tour engancha en él.
+        if (typeof renderUserCards === 'function') renderUserCards();
+        startTutorial('userSelect');
+    }
+
+    function _armProfileWelcomeCardWatcher() {
+        const card = document.getElementById('addProfileCard');
+        if (!card) return;
+        card.addEventListener('click', () => {
+            setTimeout(_advanceProfileWelcomeAfterCardClick, 80);
+        }, { once: true });
+    }
+
+    function _advanceProfileWelcomeAfterCardClick() {
+        if (_currentTutorial !== TUTORIALS.userSelect) return;
+
+        const registerView = document.getElementById('authRegisterView');
+        const onRegisterView = !!(registerView && registerView.classList.contains('active'));
+
+        if (onRegisterView) {
+            _currentTutorial.steps.push({
+                text: 'Escribe un email real y una contraseña de al menos 6 caracteres — la repites justo debajo para confirmar que no te has equivocado.',
+                expression: 'thoughtful',
+                noNext: true,
+                action: () => {
+                    highlightElement('#authRegisterView .auth-form');
+                    _armRegisterResultWatcher();
+                }
+            });
+            _tutorialStep = _currentTutorial.steps.length - 1;
+            _renderTutorialStep();
+        } else {
+            // Ya tenía sesión iniciada: sin registro de por medio, directo al nombre.
+            _pushProfileNameStep();
+        }
+    }
+
+    function _armRegisterResultWatcher() {
+        window.addEventListener('etheria:register-result', function onResult(ev) {
+            if (_currentTutorial !== TUTORIALS.userSelect) return;
+            const needsConfirmation = !!(ev.detail && ev.detail.needsConfirmation);
+            if (needsConfirmation) {
+                _currentTutorial.steps.push({
+                    text: 'Te he enviado un correo de confirmación — ábrelo y confirma la cuenta antes de poder entrar. Revisa también la carpeta de spam si no lo ves llegar. En cuanto la confirmes, vuelve aquí y toca tu nuevo perfil para ponerle nombre.',
+                    expression: 'surprised',
+                    action: () => highlightElement('#authRegStatus')
+                });
+                _tutorialStep = _currentTutorial.steps.length - 1;
+                _renderTutorialStep();
+                // Lo que sigue ocurre fuera de la app, en su correo — aquí termina lo que puedo guiar.
+                _finishProfileWelcomeTour();
+            } else {
+                // Sin confirmación por email: la cuenta ya está activa, pero
+                // la app no reabre el modal de nombre sola en este camino
+                // (a diferencia del login normal) — hay que reanudarlo, igual
+                // que hace la propia app vía window._pendingAddProfile.
+                window.addEventListener('etheria:new-profile-modal-open', function onModalOpen() {
+                    _pushProfileNameStep();
+                }, { once: true });
+                if (typeof addNewProfile === 'function') addNewProfile();
+            }
+        }, { once: true });
+    }
+
+    function _pushProfileNameStep() {
+        if (_currentTutorial !== TUTORIALS.userSelect) return;
+        _currentTutorial.steps.push({
+            text: 'Último paso: escribe cómo quieres que te llamemos en Etheria.',
+            expression: 'happy',
+            noNext: true,
+            action: () => {
+                highlightElement('#newProfileNameInput');
+                window.addEventListener('etheria:new-profile-created', function onCreated() {
+                    if (_currentTutorial !== TUTORIALS.userSelect) return;
+                    endTutorial();
+                    _finishProfileWelcomeTour();
+                    setTimeout(() => {
+                        say('Tu perfil ya existe. El resto de Etheria te lo iré mostrando por partes, a tu ritmo.', {
+                            expression: 'love',
+                            duration: 4000
+                        });
+                    }, 400);
+                }, { once: true });
+            }
+        });
+        _tutorialStep = _currentTutorial.steps.length - 1;
+        _renderTutorialStep();
+    }
+
     // ── API pública ──────────────────────────────────────────────────────────
 
     return {
@@ -1530,6 +1834,7 @@ const Ethy = (function() {
         removeHighlight,
         onEnterSection,
         resetTutorials,
+        isFirstVisitTourActive,
         toggleMinimize,
         get isMinimized() { return _isMinimized; },
         get isVisible() { return _isVisible; },

@@ -369,21 +369,6 @@ function _syncProfileNameToCloud(name) {
         .then(() => {}, () => {});
 }
 
-function changeUser() {
-    const newName = prompt('Nuevo nombre:', userNames[currentUserIndex]);
-    if(newName?.trim()) {
-        userNames[currentUserIndex] = newName.trim();
-        localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
-        _syncProfileNameToCloud(newName.trim());
-
-        const currentUserDisplay = document.getElementById('currentUserDisplay');
-        if (currentUserDisplay) currentUserDisplay.textContent = newName.trim();
-
-        save({ silent: true });
-        renderUserCards();
-    }
-}
-
 // Propaga el color del personaje activo como variable CSS global
 // para que la caja de diálogo y el avatar ring lo reflejen
 function normalizeCssColor(input) {
@@ -518,22 +503,6 @@ function saveProfileNameFromOptions() {
     showAutosave('Nombre actualizado', 'saved');
     // Actualizar initial del avatar si no hay foto
     _syncAvatarInitials();
-}
-
-// ── Tab switcher del menú de opciones ────────────────────────────────────
-function switchOptTab(tabId, btn) {
-    // Desactivar todos
-    document.querySelectorAll('.opt-tab').forEach(t => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-    });
-    document.querySelectorAll('.opt-panel').forEach(p => p.classList.remove('active'));
-    // Activar el elegido
-    if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected', 'true'); }
-    const panel = document.getElementById('optPanel-' + tabId);
-    if (panel) panel.classList.add('active');
-    // Sincronizar perfil al entrar en esa pestaña
-    if (tabId === 'profile' || tabId === 'account') _syncProfileTab();
 }
 
 // ── Avatar helpers ────────────────────────────────────────────────────────
@@ -850,32 +819,6 @@ function deleteCurrentTopic() {
     });
 }
 
-async function manualSyncFromScene() {
-    if (hasUnsavedChanges) save({ silent: true });
-    await syncBidirectional({ silent: false, allowRemotePrompt: true });
-
-    // La sync principal cubre user_data; topics y characters viven en tablas separadas.
-    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
-        await SupabaseStories.loadStories().catch(() => {});
-    }
-
-    const activeProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
-        ? SupabaseProfiles.getActiveProfileId()
-        : null;
-    if (activeProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
-        await SupabaseCharacters.loadCharacters(activeProfileId).catch(() => {});
-    }
-
-    if (typeof renderTopics    === 'function') renderTopics();
-    if (typeof renderGallery   === 'function') renderGallery();
-    if (typeof renderUserCards === 'function') renderUserCards();
-}
-
-function quickSave() {
-    const saved = save();
-    showAutosave(saved ? 'Guardado rápido' : 'Error al guardar rápido', saved ? 'saved' : 'error');
-}
-
 function openSaveHubModal() {
     openModal('saveHubModal');
     // Asegurar que el userId esté en caché antes de actualizar el estado
@@ -1039,134 +982,6 @@ function loadGameFromMenu() {
 
 
 
-function _storyCodeStorageKey(code) {
-    return `etheria_story_code_${code}`;
-}
-
-const STORY_CODE_BLOCKLIST = new Set(['PUTO', 'CACA', 'KKK']);
-
-function _generateStoryCode() {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let out = '';
-    do {
-        out = '';
-        for (let i = 0; i < 6; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
-    } while (STORY_CODE_BLOCKLIST.has(out));
-    return out;
-}
-
-
-function _formatStoryText(str) {
-    // Prepara el texto de la historia para exportación (btoa ya gestiona la codificación)
-    try {
-        return str;
-    } catch { return str; }
-}
-
-function _trimMessagesForExport(messages) {
-    // Recortar a los últimos 200 mensajes para no sobrepasar localStorage (~5MB)
-    const MAX = 200;
-    if (!Array.isArray(messages)) return [];
-    const msgs = messages.slice(-MAX);
-    // Eliminar campos pesados opcionales que se pueden reconstruir
-    return msgs.map(m => {
-        const out = { ...m };
-        // charSprite puede ser una URL muy larga - conservar solo si es corta
-        if (out.charSprite && out.charSprite.length > 300) delete out.charSprite;
-        return out;
-    });
-}
-
-function exportCurrentStoryAsCode() {
-    if (!currentTopicId) {
-        showAutosave('Abre una historia primero', 'error');
-        return;
-    }
-    const topic = appData.topics.find(t => String(t.id) === String(currentTopicId));
-    if (!topic) return;
-
-    const messages = _trimMessagesForExport(getTopicMessages(currentTopicId));
-
-    // Solo incluir personajes que aparecen en esta historia
-    const charIdsInTopic = new Set(messages.map(m => m.characterId).filter(Boolean));
-    const relevantChars = appData.characters.filter(c => charIdsInTopic.has(c.id));
-
-    // Clonar topic sin campos de caché que engordan el payload
-    const topicClean = { ...topic };
-    delete topicClean._cachedMessages;
-
-    const payload = {
-        v: 2,
-        topic: topicClean,
-        messages,
-        chars: relevantChars
-    };
-
-    const serialized = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    const kb = Math.round(serialized.length / 1024);
-    if (kb > 400) {
-        showAutosave(`Historia muy grande (${kb}KB). Solo se exportarán los últimos 200 mensajes.`, 'error');
-    }
-    let code = _generateStoryCode();
-    let retries = 0;
-    while (localStorage.getItem(_storyCodeStorageKey(code)) && retries < 10) {
-        code = _generateStoryCode();
-        retries++;
-    }
-    try {
-        localStorage.setItem(_storyCodeStorageKey(code), serialized);
-        localStorage.setItem('etheria_last_story_code', code);
-    } catch (e) {
-        showAutosave('No se pudo guardar el código: almacenamiento lleno', 'error');
-        return;
-    }
-
-    const codeEl = document.getElementById('storyCodeValue');
-    if (codeEl) codeEl.textContent = code;
-    openModal('storyCodeModal');
-    showAutosave('Código de historia generado', 'saved');
-}
-
-async function importStoryFromCode() {
-    const code = (await openPromptModal('Introduce el código de 6 caracteres:') || '').trim().toUpperCase();
-    if (!code) return;
-    const raw = localStorage.getItem(_storyCodeStorageKey(code));
-    if (!raw) {
-        showAutosave('Código no encontrado en este dispositivo', 'error');
-        return;
-    }
-
-    try {
-        const payload = JSON.parse(decodeURIComponent(escape(atob(raw))));
-        if (!payload || !payload.topic) throw new Error('Payload inválido');
-
-        const importedTopic = { ...payload.topic, id: `${payload.topic.id}_${Date.now()}` };
-        appData.topics.push(importedTopic);
-        appData.messages[importedTopic.id] = Array.isArray(payload.messages) ? payload.messages.map((m) => ({ ...m, id: `${m.id}_${Math.random().toString(16).slice(2)}` })) : [];
-
-        if (Array.isArray(payload.chars)) {
-            const known = new Set(appData.characters.map(c => String(c.id)));
-            payload.chars.forEach((c) => {
-                if (!known.has(String(c.id))) appData.characters.push(c);
-            });
-        }
-
-        hasUnsavedChanges = true;
-        save({ silent: true });
-        renderTopics();
-        showAutosave('Historia importada desde código', 'saved');
-    } catch (err) {
-        showAutosave('No se pudo importar el código', 'error');
-    }
-}
-
-function exportData() {
-    const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `etheria_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-}
 
 function deleteCharFromModal() {
     const id = document.getElementById('editCharacterId')?.value;
@@ -1287,6 +1102,13 @@ const _ONBOARDING_MESSAGES = [
 function maybeShowOnboarding() {
     if (localStorage.getItem(_ONBOARDING_KEY)) return;
     const step = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
+    // Paso 0 (bienvenida del selector de perfil) retirado: lo cubre el tour
+    // guiado de Ethy (ver ethy.js, _startProfileWelcomeTour), más completo e
+    // interactivo. Saltarlo evita mostrar el mismo mensaje dos veces seguidas.
+    if (step === 0) {
+        localStorage.setItem('etheria_onboarding_step', '1');
+        return;
+    }
     if (step >= _ONBOARDING_MESSAGES.length) {
         localStorage.setItem(_ONBOARDING_KEY, '1');
         return;

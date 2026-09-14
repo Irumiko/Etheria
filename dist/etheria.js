@@ -382,7 +382,6 @@ let touchStartY = 0;
 let gallerySearchDebounceTimer = null;
 let galleryImageObserver = null;
 let historyVirtualState = null;
-let pendingRoomInviteId = null;
 let currentStoryId = null;           // UUID de la historia activa en Supabase
 let currentStoryParticipants = [];   // Participantes de la historia activa
 const spritePool = [];
@@ -815,6 +814,12 @@ const cloudMigrationPendingProfiles = new Set();
         key: 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3'
     };
 
+    // Clave pública VAPID (par generado para Web Push). La privada solo vive
+    // como secreto de las Edge Functions en Supabase — esta es segura de
+    // exponer en el cliente, es la mitad "pública" del par.
+    const DEFAULT_VAPID_PUBLIC_KEY =
+        'BA8fErftKFw8DfoLlKRekzs11XUDdGuiyB85Qv1uOZ7LZ3ADOXGI63KgnE62NSh5D_fVsvIAFuzPFQcDAle5Ykg';
+
     const fromGlobal = global.SUPABASE_CONFIG || {};
     const fromEnv = global.__ETHERIA_ENV__?.supabase || {};
 
@@ -822,6 +827,9 @@ const cloudMigrationPendingProfiles = new Set();
         url: fromEnv.url || fromGlobal.url || DEFAULT_SUPABASE_CONFIG.url,
         key: fromEnv.key || fromGlobal.key || DEFAULT_SUPABASE_CONFIG.key
     };
+
+    global.ETHERIA_VAPID_PUBLIC_KEY =
+        global.__ETHERIA_ENV__?.vapidPublicKey || global.ETHERIA_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
 })(window);
 
 /* js/utils/supabaseAuthHeaders.js */
@@ -1259,66 +1267,8 @@ function showSyncToast(message, actionText, onAction) {
     window.setTimeout(hideSyncToast, 8000);
 }
 
-function getLocalProfileUpdatedAt(profileIndex = currentUserIndex) {
-    const raw = localStorage.getItem(`${LOCAL_PROFILE_UPDATED_PREFIX}${profileIndex}`);
-    const timestamp = Number.parseInt(raw || '0', 10);
-    return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
 function setLocalProfileUpdatedAt(profileIndex = currentUserIndex, timestamp = Date.now()) {
     localStorage.setItem(`${LOCAL_PROFILE_UPDATED_PREFIX}${profileIndex}`, String(timestamp));
-}
-
-function countMessagesInProfile(profileData) {
-    return Object.values(profileData?.messages || {}).reduce((acc, list) => acc + (Array.isArray(list) ? list.length : 0), 0);
-}
-
-function getProfileScopedAppData(profileIndex = currentUserIndex) {
-    const topics = appData.topics.filter(topic => topic.createdByIndex === profileIndex);
-    const topicIds = new Set(topics.map(topic => String(topic.id)));
-    const messages = {};
-
-    Object.keys(appData.messages).forEach((topicId) => {
-        if (topicIds.has(String(topicId))) {
-            messages[topicId] = Array.isArray(appData.messages[topicId]) ? appData.messages[topicId] : [];
-        }
-    });
-
-    const affinities = {};
-    Object.keys(appData.affinities || {}).forEach((topicId) => {
-        if (topicIds.has(String(topicId))) affinities[topicId] = appData.affinities[topicId];
-    });
-
-    const characters = appData.characters.filter(character => character.userIndex === profileIndex);
-    return { topics, characters, messages, affinities };
-}
-
-function hasProfileLocalData(profileIndex = currentUserIndex) {
-    const data = getProfileScopedAppData(profileIndex);
-    return data.topics.length > 0 || data.characters.length > 0 || Object.keys(data.messages).length > 0;
-}
-
-function applyProfileData(profileIndex, profileData) {
-    const sanitizedData = {
-        topics: Array.isArray(profileData?.topics) ? profileData.topics : [],
-        characters: Array.isArray(profileData?.characters) ? profileData.characters : [],
-        messages: (profileData?.messages && typeof profileData.messages === 'object' && !Array.isArray(profileData.messages)) ? profileData.messages : {},
-        affinities: (profileData?.affinities && typeof profileData.affinities === 'object' && !Array.isArray(profileData.affinities)) ? profileData.affinities : {}
-    };
-
-    const previousTopicIds = appData.topics.filter(topic => topic.createdByIndex === profileIndex).map(topic => String(topic.id));
-    appData.topics = appData.topics.filter(topic => topic.createdByIndex !== profileIndex).concat(sanitizedData.topics);
-    appData.characters = appData.characters.filter(character => character.userIndex !== profileIndex).concat(sanitizedData.characters);
-
-    previousTopicIds.forEach((topicId) => {
-        if (!sanitizedData.messages[topicId]) {
-            delete appData.messages[topicId];
-            delete appData.affinities[topicId];
-        }
-    });
-
-    Object.keys(sanitizedData.messages).forEach((topicId) => { appData.messages[topicId] = sanitizedData.messages[topicId]; });
-    Object.keys(sanitizedData.affinities).forEach((topicId) => { appData.affinities[topicId] = sanitizedData.affinities[topicId]; });
 }
 
 // ============================================
@@ -1326,113 +1276,6 @@ function applyProfileData(profileIndex, profileData) {
 // ============================================
 // Las funciones de JSONBin han sido reemplazadas por SupabaseSync.
 // Ver js/utils/supabaseSync.js para la implementación completa.
-
-function ensureCloudConfig() {
-    // JSONBin está deshabilitado. Usar SupabaseSync en su lugar.
-    // Esta función se mantiene para compatibilidad con código existente.
-    console.warn('[Etheria] JSONBin está deshabilitado. Usando Supabase para sincronización.');
-}
-
-async function fetchCloudBin() {
-    // DEPRECATED: Usar SupabaseSync.downloadProfileData() en su lugar
-    console.warn('[Etheria] fetchCloudBin está deprecado. Usando SupabaseSync.');
-    if (typeof SupabaseSync !== 'undefined') {
-        const result = await SupabaseSync.downloadProfileData();
-        if (result.ok && result.data) {
-            return { profiles: { [currentUserIndex || 0]: { appData: result.data } } };
-        }
-    }
-    throw new Error('Usar SupabaseSync para sincronización');
-}
-
-async function putCloudBin(record) {
-    // DEPRECATED: Usar SupabaseSync.uploadProfileData() en su lugar
-    console.warn('[Etheria] putCloudBin está deprecado. Usando SupabaseSync.');
-    if (typeof SupabaseSync !== 'undefined') {
-        const result = await SupabaseSync.uploadProfileData();
-        if (!result.ok) throw new Error(result.error);
-    } else {
-        throw new Error('SupabaseSync no disponible');
-    }
-}
-
-function openSyncConflictModal() {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('syncConflictModal');
-        const btnLocal  = document.getElementById('syncKeepLocalBtn');
-        const btnServer = document.getElementById('syncKeepServerBtn');
-
-        if (!modal || !btnLocal || !btnServer) {
-            // Fallback al confirm nativo si el modal no existe aún
-            const keepLocal = confirm('Se detectó conflicto: cambios locales y remotos. ¿Conservar cambios locales?');
-            resolve(keepLocal ? 'local' : 'server');
-            return;
-        }
-
-        const cleanup = (choice) => {
-            modal.classList.remove('active');
-            document.body.classList.remove('modal-open');
-            btnLocal.removeEventListener('click', onLocal);
-            btnServer.removeEventListener('click', onServer);
-            resolve(choice);
-        };
-
-        const onLocal  = () => cleanup('local');
-        const onServer = () => cleanup('server');
-
-        btnLocal.addEventListener('click', onLocal);
-        btnServer.addEventListener('click', onServer);
-
-        modal.classList.add('active');
-        document.body.classList.add('modal-open');
-        btnLocal.focus();
-    });
-}
-
-async function saveToCloud(profileIndex = currentUserIndex) {
-    // Usar SupabaseSync si está disponible
-    if (typeof SupabaseSync !== 'undefined') {
-        const result = await SupabaseSync.uploadProfileData();
-        if (result.ok) {
-            const now = Date.now();
-            setLocalProfileUpdatedAt(profileIndex, now);
-            lastSyncTimestamp = now;
-            lastKnownServerTimestamp = now;
-            cloudUnsyncedChanges = false;
-            cloudMigrationPendingProfiles.delete(profileIndex);
-            updateCloudSyncIndicator('online', 'Conectado');
-            updateSyncButtonState('synced', 'Sincronizar');
-            isOfflineMode = false;
-            return true;
-        } else {
-            console.error('Cloud save error:', result.error);
-            persistPartitionedData();
-            isOfflineMode = true;
-            updateCloudSyncIndicator('offline', 'Offline');
-            updateSyncButtonState('error', 'Error');
-            return false;
-        }
-    }
-    
-    // Fallback: solo guardar localmente
-    persistPartitionedData();
-    return false;
-}
-
-async function applyServerProfile(profileIndex, cloudProfile, { refreshUI = true } = {}) {
-    applyProfileData(profileIndex, cloudProfile.appData);
-    persistPartitionedData(true); // Fix 9: bulk download — force-flush all partitions
-    const timestamp = Number.parseInt(cloudProfile.lastModified || '0', 10) || Date.parse(cloudProfile.updatedAt || '') || Date.now();
-    setLocalProfileUpdatedAt(profileIndex, timestamp);
-    lastSyncTimestamp = timestamp;
-    lastKnownServerTimestamp = timestamp;
-    cloudUnsyncedChanges = false;
-    pendingRemoteProfileData = null;
-    pendingRemoteTimestamp = 0;
-    updateCloudSyncIndicator('online', 'Conectado');
-    updateSyncButtonState('synced', 'Sincronizar');
-    if (refreshUI && typeof refreshUIAfterCloudLoad === 'function') refreshUIAfterCloudLoad();
-}
 
 async function syncBidirectional(options = {}) {
     const {
@@ -1681,6 +1524,54 @@ function playSoundNotification() {
 }
 
 // ============================================
+// VOZ DE DIÁLOGO (blips sintetizados estilo Animal Crossing / Undertale)
+// No son voces reales — un "chirrido" corto por cada palabra/letra que
+// se revela en el typewriter, con timbre distinto según el género del
+// personaje. Puramente sintético: sin archivos de audio ni licencias.
+// ============================================
+
+const DIALOGUE_VOICES = {
+    femenino:    { waveform: 'sine',     base: 470, range: 150, dur: 0.045, gain: 0.42 },
+    masculino:   { waveform: 'sawtooth', base: 140, range: 70,  dur: 0.055, gain: 0.30 },
+    'no binario':{ waveform: 'triangle', base: 300, range: 120, dur: 0.05,  gain: 0.38 },
+    default:     { waveform: 'triangle', base: 340, range: 90,  dur: 0.045, gain: 0.32 }
+};
+
+function _dialogueVoiceProfile(gender) {
+    const key = String(gender || '').trim().toLowerCase();
+    if (key === 'femenino') return DIALOGUE_VOICES.femenino;
+    if (key === 'masculino') return DIALOGUE_VOICES.masculino;
+    if (key === 'no binario' || key === 'no-binario' || key === 'otro') return DIALOGUE_VOICES['no binario'];
+    return DIALOGUE_VOICES.default;
+}
+
+// blipSeed: primer carácter del token revelado — da variación de tono
+// consistente por letra (como en Animal Crossing) en vez de ruido puro.
+function playDialogueBlip(gender, blipSeed) {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const profile = _dialogueVoiceProfile(gender);
+    const code = blipSeed ? blipSeed.charCodeAt(0) : Math.floor(Math.random() * 90);
+    const freq = profile.base + (code % 10) / 10 * profile.range;
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.type = profile.waveform;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.82, ctx.currentTime + profile.dur);
+
+    gain.gain.setValueAtTime(masterVolume * profile.gain, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + profile.dur);
+
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + profile.dur + 0.01);
+}
+
+// ============================================
 // SONIDO AMBIENTAL: LLUVIA
 // ============================================
 
@@ -1745,76 +1636,160 @@ function stopRainSound() {
 // se llaman desde app-ui.js, vn.js y roleplay.js respectivamente.
 
 // ============================================
-// MELODÍA DEL MENÚ PRINCIPAL — estilo 16-bit
-// Generada íntegramente con Web Audio API
+// MELODÍA DEL MENÚ PRINCIPAL — caja de música
+// Generada íntegramente con Web Audio API. El tema cambia según la
+// atmósfera activa (amanecer/mediodía/atardecer/noche) — ver atmosphere.js.
 // ============================================
 
 let _menuMusicNodes = [];
 let _menuMusicPlaying = false;
 let _menuMusicScheduleId = null;
 let _menuMusicGain = null;
+let _menuMusicAtmosphere = null;
 
-// Escala pentatónica menor en Do — aire oriental/fantástico tranquilo
-// Notas: C4 D4 Eb4 G4 A4 C5 D5 Eb5 G5
-const _MENU_NOTES = {
-    C4: 261.63, D4: 293.66, Eb4: 311.13, F4: 349.23,
-    G4: 392.00, Ab4: 415.30, Bb4: 466.16,
-    C5: 523.25, D5: 587.33, Eb5: 622.25, F5: 698.46,
-    G5: 783.99, Ab5: 830.61,
-    C3: 130.81, G3: 196.00, Bb3: 233.08,
-    REST: 0
+function _getActiveAtmosphere() {
+    return (window.EtheriaAtmosphere && window.EtheriaAtmosphere.get()) || 'noche';
+}
+
+// Tabla de frecuencias compartida por todos los temas
+const _MENU_NOTE_FREQS = {
+    REST: 0,
+    C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, Ab3: 207.65, A3: 220.00, Bb3: 233.08, B3: 246.94,
+    C4: 261.63, D4: 293.66, Eb4: 311.13, E4: 329.63, F4: 349.23, G4: 392.00, Ab4: 415.30, A4: 440.00, Bb4: 466.16, B4: 493.88,
+    C5: 523.25, D5: 587.33, Eb5: 622.25, E5: 659.25, F5: 698.46, G5: 783.99, Ab5: 830.61, A5: 880.00
 };
 
-// Melodía: [nota, duración_beats]  (tempo ~68bpm, beat = 0.88s)
-const _MENU_MELODY = [
-    // Frase A — suave ascendente
-    ['C4',1],['REST',0.5],['Eb4',0.5],['G4',1],['Ab4',0.5],['G4',0.5],
-    ['F4',1],['Eb4',1],['REST',1],
-    ['D4',0.5],['Eb4',0.5],['G4',1],['Ab4',1],
-    ['Bb4',0.5],['Ab4',0.5],['G4',1],['REST',1],
-    // Frase B — sube un poco
-    ['C5',1],['Bb4',0.5],['Ab4',0.5],['G4',1],['F4',0.5],['Eb4',0.5],
-    ['D4',1.5],['C4',0.5],['REST',1],
-    ['Eb4',0.5],['F4',0.5],['G4',1],['Ab4',0.5],['G4',0.5],
-    ['F4',1],['Eb4',1.5],['REST',0.5],
-    // Frase C — reposo
-    ['C4',0.5],['D4',0.5],['Eb4',1],['G4',0.5],['Ab4',0.5],
-    ['Bb4',1],['Ab4',0.5],['G4',0.5],['F4',1],
-    ['Eb4',0.5],['D4',0.5],['C4',2],['REST',1],
-];
+// Un tema por atmósfera: escala, tempo (segundos/beat) y color tímbrico propios.
+// Inspirado en las dungeons de los Zelda clásicos — misterio, no aventura:
+// modos frigio/dórico/eólico en vez de mayor, bajos que insisten más que
+// "acompañan" y frases de campana espaciadas con silencio de por medio.
+// "atardecer" ya tenía ese aire y se deja tal cual; el resto se reescribe
+// para ir en esa misma dirección.
+const _MENU_THEMES = {
+    // Mi eólica (misteriosa pero abierta) — bajo lento tipo pad, frases
+    // suspendidas con mucho aire entre ellas. La más "quieta" de las cuatro.
+    amanecer: {
+        beat: 0.62, melodyVol: 0.085, melodyFilter: 2200, bassVol: 0.035, bassFilter: 500,
+        melody: [
+            ['REST',2],['A4',1.5],['C5',1],['B4',1],['REST',2],
+            ['G4',1],['A4',1],['C5',1.5],['REST',1.5],
+            ['E4',2],['F4',1],['G4',1],['A4',2],['REST',2],
+            ['B4',1],['A4',1],['G4',1],['E4',3],['REST',3],
+        ],
+        bass: [['A3',3],['E3',3],['F3',3],['C3',3],['G3',3],['A3',6]],
+    },
+    // Re dórico — la menos oscura de las cuatro, pero sigue sin ser "alegre":
+    // un pulso de bajo moderado sostiene frases de campana más móviles.
+    mediodia: {
+        beat: 0.55, melodyVol: 0.085, melodyFilter: 2600, bassVol: 0.045, bassFilter: 650,
+        melody: [
+            ['D4',1],['F4',1],['G4',1],['A4',1.5],['REST',1.5],
+            ['C5',1],['B4',1],['A4',1],['G4',1.5],['REST',1],
+            ['F4',1],['G4',1],['A4',1],['D5',1.5],['C5',1],['REST',1.5],
+            ['B4',1],['A4',1],['G4',1],['F4',1],['D4',2],['REST',2],
+        ],
+        bass: [['D3',2],['A3',2],['C3',2],['G3',2],['D3',2],['F3',2],['A3',2],['D3',4]],
+    },
+    atardecer: {
+        beat: 1.05, melodyVol: 0.075, melodyFilter: 1500, bassVol: 0.045, bassFilter: 550,
+        melody: [
+            ['G4',1],['F4',0.5],['Eb4',0.5],['D4',1],['C4',1],['REST',1],
+            ['Eb4',0.5],['D4',0.5],['C4',1],['Bb3',1],
+            ['Ab4',0.5],['G4',0.5],['F4',1],['Eb4',1],['REST',1],
+            ['D4',0.5],['C4',0.5],['Bb3',1],['G3',2],['REST',1.5],
+        ],
+        bass: [['C3',4],['Ab3',2],['Bb3',2],['F3',4],['C3',4],['G3',4]],
+    },
+    // Mi frigio — el b2 (F contra la tónica Mi) es la tensión característica
+    // de las dungeons clásicas. Bajo en pulso insistente tipo "latido",
+    // campanas espaciadas por encima. La más oscura de las cuatro.
+    noche: {
+        beat: 0.42, melodyVol: 0.09, melodyFilter: 1600, bassVol: 0.055, bassFilter: 480,
+        melody: [
+            ['REST',3],['E4',2],['F4',1],['E4',1],['REST',2],
+            ['G4',2],['F4',1],['E4',2],['REST',3],
+            ['C5',2],['B4',1],['A4',1],['G4',2],['F4',2],['REST',2],
+            ['E4',3],['D4',1],['E4',4],['REST',4],
+        ],
+        bass: [
+            ['E3',1],['E3',1],['E3',1],['E3',1],
+            ['E3',1],['E3',1],['F3',1],['E3',1],
+            ['E3',1],['E3',1],['E3',1],['E3',1],
+            ['D3',1],['E3',1],['E3',1],['REST',1],
+        ],
+    },
+};
 
-// Bajo en arpegios sutiles
-const _MENU_BASS = [
-    ['C3',2],['G3',2],['Bb3',2],['C3',2],
-    ['F4',2],['C3',2],['G3',2],['C3',2],
-    ['Bb3',2],['F4',2],['C3',4],
-];
-
-function _playMenuNote(ctx, masterGain, freq, startTime, duration, opts) {
+// Nota tipo "caja de música": ataque casi instantáneo + decaimiento
+// exponencial rápido en triangle, más un armónico metálico a una relación
+// NO entera (x3.017) que decae aún más rápido — es lo que da el "plink"
+// característico de las tinas de un music box en vez de un synth sostenido.
+function _playMusicBoxNote(ctx, masterGain, freq, startTime, duration, opts) {
     if (!freq || freq === 0) return; // REST
     const o = opts || {};
-    const type    = o.type    || 'square';
-    const vol     = o.vol     || 0.08;
-    const detune  = o.detune  || 0;
-    const attack  = o.attack  || 0.01;
-    const release = o.release || Math.min(duration * 0.6, 0.25);
+    const vol        = o.vol        != null ? o.vol        : 0.085;
+    const filterFreq = o.filterFreq != null ? o.filterFreq : 2800;
+    const attack     = 0.004;
+    const decay       = Math.min(duration, duration * 0.85);
 
-    const osc  = ctx.createOscillator();
+    const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
-    // Filtro pasabaja para suavizar el square y darle calidez 16-bit
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.value = o.filterFreq || 2200;
-    filter.Q.value = 0.5;
+    filter.frequency.value = filterFreq;
+    filter.Q.value = 0.7;
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(masterGain);
 
-    osc.type = type;
+    osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, startTime);
-    if (detune) osc.detune.setValueAtTime(detune, startTime);
+
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(vol, startTime + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0008, startTime + decay);
+
+    osc.start(startTime);
+    osc.stop(startTime + decay + 0.05);
+
+    // Tine metálico — relación inarmónica deliberada, decae en una fracción
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2);
+    gain2.connect(masterGain);
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(freq * 3.017, startTime);
+    gain2.gain.setValueAtTime(0, startTime);
+    gain2.gain.linearRampToValueAtTime(vol * 0.28, startTime + attack);
+    gain2.gain.exponentialRampToValueAtTime(0.0006, startTime + decay * 0.4);
+    osc2.start(startTime);
+    osc2.stop(startTime + decay * 0.4 + 0.03);
+
+    _menuMusicNodes.push(osc, gain, filter, osc2, gain2);
+}
+
+// Bajo suave — pad de sostén bajo la caja de música, sin protagonismo
+function _playMenuBassNote(ctx, masterGain, freq, startTime, duration, opts) {
+    if (!freq || freq === 0) return; // REST
+    const o = opts || {};
+    const vol        = o.vol        != null ? o.vol        : 0.045;
+    const filterFreq = o.filterFreq != null ? o.filterFreq : 650;
+    const attack  = 0.03;
+    const release = Math.min(duration * 0.5, 0.3);
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = filterFreq;
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
 
     gain.gain.setValueAtTime(0, startTime);
     gain.gain.linearRampToValueAtTime(vol, startTime + attack);
@@ -1823,17 +1798,17 @@ function _playMenuNote(ctx, masterGain, freq, startTime, duration, opts) {
 
     osc.start(startTime);
     osc.stop(startTime + duration + 0.05);
-    _menuMusicNodes.push(osc);
-    _menuMusicNodes.push(gain);
+    _menuMusicNodes.push(osc, gain, filter);
 }
 
-function startMenuMusic() {
+function startMenuMusic(forceAtmosphere) {
     if (_menuMusicPlaying) return;
     const ctx = getAudioContext();
     if (!ctx) return;
 
     _menuMusicPlaying = true;
     _menuMusicNodes = [];
+    _menuMusicAtmosphere = forceAtmosphere || _getActiveAtmosphere();
 
     // Nodo master de la música — fade in suave
     _menuMusicGain = ctx.createGain();
@@ -1841,56 +1816,70 @@ function startMenuMusic() {
     _menuMusicGain.gain.linearRampToValueAtTime(masterVolume * 0.55, ctx.currentTime + 2.5);
     _menuMusicGain.connect(ctx.destination);
 
-    const BEAT = 0.88; // segundos por beat a ~68bpm
-
     function scheduleLoop() {
         if (!_menuMusicPlaying) return;
+        const theme = _MENU_THEMES[_menuMusicAtmosphere] || _MENU_THEMES.noche;
+        const BEAT = theme.beat;
         const now = ctx.currentTime;
-        let t = now + 0.05;
 
-        // --- Melodía principal (square suavizado = 16-bit) ---
-        _MENU_MELODY.forEach(([note, beats]) => {
-            const freq = _MENU_NOTES[note];
+        // --- Melodía principal (caja de música) ---
+        let t = now + 0.05;
+        theme.melody.forEach(([note, beats]) => {
+            const freq = _MENU_NOTE_FREQS[note];
             const dur  = beats * BEAT;
-            _playMenuNote(ctx, _menuMusicGain, freq, t, dur, {
-                type: 'square', vol: 0.065, filterFreq: 1800, attack: 0.012, release: 0.18
+            _playMusicBoxNote(ctx, _menuMusicGain, freq, t, dur, {
+                vol: theme.melodyVol, filterFreq: theme.melodyFilter
             });
             t += dur;
         });
 
-        // --- Armónico suave (triangle una octava arriba) ---
-        t = now + 0.05;
-        _MENU_MELODY.forEach(([note, beats]) => {
-            const freq = _MENU_NOTES[note];
-            const dur  = beats * BEAT;
-            if (freq && Math.random() > 0.45) {
-                _playMenuNote(ctx, _menuMusicGain, freq * 2, t, dur * 0.7, {
-                    type: 'triangle', vol: 0.022, filterFreq: 3500, attack: 0.02, release: 0.12
-                });
-            }
-            t += dur;
-        });
-
-        // --- Bajo en arpegios (sine) ---
+        // --- Bajo suave ---
         let bt = now + 0.05;
-        _MENU_BASS.forEach(([note, beats]) => {
-            const freq = _MENU_NOTES[note];
+        theme.bass.forEach(([note, beats]) => {
+            const freq = _MENU_NOTE_FREQS[note];
             const dur  = beats * BEAT;
-            _playMenuNote(ctx, _menuMusicGain, freq, bt, dur * 0.55, {
-                type: 'sine', vol: 0.045, filterFreq: 600, attack: 0.015, release: 0.2
+            _playMenuBassNote(ctx, _menuMusicGain, freq, bt, dur * 0.85, {
+                vol: theme.bassVol, filterFreq: theme.bassFilter
             });
             bt += dur;
         });
 
-        // Total duración del loop
-        const totalBeats = _MENU_MELODY.reduce((sum, [,b]) => sum + b, 0);
+        // Total duración del loop (basada en la melodía)
+        const totalBeats = theme.melody.reduce((sum, [,b]) => sum + b, 0);
         const loopDuration = totalBeats * BEAT;
 
-        // Reprogramar el siguiente loop con una pequeña pausa entre repeticiones
-        _menuMusicScheduleId = setTimeout(scheduleLoop, (loopDuration - 0.5) * 1000);
+        // Reprogramar el siguiente loop con una pequeña pausa entre repeticiones.
+        // Relee la atmósfera activa por si cambió mientras sonaba este loop.
+        _menuMusicScheduleId = setTimeout(() => {
+            _menuMusicAtmosphere = _getActiveAtmosphere();
+            scheduleLoop();
+        }, (loopDuration - 0.5) * 1000);
     }
 
     scheduleLoop();
+}
+
+// Cambio de atmósfera con la música ya sonando: crossfade rápido hacia el
+// tema nuevo en vez de esperar a que termine el loop actual.
+function _crossfadeMenuMusicTo(atmosphere) {
+    if (!_menuMusicPlaying || atmosphere === _menuMusicAtmosphere) return;
+    const ctx = getAudioContext();
+    if (!ctx || !_menuMusicGain) return;
+
+    _menuMusicPlaying = false; // corta el reschedule del loop en curso
+    clearTimeout(_menuMusicScheduleId);
+
+    const oldGain = _menuMusicGain;
+    const oldNodes = _menuMusicNodes;
+    oldGain.gain.cancelScheduledValues(ctx.currentTime);
+    oldGain.gain.setValueAtTime(oldGain.gain.value, ctx.currentTime);
+    oldGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6);
+
+    setTimeout(() => {
+        oldNodes.forEach(n => { try { n.disconnect(); } catch (error) { window.EtheriaLogger?.warn('ui:sounds', 'disconnect failed:', error?.message || error); } });
+    }, 750);
+
+    startMenuMusic(atmosphere);
 }
 
 function stopMenuMusic(fadeOut) {
@@ -2001,6 +1990,10 @@ function stopMenuMusic(fadeOut) {
         });
         eventBus.on('audio:stop-menu-music', function (data) {
             stopMenuMusic(data?.fadeOut !== false);
+        });
+        // Cambiar de atmósfera con la música del menú sonando → crossfade al tema nuevo
+        eventBus.on('settings:atmosphere-changed', function (value) {
+            _crossfadeMenuMusicTo(value);
         });
 
         // Lluvia ambiental
@@ -2858,11 +2851,15 @@ function selectRoleCharacterForTopic(topicId, charId) {
 
     const context = roleCharacterModalContext || { isRpgMode: topic.mode === 'rpg', enterOnSelect: false };
 
+    // Clave por user_id real cuando hay sesión — currentUserIndex es un slot
+    // local que colisiona entre cuentas distintas en dispositivos distintos.
+    const lockKey = window._cachedUserId || currentUserIndex;
+
     if (context.isRpgMode || topic.mode === 'rpg') {
         topic.characterLocks = topic.characterLocks || {};
-        topic.characterLocks[currentUserIndex] = charId;
+        topic.characterLocks[lockKey] = charId;
         topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
-        topic.rpgCharacterLocks[currentUserIndex] = charId;
+        topic.rpgCharacterLocks[lockKey] = charId;
     } else {
         topic.roleCharacterId = charId;
     }
@@ -2873,9 +2870,16 @@ function selectRoleCharacterForTopic(topicId, charId) {
     hasUnsavedChanges = true;
     save({ silent: true });
     // Sincronizar los locks del personaje en Supabase para que otros jugadores
-    // puedan ver qué personaje tiene asignado cada usuario en este topic
+    // puedan ver qué personaje tiene asignado cada usuario en este topic.
+    // upsertStory() solo lo puede escribir quien creó la historia (RLS), así
+    // que además reclamamos el personaje en story_participants directamente
+    // -- ese camino sí está permitido para cualquier participante y es el que
+    // usan los demás para resolver "qué personaje lleva cada quien".
     if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.upsertStory === 'function') {
         SupabaseStories.upsertStory(topic).catch(() => {});
+    }
+    if (topic.storyId && typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.claimCharacter === 'function') {
+        SupabaseStories.claimCharacter(topic.storyId, charId).catch(() => {});
     }
     if (typeof SupabaseSync !== 'undefined') {
         SupabaseSync.uploadProfileData().catch(() => {});
@@ -3029,7 +3033,9 @@ function updateAffinityDisplay() {
         if (!isRpgModeModeActive || !currentTopic) return null;
 
         const lockMap = currentTopic.characterLocks || currentTopic.rpgCharacterLocks || {};
-        const lockedCharId = lockMap[currentUserIndex];
+        // Preferir user_id real (clave usada cuando hay sesión); currentUserIndex
+        // es solo el respaldo local para partidas sin cuenta.
+        const lockedCharId = lockMap[window._cachedUserId] || lockMap[currentUserIndex];
         if (lockedCharId) {
             const lockedChar = appData.characters.find(c => String(c.id) === String(lockedCharId));
             if (lockedChar) return lockedChar;
@@ -5543,8 +5549,13 @@ function toggleWelcomeOverlay(shouldShow) {
     const addCard = document.getElementById('addProfileCard');
     const canCreateProfile = Boolean(addCard);
 
-    if (overlay) overlay.classList.toggle('active', shouldShow && canCreateProfile);
-    if (addCard) addCard.classList.toggle('highlight', shouldShow);
+    // Si Ethy está guiando el tour de bienvenida de primera vez, ese tour ya
+    // explica lo mismo — mostrar también este aviso estático duplicaría el
+    // mensaje y competiría visualmente con el panel de Ethy.
+    const ethyTourActive = !!(window.Ethy && typeof window.Ethy.isFirstVisitTourActive === 'function' && window.Ethy.isFirstVisitTourActive());
+
+    if (overlay) overlay.classList.toggle('active', shouldShow && canCreateProfile && !ethyTourActive);
+    if (addCard) addCard.classList.toggle('highlight', shouldShow && !ethyTourActive);
 }
 
 function generateProfileParticles() {
@@ -5843,14 +5854,32 @@ async function addNewProfile() {
         return;
     }
 
-    const newName = prompt('Nombre del nuevo perfil:');
-    if (newName && newName.trim()) {
-        userNames.push(newName.trim());
-        localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
-        const newIdx = userNames.length - 1;
-        if (typeof _claimProfile === 'function') _claimProfile(newIdx, uid);
-        renderUserCards();
-    }
+    window._pendingNewProfileUid = uid;
+    const input = document.getElementById('newProfileNameInput');
+    if (input) input.value = '';
+    if (typeof openModal === 'function') openModal('newProfileNameModal');
+    window.dispatchEvent(new CustomEvent('etheria:new-profile-modal-open'));
+    setTimeout(() => { if (input) input.focus(); }, 50);
+}
+
+// Confirma el nombre escrito en #newProfileNameModal — sustituye al antiguo
+// prompt() nativo, que bloqueaba la página y no permitía que Ethy señalara
+// el campo durante el tutorial de bienvenida.
+function confirmNewProfileName() {
+    const input = document.getElementById('newProfileNameInput');
+    const newName = input ? input.value.trim() : '';
+    if (!newName) { if (input) input.focus(); return; }
+
+    const uid = window._pendingNewProfileUid;
+    userNames.push(newName);
+    localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    const newIdx = userNames.length - 1;
+    if (typeof _claimProfile === 'function' && uid) _claimProfile(newIdx, uid);
+    window._pendingNewProfileUid = null;
+
+    if (typeof closeModal === 'function') closeModal('newProfileNameModal');
+    renderUserCards();
+    window.dispatchEvent(new CustomEvent('etheria:new-profile-created', { detail: { index: newIdx, name: newName } }));
 }
 
 // Generar partículas — sistema Canvas (luciérnagas noche / pétalos día)
@@ -6669,6 +6698,128 @@ window.addEventListener('etheria:story-presence-changed', function () {
     global.EtheriaImageCompressor = { compress: compress };
 
 }(window));
+
+/* js/utils/bugReport.js */
+// ============================================================
+// Etheria — Reporte de bugs y recomendaciones a la administradora
+// ============================================================
+// Envía a la Edge Function `send-report` (guarda en la tabla
+// bug_reports de Supabase y manda un email vía Resend).
+//
+// Deliberadamente NO depende de supabaseClient.js: usa fetch directo
+// con la clave pública (anon/publishable), para poder llamarse incluso
+// cuando la app ha petado durante el arranque y el resto del JS no
+// ha llegado a cargar (ver capturador de errores en index.html).
+//
+// API: window.EtheriaBugReport.send({
+//     type: 'bug' | 'recommendation',
+//     message, error_message, error_stack, section,
+//     includeScreenshot: true (por defecto)
+// }) → Promise<{ ok: boolean }>
+// ============================================================
+(function (global) {
+    'use strict';
+
+    const SECTION_IDS = [
+        'userSelectScreen', 'mainMenu', 'gallerySection',
+        'topicsSection', 'vnSection', 'optionsSection', 'saveHubSection'
+    ];
+
+    function _cfg() {
+        const c = global.SUPABASE_CONFIG || {};
+        return {
+            url: c.url || 'https://timtqdrfeuzwwixfnudj.supabase.co',
+            key: c.key || 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3'
+        };
+    }
+
+    function _detectSection() {
+        try {
+            for (const id of SECTION_IDS) {
+                const el = document.getElementById(id);
+                if (el && (el.classList.contains('active') || (el.style.display !== 'none' && !el.classList.contains('hidden')))) {
+                    return id;
+                }
+            }
+        } catch (e) { /* noop */ }
+        return null;
+    }
+
+    function _loadHtml2Canvas() {
+        return new Promise(function (resolve) {
+            if (typeof global.html2canvas === 'function') { resolve(true); return; }
+            const script = document.createElement('script');
+            script.src = 'assets/vendor/html2canvas-1.4.1.min.js';
+            script.onload = function () { resolve(true); };
+            script.onerror = function () { resolve(false); };
+            document.head.appendChild(script);
+        });
+    }
+
+    async function _captureScreenshot() {
+        try {
+            const loaded = await _loadHtml2Canvas();
+            if (!loaded || typeof global.html2canvas !== 'function') return null;
+            const canvas = await global.html2canvas(document.body, {
+                scale: 0.5,
+                logging: false,
+                useCORS: true,
+                backgroundColor: null,
+                foreignObjectRendering: true,
+                ignoreElements: function (el) { return el.id === 'etheriaFatalError'; }
+            });
+            return canvas.toDataURL('image/jpeg', 0.55);
+        } catch (e) {
+            console.warn('[EtheriaBugReport] No se pudo capturar pantalla:', e && e.message);
+            return null;
+        }
+    }
+
+    /**
+     * Envía un reporte de bug o recomendación.
+     * @param {object} opts
+     * @returns {Promise<{ok: boolean, data?: object, error?: string}>}
+     */
+    async function send(opts) {
+        opts = opts || {};
+        const cfg = _cfg();
+
+        const payload = {
+            type: opts.type === 'recommendation' ? 'recommendation' : 'bug',
+            message: opts.message || null,
+            page: (typeof location !== 'undefined' ? location.href : null),
+            section: opts.section || _detectSection(),
+            error_message: opts.error_message || null,
+            error_stack: opts.error_stack || null,
+            user_agent: (typeof navigator !== 'undefined' ? navigator.userAgent : null),
+            app_version: null,
+            reporter_email: opts.reporter_email || null
+        };
+
+        if (opts.includeScreenshot !== false) {
+            payload.screenshot_base64 = await _captureScreenshot();
+        }
+
+        try {
+            const res = await fetch(cfg.url + '/functions/v1/send-report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': cfg.key,
+                    'Authorization': 'Bearer ' + cfg.key
+                },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(function () { return {}; });
+            return { ok: res.ok && data.ok !== false, data: data };
+        } catch (e) {
+            return { ok: false, error: e && e.message };
+        }
+    }
+
+    global.EtheriaBugReport = { send: send };
+
+})(window);
 
 /* js/ui/storyExport.js */
 // ============================================================
@@ -8664,7 +8815,7 @@ const SupabaseSync = (function () {
 
         // Evitar duplicados
         if (_realtimeChannel) {
-            try { c.removeChannel(_realtimeChannel); } catch {}
+            try { await c.removeChannel(_realtimeChannel); } catch {}
             _realtimeChannel = null;
         }
 
@@ -8706,10 +8857,10 @@ const SupabaseSync = (function () {
             .subscribe();
     }
 
-    function _unsubscribeRealtime() {
+    async function _unsubscribeRealtime() {
         const c = _client();
         if (_realtimeChannel && c) {
-            try { c.removeChannel(_realtimeChannel); } catch {}
+            try { await c.removeChannel(_realtimeChannel); } catch {}
             _realtimeChannel = null;
         }
     }
@@ -9439,13 +9590,13 @@ window.SupabaseSync = SupabaseSync;
     // Usa supabase-js channel().on() para escuchar INSERTs filtrados por session_id.
     // onMessage(msgObj) recibe el objeto mensaje de Etheria deserializado.
 
-    function subscribe(sessionId, onMessage, onTyping, onReconnect) {
+    async function subscribe(sessionId, onMessage, onTyping, onReconnect) {
         if (!_init()) {
             logger?.warn('supabase:messages', 'subscribe: cliente no disponible');
             return;
         }
 
-        unsubscribe();
+        await unsubscribe();
 
         // Si hay una historia activa, el canal de historia (supabaseStories) ya filtra por story_id.
         // El canal session filtra mensajes del topic sin story_id para retrocompatibilidad.
@@ -9522,9 +9673,9 @@ window.SupabaseSync = SupabaseSync;
 
     // ── unsubscribe ───────────────────────────────────────────────────────────
 
-    function unsubscribe() {
+    async function unsubscribe() {
         if (_channel && _client) {
-            try { _client.removeChannel(_channel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribe removeChannel failed:', error?.message || error); }
+            try { await _client.removeChannel(_channel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribe removeChannel failed:', error?.message || error); }
             _channel = null;
         }
     }
@@ -9598,7 +9749,7 @@ window.SupabaseSync = SupabaseSync;
 
     var _globalChannel = null;
 
-    function subscribeGlobal(onMessage, onTyping, sessionId) {
+    async function subscribeGlobal(onMessage, onTyping, sessionId) {
         if (!_init()) return;
         // Bug 3: do not subscribe without any filter — would receive all project messages
         if (!global.currentStoryId && !sessionId) return;
@@ -9606,7 +9757,7 @@ window.SupabaseSync = SupabaseSync;
         // (stale channel would filter wrong story_id after enterStory)
         const _newActiveId = global.currentStoryId || sessionId || null;
         if (_globalChannel && _globalChannel.__activeId === _newActiveId) return; // same context — no-op
-        if (_globalChannel) unsubscribeGlobal(); // remove stale channel before re-subscribing
+        if (_globalChannel) await unsubscribeGlobal(); // remove stale channel before re-subscribing (esperar evita que el canal nuevo con el mismo nombre choque con el viejo aún no liberado)
 
         // Fix 7: apply filter so this channel only receives messages for the active
         // session or story — prevents receiving all messages across the entire project.
@@ -9659,9 +9810,9 @@ window.SupabaseSync = SupabaseSync;
         }
     }
 
-    function unsubscribeGlobal() {
+    async function unsubscribeGlobal() {
         if (_globalChannel && _client) {
-            try { _client.removeChannel(_globalChannel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribeGlobal removeChannel failed:', error?.message || error); }
+            try { await _client.removeChannel(_globalChannel); } catch (error) { logger?.warn('supabase:messages', 'unsubscribeGlobal removeChannel failed:', error?.message || error); }
             _globalChannel = null;
         }
     }
@@ -9919,7 +10070,7 @@ window.SupabaseSync = SupabaseSync;
                 await _channel.untrack();
             } catch {}
             try {
-                client.removeChannel(_channel);
+                await client.removeChannel(_channel);
             } catch (error) {
                 logger?.warn('supabase:presence', 'removeChannel failed:', error?.message || error);
             }
@@ -9973,6 +10124,8 @@ window.SupabaseSync = SupabaseSync;
 
     let _client = null;
     let _channel = null;
+    let _subscribedUserId = null; // usuario del canal actualmente activo
+    let _subscribing = null;      // promesa en curso — evita carreras entre llamadas simultáneas
 
     const BASE_HEADERS = {
         apikey: SB_KEY,
@@ -10083,14 +10236,30 @@ window.SupabaseSync = SupabaseSync;
         }
     }
 
-    async function subscribe() {
+    // Dos sitios distintos llaman a subscribe() por el mismo motivo (login /
+    // recuperación de sesión al volver a la pestaña): app.js vía ensureProfile()
+    // y el propio listener de abajo. Sin proteger esto, dos llamadas casi
+    // simultáneas competían por el mismo nombre de canal y supabase-js
+    // devolvía el objeto ya suscrito de la otra ("cannot add postgres_changes
+    // callbacks ... after subscribe()"). _subscribing hace que la segunda
+    // llamada espere a la primera en vez de pisarla.
+    function subscribe() {
+        if (_subscribing) return _subscribing;
+        _subscribing = _doSubscribe().finally(() => { _subscribing = null; });
+        return _subscribing;
+    }
+
+    async function _doSubscribe() {
         const client = _getClient();
         if (!client?.channel) return false;
 
-        await unsubscribe();
-
         const userId = await _getUserId();
-        if (!userId) return false;
+        if (!userId) { await unsubscribe(); return false; }
+
+        // Ya hay un canal activo para este mismo usuario — no recrearlo.
+        if (_channel && _subscribedUserId === userId) return true;
+
+        await unsubscribe();
 
         try {
             _channel = client
@@ -10111,10 +10280,12 @@ window.SupabaseSync = SupabaseSync;
                 })
                 .subscribe();
 
+            _subscribedUserId = userId;
             return true;
         } catch (error) {
             logger?.warn('supabase:turn-notify', 'subscribe failed:', error?.message || error);
             _channel = null;
+            _subscribedUserId = null;
             return false;
         }
     }
@@ -10122,9 +10293,15 @@ window.SupabaseSync = SupabaseSync;
     async function unsubscribe() {
         const client = _getClient();
         if (_channel && client) {
-            try { client.removeChannel(_channel); } catch {}
+            // removeChannel() es async — sin el await, subscribe() podía crear
+            // el canal nuevo con el mismo nombre antes de que el viejo
+            // terminara de eliminarse, y supabase-js devolvía el objeto
+            // reciclado ya suscrito ("cannot add postgres_changes callbacks
+            // ... after subscribe()").
+            try { await client.removeChannel(_channel); } catch {}
         }
         _channel = null;
+        _subscribedUserId = null;
     }
 
     if (typeof window !== 'undefined') {
@@ -10212,14 +10389,16 @@ window.SupabaseSync = SupabaseSync;
         try {
             const { data, error } = await c
                 .from('turn_notifications')
-                .select('id, title, body, created_at, is_read, story_id, topic_id, sender_user_id')
+                .select('id, title, body, created_at, is_read, story_id, topic_id, sender_user_id, meta')
                 .eq('recipient_user_id', uid)
                 .order('created_at', { ascending: false })
                 .limit(50);
 
             if (error) { logger?.warn('inbox', 'loadUnread error:', error.message); return; }
 
-            _notifications = data || [];
+            // Los avisos de mensaje nuevo (buzón bidireccional) ya se
+            // muestran en la pestaña "Mensajes" — no duplicarlos aquí.
+            _notifications = (data || []).filter(n => n?.meta?.kind !== 'conversation_message');
             _unreadCount   = _notifications.filter(n => !n.is_read).length;
             _updateBadge();
         } catch (e) {
@@ -10232,22 +10411,47 @@ window.SupabaseSync = SupabaseSync;
         const badge = document.getElementById('menuInboxBadge');
         if (!btn) return;
 
+        // Badge combinado: notificaciones de turno + mensajes sin leer
+        const convUnread = (typeof EtheriaConversations !== 'undefined') ? EtheriaConversations.unreadCount : 0;
+        const totalUnread = _unreadCount + convUnread;
+
         // Mostrar el botón solo si hay al menos una notificación alguna vez
-        if (_notifications.length > 0) btn.style.display = '';
+        if (_notifications.length > 0 || convUnread > 0) btn.style.display = '';
 
         // Clase visual cuando hay no leídas
-        if (_unreadCount > 0) {
+        if (totalUnread > 0) {
             btn.classList.add('has-unread');
         } else {
             btn.classList.remove('has-unread');
         }
 
         if (!badge) return;
-        if (_unreadCount > 0) {
-            badge.textContent = _unreadCount > 9 ? '9+' : String(_unreadCount);
+        if (totalUnread > 0) {
+            badge.textContent = totalUnread > 9 ? '9+' : String(totalUnread);
             badge.style.display = '';
         } else {
             badge.style.display = 'none';
+        }
+    }
+
+    // El módulo de conversaciones avisa cuando cambia su contador de no
+    // leídos (carga inicial, mensaje nuevo por realtime, hilo marcado como
+    // leído) para que el badge combinado se mantenga al día.
+    global.addEventListener('etheria:conversations-unread-changed', _updateBadge);
+
+    // ── Pestañas del buzón: Notificaciones / Mensajes ─────────────────────────
+
+    function switchTab(tab) {
+        const tabs = document.querySelectorAll('.inbox-tab');
+        tabs.forEach(btn => btn.classList.toggle('inbox-tab--active', btn.dataset.inboxTab === tab));
+
+        const panelNotifs = document.getElementById('inboxPanelNotifications');
+        const panelMsgs   = document.getElementById('inboxPanelMessages');
+        if (panelNotifs) panelNotifs.style.display = tab === 'notifications' ? '' : 'none';
+        if (panelMsgs)   panelMsgs.style.display   = tab === 'messages' ? '' : 'none';
+
+        if (tab === 'messages' && typeof EtheriaConversations !== 'undefined') {
+            EtheriaConversations.initForMessagesTab();
         }
     }
 
@@ -10257,7 +10461,7 @@ window.SupabaseSync = SupabaseSync;
         const c = _client();
         if (!c?.channel) return;
 
-        if (_inboxChannel) { try { c.removeChannel(_inboxChannel); } catch {} }
+        if (_inboxChannel) { try { await c.removeChannel(_inboxChannel); } catch {} }
 
         _inboxChannel = c
             .channel(`inbox:${uid}`)
@@ -10269,6 +10473,10 @@ window.SupabaseSync = SupabaseSync;
             }, function (payload) {
                 const row = payload?.new;
                 if (!row) return;
+                // Los avisos de mensaje nuevo los gestiona supabaseConversations.js
+                // (llega por su propio canal de conversation_messages) —
+                // evitar contarlo dos veces / mostrarlo en Notificaciones.
+                if (row?.meta?.kind === 'conversation_message') return;
                 _notifications.unshift(row);
                 if (!row.is_read) {
                     _unreadCount++;
@@ -10325,16 +10533,56 @@ window.SupabaseSync = SupabaseSync;
             const unreadClass = !n.is_read ? 'inbox-item--unread' : '';
             const item = document.createElement('div');
             item.className = 'inbox-item ' + unreadClass;
-            item.addEventListener('click', function() { EtheriaInbox.goToTopic(n.topic_id || ''); });
             item.innerHTML =
                 `<div class="inbox-item-icon">${n.is_read ? '✉' : '📬'}</div>` +
                 `<div class="inbox-item-body">` +
                 `<p class="inbox-item-title">${escapeHtml(n.title || 'Nueva notificación')}</p>` +
                 `<p class="inbox-item-text">${escapeHtml(n.body || '')}</p>` +
                 (dateStr ? `<p class="inbox-item-date">${escapeHtml(dateStr)}</p>` : '') +
-                `</div>`;
+                `</div>` +
+                `<button type="button" class="inbox-item-dismiss" title="Descartar" aria-label="Descartar notificación">✕</button>`;
+
+            item.querySelector('.inbox-item-icon').addEventListener('click', function() {
+                EtheriaInbox.goToTopic(n.topic_id || '');
+            });
+            item.querySelector('.inbox-item-body').addEventListener('click', function() {
+                EtheriaInbox.goToTopic(n.topic_id || '');
+            });
+            item.querySelector('.inbox-item-dismiss').addEventListener('click', function(e) {
+                e.stopPropagation();
+                _dismissNotification(n.id, item);
+            });
+
             list.appendChild(item);
         });
+    }
+
+    async function _dismissNotification(id, itemEl) {
+        if (!id) return;
+        // Optimista: quitar de la vista ya mismo, revertir si falla el borrado
+        const idx = _notifications.findIndex(n => n.id === id);
+        const removed = idx !== -1 ? _notifications.splice(idx, 1)[0] : null;
+        if (itemEl) itemEl.remove();
+        if (removed && !removed.is_read) {
+            _unreadCount = Math.max(0, _unreadCount - 1);
+            _updateBadge();
+        }
+        if (_notifications.length === 0) _renderInboxList();
+
+        const c = _client();
+        if (!c) return;
+        try {
+            const { error } = await c.from('turn_notifications').delete().eq('id', id);
+            if (error) throw error;
+        } catch (e) {
+            logger?.warn('inbox', 'dismissNotification error:', e?.message);
+            // Revertir si el borrado falló de verdad (no solo por estar offline)
+            if (removed) {
+                _notifications.splice(idx, 0, removed);
+                if (!removed.is_read) { _unreadCount++; _updateBadge(); }
+                _renderInboxList();
+            }
+        }
     }
 
     async function _markAllRead(ids) {
@@ -10410,7 +10658,7 @@ window.SupabaseSync = SupabaseSync;
         const c = _client();
         if (_presenceChannel && c) {
             try { await _presenceChannel.untrack(); } catch {}
-            try { c.removeChannel(_presenceChannel); } catch {}
+            try { await c.removeChannel(_presenceChannel); } catch {}
         }
         _presenceChannel = null;
         _presenceTopicId = null;
@@ -10549,7 +10797,7 @@ window.SupabaseSync = SupabaseSync;
         }
 
         // Al hacer login (o cuando ensureProfile dispara auth-changed)
-        global.addEventListener('etheria:auth-changed', function (e) {
+        global.addEventListener('etheria:auth-changed', async function (e) {
             const user = e.detail?.user;
             if (user?.id) {
                 // _cachedUserId ya actualizado por app.js antes de emitir este evento
@@ -10562,7 +10810,7 @@ window.SupabaseSync = SupabaseSync;
                 _notifications = [];
                 _updateBadge();
                 if (_inboxChannel) {
-                    try { _client()?.removeChannel(_inboxChannel); } catch {}
+                    try { await _client()?.removeChannel(_inboxChannel); } catch {}
                     _inboxChannel = null;
                 }
                 const btn = document.getElementById('menuInboxBtn');
@@ -10582,12 +10830,14 @@ window.SupabaseSync = SupabaseSync;
         });
 
         // Conectar el textarea del VN al typing emitter
-        // Usamos delegación para no depender del orden de carga
+        // Usamos delegación para no depender del orden de carga.
+        // El textarea real de respuesta es #vnReplyText (.vn-reply-textarea)
+        // — los selectores anteriores (vnInput/.vn-input/.message-input) no
+        // existen en el DOM, así que este indicador nunca llegaba a activarse.
         document.addEventListener('input', function (e) {
             if (e.target && (
-                e.target.id === 'vnInput' ||
-                e.target.classList.contains('vn-input') ||
-                e.target.classList.contains('message-input')
+                e.target.id === 'vnReplyText' ||
+                e.target.classList.contains('vn-reply-textarea')
             )) {
                 emitTyping();
             }
@@ -10613,6 +10863,7 @@ window.SupabaseSync = SupabaseSync;
         joinTopicPresence,
         leaveTopicPresence,
         emitTyping,
+        switchTab,
         get unreadCount() { return _unreadCount; }
     };
 
@@ -10629,9 +10880,447 @@ window.SupabaseSync = SupabaseSync;
 
 })(window);
 
+/* js/utils/supabaseConversations.js */
+// ============================================
+// SUPABASE CONVERSATIONS — Mensajería entre usuarios
+// ============================================
+// Buzón bidireccional: cualquier usuario registrado puede escribirle a
+// cualquier otro (mismo espíritu que la visibilidad abierta de personajes
+// y temas). Hilos 1:1, con notificación push reutilizando turn_notifications.
+//
+// Tablas: conversations, conversation_participants, conversation_messages.
+// Crear una conversación pasa siempre por start_or_get_conversation() (RPC),
+// que resuelve el owner_user_id real a partir del profile_id elegido en el
+// buscador — el cliente nunca ve ids de cuenta ajenos directamente.
+// ============================================
+
+(function (global) {
+    'use strict';
+
+    const logger = global.EtheriaLogger;
+
+    function _client() { return global.supabaseClient || null; }
+
+    async function _userId() {
+        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
+        return global._cachedUserId || null;
+    }
+
+    function _esc(s) {
+        if (typeof global.escapeHtml === 'function') return global.escapeHtml(s);
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Estado local ─────────────────────────────────────────────────────────
+
+    let _conversations   = [];   // [{ conversationId, otherUserId, otherName, otherAvatar, lastMessage, lastMessageAt, lastSenderId, unread }]
+    let _unreadCount     = 0;
+    let _activeThreadId  = null;
+    let _threadMessages  = [];
+    let _messagesChannel = null;
+
+    // ── Buscar destinatario (directorio público de perfiles) ──────────────────
+
+    async function searchProfiles(query) {
+        const c = _client();
+        if (!c) return [];
+        const q = String(query || '').trim();
+        if (q.length < 1) return [];
+        try {
+            const { data, error } = await c
+                .from('profiles_directory')
+                .select('id, name, avatar')
+                .ilike('name', `%${q}%`)
+                .order('name', { ascending: true })
+                .limit(15);
+            if (error) { logger?.warn('conversations', 'searchProfiles error:', error.message); return []; }
+            return data || [];
+        } catch (e) {
+            logger?.warn('conversations', 'searchProfiles exception:', e?.message);
+            return [];
+        }
+    }
+
+    // ── Iniciar o recuperar una conversación con un perfil ────────────────────
+
+    async function startConversation(profileId) {
+        const c = _client();
+        if (!c || !profileId) return { ok: false };
+        try {
+            const { data, error } = await c.rpc('start_or_get_conversation', { p_other_profile_id: profileId });
+            if (error) return { ok: false, error: error.message };
+            return { ok: true, conversationId: data };
+        } catch (e) {
+            return { ok: false, error: e?.message };
+        }
+    }
+
+    // ── Lista de conversaciones ────────────────────────────────────────────────
+
+    async function loadConversations() {
+        const c = _client();
+        const uid = await _userId();
+        if (!c || !uid) { _conversations = []; return _conversations; }
+
+        try {
+            const { data: myParts, error: partsErr } = await c
+                .from('conversation_participants')
+                .select('conversation_id, last_read_at')
+                .eq('user_id', uid);
+            if (partsErr || !myParts?.length) { _conversations = []; _recomputeUnread(); return _conversations; }
+
+            const convIds = myParts.map(p => p.conversation_id);
+
+            const [{ data: convs }, { data: others }, { data: allMsgs }] = await Promise.all([
+                c.from('conversations').select('id, last_message_at').in('id', convIds).order('last_message_at', { ascending: false }),
+                c.from('conversation_participants').select('conversation_id, user_id').in('conversation_id', convIds).neq('user_id', uid),
+                c.from('conversation_messages').select('conversation_id, body, created_at, sender_id').in('conversation_id', convIds).order('created_at', { ascending: false })
+            ]);
+
+            const otherByConv = new Map((others || []).map(o => [o.conversation_id, o.user_id]));
+            const lastMsgByConv = new Map();
+            (allMsgs || []).forEach(m => {
+                if (!lastMsgByConv.has(m.conversation_id)) lastMsgByConv.set(m.conversation_id, m);
+            });
+            const readAtByConv = new Map(myParts.map(p => [p.conversation_id, p.last_read_at]));
+
+            const otherIds = [...new Set([...otherByConv.values()])];
+            let profilesByUser = new Map();
+            if (otherIds.length) {
+                // Una cuenta puede tener varios perfiles (slots) — para que el
+                // nombre mostrado sea siempre el mismo y coincida con el que
+                // usa el título de la notificación push (ver
+                // notify_new_conversation_message en la base de datos), nos
+                // quedamos con el perfil más antiguo de esa cuenta.
+                const { data: profs } = await c
+                    .from('profiles')
+                    .select('name, avatar, owner_user_id, created_at')
+                    .in('owner_user_id', otherIds)
+                    .order('created_at', { ascending: true });
+                (profs || []).forEach(p => {
+                    if (!profilesByUser.has(p.owner_user_id)) profilesByUser.set(p.owner_user_id, p);
+                });
+            }
+
+            _conversations = (convs || []).map(conv => {
+                const otherUserId = otherByConv.get(conv.id) || null;
+                const prof = otherUserId ? profilesByUser.get(otherUserId) : null;
+                const lastMsg = lastMsgByConv.get(conv.id) || null;
+                const lastReadAt = readAtByConv.get(conv.id) || null;
+                const unread = !!lastMsg
+                    && lastMsg.sender_id !== uid
+                    && (!lastReadAt || new Date(lastMsg.created_at) > new Date(lastReadAt));
+                return {
+                    conversationId: conv.id,
+                    otherUserId,
+                    otherName: prof?.name || 'Usuario',
+                    otherAvatar: prof?.avatar || '',
+                    lastMessage: lastMsg?.body || '',
+                    lastMessageAt: lastMsg?.created_at || conv.last_message_at,
+                    lastSenderId: lastMsg?.sender_id || null,
+                    unread
+                };
+            });
+
+            _recomputeUnread();
+            return _conversations;
+        } catch (e) {
+            logger?.warn('conversations', 'loadConversations exception:', e?.message);
+            return _conversations;
+        }
+    }
+
+    function _recomputeUnread() {
+        _unreadCount = _conversations.filter(c => c.unread).length;
+        global.dispatchEvent(new CustomEvent('etheria:conversations-unread-changed', { detail: { count: _unreadCount } }));
+    }
+
+    // ── Hilo de mensajes ───────────────────────────────────────────────────────
+
+    async function loadMessages(conversationId) {
+        const c = _client();
+        if (!c || !conversationId) return [];
+        try {
+            const { data, error } = await c
+                .from('conversation_messages')
+                .select('id, sender_id, body, created_at')
+                .eq('conversation_id', conversationId)
+                .order('created_at', { ascending: true })
+                .limit(300);
+            if (error) { logger?.warn('conversations', 'loadMessages error:', error.message); return []; }
+            return data || [];
+        } catch (e) {
+            logger?.warn('conversations', 'loadMessages exception:', e?.message);
+            return [];
+        }
+    }
+
+    async function sendMessage(conversationId, body) {
+        const c = _client();
+        const uid = await _userId();
+        const text = String(body || '').trim();
+        if (!c || !uid || !conversationId || !text) return { ok: false };
+        try {
+            const { data, error } = await c
+                .from('conversation_messages')
+                .insert({ conversation_id: conversationId, sender_id: uid, body: text })
+                .select('id, sender_id, body, created_at')
+                .single();
+            if (error) return { ok: false, error: error.message };
+            return { ok: true, message: data };
+        } catch (e) {
+            return { ok: false, error: e?.message };
+        }
+    }
+
+    async function markConversationRead(conversationId) {
+        const c = _client();
+        const uid = await _userId();
+        if (!c || !uid || !conversationId) return;
+        try {
+            await c.from('conversation_participants')
+                .update({ last_read_at: new Date().toISOString() })
+                .eq('conversation_id', conversationId)
+                .eq('user_id', uid);
+            const conv = _conversations.find(x => x.conversationId === conversationId);
+            if (conv && conv.unread) { conv.unread = false; _recomputeUnread(); }
+        } catch (e) {
+            logger?.warn('conversations', 'markConversationRead error:', e?.message);
+        }
+    }
+
+    // ── Realtime: nuevos mensajes en cualquier conversación propia ────────────
+    // RLS ya limita lo que llega por el canal a conversaciones donde
+    // participo — no hace falta filtrar por conversation_id aquí.
+
+    async function _subscribeMessages() {
+        const c = _client();
+        const uid = await _userId();
+        if (!c?.channel || !uid) return;
+        if (_messagesChannel) { try { await c.removeChannel(_messagesChannel); } catch {} }
+
+        _messagesChannel = c
+            .channel(`conversations:${uid}`)
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_messages' }, (payload) => {
+                const row = payload?.new;
+                if (!row) return;
+                if (row.sender_id === uid) return; // ya lo tenemos por el insert optimista propio
+
+                if (_activeThreadId === row.conversation_id) {
+                    _threadMessages.push(row);
+                    _renderThreadMessages();
+                    markConversationRead(row.conversation_id);
+                }
+                loadConversations().then(_renderConversationsList);
+            })
+            .subscribe();
+    }
+
+    async function _unsubscribeMessages() {
+        const c = _client();
+        if (_messagesChannel && c) { try { await c.removeChannel(_messagesChannel); } catch {} }
+        _messagesChannel = null;
+    }
+
+    // ── UI: lista de conversaciones ────────────────────────────────────────────
+
+    function _renderConversationsList() {
+        const list = document.getElementById('conversationsList');
+        if (!list) return;
+
+        if (_conversations.length === 0) {
+            list.innerHTML = '<p class="inbox-empty">Todavía no tienes ninguna conversación.</p>';
+            return;
+        }
+
+        list.innerHTML = '';
+        _conversations.forEach(conv => {
+            const date = conv.lastMessageAt ? new Date(conv.lastMessageAt) : null;
+            const dateStr = date
+                ? date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                : '';
+            const item = document.createElement('div');
+            item.className = 'inbox-item conversation-item' + (conv.unread ? ' inbox-item--unread' : '');
+            const avatarHtml = conv.otherAvatar
+                ? `<img src="${_esc(conv.otherAvatar)}" alt="${_esc(conv.otherName)}" class="conversation-item-avatar">`
+                : `<span class="conversation-item-avatar conversation-item-avatar--placeholder">${_esc((conv.otherName || '?')[0])}</span>`;
+            item.innerHTML =
+                avatarHtml +
+                `<div class="inbox-item-body">` +
+                `<p class="inbox-item-title">${_esc(conv.otherName)}</p>` +
+                `<p class="inbox-item-text">${_esc(conv.lastMessage || 'Sin mensajes todavía')}</p>` +
+                (dateStr ? `<p class="inbox-item-date">${_esc(dateStr)}</p>` : '') +
+                `</div>`;
+            item.addEventListener('click', () => openThread(conv.conversationId, conv.otherName, conv.otherAvatar));
+            list.appendChild(item);
+        });
+    }
+
+    // ── UI: buscador de nueva conversación ──────────────────────────────────────
+
+    let _searchDebounce = null;
+
+    function openNewConversation() {
+        document.getElementById('conversationsListView').style.display = 'none';
+        document.getElementById('conversationThreadView').style.display = 'none';
+        document.getElementById('newConversationSearch').style.display = '';
+        const input = document.getElementById('conversationSearchInput');
+        if (input) { input.value = ''; input.focus(); }
+        document.getElementById('conversationSearchResults').innerHTML = '';
+    }
+
+    function closeNewConversation() {
+        document.getElementById('newConversationSearch').style.display = 'none';
+        document.getElementById('conversationsListView').style.display = '';
+    }
+
+    function searchProfilesUI(query) {
+        clearTimeout(_searchDebounce);
+        _searchDebounce = setTimeout(async () => {
+            const results = await searchProfiles(query);
+            const container = document.getElementById('conversationSearchResults');
+            if (!container) return;
+            if (results.length === 0) {
+                container.innerHTML = query.trim()
+                    ? '<p class="inbox-empty">Nadie con ese nombre.</p>'
+                    : '';
+                return;
+            }
+            container.innerHTML = '';
+            results.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'inbox-item conversation-item';
+                const avatarHtml = p.avatar
+                    ? `<img src="${_esc(p.avatar)}" alt="${_esc(p.name)}" class="conversation-item-avatar">`
+                    : `<span class="conversation-item-avatar conversation-item-avatar--placeholder">${_esc((p.name || '?')[0])}</span>`;
+                item.innerHTML = avatarHtml + `<div class="inbox-item-body"><p class="inbox-item-title">${_esc(p.name)}</p></div>`;
+                item.addEventListener('click', async () => {
+                    const res = await startConversation(p.id);
+                    if (!res.ok) {
+                        if (typeof showAutosave === 'function') showAutosave(res.error || 'No se pudo iniciar la conversación', 'error');
+                        return;
+                    }
+                    closeNewConversation();
+                    await loadConversations();
+                    _renderConversationsList();
+                    openThread(res.conversationId, p.name, p.avatar);
+                });
+                container.appendChild(item);
+            });
+        }, 250);
+    }
+
+    // ── UI: hilo de mensajes ─────────────────────────────────────────────────
+
+    async function openThread(conversationId, otherName, otherAvatar) {
+        _activeThreadId = conversationId;
+        document.getElementById('conversationsListView').style.display = 'none';
+        document.getElementById('newConversationSearch').style.display = 'none';
+        document.getElementById('conversationThreadView').style.display = '';
+
+        const nameEl = document.getElementById('conversationThreadName');
+        const avatarEl = document.getElementById('conversationThreadAvatar');
+        if (nameEl) nameEl.textContent = otherName || 'Usuario';
+        if (avatarEl) {
+            if (otherAvatar) { avatarEl.src = otherAvatar; avatarEl.style.display = ''; }
+            else avatarEl.style.display = 'none';
+        }
+
+        document.getElementById('conversationMessages').innerHTML = '<p class="inbox-empty">Cargando...</p>';
+        _threadMessages = await loadMessages(conversationId);
+        _renderThreadMessages();
+        markConversationRead(conversationId);
+
+        const input = document.getElementById('conversationComposeInput');
+        if (input) input.focus();
+    }
+
+    function closeThread() {
+        _activeThreadId = null;
+        _threadMessages = [];
+        document.getElementById('conversationThreadView').style.display = 'none';
+        document.getElementById('conversationsListView').style.display = '';
+        loadConversations().then(_renderConversationsList);
+    }
+
+    function _renderThreadMessages() {
+        const container = document.getElementById('conversationMessages');
+        if (!container) return;
+        const myUid = global._cachedUserId;
+
+        if (_threadMessages.length === 0) {
+            container.innerHTML = '<p class="inbox-empty">Todavía no hay mensajes — escribe el primero.</p>';
+            return;
+        }
+
+        container.innerHTML = _threadMessages.map(m => {
+            const mine = m.sender_id === myUid;
+            const time = m.created_at
+                ? new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                : '';
+            return `<div class="conversation-bubble ${mine ? 'conversation-bubble--mine' : 'conversation-bubble--theirs'}">` +
+                `<p class="conversation-bubble-text">${_esc(m.body)}</p>` +
+                `<span class="conversation-bubble-time">${_esc(time)}</span>` +
+                `</div>`;
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendCurrentMessage() {
+        const input = document.getElementById('conversationComposeInput');
+        if (!input || !_activeThreadId) return;
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+
+        const res = await sendMessage(_activeThreadId, text);
+        if (!res.ok) {
+            if (typeof showAutosave === 'function') showAutosave(res.error || 'No se pudo enviar el mensaje', 'error');
+            input.value = text; // devolver el texto para no perderlo
+            return;
+        }
+        _threadMessages.push(res.message);
+        _renderThreadMessages();
+    }
+
+    // ── Arranque ──────────────────────────────────────────────────────────────
+
+    async function initForMessagesTab() {
+        await loadConversations();
+        _renderConversationsList();
+        await _subscribeMessages();
+    }
+
+    global.addEventListener('etheria:auth-changed', function (e) {
+        if (!e.detail?.user) {
+            _conversations = [];
+            _unreadCount = 0;
+            _activeThreadId = null;
+            _unsubscribeMessages();
+        } else {
+            // Suscribirse ya para poder mostrar el contador de no leídos en
+            // el badge del buzón aunque el usuario no haya abierto la pestaña.
+            loadConversations().then(() => _recomputeUnread());
+            _subscribeMessages();
+        }
+    });
+
+    global.EtheriaConversations = {
+        initForMessagesTab,
+        openNewConversation,
+        closeNewConversation,
+        searchProfilesUI,
+        openThread,
+        closeThread,
+        sendCurrentMessage,
+        get unreadCount() { return _unreadCount; }
+    };
+
+})(window);
+
 /* js/utils/supabaseExtras.js */
 // ============================================
-// SUPABASE EXTRAS — Activity Log, Backups y Web Push
+// SUPABASE EXTRAS — Activity Log
 // ============================================
 
 (function (global) {
@@ -10644,7 +11333,7 @@ window.SupabaseSync = SupabaseSync;
         return global._cachedUserId || null;
     }
 
-    // ── 1. ACTIVITY LOG ──────────────────────────────────────────────────────
+    // ── ACTIVITY LOG ─────────────────────────────────────────────────────────
 
     async function logActivity(action, entityType = null, entityId = null, metadata = {}) {
         const userId = await _userId();
@@ -10663,279 +11352,23 @@ window.SupabaseSync = SupabaseSync;
         }
     }
 
-    // ── 2. BACKUP EXPORTABLE ─────────────────────────────────────────────────
-
-    async function exportBackup() {
-        const userId = await _userId();
-        const c = _client();
-        if (!userId || !c) {
-            if (typeof showAutosave === 'function')
-                showAutosave('Inicia sesión para exportar un backup', 'error');
-            return null;
-        }
-
-        if (typeof showAutosave === 'function')
-            showAutosave('Generando backup...', 'info');
-
-        try {
-            const { data, error } = await c.rpc('generate_user_backup', {
-                p_user_id: userId
-            });
-
-            if (error) {
-                if (typeof showAutosave === 'function')
-                    showAutosave('Error al generar backup: ' + error.message, 'error');
-                return null;
-            }
-
-            // Descargar el JSON automáticamente
-            const blob    = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url     = URL.createObjectURL(blob);
-            const link    = document.createElement('a');
-            const dateStr = new Date().toISOString().slice(0, 10);
-            link.href     = url;
-            link.download = `etheria-backup-${dateStr}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-
-            if (typeof showAutosave === 'function')
-                showAutosave('✓ Backup descargado correctamente', 'saved');
-
-            return data;
-        } catch (e) {
-            if (typeof showAutosave === 'function')
-                showAutosave('Error inesperado al exportar', 'error');
-            global.EtheriaLogger?.warn('extras:backup', e?.message);
-            return null;
-        }
-    }
-
-    async function importBackup(jsonFile) {
-        if (!jsonFile) return;
-        const userId = await _userId();
-        const c = _client();
-        if (!userId || !c) {
-            if (typeof showAutosave === 'function')
-                showAutosave('Inicia sesión para importar un backup', 'error');
-            return;
-        }
-
-        try {
-            const text = await jsonFile.text();
-            const data = JSON.parse(text);
-
-            if (!data.version || !data.user_data) {
-                if (typeof showAutosave === 'function')
-                    showAutosave('Archivo de backup inválido', 'error');
-                return;
-            }
-
-            if (typeof showAutosave === 'function')
-                showAutosave('Importando backup...', 'info');
-
-            // Restaurar user_data en Supabase
-            const { error } = await c.from('user_data').upsert({
-                user_id:    userId,
-                data:       data.user_data,
-                updated_at: new Date().toISOString()
-            }, { onConflict: 'user_id' });
-
-            if (error) {
-                if (typeof showAutosave === 'function')
-                    showAutosave('Error al importar: ' + error.message, 'error');
-                return;
-            }
-
-            // Registrar en activity_log
-            await logActivity('backup_imported', 'session', null, {
-                backup_date: data.exported_at
-            });
-
-            // Aplicar localmente
-            if (data.user_data && typeof SupabaseSync?.downloadProfileData === 'function') {
-                await SupabaseSync.downloadProfileData();
-                if (typeof renderTopics  === 'function') renderTopics();
-                if (typeof renderGallery === 'function') renderGallery();
-            }
-
-            if (typeof showAutosave === 'function')
-                showAutosave('✓ Backup importado correctamente', 'saved');
-
-        } catch (e) {
-            if (typeof showAutosave === 'function')
-                showAutosave('Error al leer el archivo', 'error');
-            global.EtheriaLogger?.warn('extras:import', e?.message);
-        }
-    }
-
-    // ── 3. WEB PUSH ──────────────────────────────────────────────────────────
-
-    // VAPID public key — debes sustituir esto por tu clave VAPID real
-    // Genérala en: https://web-push-codelab.glitch.me/
-    // o con: npx web-push generate-vapid-keys
-    const VAPID_PUBLIC_KEY = 'YOUR_VAPID_PUBLIC_KEY_HERE';
-
-    function _urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64  = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const raw     = atob(base64);
-        return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
-    }
-
-    async function registerPushSubscription() {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            global.EtheriaLogger?.warn('extras:push', 'Web Push no soportado en este navegador');
-            return false;
-        }
-
-        if (VAPID_PUBLIC_KEY === 'YOUR_VAPID_PUBLIC_KEY_HERE') {
-            global.EtheriaLogger?.warn('extras:push', 'Configura tu VAPID_PUBLIC_KEY en supabaseExtras.js');
-            return false;
-        }
-
-        const userId = await _userId();
-        const c = _client();
-        if (!userId || !c) return false;
-
-        try {
-            // Pedir permiso al usuario
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') return false;
-
-            // Obtener el Service Worker registrado
-            const registration = await navigator.serviceWorker.ready;
-
-            // Suscribir al push service del navegador
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly:      true,
-                applicationServerKey: _urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
-
-            const subJson = subscription.toJSON();
-
-            // Detectar tipo de dispositivo
-            const isMobile    = /Android|iPhone|iPad/i.test(navigator.userAgent);
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                              || navigator.standalone === true;
-            const deviceHint  = isStandalone ? 'pwa' : isMobile ? 'mobile' : 'desktop';
-
-            // Guardar en Supabase
-            const { error } = await c.from('push_subscriptions').upsert({
-                user_id:      userId,
-                endpoint:     subJson.endpoint,
-                p256dh:       subJson.keys.p256dh,
-                auth_key:     subJson.keys.auth,
-                device_hint:  deviceHint,
-                last_used_at: new Date().toISOString()
-            }, { onConflict: 'user_id, endpoint' });
-
-            if (error) {
-                global.EtheriaLogger?.warn('extras:push', 'Error guardando suscripción:', error.message);
-                return false;
-            }
-
-            await logActivity('push_subscribed', 'session', null, { device_hint: deviceHint });
-            global.EtheriaLogger?.info?.('extras:push', 'Suscripción push registrada:', deviceHint);
-            return true;
-
-        } catch (e) {
-            global.EtheriaLogger?.warn('extras:push', 'Error registrando push:', e?.message);
-            return false;
-        }
-    }
-
-    async function unregisterPushSubscription() {
-        const userId = await _userId();
-        const c = _client();
-        if (!userId || !c) return;
-
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
-
-            if (subscription) {
-                await subscription.unsubscribe();
-                await c.from('push_subscriptions')
-                    .delete()
-                    .eq('user_id', userId)
-                    .eq('endpoint', subscription.endpoint);
-            }
-        } catch (e) {
-            global.EtheriaLogger?.warn('extras:push', 'Error eliminando push:', e?.message);
-        }
-    }
-
-    async function isPushSubscribed() {
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
-        try {
-            const registration = await navigator.serviceWorker.ready;
-            const sub = await registration.pushManager.getSubscription();
-            return !!sub;
-        } catch { return false; }
-    }
-
-    // ── 4. RATE LIMIT (cliente) ───────────────────────────────────────────────
-
-    async function checkRateLimit(action, maxRequests = 30, windowMinutes = 60) {
-        const userId = await _userId();
-        const c = _client();
-        if (!userId || !c) return true; // si no hay usuario, no limitar
-
-        try {
-            const { data, error } = await c.rpc('check_rate_limit', {
-                p_user_id:        userId,
-                p_action:         action,
-                p_max_requests:   maxRequests,
-                p_window_minutes: windowMinutes
-            });
-            if (error) return true; // ante error, permitir
-            return data === true;
-        } catch { return true; }
-    }
-
-    async function getRateLimitRemaining(action, maxRequests = 30, windowMinutes = 60) {
-        const userId = await _userId();
-        const c = _client();
-        if (!userId || !c) return maxRequests;
-
-        try {
-            const { data } = await c.rpc('get_rate_limit_remaining', {
-                p_user_id:        userId,
-                p_action:         action,
-                p_max_requests:   maxRequests,
-                p_window_minutes: windowMinutes
-            });
-            return data ?? maxRequests;
-        } catch { return maxRequests; }
-    }
-
     // ── Arranque ─────────────────────────────────────────────────────────────
 
     global.addEventListener('etheria:auth-changed', function (e) {
         const user = e.detail?.user;
         if (user?.id) {
-            // Al hacer login, registrar actividad e intentar registrar push
+            // Al hacer login, registrar actividad
             logActivity('login', 'session').catch(() => {});
-            // Intentar registrar push si el usuario ya dio permiso antes
-            if (Notification.permission === 'granted') {
-                registerPushSubscription().catch(() => {});
-            }
         }
     });
 
     // ── API pública ───────────────────────────────────────────────────────────
+    // El nombre correcto es SupabaseExtras (todos los llamantes ya lo usan
+    // así) — antes se exportaba como EtheriaExtras por error, así que
+    // logActivity() nunca se ejecutaba pese a estar "cableada" en 4 archivos.
 
-    global.EtheriaExtras = {
-        logActivity,
-        exportBackup,
-        importBackup,
-        registerPushSubscription,
-        unregisterPushSubscription,
-        isPushSubscribed,
-        checkRateLimit,
-        getRateLimitRemaining
+    global.SupabaseExtras = {
+        logActivity
     };
 
 })(window);
@@ -11035,7 +11468,33 @@ window.SupabaseSync = SupabaseSync;
             // Obtener registro del Service Worker
             const reg = await navigator.serviceWorker.ready;
 
-            // Suscribirse (o recuperar suscripción existente)
+            // El navegador reutiliza una suscripción existente aunque se le pida
+            // una applicationServerKey distinta — no lanza error, simplemente
+            // devuelve la vieja. Si la clave VAPID cambió desde la última vez
+            // (rotación de claves, o una suscripción de antes de configurarlas),
+            // esa suscripción "viva" es inservible: el servidor firma con la
+            // clave privada nueva y el servicio de push la rechaza en silencio.
+            // Hay que desuscribirla primero para forzar una nueva con la clave actual.
+            const existing = await reg.pushManager.getSubscription();
+            if (existing) {
+                const currentKeyBytes = _urlBase64ToUint8Array(vapidKey);
+                const existingKeyBytes = new Uint8Array(existing.options?.applicationServerKey || []);
+                const sameKey = currentKeyBytes.length === existingKeyBytes.length
+                    && currentKeyBytes.every((b, i) => b === existingKeyBytes[i]);
+                if (!sameKey) {
+                    logger?.info('push', 'Suscripción existente con clave VAPID distinta — renovando');
+                    const staleEndpoint = existing.endpoint;
+                    await existing.unsubscribe();
+                    // Best-effort: limpiar la fila vieja para no dejar basura en la tabla
+                    const c = _client();
+                    if (c && staleEndpoint) {
+                        c.from('push_subscriptions').delete().eq('endpoint', staleEndpoint)
+                            .then(() => {}, () => {});
+                    }
+                }
+            }
+
+            // Suscribirse (o recuperar suscripción existente si la clave coincide)
             const subscription = await reg.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: _urlBase64ToUint8Array(vapidKey),
@@ -11063,7 +11522,7 @@ window.SupabaseSync = SupabaseSync;
                         auth_key: authKey,
                         device_hint: deviceHint,
                         last_used_at: new Date().toISOString(),
-                    }, { onConflict: 'endpoint' });
+                    }, { onConflict: 'user_id,endpoint' }); // única real en push_subscriptions es (user_id, endpoint), no endpoint solo
 
                 if (error) {
                     logger?.warn('push', 'Error guardando suscripción:', error.message);
@@ -11166,6 +11625,20 @@ window.SupabaseSync = SupabaseSync;
             const reg = await navigator.serviceWorker.ready;
             const existing = await reg.pushManager.getSubscription();
             if (existing) {
+                // Si la suscripción existente quedó con una clave VAPID vieja
+                // (rotación de claves), no basta con re-guardarla — hay que
+                // renovarla de verdad. requestPermissionAndSubscribe() ya sabe
+                // desuscribir la vieja y crear una nueva con la clave actual.
+                const currentKeyBytes = _urlBase64ToUint8Array(vapidKey);
+                const existingKeyBytes = new Uint8Array(existing.options?.applicationServerKey || []);
+                const sameKey = currentKeyBytes.length === existingKeyBytes.length
+                    && currentKeyBytes.every((b, i) => b === existingKeyBytes[i]);
+
+                if (!sameKey) {
+                    await requestPermissionAndSubscribe();
+                    return;
+                }
+
                 // Asegurar que está guardada en Supabase (puede faltar tras borrar BD)
                 const subJson = existing.toJSON();
                 const c = _client();
@@ -11177,7 +11650,7 @@ window.SupabaseSync = SupabaseSync;
                         auth_key: subJson.keys.auth,
                         device_hint: _getDeviceHint(),
                         last_used_at: new Date().toISOString(),
-                    }, { onConflict: 'endpoint' });
+                    }, { onConflict: 'user_id,endpoint' }); // única real en push_subscriptions es (user_id, endpoint), no endpoint solo
                 }
             }
         } catch (err) {
@@ -11894,14 +12367,6 @@ function refreshOracleQuestionAutodetect(force = false) {
     const autoQ = getOracleAutodetectedQuestion(replyText.value);
     if (autoQ && !questionInput.value.trim()) questionInput.value = autoQ;
 }
-function setOracleStat(nextStat) {
-    oracleStat = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].includes(nextStat) ? nextStat : 'STR';
-    document.querySelectorAll('.oracle-stat-btn').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.stat === oracleStat);
-    });
-    refreshOracleProbability();
-}
-
 function resetOraclePanelState() {
     // Resetea el estado del oráculo y cierra el mini-panel si está abierto
     if (typeof oracleStat !== 'undefined') oracleStat = 'STR';
@@ -11926,19 +12391,6 @@ function setupOraclePanelForMode() {
 }
 
 
-function toggleOracleMode() {
-    const topic = getCurrentTopic();
-    if (!isRpgTopicMode(topic?.mode)) return;
-    // El oráculo ahora usa el mini-panel independiente
-    oracleModeActive = !oracleModeActive;
-    if (oracleModeActive) {
-        toggleOracleMiniPanel();
-    } else {
-        closeOracleMiniPanel();
-    }
-    updateOracleFloatButton();
-}
-
 function updateOracleFloatButton() {
     const floatBtn = document.getElementById('vnOracleFloatBtn');
     const topic = getCurrentTopic();
@@ -11956,10 +12408,6 @@ function updateOracleFloatButton() {
     if (typeof updateTurnBanner === 'function') updateTurnBanner();
     floatBtn.classList.toggle('active', oracleModeActive);
     floatBtn.dataset.oracleActive = oracleModeActive ? 'true' : 'false';
-}
-
-function triggerOracleReply() {
-    toggleOracleMiniPanel();
 }
 
 function toggleVnDialogEmotePicker(event) {
@@ -12890,7 +13338,11 @@ function _doEnterTopic(id, t, topicMode) {
     // el estado visual correcto (fondo, clima) sin auto-abrir el overlay de opciones.
     showCurrentMessage('init');
     updateVnMobileFabVisibility();
-    bindReplyTypingEmitter();
+    // bindReplyTypingEmitter() desactivado: ese indicador ("puntitos" sin
+    // nombre, vía filas de mensaje falsas metaType:'typing') se sustituyó
+    // por el de supabaseInbox.js (Broadcast + nombre real). Se deja la
+    // función y su plumbing de recepción sin borrar por si algún cliente
+    // viejo en caché todavía emite alguno — es inofensivo no escucharlo.
     bindSpriteMicroInteractions();
     applySpriteAnimationProfile();
     scheduleRandomSpriteBlink();
@@ -12906,7 +13358,7 @@ function _doEnterTopic(id, t, topicMode) {
     // story_id correcto en Supabase desde el primer mensaje de esta sesión.
     const _tForStory = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
     if (_tForStory && _tForStory.storyId) {
-        global.currentStoryId = _tForStory.storyId;
+        window.currentStoryId = _tForStory.storyId;
         // Suscribir al canal realtime de la historia si está disponible
         if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.enterStory === 'function') {
             SupabaseStories.enterStory(_tForStory.storyId).catch(function(error) { window.EtheriaLogger?.warn('ui:vn', 'enterStory failed:', error?.message || error); });
@@ -12917,7 +13369,7 @@ function _doEnterTopic(id, t, topicMode) {
         }
     } else {
         // Topic sin storyId (creado antes de la integración cloud) — limpiar
-        global.currentStoryId = null;
+        window.currentStoryId = null;
     }
     // ────────────────────────────────────────────────────────────────
 
@@ -12982,7 +13434,7 @@ async function _sbEnterTopic(topicId) {
 
     // Cargar historial remoto y fusionar con local por id
     try {
-        const remoteMsgs = await SupabaseMessages.load(topicId, global.currentStoryId || null);
+        const remoteMsgs = await SupabaseMessages.load(topicId, window.currentStoryId || null);
         if (Array.isArray(remoteMsgs) && remoteMsgs.length > 0) {
             const localMsgs = getTopicMessages(topicId);
             const localIds  = new Set(localMsgs.map(function (m) { return String(m.id); }));
@@ -13351,8 +13803,12 @@ function showCurrentMessage(direction = 'forward') {
         optionsIndicator.classList.toggle('hidden', !hasOpt || isRpgModeMode());
     }
 
+    // Voz sintetizada del diálogo: solo personajes reales "hablan" (no narrador/Garrick/Oráculo)
+    const isNarratorLike = msg.isNarrator || !msg.characterId;
+    const speakerVoiceGender = isNarratorLike ? undefined : (charData?.gender || '');
+
     const formattedText = formatText(cleanText);
-    if (dialogueText) typeWriter(formattedText, dialogueText);
+    if (dialogueText) typeWriter(formattedText, dialogueText, speakerVoiceGender);
 
     // ── Oracle consequence badge ────────────────────────────────────────────
     const oracleBadge = document.getElementById('vnOracleConsequenceBadge');
@@ -13803,7 +14259,7 @@ function updateSprites(currentMsg, activeEmote = null) {
 }
 
 
-function typeWriter(text, element) {
+function typeWriter(text, element, voiceGender) {
     stopTypewriter();
 
     isTyping = true;
@@ -13858,6 +14314,11 @@ function typeWriter(text, element) {
         // Forzar reflow para que la animación arranque
         void span.offsetWidth;
         span.classList.add('tw-char--in');
+
+        // Blip de voz sintetizada — solo si el token trae al menos una letra
+        if (voiceGender !== undefined && typeof playDialogueBlip === 'function' && /\p{L}/u.test(token)) {
+            playDialogueBlip(voiceGender, token.trim().charAt(0));
+        }
     };
 
     const step = (timestamp) => {
@@ -14524,12 +14985,16 @@ function canUseNarratorMode(topic) {
 
 function getTopicLockedCharacterId(topic) {
     if (!topic) return null;
+    // Preferir user_id real (clave usada cuando hay sesión); currentUserIndex
+    // es solo el respaldo local para partidas sin cuenta — ver persistTopicLockedCharacter.
+    const myKey = window._cachedUserId || currentUserIndex;
     const locks = topic.characterLocks || {};
-    const lockByUser = locks[currentUserIndex];
+    const lockByUser = locks[myKey] || locks[currentUserIndex];
     if (lockByUser) return lockByUser;
 
     // Compatibilidad con lock RPG legado
     const legacyRpgLocks = topic.rpgCharacterLocks || {};
+    if (legacyRpgLocks[myKey]) return legacyRpgLocks[myKey];
     if (legacyRpgLocks[currentUserIndex]) return legacyRpgLocks[currentUserIndex];
 
     // Compatibilidad con lock clásico legado del creador
@@ -14542,15 +15007,19 @@ function getTopicLockedCharacterId(topic) {
 
 function persistTopicLockedCharacter(topic, charId) {
     if (!topic || !charId) return;
+    // Clave por user_id real cuando hay sesión — currentUserIndex es un slot
+    // local (0/1/2) que colisiona entre cuentas distintas en dispositivos
+    // distintos (dos jugadores reales pueden tener ambos "índice 0").
+    const lockKey = window._cachedUserId || currentUserIndex;
     topic.characterLocks = topic.characterLocks || {};
-    if (topic.characterLocks[currentUserIndex]) return;
-    topic.characterLocks[currentUserIndex] = charId;
+    if (topic.characterLocks[lockKey]) return;
+    topic.characterLocks[lockKey] = charId;
 
     // Mantener compatibilidad con lector legacy RPG
     if (topic.mode === 'rpg') {
         topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
-        if (!topic.rpgCharacterLocks[currentUserIndex]) {
-            topic.rpgCharacterLocks[currentUserIndex] = charId;
+        if (!topic.rpgCharacterLocks[lockKey]) {
+            topic.rpgCharacterLocks[lockKey] = charId;
         }
     }
 
@@ -16293,45 +16762,6 @@ function updateSceneChangePreview() {
     preview.textContent = `Próxima escena: ${pendingSceneChange.title}`;
 }
 
-async function prepareSceneChange() {
-    const topic = getCurrentTopic();
-    if (!topic) return;
-
-    if (!isNarratorMode) {
-        showAutosave('Activa Modo Narrador para cambiar de escena', 'error');
-        return;
-    }
-
-    if (!canUseNarratorMode(topic)) {
-        showAutosave('Solo quien crea la historia puede narrar en modo RPG', 'error');
-        return;
-    }
-
-    const replyText = document.getElementById('vnReplyText');
-    if (!replyText || !replyText.value.trim()) {
-        showAutosave('Escribe el mensaje narrativo antes de cambiar escena', 'error');
-        return;
-    }
-
-    const titleRaw = await openPromptModal('Nombre de la nueva escena (ej: Playa al atardecer):', 'Nueva escena');
-    if (titleRaw === null) return;
-    const title = String(titleRaw || '').trim() || 'Nueva escena';
-
-    const backgroundRaw = await openPromptModal('URL de fondo para la escena (opcional, deja vacío para usar el fondo por defecto):', '');
-    if (backgroundRaw === null) return;
-    const background = resolveTopicBackgroundPath(String(backgroundRaw || '').trim());
-
-    pendingSceneChange = {
-        title,
-        background,
-        at: new Date().toISOString()
-    };
-
-    updateSceneChangePreview();
-    if (typeof _updateNarratePending === 'function') _updateNarratePending();
-    showAutosave(`Escena preparada: ${title}`, 'saved');
-}
-
 function applySceneChangeToTopic(topic, sceneChange) {
     if (!topic || !sceneChange) return;
 
@@ -16538,14 +16968,6 @@ function closeReplyPanel() {
     updateOracleFloatButton();
 }
 
-function toggleCharGrid() {
-    if (isNarratorMode) return;
-    const topic = getCurrentTopic();
-    if (getTopicLockedCharacterId(topic)) return;
-    const grid = document.getElementById('charGridDropdown');
-    if (grid) grid.classList.toggle('active');
-}
-
 function updateCharSelector() {
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
     const display = document.getElementById('charSelectedDisplay');
@@ -16617,13 +17039,6 @@ function selectCharFromGrid(charId) {
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
-}
-
-function openSelectedCharacterStats() {
-    const topic = getCurrentTopic();
-    if (topic?.mode !== 'rpg') return;
-    if (!selectedCharId || typeof openRpgStatsModal !== 'function') return;
-    openRpgStatsModal(selectedCharId);
 }
 
 function toggleOptionsFields() {
@@ -17341,7 +17756,7 @@ function vrpSetWeatherBtn(clickedBtn) {
 
         // Botón "Pedir Turno"
         banner.querySelector('.turn-skip-banner__btn').addEventListener('click', async function () {
-            const storyId = global.currentStoryId;
+            const storyId = window.currentStoryId;
             if (!storyId || typeof SupabaseStories === 'undefined') return;
             this.disabled = true;
             this.textContent = 'Solicitando…';
@@ -20317,98 +20732,47 @@ function generateTopicId() {
     });
 }
 
-function normalizeRoomId(value) {
-    const raw = String(value || '').trim();
-    if (!raw || raw.length > 128) return '';
-    return /^[A-Za-z0-9_-]+$/.test(raw) ? raw : '';
-}
+// Asegura que un topic tenga storyId en la nube antes de compartirlo.
+// createTopicFromWizard() ya intenta este upsert nada más crear el tema,
+// pero si esa sincronización inicial falla (red lenta, timeout de auth —
+// visto en producción con Supabase en frío), el tema se quedaba "solo
+// local" para siempre: ni "Compartir" ni "Código de sala" reintentaban,
+// solo mostraban "inicia sesión" aunque la sesión estuviera activa.
+async function _ensureStorySynced(topic) {
+    if (!topic) return null;
+    if (topic.storyId) return topic.storyId;
+    if (typeof SupabaseStories === 'undefined' || typeof SupabaseStories.upsertStory !== 'function') return null;
 
-function getRoomIdFromQuery() {
-    try {
-        const room = new URLSearchParams(window.location.search).get('room');
-        return normalizeRoomId(room);
-    } catch {
-        return '';
-    }
-}
+    const result = await SupabaseStories.upsertStory(topic).catch(() => null);
+    if (!result?.ok || !result.storyId) return null;
 
-function ensureTopicByRoomId(roomId) {
-    const normalizedRoomId = normalizeRoomId(roomId);
-    if (!normalizedRoomId) return null;
-
-    let topic = appData.topics.find(t => String(t.id) === normalizedRoomId);
-    if (topic) return topic;
-
-    topic = {
-        id: normalizedRoomId,
-        title: `Sala ${normalizedRoomId.slice(0, 8)}`,
-        background: DEFAULT_TOPIC_BACKGROUND,
-        mode: 'roleplay',
-        roleCharacterId: null,
-        createdBy: userNames[currentUserIndex] || 'Jugador',
-        createdByIndex: currentUserIndex,
-        date: new Date().toLocaleDateString()
-    };
-
-    appData.topics.push(topic);
-    if (typeof markDirty === 'function') markDirty('topics'); // Fix 9
-    appData.messages[normalizedRoomId] = Array.isArray(appData.messages[normalizedRoomId])
-        ? appData.messages[normalizedRoomId]
-        : [];
-
+    topic.storyId = result.storyId;
     hasUnsavedChanges = true;
     save({ silent: true });
-    renderTopics();
-    return topic;
-}
 
-async function copyCurrentRoomCode() {
-    if (!currentTopicId) return;
-
-    const topic = appData.topics.find(t => t.id === currentTopicId);
-    const storyId = topic?.storyId || window.currentStoryId;
-
-    const _doCopy = (text, label) => {
-        const onSuccess = () => showAutosave(label + ' copiado', 'saved');
-        const onFailure = () => showAutosave('No se pudo copiar', 'error');
-        if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(text).then(onSuccess).catch(onFailure);
-        } else {
-            try {
-                const el = document.createElement('textarea');
-                el.value = text; el.style.cssText = 'position:fixed;opacity:0';
-                document.body.appendChild(el); el.select();
-                const ok = document.execCommand('copy');
-                document.body.removeChild(el);
-                ok ? onSuccess() : onFailure();
-            } catch { onFailure(); }
-        }
-    };
-
-    // Si la historia está en Supabase, generar enlace de invitación real
-    if (storyId && typeof SupabaseStories !== 'undefined' && window._cachedUserId) {
-        showAutosave('Generando enlace...', 'info');
-        const url = await SupabaseStories.generateInviteLink(storyId);
-        if (url) {
-            _doCopy(url, 'Enlace de invitación');
-            // Actualizar el display en la UI
-            const valueEl = document.getElementById('roomCodeValue');
-            if (valueEl) valueEl.textContent = url.split('?invite=')[1] || url;
-            return;
-        }
+    const uid = window._cachedUserId;
+    if (uid && typeof SupabaseStories.setTurnConfig === 'function') {
+        SupabaseStories.setTurnConfig(result.storyId, { mode: topic.turnMode || 'strict', order: [uid] }).catch(() => {});
     }
-
-    // Fallback: copiar el ID local
-    _doCopy(String(currentTopicId), 'Código de sala');
+    return result.storyId;
 }
 
 async function shareCurrentStory() {
     if (!currentTopicId) return;
     const topic = appData.topics.find(t => t.id === currentTopicId);
-    const storyId = topic?.storyId || window.currentStoryId;
 
-    if (!storyId || !window._cachedUserId) {
+    if (!window._cachedUserId) {
         showAutosave('Inicia sesión para compartir historias', 'error');
+        return;
+    }
+
+    let storyId = topic?.storyId || window.currentStoryId;
+    if (!storyId && topic) {
+        showAutosave('Preparando la historia para compartir...', 'info');
+        storyId = await _ensureStorySynced(topic);
+    }
+    if (!storyId) {
+        showAutosave('No se pudo sincronizar la historia — comprueba tu conexión e inténtalo de nuevo', 'error');
         return;
     }
 
@@ -20453,121 +20817,6 @@ function updateRoomCodeUI(topicId) {
     // Mostrar código de sala siempre — útil en ambos modos para colaborar
     valueEl.textContent = String(topicId);
     wrap.style.display = 'flex';
-}
-
-async function tryJoinRoomFromUrl() {
-    const roomId = pendingRoomInviteId || getRoomIdFromQuery();
-    if (!roomId) return false;
-
-    pendingRoomInviteId = null;
-    const topic = ensureTopicByRoomId(roomId);
-    if (!topic) return false;
-
-    if (typeof showSection === 'function') {
-        showSection('topics');
-    } else {
-        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
-        const topicsSection = document.getElementById('topicsSection');
-        if (topicsSection) topicsSection.classList.add('active');
-    }
-
-    enterTopic(topic.id);
-    return true;
-}
-
-function createTopic() {
-    const titleInput = document.getElementById('topicTitleInput');
-    const firstMsgInput = document.getElementById('topicFirstMsg');
-    const weatherInput = document.getElementById('topicWeatherInput');
-
-    const title = titleInput?.value.trim();
-    const text = firstMsgInput?.value.trim();
-    const weather = weatherInput?.value || 'none';
-    const topicBackground = DEFAULT_TOPIC_BACKGROUND;
-
-    if(!title || !text) { showAutosave('Completa todos los campos obligatorios', 'error'); return; }
-
-    const genericTitles = ['prueba', 'test', 'historia', 'nueva historia'];
-    if (genericTitles.includes((title || '').toLowerCase())) {
-        showAutosave('Elige un título más descriptivo para la historia', 'error');
-        return;
-    }
-
-    const id = generateTopicId();
-    appData.topics.push({
-        id,
-        title,
-        background: topicBackground,
-        weather: weather !== 'none' ? weather : undefined,
-        mode: currentTopicMode,
-        turnMode: 'strict',
-        turnOrder: null,
-        roleCharacterId: null,
-        createdBy: userNames[currentUserIndex] || 'Jugador',
-        createdByIndex: currentUserIndex,
-        date: new Date().toLocaleDateString()
-    });
-
-    appData.messages[id] = [{
-        id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
-            ? globalThis.crypto.randomUUID()
-            : `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-        characterId: null,
-        charName: 'Narrador',
-        charColor: null,
-        charAvatar: null,
-        charSprite: null,
-        text,
-        isNarrator: true,
-        userIndex: currentUserIndex,
-        timestamp: new Date().toISOString(),
-        weather: weather !== 'none' ? weather : undefined
-    }];
-
-    hasUnsavedChanges = true;
-    save({ silent: true });
-    closeModal('topicModal');
-    renderTopics();
-
-    // ── Sincronización con la nube ──────────────────────────────────────────
-    // Usa upsertStory para guardar todos los metadatos del topic (modo, fondo,
-    // locks, etc.) en la tabla stories de Supabase, no solo el título.
-    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.upsertStory === 'function') {
-        const topicRef = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
-        if (topicRef) {
-            SupabaseStories.upsertStory(topicRef).then(function(result) {
-                if (result.ok && result.storyId) {
-                    topicRef.storyId = result.storyId;
-                    window.currentStoryId = result.storyId;
-                    hasUnsavedChanges = true;
-                    save({ silent: true });
-                    // Inicializar configuración de turnos en strict
-                    var uid = window._cachedUserId;
-                    if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
-                        SupabaseStories.setTurnConfig(result.storyId, { mode: 'strict', order: [uid] }).catch(function() {});
-                    }
-                } else {
-                    const detail = result?.error ? ': ' + result.error : '';
-                    window.EtheriaLogger?.warn('topics', 'No se pudo guardar la historia en Supabase' + detail);
-                    if (typeof showAutosave === 'function') showAutosave('Historia local; no se guardó en Supabase' + detail, 'error');
-                }
-            }).catch(function(error) {
-                window.EtheriaLogger?.warn('topics', 'upsertStory exception:', error?.message || error);
-                if (typeof showAutosave === 'function') showAutosave('Historia local; error al guardar en Supabase', 'error');
-            });
-        }
-    }
-    // Subir blob actualizado (ya sin topics dentro, pero por si queda algo pendiente)
-    if (typeof SupabaseSync !== 'undefined') {
-        SupabaseSync.uploadProfileData().catch(() => {});
-    }
-    // ─────────────────────────────────────────────────────────────
-
-    // Siempre pedir selección de personaje al creador, sea cual sea el modo.
-    // En RPG además abrirá stats si no hay puntos distribuidos.
-    // Si el usuario no tiene personajes, enterTopic lo gestionará como Narrador.
-    pendingRoleTopicId = id;
-    openRoleCharacterModal(id, { mode: currentTopicMode, preservePendingTopicId: true, enterOnSelect: true });
 }
 
 // ============================================
@@ -21295,8 +21544,13 @@ function createTopicFromWizard() {
         date: new Date().toLocaleDateString(),
     };
     if (mode === 'rpg') {
-        newTopic.characterLocks    = {}; newTopic.characterLocks[currentUserIndex]    = _tw.charId;
-        newTopic.rpgCharacterLocks = {}; newTopic.rpgCharacterLocks[currentUserIndex] = _tw.charId;
+        // Clave por user_id real cuando hay sesión — currentUserIndex es un slot
+        // local (0/1/2) que colisiona entre cuentas distintas en dispositivos
+        // distintos. Con user_id, story_participants y el resto de jugadores
+        // resuelven el personaje bloqueado de cada quien sin ambigüedad.
+        const lockKey = window._cachedUserId || currentUserIndex;
+        newTopic.characterLocks    = {}; newTopic.characterLocks[lockKey]    = _tw.charId;
+        newTopic.rpgCharacterLocks = {}; newTopic.rpgCharacterLocks[lockKey] = _tw.charId;
     } else {
         newTopic.roleCharacterId = _tw.charId;
     }
@@ -21335,6 +21589,28 @@ function createTopicFromWizard() {
             if (result.ok && result.storyId) {
                 topicRef.storyId = result.storyId;
                 hasUnsavedChanges = true; save({ silent: true });
+                // enterTopic(id) ya se ejecutó (más abajo) antes de que esta promesa
+                // resolviera, así que window.currentStoryId quedó en null. Sin esto,
+                // el mensaje de apertura (y cualquier mensaje/typing enviado mientras
+                // tanto) se inserta con story_id NULL y la política RLS de INSERT en
+                // "messages" lo rechaza (42501) al no poder verificar participación.
+                if (typeof currentTopicId !== 'undefined' && String(currentTopicId) === String(id)) {
+                    window.currentStoryId = result.storyId;
+                    var openingMsg = (appData.messages[id] || [])[0];
+                    if (openingMsg && typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.send === 'function') {
+                        SupabaseMessages.send(id, openingMsg).catch(function() {});
+                    }
+                    // El canal realtime ya se abrió (en enterTopic, más abajo) con
+                    // currentStoryId todavía en null, así que quedó filtrando por
+                    // session_id en vez de story_id — no vería mensajes de otros
+                    // participantes. Reabrirlo ahora con el storyId correcto.
+                    if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
+                        SupabaseMessages.subscribeGlobal(null, null, id);
+                    }
+                    if (typeof _sbEnterTopic === 'function') {
+                        _sbEnterTopic(id).catch(function() {});
+                    }
+                }
                 // Inicializar configuración de turnos en strict
                 var uid = window._cachedUserId;
                 if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
@@ -21737,21 +22013,6 @@ function _syncProfileNameToCloud(name) {
         .then(() => {}, () => {});
 }
 
-function changeUser() {
-    const newName = prompt('Nuevo nombre:', userNames[currentUserIndex]);
-    if(newName?.trim()) {
-        userNames[currentUserIndex] = newName.trim();
-        localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
-        _syncProfileNameToCloud(newName.trim());
-
-        const currentUserDisplay = document.getElementById('currentUserDisplay');
-        if (currentUserDisplay) currentUserDisplay.textContent = newName.trim();
-
-        save({ silent: true });
-        renderUserCards();
-    }
-}
-
 // Propaga el color del personaje activo como variable CSS global
 // para que la caja de diálogo y el avatar ring lo reflejen
 function normalizeCssColor(input) {
@@ -21886,22 +22147,6 @@ function saveProfileNameFromOptions() {
     showAutosave('Nombre actualizado', 'saved');
     // Actualizar initial del avatar si no hay foto
     _syncAvatarInitials();
-}
-
-// ── Tab switcher del menú de opciones ────────────────────────────────────
-function switchOptTab(tabId, btn) {
-    // Desactivar todos
-    document.querySelectorAll('.opt-tab').forEach(t => {
-        t.classList.remove('active');
-        t.setAttribute('aria-selected', 'false');
-    });
-    document.querySelectorAll('.opt-panel').forEach(p => p.classList.remove('active'));
-    // Activar el elegido
-    if (btn) { btn.classList.add('active'); btn.setAttribute('aria-selected', 'true'); }
-    const panel = document.getElementById('optPanel-' + tabId);
-    if (panel) panel.classList.add('active');
-    // Sincronizar perfil al entrar en esa pestaña
-    if (tabId === 'profile' || tabId === 'account') _syncProfileTab();
 }
 
 // ── Avatar helpers ────────────────────────────────────────────────────────
@@ -22218,32 +22463,6 @@ function deleteCurrentTopic() {
     });
 }
 
-async function manualSyncFromScene() {
-    if (hasUnsavedChanges) save({ silent: true });
-    await syncBidirectional({ silent: false, allowRemotePrompt: true });
-
-    // La sync principal cubre user_data; topics y characters viven en tablas separadas.
-    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.loadStories === 'function') {
-        await SupabaseStories.loadStories().catch(() => {});
-    }
-
-    const activeProfileId = (typeof SupabaseProfiles !== 'undefined' && typeof SupabaseProfiles.getActiveProfileId === 'function')
-        ? SupabaseProfiles.getActiveProfileId()
-        : null;
-    if (activeProfileId && typeof SupabaseCharacters !== 'undefined' && typeof SupabaseCharacters.loadCharacters === 'function') {
-        await SupabaseCharacters.loadCharacters(activeProfileId).catch(() => {});
-    }
-
-    if (typeof renderTopics    === 'function') renderTopics();
-    if (typeof renderGallery   === 'function') renderGallery();
-    if (typeof renderUserCards === 'function') renderUserCards();
-}
-
-function quickSave() {
-    const saved = save();
-    showAutosave(saved ? 'Guardado rápido' : 'Error al guardar rápido', saved ? 'saved' : 'error');
-}
-
 function openSaveHubModal() {
     openModal('saveHubModal');
     // Asegurar que el userId esté en caché antes de actualizar el estado
@@ -22407,134 +22626,6 @@ function loadGameFromMenu() {
 
 
 
-function _storyCodeStorageKey(code) {
-    return `etheria_story_code_${code}`;
-}
-
-const STORY_CODE_BLOCKLIST = new Set(['PUTO', 'CACA', 'KKK']);
-
-function _generateStoryCode() {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let out = '';
-    do {
-        out = '';
-        for (let i = 0; i < 6; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
-    } while (STORY_CODE_BLOCKLIST.has(out));
-    return out;
-}
-
-
-function _formatStoryText(str) {
-    // Prepara el texto de la historia para exportación (btoa ya gestiona la codificación)
-    try {
-        return str;
-    } catch { return str; }
-}
-
-function _trimMessagesForExport(messages) {
-    // Recortar a los últimos 200 mensajes para no sobrepasar localStorage (~5MB)
-    const MAX = 200;
-    if (!Array.isArray(messages)) return [];
-    const msgs = messages.slice(-MAX);
-    // Eliminar campos pesados opcionales que se pueden reconstruir
-    return msgs.map(m => {
-        const out = { ...m };
-        // charSprite puede ser una URL muy larga - conservar solo si es corta
-        if (out.charSprite && out.charSprite.length > 300) delete out.charSprite;
-        return out;
-    });
-}
-
-function exportCurrentStoryAsCode() {
-    if (!currentTopicId) {
-        showAutosave('Abre una historia primero', 'error');
-        return;
-    }
-    const topic = appData.topics.find(t => String(t.id) === String(currentTopicId));
-    if (!topic) return;
-
-    const messages = _trimMessagesForExport(getTopicMessages(currentTopicId));
-
-    // Solo incluir personajes que aparecen en esta historia
-    const charIdsInTopic = new Set(messages.map(m => m.characterId).filter(Boolean));
-    const relevantChars = appData.characters.filter(c => charIdsInTopic.has(c.id));
-
-    // Clonar topic sin campos de caché que engordan el payload
-    const topicClean = { ...topic };
-    delete topicClean._cachedMessages;
-
-    const payload = {
-        v: 2,
-        topic: topicClean,
-        messages,
-        chars: relevantChars
-    };
-
-    const serialized = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    const kb = Math.round(serialized.length / 1024);
-    if (kb > 400) {
-        showAutosave(`Historia muy grande (${kb}KB). Solo se exportarán los últimos 200 mensajes.`, 'error');
-    }
-    let code = _generateStoryCode();
-    let retries = 0;
-    while (localStorage.getItem(_storyCodeStorageKey(code)) && retries < 10) {
-        code = _generateStoryCode();
-        retries++;
-    }
-    try {
-        localStorage.setItem(_storyCodeStorageKey(code), serialized);
-        localStorage.setItem('etheria_last_story_code', code);
-    } catch (e) {
-        showAutosave('No se pudo guardar el código: almacenamiento lleno', 'error');
-        return;
-    }
-
-    const codeEl = document.getElementById('storyCodeValue');
-    if (codeEl) codeEl.textContent = code;
-    openModal('storyCodeModal');
-    showAutosave('Código de historia generado', 'saved');
-}
-
-async function importStoryFromCode() {
-    const code = (await openPromptModal('Introduce el código de 6 caracteres:') || '').trim().toUpperCase();
-    if (!code) return;
-    const raw = localStorage.getItem(_storyCodeStorageKey(code));
-    if (!raw) {
-        showAutosave('Código no encontrado en este dispositivo', 'error');
-        return;
-    }
-
-    try {
-        const payload = JSON.parse(decodeURIComponent(escape(atob(raw))));
-        if (!payload || !payload.topic) throw new Error('Payload inválido');
-
-        const importedTopic = { ...payload.topic, id: `${payload.topic.id}_${Date.now()}` };
-        appData.topics.push(importedTopic);
-        appData.messages[importedTopic.id] = Array.isArray(payload.messages) ? payload.messages.map((m) => ({ ...m, id: `${m.id}_${Math.random().toString(16).slice(2)}` })) : [];
-
-        if (Array.isArray(payload.chars)) {
-            const known = new Set(appData.characters.map(c => String(c.id)));
-            payload.chars.forEach((c) => {
-                if (!known.has(String(c.id))) appData.characters.push(c);
-            });
-        }
-
-        hasUnsavedChanges = true;
-        save({ silent: true });
-        renderTopics();
-        showAutosave('Historia importada desde código', 'saved');
-    } catch (err) {
-        showAutosave('No se pudo importar el código', 'error');
-    }
-}
-
-function exportData() {
-    const blob = new Blob([JSON.stringify(appData, null, 2)], {type: 'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `etheria_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-}
 
 function deleteCharFromModal() {
     const id = document.getElementById('editCharacterId')?.value;
@@ -22655,6 +22746,13 @@ const _ONBOARDING_MESSAGES = [
 function maybeShowOnboarding() {
     if (localStorage.getItem(_ONBOARDING_KEY)) return;
     const step = parseInt(localStorage.getItem('etheria_onboarding_step') || '0', 10);
+    // Paso 0 (bienvenida del selector de perfil) retirado: lo cubre el tour
+    // guiado de Ethy (ver ethy.js, _startProfileWelcomeTour), más completo e
+    // interactivo. Saltarlo evita mostrar el mismo mensaje dos veces seguidas.
+    if (step === 0) {
+        localStorage.setItem('etheria_onboarding_step', '1');
+        return;
+    }
     if (step >= _ONBOARDING_MESSAGES.length) {
         localStorage.setItem(_ONBOARDING_KEY, '1');
         return;
@@ -23804,19 +23902,7 @@ const SupabaseSlots = (function () {
         }
     }
 
-    // ── Persiste el estado actual de slots ────────────────────────────────────
-    // Llama a esto tras cualquier cambio en userNames o etheria_profile_owners.
-    async function persistCurrentSlots() {
-        try {
-            const names  = JSON.parse(localStorage.getItem('etheria_user_names')  || '[]');
-            const owners = JSON.parse(localStorage.getItem('etheria_profile_owners') || '[]');
-            await saveSlots(names, owners);
-        } catch (err) {
-            window.EtheriaLogger?.warn('supabaseSlots', 'persistCurrentSlots exception:', err?.message);
-        }
-    }
-
-    return { loadSlots, saveSlots, syncOnLogin, persistCurrentSlots };
+    return { loadSlots, saveSlots, syncOnLogin };
 
 }());
 
@@ -24396,10 +24482,10 @@ const SupabaseBonds = (function () {
     // ── Inicialización: cachear userId, escuchar afinidad y Realtime ──
     let _bondsChannel = null;
 
-    function _subscribeBondsRealtime(myCharIds) {
+    async function _subscribeBondsRealtime(myCharIds) {
         if (!_client() || !myCharIds?.length) return;
         if (_bondsChannel) {
-            try { _client().removeChannel(_bondsChannel); } catch {}
+            try { await _client().removeChannel(_bondsChannel); } catch {}
             _bondsChannel = null;
         }
         // Escuchar cambios en vínculos donde to_char_id es uno de mis personajes
@@ -24442,7 +24528,7 @@ const SupabaseBonds = (function () {
             } else {
                 _userId = null;
                 if (_bondsChannel && _client()) {
-                    try { _client().removeChannel(_bondsChannel); } catch {}
+                    try { await _client().removeChannel(_bondsChannel); } catch {}
                     _bondsChannel = null;
                 }
             }
@@ -24654,9 +24740,9 @@ const SupabaseAffinities = (function () {
             `Realtime: ${from_char_id}→${to_char_id} = ${value}`);
     }
 
-    function _unsubscribe() {
+    async function _unsubscribe() {
         if (_channel && _client()) {
-            try { _client().removeChannel(_channel); } catch {}
+            try { await _client().removeChannel(_channel); } catch {}
             _channel = null;
         }
         _currentTopic = null;
@@ -25343,9 +25429,9 @@ const SupabaseCycles = (function () {
         }
     }
 
-    function _unsubscribe() {
+    async function _unsubscribe() {
         if (_channel && _client()) {
-            try { _client().removeChannel(_channel); } catch {}
+            try { await _client().removeChannel(_channel); } catch {}
             _channel = null;
         }
         _currentTopic = null;
@@ -25692,8 +25778,8 @@ const SupabaseSettings = (function () {
     function _isAvailable() { return !!_client(); }
 
     async function _getUserId() {
-        if (typeof global.getEtheriaUserId === 'function') return global.getEtheriaUserId();
-        return global._cachedUserId || null;
+        if (typeof window.getEtheriaUserId === 'function') return window.getEtheriaUserId();
+        return window._cachedUserId || null;
     }
 
     // ── Leer desde localStorage (fuente de verdad local) ────────────────────
@@ -25847,231 +25933,15 @@ const SupabaseSettings = (function () {
         return saveUserSettings(_readLocal());
     }
 
-    /**
-     * Devuelve los ajustes actuales desde localStorage (síncrono).
-     */
-    function getCurrentSettings() {
-        return _readLocal();
-    }
-
     return {
         loadUserSettings,
         saveUserSettings,
-        syncCurrentSettings,
-        getCurrentSettings
+        syncCurrentSettings
     };
 
 })();
 
 window.SupabaseSettings = SupabaseSettings;
-
-/* js/utils/supabaseAvatars.js */
-// ============================================
-// SUPABASE AVATARS — Avatares en Storage
-// ============================================
-// Bucket: "avatars" (público)
-// Path:   avatars/{characterId}.png
-//
-// uploadCharacterAvatar(characterId, file)
-//   1. Sube imagen al bucket
-//   2. Obtiene URL pública
-//   3. Guarda avatar_url en characters
-//   4. Actualiza el campo local appData.characters[*].avatar
-// ============================================
-
-const SupabaseAvatars = (function () {
-
-    const BUCKET = 'avatars';
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
-
-    function _client() { return window.supabaseClient || null; }
-    function _isAvailable() { return !!_client(); }
-
-    function _ext(file) {
-        const name = file?.name || '';
-        const m = name.match(/\.(png|jpg|jpeg|gif|webp)$/i);
-        return m ? m[1].toLowerCase() : 'png';
-    }
-
-    function _mimeForExt(ext) {
-        const map = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
-        return map[ext] || 'image/png';
-    }
-
-    // ── API pública ──────────────────────────────────────────────────────────
-
-    /**
-     * Sube un archivo de imagen como avatar de un personaje.
-     *
-     * @param {string}  characterId  UUID del personaje (tabla Supabase characters)
-     *                               o ID local si no tiene UUID de Supabase.
-     * @param {File}    file         Archivo de imagen seleccionado por el usuario.
-     * @returns {Promise<{ok: boolean, url?: string, error?: string}>}
-     */
-    async function uploadCharacterAvatar(characterId, file) {
-        if (!_isAvailable()) {
-            return { ok: false, error: 'Sin conexión a Supabase.' };
-        }
-        if (!characterId) {
-            return { ok: false, error: 'characterId requerido.' };
-        }
-        if (!file || !file.type.startsWith('image/')) {
-            return { ok: false, error: 'El archivo debe ser una imagen.' };
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            return { ok: false, error: 'La imagen no puede superar 5 MB.' };
-        }
-
-        const ext  = _ext(file);
-        const path = `${characterId}.${ext}`;
-
-        try {
-            const sb = _client();
-
-            // 1. Subir al bucket (upsert para sobreescribir si ya existe)
-            const { error: uploadError } = await sb.storage
-                .from(BUCKET)
-                .upload(path, file, {
-                    contentType : _mimeForExt(ext),
-                    upsert      : true
-                });
-
-            if (uploadError) {
-                console.error('[SupabaseAvatars] upload error:', uploadError.message);
-                return { ok: false, error: uploadError.message || 'Error al subir la imagen.' };
-            }
-
-            // 2. Obtener URL pública
-            const { data: urlData } = sb.storage
-                .from(BUCKET)
-                .getPublicUrl(path);
-
-            const publicUrl = urlData?.publicUrl;
-            if (!publicUrl) {
-                return { ok: false, error: 'No se pudo obtener la URL pública del avatar.' };
-            }
-
-            // 3. Guardar avatar_url en la tabla characters de Supabase
-            const { error: updateError } = await sb
-                .from('characters')
-                .update({ avatar_url: publicUrl })
-                .eq('id', characterId);
-
-            if (updateError) {
-                const msg = updateError.message || 'No se pudo guardar avatar_url en BD.';
-                console.warn('[SupabaseAvatars] No se pudo guardar avatar_url en BD:', msg);
-
-                const missingColumn = msg.toLowerCase().includes('avatar_url')
-                    && msg.toLowerCase().includes('column');
-
-                return {
-                    ok: false,
-                    error: missingColumn
-                        ? 'La imagen se subió, pero falta la columna avatar_url en la tabla characters. Ejecuta la migración de SUPABASE_SETUP.'
-                        : `La imagen se subió, pero no se pudo vincular al personaje: ${msg}`
-                };
-            }
-
-            // 4. Actualizar caché local de cloudCharacters
-            if (typeof appData !== 'undefined' && appData.cloudCharacters) {
-                for (const profileId of Object.keys(appData.cloudCharacters)) {
-                    const chars = appData.cloudCharacters[profileId];
-                    if (!Array.isArray(chars)) continue;
-                    const idx = chars.findIndex(c => c.id === characterId);
-                    if (idx !== -1) {
-                        chars[idx].avatar_url = publicUrl;
-                        break;
-                    }
-                }
-            }
-
-            // 5. Actualizar appData.characters (personajes locales, por si el ID coincide)
-            if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
-                const localChar = appData.characters.find(c => String(c.id) === String(characterId));
-                if (localChar) {
-                    localChar.avatar = publicUrl;
-                    if (typeof persistPartitionedData === 'function') persistPartitionedData();
-                }
-            }
-
-            // 6. Actualizar SupabaseCharacters cache si está disponible
-            if (typeof SupabaseCharacters !== 'undefined') {
-                const cachedChar = SupabaseCharacters.getActiveCharacters()
-                    .find(c => c.id === characterId);
-                if (cachedChar) cachedChar.avatar_url = publicUrl;
-            }
-
-            window.dispatchEvent(new CustomEvent('etheria:avatar-uploaded', {
-                detail: { characterId, url: publicUrl }
-            }));
-
-            return { ok: true, url: publicUrl };
-
-        } catch (err) {
-            console.error('[SupabaseAvatars] uploadCharacterAvatar exception:', err);
-            return { ok: false, error: err?.message || 'Error inesperado.' };
-        }
-    }
-
-    /**
-     * Elimina el avatar de un personaje del bucket.
-     * @param {string} characterId
-     * @returns {Promise<{ok: boolean, error?: string}>}
-     */
-    async function deleteCharacterAvatar(characterId) {
-        if (!_isAvailable() || !characterId) {
-            return { ok: false, error: 'characterId requerido.' };
-        }
-        try {
-            const sb = _client();
-            // Intentar borrar tanto .png como otras extensiones comunes
-            const paths = ['png', 'jpg', 'jpeg', 'webp', 'gif'].map(ext => `${characterId}.${ext}`);
-            await sb.storage.from(BUCKET).remove(paths); // falla silencioso si no existen
-
-            await sb.from('characters').update({ avatar_url: null }).eq('id', characterId);
-            return { ok: true };
-        } catch (err) {
-            return { ok: false, error: err?.message || 'Error inesperado.' };
-        }
-    }
-
-    /**
-     * Devuelve la URL del avatar de un personaje (desde caché o null).
-     * Busca primero en cloudCharacters, luego en appData.characters.
-     * @param {string} characterId
-     * @returns {string|null}
-     */
-    function getAvatarUrl(characterId) {
-        if (!characterId) return null;
-
-        // Buscar en cloudCharacters
-        if (typeof appData !== 'undefined' && appData.cloudCharacters) {
-            for (const chars of Object.values(appData.cloudCharacters)) {
-                if (!Array.isArray(chars)) continue;
-                const c = chars.find(ch => ch.id === characterId);
-                if (c?.avatar_url) return c.avatar_url;
-            }
-        }
-
-        // Buscar en personajes locales
-        if (typeof appData !== 'undefined' && Array.isArray(appData.characters)) {
-            const local = appData.characters.find(c => String(c.id) === String(characterId));
-            if (local?.avatar) return local.avatar;
-        }
-
-        return null;
-    }
-
-    return {
-        uploadCharacterAvatar,
-        deleteCharacterAvatar,
-        getAvatarUrl
-    };
-
-})();
-
-window.SupabaseAvatars = SupabaseAvatars;
 
 /* js/utils/supabaseCycleViews.js */
 // ═══════════════════════════════════════════════════════════════════
@@ -26552,8 +26422,8 @@ const CollaborativeGuard = (function () {
 
     // ── API pública ───────────────────────────────────────────────────────────
 
-    function init(topicId, profileIndex) {
-        stop();
+    async function init(topicId, profileIndex) {
+        await stop();
 
         _topicId    = topicId;
         _profileIdx = (typeof profileIndex === 'number') ? profileIndex
@@ -26569,15 +26439,15 @@ const CollaborativeGuard = (function () {
         logger?.info('collab', `collab-guard v2 activo — topic ${topicId}`);
     }
 
-    function stop() {
+    async function stop() {
         const c = _client();
 
         if (_broadcastChannel && c) {
-            try { c.removeChannel(_broadcastChannel); } catch {}
+            try { await c.removeChannel(_broadcastChannel); } catch {}
             _broadcastChannel = null;
         }
         if (_userDataChannel && c) {
-            try { c.removeChannel(_userDataChannel); } catch {}
+            try { await c.removeChannel(_userDataChannel); } catch {}
             _userDataChannel = null;
         }
         if (_realtimeHandler) {
@@ -27327,7 +27197,9 @@ window.RPGTriggerEvaluator = RPGTriggerEvaluator;
                     .find(p => String(p.user_id) === String(userId));
                 if (myParticipant) {
                     const lockMap = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
-                    const charId  = lockMap[myParticipant.user_index] || lockMap[String(myParticipant.user_index)];
+                    // Los locks se guardan por user_id real; user_index es solo
+                    // el respaldo de partidas locales sin cuenta.
+                    const charId  = lockMap[userId] || lockMap[myParticipant.user_index] || lockMap[String(myParticipant.user_index)];
                     if (charId) {
                         const char = _allChars().find(c => String(c.id) === String(charId));
                         if (char) rpgSheet = { char, ...getRpgSheetData(char, topic.id) };
@@ -27867,7 +27739,12 @@ const CharPopover = (function () {
     function _ad() { return typeof appData !== 'undefined' ? appData : null; }
 
     function _getChar(charId) {
-        return (_ad()?.characters || []).find(c => String(c.id) === String(charId)) || null;
+        const mine = (_ad()?.characters || []).find(c => String(c.id) === String(charId));
+        if (mine) return mine;
+        // Fichas de otros participantes de la historia activa (cargadas por
+        // SupabaseStories.loadStoryParticipants) — no viven en appData.characters
+        // porque ese array alimenta el selector de "mis personajes".
+        return (_ad()?.storyParticipantCharacters || []).find(c => String(c.id) === String(charId)) || null;
     }
 
     function _getMyCharId() {
@@ -28431,6 +28308,25 @@ window.CharPopover = CharPopover;
     });
   }
 
+  // ── Anillo zodiacal tras la luna ─────────────────────────
+  function buildZodiac(host) {
+    var g = host.querySelector('.ticks');
+    if (!g) return;
+    var R = 85;
+    for (var i = 0; i < 12; i++) {
+      var angle = (i / 12) * Math.PI * 2;
+      var cx = 100 + Math.cos(angle) * R;
+      var cy = 100 + Math.sin(angle) * R;
+      var isCardinal = i % 3 === 0;
+      var tick = document.createElementNS(SVGNS, 'circle');
+      tick.setAttribute('cx', cx.toFixed(2));
+      tick.setAttribute('cy', cy.toFixed(2));
+      tick.setAttribute('r', isCardinal ? 2.6 : 1.4);
+      tick.setAttribute('class', 'tick' + (isCardinal ? ' hi' : ''));
+      g.appendChild(tick);
+    }
+  }
+
   // ── Motas ascendentes ───────────────────────────────────
   function buildMotes(host, count) {
     var r = rng(404);
@@ -28444,6 +28340,28 @@ window.CharPopover = CharPopover;
       m.style.setProperty('--del', (-r() * 30) + 's');
       m.style.setProperty('--drift', ((r() - 0.5) * 60) + 'px');
       host.appendChild(m);
+    }
+  }
+
+  // ── Luciérnagas sobre el paisaje ─────────────────────────
+  // A diferencia de las motas (que ascienden por toda la pantalla), estas
+  // se quedan flotando bajas, sobre la silueta de montañas — para dar vida
+  // a esa franja que queda visualmente vacía frente al cielo animado.
+  function buildFireflies(host, count) {
+    var r = rng(2024);
+    for (var i = 0; i < count; i++) {
+      var f = document.createElement('div');
+      f.className = 'firefly';
+      var sz = 2.6 + r() * 2.4;
+      f.style.left = (4 + r() * 92) + '%';
+      f.style.bottom = (r() * 55) + '%';
+      f.style.width = sz + 'px';
+      f.style.height = sz + 'px';
+      f.style.setProperty('--dur', (6 + r() * 6) + 's');
+      f.style.setProperty('--del', (-r() * 12) + 's');
+      f.style.setProperty('--wander', ((r() - 0.5) * 40) + 'px');
+      f.style.setProperty('--rise', (8 + r() * 18) + 'px');
+      host.appendChild(f);
     }
   }
 
@@ -28484,6 +28402,16 @@ window.CharPopover = CharPopover;
   }
 
   // ── Parallax (mismo patrón que js/ui/hub.js) ────────────
+  // El CSS lee var(--pd) en cada capa [data-pd] para calcular su
+  // desplazamiento, pero nada traducía el atributo HTML data-pd a esa
+  // variable — sin esto --pd nunca existe, el calc() del transform es
+  // inválido y toda la capa queda inmóvil (luna, estrellas, paisaje...).
+  function applyDepthVars(hub) {
+    hub.querySelectorAll('[data-pd]').forEach(function (el) {
+      el.style.setProperty('--pd', el.dataset.pd);
+    });
+  }
+
   function bindParallax(hub) {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var raf = null;
@@ -28556,12 +28484,17 @@ window.CharPopover = CharPopover;
     var stars = hub.querySelector('.cel-stars');
     var cons = hub.querySelector('.cel-constellations');
     var motes = hub.querySelector('.cel-motes');
+    var fireflies = hub.querySelector('.cel-fireflies');
+    var zodiac = hub.querySelector('.cel-moon .zodiac');
     var menu = hub.querySelector('.menu-container');
 
     if (stars) buildStars(stars);
     if (cons) buildConstellations(cons);
     if (motes) buildMotes(motes, 16);
+    if (fireflies) buildFireflies(fireflies, 10);
+    if (zodiac) buildZodiac(zodiac);
     if (menu) buildSpine(menu);
+    applyDepthVars(hub);
     bindParallax(hub);
     bindAmbCycle(hub);
   }
@@ -29239,6 +29172,7 @@ async function register() {
     setAuthStatus(needsConfirmation
         ? 'Cuenta creada. Revisa tu email para confirmar.'
         : 'Cuenta creada correctamente.', false, 'authRegStatus');
+    window.dispatchEvent(new CustomEvent('etheria:register-result', { detail: { needsConfirmation } }));
 
     if (!needsConfirmation) {
         // Evitar que onAuthStateChange(SIGNED_IN) duplique la hidratación mientras
@@ -29275,7 +29209,31 @@ function _withTimeout(promise, ms, label) {
     ]);
 }
 
-async function ensureProfile() {
+// supabase-js dispara onAuthStateChange (con SIGNED_IN) cada vez que la pestaña
+// recupera el foco y refresca la sesión. Sin protección, cada una de esas
+// veces lanzaba una tanda completa de peticiones (getUser + perfiles + ajustes
+// + slots + suscripción de turnos) que podía solaparse con la anterior si no
+// había terminado. Con alternancias de pestaña frecuentes esto se acumulaba en
+// decenas de peticiones casi simultáneas a Supabase Auth — llegó a tumbar el
+// servidor con "Thread killed by timeout manager" y 503 en cascada para todo
+// lo demás. _ensureProfileInFlight hace que una llamada solapada reutilice la
+// que ya está en curso en vez de lanzar otra tanda por su cuenta.
+let _ensureProfileInFlight = null;
+let _lastEnsureProfileAt = 0;
+const ENSURE_PROFILE_COOLDOWN_MS = 3000; // ignora llamadas repetidas en ráfaga (alt-tab rápido)
+
+function ensureProfile() {
+    if (_ensureProfileInFlight) return _ensureProfileInFlight;
+    if (Date.now() - _lastEnsureProfileAt < ENSURE_PROFILE_COOLDOWN_MS) return Promise.resolve();
+
+    _ensureProfileInFlight = _doEnsureProfile().finally(() => {
+        _ensureProfileInFlight = null;
+        _lastEnsureProfileAt = Date.now();
+    });
+    return _ensureProfileInFlight;
+}
+
+async function _doEnsureProfile() {
     // ensureProfile ya no crea perfiles automáticamente.
     // Los perfiles globales se crean explícitamente por el usuario via SupabaseProfiles.
     // Esta función solo inicializa los módulos Supabase tras el login.
@@ -29502,9 +29460,8 @@ function initializeApp() {
     setupGallerySearchListeners();
 
 
-    // Comprobar token de invitación (?invite=TOKEN) — tiene prioridad sobre ?room=
+    // Comprobar token de invitación (?invite=TOKEN)
     const _pendingInviteToken = new URLSearchParams(window.location.search).get('invite');
-    pendingRoomInviteId = (typeof getRoomIdFromQuery === 'function') ? getRoomIdFromQuery() : null;
 
     if (_pendingInviteToken) {
         // Limpiar la URL para no re-procesar en recargas
@@ -29522,16 +29479,6 @@ function initializeApp() {
                 setTimeout(() => openInviteJoinModal(tok), 800);
             }
         }, { once: false });
-    } else if (pendingRoomInviteId) {
-        const defaultProfile = getStoredLastProfileId();
-        selectUser(defaultProfile !== null ? defaultProfile : 0, { autoLoad: true })
-            .then(() => {
-                if (typeof tryJoinRoomFromUrl === 'function') return tryJoinRoomFromUrl();
-                return false;
-            })
-            .catch((err) => {
-                console.warn('No se pudo abrir la sala compartida:', err);
-            });
     }
     // Nota: la entrada automática al último perfil se gestiona ahora en el
     // arranque (boot) y post-login, basándose en la sesión y la propiedad del perfil.
@@ -29835,7 +29782,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Solo en HTTPS (obligatorio) y si el navegador lo soporta.
     // No bloquea el arranque de la app — se registra en background.
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        const _registerServiceWorker = () => {
             navigator.serviceWorker.register('./sw.js', { scope: './' })
                 .then((reg) => {
                     // Manejar actualizaciones del Service Worker
@@ -29890,7 +29837,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Fallo no crítico — la app funciona igual sin SW
                     console.warn('[PWA] Service Worker no pudo registrarse:', err);
                 });
-        });
+        };
+
+        // El evento 'load' puede haber ocurrido ya antes de llegar aquí (página
+        // pesada, script tardío, etc.) — un listener añadido después nunca se
+        // dispara y el SW no llega a registrarse nunca. Si 'load' ya pasó,
+        // registrar directamente en vez de esperar un evento que no va a volver.
+        if (document.readyState === 'complete') {
+            _registerServiceWorker();
+        } else {
+            window.addEventListener('load', _registerServiceWorker);
+        }
     }
     // ── Frase aleatoria en el subtítulo del menú principal ───────────────────
     // (absorbido de mejoras.js — Mejora 1)
@@ -30077,12 +30034,12 @@ const Ethy = (function() {
                 {
                     text: '"Continuar" es la puerta. Al otro lado: roleplay libre —modo Clásico— o destino gobernado por los dados —modo RPG—. Elige con intención.',
                     expression: 'thoughtful',
-                    action: () => highlightElement('.menu-button-console.primary')
+                    action: () => highlightElement('[data-action="continuar"]')
                 },
                 {
                     text: '"Personajes" es el registro de almas. Sin ellas no hay relato posible; con ellas, cualquier historia puede ocurrir.',
                     expression: 'happy',
-                    action: () => highlightElement('.menu-button-console:nth-child(2)')
+                    action: () => highlightElement('[data-action="personajes"]')
                 },
                 {
                     text: 'El icono de guardado preserva tu mundo entero. Úsalo. Las historias merecen sobrevivir más allá de una sesión.',
@@ -30171,7 +30128,7 @@ const Ethy = (function() {
                 {
                     text: '"Responder" abre el panel. Elige quién habla y qué dice. La historia espera.',
                     expression: 'thoughtful',
-                    action: () => highlightElement('.reply-btn')
+                    action: () => highlightElement('.vma-reply')
                 },
                 {
                     text: 'La barra de controles guarda el historial y permite exportar la historia completa. Nada de lo que escribáis tiene que perderse.',
@@ -30222,12 +30179,12 @@ const Ethy = (function() {
                 {
                     text: 'Aquí moldeas cómo se siente Etheria. Apariencia, Lectura, Sonido. Cada una cambia algo en cómo vives el relato.',
                     expression: 'thoughtful',
-                    action: () => highlightElement('.opt-tab-bar')
+                    action: () => highlightElement('.opt-rail')
                 },
                 {
-                    text: 'Apariencia: entre luz y oscuridad, tipografía, atmósfera. El mundo se ve distinto según cómo lo iluminas.',
+                    text: 'Apariencia: la atmósfera del momento del día, el tamaño de la letra, el filtro de la escena. El mundo se ve distinto según cómo lo iluminas.',
                     expression: 'neutral',
-                    action: () => highlightElement('#themeToggleBtn')
+                    action: () => highlightElement('[data-tab="appearance"]')
                 },
                 {
                     text: 'Sonido: el volumen de la lluvia, el ambiente. Algunas historias necesitan silencio. Otras, que truene.',
@@ -30268,8 +30225,35 @@ const Ethy = (function() {
                     action: null
                 }
             ]
+        },
+
+        // ── Selector de perfil — bienvenida de primera vez ───────────────────
+        // Base estática de 2 pasos; _startProfileWelcomeTour() la restaura antes
+        // de cada arranque porque el tour le añade pasos dinámicos (registro,
+        // nombre) según lo que el usuario haga de verdad en pantalla.
+        userSelect: {
+            title: 'Bienvenida a Etheria',
+            expression: 'love',
+            steps: [
+                {
+                    text: 'Cada tarjeta de esta pantalla es un perfil: tu propio universo de historias y personajes, separado del de cualquier otra persona. Vamos a crear el tuyo.',
+                    expression: 'love',
+                    action: null
+                },
+                {
+                    text: '"Nuevo Archivo" es donde empieza todo. Tócalo cuando quieras — yo espero aquí y seguimos en cuanto lo hagas.',
+                    expression: 'excited',
+                    noNext: true,
+                    action: () => {
+                        highlightElement('#addProfileCard');
+                        _armProfileWelcomeCardWatcher();
+                    }
+                }
+            ]
         }
     };
+
+    const _USER_SELECT_BASE_STEPS = TUTORIALS.userSelect.steps.slice();
 
     // ── Inicialización ───────────────────────────────────────────────────────
 
@@ -30285,6 +30269,7 @@ const Ethy = (function() {
             _startIdleSystem();               // arrancar idle dinámico
             _resetSleepTimer();               // arrancar sleep timer
             _watchUserSelectScreen();         // vigilante "¿sigues ahí?" del selector
+            _maybeOfferFirstVisitTour();      // "¿es tu primera vez?" — antes que cualquier otro tutorial
         }, 1000);
     }
 
@@ -30403,11 +30388,23 @@ const Ethy = (function() {
         _bubble = document.createElement('div');
         _bubble.className = 'ethy-speech-bubble';
         _bubble.innerHTML = `
-            <div class="ethy-title"><span class="ethy-title-gem">◆</span> Ethy</div>
+            <span class="ethy-corner tl"></span>
+            <span class="ethy-corner tr"></span>
+            <span class="ethy-corner bl"></span>
+            <span class="ethy-corner br"></span>
+            <div class="ethy-title">
+                <span class="ethy-title-label"><span class="ethy-title-gem">◆</span> Ethy</span>
+                <button class="ethy-bubble-close" title="Cerrar" aria-label="Cerrar">✕</button>
+            </div>
+            <div class="ethy-title-divider"></div>
             <div class="ethy-content"></div>
             <div class="ethy-actions"></div>
             <div class="ethy-steps"></div>
         `;
+        _bubble.querySelector('.ethy-bubble-close').addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideBubble();
+        });
 
         // Botón de minimizar (✕ pequeño sobre la cabeza de Ethy)
         const _minimizeBtn = document.createElement('button');
@@ -30450,7 +30447,10 @@ const Ethy = (function() {
             if (_bubbleJustOpened) return; // ignorar el click que abrió la burbuja
             if (!_container.contains(e.target)) {
                 if (_bubble.classList.contains('visible')) hideBubble();
-                if (_tutorialPanelVisible) endTutorial();
+                // El tour de bienvenida pide a propósito clics reales fuera del
+                // panel (la tarjeta de perfil, los campos de registro) — no son
+                // un gesto de "cerrar tocando fuera", son el siguiente paso.
+                if (_tutorialPanelVisible && _currentTutorial !== TUTORIALS.userSelect) endTutorial();
             }
         });
 
@@ -30604,13 +30604,41 @@ const Ethy = (function() {
     };
 
     // Expresiones breves (idle flicker) — más emocionales para que se note
-    const IDLE_FLICKER = ['surprised', 'love', 'excited', 'wink', 'thoughtful'];
+    const IDLE_FLICKER = ['surprised', 'love', 'excited', 'wink', 'thoughtful', 'happy'];
+
+    // Cuánto se mantiene cada flicker antes de volver a la base. Un tiempo
+    // fijo para todas hacía que el gesto se sintiera como un tic (destello
+    // y ya) — variar la duración según la expresión da un ritmo más
+    // orgánico: las intensas son breves, las cálidas se quedan un poco más.
+    const FLICKER_HOLD_MS = {
+        surprised: 1100, wink: 1200, excited: 1400,
+        happy: 1700, thoughtful: 2000, love: 2200
+    };
 
     let _idleBaseExpression = 'neutral'; // expresión base de la sección actual
     let _idleInterval  = null;
 
+    // Historial corto de expresiones idle recientes (base + flicker), para
+    // que el azar no repita la misma expresión una y otra vez en pocos
+    // ciclos — el motivo original de que Ethy se sintiera repetitiva.
+    let _recentIdleExpressions = [];
+    const RECENT_IDLE_HISTORY = 3;
+
     function _pickRandom(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function _rememberIdleExpression(expression) {
+        _recentIdleExpressions.push(expression);
+        if (_recentIdleExpressions.length > RECENT_IDLE_HISTORY) _recentIdleExpressions.shift();
+    }
+
+    // Elige de `pool` evitando lo mostrado recientemente; si el filtro deja
+    // el pool vacío (pool pequeño + historial largo), cede y usa el pool
+    // completo antes que fallar.
+    function _pickFresh(pool) {
+        const candidates = pool.filter(e => !_recentIdleExpressions.includes(e));
+        return _pickRandom(candidates.length ? candidates : pool);
     }
 
     /**
@@ -30619,10 +30647,9 @@ const Ethy = (function() {
      */
     function _setSectionExpression(section) {
         const pool = SECTION_EXPRESSIONS[section] || SECTION_EXPRESSIONS.default;
-        let candidates = pool.filter(e => e !== _currentExpression);
-        if (candidates.length === 0) candidates = pool;
-        const chosen = _pickRandom(candidates);
+        const chosen = _pickFresh(pool);
         _idleBaseExpression = chosen;
+        _rememberIdleExpression(chosen);
         // No animar ni cambiar expresión si está minimizado
         if (_isMinimized) return;
         if (_body) {
@@ -30633,8 +30660,10 @@ const Ethy = (function() {
     }
 
     /**
-     * Tick idle: cada 8-14 s cambia momentáneamente a una expresión aleatoria
-     * y a los 1.5 s vuelve a la expresión base.
+     * Tick idle: cada 9-16 s cambia momentáneamente a una expresión aleatoria
+     * (sin repetir lo reciente) y, tras un tiempo propio de esa expresión,
+     * vuelve a la base. ~1 de cada 4 veces encadena un segundo micro-gesto
+     * antes de volver, para que no se sienta siempre igual de mecánico.
      */
     function _idleTick() {
         // No interrumpir si minimizado, burbuja activa o tutorial en curso
@@ -30642,21 +30671,37 @@ const Ethy = (function() {
         if (_bubble && _bubble.classList.contains('visible')) return;
         if (_tutorialPanelVisible) return;
 
-        const flicker = _pickRandom(IDLE_FLICKER.filter(e => e !== _idleBaseExpression));
+        const flicker = _pickFresh(IDLE_FLICKER.filter(e => e !== _idleBaseExpression));
+        _rememberIdleExpression(flicker);
         setExpression(flicker);
 
+        const hold = FLICKER_HOLD_MS[flicker] || 1500;
+        const chainSecond = Math.random() < 0.28;
+
         setTimeout(() => {
-            // Solo restaurar si no hay burbuja abierta ahora
-            if (!_bubble || !_bubble.classList.contains('visible')) {
+            if (_bubble && _bubble.classList.contains('visible')) return;
+            if (chainSecond) {
+                const secondPool = IDLE_FLICKER.filter(e => e !== flicker && e !== _idleBaseExpression);
+                const second = _pickFresh(secondPool);
+                _rememberIdleExpression(second);
+                setExpression(second);
+                setTimeout(() => {
+                    if (!_bubble || !_bubble.classList.contains('visible')) {
+                        setExpression(_idleBaseExpression);
+                    }
+                }, (FLICKER_HOLD_MS[second] || 1300) * 0.7);
+            } else {
                 setExpression(_idleBaseExpression);
             }
-        }, 1500);
+        }, hold);
     }
 
     function _startIdleSystem() {
         if (_idleInterval) clearInterval(_idleInterval);
-        // Intervalo aleatorio entre 8 y 14 segundos para cambio de expresión
-        const randomInterval = () => Math.floor(Math.random() * 6000) + 8000;
+        // Intervalo aleatorio entre 9 y 16 segundos — algo más pausado que
+        // antes para que cada gesto tenga tiempo de notarse en vez de
+        // sentirse como un parpadeo nervioso.
+        const randomInterval = () => Math.floor(Math.random() * 7000) + 9000;
 
         function scheduleNext() {
             _idleInterval = setTimeout(() => {
@@ -30825,6 +30870,7 @@ const Ethy = (function() {
             const screen = document.getElementById('userSelectScreen');
             if (!screen || screen.classList.contains('hidden')) return;
             if (_isMinimized || _bubble.classList.contains('visible')) return;
+            if (_tutorialPanelVisible || _firstVisitTourActive) return; // no interrumpir el tour de bienvenida
             _stuckTipShownThisVisit = true;
             say('Ninguno de estos archivos tiene que ser el tuyo para abrirte paso. Toca cualquiera y entra con tu propio nombre y llave.', { expression: 'wink' });
         }, STUCK_DELAY);
@@ -31038,6 +31084,7 @@ const Ethy = (function() {
         // Mostrar burbuja — marcar flag para evitar cierre inmediato
         _bubbleJustOpened = true;
         _bubble.classList.add('visible');
+        _container.classList.add('ethy-bubble-open');
         setTimeout(() => { _bubbleJustOpened = false; }, 50);
 
         // Efecto de escritura
@@ -31071,19 +31118,23 @@ const Ethy = (function() {
 
     function hideBubble() {
         _bubble.classList.remove('visible');
+        _container.classList.remove('ethy-bubble-open');
         if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
         if (_autocloseTimeout) { clearTimeout(_autocloseTimeout); _autocloseTimeout = null; }
         _isTyping = false;
     }
 
-    // Renderiza los botones de acción dentro de la burbuja
+    // Renderiza los botones de acción dentro de la burbuja — barra de
+    // iconos tipo HUD (rombo + etiqueta corta), no una lista de filas de texto.
     function _renderButtons(container, buttons) {
         container.innerHTML = '';
-        if (!buttons || buttons.length === 0) return;
+        if (!buttons || buttons.length === 0) { container.classList.remove('ethy-actions--hud'); return; }
+        container.classList.add('ethy-actions--hud');
         buttons.forEach(btn => {
             const el = document.createElement('button');
             el.className = 'ethy-btn' + (btn.primary ? ' primary' : '');
-            el.textContent = btn.text;
+            el.title = btn.text;
+            el.innerHTML = `<span class="ethy-btn-icon"><span class="ethy-btn-icon-glyph">${btn.icon || '✦'}</span></span><span class="ethy-btn-label">${btn.label || btn.text}</span>`;
             el.addEventListener('click', () => {
                 if (typeof btn.action === 'function') btn.action();
                 if (btn.close !== false) hideBubble();
@@ -31187,6 +31238,10 @@ const Ethy = (function() {
             next.textContent = 'Siguiente →';
             next.classList.remove('ethy-tp-finish');
         }
+        // Pasos que dependen de una acción real del usuario (clic real en la
+        // app, resultado de un registro) ocultan "Siguiente" — avanzar a mano
+        // dejaría el tutorial por delante de lo que de verdad ha ocurrido.
+        next.style.visibility = step.noNext ? 'hidden' : 'visible';
 
         // Expresión de Ethy para este paso
         if (!_isMinimized && step.expression) {
@@ -31208,6 +31263,10 @@ const Ethy = (function() {
         }
         if (_seenTutorials.has(tutorialKey) && !tutorial.force) return;
 
+        // El tour de bienvenida acumula pasos dinámicos (registro, nombre) según
+        // lo que el usuario hace en pantalla — al repetirlo, volver a la base.
+        if (tutorialKey === 'userSelect') tutorial.steps = _USER_SELECT_BASE_STEPS.slice();
+
         _currentTutorial = tutorial;
         _tutorialStep = 0;
         _seenTutorials.add(tutorialKey);
@@ -31228,6 +31287,7 @@ const Ethy = (function() {
 
     function endTutorial() {
         if (!_currentTutorial) return;
+        const wasProfileWelcome = _currentTutorial === TUTORIALS.userSelect;
         _currentTutorial = null;
         _tutorialStep = 0;
 
@@ -31237,6 +31297,14 @@ const Ethy = (function() {
         }
         _tutorialPanelVisible = false;
         removeHighlight();
+
+        // Si el tour de bienvenida se cierra antes de terminar (saltado o
+        // cerrado a mano), reactivar el aviso estático #welcomeOverlay que
+        // habíamos silenciado para no duplicar el mensaje.
+        if (wasProfileWelcome && _firstVisitTourActive) {
+            _firstVisitTourActive = false;
+            if (typeof toggleWelcomeOverlay === 'function' && typeof renderUserCards === 'function') renderUserCards();
+        }
 
         // Mensaje breve de despedida (solo si no está minimizado)
         if (!_isMinimized) {
@@ -31352,7 +31420,8 @@ const Ethy = (function() {
         say('¿En qué puedo ayudarte?', {
             expression: 'happy',
             buttons: [
-                { text: 'Ver tutorial', primary: true, close: false, action: () => {
+                { text: 'Consejo rápido', icon: '✦', label: 'Consejo', primary: true, close: false, action: () => showRandomTip() },
+                { text: 'Ver tutorial', icon: '📖', label: 'Tutorial', close: false, action: () => {
                     if (currentSection && TUTORIALS[currentSection]) {
                         // Fix: usar _seenTutorials.delete() en vez de mutar el objeto tutorial
                         _seenTutorials.delete(currentSection);
@@ -31361,10 +31430,51 @@ const Ethy = (function() {
                         say('Para esta sección aún no tengo nada que enseñarte.', { expression: 'sad', duration: 3000 });
                     }
                 }},
-                { text: 'Consejo rápido', close: false, action: () => showRandomTip() },
-                { text: 'Cerrar' }
+                { text: 'Sugerencia', icon: '💡', label: 'Sugerir', close: false, action: () => _showFeedbackForm() }
             ]
         });
+    }
+
+    // ── Formulario de sugerencias — reutiliza la burbuja de say() ────────────
+    function _showFeedbackForm() {
+        setExpression('thoughtful');
+        if (_typingTimeout) { clearTimeout(_typingTimeout); _typingTimeout = null; }
+        if (_autocloseTimeout) { clearTimeout(_autocloseTimeout); _autocloseTimeout = null; }
+        _isTyping = false;
+
+        _bubbleJustOpened = true;
+        _bubble.classList.add('visible');
+        _container.classList.add('ethy-bubble-open');
+        setTimeout(() => { _bubbleJustOpened = false; }, 50);
+
+        const content = _bubble.querySelector('.ethy-content');
+        const actions = _bubble.querySelector('.ethy-actions');
+
+        content.innerHTML = '<textarea class="ethy-feedback-input" maxlength="1000" placeholder="Cuéntame tu idea o sugerencia..."></textarea>';
+        actions.innerHTML = '';
+        actions.classList.remove('ethy-actions--hud');
+
+        const textarea = content.querySelector('.ethy-feedback-input');
+        setTimeout(() => textarea.focus(), 50);
+
+        const sendBtn = document.createElement('button');
+        sendBtn.className = 'ethy-btn primary';
+        sendBtn.textContent = 'Enviar';
+        sendBtn.addEventListener('click', async () => {
+            const message = textarea.value.trim();
+            if (!message) { textarea.focus(); return; }
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Enviando…';
+            const result = (typeof EtheriaBugReport !== 'undefined')
+                ? await EtheriaBugReport.send({ type: 'recommendation', message, includeScreenshot: false })
+                : { ok: false };
+            if (result.ok) {
+                say('¡Gracias! Ya se lo he hecho llegar a la administradora.', { expression: 'love', duration: 4000 });
+            } else {
+                say('No he podido enviarlo — inténtalo de nuevo más tarde.', { expression: 'sad', duration: 4000 });
+            }
+        });
+        actions.appendChild(sendBtn);
     }
 
     function _detectCurrentSection() {
@@ -31511,6 +31621,157 @@ const Ethy = (function() {
         });
     }
 
+    // ── Tour de bienvenida — primera vez en el selector de perfil ────────────
+    // Se pregunta ANTES que cualquier otro tutorial, una sola vez por navegador.
+    // "Sí" sustituye al aviso estático #welcomeOverlay (toggleWelcomeOverlay lo
+    // silencia mientras esto está activo — ver characters.js) y guía paso a
+    // paso hasta tener un perfil real creado, reaccionando a lo que el usuario
+    // hace de verdad (clics, resultado del registro) en vez de avanzar solo.
+    // "No" marca todos los tutoriales de sección como vistos — incluido el del
+    // menú principal — para no repetir la bienvenida nada más entrar.
+    const FIRST_VISIT_KEY = 'etheria_ethy_first_visit_resolved';
+    let _firstVisitTourActive = false;
+
+    function isFirstVisitTourActive() {
+        return _firstVisitTourActive;
+    }
+
+    function _maybeOfferFirstVisitTour() {
+        if (localStorage.getItem(FIRST_VISIT_KEY) === '1') return;
+        // Ya conocía tutoriales de antes (sesión previa a este tour) — no
+        // reabrir la pregunta a alguien que ya lleva tiempo usando la app.
+        if (_seenTutorials.size > 0) {
+            try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) { /* localStorage no disponible */ }
+            return;
+        }
+        const screen = document.getElementById('userSelectScreen');
+        if (!screen || screen.classList.contains('hidden')) return;
+
+        setTimeout(() => {
+            const screenNow = document.getElementById('userSelectScreen');
+            if (!screenNow || screenNow.classList.contains('hidden')) return; // pudo cambiar mientras esperábamos
+            say('¿Es tu primera vez en Etheria?', {
+                expression: 'happy',
+                buttons: [
+                    { text: 'Sí, es mi primera vez', icon: '✦', label: 'Sí', primary: true, action: () => _startProfileWelcomeTour() },
+                    { text: 'No, ya conozco esto', icon: '✕', label: 'No', action: () => _declineFirstVisitTour() }
+                ]
+            });
+        }, 600);
+    }
+
+    function _declineFirstVisitTour() {
+        try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) { /* localStorage no disponible */ }
+        Object.keys(TUTORIALS).forEach(k => _seenTutorials.add(k));
+        _saveSeenTutorials();
+        say('Como quieras. Sigo aquí si me necesitas — todo lo que sé también vive en mi menú de ayuda.', {
+            expression: 'wink',
+            duration: 4000
+        });
+    }
+
+    function _finishProfileWelcomeTour() {
+        _firstVisitTourActive = false;
+        try { localStorage.setItem(FIRST_VISIT_KEY, '1'); } catch (e) { /* localStorage no disponible */ }
+        // Ya vivió la bienvenida completa — que no le repita la misma idea
+        // nada más aterrizar en el menú principal.
+        _seenTutorials.add('mainMenu');
+        _saveSeenTutorials();
+    }
+
+    function _startProfileWelcomeTour() {
+        _firstVisitTourActive = true;
+        // Re-renderizar YA para ocultar #welcomeOverlay antes de abrir el
+        // panel — si se hiciera después, reconstruiría #addProfileCard y
+        // dejaría colgado el listener que el propio tour engancha en él.
+        if (typeof renderUserCards === 'function') renderUserCards();
+        startTutorial('userSelect');
+    }
+
+    function _armProfileWelcomeCardWatcher() {
+        const card = document.getElementById('addProfileCard');
+        if (!card) return;
+        card.addEventListener('click', () => {
+            setTimeout(_advanceProfileWelcomeAfterCardClick, 80);
+        }, { once: true });
+    }
+
+    function _advanceProfileWelcomeAfterCardClick() {
+        if (_currentTutorial !== TUTORIALS.userSelect) return;
+
+        const registerView = document.getElementById('authRegisterView');
+        const onRegisterView = !!(registerView && registerView.classList.contains('active'));
+
+        if (onRegisterView) {
+            _currentTutorial.steps.push({
+                text: 'Escribe un email real y una contraseña de al menos 6 caracteres — la repites justo debajo para confirmar que no te has equivocado.',
+                expression: 'thoughtful',
+                noNext: true,
+                action: () => {
+                    highlightElement('#authRegisterView .auth-form');
+                    _armRegisterResultWatcher();
+                }
+            });
+            _tutorialStep = _currentTutorial.steps.length - 1;
+            _renderTutorialStep();
+        } else {
+            // Ya tenía sesión iniciada: sin registro de por medio, directo al nombre.
+            _pushProfileNameStep();
+        }
+    }
+
+    function _armRegisterResultWatcher() {
+        window.addEventListener('etheria:register-result', function onResult(ev) {
+            if (_currentTutorial !== TUTORIALS.userSelect) return;
+            const needsConfirmation = !!(ev.detail && ev.detail.needsConfirmation);
+            if (needsConfirmation) {
+                _currentTutorial.steps.push({
+                    text: 'Te he enviado un correo de confirmación — ábrelo y confirma la cuenta antes de poder entrar. Revisa también la carpeta de spam si no lo ves llegar. En cuanto la confirmes, vuelve aquí y toca tu nuevo perfil para ponerle nombre.',
+                    expression: 'surprised',
+                    action: () => highlightElement('#authRegStatus')
+                });
+                _tutorialStep = _currentTutorial.steps.length - 1;
+                _renderTutorialStep();
+                // Lo que sigue ocurre fuera de la app, en su correo — aquí termina lo que puedo guiar.
+                _finishProfileWelcomeTour();
+            } else {
+                // Sin confirmación por email: la cuenta ya está activa, pero
+                // la app no reabre el modal de nombre sola en este camino
+                // (a diferencia del login normal) — hay que reanudarlo, igual
+                // que hace la propia app vía window._pendingAddProfile.
+                window.addEventListener('etheria:new-profile-modal-open', function onModalOpen() {
+                    _pushProfileNameStep();
+                }, { once: true });
+                if (typeof addNewProfile === 'function') addNewProfile();
+            }
+        }, { once: true });
+    }
+
+    function _pushProfileNameStep() {
+        if (_currentTutorial !== TUTORIALS.userSelect) return;
+        _currentTutorial.steps.push({
+            text: 'Último paso: escribe cómo quieres que te llamemos en Etheria.',
+            expression: 'happy',
+            noNext: true,
+            action: () => {
+                highlightElement('#newProfileNameInput');
+                window.addEventListener('etheria:new-profile-created', function onCreated() {
+                    if (_currentTutorial !== TUTORIALS.userSelect) return;
+                    endTutorial();
+                    _finishProfileWelcomeTour();
+                    setTimeout(() => {
+                        say('Tu perfil ya existe. El resto de Etheria te lo iré mostrando por partes, a tu ritmo.', {
+                            expression: 'love',
+                            duration: 4000
+                        });
+                    }, 400);
+                }, { once: true });
+            }
+        });
+        _tutorialStep = _currentTutorial.steps.length - 1;
+        _renderTutorialStep();
+    }
+
     // ── API pública ──────────────────────────────────────────────────────────
 
     return {
@@ -31528,6 +31789,7 @@ const Ethy = (function() {
         removeHighlight,
         onEnterSection,
         resetTutorials,
+        isFirstVisitTourActive,
         toggleMinimize,
         get isMinimized() { return _isMinimized; },
         get isVisible() { return _isVisible; },
@@ -31897,7 +32159,22 @@ window.Ethy = Ethy;
     async function loadStoryParticipants(storyId) {
         if (!storyId) return [];
         try {
-            // Obtener user_ids únicos de los mensajes de esta historia
+            // Fuente principal: story_participants — ya trae qué personaje
+            // reclamó cada quien (character_id), sin depender de haber mandado
+            // algún mensaje todavía.
+            const client = _getClient();
+            let participantRows = [];
+            if (client) {
+                const { data, error } = await client
+                    .from('story_participants')
+                    .select('user_id, character_id, title')
+                    .eq('story_id', storyId);
+                if (!error && Array.isArray(data)) participantRows = data;
+                else if (error) logger?.warn('supabase:stories', 'loadStoryParticipants (participants):', error.message);
+            }
+
+            // Respaldo: historias antiguas donde alguien mandó mensajes antes de
+            // que existiera esta fila (o la fila no llegó a crearse).
             const res = await fetch(
                 SB_URL + '/rest/v1/messages'
                     + '?story_id=eq.' + encodeURIComponent(storyId)
@@ -31905,29 +32182,113 @@ window.Ethy = Ethy;
                     + '&order=created_at.asc',
                 { headers: await _readHeaders(), signal: AbortSignal.timeout(5000) }
             );
+            const messageRows = res.ok ? await res.json() : [];
 
-            if (!res.ok) return [];
-            const rows = await res.json();
-
-            // Deduplicar user_ids
-            const seen = new Set();
-            const uniqueUserIds = rows
+            const seen = new Set(participantRows.map(p => p.user_id));
+            messageRows
                 .map(r => r.user_id)
-                .filter(uid => uid && !seen.has(uid) && seen.add(uid));
+                .filter(uid => uid && !seen.has(uid) && seen.add(uid))
+                .forEach(uid => participantRows.push({ user_id: uid, character_id: null, title: null }));
 
             // Cruzar con cloudProfiles si están disponibles
-            const participants = uniqueUserIds.map(uid => {
+            const participants = participantRows.map(p => {
                 const profile = Array.isArray(appData?.cloudProfiles)
-                    ? appData.cloudProfiles.find(p => p.owner_user_id === uid || p.id === uid)
+                    ? appData.cloudProfiles.find(pr => pr.owner_user_id === p.user_id || pr.id === p.user_id)
                     : null;
-                return { user_id: uid, profile: profile || null };
+                return {
+                    user_id: p.user_id,
+                    character_id: p.character_id || null,
+                    title: p.title || null,
+                    profile: profile || null
+                };
             });
+
+            // Precargar la ficha completa de los personajes que otros
+            // participantes tienen reclamados. La política SELECT de
+            // 'characters' es abierta a cualquier autenticado, así que solo
+            // falta traerlos — antes el popover solo veía tus propios
+            // personajes y mostraba "no encontrado" para los demás.
+            await _cacheParticipantCharacters(participants);
 
             return participants;
 
         } catch (e) {
             logger?.warn('supabase:stories', 'loadStoryParticipants error:', e.message);
             return [];
+        }
+    }
+
+    // Descarga la ficha completa de los personajes reclamados por los
+    // participantes de la historia activa y la deja en appData.storyParticipantCharacters
+    // (separado de appData.characters a propósito: ese array alimenta el
+    // selector de "mis personajes", y mezclar ahí fichas ajenas rompería ese filtro).
+    async function _cacheParticipantCharacters(participants) {
+        const client = _getClient();
+        if (!client || typeof appData === 'undefined') return;
+
+        const ids = [...new Set((participants || []).map(p => p.character_id).filter(Boolean))];
+        if (!ids.length) {
+            appData.storyParticipantCharacters = [];
+            return;
+        }
+
+        try {
+            const { data, error } = await client
+                .from('characters')
+                .select('*')
+                .in('id', ids);
+            if (error || !Array.isArray(data)) return;
+
+            appData.storyParticipantCharacters = data.map(row => ({
+                id:          row.id,
+                owner:       row.owner        || '',
+                name:        row.name         || '',
+                lastName:    row.last_name    || '',
+                age:         row.age          || '',
+                race:        row.race         || '',
+                gender:      row.gender       || '',
+                alignment:   row.alignment    || '',
+                job:         row.job          || '',
+                color:       row.color        || '#8b7355',
+                avatar:      row.avatar_url   || '',
+                sprite:      row.sprite_url   || '',
+                basic:       row.basic        || '',
+                personality: row.personality  || '',
+                history:     row.history      || '',
+                notes:       row.notes        || '',
+                rpgProfile:  row.rpg_profile  || undefined,
+                stats:       row.stats        || {}
+            }));
+        } catch (e) {
+            logger?.warn('supabase:stories', '_cacheParticipantCharacters error:', e?.message);
+        }
+    }
+
+    // Reclama un personaje propio para la historia activa (story_participants.character_id).
+    // A diferencia de upsertStory() (solo el creador puede escribir en 'stories'),
+    // esto lo puede hacer cualquier participante sobre su propia fila — y ahora
+    // un trigger en el servidor comprueba que el personaje sea realmente suyo.
+    async function claimCharacter(storyId, characterId) {
+        if (!storyId || !characterId) return { ok: false };
+        const client = _getClient();
+        const user = await _getUser();
+        if (!client || !user?.id) return { ok: false, error: 'Sin sesión' };
+
+        try {
+            const { error } = await client
+                .from('story_participants')
+                .upsert(
+                    { story_id: storyId, user_id: user.id, character_id: String(characterId) },
+                    { onConflict: 'story_id,user_id' }
+                );
+            if (error) {
+                logger?.warn('supabase:stories', 'claimCharacter failed:', error.message);
+                return { ok: false, error: error.message };
+            }
+            return { ok: true };
+        } catch (e) {
+            logger?.warn('supabase:stories', 'claimCharacter error:', e?.message);
+            return { ok: false, error: e?.message };
         }
     }
 
@@ -32008,15 +32369,28 @@ window.Ethy = Ethy;
 
             // Si el usuario actual no está en turnOrder, añadirlo al final.
             // Ocurre cuando alguien se une por primera vez a una historia ajena.
+            // Usa la función join_story_turn_order (SECURITY DEFINER) en vez de
+            // un UPDATE directo sobre 'stories': esa tabla solo la puede escribir
+            // el creador, así que un UPDATE directo de cualquier otro participante
+            // fallaba en silencio (0 filas) y la cola compartida nunca se enteraba.
             const myUid = global._cachedUserId;
             if (myUid) {
                 const topic = (appData?.topics || []).find(t => String(t.storyId) === String(storyId));
                 if (topic && topic.turnMode && topic.turnMode !== 'off') {
                     const queue = Array.isArray(topic.turnOrder) ? topic.turnOrder : [];
                     if (!queue.includes(myUid)) {
-                        const newOrder = [...queue, myUid];
-                        setTurnConfig(storyId, { mode: topic.turnMode, order: newOrder })
-                            .catch(() => {});
+                        const client = _getClient();
+                        client?.rpc('join_story_turn_order', { p_story_id: storyId })
+                            .then(({ data, error }) => {
+                                if (error) {
+                                    logger?.warn('supabase:stories', 'join_story_turn_order failed:', error.message);
+                                    return;
+                                }
+                                if (Array.isArray(data?.order)) {
+                                    topic.turnOrder = data.order;
+                                }
+                            })
+                            .catch(err => logger?.warn('supabase:stories', 'join_story_turn_order error:', err?.message));
                     }
                 }
             }
@@ -32028,7 +32402,7 @@ window.Ethy = Ethy;
         });
 
         // 6. Suscripción realtime filtrada por story_id
-        _subscribeToStory(storyId);
+        await _subscribeToStory(storyId);
 
         // 7. Notificar que la historia está activa
         global.dispatchEvent(new CustomEvent('etheria:story-entered', {
@@ -32075,7 +32449,7 @@ window.Ethy = Ethy;
 
     // ── _subscribeToStory ─────────────────────────────────────────────────────
 
-    function _subscribeToStory(storyId) {
+    async function _subscribeToStory(storyId) {
         let client;
         try {
             client = global.supabase?.createClient
@@ -32093,7 +32467,7 @@ window.Ethy = Ethy;
 
         // Limpiar canal anterior de historia
         if (global._storyRealtimeChannel && client) {
-            try { client.removeChannel(global._storyRealtimeChannel); } catch (error) {
+            try { await client.removeChannel(global._storyRealtimeChannel); } catch (error) {
                 logger?.warn('supabase:stories', 'remove previous story channel failed:', error?.message || error);
             }
             global._storyRealtimeChannel = null;
@@ -32386,7 +32760,10 @@ window.Ethy = Ethy;
                 && SupabasePresence.isUserOnline(userId);
         };
 
-        // Para cada participante buscar su personaje bloqueado en el topic activo
+        // Para cada participante buscar su personaje bloqueado en el topic activo.
+        // lockMap está indexado por user_id real (ver persistTopicLockedCharacter /
+        // selectRoleCharacterForTopic) — p.user_index nunca viene poblado aquí y
+        // además colisionaría entre cuentas distintas, así que ya no se usa.
         const topic = typeof appData !== 'undefined' && global.currentTopicId
             ? (appData.topics || []).find(t => String(t.id) === String(global.currentTopicId))
             : null;
@@ -32398,10 +32775,15 @@ window.Ethy = Ethy;
         participants.forEach(function (p) {
             const online = isOnline(p.user_id);
 
-            // Buscar el personaje que este usuario tiene bloqueado en el topic
-            const charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
-            const char   = charId && typeof appData !== 'undefined'
+            // 1. Personaje reclamado en story_participants.character_id (fuente
+            //    principal, viene ya resuelto en `p.character_id`).
+            // 2. lockMap por user_id (compatibilidad con el flujo RPG existente).
+            const charId = p.character_id || lockMap[p.user_id];
+            // Buscar primero entre mis propios personajes, luego en la caché de
+            // fichas de otros participantes (poblada por loadStoryParticipants).
+            const char = charId && typeof appData !== 'undefined'
                 ? (appData.characters || []).find(c => String(c.id) === String(charId))
+                    || (appData.storyParticipantCharacters || []).find(c => String(c.id) === String(charId))
                 : null;
 
             const displayName = char?.name
@@ -32476,10 +32858,10 @@ window.Ethy = Ethy;
     /**
      * Sale de la historia activa y limpia el canal realtime.
      */
-    function leaveStory() {
+    async function leaveStory() {
         const client = global.supabaseClient || null;
         if (global._storyRealtimeChannel && client) {
-            try { client.removeChannel(global._storyRealtimeChannel); } catch (error) {
+            try { await client.removeChannel(global._storyRealtimeChannel); } catch (error) {
                 logger?.warn('supabase:stories', 'leaveStory removeChannel failed:', error?.message || error);
             }
             global._storyRealtimeChannel = null;
@@ -32599,6 +32981,24 @@ window.Ethy = Ethy;
                 const existing = appData.topics.find(t => t.storyId === storyId);
                 if (existing) {
                     return { ok: true, topicId: existing.id, title: story.title, alreadyJoined: true };
+                }
+            }
+
+            // Registrar la membresía ANTES de cargar mensajes: las políticas RLS
+            // de 'messages' (SELECT e INSERT) exigen que quien accede ya tenga
+            // una fila en story_participants (o sea el creador). Sin esto, quien
+            // se une por invitación podía leer la fila de 'stories' pero se
+            // encontraba la historia vacía y no podía escribir ningún mensaje.
+            const user = await _getUser();
+            if (user?.id) {
+                const { error: joinErr } = await c
+                    .from('story_participants')
+                    .upsert(
+                        { story_id: storyId, user_id: user.id },
+                        { onConflict: 'story_id,user_id', ignoreDuplicates: true }
+                    );
+                if (joinErr) {
+                    logger?.warn('supabase:stories', 'joinByInviteToken: no se pudo registrar participante:', joinErr.message);
                 }
             }
 
@@ -32916,6 +33316,7 @@ window.Ethy = Ethy;
         generateInviteLink    : generateInviteLink,
         joinByInviteToken     : joinByInviteToken,
         upsertStory           : upsertStory,
+        claimCharacter        : claimCharacter,
         syncAllLocalTopics    : syncAllLocalTopics,
         deleteStory           : deleteStory,
         // Gestión de turnos

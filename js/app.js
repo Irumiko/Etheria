@@ -478,6 +478,7 @@ async function register() {
     setAuthStatus(needsConfirmation
         ? 'Cuenta creada. Revisa tu email para confirmar.'
         : 'Cuenta creada correctamente.', false, 'authRegStatus');
+    window.dispatchEvent(new CustomEvent('etheria:register-result', { detail: { needsConfirmation } }));
 
     if (!needsConfirmation) {
         // Evitar que onAuthStateChange(SIGNED_IN) duplique la hidratación mientras
@@ -514,7 +515,31 @@ function _withTimeout(promise, ms, label) {
     ]);
 }
 
-async function ensureProfile() {
+// supabase-js dispara onAuthStateChange (con SIGNED_IN) cada vez que la pestaña
+// recupera el foco y refresca la sesión. Sin protección, cada una de esas
+// veces lanzaba una tanda completa de peticiones (getUser + perfiles + ajustes
+// + slots + suscripción de turnos) que podía solaparse con la anterior si no
+// había terminado. Con alternancias de pestaña frecuentes esto se acumulaba en
+// decenas de peticiones casi simultáneas a Supabase Auth — llegó a tumbar el
+// servidor con "Thread killed by timeout manager" y 503 en cascada para todo
+// lo demás. _ensureProfileInFlight hace que una llamada solapada reutilice la
+// que ya está en curso en vez de lanzar otra tanda por su cuenta.
+let _ensureProfileInFlight = null;
+let _lastEnsureProfileAt = 0;
+const ENSURE_PROFILE_COOLDOWN_MS = 3000; // ignora llamadas repetidas en ráfaga (alt-tab rápido)
+
+function ensureProfile() {
+    if (_ensureProfileInFlight) return _ensureProfileInFlight;
+    if (Date.now() - _lastEnsureProfileAt < ENSURE_PROFILE_COOLDOWN_MS) return Promise.resolve();
+
+    _ensureProfileInFlight = _doEnsureProfile().finally(() => {
+        _ensureProfileInFlight = null;
+        _lastEnsureProfileAt = Date.now();
+    });
+    return _ensureProfileInFlight;
+}
+
+async function _doEnsureProfile() {
     // ensureProfile ya no crea perfiles automáticamente.
     // Los perfiles globales se crean explícitamente por el usuario via SupabaseProfiles.
     // Esta función solo inicializa los módulos Supabase tras el login.
@@ -741,9 +766,8 @@ function initializeApp() {
     setupGallerySearchListeners();
 
 
-    // Comprobar token de invitación (?invite=TOKEN) — tiene prioridad sobre ?room=
+    // Comprobar token de invitación (?invite=TOKEN)
     const _pendingInviteToken = new URLSearchParams(window.location.search).get('invite');
-    pendingRoomInviteId = (typeof getRoomIdFromQuery === 'function') ? getRoomIdFromQuery() : null;
 
     if (_pendingInviteToken) {
         // Limpiar la URL para no re-procesar en recargas
@@ -761,16 +785,6 @@ function initializeApp() {
                 setTimeout(() => openInviteJoinModal(tok), 800);
             }
         }, { once: false });
-    } else if (pendingRoomInviteId) {
-        const defaultProfile = getStoredLastProfileId();
-        selectUser(defaultProfile !== null ? defaultProfile : 0, { autoLoad: true })
-            .then(() => {
-                if (typeof tryJoinRoomFromUrl === 'function') return tryJoinRoomFromUrl();
-                return false;
-            })
-            .catch((err) => {
-                console.warn('No se pudo abrir la sala compartida:', err);
-            });
     }
     // Nota: la entrada automática al último perfil se gestiona ahora en el
     // arranque (boot) y post-login, basándose en la sesión y la propiedad del perfil.
@@ -1074,7 +1088,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Solo en HTTPS (obligatorio) y si el navegador lo soporta.
     // No bloquea el arranque de la app — se registra en background.
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        const _registerServiceWorker = () => {
             navigator.serviceWorker.register('./sw.js', { scope: './' })
                 .then((reg) => {
                     // Manejar actualizaciones del Service Worker
@@ -1129,7 +1143,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Fallo no crítico — la app funciona igual sin SW
                     console.warn('[PWA] Service Worker no pudo registrarse:', err);
                 });
-        });
+        };
+
+        // El evento 'load' puede haber ocurrido ya antes de llegar aquí (página
+        // pesada, script tardío, etc.) — un listener añadido después nunca se
+        // dispara y el SW no llega a registrarse nunca. Si 'load' ya pasó,
+        // registrar directamente en vez de esperar un evento que no va a volver.
+        if (document.readyState === 'complete') {
+            _registerServiceWorker();
+        } else {
+            window.addEventListener('load', _registerServiceWorker);
+        }
     }
     // ── Frase aleatoria en el subtítulo del menú principal ───────────────────
     // (absorbido de mejoras.js — Mejora 1)

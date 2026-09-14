@@ -344,7 +344,22 @@
     async function loadStoryParticipants(storyId) {
         if (!storyId) return [];
         try {
-            // Obtener user_ids únicos de los mensajes de esta historia
+            // Fuente principal: story_participants — ya trae qué personaje
+            // reclamó cada quien (character_id), sin depender de haber mandado
+            // algún mensaje todavía.
+            const client = _getClient();
+            let participantRows = [];
+            if (client) {
+                const { data, error } = await client
+                    .from('story_participants')
+                    .select('user_id, character_id, title')
+                    .eq('story_id', storyId);
+                if (!error && Array.isArray(data)) participantRows = data;
+                else if (error) logger?.warn('supabase:stories', 'loadStoryParticipants (participants):', error.message);
+            }
+
+            // Respaldo: historias antiguas donde alguien mandó mensajes antes de
+            // que existiera esta fila (o la fila no llegó a crearse).
             const res = await fetch(
                 SB_URL + '/rest/v1/messages'
                     + '?story_id=eq.' + encodeURIComponent(storyId)
@@ -352,29 +367,113 @@
                     + '&order=created_at.asc',
                 { headers: await _readHeaders(), signal: AbortSignal.timeout(5000) }
             );
+            const messageRows = res.ok ? await res.json() : [];
 
-            if (!res.ok) return [];
-            const rows = await res.json();
-
-            // Deduplicar user_ids
-            const seen = new Set();
-            const uniqueUserIds = rows
+            const seen = new Set(participantRows.map(p => p.user_id));
+            messageRows
                 .map(r => r.user_id)
-                .filter(uid => uid && !seen.has(uid) && seen.add(uid));
+                .filter(uid => uid && !seen.has(uid) && seen.add(uid))
+                .forEach(uid => participantRows.push({ user_id: uid, character_id: null, title: null }));
 
             // Cruzar con cloudProfiles si están disponibles
-            const participants = uniqueUserIds.map(uid => {
+            const participants = participantRows.map(p => {
                 const profile = Array.isArray(appData?.cloudProfiles)
-                    ? appData.cloudProfiles.find(p => p.owner_user_id === uid || p.id === uid)
+                    ? appData.cloudProfiles.find(pr => pr.owner_user_id === p.user_id || pr.id === p.user_id)
                     : null;
-                return { user_id: uid, profile: profile || null };
+                return {
+                    user_id: p.user_id,
+                    character_id: p.character_id || null,
+                    title: p.title || null,
+                    profile: profile || null
+                };
             });
+
+            // Precargar la ficha completa de los personajes que otros
+            // participantes tienen reclamados. La política SELECT de
+            // 'characters' es abierta a cualquier autenticado, así que solo
+            // falta traerlos — antes el popover solo veía tus propios
+            // personajes y mostraba "no encontrado" para los demás.
+            await _cacheParticipantCharacters(participants);
 
             return participants;
 
         } catch (e) {
             logger?.warn('supabase:stories', 'loadStoryParticipants error:', e.message);
             return [];
+        }
+    }
+
+    // Descarga la ficha completa de los personajes reclamados por los
+    // participantes de la historia activa y la deja en appData.storyParticipantCharacters
+    // (separado de appData.characters a propósito: ese array alimenta el
+    // selector de "mis personajes", y mezclar ahí fichas ajenas rompería ese filtro).
+    async function _cacheParticipantCharacters(participants) {
+        const client = _getClient();
+        if (!client || typeof appData === 'undefined') return;
+
+        const ids = [...new Set((participants || []).map(p => p.character_id).filter(Boolean))];
+        if (!ids.length) {
+            appData.storyParticipantCharacters = [];
+            return;
+        }
+
+        try {
+            const { data, error } = await client
+                .from('characters')
+                .select('*')
+                .in('id', ids);
+            if (error || !Array.isArray(data)) return;
+
+            appData.storyParticipantCharacters = data.map(row => ({
+                id:          row.id,
+                owner:       row.owner        || '',
+                name:        row.name         || '',
+                lastName:    row.last_name    || '',
+                age:         row.age          || '',
+                race:        row.race         || '',
+                gender:      row.gender       || '',
+                alignment:   row.alignment    || '',
+                job:         row.job          || '',
+                color:       row.color        || '#8b7355',
+                avatar:      row.avatar_url   || '',
+                sprite:      row.sprite_url   || '',
+                basic:       row.basic        || '',
+                personality: row.personality  || '',
+                history:     row.history      || '',
+                notes:       row.notes        || '',
+                rpgProfile:  row.rpg_profile  || undefined,
+                stats:       row.stats        || {}
+            }));
+        } catch (e) {
+            logger?.warn('supabase:stories', '_cacheParticipantCharacters error:', e?.message);
+        }
+    }
+
+    // Reclama un personaje propio para la historia activa (story_participants.character_id).
+    // A diferencia de upsertStory() (solo el creador puede escribir en 'stories'),
+    // esto lo puede hacer cualquier participante sobre su propia fila — y ahora
+    // un trigger en el servidor comprueba que el personaje sea realmente suyo.
+    async function claimCharacter(storyId, characterId) {
+        if (!storyId || !characterId) return { ok: false };
+        const client = _getClient();
+        const user = await _getUser();
+        if (!client || !user?.id) return { ok: false, error: 'Sin sesión' };
+
+        try {
+            const { error } = await client
+                .from('story_participants')
+                .upsert(
+                    { story_id: storyId, user_id: user.id, character_id: String(characterId) },
+                    { onConflict: 'story_id,user_id' }
+                );
+            if (error) {
+                logger?.warn('supabase:stories', 'claimCharacter failed:', error.message);
+                return { ok: false, error: error.message };
+            }
+            return { ok: true };
+        } catch (e) {
+            logger?.warn('supabase:stories', 'claimCharacter error:', e?.message);
+            return { ok: false, error: e?.message };
         }
     }
 
@@ -455,15 +554,28 @@
 
             // Si el usuario actual no está en turnOrder, añadirlo al final.
             // Ocurre cuando alguien se une por primera vez a una historia ajena.
+            // Usa la función join_story_turn_order (SECURITY DEFINER) en vez de
+            // un UPDATE directo sobre 'stories': esa tabla solo la puede escribir
+            // el creador, así que un UPDATE directo de cualquier otro participante
+            // fallaba en silencio (0 filas) y la cola compartida nunca se enteraba.
             const myUid = global._cachedUserId;
             if (myUid) {
                 const topic = (appData?.topics || []).find(t => String(t.storyId) === String(storyId));
                 if (topic && topic.turnMode && topic.turnMode !== 'off') {
                     const queue = Array.isArray(topic.turnOrder) ? topic.turnOrder : [];
                     if (!queue.includes(myUid)) {
-                        const newOrder = [...queue, myUid];
-                        setTurnConfig(storyId, { mode: topic.turnMode, order: newOrder })
-                            .catch(() => {});
+                        const client = _getClient();
+                        client?.rpc('join_story_turn_order', { p_story_id: storyId })
+                            .then(({ data, error }) => {
+                                if (error) {
+                                    logger?.warn('supabase:stories', 'join_story_turn_order failed:', error.message);
+                                    return;
+                                }
+                                if (Array.isArray(data?.order)) {
+                                    topic.turnOrder = data.order;
+                                }
+                            })
+                            .catch(err => logger?.warn('supabase:stories', 'join_story_turn_order error:', err?.message));
                     }
                 }
             }
@@ -475,7 +587,7 @@
         });
 
         // 6. Suscripción realtime filtrada por story_id
-        _subscribeToStory(storyId);
+        await _subscribeToStory(storyId);
 
         // 7. Notificar que la historia está activa
         global.dispatchEvent(new CustomEvent('etheria:story-entered', {
@@ -522,7 +634,7 @@
 
     // ── _subscribeToStory ─────────────────────────────────────────────────────
 
-    function _subscribeToStory(storyId) {
+    async function _subscribeToStory(storyId) {
         let client;
         try {
             client = global.supabase?.createClient
@@ -540,7 +652,7 @@
 
         // Limpiar canal anterior de historia
         if (global._storyRealtimeChannel && client) {
-            try { client.removeChannel(global._storyRealtimeChannel); } catch (error) {
+            try { await client.removeChannel(global._storyRealtimeChannel); } catch (error) {
                 logger?.warn('supabase:stories', 'remove previous story channel failed:', error?.message || error);
             }
             global._storyRealtimeChannel = null;
@@ -833,7 +945,10 @@
                 && SupabasePresence.isUserOnline(userId);
         };
 
-        // Para cada participante buscar su personaje bloqueado en el topic activo
+        // Para cada participante buscar su personaje bloqueado en el topic activo.
+        // lockMap está indexado por user_id real (ver persistTopicLockedCharacter /
+        // selectRoleCharacterForTopic) — p.user_index nunca viene poblado aquí y
+        // además colisionaría entre cuentas distintas, así que ya no se usa.
         const topic = typeof appData !== 'undefined' && global.currentTopicId
             ? (appData.topics || []).find(t => String(t.id) === String(global.currentTopicId))
             : null;
@@ -845,10 +960,15 @@
         participants.forEach(function (p) {
             const online = isOnline(p.user_id);
 
-            // Buscar el personaje que este usuario tiene bloqueado en el topic
-            const charId = lockMap[p.user_index] || lockMap[String(p.user_index)];
-            const char   = charId && typeof appData !== 'undefined'
+            // 1. Personaje reclamado en story_participants.character_id (fuente
+            //    principal, viene ya resuelto en `p.character_id`).
+            // 2. lockMap por user_id (compatibilidad con el flujo RPG existente).
+            const charId = p.character_id || lockMap[p.user_id];
+            // Buscar primero entre mis propios personajes, luego en la caché de
+            // fichas de otros participantes (poblada por loadStoryParticipants).
+            const char = charId && typeof appData !== 'undefined'
                 ? (appData.characters || []).find(c => String(c.id) === String(charId))
+                    || (appData.storyParticipantCharacters || []).find(c => String(c.id) === String(charId))
                 : null;
 
             const displayName = char?.name
@@ -923,10 +1043,10 @@
     /**
      * Sale de la historia activa y limpia el canal realtime.
      */
-    function leaveStory() {
+    async function leaveStory() {
         const client = global.supabaseClient || null;
         if (global._storyRealtimeChannel && client) {
-            try { client.removeChannel(global._storyRealtimeChannel); } catch (error) {
+            try { await client.removeChannel(global._storyRealtimeChannel); } catch (error) {
                 logger?.warn('supabase:stories', 'leaveStory removeChannel failed:', error?.message || error);
             }
             global._storyRealtimeChannel = null;
@@ -1046,6 +1166,24 @@
                 const existing = appData.topics.find(t => t.storyId === storyId);
                 if (existing) {
                     return { ok: true, topicId: existing.id, title: story.title, alreadyJoined: true };
+                }
+            }
+
+            // Registrar la membresía ANTES de cargar mensajes: las políticas RLS
+            // de 'messages' (SELECT e INSERT) exigen que quien accede ya tenga
+            // una fila en story_participants (o sea el creador). Sin esto, quien
+            // se une por invitación podía leer la fila de 'stories' pero se
+            // encontraba la historia vacía y no podía escribir ningún mensaje.
+            const user = await _getUser();
+            if (user?.id) {
+                const { error: joinErr } = await c
+                    .from('story_participants')
+                    .upsert(
+                        { story_id: storyId, user_id: user.id },
+                        { onConflict: 'story_id,user_id', ignoreDuplicates: true }
+                    );
+                if (joinErr) {
+                    logger?.warn('supabase:stories', 'joinByInviteToken: no se pudo registrar participante:', joinErr.message);
                 }
             }
 
@@ -1363,6 +1501,7 @@
         generateInviteLink    : generateInviteLink,
         joinByInviteToken     : joinByInviteToken,
         upsertStory           : upsertStory,
+        claimCharacter        : claimCharacter,
         syncAllLocalTopics    : syncAllLocalTopics,
         deleteStory           : deleteStory,
         // Gestión de turnos

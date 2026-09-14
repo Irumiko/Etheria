@@ -12,7 +12,58 @@
        en cuanto la app arranca correctamente. ── */
     (function () {
         var shown = false;
-        function showFatal(msg, src, line, col) {
+
+        // Reporte autónomo — este script corre ANTES que bugReport.js, así que
+        // no puede depender de window.EtheriaBugReport. Usa fetch directo con
+        // la clave pública (anon/publishable), igual que js/utils/bugReport.js.
+        var SUPA_URL = 'https://timtqdrfeuzwwixfnudj.supabase.co';
+        var SUPA_KEY = 'sb_publishable_imGaxAfo_z1NuG6NV8pDtQ_A6Wp3DH3';
+
+        function _ignoreFatalBox(el) { return el && el.id === 'etheriaFatalError'; }
+
+        function _postReport(msg, stack, screenshot, btn) {
+            fetch(SUPA_URL + '/functions/v1/send-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', apikey: SUPA_KEY, Authorization: 'Bearer ' + SUPA_KEY },
+                body: JSON.stringify({
+                    type: 'bug',
+                    error_message: msg,
+                    error_stack: stack || null,
+                    page: location.href,
+                    user_agent: navigator.userAgent,
+                    screenshot_base64: screenshot || null
+                })
+            }).then(function (res) {
+                btn.textContent = res.ok ? '✓ Reporte enviado' : '✗ No se pudo enviar';
+            }).catch(function () {
+                btn.textContent = '✗ No se pudo enviar (sin conexión)';
+            });
+        }
+
+        function _sendFatalReport(msg, stack, btn) {
+            btn.disabled = true;
+            btn.textContent = 'Enviando…';
+
+            function withScreenshot() {
+                try {
+                    html2canvas(document.body, { scale: 0.5, logging: false, useCORS: true, foreignObjectRendering: true, ignoreElements: _ignoreFatalBox })
+                        .then(function (canvas) { _postReport(msg, stack, canvas.toDataURL('image/jpeg', 0.55), btn); })
+                        .catch(function () { _postReport(msg, stack, null, btn); });
+                } catch (e) { _postReport(msg, stack, null, btn); }
+            }
+
+            if (typeof html2canvas === 'function') {
+                withScreenshot();
+            } else {
+                var s = document.createElement('script');
+                s.src = 'assets/vendor/html2canvas-1.4.1.min.js';
+                s.onload = withScreenshot;
+                s.onerror = function () { _postReport(msg, stack, null, btn); };
+                document.head.appendChild(s);
+            }
+        }
+
+        function showFatal(msg, src, line, col, stack) {
             if (shown) return;
             shown = true;
             var box = document.createElement('div');
@@ -20,19 +71,31 @@
             box.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(8,6,20,0.97);' +
                 'color:#f0e6ff;font:13px/1.5 monospace;padding:20px;overflow:auto;white-space:pre-wrap;' +
                 'word-break:break-word;';
-            box.textContent = '⚠ Error al iniciar Etheria\n\n' +
+
+            var text = document.createElement('div');
+            text.textContent = '⚠ Error al iniciar Etheria\n\n' +
                 'Mensaje: ' + msg + '\n' +
                 (src ? 'Archivo: ' + src + '\n' : '') +
                 (line ? 'Línea: ' + line + (col ? ':' + col : '') + '\n' : '') +
-                '\n— Haz una captura de esta pantalla y compártela para poder arreglarlo. —';
+                '\n— Haz una captura de esta pantalla y compártela, o pulsa el botón de abajo para enviarnos el reporte (incluye una captura automática). —';
+            box.appendChild(text);
+
+            var btn = document.createElement('button');
+            btn.textContent = '📩 Notificar error';
+            btn.style.cssText = 'margin-top:16px;padding:8px 18px;background:rgba(124,77,255,0.25);' +
+                'border:1px solid rgba(124,77,255,0.6);color:#f0e6ff;border-radius:8px;cursor:pointer;' +
+                'font:13px monospace;';
+            btn.addEventListener('click', function () { _sendFatalReport(msg, stack, btn); });
+            box.appendChild(btn);
+
             document.body ? document.body.appendChild(box) : document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(box); });
         }
         window.addEventListener('error', function (e) {
-            showFatal(e.message, e.filename, e.lineno, e.colno);
+            showFatal(e.message, e.filename, e.lineno, e.colno, e.error && e.error.stack);
         });
         window.addEventListener('unhandledrejection', function (e) {
             var reason = e.reason;
-            showFatal((reason && (reason.message || reason.toString())) || 'Promesa rechazada sin motivo', null, null, null);
+            showFatal((reason && (reason.message || reason.toString())) || 'Promesa rechazada sin motivo', null, null, null, reason && reason.stack);
         });
         // Si la app arranca con éxito, quitar el aviso (por si hubo un error
         // no fatal recuperado) al cabo de unos segundos de actividad normal
@@ -492,8 +555,52 @@ body,
                 </h2>
                 <button class="inbox-close" onclick="closeInboxModal()">✕</button>
             </div>
-            <div id="inboxList" class="inbox-list">
-                <p class="inbox-empty">Cargando...</p>
+
+            <div class="inbox-tabs">
+                <button type="button" class="inbox-tab inbox-tab--active" data-inbox-tab="notifications" onclick="EtheriaInbox.switchTab('notifications')">Notificaciones</button>
+                <button type="button" class="inbox-tab" data-inbox-tab="messages" onclick="EtheriaInbox.switchTab('messages')">Mensajes</button>
+            </div>
+
+            <div id="inboxPanelNotifications" class="inbox-panel">
+                <div id="inboxList" class="inbox-list">
+                    <p class="inbox-empty">Cargando...</p>
+                </div>
+            </div>
+
+            <div id="inboxPanelMessages" class="inbox-panel" style="display:none">
+                <div id="conversationsListView">
+                    <div class="conversations-toolbar">
+                        <button type="button" class="btn-new-conversation" onclick="EtheriaConversations.openNewConversation()">+ Nuevo mensaje</button>
+                    </div>
+                    <div id="conversationsList" class="inbox-list">
+                        <p class="inbox-empty">Cargando...</p>
+                    </div>
+                </div>
+
+                <div id="newConversationSearch" class="new-conversation-search" style="display:none">
+                    <div class="conversation-thread-header">
+                        <button type="button" class="conversation-back" onclick="EtheriaConversations.closeNewConversation()">← Volver</button>
+                        <span>Escribir a...</span>
+                    </div>
+                    <input type="text" id="conversationSearchInput" class="conversation-search-input"
+                           placeholder="Buscar por nombre..." oninput="EtheriaConversations.searchProfilesUI(this.value)">
+                    <div id="conversationSearchResults" class="inbox-list"></div>
+                </div>
+
+                <div id="conversationThreadView" class="conversation-thread" style="display:none">
+                    <div class="conversation-thread-header">
+                        <button type="button" class="conversation-back" onclick="EtheriaConversations.closeThread()">← Volver</button>
+                        <div class="conversation-thread-who">
+                            <img id="conversationThreadAvatar" class="conversation-thread-avatar" src="" alt="" style="display:none">
+                            <span id="conversationThreadName">...</span>
+                        </div>
+                    </div>
+                    <div id="conversationMessages" class="conversation-messages"></div>
+                    <form class="conversation-compose" onsubmit="event.preventDefault(); EtheriaConversations.sendCurrentMessage();">
+                        <textarea id="conversationComposeInput" class="conversation-compose-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
+                        <button type="submit" class="conversation-compose-send">Enviar</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -583,6 +690,11 @@ body,
         <div class="cel-stars"></div>
         <div class="cel-constellations" data-pd="5"></div>
         <div class="cel-moon" data-pd="7">
+            <svg class="zodiac" viewBox="0 0 200 200" aria-hidden="true">
+                <circle cx="100" cy="100" r="92" class="ring-outer"/>
+                <circle cx="100" cy="100" r="78" class="ring-inner"/>
+                <g class="ticks"></g>
+            </svg>
             <div class="halo"></div>
             <div class="disc">
                 <span class="crater a"></span><span class="crater b"></span><span class="crater c"></span>
@@ -598,6 +710,7 @@ body,
             <div class="img"></div><div class="tint"></div><div class="tint2"></div>
         </div>
         <div class="cel-motes" data-pd="28"></div>
+        <div class="cel-fireflies" data-pd="16"></div>
         <div class="cel-shoot"></div>
         <div class="cel-vignette"></div>
 
@@ -632,7 +745,7 @@ body,
                 <button class="menu-save-btn cel-round-btn" onclick="openSaveHubModal()" title="Centro de guardado" aria-label="Centro de guardado">
                     <svg viewBox="0 0 16 16" fill="none" width="17" height="17"><path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
                 </button>
-                <button id="ambCycleBtn" class="menu-theme-toggle cel-round-btn" title="Noche" aria-label="Atmósfera: Noche" onclick="window.EtheriaAtmosphere && window.EtheriaAtmosphere.cycle()">
+                <button id="ambCycleBtn" class="menu-theme-toggle cel-round-btn" title="Noche" aria-label="Atmósfera: Noche">
                     <svg class="amb-ico" viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true">
                         <path d="M16 11.5A6 6 0 018.5 4 6 6 0 1016 11.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
                     </svg>
@@ -2691,10 +2804,11 @@ body,
 
 
 
-    
-    
-    
 
+    
+    
+    
+    
 
 
 
@@ -2746,29 +2860,6 @@ body,
             </div>
             <div id="relationshipGraphCanvas" class="relationship-constellation"></div>
             <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.6rem;">★ = nivel de afinidad (0-5). Las flechas A→B y B→A pueden ser distintas. Grosor de línea = interacciones recientes.</div>
-        </div>
-    </div>
-
-    <!-- Modal de conflicto de sincronización -->
-    <div id="syncConflictModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="syncConflictTitle">
-        <div class="modal-content" style="max-width: 420px; text-align: center;">
-            <div style="font-size: 2.5rem; margin-bottom: 1rem;">⚡</div>
-            <h3 id="syncConflictTitle" style="font-family: 'Cinzel', serif; color: var(--accent-gold); margin-bottom: 0.75rem;">Conflicto de sincronización</h3>
-            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1.5rem;">
-                Tienes cambios locales y también hay cambios en la nube.<br>
-                ¿Cuál versión quieres conservar?
-            </p>
-            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                <button class="btn-primary" id="syncKeepLocalBtn" style="min-width: 140px;">
-                    💾 Mis cambios locales
-                </button>
-                <button class="btn-secondary" id="syncKeepServerBtn" style="min-width: 140px;">
-                    ☁️ Versión de la nube
-                </button>
-            </div>
-            <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 1rem;">
-                La versión no elegida se perderá.
-            </p>
         </div>
     </div>
 
@@ -2858,12 +2949,24 @@ body,
         </div>
     </div>
 
-    <div id="storyCodeModal" class="modal-overlay" onclick="if(event.target===this) closeModal('storyCodeModal')">
-        <div class="modal" style="max-width:420px;">
-            <h3 style="margin-top:0; font-family:Cinzel,serif;">🔐 Código de historia</h3>
-            <div id="storyCodeValue" style="font-size:1.5rem; letter-spacing:0.2em; color:var(--accent-gold); margin-bottom:0.6rem;"></div>
-            <p style="font-size:0.85rem; color:var(--text-muted); margin:0 0 0.8rem;">Comparte este código de 6 caracteres con otros jugadores para que puedan unirse a la historia.</p>
-            <button class="btn-primary" onclick="closeModal('storyCodeModal')" style="width:100%;">Cerrar</button>
+    <!-- Nombrar perfil nuevo — sustituye al prompt() nativo del navegador -->
+    <div id="newProfileNameModal" class="modal-overlay" onclick="if(event.target===this) closeModal('newProfileNameModal')" role="dialog" aria-modal="true" aria-labelledby="newProfileNameTitle">
+        <div class="profile-modal" style="max-width:360px;">
+            <div class="profile-modal-header">
+                <h3 id="newProfileNameTitle">Nombra tu perfil</h3>
+                <button class="profile-modal-close" onclick="closeModal('newProfileNameModal')" aria-label="Cerrar">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div class="profile-modal-fields">
+                <div class="pm-field">
+                    <label for="newProfileNameInput">¿Cómo quieres que te llamemos?</label>
+                    <div class="pm-input-row">
+                        <input type="text" id="newProfileNameInput" class="pm-input" placeholder="Tu nombre..." autocomplete="off" maxlength="24" onkeydown="if(event.key==='Enter') confirmNewProfileName()">
+                    </div>
+                </div>
+            </div>
+            <button class="pm-close-btn" onclick="confirmNewProfileName()">Crear perfil</button>
         </div>
     </div>
 

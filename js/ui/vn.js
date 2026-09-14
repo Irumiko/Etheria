@@ -686,14 +686,6 @@ function refreshOracleQuestionAutodetect(force = false) {
     const autoQ = getOracleAutodetectedQuestion(replyText.value);
     if (autoQ && !questionInput.value.trim()) questionInput.value = autoQ;
 }
-function setOracleStat(nextStat) {
-    oracleStat = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].includes(nextStat) ? nextStat : 'STR';
-    document.querySelectorAll('.oracle-stat-btn').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.stat === oracleStat);
-    });
-    refreshOracleProbability();
-}
-
 function resetOraclePanelState() {
     // Resetea el estado del oráculo y cierra el mini-panel si está abierto
     if (typeof oracleStat !== 'undefined') oracleStat = 'STR';
@@ -718,19 +710,6 @@ function setupOraclePanelForMode() {
 }
 
 
-function toggleOracleMode() {
-    const topic = getCurrentTopic();
-    if (!isRpgTopicMode(topic?.mode)) return;
-    // El oráculo ahora usa el mini-panel independiente
-    oracleModeActive = !oracleModeActive;
-    if (oracleModeActive) {
-        toggleOracleMiniPanel();
-    } else {
-        closeOracleMiniPanel();
-    }
-    updateOracleFloatButton();
-}
-
 function updateOracleFloatButton() {
     const floatBtn = document.getElementById('vnOracleFloatBtn');
     const topic = getCurrentTopic();
@@ -748,10 +727,6 @@ function updateOracleFloatButton() {
     if (typeof updateTurnBanner === 'function') updateTurnBanner();
     floatBtn.classList.toggle('active', oracleModeActive);
     floatBtn.dataset.oracleActive = oracleModeActive ? 'true' : 'false';
-}
-
-function triggerOracleReply() {
-    toggleOracleMiniPanel();
 }
 
 function toggleVnDialogEmotePicker(event) {
@@ -1682,7 +1657,11 @@ function _doEnterTopic(id, t, topicMode) {
     // el estado visual correcto (fondo, clima) sin auto-abrir el overlay de opciones.
     showCurrentMessage('init');
     updateVnMobileFabVisibility();
-    bindReplyTypingEmitter();
+    // bindReplyTypingEmitter() desactivado: ese indicador ("puntitos" sin
+    // nombre, vía filas de mensaje falsas metaType:'typing') se sustituyó
+    // por el de supabaseInbox.js (Broadcast + nombre real). Se deja la
+    // función y su plumbing de recepción sin borrar por si algún cliente
+    // viejo en caché todavía emite alguno — es inofensivo no escucharlo.
     bindSpriteMicroInteractions();
     applySpriteAnimationProfile();
     scheduleRandomSpriteBlink();
@@ -1698,7 +1677,7 @@ function _doEnterTopic(id, t, topicMode) {
     // story_id correcto en Supabase desde el primer mensaje de esta sesión.
     const _tForStory = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
     if (_tForStory && _tForStory.storyId) {
-        global.currentStoryId = _tForStory.storyId;
+        window.currentStoryId = _tForStory.storyId;
         // Suscribir al canal realtime de la historia si está disponible
         if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.enterStory === 'function') {
             SupabaseStories.enterStory(_tForStory.storyId).catch(function(error) { window.EtheriaLogger?.warn('ui:vn', 'enterStory failed:', error?.message || error); });
@@ -1709,7 +1688,7 @@ function _doEnterTopic(id, t, topicMode) {
         }
     } else {
         // Topic sin storyId (creado antes de la integración cloud) — limpiar
-        global.currentStoryId = null;
+        window.currentStoryId = null;
     }
     // ────────────────────────────────────────────────────────────────
 
@@ -1774,7 +1753,7 @@ async function _sbEnterTopic(topicId) {
 
     // Cargar historial remoto y fusionar con local por id
     try {
-        const remoteMsgs = await SupabaseMessages.load(topicId, global.currentStoryId || null);
+        const remoteMsgs = await SupabaseMessages.load(topicId, window.currentStoryId || null);
         if (Array.isArray(remoteMsgs) && remoteMsgs.length > 0) {
             const localMsgs = getTopicMessages(topicId);
             const localIds  = new Set(localMsgs.map(function (m) { return String(m.id); }));
@@ -2143,8 +2122,12 @@ function showCurrentMessage(direction = 'forward') {
         optionsIndicator.classList.toggle('hidden', !hasOpt || isRpgModeMode());
     }
 
+    // Voz sintetizada del diálogo: solo personajes reales "hablan" (no narrador/Garrick/Oráculo)
+    const isNarratorLike = msg.isNarrator || !msg.characterId;
+    const speakerVoiceGender = isNarratorLike ? undefined : (charData?.gender || '');
+
     const formattedText = formatText(cleanText);
-    if (dialogueText) typeWriter(formattedText, dialogueText);
+    if (dialogueText) typeWriter(formattedText, dialogueText, speakerVoiceGender);
 
     // ── Oracle consequence badge ────────────────────────────────────────────
     const oracleBadge = document.getElementById('vnOracleConsequenceBadge');
@@ -2595,7 +2578,7 @@ function updateSprites(currentMsg, activeEmote = null) {
 }
 
 
-function typeWriter(text, element) {
+function typeWriter(text, element, voiceGender) {
     stopTypewriter();
 
     isTyping = true;
@@ -2650,6 +2633,11 @@ function typeWriter(text, element) {
         // Forzar reflow para que la animación arranque
         void span.offsetWidth;
         span.classList.add('tw-char--in');
+
+        // Blip de voz sintetizada — solo si el token trae al menos una letra
+        if (voiceGender !== undefined && typeof playDialogueBlip === 'function' && /\p{L}/u.test(token)) {
+            playDialogueBlip(voiceGender, token.trim().charAt(0));
+        }
     };
 
     const step = (timestamp) => {
@@ -3316,12 +3304,16 @@ function canUseNarratorMode(topic) {
 
 function getTopicLockedCharacterId(topic) {
     if (!topic) return null;
+    // Preferir user_id real (clave usada cuando hay sesión); currentUserIndex
+    // es solo el respaldo local para partidas sin cuenta — ver persistTopicLockedCharacter.
+    const myKey = window._cachedUserId || currentUserIndex;
     const locks = topic.characterLocks || {};
-    const lockByUser = locks[currentUserIndex];
+    const lockByUser = locks[myKey] || locks[currentUserIndex];
     if (lockByUser) return lockByUser;
 
     // Compatibilidad con lock RPG legado
     const legacyRpgLocks = topic.rpgCharacterLocks || {};
+    if (legacyRpgLocks[myKey]) return legacyRpgLocks[myKey];
     if (legacyRpgLocks[currentUserIndex]) return legacyRpgLocks[currentUserIndex];
 
     // Compatibilidad con lock clásico legado del creador
@@ -3334,15 +3326,19 @@ function getTopicLockedCharacterId(topic) {
 
 function persistTopicLockedCharacter(topic, charId) {
     if (!topic || !charId) return;
+    // Clave por user_id real cuando hay sesión — currentUserIndex es un slot
+    // local (0/1/2) que colisiona entre cuentas distintas en dispositivos
+    // distintos (dos jugadores reales pueden tener ambos "índice 0").
+    const lockKey = window._cachedUserId || currentUserIndex;
     topic.characterLocks = topic.characterLocks || {};
-    if (topic.characterLocks[currentUserIndex]) return;
-    topic.characterLocks[currentUserIndex] = charId;
+    if (topic.characterLocks[lockKey]) return;
+    topic.characterLocks[lockKey] = charId;
 
     // Mantener compatibilidad con lector legacy RPG
     if (topic.mode === 'rpg') {
         topic.rpgCharacterLocks = topic.rpgCharacterLocks || {};
-        if (!topic.rpgCharacterLocks[currentUserIndex]) {
-            topic.rpgCharacterLocks[currentUserIndex] = charId;
+        if (!topic.rpgCharacterLocks[lockKey]) {
+            topic.rpgCharacterLocks[lockKey] = charId;
         }
     }
 
@@ -5085,45 +5081,6 @@ function updateSceneChangePreview() {
     preview.textContent = `Próxima escena: ${pendingSceneChange.title}`;
 }
 
-async function prepareSceneChange() {
-    const topic = getCurrentTopic();
-    if (!topic) return;
-
-    if (!isNarratorMode) {
-        showAutosave('Activa Modo Narrador para cambiar de escena', 'error');
-        return;
-    }
-
-    if (!canUseNarratorMode(topic)) {
-        showAutosave('Solo quien crea la historia puede narrar en modo RPG', 'error');
-        return;
-    }
-
-    const replyText = document.getElementById('vnReplyText');
-    if (!replyText || !replyText.value.trim()) {
-        showAutosave('Escribe el mensaje narrativo antes de cambiar escena', 'error');
-        return;
-    }
-
-    const titleRaw = await openPromptModal('Nombre de la nueva escena (ej: Playa al atardecer):', 'Nueva escena');
-    if (titleRaw === null) return;
-    const title = String(titleRaw || '').trim() || 'Nueva escena';
-
-    const backgroundRaw = await openPromptModal('URL de fondo para la escena (opcional, deja vacío para usar el fondo por defecto):', '');
-    if (backgroundRaw === null) return;
-    const background = resolveTopicBackgroundPath(String(backgroundRaw || '').trim());
-
-    pendingSceneChange = {
-        title,
-        background,
-        at: new Date().toISOString()
-    };
-
-    updateSceneChangePreview();
-    if (typeof _updateNarratePending === 'function') _updateNarratePending();
-    showAutosave(`Escena preparada: ${title}`, 'saved');
-}
-
 function applySceneChangeToTopic(topic, sceneChange) {
     if (!topic || !sceneChange) return;
 
@@ -5330,14 +5287,6 @@ function closeReplyPanel() {
     updateOracleFloatButton();
 }
 
-function toggleCharGrid() {
-    if (isNarratorMode) return;
-    const topic = getCurrentTopic();
-    if (getTopicLockedCharacterId(topic)) return;
-    const grid = document.getElementById('charGridDropdown');
-    if (grid) grid.classList.toggle('active');
-}
-
 function updateCharSelector() {
     const mine = appData.characters.filter(c => c.userIndex === currentUserIndex);
     const display = document.getElementById('charSelectedDisplay');
@@ -5409,13 +5358,6 @@ function selectCharFromGrid(charId) {
 
     const grid = document.getElementById('charGridDropdown');
     if (grid) grid.classList.remove('active');
-}
-
-function openSelectedCharacterStats() {
-    const topic = getCurrentTopic();
-    if (topic?.mode !== 'rpg') return;
-    if (!selectedCharId || typeof openRpgStatsModal !== 'function') return;
-    openRpgStatsModal(selectedCharId);
 }
 
 function toggleOptionsFields() {
@@ -6133,7 +6075,7 @@ function vrpSetWeatherBtn(clickedBtn) {
 
         // Botón "Pedir Turno"
         banner.querySelector('.turn-skip-banner__btn').addEventListener('click', async function () {
-            const storyId = global.currentStoryId;
+            const storyId = window.currentStoryId;
             if (!storyId || typeof SupabaseStories === 'undefined') return;
             this.disabled = true;
             this.textContent = 'Solicitando…';

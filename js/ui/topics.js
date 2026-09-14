@@ -545,98 +545,47 @@ function generateTopicId() {
     });
 }
 
-function normalizeRoomId(value) {
-    const raw = String(value || '').trim();
-    if (!raw || raw.length > 128) return '';
-    return /^[A-Za-z0-9_-]+$/.test(raw) ? raw : '';
-}
+// Asegura que un topic tenga storyId en la nube antes de compartirlo.
+// createTopicFromWizard() ya intenta este upsert nada más crear el tema,
+// pero si esa sincronización inicial falla (red lenta, timeout de auth —
+// visto en producción con Supabase en frío), el tema se quedaba "solo
+// local" para siempre: ni "Compartir" ni "Código de sala" reintentaban,
+// solo mostraban "inicia sesión" aunque la sesión estuviera activa.
+async function _ensureStorySynced(topic) {
+    if (!topic) return null;
+    if (topic.storyId) return topic.storyId;
+    if (typeof SupabaseStories === 'undefined' || typeof SupabaseStories.upsertStory !== 'function') return null;
 
-function getRoomIdFromQuery() {
-    try {
-        const room = new URLSearchParams(window.location.search).get('room');
-        return normalizeRoomId(room);
-    } catch {
-        return '';
-    }
-}
+    const result = await SupabaseStories.upsertStory(topic).catch(() => null);
+    if (!result?.ok || !result.storyId) return null;
 
-function ensureTopicByRoomId(roomId) {
-    const normalizedRoomId = normalizeRoomId(roomId);
-    if (!normalizedRoomId) return null;
-
-    let topic = appData.topics.find(t => String(t.id) === normalizedRoomId);
-    if (topic) return topic;
-
-    topic = {
-        id: normalizedRoomId,
-        title: `Sala ${normalizedRoomId.slice(0, 8)}`,
-        background: DEFAULT_TOPIC_BACKGROUND,
-        mode: 'roleplay',
-        roleCharacterId: null,
-        createdBy: userNames[currentUserIndex] || 'Jugador',
-        createdByIndex: currentUserIndex,
-        date: new Date().toLocaleDateString()
-    };
-
-    appData.topics.push(topic);
-    if (typeof markDirty === 'function') markDirty('topics'); // Fix 9
-    appData.messages[normalizedRoomId] = Array.isArray(appData.messages[normalizedRoomId])
-        ? appData.messages[normalizedRoomId]
-        : [];
-
+    topic.storyId = result.storyId;
     hasUnsavedChanges = true;
     save({ silent: true });
-    renderTopics();
-    return topic;
-}
 
-async function copyCurrentRoomCode() {
-    if (!currentTopicId) return;
-
-    const topic = appData.topics.find(t => t.id === currentTopicId);
-    const storyId = topic?.storyId || window.currentStoryId;
-
-    const _doCopy = (text, label) => {
-        const onSuccess = () => showAutosave(label + ' copiado', 'saved');
-        const onFailure = () => showAutosave('No se pudo copiar', 'error');
-        if (navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(text).then(onSuccess).catch(onFailure);
-        } else {
-            try {
-                const el = document.createElement('textarea');
-                el.value = text; el.style.cssText = 'position:fixed;opacity:0';
-                document.body.appendChild(el); el.select();
-                const ok = document.execCommand('copy');
-                document.body.removeChild(el);
-                ok ? onSuccess() : onFailure();
-            } catch { onFailure(); }
-        }
-    };
-
-    // Si la historia está en Supabase, generar enlace de invitación real
-    if (storyId && typeof SupabaseStories !== 'undefined' && window._cachedUserId) {
-        showAutosave('Generando enlace...', 'info');
-        const url = await SupabaseStories.generateInviteLink(storyId);
-        if (url) {
-            _doCopy(url, 'Enlace de invitación');
-            // Actualizar el display en la UI
-            const valueEl = document.getElementById('roomCodeValue');
-            if (valueEl) valueEl.textContent = url.split('?invite=')[1] || url;
-            return;
-        }
+    const uid = window._cachedUserId;
+    if (uid && typeof SupabaseStories.setTurnConfig === 'function') {
+        SupabaseStories.setTurnConfig(result.storyId, { mode: topic.turnMode || 'strict', order: [uid] }).catch(() => {});
     }
-
-    // Fallback: copiar el ID local
-    _doCopy(String(currentTopicId), 'Código de sala');
+    return result.storyId;
 }
 
 async function shareCurrentStory() {
     if (!currentTopicId) return;
     const topic = appData.topics.find(t => t.id === currentTopicId);
-    const storyId = topic?.storyId || window.currentStoryId;
 
-    if (!storyId || !window._cachedUserId) {
+    if (!window._cachedUserId) {
         showAutosave('Inicia sesión para compartir historias', 'error');
+        return;
+    }
+
+    let storyId = topic?.storyId || window.currentStoryId;
+    if (!storyId && topic) {
+        showAutosave('Preparando la historia para compartir...', 'info');
+        storyId = await _ensureStorySynced(topic);
+    }
+    if (!storyId) {
+        showAutosave('No se pudo sincronizar la historia — comprueba tu conexión e inténtalo de nuevo', 'error');
         return;
     }
 
@@ -681,121 +630,6 @@ function updateRoomCodeUI(topicId) {
     // Mostrar código de sala siempre — útil en ambos modos para colaborar
     valueEl.textContent = String(topicId);
     wrap.style.display = 'flex';
-}
-
-async function tryJoinRoomFromUrl() {
-    const roomId = pendingRoomInviteId || getRoomIdFromQuery();
-    if (!roomId) return false;
-
-    pendingRoomInviteId = null;
-    const topic = ensureTopicByRoomId(roomId);
-    if (!topic) return false;
-
-    if (typeof showSection === 'function') {
-        showSection('topics');
-    } else {
-        document.querySelectorAll('.game-section').forEach(s => s.classList.remove('active'));
-        const topicsSection = document.getElementById('topicsSection');
-        if (topicsSection) topicsSection.classList.add('active');
-    }
-
-    enterTopic(topic.id);
-    return true;
-}
-
-function createTopic() {
-    const titleInput = document.getElementById('topicTitleInput');
-    const firstMsgInput = document.getElementById('topicFirstMsg');
-    const weatherInput = document.getElementById('topicWeatherInput');
-
-    const title = titleInput?.value.trim();
-    const text = firstMsgInput?.value.trim();
-    const weather = weatherInput?.value || 'none';
-    const topicBackground = DEFAULT_TOPIC_BACKGROUND;
-
-    if(!title || !text) { showAutosave('Completa todos los campos obligatorios', 'error'); return; }
-
-    const genericTitles = ['prueba', 'test', 'historia', 'nueva historia'];
-    if (genericTitles.includes((title || '').toLowerCase())) {
-        showAutosave('Elige un título más descriptivo para la historia', 'error');
-        return;
-    }
-
-    const id = generateTopicId();
-    appData.topics.push({
-        id,
-        title,
-        background: topicBackground,
-        weather: weather !== 'none' ? weather : undefined,
-        mode: currentTopicMode,
-        turnMode: 'strict',
-        turnOrder: null,
-        roleCharacterId: null,
-        createdBy: userNames[currentUserIndex] || 'Jugador',
-        createdByIndex: currentUserIndex,
-        date: new Date().toLocaleDateString()
-    });
-
-    appData.messages[id] = [{
-        id: (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function')
-            ? globalThis.crypto.randomUUID()
-            : `${Date.now()}_${Math.random().toString(16).slice(2)}`,
-        characterId: null,
-        charName: 'Narrador',
-        charColor: null,
-        charAvatar: null,
-        charSprite: null,
-        text,
-        isNarrator: true,
-        userIndex: currentUserIndex,
-        timestamp: new Date().toISOString(),
-        weather: weather !== 'none' ? weather : undefined
-    }];
-
-    hasUnsavedChanges = true;
-    save({ silent: true });
-    closeModal('topicModal');
-    renderTopics();
-
-    // ── Sincronización con la nube ──────────────────────────────────────────
-    // Usa upsertStory para guardar todos los metadatos del topic (modo, fondo,
-    // locks, etc.) en la tabla stories de Supabase, no solo el título.
-    if (typeof SupabaseStories !== 'undefined' && typeof SupabaseStories.upsertStory === 'function') {
-        const topicRef = appData.topics.find(function(tp) { return String(tp.id) === String(id); });
-        if (topicRef) {
-            SupabaseStories.upsertStory(topicRef).then(function(result) {
-                if (result.ok && result.storyId) {
-                    topicRef.storyId = result.storyId;
-                    window.currentStoryId = result.storyId;
-                    hasUnsavedChanges = true;
-                    save({ silent: true });
-                    // Inicializar configuración de turnos en strict
-                    var uid = window._cachedUserId;
-                    if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {
-                        SupabaseStories.setTurnConfig(result.storyId, { mode: 'strict', order: [uid] }).catch(function() {});
-                    }
-                } else {
-                    const detail = result?.error ? ': ' + result.error : '';
-                    window.EtheriaLogger?.warn('topics', 'No se pudo guardar la historia en Supabase' + detail);
-                    if (typeof showAutosave === 'function') showAutosave('Historia local; no se guardó en Supabase' + detail, 'error');
-                }
-            }).catch(function(error) {
-                window.EtheriaLogger?.warn('topics', 'upsertStory exception:', error?.message || error);
-                if (typeof showAutosave === 'function') showAutosave('Historia local; error al guardar en Supabase', 'error');
-            });
-        }
-    }
-    // Subir blob actualizado (ya sin topics dentro, pero por si queda algo pendiente)
-    if (typeof SupabaseSync !== 'undefined') {
-        SupabaseSync.uploadProfileData().catch(() => {});
-    }
-    // ─────────────────────────────────────────────────────────────
-
-    // Siempre pedir selección de personaje al creador, sea cual sea el modo.
-    // En RPG además abrirá stats si no hay puntos distribuidos.
-    // Si el usuario no tiene personajes, enterTopic lo gestionará como Narrador.
-    pendingRoleTopicId = id;
-    openRoleCharacterModal(id, { mode: currentTopicMode, preservePendingTopicId: true, enterOnSelect: true });
 }
 
 // ============================================
@@ -1523,8 +1357,13 @@ function createTopicFromWizard() {
         date: new Date().toLocaleDateString(),
     };
     if (mode === 'rpg') {
-        newTopic.characterLocks    = {}; newTopic.characterLocks[currentUserIndex]    = _tw.charId;
-        newTopic.rpgCharacterLocks = {}; newTopic.rpgCharacterLocks[currentUserIndex] = _tw.charId;
+        // Clave por user_id real cuando hay sesión — currentUserIndex es un slot
+        // local (0/1/2) que colisiona entre cuentas distintas en dispositivos
+        // distintos. Con user_id, story_participants y el resto de jugadores
+        // resuelven el personaje bloqueado de cada quien sin ambigüedad.
+        const lockKey = window._cachedUserId || currentUserIndex;
+        newTopic.characterLocks    = {}; newTopic.characterLocks[lockKey]    = _tw.charId;
+        newTopic.rpgCharacterLocks = {}; newTopic.rpgCharacterLocks[lockKey] = _tw.charId;
     } else {
         newTopic.roleCharacterId = _tw.charId;
     }
@@ -1563,6 +1402,28 @@ function createTopicFromWizard() {
             if (result.ok && result.storyId) {
                 topicRef.storyId = result.storyId;
                 hasUnsavedChanges = true; save({ silent: true });
+                // enterTopic(id) ya se ejecutó (más abajo) antes de que esta promesa
+                // resolviera, así que window.currentStoryId quedó en null. Sin esto,
+                // el mensaje de apertura (y cualquier mensaje/typing enviado mientras
+                // tanto) se inserta con story_id NULL y la política RLS de INSERT en
+                // "messages" lo rechaza (42501) al no poder verificar participación.
+                if (typeof currentTopicId !== 'undefined' && String(currentTopicId) === String(id)) {
+                    window.currentStoryId = result.storyId;
+                    var openingMsg = (appData.messages[id] || [])[0];
+                    if (openingMsg && typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.send === 'function') {
+                        SupabaseMessages.send(id, openingMsg).catch(function() {});
+                    }
+                    // El canal realtime ya se abrió (en enterTopic, más abajo) con
+                    // currentStoryId todavía en null, así que quedó filtrando por
+                    // session_id en vez de story_id — no vería mensajes de otros
+                    // participantes. Reabrirlo ahora con el storyId correcto.
+                    if (typeof SupabaseMessages !== 'undefined' && typeof SupabaseMessages.subscribeGlobal === 'function') {
+                        SupabaseMessages.subscribeGlobal(null, null, id);
+                    }
+                    if (typeof _sbEnterTopic === 'function') {
+                        _sbEnterTopic(id).catch(function() {});
+                    }
+                }
                 // Inicializar configuración de turnos en strict
                 var uid = window._cachedUserId;
                 if (uid && typeof SupabaseStories !== 'undefined' && SupabaseStories.setTurnConfig) {

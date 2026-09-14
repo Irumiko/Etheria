@@ -37,7 +37,12 @@ const CharPopover = (function () {
     function _ad() { return typeof appData !== 'undefined' ? appData : null; }
 
     function _getChar(charId) {
-        return (_ad()?.characters || []).find(c => String(c.id) === String(charId)) || null;
+        const mine = (_ad()?.characters || []).find(c => String(c.id) === String(charId));
+        if (mine) return mine;
+        // Fichas de otros participantes de la historia activa (cargadas por
+        // SupabaseStories.loadStoryParticipants) — no viven en appData.characters
+        // porque ese array alimenta el selector de "mis personajes".
+        return (_ad()?.storyParticipantCharacters || []).find(c => String(c.id) === String(charId)) || null;
     }
 
     function _getMyCharId() {

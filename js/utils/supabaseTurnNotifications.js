@@ -13,6 +13,8 @@
 
     let _client = null;
     let _channel = null;
+    let _subscribedUserId = null; // usuario del canal actualmente activo
+    let _subscribing = null;      // promesa en curso — evita carreras entre llamadas simultáneas
 
     const BASE_HEADERS = {
         apikey: SB_KEY,
@@ -123,14 +125,30 @@
         }
     }
 
-    async function subscribe() {
+    // Dos sitios distintos llaman a subscribe() por el mismo motivo (login /
+    // recuperación de sesión al volver a la pestaña): app.js vía ensureProfile()
+    // y el propio listener de abajo. Sin proteger esto, dos llamadas casi
+    // simultáneas competían por el mismo nombre de canal y supabase-js
+    // devolvía el objeto ya suscrito de la otra ("cannot add postgres_changes
+    // callbacks ... after subscribe()"). _subscribing hace que la segunda
+    // llamada espere a la primera en vez de pisarla.
+    function subscribe() {
+        if (_subscribing) return _subscribing;
+        _subscribing = _doSubscribe().finally(() => { _subscribing = null; });
+        return _subscribing;
+    }
+
+    async function _doSubscribe() {
         const client = _getClient();
         if (!client?.channel) return false;
 
-        await unsubscribe();
-
         const userId = await _getUserId();
-        if (!userId) return false;
+        if (!userId) { await unsubscribe(); return false; }
+
+        // Ya hay un canal activo para este mismo usuario — no recrearlo.
+        if (_channel && _subscribedUserId === userId) return true;
+
+        await unsubscribe();
 
         try {
             _channel = client
@@ -151,10 +169,12 @@
                 })
                 .subscribe();
 
+            _subscribedUserId = userId;
             return true;
         } catch (error) {
             logger?.warn('supabase:turn-notify', 'subscribe failed:', error?.message || error);
             _channel = null;
+            _subscribedUserId = null;
             return false;
         }
     }
@@ -162,9 +182,15 @@
     async function unsubscribe() {
         const client = _getClient();
         if (_channel && client) {
-            try { client.removeChannel(_channel); } catch {}
+            // removeChannel() es async — sin el await, subscribe() podía crear
+            // el canal nuevo con el mismo nombre antes de que el viejo
+            // terminara de eliminarse, y supabase-js devolvía el objeto
+            // reciclado ya suscrito ("cannot add postgres_changes callbacks
+            // ... after subscribe()").
+            try { await client.removeChannel(_channel); } catch {}
         }
         _channel = null;
+        _subscribedUserId = null;
     }
 
     if (typeof window !== 'undefined') {

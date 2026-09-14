@@ -479,8 +479,13 @@ function toggleWelcomeOverlay(shouldShow) {
     const addCard = document.getElementById('addProfileCard');
     const canCreateProfile = Boolean(addCard);
 
-    if (overlay) overlay.classList.toggle('active', shouldShow && canCreateProfile);
-    if (addCard) addCard.classList.toggle('highlight', shouldShow);
+    // Si Ethy está guiando el tour de bienvenida de primera vez, ese tour ya
+    // explica lo mismo — mostrar también este aviso estático duplicaría el
+    // mensaje y competiría visualmente con el panel de Ethy.
+    const ethyTourActive = !!(window.Ethy && typeof window.Ethy.isFirstVisitTourActive === 'function' && window.Ethy.isFirstVisitTourActive());
+
+    if (overlay) overlay.classList.toggle('active', shouldShow && canCreateProfile && !ethyTourActive);
+    if (addCard) addCard.classList.toggle('highlight', shouldShow && !ethyTourActive);
 }
 
 function generateProfileParticles() {
@@ -779,14 +784,32 @@ async function addNewProfile() {
         return;
     }
 
-    const newName = prompt('Nombre del nuevo perfil:');
-    if (newName && newName.trim()) {
-        userNames.push(newName.trim());
-        localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
-        const newIdx = userNames.length - 1;
-        if (typeof _claimProfile === 'function') _claimProfile(newIdx, uid);
-        renderUserCards();
-    }
+    window._pendingNewProfileUid = uid;
+    const input = document.getElementById('newProfileNameInput');
+    if (input) input.value = '';
+    if (typeof openModal === 'function') openModal('newProfileNameModal');
+    window.dispatchEvent(new CustomEvent('etheria:new-profile-modal-open'));
+    setTimeout(() => { if (input) input.focus(); }, 50);
+}
+
+// Confirma el nombre escrito en #newProfileNameModal — sustituye al antiguo
+// prompt() nativo, que bloqueaba la página y no permitía que Ethy señalara
+// el campo durante el tutorial de bienvenida.
+function confirmNewProfileName() {
+    const input = document.getElementById('newProfileNameInput');
+    const newName = input ? input.value.trim() : '';
+    if (!newName) { if (input) input.focus(); return; }
+
+    const uid = window._pendingNewProfileUid;
+    userNames.push(newName);
+    localStorage.setItem('etheria_user_names', JSON.stringify(userNames));
+    const newIdx = userNames.length - 1;
+    if (typeof _claimProfile === 'function' && uid) _claimProfile(newIdx, uid);
+    window._pendingNewProfileUid = null;
+
+    if (typeof closeModal === 'function') closeModal('newProfileNameModal');
+    renderUserCards();
+    window.dispatchEvent(new CustomEvent('etheria:new-profile-created', { detail: { index: newIdx, name: newName } }));
 }
 
 // Generar partículas — sistema Canvas (luciérnagas noche / pétalos día)

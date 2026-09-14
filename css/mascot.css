@@ -71,6 +71,14 @@
 }
 .ethy-body:active { transform: scale(0.95); }
 
+/* Halo dorado en el avatar mientras la burbuja está abierta — une
+   visualmente avatar + burbuja como un solo conjunto (medallón + pergamino)
+   en vez de dos piezas sueltas. */
+.ethy-container.ethy-bubble-open .ethy-body {
+    filter: drop-shadow(0 4px 18px rgba(124, 77, 255, 0.30))
+            drop-shadow(0 0 14px rgba(232, 200, 120, 0.55));
+}
+
 /* SVG inline de Ethy */
 .ethy-svg {
     width: 100%;
@@ -176,22 +184,26 @@
     bottom: 100%;
     right: 0;
     margin-bottom: 12px;
-    background: linear-gradient(135deg, rgba(36, 21, 68, 0.78), rgba(16, 10, 38, 0.74));
-    border: 1px solid rgba(124, 77, 255, 0.34);
-    border-radius: 0;
+    background: linear-gradient(100deg, rgba(124, 77, 255, 0.16) 0%, rgba(30, 20, 56, 0.94) 45%, rgba(16, 10, 38, 0.96) 100%);
+    border: 1px solid rgba(124, 77, 255, 0.38);
+    /* Misma silueta "ticket" que .hub-menu-item en el menú principal: dos
+       esquinas opuestas cortadas — el lenguaje ornamentado real de las
+       tarjetas de la app, en vez del clip-path de cómic (4 cortes + cola)
+       que usaba antes. */
     clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-    padding: 14px 18px;
-    min-width: 240px;
+    padding: 14px 20px 18px;
+    min-width: 250px;
     max-width: 340px;
     color: #f3eeff;
     font-family: 'Cormorant Garamond', 'Crimson Text', serif;
     font-size: 0.88rem;
     line-height: 1.65;
     box-shadow:
-        0 0 0 1px rgba(124, 77, 255, 0.34),
-        0 0 26px rgba(124, 77, 255, 0.20),
-        0 16px 40px rgba(0, 0, 0, 0.50);
-    backdrop-filter: blur(12px);
+        0 8px 32px rgba(0, 0, 0, 0.50),
+        0 0 0 1px rgba(124, 77, 255, 0.14) inset,
+        0 0 26px rgba(124, 77, 255, 0.18);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     opacity: 0;
     transform: translateY(18px) scale(0.92);
     transition: all 0.38s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -203,23 +215,26 @@
     transform: translateY(0) scale(1);
 }
 
-/* Flecha de la burbuja */
+.ethy-speech-bubble::before,
 .ethy-speech-bubble::after {
-    content: '';
-    position: absolute;
-    bottom: -9px;
-    right: 28px;
-    width: 18px; height: 18px;
-    background: rgba(16, 10, 38, 0.74);
-    border-right: 1px solid rgba(124, 77, 255, 0.34);
-    border-bottom: 1px solid rgba(124, 77, 255, 0.34);
-    transform: rotate(45deg);
-    backdrop-filter: blur(14px);
-}
-
-.ethy-speech-bubble::before {
     display: none;
 }
+
+/* Esquinas ornamentadas en L — mismo motivo que .hub-menu-item del menú
+   principal (clip-path recorta también estas puntas junto a las dos
+   esquinas cortadas, dando el remate diagonal natural). */
+.ethy-corner {
+    position: absolute;
+    width: 13px;
+    height: 13px;
+    pointer-events: none;
+    border-color: rgba(232, 200, 120, 0.60);
+    opacity: 0.85;
+}
+.ethy-corner.tl { top: 5px;    left: 5px;  border-top: 1px solid;    border-left: 1px solid; }
+.ethy-corner.tr { top: 5px;    right: 5px; border-top: 1px solid;    border-right: 1px solid; }
+.ethy-corner.bl { bottom: 5px; left: 5px;  border-bottom: 1px solid; border-left: 1px solid; }
+.ethy-corner.br { bottom: 5px; right: 5px; border-bottom: 1px solid; border-right: 1px solid; }
 
 /* Título en la burbuja */
 .ethy-speech-bubble .ethy-title {
@@ -227,55 +242,206 @@
     font-size: 0.625rem;
     font-weight: 700;
     color: var(--cel-gold, #e8c878);
-    margin-bottom: 8px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 6px;
     letter-spacing: 0.28em;
     text-transform: uppercase;
+}
+.ethy-title-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 .ethy-title-gem {
     font-size: 0.55rem;
     color: var(--cel-gold, #e8c878);
     line-height: 1;
 }
+.ethy-bubble-close {
+    background: none;
+    border: none;
+    color: rgba(203, 182, 255, 0.55);
+    cursor: pointer;
+    font-size: 0.7rem;
+    letter-spacing: 0;
+    text-transform: none;
+    padding: 2px 4px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: color 0.15s, background 0.15s;
+    flex-shrink: 0;
+}
+.ethy-bubble-close:hover {
+    color: rgba(244, 217, 138, 1);
+    background: rgba(124, 77, 255, 0.20);
+}
 
-/* Botones de acción en la burbuja */
+/* Divisor ornamental bajo el título — mismo asset que el diálogo VN */
+.ethy-title-divider {
+    height: 10px;
+    margin: 9px -20px 7px;
+    background-image: url('../../assets/divider-ornament-sm.svg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 100% 100%;
+    opacity: 0.55;
+}
+
+/* Botones de acción — lista vertical tipo menú, sin cajas con borde */
 .ethy-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 15px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 14px;
 }
 
 .ethy-btn {
-    padding: 6px 14px;
-    border: 1px solid rgba(124, 77, 255, 0.45);
-    background: rgba(124, 77, 255, 0.07);
-    color: rgba(203, 182, 255, 0.9);
-    border-radius: 8px;
+    padding: 7px 10px 7px 12px;
+    border: none;
+    border-left: 2px solid transparent;
+    background: transparent;
+    color: rgba(203, 182, 255, 0.82);
+    border-radius: 0 6px 6px 0;
     cursor: pointer;
     font-family: 'Cinzel', serif;
-    font-size: 0.78rem;
-    letter-spacing: 0.04em;
-    transition: background 0.18s, border-color 0.18s, color 0.18s;
+    font-size: 0.76rem;
+    letter-spacing: 0.03em;
+    text-align: left;
+    transition: background 0.18s, border-color 0.18s, color 0.18s, padding-left 0.18s;
 }
 
 .ethy-btn:hover {
-    background: rgba(124, 77, 255, 0.20);
-    border-color: rgba(183, 148, 246, 0.75);
+    background: rgba(124, 77, 255, 0.12);
+    border-left-color: rgba(244, 217, 138, 0.85);
     color: rgba(245, 215, 120, 1);
+    padding-left: 16px;
 }
 
+/* Primario: pill CTA suelto, no una fila más de la lista */
 .ethy-btn.primary {
-    background: rgba(124, 77, 255, 0.20);
-    border-color: rgba(183, 148, 246, 0.70);
-    color: rgba(244, 217, 138, 1);
+    margin-bottom: 4px;
+    padding: 9px 20px;
+    border: 1px solid rgba(203, 182, 255, 0.30);
+    border-radius: 999px;
+    background: linear-gradient(100deg, rgba(124, 77, 255, 0.82) 0%, rgba(157, 107, 255, 0.72) 100%);
+    color: #fff6df;
+    font-size: 0.80rem;
+    text-align: center;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 4px 16px rgba(124, 77, 255, 0.35);
 }
 
 .ethy-btn.primary:hover {
-    background: rgba(124, 77, 255, 0.32);
-    border-color: rgba(244, 217, 138, 0.90);
+    padding: 9px 20px;
+    border-left: none;
+    background: linear-gradient(100deg, rgba(139, 92, 255, 0.92) 0%, rgba(180, 130, 255, 0.82) 100%);
+    color: #fff6df;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        0 6px 20px rgba(124, 77, 255, 0.48);
+}
+
+/* ── Barra de iconos tipo HUD (menú de ayuda) ─────────────────────────────
+   Fila horizontal compacta de rombos, como los slots de habilidad de un
+   HUD de RPG — no una lista de filas de texto apiladas. Reutiliza el
+   mismo motivo de glifo-en-rombo que .hub-item-icon del menú principal. */
+.ethy-actions--hud {
+    flex-direction: row;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 12px;
+}
+
+.ethy-actions--hud .ethy-btn,
+.ethy-actions--hud .ethy-btn.primary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    width: 62px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    text-align: center;
+    color: rgba(203, 182, 255, 0.85);
+}
+
+.ethy-btn-icon {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transform: rotate(45deg);
+    border: 1px solid rgba(124, 77, 255, 0.42);
+    background: rgba(16, 10, 38, 0.50);
+    border-radius: 5px;
+    transition: border-color 0.22s, background 0.22s, box-shadow 0.22s, transform 0.22s;
+}
+
+.ethy-btn-icon-glyph {
+    display: inline-block;
+    transform: rotate(-45deg);
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+.ethy-btn-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.56rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(203, 182, 255, 0.75);
+    transition: color 0.22s;
+}
+
+.ethy-actions--hud .ethy-btn:hover .ethy-btn-icon,
+.ethy-actions--hud .ethy-btn.primary .ethy-btn-icon {
+    border-color: rgba(232, 200, 120, 0.80);
+    background: rgba(124, 77, 255, 0.22);
+    box-shadow:
+        0 0 14px rgba(124, 77, 255, 0.40),
+        inset 0 0 10px rgba(124, 77, 255, 0.20);
+    transform: rotate(45deg) scale(1.08);
+}
+
+.ethy-actions--hud .ethy-btn:hover .ethy-btn-label,
+.ethy-actions--hud .ethy-btn.primary .ethy-btn-label {
+    color: rgba(244, 217, 138, 1);
+}
+
+.ethy-actions--hud .ethy-btn.primary:hover .ethy-btn-icon {
+    transform: rotate(45deg) scale(1.14);
+}
+
+/* Textarea del formulario de sugerencias */
+.ethy-feedback-input {
+    width: 100%;
+    min-height: 72px;
+    resize: vertical;
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(124, 77, 255, 0.34);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #f3eeff;
+    font-family: 'Cormorant Garamond', 'Crimson Text', serif;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+.ethy-feedback-input:focus {
+    outline: none;
+    border-color: rgba(183, 148, 246, 0.75);
+}
+.ethy-feedback-input::placeholder {
+    color: rgba(203, 182, 255, 0.45);
 }
 
 /* Indicador de pasos */
@@ -381,24 +547,29 @@
     .ethy-speech-bubble {
         min-width: 220px;
         max-width: min(280px, calc(100vw - 30px));
-        padding: 12px 15px;
+        padding: 10px 15px 14px;
         font-size: 0.85rem;
         /* Fix: anclar a la derecha del viewport sin salirse */
         right: 0;
         left: auto;
     }
 
-    /* Fix: botones en columna en móvil para evitar overflow horizontal */
-    .ethy-actions {
-        flex-direction: column;
-        gap: 6px;
+    .ethy-title-divider {
+        margin: 8px -15px 6px;
     }
 
-    .ethy-btn {
-        width: 100%;
-        padding: 7px 10px;
-        font-size: 0.78rem;
-        text-align: center;
+    .ethy-actions--hud {
+        gap: 10px;
+    }
+
+    .ethy-actions--hud .ethy-btn,
+    .ethy-actions--hud .ethy-btn.primary {
+        width: 54px;
+    }
+
+    .ethy-btn-icon {
+        width: 34px;
+        height: 34px;
     }
 }
 
@@ -412,45 +583,6 @@
     background: linear-gradient(150deg, rgba(20, 14, 6, 0.99) 0%, rgba(10, 7, 2, 0.99) 100%);
     border-color: rgba(124, 77, 255, 0.50);
     color: #f2e4c0;
-}
-
-[data-theme="dark"] .ethy-speech-bubble::before {
-    border-top-color: rgba(10, 7, 2, 0.99);
-}
-
-[data-theme="dark"] .ethy-speech-bubble::after {
-    border-top-color: rgba(124, 77, 255, 0.50);
-}
-
-/* Tooltip de ayuda contextual */
-.ethy-tooltip {
-    position: absolute;
-    background: rgba(26, 24, 21, 0.95);
-    border: 1px solid var(--cel-violet, #7c4dff);
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 0.8rem;
-    color: #e8d5a3;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-    z-index: var(--z-max);
-}
-
-.ethy-tooltip.visible {
-    opacity: 1;
-}
-
-/* Barra de progreso del tutorial */
-.ethy-progress {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--cel-violet, #7c4dff), var(--cel-violet-soft, #b794f6));
-    transition: width 0.3s ease;
-    z-index: calc(var(--z-max) + 1);
 }
 
 /* Overlay de enfoque */
@@ -649,14 +781,18 @@
     bottom: calc(100% + 12px); /* justo encima de Ethy */
     right: 0;
     width: 290px;
-    background: linear-gradient(160deg,
-        rgba(26, 22, 18, 0.97) 0%,
-        rgba(20, 17, 14, 0.97) 100%);
-    border: 1px solid rgba(201, 168, 108, 0.35);
+    background: linear-gradient(100deg,
+        rgba(124, 77, 255, 0.16) 0%,
+        rgba(30, 20, 56, 0.94) 45%,
+        rgba(16, 10, 38, 0.96) 100%);
+    border: 1px solid rgba(124, 77, 255, 0.38);
     border-radius: 14px 14px 4px 14px;
     box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.5),
-        0 0 0 1px rgba(201, 168, 108, 0.08) inset;
+        0 8px 32px rgba(0, 0, 0, 0.50),
+        0 0 0 1px rgba(124, 77, 255, 0.14) inset,
+        0 0 26px rgba(124, 77, 255, 0.18);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     padding: 0;
     overflow: hidden;
     opacity: 0;
@@ -678,12 +814,12 @@
     align-items: center;
     gap: 7px;
     padding: 10px 12px 8px;
-    border-bottom: 1px solid rgba(201, 168, 108, 0.15);
-    background: rgba(201, 168, 108, 0.06);
+    border-bottom: 1px solid rgba(124, 77, 255, 0.18);
+    background: rgba(124, 77, 255, 0.08);
 }
 
 .ethy-tp-icon {
-    color: rgba(201, 168, 108, 0.7);
+    color: var(--cel-gold, #e8c878);
     font-size: 0.75rem;
     flex-shrink: 0;
 }
@@ -694,7 +830,7 @@
     font-size: 0.72rem;
     font-weight: 600;
     letter-spacing: 0.06em;
-    color: rgba(124, 77, 255, 0.9);
+    color: var(--cel-gold, #e8c878);
     text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
@@ -704,7 +840,7 @@
 .ethy-tp-close {
     background: none;
     border: none;
-    color: rgba(201, 168, 108, 0.4);
+    color: rgba(203, 182, 255, 0.55);
     cursor: pointer;
     font-size: 0.75rem;
     padding: 2px 4px;
@@ -714,17 +850,17 @@
     flex-shrink: 0;
 }
 .ethy-tp-close:hover {
-    color: rgba(124, 77, 255, 0.9);
-    background: rgba(201, 168, 108, 0.1);
+    color: rgba(244, 217, 138, 1);
+    background: rgba(124, 77, 255, 0.20);
 }
 
 /* Contenido — sin animación de tipeo, texto completo */
 .ethy-tp-content {
     padding: 13px 14px;
-    font-family: 'EB Garamond', Georgia, serif;
+    font-family: 'Cormorant Garamond', 'Crimson Text', serif;
     font-size: 0.88rem;
     line-height: 1.6;
-    color: rgba(220, 200, 170, 0.92);
+    color: #f3eeff;
     min-height: 60px;
 }
 
@@ -734,7 +870,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 8px 12px 8px;
-    border-top: 1px solid rgba(201, 168, 108, 0.1);
+    border-top: 1px solid rgba(124, 77, 255, 0.14);
     gap: 8px;
 }
 
@@ -751,7 +887,7 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: rgba(201, 168, 108, 0.2);
+    background: rgba(124, 77, 255, 0.25);
     border: none;
     padding: 0;
     cursor: pointer;
@@ -759,14 +895,14 @@
     flex-shrink: 0;
 }
 .ethy-tp-dot:hover {
-    background: rgba(124, 77, 255, 0.45);
+    background: rgba(244, 217, 138, 0.6);
     transform: scale(1.3);
 }
 .ethy-tp-dot.done {
-    background: rgba(124, 77, 255, 0.45);
+    background: rgba(203, 182, 255, 0.55);
 }
 .ethy-tp-dot.active {
-    background: rgba(124, 77, 255, 0.9);
+    background: var(--cel-gold, #e8c878);
     transform: scale(1.2);
 }
 
@@ -778,9 +914,9 @@
 }
 
 .ethy-tp-btn {
-    background: rgba(201, 168, 108, 0.08);
-    border: 1px solid rgba(124, 77, 255, 0.22);
-    color: rgba(201, 168, 108, 0.8);
+    background: rgba(124, 77, 255, 0.10);
+    border: 1px solid rgba(124, 77, 255, 0.30);
+    color: rgba(203, 182, 255, 0.85);
     border-radius: 6px;
     padding: 4px 10px;
     font-size: 0.78rem;
@@ -790,23 +926,29 @@
     white-space: nowrap;
 }
 .ethy-tp-btn:hover {
-    background: rgba(201, 168, 108, 0.15);
-    border-color: rgba(124, 77, 255, 0.5);
-    color: rgba(201, 168, 108, 1);
+    background: rgba(124, 77, 255, 0.20);
+    border-color: rgba(244, 217, 138, 0.55);
+    color: rgba(244, 217, 138, 1);
 }
 .ethy-tp-btn[style*="hidden"] { pointer-events: none; }
 
 .ethy-tp-primary {
-    background: rgba(201, 168, 108, 0.18);
-    border-color: rgba(124, 77, 255, 0.5);
-    color: rgba(201, 168, 108, 1);
+    background: rgba(124, 77, 255, 0.22);
+    border-color: rgba(203, 182, 255, 0.45);
+    color: #fff6df;
 }
 .ethy-tp-primary:hover {
-    background: rgba(201, 168, 108, 0.28);
+    background: rgba(139, 92, 255, 0.32);
+    border-color: rgba(244, 217, 138, 0.65);
 }
 .ethy-tp-finish {
-    background: rgba(124, 77, 255, 0.22);
-    border-color: rgba(201, 168, 108, 0.7);
+    background: linear-gradient(100deg, rgba(124, 77, 255, 0.82) 0%, rgba(157, 107, 255, 0.72) 100%);
+    border-color: rgba(203, 182, 255, 0.30);
+    color: #fff6df;
+}
+.ethy-tp-finish:hover {
+    background: linear-gradient(100deg, rgba(139, 92, 255, 0.92) 0%, rgba(180, 130, 255, 0.82) 100%);
+    border-color: rgba(244, 217, 138, 0.55);
 }
 
 /* Botón saltar — discreto, debajo del footer */
@@ -815,8 +957,8 @@
     width: 100%;
     background: none;
     border: none;
-    border-top: 1px solid rgba(201, 168, 108, 0.08);
-    color: rgba(124, 77, 255, 0.2);
+    border-top: 1px solid rgba(124, 77, 255, 0.12);
+    color: rgba(203, 182, 255, 0.45);
     font-size: 0.72rem;
     font-family: 'Cinzel', serif;
     letter-spacing: 0.04em;
@@ -826,8 +968,8 @@
     transition: color 0.2s, background 0.2s;
 }
 .ethy-tp-skip:hover {
-    color: rgba(124, 77, 255, 0.6);
-    background: rgba(201, 168, 108, 0.05);
+    color: rgba(244, 217, 138, 0.85);
+    background: rgba(124, 77, 255, 0.08);
 }
 
 /* Mobile: panel más estrecho */

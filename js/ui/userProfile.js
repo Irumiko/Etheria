@@ -163,7 +163,9 @@
                     .find(p => String(p.user_id) === String(userId));
                 if (myParticipant) {
                     const lockMap = Object.assign({}, topic.characterLocks || {}, topic.rpgCharacterLocks || {});
-                    const charId  = lockMap[myParticipant.user_index] || lockMap[String(myParticipant.user_index)];
+                    // Los locks se guardan por user_id real; user_index es solo
+                    // el respaldo de partidas locales sin cuenta.
+                    const charId  = lockMap[userId] || lockMap[myParticipant.user_index] || lockMap[String(myParticipant.user_index)];
                     if (charId) {
                         const char = _allChars().find(c => String(c.id) === String(charId));
                         if (char) rpgSheet = { char, ...getRpgSheetData(char, topic.id) };

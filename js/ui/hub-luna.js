@@ -108,6 +108,25 @@
     });
   }
 
+  // ── Anillo zodiacal tras la luna ─────────────────────────
+  function buildZodiac(host) {
+    var g = host.querySelector('.ticks');
+    if (!g) return;
+    var R = 85;
+    for (var i = 0; i < 12; i++) {
+      var angle = (i / 12) * Math.PI * 2;
+      var cx = 100 + Math.cos(angle) * R;
+      var cy = 100 + Math.sin(angle) * R;
+      var isCardinal = i % 3 === 0;
+      var tick = document.createElementNS(SVGNS, 'circle');
+      tick.setAttribute('cx', cx.toFixed(2));
+      tick.setAttribute('cy', cy.toFixed(2));
+      tick.setAttribute('r', isCardinal ? 2.6 : 1.4);
+      tick.setAttribute('class', 'tick' + (isCardinal ? ' hi' : ''));
+      g.appendChild(tick);
+    }
+  }
+
   // ── Motas ascendentes ───────────────────────────────────
   function buildMotes(host, count) {
     var r = rng(404);
@@ -121,6 +140,28 @@
       m.style.setProperty('--del', (-r() * 30) + 's');
       m.style.setProperty('--drift', ((r() - 0.5) * 60) + 'px');
       host.appendChild(m);
+    }
+  }
+
+  // ── Luciérnagas sobre el paisaje ─────────────────────────
+  // A diferencia de las motas (que ascienden por toda la pantalla), estas
+  // se quedan flotando bajas, sobre la silueta de montañas — para dar vida
+  // a esa franja que queda visualmente vacía frente al cielo animado.
+  function buildFireflies(host, count) {
+    var r = rng(2024);
+    for (var i = 0; i < count; i++) {
+      var f = document.createElement('div');
+      f.className = 'firefly';
+      var sz = 2.6 + r() * 2.4;
+      f.style.left = (4 + r() * 92) + '%';
+      f.style.bottom = (r() * 55) + '%';
+      f.style.width = sz + 'px';
+      f.style.height = sz + 'px';
+      f.style.setProperty('--dur', (6 + r() * 6) + 's');
+      f.style.setProperty('--del', (-r() * 12) + 's');
+      f.style.setProperty('--wander', ((r() - 0.5) * 40) + 'px');
+      f.style.setProperty('--rise', (8 + r() * 18) + 'px');
+      host.appendChild(f);
     }
   }
 
@@ -161,6 +202,16 @@
   }
 
   // ── Parallax (mismo patrón que js/ui/hub.js) ────────────
+  // El CSS lee var(--pd) en cada capa [data-pd] para calcular su
+  // desplazamiento, pero nada traducía el atributo HTML data-pd a esa
+  // variable — sin esto --pd nunca existe, el calc() del transform es
+  // inválido y toda la capa queda inmóvil (luna, estrellas, paisaje...).
+  function applyDepthVars(hub) {
+    hub.querySelectorAll('[data-pd]').forEach(function (el) {
+      el.style.setProperty('--pd', el.dataset.pd);
+    });
+  }
+
   function bindParallax(hub) {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var raf = null;
@@ -233,12 +284,17 @@
     var stars = hub.querySelector('.cel-stars');
     var cons = hub.querySelector('.cel-constellations');
     var motes = hub.querySelector('.cel-motes');
+    var fireflies = hub.querySelector('.cel-fireflies');
+    var zodiac = hub.querySelector('.cel-moon .zodiac');
     var menu = hub.querySelector('.menu-container');
 
     if (stars) buildStars(stars);
     if (cons) buildConstellations(cons);
     if (motes) buildMotes(motes, 16);
+    if (fireflies) buildFireflies(fireflies, 10);
+    if (zodiac) buildZodiac(zodiac);
     if (menu) buildSpine(menu);
+    applyDepthVars(hub);
     bindParallax(hub);
     bindAmbCycle(hub);
   }
