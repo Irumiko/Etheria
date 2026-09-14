@@ -29,7 +29,8 @@ Etheria/
 │   │   ├── menu/               # Estilos menú principal
 │   │   ├── gallery/            # Galería de personajes
 │   │   └── theme-menu/         # Selector de temas
-│   ├── components.css          # 13.600+ líneas — componentes globales (pendiente dividir)
+│   ├── components/              # Componentes globales, troceados por área
+│   │                            #   (01-base.css ... 13-presence-party.css)
 │   ├── menu-gamefeel.css       # Efectos del menú principal
 │   └── options-gamefeel.css    # Efectos sección opciones
 │
@@ -75,7 +76,7 @@ Etheria/
 │   │   ├── supabaseCharacters.js   # Personajes por perfil
 │   │   ├── supabaseBonds.js        # Vínculos entre personajes
 │   │   ├── supabaseAffinities.js   # Sistema de afinidad
-│   │   ├── supabaseAvatars.js      # Gestión de avatares
+│   │   ├── supabaseConversations.js  # Mensajería 1:1 entre usuarios (buzón)
 │   │   ├── supabaseSlots.js        # Slots de perfil (sincroniza al login)
 │   │   ├── supabaseCycles.js       # Ciclos narrativos de historia
 │   │   ├── supabaseCycleViews.js   # Vistas de ciclos
@@ -91,6 +92,9 @@ Etheria/
 │   │   ├── pushNotifications.js    # Push notifications PWA
 │   │   ├── storage.js              # localStorage con migración automática
 │   │   ├── state.js                # Estado global de sesión (userIndex, etc.)
+│   │   ├── bugReport.js            # Reporte de bugs a la Edge Function send-report
+│   │   │                          #   (fetch directo, no depende de supabaseClient.js —
+│   │   │                          #   funciona aunque el resto del JS no haya cargado)
 │   │   └── logger.js, webVitals.js
 │   ├── rpg/
 │   │   ├── RPGEngine.js            # Motor de reglas D&D-lite
@@ -108,7 +112,10 @@ Etheria/
 │   ├── backgrounds/            # Fondos JPEG/PNG (menu, default, rpg, topics_night_sky)
 │   ├── parallax/               # Capas de parallax (day/night, 3 layers cada uno)
 │   ├── icons/                  # PWA icons (192, 512)
-│   └── ui/                     # SVGs UI (ethy.svg)
+│   ├── ui/                     # SVGs UI (ethy.svg)
+│   ├── vendor/                 # Libs de terceros servidas localmente (supabase-js, html2canvas)
+│   └── *.svg, vn-bg-texture.png  # Marco Art Deco del VN (dialog-frame, name-badge,
+│                                #   avatar-frame-*, divider-ornament, btn-advance, icon-oracle)
 │
 ├── dist/                       # Generado por build.js — Vercel sirve esto como raíz
 │   ├── index.html              # HTML con CSS crítico inline + todos los JS inline
@@ -118,10 +125,18 @@ Etheria/
 │   ├── sw.js                   # Service Worker con cache-busting automático
 │   └── assets/                 # Copia de assets/ estáticos
 │
-├── tests/                      # Node.js built-in test runner (node:test)
+├── supabase/functions/          # Edge Functions (Deno, deployadas aparte con supabase CLI)
+│   ├── send-report/             # Reportes de bug/recomendación → tabla bug_reports + email (Resend)
+│   ├── send-push-notification/  # Disparada por Database Webhook al insertar turn_notifications
+│   └── close-expired-cycles/    # Cierra ciclos narrativos vencidos — cron horario (pg_cron)
+│
+├── tests/                      # Node.js built-in test runner (node:test), sandbox vm para
+│   │                            #   módulos sin import/export (mismo patrón en todos)
 │   ├── supabaseModules.test.js # Tests Supabase utils con sandbox vm
 │   ├── supabaseSync.test.js
 │   ├── domIntegrity.test.js
+│   ├── rpgEngine.test.js       # RPGEngine + RPGState (reglas D&D-lite, stats, HP, XP...)
+│   ├── sceneValidator.test.js  # Valida también las 3 escenas reales del juego
 │   └── ...
 │
 └── .github/workflows/ci.yml   # CI: tests + validate:build + build en cada push
@@ -212,8 +227,16 @@ problemas de propagación de sesión del SDK en ciertos contextos.
 - `js/ui/mejoras.js` (187 líneas) — eliminado. Funciones absorbidas en navigation.js.
 - `app.js` (raíz, 17 líneas) — eliminado. Shim obsoleto; js/app.js ya se carga
   directamente desde index.html.
+- `js/utils/supabaseAvatars.js` — eliminado (código muerto, sin caller en todo el repo).
+- JSONBin legacy en storage.js (ensureCloudConfig, fetchCloudBin, putCloudBin,
+  openSyncConflictModal, saveToCloud, applyServerProfile) — eliminado, ya
+  reemplazado por SupabaseSync.
+- `css/components.css` (13.624 líneas) — dividido en `css/components/01..13-*.css`.
+  El monolito original y su shim `css/modules/04-components.css` quedaron
+  huérfanos tras la migración y se eliminaron (nada los cargaba ya).
 - CI: `.github/workflows/ci.yml` — npm test + validate:build + build en cada push.
-- Tests: 32/32 pasan.
+- Tests: 71/71 pasan (motor RPG — `RPGEngine`/`RPGState` — y `SceneValidator`
+  cubiertos por primera vez; antes 18 tests, sin cobertura de la lógica de juego).
 - **Auditoría de seguridad completa (58 bugs corregidos):**
   - XSS via `innerHTML` con datos de usuario/Supabase sin escapar — ~42 instancias
   - XSS via `onclick` con delimitador `'` y datos de Supabase — ~9 instancias
@@ -223,21 +246,51 @@ problemas de propagación de sesión del SDK en ciertos contextos.
   - SW: `openWindow(notifData.url)` sin validar origen (open redirect via push)
   - SRI hash añadido al CDN de supabase-js en index.html
   - `collab-guard.js`: ediciones remotas no se persistían a localStorage
+- **Auditoría de seguimiento (bugs, memoria y estética):**
+  - XSS regresivo en el panel de elecciones de ciclo de vn.js (posterior a la
+    auditoría de seguridad original — texto libre sin escapar en `innerHTML`)
+  - `modify_stat` con `stat:"HP"` en escenas RPG escribía en un stat fantasma
+    en vez de curar/dañar el HP real (afectaba a las 3 escenas del juego)
+  - `_cachedUserId`: race condition real confirmada y corregida en
+    supabaseProfiles.js, supabaseMessages.js y supabaseCharacters.js (una
+    llamada a getUser() en vuelo podía sobrescribir el id tras un cambio de
+    sesión) — ver nota más abajo, el patrón puede repetirse en módulos nuevos
+  - `SceneValidator` no validaba ninguna referencia pese a prometerlo en su
+    docstring — ahora valida `goto_branch` contra las ramas de la escena
+  - `ResizeObserver` de affinity-atmosphere.js y un listener duplicable del
+    selector de emotes en vn.js — fugas de memoria en sesiones largas
+  - Colores de paleta "flat UI" genérica (auth.css, cycles.css, mascot.css,
+    features.css) sustituidos por los tonos ya establecidos en el proyecto
+    (toasts, `--cel-online`, paleta propia de cycles.css); `window.prompt()`
+    nativo sustituido por un modal temático (`openPromptModal`, reutiliza el
+    mismo markup que el `confirmModal` ya existente) en los 8 sitios donde se usaba
 
 ### 🟡 Pendiente — medio plazo
-- `css/components.css` (13.624 líneas) — dividir en módulos por componente.
-  La carpeta `css/modules/` ya existe con la estructura correcta.
 - Globals window.* — ~60 globals activos. La mayoría son módulos API (ok).
   Los globals de estado (currentTopicId, etc.) ya se sincronizan con vnStore
   pero no lo usan como fuente de verdad todavía.
-- `_cachedUserId` — varios módulos escriben en window._cachedUserId de forma
-  independiente. Riesgo de inconsistencia si dos módulos lo hacen en paralelo.
+- `_cachedUserId` — patrón de caché local + listener de auth-changed repetido
+  en varios módulos (ver "Resuelto" arriba para los 3 ya corregidos). Antes de
+  añadir un nuevo módulo que cachee el userId así, usar el mismo patrón de
+  contador de versión de sesión (`_authVersion`) para evitar la misma race.
+- Colores de rango de afinidad (`js/utils/state.js`, ~20 tonos) y de
+  alineamiento D&D (`js/ui/sheets.js`, 9 tonos) — también construidos sobre
+  la paleta "flat UI" genérica, pero son tablas de diseño completas con
+  significado narrativo propio; pendiente de una pasada de diseño deliberada,
+  no de un fix mecánico de sustitución 1:1 como el resto.
+- Sin smoke test visual (capturas de pantalla) en CI — los bugs puramente
+  visuales (SVG en 404, deriva de paleta) solo se detectan mirando la app
+  renderizada, no leyendo el código.
+- Sin modo local/offline para desarrollo — probar la app requiere credenciales
+  reales de Supabase, lo que dificulta la iteración rápida y las pruebas.
 
 ### 🟢 Bajo riesgo — largo plazo
-- Migrar build.js a Vite/esbuild (HMR en dev, tree-shaking real).
+- Migrar build.js a Vite/esbuild (HMR en dev, tree-shaking real) — evaluado y
+  descartado por ahora: build.js funciona, y el riesgo de una migración no
+  compensa para el tamaño/equipo actual del proyecto. Revisar si el proyecto
+  crece en complejidad o en gente tocando el código a la vez.
 - `collab-guard.js` — revisar si RLS de Supabase puede reemplazar parte de
   la lógica defensiva.
-- Añadir coverage de tests (actualmente 18 tests, cobertura parcial).
 
 ---
 
