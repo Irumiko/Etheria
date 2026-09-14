@@ -897,7 +897,8 @@
             font-size: 1rem;
             transition: all 0.3s;
         }
-        .form-group input:focus, .form-group select:focus {
+        .form-group input:focus, .form-group select:focus,
+        #promptModalInput:focus {
             outline: none;
             border-color: var(--accent-gold);
             box-shadow: 0 0 0 3px rgba(160,128,220, 0.1);

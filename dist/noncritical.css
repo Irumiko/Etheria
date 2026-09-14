@@ -1970,15 +1970,15 @@ body.is-pwa .menu-exit-btn:active {
 }
 
 .auth-status.error {
-    color: #e74c3c;
+    color: #c07070;
 }
 
 .auth-status.success {
-    color: #27ae60;
+    color: #70a870;
 }
 
 .auth-status.info {
-    color: #3498db;
+    color: var(--accent-sage);
 }
 
 /* Responsive */
@@ -2340,7 +2340,7 @@ body.is-pwa .menu-exit-btn:active {
     font-style: italic;
     color: var(--text-muted);
 }
-.opt-security-status.error   { color: #e74c3c; }
+.opt-security-status.error   { color: #c07070; }
 .opt-security-status.success { color: #6b8e7d; }
 .opt-security-status.info    { color: rgba(160,128,220, 0.7); }
 
@@ -5290,7 +5290,8 @@ body::before {
             font-size: 1rem;
             transition: all 0.3s;
         }
-        .form-group input:focus, .form-group select:focus {
+        .form-group input:focus, .form-group select:focus,
+        #promptModalInput:focus {
             outline: none;
             border-color: var(--accent-gold);
             box-shadow: 0 0 0 3px rgba(160,128,220, 0.1);
@@ -18017,7 +18018,7 @@ body.mode-rpg .vn-dice-consequence { color: rgba(220,170,80,0.8); }
 }
 
 .ethy-step.completed {
-    background: #27ae60;
+    background: #70a870;
 }
 
 /* Modo minimalista (solo el icono) */
@@ -24822,8 +24823,8 @@ mark.msg-search-mark {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #27ae60;
-    box-shadow: 0 0 5px rgba(39,174,96,0.6);
+    background: var(--cel-online, #8fe0c2);
+    box-shadow: 0 0 5px rgba(143,224,194,0.6);
     flex-shrink: 0;
     animation: presence-pulse 2.5s ease-in-out infinite;
 }
@@ -34644,46 +34645,49 @@ body.theme-rpg #vnSection .ecos-close-btn {
     line-height: 1.35;
 }
 
-/* Colores individuales por rama */
+/* Colores individuales por rama — paleta propia del proyecto (ver cabecera):
+   friendship reutiliza el verde ya usado en los badges de tirada (animations.css),
+   romance reutiliza el rojo "PV" ya usado en esta misma hoja (eco-negative),
+   rivalry reutiliza el bronce RPG ya usado en esta misma hoja. */
 #vnSection .branch-friendship {
-    border-color: rgba(46, 204, 113, .2);
+    border-color: rgba(94, 201, 138, .2);
 }
 #vnSection .branch-friendship:hover {
-    background: rgba(46, 204, 113, .1);
-    border-color: rgba(46, 204, 113, .45);
+    background: rgba(94, 201, 138, .1);
+    border-color: rgba(94, 201, 138, .45);
 }
-#vnSection .branch-friendship .branch-name  { color: #2ecc71; }
-#vnSection .branch-friendship .branch-icon  { color: #2ecc71; }
+#vnSection .branch-friendship .branch-name  { color: #5ec98a; }
+#vnSection .branch-friendship .branch-icon  { color: #5ec98a; }
 
 #vnSection .branch-romance {
-    border-color: rgba(231, 76, 60, .2);
+    border-color: rgba(217, 105, 78, .2);
 }
 #vnSection .branch-romance:hover {
-    background: rgba(231, 76, 60, .1);
-    border-color: rgba(231, 76, 60, .45);
+    background: rgba(217, 105, 78, .1);
+    border-color: rgba(217, 105, 78, .45);
 }
-#vnSection .branch-romance .branch-name { color: #e74c3c; }
-#vnSection .branch-romance .branch-icon { color: #e74c3c; }
+#vnSection .branch-romance .branch-name { color: #d9694e; }
+#vnSection .branch-romance .branch-icon { color: #d9694e; }
 
 #vnSection .branch-rivalry {
-    border-color: rgba(211, 84, 0, .2);
+    border-color: rgba(176, 118, 58, .2);
 }
 #vnSection .branch-rivalry:hover {
-    background: rgba(211, 84, 0, .1);
-    border-color: rgba(211, 84, 0, .45);
+    background: rgba(176, 118, 58, .1);
+    border-color: rgba(176, 118, 58, .45);
 }
-#vnSection .branch-rivalry .branch-name { color: #d35400; }
-#vnSection .branch-rivalry .branch-icon { color: #d35400; }
+#vnSection .branch-rivalry .branch-name { color: #b0763a; }
+#vnSection .branch-rivalry .branch-icon { color: #b0763a; }
 
 #vnSection .branch-enmity {
-    border-color: rgba(127, 140, 141, .25);
+    border-color: rgba(138, 130, 152, .25);
 }
 #vnSection .branch-enmity:hover {
-    background: rgba(127, 140, 141, .1);
-    border-color: rgba(127, 140, 141, .5);
+    background: rgba(138, 130, 152, .1);
+    border-color: rgba(138, 130, 152, .5);
 }
-#vnSection .branch-enmity .branch-name { color: #95a5a6; }
-#vnSection .branch-enmity .branch-icon { color: #95a5a6; }
+#vnSection .branch-enmity .branch-name { color: #8a8298; }
+#vnSection .branch-enmity .branch-icon { color: #8a8298; }
 
 #vnSection .branch-modal-footer {
     font-family: 'EB Garamond', serif;

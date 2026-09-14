@@ -13381,10 +13381,10 @@ function showCurrentMessage(direction = 'forward') {
 
         const resultMeta = {
             critical: { label: 'ÉXITO CRÍTICO', cls: 'badge-critical', icon: '✦', borderColor: '#f1c40f' },
-            success:  { label: 'ACIERTO',        cls: 'badge-success',  icon: '◆', borderColor: '#27ae60' },
-            fail:     { label: 'FALLO',           cls: 'badge-fail',     icon: '◇', borderColor: '#c0392b' },
-            fumble:   { label: 'FALLO CRÍTICO',   cls: 'badge-fumble',   icon: '✕', borderColor: '#ff4444' }
-        }[result] || { label: result.toUpperCase(), cls: 'badge-success', icon: '◆', borderColor: '#27ae60' };
+            success:  { label: 'ACIERTO',        cls: 'badge-success',  icon: '◆', borderColor: '#5ec98a' },
+            fail:     { label: 'FALLO',           cls: 'badge-fail',     icon: '◇', borderColor: '#e07070' },
+            fumble:   { label: 'FALLO CRÍTICO',   cls: 'badge-fumble',   icon: '✕', borderColor: '#ff5555' }
+        }[result] || { label: result.toUpperCase(), cls: 'badge-success', icon: '◆', borderColor: '#5ec98a' };
 
         const consequenceHtml = msg.oracleConsequence
             ? `<span class="vn-dice-consequence">${escapeHtml(String(msg.oracleConsequence))}</span>`
@@ -14811,7 +14811,7 @@ function updateChapterPreview() {
     preview.textContent = `${pendingChapter.title}`;
 }
 
-function prepareChapter() {
+async function prepareChapter() {
     const topic = getCurrentTopic();
     if (!canUseNarratorMode(topic)) {
         showAutosave('Activa Modo Narrador para marcar capítulos', 'error');
@@ -14819,18 +14819,18 @@ function prepareChapter() {
     }
     const num    = getNextChapterNumber();
     const def    = `Capítulo ${['I','II','III','IV','V','VI','VII','VIII','IX','X'][num - 1] || num}`;
-    const titleRaw = window.prompt(`Título del capítulo ${num}:`, def);
+    const titleRaw = await openPromptModal(`Título del capítulo ${num}:`, def);
     if (titleRaw === null) return;
     const title = String(titleRaw || '').trim() || def;
 
     // Opcionalmente cambiar el fondo de escena
-    const backgroundRaw = window.prompt('URL del fondo para este capítulo (opcional, deja vacío para mantener el actual):', '');
+    const backgroundRaw = await openPromptModal('URL del fondo para este capítulo (opcional, deja vacío para mantener el actual):', '');
     if (backgroundRaw === null) return;
     const background = backgroundRaw.trim()
         ? resolveTopicBackgroundPath(backgroundRaw.trim())
         : null;
     const bridgeRaw = (topic?.mode !== 'rpg')
-        ? window.prompt('Texto puente de escena (opcional, para evitar salto brusco):', '')
+        ? await openPromptModal('Texto puente de escena (opcional, para evitar salto brusco):', '')
         : '';
     if (bridgeRaw === null) return;
     const bridge = String(bridgeRaw || '').trim();
@@ -16293,7 +16293,7 @@ function updateSceneChangePreview() {
     preview.textContent = `Próxima escena: ${pendingSceneChange.title}`;
 }
 
-function prepareSceneChange() {
+async function prepareSceneChange() {
     const topic = getCurrentTopic();
     if (!topic) return;
 
@@ -16313,11 +16313,11 @@ function prepareSceneChange() {
         return;
     }
 
-    const titleRaw = window.prompt('Nombre de la nueva escena (ej: Playa al atardecer):', 'Nueva escena');
+    const titleRaw = await openPromptModal('Nombre de la nueva escena (ej: Playa al atardecer):', 'Nueva escena');
     if (titleRaw === null) return;
     const title = String(titleRaw || '').trim() || 'Nueva escena';
 
-    const backgroundRaw = window.prompt('URL de fondo para la escena (opcional, deja vacío para usar el fondo por defecto):', '');
+    const backgroundRaw = await openPromptModal('URL de fondo para la escena (opcional, deja vacío para usar el fondo por defecto):', '');
     if (backgroundRaw === null) return;
     const background = resolveTopicBackgroundPath(String(backgroundRaw || '').trim());
 
@@ -17068,7 +17068,7 @@ function _postGarrickMessage(text, isLast = false) {
     return newMsg;
 }
 
-function triggerInnkeeperScene() {
+async function triggerInnkeeperScene() {
     const topic = getCurrentTopic();
     if (!topic || !canUseNarratorMode(topic)) {
         showAutosave('Solo el narrador puede invocar al posadero', 'error');
@@ -17082,12 +17082,12 @@ function triggerInnkeeperScene() {
     // 1. Pedir título del nuevo capítulo (igual que prepareChapter)
     const num = getNextChapterNumber();
     const def = `Capítulo ${['I','II','III','IV','V','VI','VII','VIII','IX','X'][num - 1] || num}`;
-    const titleRaw = window.prompt(`Título del capítulo ${num}:`, def);
+    const titleRaw = await openPromptModal(`Título del capítulo ${num}:`, def);
     if (titleRaw === null) return;
     const title = String(titleRaw || '').trim() || def;
 
     // 2. Fondo de escena opcional
-    const backgroundRaw = window.prompt('URL del fondo para esta escena (opcional — deja vacío para el fondo actual):', '');
+    const backgroundRaw = await openPromptModal('URL del fondo para esta escena (opcional — deja vacío para el fondo actual):', '');
     if (backgroundRaw === null) return;
     const background = backgroundRaw.trim()
         ? resolveTopicBackgroundPath(backgroundRaw.trim())
@@ -21637,6 +21637,50 @@ function openConfirmModal(message, okLabel = 'Confirmar', cancelLabel = 'Cancela
     });
 }
 
+// Modal de entrada de texto genérico — reemplaza prompt() nativo.
+// Devuelve la misma semántica que window.prompt(): null si se cancela,
+// el texto (posiblemente vacío) si se confirma.
+function openPromptModal(message, defaultValue = '') {
+    return new Promise((resolve) => {
+        const modal     = document.getElementById('promptModal');
+        const titleEl   = document.getElementById('promptModalTitle');
+        const inputEl   = document.getElementById('promptModalInput');
+        const btnOk     = document.getElementById('promptModalOk');
+        const btnCancel = document.getElementById('promptModalCancel');
+
+        if (!modal || !titleEl || !inputEl || !btnOk || !btnCancel) {
+            resolve(window.prompt(message, defaultValue));
+            return;
+        }
+
+        titleEl.textContent = message;
+        inputEl.value = defaultValue || '';
+
+        const cleanup = (result) => {
+            modal.classList.remove('active');
+            document.body.classList.remove('modal-open');
+            btnOk.removeEventListener('click', onOk);
+            btnCancel.removeEventListener('click', onCancel);
+            inputEl.removeEventListener('keydown', onKeydown);
+            resolve(result);
+        };
+        const onOk      = () => cleanup(inputEl.value);
+        const onCancel  = () => cleanup(null);
+        const onKeydown = (e) => {
+            if (e.key === 'Enter')  { e.preventDefault(); onOk(); }
+            if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+        };
+
+        btnOk.addEventListener('click', onOk);
+        btnCancel.addEventListener('click', onCancel);
+        inputEl.addEventListener('keydown', onKeydown);
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+        inputEl.focus();
+        inputEl.select();
+    });
+}
+
 function openModal(id) {
     if(id === 'topicModal') {
         // Limpiar el formulario al abrir para que no queden datos del topic anterior
@@ -22451,8 +22495,8 @@ function exportCurrentStoryAsCode() {
     showAutosave('Código de historia generado', 'saved');
 }
 
-function importStoryFromCode() {
-    const code = (window.prompt('Introduce el código de 6 caracteres:') || '').trim().toUpperCase();
+async function importStoryFromCode() {
+    const code = (await openPromptModal('Introduce el código de 6 caracteres:') || '').trim().toUpperCase();
     if (!code) return;
     const raw = localStorage.getItem(_storyCodeStorageKey(code));
     if (!raw) {

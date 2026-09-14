@@ -2783,6 +2783,19 @@ body,
         </div>
     </div>
 
+    <!-- Modal de entrada de texto genérico — reemplaza prompt() nativo -->
+    <div id="promptModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="promptModalTitle">
+        <div class="modal-content" style="max-width: 380px; text-align: center;">
+            <p id="promptModalTitle" style="font-family: 'Cinzel', serif; color: var(--text-primary); font-size: 1.1rem; margin-bottom: 1rem; line-height: 1.5;"></p>
+            <input type="text" id="promptModalInput" autocomplete="off"
+                   style="width: 100%; padding: 0.8rem; border-radius: 10px; border: 2px solid var(--border-color); background: var(--input-bg); color: var(--input-text); font-family: inherit; font-size: 1rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button class="btn-primary" id="promptModalOk" style="min-width: 110px;">Aceptar</button>
+                <button class="btn-secondary" id="promptModalCancel" style="min-width: 110px;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Onboarding primer acceso -->
     <div id="onboardingOverlay" class="onboarding-overlay" style="display:none;">
         <div class="onboarding-box">

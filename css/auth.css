@@ -324,15 +324,15 @@
 }
 
 .auth-status.error {
-    color: #e74c3c;
+    color: #c07070;
 }
 
 .auth-status.success {
-    color: #27ae60;
+    color: #70a870;
 }
 
 .auth-status.info {
-    color: #3498db;
+    color: var(--accent-sage);
 }
 
 /* Responsive */
@@ -694,7 +694,7 @@
     font-style: italic;
     color: var(--text-muted);
 }
-.opt-security-status.error   { color: #e74c3c; }
+.opt-security-status.error   { color: #c07070; }
 .opt-security-status.success { color: #6b8e7d; }
 .opt-security-status.info    { color: rgba(160,128,220, 0.7); }
 

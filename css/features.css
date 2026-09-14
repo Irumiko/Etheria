@@ -108,8 +108,8 @@ mark.msg-search-mark {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #27ae60;
-    box-shadow: 0 0 5px rgba(39,174,96,0.6);
+    background: var(--cel-online, #8fe0c2);
+    box-shadow: 0 0 5px rgba(143,224,194,0.6);
     flex-shrink: 0;
     animation: presence-pulse 2.5s ease-in-out infinite;
 }

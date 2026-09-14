@@ -269,6 +269,50 @@ function openConfirmModal(message, okLabel = 'Confirmar', cancelLabel = 'Cancela
     });
 }
 
+// Modal de entrada de texto genérico — reemplaza prompt() nativo.
+// Devuelve la misma semántica que window.prompt(): null si se cancela,
+// el texto (posiblemente vacío) si se confirma.
+function openPromptModal(message, defaultValue = '') {
+    return new Promise((resolve) => {
+        const modal     = document.getElementById('promptModal');
+        const titleEl   = document.getElementById('promptModalTitle');
+        const inputEl   = document.getElementById('promptModalInput');
+        const btnOk     = document.getElementById('promptModalOk');
+        const btnCancel = document.getElementById('promptModalCancel');
+
+        if (!modal || !titleEl || !inputEl || !btnOk || !btnCancel) {
+            resolve(window.prompt(message, defaultValue));
+            return;
+        }
+
+        titleEl.textContent = message;
+        inputEl.value = defaultValue || '';
+
+        const cleanup = (result) => {
+            modal.classList.remove('active');
+            document.body.classList.remove('modal-open');
+            btnOk.removeEventListener('click', onOk);
+            btnCancel.removeEventListener('click', onCancel);
+            inputEl.removeEventListener('keydown', onKeydown);
+            resolve(result);
+        };
+        const onOk      = () => cleanup(inputEl.value);
+        const onCancel  = () => cleanup(null);
+        const onKeydown = (e) => {
+            if (e.key === 'Enter')  { e.preventDefault(); onOk(); }
+            if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+        };
+
+        btnOk.addEventListener('click', onOk);
+        btnCancel.addEventListener('click', onCancel);
+        inputEl.addEventListener('keydown', onKeydown);
+        modal.classList.add('active');
+        document.body.classList.add('modal-open');
+        inputEl.focus();
+        inputEl.select();
+    });
+}
+
 function openModal(id) {
     if(id === 'topicModal') {
         // Limpiar el formulario al abrir para que no queden datos del topic anterior
@@ -1083,8 +1127,8 @@ function exportCurrentStoryAsCode() {
     showAutosave('Código de historia generado', 'saved');
 }
 
-function importStoryFromCode() {
-    const code = (window.prompt('Introduce el código de 6 caracteres:') || '').trim().toUpperCase();
+async function importStoryFromCode() {
+    const code = (await openPromptModal('Introduce el código de 6 caracteres:') || '').trim().toUpperCase();
     if (!code) return;
     const raw = localStorage.getItem(_storyCodeStorageKey(code));
     if (!raw) {
