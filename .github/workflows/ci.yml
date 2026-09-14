@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
       - name: Build dist
         run: node build.js
 
@@ -32,3 +35,14 @@ jobs:
 
       - name: Validate build output
         run: npm run validate:build
+
+      - name: Visual smoke test
+        run: npm run visual:smoke -- --strict
+
+      - name: Upload smoke test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-smoke-screenshots
+          path: test-artifacts/screenshots/
+          retention-days: 14

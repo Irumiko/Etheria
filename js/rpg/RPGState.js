@@ -50,10 +50,12 @@ const RPGState = (function () {
     // ── Stats ───────────────────────────────────────────────────
 
     function getStat(key) {
+        key = String(key).toUpperCase();
         return _stats[key] !== undefined ? _stats[key] : DEFAULT_STATS[key] ?? 10;
     }
 
     function setStat(key, value) {
+        key = String(key).toUpperCase();
         _stats[key] = Math.max(1, Math.min(30, Number(value) || 10));
         _save();
         _emitChange('stats');
@@ -314,7 +316,8 @@ const RPGState = (function () {
             _hp.max = hpMax;
 
             // Sincronizar HP actual, XP y nivel desde la ficha si existen
-            if (profile.hp    !== undefined) _hp.current = Math.max(0, Math.min(hpMax, Math.round((profile.hp / 10) * hpMax)));
+            const sheetHpMax = (typeof RPG_HP_MAX !== 'undefined') ? RPG_HP_MAX : 10;
+            if (profile.hp    !== undefined) _hp.current = Math.max(0, Math.min(hpMax, Math.round((profile.hp / sheetHpMax) * hpMax)));
             if (profile.exp   !== undefined) _xp   = Math.max(0, profile.exp);
             if (profile.level !== undefined) _level = Math.max(1, profile.level);
 

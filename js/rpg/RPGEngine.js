@@ -220,7 +220,11 @@ const RPGEngine = (function () {
             }
 
             case 'modify_stat':
-                RPGState.modifyStat(step.stat, step.amount);
+                if (String(step.stat).toUpperCase() === 'HP') {
+                    RPGState.modifyHp(step.amount);
+                } else {
+                    RPGState.modifyStat(step.stat, step.amount);
+                }
                 _syncBackToActiveChar();
                 _next();
                 break;

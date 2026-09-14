@@ -30,7 +30,9 @@ const SupabaseCharacters = (function () {
 
     // Fix C: cached user id — populated on etheria:auth-changed to avoid getUser() per-operation
     let _cachedUserId = window._cachedUserId || null;
+    let _authVersion  = 0; // se incrementa en cada 'etheria:auth-changed' para invalidar llamadas en vuelo
     window.addEventListener('etheria:auth-changed', function (e) {
+        _authVersion++;
         _cachedUserId = e.detail?.user?.id || window._cachedUserId || null;
     });
 
@@ -39,10 +41,12 @@ const SupabaseCharacters = (function () {
         if (cachedId) return { id: cachedId }; // Fix C: fast-path, no network
         const sb = _client();
         if (!sb) return null;
+        const _versionAtCall = _authVersion;
         try {
             const { data, error } = await sb.auth.getUser();
             if (error || !data?.user) return null;
-            _cachedUserId = data.user.id;
+            // Descarta el resultado si hubo un cambio de sesión mientras la llamada estaba en vuelo
+            if (_versionAtCall === _authVersion) _cachedUserId = data.user.id;
             return data.user;
         } catch { return null; }
     }

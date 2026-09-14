@@ -739,6 +739,7 @@ function toggleVnDialogEmotePicker(event) {
     if (!isOpen) {
         // Close on outside click
         setTimeout(() => {
+            if (popover.style.display === 'none') return; // se cerró antes de que esto se ejecutara
             document.addEventListener('click', function _closeDialogEmote(e) {
                 const btn = document.getElementById('vnEmoteDialogBtn');
                 if (!popover.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
@@ -2155,10 +2156,10 @@ function showCurrentMessage(direction = 'forward') {
 
         const resultMeta = {
             critical: { label: 'ÉXITO CRÍTICO', cls: 'badge-critical', icon: '✦', borderColor: '#f1c40f' },
-            success:  { label: 'ACIERTO',        cls: 'badge-success',  icon: '◆', borderColor: '#27ae60' },
-            fail:     { label: 'FALLO',           cls: 'badge-fail',     icon: '◇', borderColor: '#c0392b' },
-            fumble:   { label: 'FALLO CRÍTICO',   cls: 'badge-fumble',   icon: '✕', borderColor: '#ff4444' }
-        }[result] || { label: result.toUpperCase(), cls: 'badge-success', icon: '◆', borderColor: '#27ae60' };
+            success:  { label: 'ACIERTO',        cls: 'badge-success',  icon: '◆', borderColor: '#5ec98a' },
+            fail:     { label: 'FALLO',           cls: 'badge-fail',     icon: '◇', borderColor: '#e07070' },
+            fumble:   { label: 'FALLO CRÍTICO',   cls: 'badge-fumble',   icon: '✕', borderColor: '#ff5555' }
+        }[result] || { label: result.toUpperCase(), cls: 'badge-success', icon: '◆', borderColor: '#5ec98a' };
 
         const consequenceHtml = msg.oracleConsequence
             ? `<span class="vn-dice-consequence">${escapeHtml(String(msg.oracleConsequence))}</span>`
@@ -3598,7 +3599,7 @@ function updateChapterPreview() {
     preview.textContent = `${pendingChapter.title}`;
 }
 
-function prepareChapter() {
+async function prepareChapter() {
     const topic = getCurrentTopic();
     if (!canUseNarratorMode(topic)) {
         showAutosave('Activa Modo Narrador para marcar capítulos', 'error');
@@ -3606,18 +3607,18 @@ function prepareChapter() {
     }
     const num    = getNextChapterNumber();
     const def    = `Capítulo ${['I','II','III','IV','V','VI','VII','VIII','IX','X'][num - 1] || num}`;
-    const titleRaw = window.prompt(`Título del capítulo ${num}:`, def);
+    const titleRaw = await openPromptModal(`Título del capítulo ${num}:`, def);
     if (titleRaw === null) return;
     const title = String(titleRaw || '').trim() || def;
 
     // Opcionalmente cambiar el fondo de escena
-    const backgroundRaw = window.prompt('URL del fondo para este capítulo (opcional, deja vacío para mantener el actual):', '');
+    const backgroundRaw = await openPromptModal('URL del fondo para este capítulo (opcional, deja vacío para mantener el actual):', '');
     if (backgroundRaw === null) return;
     const background = backgroundRaw.trim()
         ? resolveTopicBackgroundPath(backgroundRaw.trim())
         : null;
     const bridgeRaw = (topic?.mode !== 'rpg')
-        ? window.prompt('Texto puente de escena (opcional, para evitar salto brusco):', '')
+        ? await openPromptModal('Texto puente de escena (opcional, para evitar salto brusco):', '')
         : '';
     if (bridgeRaw === null) return;
     const bridge = String(bridgeRaw || '').trim();
@@ -5801,7 +5802,7 @@ function _postGarrickMessage(text, isLast = false) {
     return newMsg;
 }
 
-function triggerInnkeeperScene() {
+async function triggerInnkeeperScene() {
     const topic = getCurrentTopic();
     if (!topic || !canUseNarratorMode(topic)) {
         showAutosave('Solo el narrador puede invocar al posadero', 'error');
@@ -5815,12 +5816,12 @@ function triggerInnkeeperScene() {
     // 1. Pedir título del nuevo capítulo (igual que prepareChapter)
     const num = getNextChapterNumber();
     const def = `Capítulo ${['I','II','III','IV','V','VI','VII','VIII','IX','X'][num - 1] || num}`;
-    const titleRaw = window.prompt(`Título del capítulo ${num}:`, def);
+    const titleRaw = await openPromptModal(`Título del capítulo ${num}:`, def);
     if (titleRaw === null) return;
     const title = String(titleRaw || '').trim() || def;
 
     // 2. Fondo de escena opcional
-    const backgroundRaw = window.prompt('URL del fondo para esta escena (opcional — deja vacío para el fondo actual):', '');
+    const backgroundRaw = await openPromptModal('URL del fondo para esta escena (opcional — deja vacío para el fondo actual):', '');
     if (backgroundRaw === null) return;
     const background = backgroundRaw.trim()
         ? resolveTopicBackgroundPath(backgroundRaw.trim())
@@ -6498,7 +6499,7 @@ async function _loadAndRenderCycleChoicesInPanel(topicId) {
                         ${alreadyResponded ? 'disabled' : ''}
                         onclick="_onCycleOptClick(this)">
                     <span class="vrp-cycle-opt-label">${opt.label}</span>
-                    <span class="vrp-cycle-opt-text">${opt.option_text}</span>
+                    <span class="vrp-cycle-opt-text">${escapeHtml(opt.option_text)}</span>
                 </button>
             `).join('');
 
@@ -6506,7 +6507,7 @@ async function _loadAndRenderCycleChoicesInPanel(topicId) {
                 <div class="vrp-cycle-card ${alreadyResponded ? 'vrp-cycle-card-done' : ''}">
                     <div class="vrp-cycle-card-header">
                         <span class="vrp-cycle-icon">✦</span>
-                        <span class="vrp-cycle-question">${choice.question_text}</span>
+                        <span class="vrp-cycle-question">${escapeHtml(choice.question_text)}</span>
                         ${alreadyResponded
                             ? '<span class="vrp-cycle-responded">Respondida ✓</span>'
                             : ''}

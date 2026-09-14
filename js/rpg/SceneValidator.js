@@ -23,6 +23,8 @@ const SceneValidator = (function () {
         sound:        ['action'],
         camera:       ['effect'],
         wait:         ['duration'],
+        set_flag:     ['key'],
+        add_xp:       [],   // "amount" es opcional — RPGEngine lo trata como 0 si falta
         end:          []
     };
 
@@ -115,6 +117,14 @@ const SceneValidator = (function () {
                 if (typeof step.amount !== 'number') {
                     errors.push(`${loc}: "amount" debe ser un número`);
                 }
+            }
+
+            // goto_branch es explícitamente "salta a una rama de ESTA escena" (a
+            // diferencia de choice.goto / stat_check.on_success-on_fail, que el
+            // propio SceneLoader ya trata como potencialmente una escena externa
+            // para el prefetch) — así que aquí sí podemos validar la referencia.
+            if (step.type === 'goto_branch' && step.branch && !branches[step.branch]) {
+                errors.push(`${loc}: goto_branch apunta a la rama "${step.branch}", que no existe en esta escena`);
             }
         });
     }

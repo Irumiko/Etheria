@@ -10,7 +10,7 @@
 
 // La versión se inyecta automáticamente por build.js en cada deploy.
 // Incrementar manualmente para forzar invalidación de caché en dev.
-const CACHE_VERSION = 'mtprsnkt';
+const CACHE_VERSION = 'mu1p3gkk';
 const CACHE_NAME    = `etheria-${CACHE_VERSION}`;
 const IMAGE_CACHE   = `etheria-images-${CACHE_VERSION}`;
 const CACHE_PREFIXES_TO_CLEAN = ['etheria-', 'etheria-images-'];
@@ -225,6 +225,12 @@ self.addEventListener('push', (event) => {
     tag:       data.tag     || 'etheria-push',
     renotify:  data.renotify ?? true,
     data:      data.data    || {},
+    // requireInteraction: sin esto, la notificación se autodescarta a los
+    // pocos segundos y es fácil que pase desapercibida si estás en otra
+    // pestaña o app (viendo un vídeo, etc.) — con esto se queda visible en
+    // el centro de notificaciones hasta que el usuario la descarta a mano.
+    requireInteraction: true,
+    vibrate: [200, 100, 200],
     actions: [
       { action: 'open',    title: 'Abrir historia' },
       { action: 'dismiss', title: 'Descartar' },

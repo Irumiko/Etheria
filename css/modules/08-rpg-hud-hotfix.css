@@ -1,13 +1,6 @@
 /* Hotfix aislado para HUD RPG.
    Objetivo: evitar conflictos con 07-overrides manteniendo cambios solo en modo RPG. */
 
-.vn-rpg-hud-quickbar,
-body.mode-rpg #vnSection .vn-rpg-hud-quickbar,
-body.mode-classic #vnSection .vn-rpg-hud-quickbar,
-body:not(.mode-rpg) #vnSection .vn-rpg-hud-quickbar {
-    display: none !important;
-}
-
 body.mode-rpg #vnSection .vn-rpg-controls {
     display: flex !important;
 }
@@ -204,13 +197,11 @@ body.mode-rpg .dm-select {
 body.mode-rpg .dm-select:focus {
     border-color: rgba(180, 140, 80, 0.50) !important;
 }
-body.mode-rpg .dm-btn,
-body.mode-rpg .dm-btn-primary {
+body.mode-rpg .dm-btn {
     border-color: rgba(180, 140, 80, 0.30) !important;
     color: rgba(220, 185, 110, 0.85) !important;
 }
-body.mode-rpg .dm-btn:hover,
-body.mode-rpg .dm-btn-primary:hover {
+body.mode-rpg .dm-btn:hover {
     background: rgba(180, 140, 80, 0.15) !important;
     border-color: rgba(180, 140, 80, 0.55) !important;
 }

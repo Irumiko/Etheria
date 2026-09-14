@@ -18,35 +18,6 @@
     --hub-icon-border: rgba(145, 100, 230, 0.30);
 }
 
-/* ── Degradados de legibilidad sobre el fondo ──────────────── */
-/* Izquierda: oscurece la zona del título */
-#mainMenu .menu-vignette-left {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-        to right,
-        rgba(6, 3, 16, 0.55) 0%,
-        rgba(6, 3, 16, 0.22) 38%,
-        transparent 60%
-    );
-    pointer-events: none;
-    z-index: 2;
-}
-
-/* Derecha: oscurece la zona de los botones */
-#mainMenu .menu-vignette-right {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-        to left,
-        rgba(6, 3, 16, 0.55) 0%,
-        rgba(6, 3, 16, 0.22) 38%,
-        transparent 60%
-    );
-    pointer-events: none;
-    z-index: 2;
-}
-
 /* ── BARRA SUPERIOR ────────────────────────────────────────── */
 #mainMenu .menu-top-bar {
     position: absolute !important;
@@ -217,11 +188,6 @@
     color: rgba(250, 235, 255, 1) !important;
 }
 
-#mainMenu .title-letter {
-    color: inherit !important;
-    text-transform: none !important;
-}
-
 /* ── SUBTÍTULO ─────────────────────────────────────────────── */
 #mainMenu .menu-subtitle {
     font-size: clamp(0.60rem, 1.1vw, 0.76rem) !important;
@@ -376,15 +342,6 @@
     border-left-color: var(--hub-gold) !important;
     box-shadow: 0 6px 32px rgba(10, 4, 28, 0.62),
                 0 0 0 1px rgba(195, 148, 255, 0.15) !important;
-}
-
-/* Opciones — más sutil */
-#mainMenu .hub-menu-item--minor {
-    opacity: 0.68 !important;
-    border-left-color: rgba(130, 92, 210, 0.28) !important;
-}
-#mainMenu .hub-menu-item--minor:hover {
-    opacity: 1 !important;
 }
 
 /* ── ICONO dentro del ítem ─────────────────────────────────── */

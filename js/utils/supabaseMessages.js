@@ -28,6 +28,7 @@
     let _channel   = null;   // canal realtime activo
     let _available = null;   // null = sin verificar | true | false
     let _cachedUserId = null; // Fix 6: cached auth user ID — avoids getUser() on every send
+    let _authVersion  = 0;    // se incrementa en cada 'etheria:auth-changed' para invalidar llamadas en vuelo
 
     function _isAvailable() { return _available !== false && !!SB_URL && !!SB_KEY && !!_client; }
 
@@ -129,6 +130,7 @@
     // Fix 6: populate _cachedUserId when auth state changes
     if (typeof window !== 'undefined') {
         window.addEventListener('etheria:auth-changed', function (e) {
+            _authVersion++; // invalida cualquier getUser() en vuelo de la sesión anterior
             _cachedUserId = e.detail?.user?.id || null;
         });
     }
@@ -151,9 +153,11 @@
             // Fix 4 + 6: use cached userId; fall back to live getUser() if not yet populated
             let _uid = _cachedUserId;
             if (!_uid) {
+                const _versionAtCall = _authVersion;
                 const { data: { user: _u } } = await sbClient.auth.getUser();
                 _uid = _u?.id || null;
-                if (_uid) _cachedUserId = _uid;
+                // Descarta el resultado si hubo un cambio de sesión mientras la llamada estaba en vuelo
+                if (_uid && _versionAtCall === _authVersion) _cachedUserId = _uid;
             }
             if (!_uid) { return false; }
             const user = { id: _uid };

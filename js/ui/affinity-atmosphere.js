@@ -76,6 +76,7 @@ const AffinityAtmosphere = (function () {
     let _canvas        = null;
     let _ctx           = null;
     let _panelEl       = null;
+    let _resizeObs     = null;
 
     // ── Clase de body + color canónico ───────────────────────────────
     function _setBodyClass(rankName) {
@@ -114,6 +115,10 @@ const AffinityAtmosphere = (function () {
         if (_particleAnim) {
             cancelAnimationFrame(_particleAnim);
             _particleAnim = null;
+        }
+        if (_resizeObs) {
+            _resizeObs.disconnect();
+            _resizeObs = null;
         }
         if (_canvas) {
             _canvas.remove();
@@ -170,8 +175,8 @@ const AffinityAtmosphere = (function () {
         _initParticles();
 
         // Redimensionar si el panel cambia
-        const _ro = new ResizeObserver(() => _initParticles());
-        _ro.observe(_panelEl);
+        _resizeObs = new ResizeObserver(() => _initParticles());
+        _resizeObs.observe(_panelEl);
 
         function _tick() {
             if (!_ctx || !_canvas) return;
